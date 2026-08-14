@@ -5,9 +5,20 @@
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts",
+    "./__mocks__/mockConfigMap": "./src/__mocks__/mockConfigMap.ts",
+    "./__mocks__/mockConnectionType": "./src/__mocks__/mockConnectionType.ts",
+    "./__mocks__/mockDashboardConfig": "./src/__mocks__/mockDashboardConfig.ts",
     "./__mocks__/mockK8sNameDescriptionFieldData": "./src/__mocks__/mockK8sNameDescriptionFieldData.ts",
+    "./__mocks__/mockK8sResourceList": "./src/__mocks__/mockK8sResourceList.ts",
+    "./__mocks__/mockK8sStatus": "./src/__mocks__/mockK8sStatus.ts",
+    "./__mocks__/mockKserveMetricsConfigMap": "./src/__mocks__/mockKserveMetricsConfigMap.ts",
+    "./__mocks__/mockOdhApplication": "./src/__mocks__/mockOdhApplication.ts",
+    "./__mocks__/mockPVCK8sResource": "./src/__mocks__/mockPVCK8sResource.ts",
+    "./__mocks__/mockPodK8sResource": "./src/__mocks__/mockPodK8sResource.ts",
     "./__mocks__/mockProjectK8sResource": "./src/__mocks__/mockProjectK8sResource.ts",
-    "./__mocks__/mockPVCK8sResource": "./src/__mocks__/mockPVCK8sResource.ts"
+    "./__mocks__/mockRouteK8sResource": "./src/__mocks__/mockRouteK8sResource.ts",
+    "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
+    "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts"
   },
   "scripts": {
     "lint": "eslint .",

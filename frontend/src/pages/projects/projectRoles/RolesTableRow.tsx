@@ -8,17 +8,23 @@ import type { RoleListRow } from './types';
 type RolesTableRowProps = {
   row: RoleListRow;
   onViewDetails: () => void;
-  onPreviewYAML: () => void;
+  onViewYAML: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
+  onDelete: () => void;
+  allowDelete: boolean;
+  allowDeleteLoaded: boolean;
 };
 
 const RolesTableRow: React.FC<RolesTableRowProps> = ({
   row,
   onViewDetails,
-  onPreviewYAML,
+  onViewYAML,
   onEdit,
   onDuplicate,
+  onDelete,
+  allowDelete,
+  allowDeleteLoaded,
 }) => {
   const { roleRef, role, userLabels } = row;
   const isClusterRole = roleRef.kind === 'ClusterRole';
@@ -26,8 +32,26 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
   const description = getRoleDescription(roleRef, role);
   const labelEntries = Object.entries(userLabels);
 
-  const clusterRoleEditTooltip = 'Cluster roles cannot be edited from a project page';
-  const clusterRoleDuplicateTooltip = 'Cluster roles cannot be duplicated from a project page';
+  const clusterRoleEditTooltip =
+    'Cluster roles can be edited only in OpenShift. For help, contact your cluster administrator. ';
+  const clusterRoleDuplicateTooltip =
+    'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
+  const clusterRoleDeleteTooltip =
+    'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
+  const noPermissionTooltip = 'You do not have permissions to perform this action';
+
+  const isDeleteDisabled = isClusterRole || !allowDelete || !allowDeleteLoaded;
+  const getDeleteTooltip = (): string | undefined => {
+    if (isClusterRole) {
+      return clusterRoleDeleteTooltip;
+    }
+    if (!allowDelete && allowDeleteLoaded) {
+      return noPermissionTooltip;
+    }
+    return undefined;
+  };
+
+  const deleteTooltip = getDeleteTooltip();
 
   const actionItems = [
     {
@@ -47,8 +71,17 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
       }),
     },
     {
-      title: 'Preview YAML',
-      onClick: onPreviewYAML,
+      title: 'View YAML',
+      onClick: onViewYAML,
+    },
+    { isSeparator: true },
+    {
+      title: 'Delete role',
+      onClick: onDelete,
+      isAriaDisabled: isDeleteDisabled,
+      ...(deleteTooltip && {
+        tooltipProps: { content: deleteTooltip },
+      }),
     },
   ];
 

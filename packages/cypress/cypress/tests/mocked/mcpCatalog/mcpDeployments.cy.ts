@@ -1,10 +1,9 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
 import {
   mcpDeploymentsPage,
@@ -34,7 +33,7 @@ const MCP_DEPLOYMENTS_API = `${BFF_PREFIX}/mcp_deployments`;
 const MCP_DEPLOYMENTS_URL = '/ai-hub/mcp-servers/deployments';
 const MODEL_REGISTRY_API_VERSION = 'v1';
 
-const initBaseIntercepts = () => {
+const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDscStatus({})) => {
   asProductAdminUser();
 
   cy.interceptOdh(
@@ -42,7 +41,7 @@ const initBaseIntercepts = () => {
     mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: false }),
   );
 
-  cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+  cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 
@@ -262,7 +261,10 @@ describe('MCP Deployments', () => {
     mcpDeployModal.findTitle().should('contain.text', 'Edit MCP server deployment');
     mcpDeployModal.findNameInput().should('have.value', 'Kubernetes MCP');
     mcpDeployModal.findOciImageInput().should('have.value', 'quay.io/mcp-servers/kubernetes:1.0.0');
-    mcpDeployModal.findProjectSelector().should('have.value', 'test-project');
+    mcpDeployModal
+      .findProjectSelectorToggle()
+      .should('contain.text', 'Test Project')
+      .and('be.disabled');
     mcpDeployModal.findSubmitButton().should('contain.text', 'Save');
   });
 
@@ -306,10 +308,23 @@ const TEST_SERVER_ID = 'kubernetes-server-1';
 const TEST_SERVER_IMAGE = 'ghcr.io/kubernetes/mcp-server:latest';
 
 const initDeployIntercepts = ({
-  crdAvailable = true,
+  mcpLifecycleManagementState = 'Managed',
   artifacts = [{ uri: TEST_SERVER_IMAGE }],
-}: { crdAvailable?: boolean; artifacts?: { uri: string }[] } = {}) => {
-  initBaseIntercepts();
+}: {
+  mcpLifecycleManagementState?: 'Managed' | 'Unmanaged' | 'Removed';
+  artifacts?: { uri: string }[];
+} = {}) => {
+  const defaultDscStatus = mockDscStatus({});
+  initBaseIntercepts(
+    mockDscStatus({
+      components: {
+        ...defaultDscStatus.components,
+        [DataScienceStackComponent.MCP_LIFECYCLE_OPERATOR]: {
+          managementState: mcpLifecycleManagementState,
+        },
+      },
+    }),
+  );
 
   cy.intercept('GET', `${BFF_PREFIX}/model_catalog/sources*`, {
     body: {
@@ -393,10 +408,6 @@ const initDeployIntercepts = ({
     body: { data: { items: [], size: 0, pageSize: 10, nextPageToken: '' } },
   });
 
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_server_available*`, {
-    body: { data: { available: crdAvailable } },
-  });
-
   cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver*`, {
     body: {
       data: mockMcpServerCR({
@@ -411,15 +422,43 @@ const initDeployIntercepts = ({
 
 describe('MCP Deploy from Catalog', () => {
   describe('Deploy button visibility', () => {
-    it('should show disabled deploy button when CRD is not available', () => {
-      initDeployIntercepts({ crdAvailable: false });
+    it('should enable deploy button when MCP lifecycle operator is Managed', () => {
+      initDeployIntercepts({ mcpLifecycleManagementState: 'Managed' });
 
       cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
       mcpServerDetailsPage
         .findDeployButton()
         .should('be.visible')
-        .and('have.attr', 'aria-disabled', 'true');
+        .and('not.have.attr', 'aria-disabled', 'true');
+    });
+
+    it('should enable deploy button when MCP lifecycle operator is Unmanaged', () => {
+      initDeployIntercepts({ mcpLifecycleManagementState: 'Unmanaged' });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
+    });
+
+    it('should show disabled deploy button with tooltip when MCP lifecycle operator is Removed', () => {
+      initDeployIntercepts({ mcpLifecycleManagementState: 'Removed' });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('have.attr', 'aria-disabled', 'true')
+        .trigger('mouseenter');
+
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        'MCP Lifecycle is not available in this cluster.',
+      );
     });
 
     it('should not show deploy button when server has no artifacts', () => {
@@ -429,18 +468,6 @@ describe('MCP Deploy from Catalog', () => {
 
       mcpServerDetailsPage.findBreadcrumbServerName().should('contain.text', 'Kubernetes MCP');
       mcpServerDetailsPage.findDeployButton().should('not.exist');
-    });
-
-    it('should show loading spinner on deploy button while availability is being checked', () => {
-      initDeployIntercepts();
-      cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_server_available*`, (req) => {
-        req.reply({ delay: 60000, body: { data: { available: true } } });
-      });
-
-      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-
-      mcpServerDetailsPage.findDeployButton().should('be.visible');
-      mcpServerDetailsPage.findDeployButtonSpinner().should('exist');
     });
 
     it('should not show deploy button when server is not found', () => {

@@ -1,4 +1,4 @@
-import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 
 export type TrustyAIContextData = {
   refresh: () => Promise<void>;

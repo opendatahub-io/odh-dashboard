@@ -4,8 +4,12 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { MaaSEvents } from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -43,6 +47,13 @@ const NoSubscriptionsWarning: React.FC = () => (
       variant="plain"
       data-testid="no-subscriptions-warning"
       aria-label="No subscriptions warning"
+      onClick={() => {
+        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          popoverType: 'warning',
+          status: 'no-subscriptions',
+          location: PhaseLabelLocation.OVERVIEW,
+        });
+      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -77,6 +88,13 @@ const NoPoliciesWarning: React.FC = () => (
       variant="plain"
       data-testid="no-policies-warning"
       aria-label="No authorization policies warning"
+      onClick={() => {
+        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          popoverType: 'warning',
+          status: 'no-policies',
+          location: PhaseLabelLocation.OVERVIEW,
+        });
+      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -92,7 +110,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Tbody isExpanded={isExpanded} data-testid="overview-model-row">
+    <Tbody isExpanded={isExpanded} data-testid={`overview-model-row-${row.id}-${row.namespace}`}>
       <Tr style={isExpanded ? { borderBottom: 'none' } : undefined}>
         <Td
           data-testid="expand-model"
@@ -114,7 +132,27 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={overviewColumns[2].label}>
+        <Td dataLabel={overviewColumns[2].label}>{row.namespace}</Td>
+        <Td dataLabel={overviewColumns[3].label}>
+          <PhaseLabel
+            phase={row.modelDetails.phase}
+            statusMessage={row.modelDetails.statusMessage}
+            status={row.modelDetails.status}
+            conditionType={row.modelDetails.conditionType}
+            lastTransitionTime={row.modelDetails.lastTransitionTime}
+            reason={row.modelDetails.reason}
+            resourceType={PhaseResourceType.MODEL}
+            resourceName={row.modelDetails.displayName ?? row.id}
+            onClick={() => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+                popoverType: 'status',
+                status: row.modelDetails.phase,
+                location: PhaseLabelLocation.OVERVIEW,
+              });
+            }}
+          />
+        </Td>
+        <Td dataLabel={overviewColumns[4].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.subscriptions.length}</FlexItem>
             {row.subscriptions.length === 0 && (
@@ -124,7 +162,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             )}
           </Flex>
         </Td>
-        <Td dataLabel={overviewColumns[3].label}>
+        <Td dataLabel={overviewColumns[5].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.authPolicies.length}</FlexItem>
             {row.authPolicies.length === 0 && (
@@ -167,7 +205,11 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
       <Tr isExpanded={isExpanded}>
         <Td colSpan={overviewColumns.length}>
           <ExpandableRowContent>
-            <ExpandedModelContent subscriptions={row.subscriptions} policies={row.authPolicies} />
+            <ExpandedModelContent
+              subscriptions={row.subscriptions}
+              policies={row.authPolicies}
+              returnTo={RETURN_TO}
+            />
           </ExpandableRowContent>
         </Td>
       </Tr>

@@ -8,7 +8,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Cancel on synchronize (new push) so stale scans don't waste runners.
+  # Keep running on labeled/unlabeled — auto-merge adding lgtm/approved was
+  # cancelling in-flight audit runs before they finished.
+  cancel-in-progress: ${{ github.event.action == 'synchronize' }}
 
 jobs:
   detect-dirs:
@@ -16,6 +19,10 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    # Ignore label noise except ok-to-skip-audit (bypass re-evaluation).
+    if: >
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'ok-to-skip-audit'
     outputs:
       dirs: ${{ steps.dirs.outputs.dirs }}
     steps:
@@ -28,13 +35,24 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git diff -z --diff-filter=ACMRT "$BASE_SHA"..HEAD -- '**/package-lock.json' > /tmp/changed-locks
+          # --name-only is required: git diff -z without it emits a full patch
+          # with no NULs, so the read loop never iterates and dirs stays [].
+          git diff -z --name-only --diff-filter=ACMRT "$BASE_SHA"..HEAD -- \
+            ':(glob)**/package-lock.json' > /tmp/changed-locks
 
           DIRS="[]"
           while IFS= read -r -d '' file; do
             dir=$(dirname "$file")
-            DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" '. + [$d]')
+            # Exclude upstream-synced packages
+            case "$dir" in
+              */upstream/*) continue ;;
+            esac
+            DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" 'if (. | index($d)) then . else . + [$d] end')
           done < /tmp/changed-locks
+
+          if [ "$DIRS" = "[]" ]; then
+            echo "::warning::No package-lock.json dirs detected from git diff; npm audit will be skipped"
+          fi
 
           echo "dirs=$(echo "$DIRS" | jq -c '.')" >> "$GITHUB_OUTPUT"
           echo "Directories to audit: $DIRS"

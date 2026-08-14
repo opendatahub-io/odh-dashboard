@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { LabelProps } from '@patternfly/react-core';
 import { EvaluationJobState } from '~/app/types';
 import EvaluationStatusLabel from '~/app/components/EvaluationStatusLabel';
@@ -10,18 +10,16 @@ type ExpectedLabelConfig = {
   status?: LabelProps['status'];
 };
 
-type ExpectedLabelConfigWithVariant = ExpectedLabelConfig & { isFilled?: boolean };
-
-const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfigWithVariant> = {
+const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfig> = {
   pending: { text: 'Pending', color: 'purple' },
   running: { text: 'Running', color: 'blue' },
   completed: { text: 'Complete', status: 'success' },
-  failed: { text: 'Failed', status: 'danger', isFilled: true },
+  failed: { text: 'Failed', status: 'danger' },
   cancelled: { text: 'Canceled', color: 'grey' },
   stopping: { text: 'Canceling', color: 'grey' },
   stopped: { text: 'Stopped', color: 'grey' },
   // eslint-disable-next-line camelcase
-  partially_failed: { text: 'Failed', status: 'danger', isFilled: true },
+  partially_failed: { text: 'Partially failed', status: 'warning' },
 };
 
 describe('EvaluationStatusLabel', () => {
@@ -56,45 +54,45 @@ describe('EvaluationStatusLabel', () => {
     }
   });
 
-  it.each(states)('should render with correct variant for "%s" state', (state) => {
+  it.each(states)('should render with filled variant for "%s" state', (state) => {
     render(<EvaluationStatusLabel state={state} />);
     const label = screen.getByTestId(`status-label-${state}`);
-    if (EXPECTED_LABELS[state].isFilled) {
-      expect(label).toHaveClass('pf-m-filled');
-    } else {
-      expect(label).toHaveClass('pf-m-outline');
-    }
+    expect(label).toHaveClass('pf-m-filled');
   });
 
-  it('should show a popover with the error message when failed label is clicked', () => {
-    const errorMessage = 'Benchmark arc_easy failed with message: model not found';
-    render(<EvaluationStatusLabel state="failed" message={errorMessage} />);
+  it('should call onClick when a failed label is clicked', () => {
+    const onClick = jest.fn();
+    render(<EvaluationStatusLabel state="failed" onClick={onClick} />);
 
-    fireEvent.click(screen.getByTestId('status-label-failed'));
+    const label = screen.getByTestId('status-label-failed');
+    fireEvent.click(within(label).getByRole('button'));
 
-    expect(screen.getByText('Evaluation failed')).toBeInTheDocument();
-    expect(
-      screen.getByText('Benchmark arc_easy failed with message: model not found'),
-    ).toBeInTheDocument();
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should split multi-line error messages into separate items in the popover', () => {
-    const errorMessage = 'Evaluation job is failed.\nBenchmark arc_easy failed with message: error';
-    render(<EvaluationStatusLabel state="failed" message={errorMessage} />);
+  it('should call onClick when a partially_failed label is clicked', () => {
+    const onClick = jest.fn();
+    render(<EvaluationStatusLabel state="partially_failed" onClick={onClick} />);
 
-    fireEvent.click(screen.getByTestId('status-label-failed'));
+    const label = screen.getByTestId('status-label-partially_failed');
+    fireEvent.click(within(label).getByRole('button'));
 
-    expect(screen.getByText('Evaluation job is failed.')).toBeInTheDocument();
-    expect(screen.getByText('Benchmark arc_easy failed with message: error')).toBeInTheDocument();
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should not show a popover for failed state without a message', () => {
+  it('should not be clickable when onClick is not provided', () => {
     render(<EvaluationStatusLabel state="failed" />);
-    expect(screen.queryByTestId('evaluation-status-popover')).not.toBeInTheDocument();
+    const label = screen.getByTestId('status-label-failed');
+    expect(within(label).queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should not show a popover for non-failed states even with a message', () => {
-    render(<EvaluationStatusLabel state="completed" message="some message" />);
-    expect(screen.queryByTestId('evaluation-status-popover')).not.toBeInTheDocument();
+  it('should call onClick for any state when provided', () => {
+    const onClick = jest.fn();
+    render(<EvaluationStatusLabel state="completed" onClick={onClick} />);
+
+    const label = screen.getByTestId('status-label-completed');
+    fireEvent.click(within(label).getByRole('button'));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

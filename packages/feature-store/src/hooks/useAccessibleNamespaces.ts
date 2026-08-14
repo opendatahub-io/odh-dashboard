@@ -33,16 +33,20 @@ const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
       projects.map(async (project: ProjectKind) => {
         const ns = project.metadata.name;
         const displayName = project.metadata.annotations?.['openshift.io/display-name'] || ns;
+        const accessRequest = {
+          group: FeatureStoreModel.apiGroup ?? '',
+          resource: FeatureStoreModel.plural,
+          name: '',
+          namespace: ns,
+          subresource: '' as const,
+        };
         let allowed: boolean;
         try {
-          allowed = await checkAccess({
-            group: FeatureStoreModel.apiGroup ?? '',
-            resource: FeatureStoreModel.plural,
-            verb: 'create',
-            name: '',
-            namespace: ns,
-            subresource: '',
-          });
+          const [canCreate, canGet] = await Promise.all([
+            checkAccess({ ...accessRequest, verb: 'create' }),
+            checkAccess({ ...accessRequest, verb: 'get' }),
+          ]);
+          allowed = canCreate && canGet;
         } catch {
           allowed = false;
         }

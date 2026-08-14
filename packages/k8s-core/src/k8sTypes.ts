@@ -138,6 +138,7 @@ export type SupportedModelFormats = {
   name: string;
   version?: string;
   autoSelect?: boolean;
+  priority?: number;
 };
 
 export type ProjectKind = K8sResourceCommon & {
@@ -312,6 +313,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
+  nimServiceOperator?: boolean;
   mySubscriptions?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
@@ -321,6 +323,8 @@ export type DashboardCommonConfig = {
   connectionTest?: boolean;
   modelCapabilities?: boolean;
   modelDeploymentSettings?: boolean;
+  notebooksV2?: boolean;
+  dataRegistry?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -369,6 +373,7 @@ export enum DataScienceStackComponent {
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
+  MCP_LIFECYCLE_OPERATOR = 'mcplifecycleoperator',
 }
 
 /** Represents the status of a component in the DataScienceCluster. */
@@ -832,6 +837,7 @@ export enum WorkloadOwnerType {
   Job = 'Job',
   StatefulSet = 'StatefulSet',
   ReplicaSet = 'ReplicaSet',
+  LeaderWorkerSet = 'LeaderWorkerSet',
 }
 
 export type WorkloadKind = K8sResourceCommon & {
@@ -1001,3 +1007,89 @@ export type ConfigSecretItem = {
 };
 
 export type K8sWatchResult<T> = [data: T, loaded: boolean, error: Error | undefined];
+
+export type RouteKind = K8sResourceCommon & {
+  spec: {
+    host: string;
+    path: string;
+    port: {
+      targetPort: string;
+    };
+    to?: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
+  };
+};
+
+export type OdhApplication = {
+  metadata: {
+    name: string;
+    annotations?: { [key: string]: string };
+  };
+  spec: {
+    displayName: string;
+    provider: string;
+    description: string;
+    route?: string | null;
+    routeNamespace?: string | null;
+    routeSuffix?: string | null;
+    serviceName?: string | null;
+    endpoint?: string | null;
+    link?: string | null;
+    img: string;
+    docsLink: string;
+    hidden?: boolean | null;
+    getStartedLink: string;
+    getStartedMarkDown: string;
+    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
+    support?: string;
+    quickStart: string | null;
+    comingSoon?: boolean | null;
+    beta?: boolean | null;
+    betaTitle?: string | null;
+    betaText?: string | null;
+    shownOnEnabledPage: boolean | null;
+    isEnabled: boolean | null;
+    csvName?: string;
+    enable?: {
+      title: string;
+      actionLabel: string;
+      description?: string;
+      linkPreface?: string;
+      link?: string;
+      variables?: { [key: string]: string };
+      variableDisplayText?: { [key: string]: string };
+      variableHelpText?: { [key: string]: string };
+      validationSecret: string;
+      validationJob: string;
+      validationConfigMap?: string;
+      inProgressText?: string;
+      warningValidation?: {
+        field: string;
+        validationRegex?: string;
+        message: string;
+      };
+    };
+    featureFlag?: string;
+    internalRoute?: string;
+    error?: string;
+  };
+};
+
+/**
+ * An OdhApplication that uses integration api to determine status.
+ * @see isIntegrationApp
+ */
+export type OdhIntegrationApplication = OdhApplication & {
+  spec: {
+    internalRoute: string; // starts with /api/
+  };
+};
+
+export enum OdhApplicationCategory {
+  RedHatManaged = 'Red Hat managed',
+  PartnerManaged = 'Partner managed',
+  SelfManaged = 'Self-managed',
+}

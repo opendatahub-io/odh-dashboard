@@ -18,6 +18,8 @@ import {
 } from '@odh-dashboard/internal/concepts/mlflow/const';
 // eslint-disable-next-line no-restricted-syntax
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
+// eslint-disable-next-line no-restricted-syntax
+import { MCP_REGISTRY_BASENAME } from './mcp-registry/const';
 
 /**
  * MLflow host-side extensions.
@@ -99,6 +101,21 @@ const extensions: (
       objectType: 'mcp-catalog',
       component: () => import('./mcp-registry/MlflowMcpRegistryTabContent'),
       group: '1b_registry',
+    },
+  },
+  // Full-page breakout for a single server's detail view. Registered as a
+  // separate app.route (rather than nested inside the tab's own component)
+  // so it renders outside the "MCP servers" tab page shell entirely. This
+  // path is more specific than the tab page's '/ai-hub/mcp-servers/*', so
+  // it always wins route matching for a specific server.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.MCP_CATALOG, SupportedArea.MCP_REGISTRY],
+    },
+    properties: {
+      path: `${MCP_REGISTRY_BASENAME}/:serverName`,
+      component: () => import('./mcp-registry/MlflowMcpRegistryDetailPage'),
     },
   },
   {

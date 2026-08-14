@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { Card, CardBody, CardHeader, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { makeCardVisible } from '#~/utilities/utils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';

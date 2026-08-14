@@ -11,14 +11,14 @@ export const DEFAULT_MODEL_KIND = 'LLMInferenceService' as const;
 
 /**
  * Resolves bare model refs (name + namespace) into full MaaSModelRefSummary objects
- * using the live catalog, falling back to a synthetic entry for deleted models.
+ * using the live summaries, falling back to a synthetic entry for deleted models.
  */
 export const modelRefsToSummaries = (
-  refs: { name: string; namespace: string }[],
-  catalog: MaaSModelRefSummary[],
+  refs: { name: string; namespace: string; displayName?: string }[],
+  summaries: MaaSModelRefSummary[],
 ): MaaSModelRefSummary[] =>
   refs.map((ref) => {
-    const matchedModelRef = catalog.find(
+    const matchedModelRef = summaries.find(
       (c) => c.name === ref.name && c.namespace === ref.namespace,
     );
     if (matchedModelRef) {
@@ -27,6 +27,7 @@ export const modelRefsToSummaries = (
     return {
       name: ref.name,
       namespace: ref.namespace,
+      displayName: ref.displayName,
       modelRef: { kind: DEFAULT_MODEL_KIND, name: ref.name },
     };
   });

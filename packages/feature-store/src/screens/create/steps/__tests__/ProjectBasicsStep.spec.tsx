@@ -42,16 +42,13 @@ jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   ),
 }));
 
-jest.mock('../../../../hooks/useAccessibleNamespaces', () => ({
-  __esModule: true,
-  default: () => ({
-    namespaces: [
-      { name: 'ns-a', displayName: 'Namespace A' },
-      { name: 'ns-b', displayName: 'ns-b' },
-    ],
-    loaded: true,
-  }),
-}));
+const mockAccessibleNamespaces = {
+  namespaces: [
+    { name: 'ns-a', displayName: 'Namespace A' },
+    { name: 'ns-b', displayName: 'ns-b' },
+  ],
+  loaded: true,
+};
 
 const makeFormData = (overrides: Partial<FeatureStoreFormData> = {}): FeatureStoreFormData => ({
   feastProject: '',
@@ -68,8 +65,8 @@ const makeFormData = (overrides: Partial<FeatureStoreFormData> = {}): FeatureSto
   offlineStoreEnabled: false,
   offlinePersistenceType: PersistenceType.FILE,
   offlineStoreSecretName: '',
-  authzType: AuthzType.NONE,
-  authz: undefined,
+  authzType: AuthzType.KUBERNETES,
+  authz: { kubernetes: { roles: [] } },
   scalingEnabled: false,
   scalingMode: ScalingMode.STATIC,
   replicas: 1,
@@ -100,6 +97,7 @@ describe('ProjectBasicsStep', () => {
         setData={setData}
         existingProjectNames={props.existingProjectNames ?? []}
         namespaceSecrets={props.namespaceSecrets ?? []}
+        accessibleNamespaces={mockAccessibleNamespaces}
       />,
     );
 
@@ -124,7 +122,7 @@ describe('ProjectBasicsStep', () => {
 
   it('shows alert when existing project names are present', () => {
     renderStep({}, { existingProjectNames: ['existing-project'] });
-    expect(screen.getByText(/Multiple feature stores detected/i)).toBeInTheDocument();
+    expect(screen.getByText(/Existing feature store detected/i)).toBeInTheDocument();
   });
 
   it('clears namespace-scoped state and resets TLS configMapRef on namespace change', () => {
@@ -245,5 +243,40 @@ describe('ProjectBasicsStep', () => {
       target: { value: 'git-creds' },
     });
     expect(setData).toHaveBeenCalledWith('gitSecretName', 'git-creds');
+  });
+
+  it('shows error helper text when namespace loading fails', () => {
+    render(
+      <ProjectBasicsStep
+        data={makeFormData()}
+        setData={setData}
+        existingProjectNames={[]}
+        namespaceSecrets={[]}
+        accessibleNamespaces={{
+          namespaces: [],
+          loaded: true,
+          error: new Error('RBAC denied'),
+        }}
+      />,
+    );
+    expect(screen.getByText(/Failed to load projects/)).toBeInTheDocument();
+    expect(screen.getByText(/RBAC denied/)).toBeInTheDocument();
+  });
+
+  it('shows feature repo path validation error for leading slash', () => {
+    renderStep({
+      projectDirType: ProjectDirType.GIT,
+      feastProjectDir: { git: { url: 'https://example.com/repo', featureRepoPath: '/bad/path' } },
+    });
+    expect(screen.getByText(/must not start with a slash/i)).toBeInTheDocument();
+  });
+
+  it('does not clear namespace-scoped state when selecting the same namespace', () => {
+    renderStep({ namespace: 'ns-a' });
+    fireEvent.change(screen.getByTestId('feast-namespace-toggle'), {
+      target: { value: 'ns-a' },
+    });
+    expect(setData).toHaveBeenCalledWith('namespace', 'ns-a');
+    expect(setData).not.toHaveBeenCalledWith('registrySecretName', '');
   });
 });

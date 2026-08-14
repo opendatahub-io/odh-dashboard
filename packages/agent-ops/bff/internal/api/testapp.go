@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
-	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )

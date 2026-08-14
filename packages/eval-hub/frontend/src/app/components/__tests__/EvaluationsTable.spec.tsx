@@ -6,6 +6,7 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
+const mockOnShowStatus = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
@@ -37,6 +38,7 @@ const renderTable = (props: {
         collectionNameMap={props.collectionNameMap ?? {}}
         collectionsLoaded={props.collectionsLoaded ?? true}
         onRefresh={mockOnRefresh}
+        onShowStatus={mockOnShowStatus}
       />
     </MemoryRouter>,
   );
@@ -122,6 +124,14 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
   });
 
+  it('should call onShowStatus with the job when EvaluationStatusLabel is clicked', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+    const statusLabel = screen.getByTestId('status-label-completed');
+    fireEvent.click(statusLabel.querySelector('button')!);
+    expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+    expect(mockOnShowStatus).toHaveBeenCalledWith(mockJobs[0]);
+  });
+
   it('should render the New evaluation button', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
@@ -151,13 +161,16 @@ describe('EvaluationsTable', () => {
     renderTable({ evaluations, loaded: true });
 
     const compareButton = screen.getByTestId('compare-evaluations-button');
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(compareButton);
+    expect(mockNavigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
-    expect(compareButton).toBeEnabled();
+    expect(compareButton).not.toHaveAttribute('aria-disabled');
   });
 
   it('should route directly to compare when selected rows are single benchmarks', () => {

@@ -1,7 +1,7 @@
 ---
 name: cluster-deploy-genai
 description: >-
-  Builds and deploys the gen-ai sidecar container to a personal OpenShift cluster
+  Builds and deploys the gen-ai standalone container to a personal OpenShift cluster
   for testing. Handles frontend build, Go BFF cross-compile, Podman image
   build/push to quay.io, and deployment patching. Supports both initial deploy
   and fast iteration (rebuild + pod delete). Use when the user wants to test
@@ -15,27 +15,46 @@ allowed-tools:
 
 # Cluster Deploy Gen-AI
 
-Build and deploy the gen-ai sidecar container to a personal OpenShift cluster for testing local changes.
+Build and deploy the gen-ai standalone container to a personal OpenShift cluster for testing local changes.
 
 ## Scope
 
-Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Only replaces the gen-ai sidecar container (`gen-ai-ui`) in the `odh-dashboard` deployment — does not rebuild the full dashboard.
+Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Only replaces the gen-ai standalone deployment (`gen-ai-ui`) — does not rebuild the full dashboard.
 
 ## When to use this vs Jenkins
 
 **This skill** — fast iteration on gen-ai package changes:
-- Only replaces the gen-ai sidecar container, not the full dashboard
+- Only replaces the gen-ai standalone deployment, not the full dashboard
 - Builds from local — changes don't need to be pushed to a branch
 - Faster redeploy cycle after initial setup
 
 **Jenkins (rhoai-test-flow)** — full dashboard rebuild:
-- Rebuilds the entire odh-dashboard (host frontend, backend, and all sidecar containers)
+- Rebuilds the entire odh-dashboard (host frontend, backend, and all module deployments)
 - Needed when changes span the host or multiple packages
 - Can trigger tests on the build
 
 ## Background
 
-The gen-ai package runs as a sidecar container (`gen-ai-ui`) in the `odh-dashboard` deployment. To test branch changes in a real cluster, we build a custom image and patch the deployment to use it.
+The gen-ai package runs as a standalone deployment (`gen-ai-ui`) managed by the `dashboard-operator`. To test branch changes in a real cluster, we build a custom image and set a `RELATED_IMAGE_*` env var on the dashboard-operator deployment. The dashboard-operator reads these env vars at startup and uses them to override the default images in its built-in `params.env` for each module. Setting the env var on the dashboard-operator deployment triggers a pod restart, and when the operator reconciles it deploys our custom image for the gen-ai module.
+
+The env var that controls the gen-ai-ui image is:
+
+```
+RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE
+```
+
+This maps to the `gen-ai-ui-image` key in the dashboard-operator's `params.env` (see `dashboard-operator/internal/controller/support.go` `imagesMap`).
+
+The full mapping of module images to env vars is:
+
+| Module | params.env key | Env var |
+|---|---|---|
+| gen-ai-ui | `gen-ai-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE` |
+| odh-dashboard | `odh-dashboard-image` | `RELATED_IMAGE_ODH_DASHBOARD_IMAGE` |
+| maas-ui | `maas-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE` |
+| eval-hub-ui | `eval-hub-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE` |
+| mlflow-ui | `mlflow-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE` |
+| agent-ops-ui | `agent-ops-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE` |
 
 **Why build the frontend/BFF outside of the Docker container?** If we use the gen-ai Dockerfile on ARM and build with podman, because it runs `go build` inside a linux/amd64 container (via QEMU emulation with podman), it deadlocks Go's networking goroutines during `go mod download`. Docker buildx may avoid that bug, but it requires installing/running Docker Engine separately (can't use Docker Desktop due to licensing). So we build the frontend/backend natively on the host and use a COPY-only Dockerfile with `podman build --platform linux/amd64` to produce the final image. This approach is faster for development vs building inside the container.
 
@@ -59,6 +78,9 @@ podman login --get-login quay.io
 oc whoami
 oc whoami --show-server
 
+# jq (required for JSON patching)
+jq --version
+
 # Go >= 1.24
 go version
 
@@ -81,41 +103,50 @@ Ask the user for:
 
 Do NOT ask the user — determine it from the installed operator:
 
+Find the operator by its **deployment** (authoritative), not by CSV alone — OLM copies CSVs to multiple namespaces, but the deployment only exists in one:
+
 ```bash
-if oc get csv -n redhat-ods-operator 2>/dev/null | grep -q rhods-operator; then
+if oc get deployment rhods-operator -n redhat-ods-operator 2>/dev/null | grep -q rhods-operator; then
   APPS_NS="redhat-ods-applications"
   OPERATOR_NS="redhat-ods-operator"
   OPERATOR_DEPLOY="rhods-operator"
   echo "Detected RHOAI — namespace: $APPS_NS"
+elif oc get deployment opendatahub-operator-controller-manager -n openshift-operators 2>/dev/null | grep -q opendatahub; then
+  APPS_NS="opendatahub"
+  OPERATOR_NS="openshift-operators"
+  OPERATOR_DEPLOY="opendatahub-operator-controller-manager"
+  echo "Detected ODH (openshift-operators) — namespace: $APPS_NS"
 elif oc get deployment opendatahub-operator-controller-manager -n opendatahub 2>/dev/null | grep -q opendatahub; then
   APPS_NS="opendatahub"
   OPERATOR_NS="opendatahub"
   OPERATOR_DEPLOY="opendatahub-operator-controller-manager"
-  echo "Detected ODH — namespace: $APPS_NS"
+  echo "Detected ODH (opendatahub) — namespace: $APPS_NS"
 else
   echo "ERROR: Neither RHOAI nor ODH operator found."
   exit 1
 fi
 ```
 
-Use `$APPS_NS` as the namespace for all deployment operations and `$OPERATOR_DEPLOY` in `$OPERATOR_NS` for scaling the operator.
+Use `$APPS_NS` as the namespace for all deployment operations.
 
 ### Auto-detect deploy mode
 
-Do NOT ask the user — determine it automatically by inspecting the current container image:
+Do NOT ask the user — determine it automatically by inspecting the current gen-ai-ui deployment image:
 
 ```bash
-CURRENT_IMAGE=$(oc get deployment/odh-dashboard -n $APPS_NS \
+CURRENT_IMAGE=$(oc get deployment/gen-ai-ui -n $APPS_NS \
   -o jsonpath='{.spec.template.spec.containers[?(@.name=="gen-ai-ui")].image}')
 ```
 
 - If `$CURRENT_IMAGE` contains the user's quay username → **iteration** mode (just rebuild/push + delete pod)
-- Otherwise → **initial deploy** mode (scale down operator, `oc set image`, wait for rollout)
+- Otherwise → **initial deploy** mode (set env var on dashboard-operator, wait for reconciliation)
 
 ### Derived values
 
 - Image: `quay.io/<user>/odh-mod-arch-gen-ai:<tag>`
+- Deployment name: `gen-ai-ui`
 - Container name in deployment: `gen-ai-ui`
+- Dashboard-operator deployment: `dashboard-operator`
 - Frontend path: `packages/gen-ai/frontend`
 - BFF path: `packages/gen-ai/bff`
 
@@ -167,17 +198,20 @@ EOF
 
 ### Step 4: Build the container image
 
-From the repo root:
+From the repo root. Always use `--no-cache` — the Dockerfile uses only COPY steps, so podman's layer cache won't detect changes to rebuilt artifacts and will silently serve a stale image:
 
 ```bash
-podman build --platform linux/amd64 \
+podman build --platform linux/amd64 --no-cache \
   --file ./packages/gen-ai/Dockerfile.dev-deploy \
   -t quay.io/<user>/odh-mod-arch-gen-ai:<tag> .
 ```
 
 ### Step 5: Push the image
 
+Before pushing, verify podman machine is still running — it can stop between long-running commands:
+
 ```bash
+podman machine info 2>&1 | grep -q 'Running' || podman machine start
 podman push quay.io/<user>/odh-mod-arch-gen-ai:<tag>
 ```
 
@@ -185,48 +219,65 @@ Remind the user: the quay.io repository must be set to **public**, or the cluste
 
 ## Phase 3: Deploy
 
-Use `$OPERATOR_DEPLOY`, `$OPERATOR_NS`, and `$APPS_NS` from the auto-detect step throughout this phase.
+Use `$APPS_NS` from the auto-detect step throughout this phase.
+
+### How it works
+
+The `dashboard-operator` continuously reconciles module deployments (including `gen-ai-ui`). Patching the deployment image directly with `oc set image` gets reverted by the dashboard-operator within seconds. Instead, we set a `RELATED_IMAGE_*` env var on the `dashboard-operator` deployment itself — the operator reads this on startup and uses it to override the image in its built-in `params.env`. The env var change triggers a pod restart of the dashboard-operator, and when it reconciles it deploys *our* custom image. No operator scale-down needed.
 
 ### Initial deploy
 
-The operator continuously reconciles the `odh-dashboard` deployment. Patch the image without stopping the operator and it will revert within seconds, therefore we must scale down the operator to prevent it from interfering with our manual image change.
-
-Before scaling down the operator, capture its current replica count so it can be restored later:
+#### Step 1: Set the RELATED_IMAGE env var on the dashboard-operator
 
 ```bash
-OPERATOR_REPLICAS=$(oc get deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
-  -o jsonpath='{.spec.replicas}')
+ENV_NAME="RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE"
+CUSTOM_IMAGE="quay.io/<user>/odh-mod-arch-gen-ai:<tag>"
+
+oc set env deployment/dashboard-operator -n $APPS_NS \
+  "${ENV_NAME}=${CUSTOM_IMAGE}"
+echo "Set $ENV_NAME -> $CUSTOM_IMAGE on dashboard-operator"
 ```
 
-```bash
-# Scale down the operator
-oc scale deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS --replicas=0
+#### Step 2: Wait for the dashboard-operator to restart
 
-# Patch the deployment to use the custom image
-oc set image deployment/odh-dashboard \
-  gen-ai-ui=quay.io/<user>/odh-mod-arch-gen-ai:<tag> \
-  -n $APPS_NS
+```bash
+echo "Waiting for dashboard-operator rollout..."
+oc rollout status deployment/dashboard-operator -n $APPS_NS --timeout=120s
+```
+
+#### Step 3: Wait for gen-ai-ui deployment to reconcile
+
+```bash
+echo "Waiting for gen-ai-ui reconciliation..."
+sleep 15
+
+# Verify the image was picked up
+DEPLOYED_IMAGE=$(oc get deployment/gen-ai-ui -n $APPS_NS \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="gen-ai-ui")].image}')
+echo "gen-ai-ui image: $DEPLOYED_IMAGE"
 
 # Wait for rollout
-oc rollout status deployment/odh-dashboard -n $APPS_NS
+oc rollout status deployment/gen-ai-ui -n $APPS_NS --timeout=180s
 ```
+
+If the `DEPLOYED_IMAGE` still shows the old image after 30 seconds, the reconciliation may need more time. Wait and re-check.
 
 If the rollout hangs with `ImagePullBackOff`, the quay.io repo is likely private. Fix it, then delete the pending pod to force a retry:
 
 ```bash
-oc delete pod -l app=odh-dashboard -n $APPS_NS
+oc delete pod -n $APPS_NS -l deployment=gen-ai-ui
 ```
 
 ### Iteration (redeploy same tag)
 
-After the initial deploy, the deployment already references the custom image tag. Just rebuild, push the same tag, and delete the pod:
+After the initial deploy, the dashboard-operator already deploys with the custom image tag. Just rebuild, push the same tag, and delete the pod:
 
 ```bash
 # Delete the pod to pull the new image
-oc delete pod -l app=odh-dashboard -n $APPS_NS
+oc delete pod -n $APPS_NS -l deployment=gen-ai-ui
 
 # Wait for the new pod
-oc rollout status deployment/odh-dashboard -n $APPS_NS
+oc rollout status deployment/gen-ai-ui -n $APPS_NS --timeout=120s
 ```
 
 ## Phase 4: Verify
@@ -234,30 +285,35 @@ oc rollout status deployment/odh-dashboard -n $APPS_NS
 Check that the rollout completed and show the dashboard URL:
 
 ```bash
-oc rollout status deployment/odh-dashboard -n $APPS_NS
+oc rollout status deployment/gen-ai-ui -n $APPS_NS
 ```
 
 Get the dashboard route URL so the user can click it directly:
 
 ```bash
-oc get route odh-dashboard -n $APPS_NS -o jsonpath='https://{.spec.host}'
+oc get route -n $APPS_NS -l app.kubernetes.io/part-of=odh-dashboard -o jsonpath='https://{.items[0].spec.host}' 2>/dev/null || \
+  oc get route odh-dashboard -n $APPS_NS -o jsonpath='https://{.spec.host}' 2>/dev/null || \
+  echo "No dashboard route found — check oc get route -n $APPS_NS"
 ```
 
 Tell the user to open that URL and navigate to the gen-ai pages to confirm their changes are live.
 
 ## Reverting
 
-Remind the user how to restore the original state when done testing. Use the auto-detected operator values and the saved replica count from Phase 3:
+Remind the user how to restore the original state when done testing. Remove the env var override from the dashboard-operator so it reverts to the default image from its built-in `params.env`:
 
 ```bash
-# Restore the original image
-oc set image deployment/odh-dashboard \
-  gen-ai-ui=quay.io/opendatahub/odh-mod-arch-gen-ai:main \
-  -n $APPS_NS
+oc set env deployment/dashboard-operator -n $APPS_NS \
+  RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE-
 
-# Scale the operator back up (use the saved replica count)
-oc scale deployment/$OPERATOR_DEPLOY -n $OPERATOR_NS \
-  --replicas=$OPERATOR_REPLICAS
+echo "Removed RELATED_IMAGE override from dashboard-operator"
+
+# Wait for dashboard-operator restart and reconciliation
+oc rollout status deployment/dashboard-operator -n $APPS_NS --timeout=120s
+
+# Wait for gen-ai-ui to revert
+sleep 15
+oc rollout status deployment/gen-ai-ui -n $APPS_NS --timeout=120s
 ```
 
 ## Cleanup
@@ -288,7 +344,7 @@ New quay.io repositories default to **private**. Go to quay.io, find the reposit
 Then delete the failing pod to force a re-pull:
 
 ```bash
-oc delete pod -l app=odh-dashboard -n $APPS_NS
+oc delete pod -n $APPS_NS -l deployment=gen-ai-ui
 ```
 
 Check events for details:
@@ -297,6 +353,37 @@ Check events for details:
 oc get events -n $APPS_NS --sort-by='.lastTimestamp' | grep -i "pull\|image"
 ```
 
-### Operator reverts image change
+### Dashboard-operator reverts image change
 
-The ODH operator reconciles the `odh-dashboard` deployment and will revert any manual image changes. You must scale it down first (Phase 3, initial deploy). Symptoms: `oc set image` succeeds but the deployment spec immediately shows the old image.
+The dashboard-operator reconciles the `gen-ai-ui` deployment and will revert any manual `oc set image` changes within seconds. This skill avoids the problem by setting the `RELATED_IMAGE_*` env var on the dashboard-operator itself so it deploys the custom image. If you see the old image reappearing, verify the env var is set:
+
+```bash
+oc get deployment dashboard-operator -n $APPS_NS -o json | jq -r '
+  .spec.template.spec.containers[0].env[]
+  | select(.name == "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE")
+  | "\(.name)=\(.value)"'
+```
+
+If the env var is missing or has the wrong value, re-run the initial deploy patch from Phase 3.
+
+### Dashboard-operator pod doesn't restart after env var change
+
+`oc set env` modifies the deployment spec, which should trigger a rolling restart automatically. If the pod doesn't restart:
+
+```bash
+# Force a restart
+oc rollout restart deployment/dashboard-operator -n $APPS_NS
+oc rollout status deployment/dashboard-operator -n $APPS_NS --timeout=120s
+```
+
+### Env var reset after operator upgrade
+
+OLM catalog-driven upgrades may replace the dashboard-operator deployment, which clears any env var overrides. After an operator upgrade, re-run the initial deploy from Phase 3.
+
+### Listing all dashboard standalone deployments
+
+To see all standalone deployments managed by the dashboard-operator:
+
+```bash
+oc get deployment -n $APPS_NS -l app.kubernetes.io/part-of=odh-dashboard
+```

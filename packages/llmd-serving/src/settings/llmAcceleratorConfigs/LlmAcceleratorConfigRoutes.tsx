@@ -1,53 +1,58 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
-import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
-import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard not-found page
-import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import LlmAcceleratorConfigContextProvider from './LlmAcceleratorConfigContext';
 import LlmAcceleratorConfigView from './LlmAcceleratorConfigView';
 import LlmAcceleratorConfigAddForm, {
   LlmAcceleratorConfigFormByName,
 } from './LlmAcceleratorConfigAddForm';
-import { LLMInferenceServiceConfigModel } from '../../types';
+import { LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH } from './paths';
+import LlmInferenceServiceConfigAccessGate from '../LlmInferenceServiceConfigAccessGate';
 
-const LlmAcceleratorConfigRoutesInner: React.FC = () => (
-  <Routes>
-    <Route path="/" element={<LlmAcceleratorConfigContextProvider />}>
-      <Route index element={<LlmAcceleratorConfigView />} />
-      <Route path="add" element={<LlmAcceleratorConfigAddForm mode="add" />} />
-      <Route path="edit/:configName" element={<LlmAcceleratorConfigFormByName mode="edit" />} />
-      <Route
-        path="duplicate/:configName"
-        element={<LlmAcceleratorConfigFormByName mode="duplicate" />}
-      />
-      <Route path="*" element={<Navigate to="." />} />
-    </Route>
-  </Routes>
+/**
+ * Routes for the standalone LLM accelerator configurations page, used when the
+ * `modelDeploymentSettings` feature flag is off. When the flag is on this page is
+ * replaced by the tab (see LlmAcceleratorConfigTabRoutes) and the form breakout
+ * routes (see LlmAcceleratorConfigFormRoutes).
+ *
+ * Temporary — this whole file is deleted by RHOAIENG-80077 along with the flag.
+ * https://issues.redhat.com/browse/RHOAIENG-80077
+ */
+const LlmAcceleratorConfigRoutes: React.FC = () => (
+  <LlmInferenceServiceConfigAccessGate>
+    <Routes>
+      <Route path="/" element={<LlmAcceleratorConfigContextProvider />}>
+        <Route index element={<LlmAcceleratorConfigView />} />
+        <Route
+          path="add"
+          element={
+            <LlmAcceleratorConfigAddForm
+              mode="add"
+              listPath={LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}
+            />
+          }
+        />
+        <Route
+          path="edit/:configName"
+          element={
+            <LlmAcceleratorConfigFormByName
+              mode="edit"
+              listPath={LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}
+            />
+          }
+        />
+        <Route
+          path="duplicate/:configName"
+          element={
+            <LlmAcceleratorConfigFormByName
+              mode="duplicate"
+              listPath={LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="." />} />
+      </Route>
+    </Routes>
+  </LlmInferenceServiceConfigAccessGate>
 );
-
-const LlmAcceleratorConfigRoutes: React.FC = () => {
-  const [canCreate, createLoaded] = useAccessAllowed(
-    verbModelAccess('create', LLMInferenceServiceConfigModel),
-  );
-  const [canPatch, patchLoaded] = useAccessAllowed(
-    verbModelAccess('patch', LLMInferenceServiceConfigModel),
-  );
-
-  if (!createLoaded || !patchLoaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
-  if (!canCreate || !canPatch) {
-    return <NotFound />;
-  }
-
-  return <LlmAcceleratorConfigRoutesInner />;
-};
 
 export default LlmAcceleratorConfigRoutes;

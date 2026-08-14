@@ -9,20 +9,18 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 )
 
 // BadRequest sends a 400 Bad Request response with the given error message.
 // This is a public wrapper around badRequestResponse for use by downstream extensions.
-func (app *App) BadRequest(w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
-	app.badRequestResponse(w, r, err)
+func (app *App) BadRequest(w http.ResponseWriter, r *http.Request, message string) { //nolint:unused
+	badRequestResponse(app.logger, w, r, message)
 }
 
 // ServerError sends a 500 Internal Server Error response.
 // This is a public wrapper around serverErrorResponse for use by downstream extensions.
 func (app *App) ServerError(w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
-	app.serverErrorResponse(w, r, err)
+	serverErrorResponse(app.logger, w, r, err)
 }
 
 // NotImplemented sends a 501 Not Implemented response for features not yet available.
@@ -35,7 +33,7 @@ func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature s
 			Message: fmt.Sprintf("the %s feature is not implemented in this build", feature),
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(app.logger, w, r, httpError)
 }
 
 // EndpointNotImplementedHandler creates a handler that returns 501 Not Implemented.
@@ -60,16 +58,4 @@ func (app *App) Config() config.EnvConfig { //nolint:unused
 // This allows downstream extensions to use the same logger as the app.
 func (app *App) Logger() *slog.Logger { //nolint:unused
 	return app.logger
-}
-
-// KubernetesClientFactory returns the Kubernetes client factory.
-// This allows downstream extensions to create Kubernetes clients.
-func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory { //nolint:unused
-	return app.kubernetesClientFactory
-}
-
-// Repositories returns the repositories container.
-// This allows downstream extensions to access the repositories.
-func (app *App) Repositories() *repositories.Repositories { //nolint:unused
-	return app.repositories
 }

@@ -31,6 +31,12 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn().mockReturnValue([]),
 }));
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useWatchConnectionTypes: jest.fn(() => [[], true]),
+  useServingConnections: jest.fn(() => [[], true]),
+  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+}));
+
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({
   ...jest.requireActual('@patternfly/react-core'),
