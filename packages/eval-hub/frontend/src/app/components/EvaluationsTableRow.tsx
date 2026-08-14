@@ -56,6 +56,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
+  const [isRetrying, setIsRetrying] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
@@ -75,6 +76,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       setIsStopping(false);
     }
   }, [isInProgress]);
+
+  React.useEffect(() => {
+    if (!isRetryable) {
+      setIsRetrying(false);
+    }
+  }, [isRetryable]);
 
   // Snapshot latest job data in a ref so the completion-tracking effect can
   // read current values without being re-triggered by them.
@@ -136,6 +143,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     onActionComplete();
   }, [onActionComplete]);
 
+  const handleRetryComplete = React.useCallback(() => {
+    setIsRetrying(true);
+    onActionComplete();
+  }, [onActionComplete]);
+
   const handleDeleteConfirm = async () => {
     if (!namespace) {
       setActionError('Namespace is required to perform this action');
@@ -171,7 +183,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           },
         ]
       : []),
-    ...(isRetryable
+    ...(isRetryable && !isRetrying
       ? [
           {
             title: 'Retry',
@@ -256,7 +268,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           job={job}
           namespace={namespace}
           onClose={() => setShowRetryModal(false)}
-          onComplete={onActionComplete}
+          onComplete={handleRetryComplete}
         />
       )}
 

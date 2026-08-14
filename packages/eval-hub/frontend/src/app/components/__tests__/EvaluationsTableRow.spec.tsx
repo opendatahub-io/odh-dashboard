@@ -377,5 +377,65 @@ describe('EvaluationsTableRow', () => {
       fireEvent.click(screen.getByTestId('evaluation-retry-cancel'));
       expect(screen.queryByText('Retry evaluation?')).not.toBeInTheDocument();
     });
+
+    it('should hide Retry action after successful retry until refresh clears retryable state', async () => {
+      const job = mockEvaluationJob({ state: 'failed', id: 'eval-retry-dup' });
+      const { rerender } = render(
+        <MemoryRouter>
+          <Table aria-label="test">
+            <Tbody>
+              <EvaluationsTableRow
+                job={job}
+                rowIndex={0}
+                namespace="test-ns"
+                collectionNameMap={{}}
+                onActionComplete={mockOnActionComplete}
+                onShowStatus={mockOnShowStatus}
+                isSelected={false}
+                onSelectionChange={mockOnSelectionChange}
+              />
+            </Tbody>
+          </Table>
+        </MemoryRouter>,
+      );
+
+      // Confirm retry
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Retry'));
+      fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
+
+      await waitFor(() => {
+        expect(mockOnActionComplete).toHaveBeenCalledTimes(1);
+      });
+
+      // Retry action should be hidden while isRetrying is set
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+
+      // Simulate a delayed refresh where the job transitions to a non-retryable state
+      const updatedJob = mockEvaluationJob({ state: 'running', id: 'eval-retry-dup' });
+      rerender(
+        <MemoryRouter>
+          <Table aria-label="test">
+            <Tbody>
+              <EvaluationsTableRow
+                job={updatedJob}
+                rowIndex={0}
+                namespace="test-ns"
+                collectionNameMap={{}}
+                onActionComplete={mockOnActionComplete}
+                onShowStatus={mockOnShowStatus}
+                isSelected={false}
+                onSelectionChange={mockOnSelectionChange}
+              />
+            </Tbody>
+          </Table>
+        </MemoryRouter>,
+      );
+
+      // isRetrying should be cleared because the job is no longer retryable
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
   });
 });
