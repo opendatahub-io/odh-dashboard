@@ -6,15 +6,12 @@ import {
 } from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
 import { isBranchCorridorNodeId } from './stageMapStepMetadata';
+import { buildTreeEdgePath } from './treeEdgePath';
 import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {
   element: GraphElement;
 };
-
-const X_OFFSET = 10;
-/** PF edge anchors align with node bbox center; no vertical nudge needed for spine dots. */
-const Y_OFFSET = 0;
 
 const COLORS = {
   completed: borderColorDefault.var,
@@ -44,8 +41,6 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   return COLORS.default;
 };
 
-const isBranchCorridorNode = (nodeId: string): boolean => isBranchCorridorNodeId(nodeId);
-
 const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
   const sourceData = sourceNode.getData();
   const targetData = targetNode.getData();
@@ -55,40 +50,12 @@ const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
   if (sourceState === 'active' && targetState === 'active') {
     const sourceId = sourceNode.getId();
     const targetId = targetNode.getId();
-    if (isBranchCorridorNode(sourceId) || isBranchCorridorNode(targetId)) {
+    if (isBranchCorridorNodeId(sourceId) || isBranchCorridorNodeId(targetId)) {
       return 2.5;
     }
   }
 
   return 1.5;
-};
-
-const buildPath = (edge: Edge): string => {
-  const startPoint = edge.getStartPoint();
-  const endPoint = edge.getEndPoint();
-
-  const startY = startPoint.y + Y_OFFSET;
-  const endY = endPoint.y + Y_OFFSET;
-
-  const dx = endPoint.x - startPoint.x;
-  const dy = endY - startY;
-  const length = Math.sqrt(dx * dx + dy * dy);
-
-  if (length === 0) {
-    return '';
-  }
-
-  const startX = startPoint.x + X_OFFSET;
-  const endX = endPoint.x - X_OFFSET;
-
-  const isHorizontal = Math.abs(startY - endY) < 5;
-
-  if (isHorizontal) {
-    return `M ${startX} ${startY} L ${endX} ${endY}`;
-  }
-
-  const midX = (startX + endX) / 2;
-  return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
 };
 
 const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
@@ -97,7 +64,7 @@ const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
 
   return (
     <path
-      d={buildPath(edge)}
+      d={buildTreeEdgePath(sourceNode.getBounds(), targetNode.getBounds())}
       fill="none"
       stroke={getEdgeColor(sourceNode, targetNode)}
       strokeWidth={getEdgeStrokeWidth(sourceNode, targetNode)}

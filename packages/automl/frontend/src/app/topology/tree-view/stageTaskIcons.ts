@@ -59,10 +59,14 @@ export const resolveTaskIconForNodeId = (nodeId: string): TaskIconComponent => {
     return DEFAULT_TASK_ICON;
   }
   if (parsed.type === 'stage') {
-    return STAGE_TASK_ICONS[parsed.stageId] ?? DEFAULT_TASK_ICON;
+    return Object.hasOwn(STAGE_TASK_ICONS, parsed.stageId)
+      ? STAGE_TASK_ICONS[parsed.stageId]
+      : DEFAULT_TASK_ICON;
   }
   if (parsed.type === 'branch_step') {
-    return STEP_TASK_ICONS[parsed.stepId] ?? DEFAULT_TASK_ICON;
+    return Object.hasOwn(STEP_TASK_ICONS, parsed.stepId)
+      ? STEP_TASK_ICONS[parsed.stepId]
+      : DEFAULT_TASK_ICON;
   }
   return MODEL_BRANCH_TASK_ICON;
 };
