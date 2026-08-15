@@ -1,14 +1,13 @@
 import type { LoadedExtension } from '@openshift/dynamic-plugin-sdk';
+import { NAV_PATCH_SCHEMA } from './nav-patch';
+import { isRecord } from './utils';
 import { SUPPRESS_EXTENSION_TYPE } from '../extension-points/suppress';
-import {
-  PATCH_EXTENSION_TYPE,
-  NAV_PATCH_KEYS,
-  isClearableNavPatchKey,
-  isValidNavPatch,
-  type NavPatch,
-} from '../extension-points/patch';
+import { PATCH_EXTENSION_TYPE, type PatchFieldSchema } from '../extension-points/patch';
 
-const ALLOWED_PATCH_KEYS = new Set<string>(NAV_PATCH_KEYS);
+const PATCH_SCHEMAS = new Map<string, PatchFieldSchema>([
+  ['app.navigation/href', NAV_PATCH_SCHEMA],
+  ['app.navigation/section', NAV_PATCH_SCHEMA],
+]);
 
 const isDevBuild = (): boolean => process.env.NODE_ENV !== 'production';
 
@@ -23,9 +22,6 @@ const warnDev = (message: string): void => {
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
-
 const isValidSuppressProps = (
   properties: LoadedExtension['properties'],
 ): properties is { targetType: string; targetId: string } =>
@@ -35,14 +31,14 @@ const isValidSuppressProps = (
 
 const isValidPatchProps = (
   properties: LoadedExtension['properties'],
-): properties is { targetType: string; targetId: string; patch: NavPatch } =>
+): properties is { targetType: string; targetId: string; patch: Record<string, unknown> } =>
   isRecord(properties) &&
   isNonEmptyString(properties.targetType) &&
   isNonEmptyString(properties.targetId) &&
-  isValidNavPatch(properties.patch);
+  (PATCH_SCHEMAS.get(properties.targetType)?.isValid(properties.patch) ?? false);
 
 export type StoredPatch = {
-  patch: NavPatch;
+  patch: Record<string, unknown>;
   pluginName: string;
 };
 
@@ -174,18 +170,23 @@ export const applyPatches = (
       return ext;
     }
 
+    const schema = PATCH_SCHEMAS.get(ext.type);
+    if (!schema) {
+      return ext;
+    }
+
     applied.add(key);
     const nextProperties = { ...ext.properties };
 
     Object.entries(stored.patch).forEach(([field, value]) => {
-      if (!ALLOWED_PATCH_KEYS.has(field)) {
+      if (!schema.allowedKeys.has(field)) {
         warnDev(
           `[PluginStore] Ignoring non-allowlisted patch key "${field}" for (${ext.type}, ${id}) from plugin "${stored.pluginName}"`,
         );
         return;
       }
 
-      if (value === null && isClearableNavPatchKey(field)) {
+      if (value === null && schema.isClearableKey(field)) {
         delete nextProperties[field];
         return;
       }

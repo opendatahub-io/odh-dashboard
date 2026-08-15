@@ -23,6 +23,7 @@ export * from './suppress';
 
 // Patch — declarative property patches for (type, id)-keyed extensions
 export * from './patch';
+export type { NavPatch } from '../core/nav-patch';
 
 // Utilities
 export * from './utils';

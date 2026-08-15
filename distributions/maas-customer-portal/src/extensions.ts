@@ -4,6 +4,7 @@ import type {
   MastheadToolbarItemExtension,
   SuppressExtension,
   PatchExtension,
+  NavPatch,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const extensions: Extension[] = [
@@ -53,7 +54,7 @@ const extensions: Extension[] = [
       targetId: 'maas-tokens-subscriptions-view',
       patch: { section: null, group: '1_api_keys' },
     },
-  } satisfies PatchExtension,
+  } satisfies PatchExtension<NavPatch>,
   {
     type: 'app.patch',
     properties: {
@@ -61,7 +62,7 @@ const extensions: Extension[] = [
       targetId: 'chat-playground',
       patch: { section: null, group: '2_playground', label: null },
     },
-  } satisfies PatchExtension,
+  } satisfies PatchExtension<NavPatch>,
   {
     type: 'app.patch',
     properties: {
@@ -69,7 +70,7 @@ const extensions: Extension[] = [
       targetId: 'ai-assets',
       patch: { section: null, group: '3_ai_assets', label: null },
     },
-  } satisfies PatchExtension,
+  } satisfies PatchExtension<NavPatch>,
 ];
 
 export default extensions;

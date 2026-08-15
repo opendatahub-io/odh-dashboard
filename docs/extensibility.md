@@ -665,7 +665,7 @@ Pipeline details:
 Suppress:
 
 - Always applies regardless of the suppress extension's own flags
-- Removes matching `(type, id)` registrations that appear before the suppress in catalog order
+- Removes matching `(type, id)` registrations that appear before the **last** matching suppress in catalog order. Two suppresses around a redefine therefore remove the redefine as well.
 - A later registration with the same key is a redefine (full override)
 
 Patch:

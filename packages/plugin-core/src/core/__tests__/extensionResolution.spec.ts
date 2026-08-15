@@ -159,17 +159,36 @@ describe('extractPatches', () => {
         type: PATCH_EXTENSION_TYPE,
         properties: {
           targetType: 'app.navigation/href',
+          targetId: 'item-4',
+          patch: { dataAttributes: { target: '_blank' } as never },
+        },
+      }),
+      loaded({
+        type: PATCH_EXTENSION_TYPE,
+        properties: {
+          targetType: 'app.navigation/href',
           targetId: 'ok',
           patch: { section: null, label: null, title: 'Valid' },
         },
       }),
+      loaded({
+        type: PATCH_EXTENSION_TYPE,
+        properties: {
+          targetType: 'app.navigation/href',
+          targetId: 'ok-data',
+          patch: { dataAttributes: { 'data-testid': 'my-nav' } },
+        },
+      }),
     ]);
 
-    expect(patches.size).toBe(1);
+    expect(patches.size).toBe(2);
     expect(patches.get(extensionKey('app.navigation/href', 'ok'))?.patch).toEqual({
       section: null,
       label: null,
       title: 'Valid',
+    });
+    expect(patches.get(extensionKey('app.navigation/href', 'ok-data'))?.patch).toEqual({
+      dataAttributes: { 'data-testid': 'my-nav' },
     });
   });
 });

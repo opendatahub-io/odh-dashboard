@@ -251,6 +251,7 @@ describe('PluginStore', () => {
           {
             type: PATCH_EXTENSION_TYPE,
             properties: {
+              id: 'item',
               targetType: 'app.navigation/href',
               targetId: 'item',
               patch: { title: 'Patched' },
