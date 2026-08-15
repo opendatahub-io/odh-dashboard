@@ -18,6 +18,12 @@ export * from './detail-cards';
 export * from './table-columns';
 export * from './connection-types';
 
+// Suppress — declarative removal of (type, id)-keyed extensions
+export * from './suppress';
+
+// Patch — declarative property patches for (type, id)-keyed extensions
+export * from './patch';
+
 // Utilities
 export * from './utils';
 
