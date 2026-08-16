@@ -7,6 +7,8 @@
     "lib": [
       "es2021",
       "dom",
+      "ES2022.Object",
+      "ES2022.Array",
       "ES2023.Array"
     ],
     "sourceMap": true,

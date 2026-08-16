@@ -27,7 +27,7 @@ At this time, all known modules must exist in the monorepo. The system automatic
 
 Shared module policy is centralized in `@odh-dashboard/app-config` and enforced by bundler plugins:
 
-- **`OdhFederationPlugin`** — host and remotes. Import from `@odh-dashboard/app-config/rspack` (dashboard host) or `@odh-dashboard/app-config/webpack` (package remotes). Pass `isHost: true` for the dashboard and for standalone remotes; pass `isHost: false` when the package is a federated remote.
+- **`OdhFederationPlugin`** — host and remotes. Import from `@odh-dashboard/app-config/rspack` (dashboard host and package remotes) or `@odh-dashboard/app-config/webpack` (notebooks and model-registry upstream only). Pass `isHost: true` for the dashboard and for standalone remotes; pass `isHost: false` when the package is a federated remote.
 
 The plugin configures shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not maintain shared dependency lists manually. Entries from the default PatternFly / React / SDK map are shared only when they appear in `dependencies` of the `package.json` in webpack `compiler.context`. ODH packages are shared from workspace discovery (see table below), not gated on each remote's `dependencies`.
 

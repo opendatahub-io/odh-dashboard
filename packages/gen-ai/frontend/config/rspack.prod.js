@@ -1,12 +1,19 @@
-const { merge } = require('webpack-merge');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserJSPlugin = require('terser-webpack-plugin');
-
+const { merge } = require('rspack-merge');
+const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
-setupDotenvFilesForEnv({ env: 'production' }); // Moved here
-const common = require('./webpack.common.js'); // Required after env setup
+const getRsdoctorPlugin = () => {
+  if (process.env.RSDOCTOR !== 'true') {
+    return [];
+  }
+  // Lazy-require: @rsdoctor/rspack-plugin depends on @rspack/resolver, which has no
+  // native bindings for s390x/ppc64le. Container builds must not load it.
+  const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+  return [new RsdoctorRspackPlugin()];
+};
+
+setupDotenvFilesForEnv({ env: 'production' });
+const common = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
@@ -35,25 +42,26 @@ module.exports = merge(
       filename: '[name].[contenthash].js',
     },
     optimization: {
+      minimize: true,
       minimizer: [
-        new TerserJSPlugin({}),
-        new CssMinimizerPlugin({
-          minimizerOptions: {
-            preset: ['default', { mergeLonghand: false }],
-          },
-        }),
+        new rspack.SwcJsMinimizerRspackPlugin(),
+        new rspack.LightningCssMinimizerRspackPlugin(),
       ],
     },
     plugins: [
-      new MiniCssExtractPlugin({
+      new rspack.CssExtractRspackPlugin({
         filename: '[name].[contenthash].css',
+        ignoreOrder: true,
       }),
+      // Only enable when analyzing — increases build time.
+      // See https://rspack.rs/guide/optimization/use-rsdoctor
+      ...getRsdoctorPlugin(),
     ],
     module: {
       rules: [
         {
           test: /\.css$/,
-          use: [MiniCssExtractPlugin.loader, 'css-loader'],
+          use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
         },
       ],
     },
