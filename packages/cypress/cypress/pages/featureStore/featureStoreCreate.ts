@@ -34,6 +34,62 @@ class FeatureStoreCreatePage {
   findStepByName(stepName: string) {
     return cy.findByRole('button', { name: stepName });
   }
+
+  findProjectNameInput() {
+    return cy.findByTestId('feast-project-name');
+  }
+
+  fillProjectName(name: string) {
+    this.findProjectNameInput().clear().type(name);
+    return this;
+  }
+
+  findNamespaceToggle() {
+    return cy.findByTestId('feast-namespace-toggle');
+  }
+
+  selectNamespace(ns: string) {
+    // SimpleSelect auto-selects and disables the toggle when only one option exists.
+    this.findNamespaceToggle().should(($el) => {
+      const disabled = $el.is(':disabled');
+      const text = $el.text();
+      expect(
+        !disabled || text.includes(ns),
+        `namespace toggle should be enabled or already show "${ns}" (disabled=${disabled}, text="${text}")`,
+      ).to.eq(true);
+    });
+    this.findNamespaceToggle().then(($el) => {
+      if (!$el.is(':disabled')) {
+        cy.wrap($el).click();
+        cy.findByRole('option', { name: new RegExp(ns) }).click();
+      }
+    });
+    return this;
+  }
+
+  findProjectNameError() {
+    return cy
+      .findByTestId('feast-project-name')
+      .parents('.pf-v6-c-form__group')
+      .find('.pf-m-error');
+  }
+
+  findRegistryTypeRadio(type: 'local' | 'remote') {
+    return cy.get(`#registry-${type}`);
+  }
+
+  findFeastRefNameInput() {
+    return cy.findByTestId('feast-ref-name');
+  }
+
+  findRestApiSwitch() {
+    return cy.findByTestId('feast-registry-rest-api');
+  }
+
+  clickNext() {
+    this.findNextButton().click();
+    return this;
+  }
 }
 
 export const featureStoreCreatePage = new FeatureStoreCreatePage();
