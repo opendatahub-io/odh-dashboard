@@ -108,11 +108,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
       llmAcceleratorConfigs.findAddButton().should('exist').click();
       llmAcceleratorConfigs.findNameInput().clear().type(acceleratorConfigName);
       llmAcceleratorConfigs.findEditResourceNameLink().click();
-      llmAcceleratorConfigs
-        .findResourceNameInput()
-        .should('be.visible')
-        .clear()
-        .type(resourceName);
+      llmAcceleratorConfigs.findResourceNameInput().should('be.visible').clear().type(resourceName);
 
       llmAcceleratorConfigs.findVersionInput().clear().type(testData.version);
       cy.fixture(testData.unsupportedAcceleratorConfigFixturePath).then((yamlContent) => {
@@ -120,81 +116,81 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         llmAcceleratorConfigs.findYAMLCodeEditor().setValue(yamlContent);
       });
       llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
-        checkLLMInferenceServiceConfigState(resourceName, namespace);
+      checkLLMInferenceServiceConfigState(resourceName, namespace);
 
       cy.step('Duplicate it and create the duplicate');
-        const acceleratorConfigRow = llmAcceleratorConfigs.getRowByName(resourceName);
-        acceleratorConfigRow.find().should('exist');
-        acceleratorConfigRow.shouldHaveUnsupportedLabel(true);
-        acceleratorConfigRow.shouldBeEnabled(false);
-        acceleratorConfigRow.findKebabToggle().click();
-        acceleratorConfigRow.findDuplicateAction().click();
+      const acceleratorConfigRow = llmAcceleratorConfigs.getRowByName(resourceName);
+      acceleratorConfigRow.find().should('exist');
+      acceleratorConfigRow.shouldHaveUnsupportedLabel(true);
+      acceleratorConfigRow.shouldBeEnabled(false);
+      acceleratorConfigRow.findKebabToggle().click();
+      acceleratorConfigRow.findDuplicateAction().click();
 
-        llmAcceleratorConfigs.findNameInput().clear().type(duplicateAcceleratorConfigName);
-        llmAcceleratorConfigs.findEditResourceNameLink().click();
-        llmAcceleratorConfigs
-          .findResourceNameInput()
-          .should('be.visible')
-          .clear()
-          .type(duplicateResourceName);
-        llmAcceleratorConfigs.findVersionInput().should('have.value', testData.version);
-        stubClipboard('copiedYAML');
-        llmAcceleratorConfigs.findYAMLCodeEditor().copyToClipboard().click();
-        getClipboardContent('copiedYAML').then((copied) => {
-          expect(copied).to.have.length.at.least(1);
-          const yamlContent = copied[0];
-          expect(yamlContent).to.include(testData.resourceApiVersion);
-          expect(yamlContent).to.include(testData.resourceType);
-        });
-        llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
-        checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
+      llmAcceleratorConfigs.findNameInput().clear().type(duplicateAcceleratorConfigName);
+      llmAcceleratorConfigs.findEditResourceNameLink().click();
+      llmAcceleratorConfigs
+        .findResourceNameInput()
+        .should('be.visible')
+        .clear()
+        .type(duplicateResourceName);
+      llmAcceleratorConfigs.findVersionInput().should('have.value', testData.version);
+      stubClipboard('copiedYAML');
+      llmAcceleratorConfigs.findYAMLCodeEditor().copyToClipboard().click();
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include(testData.resourceApiVersion);
+        expect(yamlContent).to.include(testData.resourceType);
+      });
+      llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
+      checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
 
       cy.step('Edit the duplicate accelerator config: mark accepted and enabled');
-        const dupRow = llmAcceleratorConfigs.getRowByName(duplicateResourceName);
-        dupRow.find().should('exist');
-        dupRow.shouldHaveUnsupportedLabel(true);
-        dupRow.shouldBeEnabled(false);
+      const dupRow = llmAcceleratorConfigs.getRowByName(duplicateResourceName);
+      dupRow.find().should('exist');
+      dupRow.shouldHaveUnsupportedLabel(true);
+      dupRow.shouldBeEnabled(false);
 
-        checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
+      checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
 
-        dupRow.findKebabToggle().click();
-        dupRow.findEditButton().click();
-        // update the unsupported accelerator config to supported
-        llmAcceleratorConfigs
-          .findYAMLCodeEditor()
-          .replaceInEditor(testData.replaceSourceString, testData.replaceTargetString);
-        llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
-        checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
-        llmAcceleratorConfigs
-          .getRowByName(duplicateResourceName)
-          .shouldHaveUnsupportedLabel(false)
-          .shouldBeEnabled(true);
+      dupRow.findKebabToggle().click();
+      dupRow.findEditButton().click();
+      // update the unsupported accelerator config to supported
+      llmAcceleratorConfigs
+        .findYAMLCodeEditor()
+        .replaceInEditor(testData.replaceSourceString, testData.replaceTargetString);
+      llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
+      checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
+      llmAcceleratorConfigs
+        .getRowByName(duplicateResourceName)
+        .shouldHaveUnsupportedLabel(false)
+        .shouldBeEnabled(true);
 
       cy.step('Delete the duplicate config');
-        dupRow.findKebabToggle().click();
-        dupRow.findDeleteButton().click();
-        deleteModal.find().should('exist');
-        deleteModal.findInput().clear().type(duplicateAcceleratorConfigName);
-        deleteModal.findSubmitButton().should('be.enabled').click();
-        llmAcceleratorConfigs.getRowByName(duplicateResourceName).find().should('have.length', 0);
+      dupRow.findKebabToggle().click();
+      dupRow.findDeleteButton().click();
+      deleteModal.find().should('exist');
+      deleteModal.findInput().clear().type(duplicateAcceleratorConfigName);
+      deleteModal.findSubmitButton().should('be.enabled').click();
+      llmAcceleratorConfigs.getRowByName(duplicateResourceName).find().should('have.length', 0);
 
       cy.step('Verify the LLMInferenceServiceConfig for the original config exists');
-        checkLLMInferenceServiceConfigState(resourceName, namespace);
+      checkLLMInferenceServiceConfigState(resourceName, namespace);
 
       cy.step(' Verify the unsupported accelerator config is hidden in the wizard');
-        llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(false);
+      llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(false);
       openDeployWizardToDeploymentStep();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(acceleratorConfigName).should('not.exist');
 
       cy.step('Enable the accelerator config');
       llmAcceleratorConfigs.visit();
-        llmAcceleratorConfigs.getRowByName(resourceName).findEnabledToggle().click();
+      llmAcceleratorConfigs.getRowByName(resourceName).findEnabledToggle().click();
       unsupportedStatusAcceptanceModal.shouldBeOpen();
       unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
       unsupportedStatusAcceptanceModal.findAcceptanceCheckbox().click();
       unsupportedStatusAcceptanceModal.findAcceptButton().click();
-        llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(true);
+      llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(true);
 
       cy.step('Verify the accelerator config is visible in the wizard');
       openDeployWizardToDeploymentStep();
