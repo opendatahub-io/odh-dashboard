@@ -49,12 +49,14 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         deploymentMethod = testData.deploymentMethod;
         acceleratorConfigName = `${testData.acceleratorConfigName}-${uuid}`;
         duplicateAcceleratorConfigName = `${acceleratorConfigName}-dup`;
+        resourceName = `e2e-accelerator-config-${uuid}`;
+        duplicateResourceName = `${resourceName}-dup`;
       })
       .then(() => {
         cy.log('Create a project');
         // Ensure a clean start if a previous run left a template behind
-        cleanupLLMInferenceServiceConfig(acceleratorConfigName);
-        cleanupLLMInferenceServiceConfig(duplicateAcceleratorConfigName);
+        cleanupLLMInferenceServiceConfig(resourceName);
+        cleanupLLMInferenceServiceConfig(duplicateResourceName);
         createCleanProject(projectName);
       })
       .then(() => {
@@ -66,8 +68,8 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
 
   after(() => {
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
-    cleanupLLMInferenceServiceConfig(acceleratorConfigName);
-    cleanupLLMInferenceServiceConfig(duplicateAcceleratorConfigName);
+    cleanupLLMInferenceServiceConfig(resourceName);
+    cleanupLLMInferenceServiceConfig(duplicateResourceName);
   });
 
   const openDeployWizardToDeploymentStep = () => {
@@ -109,10 +111,8 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
       llmAcceleratorConfigs
         .findResourceNameInput()
         .should('be.visible')
-        .invoke('val')
-        .then((val) => {
-          resourceName = val as string;
-        });
+        .clear()
+        .type(resourceName);
 
       llmAcceleratorConfigs.findVersionInput().clear().type(testData.version);
       cy.fixture(testData.unsupportedAcceleratorConfigFixturePath).then((yamlContent) => {
@@ -120,12 +120,9 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         llmAcceleratorConfigs.findYAMLCodeEditor().setValue(yamlContent);
       });
       llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
-      cy.then(() => {
         checkLLMInferenceServiceConfigState(resourceName, namespace);
-      });
 
       cy.step('Duplicate it and create the duplicate');
-      cy.then(() => {
         const acceleratorConfigRow = llmAcceleratorConfigs.getRowByName(resourceName);
         acceleratorConfigRow.find().should('exist');
         acceleratorConfigRow.shouldHaveUnsupportedLabel(true);
@@ -138,10 +135,8 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         llmAcceleratorConfigs
           .findResourceNameInput()
           .should('be.visible')
-          .invoke('val')
-          .then((val) => {
-            duplicateResourceName = val as string;
-          });
+          .clear()
+          .type(duplicateResourceName);
         llmAcceleratorConfigs.findVersionInput().should('have.value', testData.version);
         stubClipboard('copiedYAML');
         llmAcceleratorConfigs.findYAMLCodeEditor().copyToClipboard().click();
@@ -153,10 +148,8 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         });
         llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
         checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
-      });
 
       cy.step('Edit the duplicate accelerator config: mark accepted and enabled');
-      cy.then(() => {
         const dupRow = llmAcceleratorConfigs.getRowByName(duplicateResourceName);
         dupRow.find().should('exist');
         dupRow.shouldHaveUnsupportedLabel(true);
@@ -176,44 +169,33 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
           .getRowByName(duplicateResourceName)
           .shouldHaveUnsupportedLabel(false)
           .shouldBeEnabled(true);
-      });
 
       cy.step('Delete the duplicate config');
-      cy.then(() => {
-        const dupRow = llmAcceleratorConfigs.getRowByName(duplicateResourceName);
         dupRow.findKebabToggle().click();
         dupRow.findDeleteButton().click();
         deleteModal.find().should('exist');
         deleteModal.findInput().clear().type(duplicateAcceleratorConfigName);
         deleteModal.findSubmitButton().should('be.enabled').click();
-        llmAcceleratorConfigs.getRowByName(duplicateResourceName).find().should('not.exist');
-      });
+        llmAcceleratorConfigs.getRowByName(duplicateResourceName).find().should('have.length', 0);
 
       cy.step('Verify the LLMInferenceServiceConfig for the original config exists');
-      cy.then(() => {
         checkLLMInferenceServiceConfigState(resourceName, namespace);
-      });
 
       cy.step(' Verify the unsupported accelerator config is hidden in the wizard');
-      cy.then(() => {
         llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(false);
-      });
       openDeployWizardToDeploymentStep();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(acceleratorConfigName).should('not.exist');
 
       cy.step('Enable the accelerator config');
       llmAcceleratorConfigs.visit();
-      cy.then(() => {
         llmAcceleratorConfigs.getRowByName(resourceName).findEnabledToggle().click();
-      });
       unsupportedStatusAcceptanceModal.shouldBeOpen();
       unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
       unsupportedStatusAcceptanceModal.findAcceptanceCheckbox().click();
       unsupportedStatusAcceptanceModal.findAcceptButton().click();
-      cy.then(() => {
         llmAcceleratorConfigs.getRowByName(resourceName).shouldBeEnabled(true);
-      });
+
       cy.step('Verify the accelerator config is visible in the wizard');
       openDeployWizardToDeploymentStep();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
