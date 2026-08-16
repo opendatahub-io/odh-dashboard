@@ -33,7 +33,7 @@ let resourceName: string;
 let duplicateResourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
-const namespace = Cypress.env('APPLICATIONS_NAMESPACE'); 
+const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
   retryableBefore(() => {
@@ -91,7 +91,9 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
 
   it(
     'Create accelerator config from UI, duplicate/edit/delete duplicate',
-    { tags: ['@Dashboard', '@Featureflagged', '@ModelServing', '@ModelServingCI'] },
+    {
+      tags: ['@Dashboard', '@Featureflagged', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
+    },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
@@ -118,7 +120,9 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         llmAcceleratorConfigs.findYAMLCodeEditor().setValue(yamlContent);
       });
       llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
-      checkLLMInferenceServiceConfigState(acceleratorConfigName, namespace);
+      cy.then(() => {
+        checkLLMInferenceServiceConfigState(resourceName, namespace);
+      });
 
       cy.step('Duplicate it and create the duplicate');
       cy.then(() => {
