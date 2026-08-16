@@ -6,6 +6,7 @@ import {
   useSettings,
   type ModularArchConfig,
 } from 'mod-arch-core';
+import PortalAreaContextProvider from './PortalAreaContextProvider';
 
 const ADMIN_USER_FLAG = 'ADMIN_USER';
 
@@ -31,7 +32,7 @@ const FlagsSync: React.FC = () => {
 const PortalContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ModularArchContextProvider config={modularArchConfig}>
     <FlagsSync />
-    {children}
+    <PortalAreaContextProvider>{children}</PortalAreaContextProvider>
   </ModularArchContextProvider>
 );
 

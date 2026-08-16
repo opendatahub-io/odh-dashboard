@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -7,6 +8,13 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
 const mockNavigate = jest.fn();
+
+jest.mock('~/app/components/EvaluationStatusModal', () => ({
+  __esModule: true,
+  default: ({ job }: { job: EvaluationJob }) => (
+    <div data-testid="mock-status-modal">{job.resource.id}</div>
+  ),
+}));
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -24,6 +32,14 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+beforeEach(() => {
+  queryClient.clear();
+});
+
 const renderTable = (props: {
   evaluations: EvaluationJob[];
   loaded: boolean;
@@ -31,14 +47,16 @@ const renderTable = (props: {
   collectionsLoaded?: boolean;
 }) =>
   render(
-    <MemoryRouter>
-      <EvaluationsTable
-        {...props}
-        collectionNameMap={props.collectionNameMap ?? {}}
-        collectionsLoaded={props.collectionsLoaded ?? true}
-        onRefresh={mockOnRefresh}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <EvaluationsTable
+          {...props}
+          collectionNameMap={props.collectionNameMap ?? {}}
+          collectionsLoaded={props.collectionsLoaded ?? true}
+          onRefresh={mockOnRefresh}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 const mockJobs: EvaluationJob[] = [
@@ -120,6 +138,15 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
+  });
+
+  it('should open the status modal when EvaluationStatusLabel is clicked', async () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+    const statusButtons = screen.getAllByTestId('evaluation-status-button');
+    fireEvent.click(statusButtons[0].querySelector('button')!);
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-status-modal')).toBeInTheDocument();
+    });
   });
 
   it('should render the New evaluation button', () => {

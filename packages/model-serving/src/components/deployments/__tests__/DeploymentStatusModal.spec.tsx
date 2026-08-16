@@ -188,6 +188,24 @@ describe('DeploymentStatusModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('should show progress disclaimer on the Progress tab', () => {
+    const deployment = createMockDeployment([
+      {
+        type: 'DeploymentRequested',
+        label: 'Deployment requested',
+        status: 'True',
+        lastTransitionTime: '2026-04-22T15:44:32Z',
+      },
+    ]);
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('deployment-status-progress-disclaimer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Steps may occur in any order, depending on the deployment type.'),
+    ).toBeInTheDocument();
+  });
+
   it('should always show the tab strip with a Progress tab, even when Kueue/Resources is not available', () => {
     const deployment = createMockDeployment([]);
 

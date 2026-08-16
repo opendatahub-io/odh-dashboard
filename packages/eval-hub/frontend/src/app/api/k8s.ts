@@ -314,6 +314,95 @@ export const getCatalogSecurityArtifacts =
     });
   };
 
+export class LogFetchError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'LogFetchError';
+  }
+}
+
+export const isLogApiUnavailable = (error: Error): boolean =>
+  error instanceof LogFetchError && error.statusCode === 404;
+
+export const isLogServerError = (error: Error): boolean =>
+  error instanceof LogFetchError && error.statusCode >= 500;
+
+export const getEvaluationJobLogs =
+  (
+    hostPath: string,
+    namespace: string,
+    jobId: string,
+    params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
+  ) =>
+  async (signal?: AbortSignal): Promise<string> => {
+    const queryParams = new URLSearchParams({ namespace });
+    if (params?.tail_lines != null) {
+      queryParams.set('tail_lines', String(params.tail_lines));
+    }
+    if (params?.timestamps != null) {
+      queryParams.set('timestamps', String(params.timestamps));
+    }
+    if (params?.since_seconds != null) {
+      queryParams.set('since_seconds', String(params.since_seconds));
+    }
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+      throw new LogFetchError(
+        response.status,
+        `Failed to fetch logs: ${response.status} ${response.statusText}`,
+      );
+    }
+    const contentType = response.headers.get('Content-Type')?.split(';')[0].trim();
+    if (contentType !== 'text/plain') {
+      throw new LogFetchError(
+        response.status,
+        `Unexpected Content-Type: ${contentType ?? 'missing'}`,
+      );
+    }
+    return response.text();
+  };
+
+export const getEvaluationJobBenchmarkLogs =
+  (
+    hostPath: string,
+    namespace: string,
+    jobId: string,
+    benchmarkIndex: number,
+    params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
+  ) =>
+  async (signal?: AbortSignal): Promise<string> => {
+    const queryParams = new URLSearchParams({ namespace });
+    if (params?.tail_lines != null) {
+      queryParams.set('tail_lines', String(params.tail_lines));
+    }
+    if (params?.timestamps != null) {
+      queryParams.set('timestamps', String(params.timestamps));
+    }
+    if (params?.since_seconds != null) {
+      queryParams.set('since_seconds', String(params.since_seconds));
+    }
+    const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+      throw new LogFetchError(
+        response.status,
+        `Failed to fetch benchmark logs: ${response.status} ${response.statusText}`,
+      );
+    }
+    const contentType = response.headers.get('Content-Type')?.split(';')[0].trim();
+    if (contentType !== 'text/plain') {
+      throw new LogFetchError(
+        response.status,
+        `Unexpected Content-Type: ${contentType ?? 'missing'}`,
+      );
+    }
+    return response.text();
+  };
+
 export const verifyConnection =
   (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>
   (opts: APIOptions): Promise<VerifyConnectionResponse> =>

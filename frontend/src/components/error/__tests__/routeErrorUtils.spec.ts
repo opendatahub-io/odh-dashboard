@@ -8,7 +8,7 @@ describe('isChunkLoadError', () => {
     expect(isChunkLoadError(error)).toBe(true);
   });
 
-  it('should return true when message matches webpack chunk failure pattern', () => {
+  it('should return true when message matches chunk failure pattern', () => {
     const error = new Error('Loading chunk 145 failed.');
 
     expect(isChunkLoadError(error)).toBe(true);

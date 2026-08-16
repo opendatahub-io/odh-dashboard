@@ -2,7 +2,9 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { EventTrackingFilterAttribute, MaaSEvents } from '~/app/types/event-tracking';
 import { OverviewFilterDataType, OverviewFilterOptions, overviewFilterOptions } from './const';
 
 type OverviewToolbarProps = {
@@ -31,6 +33,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by model name, model ID, or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-model-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.MODEL,
+              });
+            },
+          }}
         />
       ),
       [OverviewFilterOptions.project]: ({ onChange, ...props }) => (
@@ -41,6 +50,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by project"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-project-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.PROJECT,
+              });
+            },
+          }}
         />
       ),
       [OverviewFilterOptions.groupName]: ({ onChange, ...props }) => (
@@ -51,6 +67,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by group name"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-group-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.GROUP,
+              });
+            },
+          }}
         />
       ),
       [OverviewFilterOptions.subscriptionName]: ({ onChange, ...props }) => (
@@ -61,6 +84,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by subscription name"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-subscription-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.SUBSCRIPTION,
+              });
+            },
+          }}
         />
       ),
       [OverviewFilterOptions.authPolicyName]: ({ onChange, ...props }) => (
@@ -71,6 +101,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by authorization policy name"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-policy-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.POLICY,
+              });
+            },
+          }}
         />
       ),
     }}

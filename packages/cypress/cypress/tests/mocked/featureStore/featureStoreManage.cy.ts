@@ -331,7 +331,7 @@ describe('Feature Store Manage Page', () => {
       initIntercepts({ enableAdmin: false });
 
       cy.visitWithLogin(
-        '/develop-train/feature-store/manage?devFeatureFlags=Feature+store+plugin%3Dtrue',
+        '/settings/environment-setup/feature-stores?devFeatureFlags=Feature+store+plugin%3Dtrue',
       );
 
       cy.wait('@odh-config');

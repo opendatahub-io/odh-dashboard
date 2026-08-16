@@ -19,19 +19,24 @@ import {
   getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
+  getFailedBenchmarkCount,
   getResultScore,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
+import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
+import './EvaluationsTableRow.scss';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
+  polledJobData?: EvaluationJob;
   rowIndex: number;
   namespace: string;
   collectionNameMap: CollectionNameMap;
   onActionComplete: () => void;
+  onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
 };
@@ -42,10 +47,12 @@ type ConfirmAction = 'stop' | 'delete' | null;
 
 const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
+  polledJobData,
   rowIndex,
   namespace,
   collectionNameMap,
   onActionComplete,
+  onShowStatus,
   isSelected,
   onSelectionChange,
 }) => {
@@ -58,7 +65,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const isComparable = isEvaluationJobComparable(job);
-  const displayState = isStopping ? 'stopping' : job.status.state;
+  const displayState = isStopping ? 'stopping' : (polledJobData?.status.state ?? job.status.state);
+  const isPreStart = isPreStartFailure(polledJobData ?? job);
+  const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -158,6 +167,10 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   };
 
   const actions: IAction[] = [
+    {
+      title: 'View evaluation status',
+      onClick: () => onShowStatus(job),
+    },
     ...(isInProgress && !isStopping
       ? [
           {
@@ -170,6 +183,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       ? [
           {
             title: 'Delete',
+            isDanger: true,
             onClick: () => setConfirmAction('delete'),
           },
         ]
@@ -204,7 +218,18 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={displayState} message={job.status.message?.message} />
+          <EvaluationStatusLabel
+            state={displayState}
+            isPreStartFailure={isPreStart}
+            onClick={() => onShowStatus(job)}
+          />
+          {(displayState === 'failed' || displayState === 'partially_failed') &&
+          effectiveBenchmarks.length > 1 ? (
+            <div className="evalhub-table-row__failure-detail" data-testid="failure-detail">
+              {getFailedBenchmarkCount(effectiveBenchmarks)} of {effectiveBenchmarks.length}{' '}
+              benchmarks failed
+            </div>
+          ) : null}
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip

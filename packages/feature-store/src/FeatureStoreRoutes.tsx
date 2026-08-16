@@ -22,7 +22,6 @@ import DataSources from './screens/dataSources/DataSources';
 import DataSourceDetailsPage from './screens/dataSources/dataSourceDetails/DataSourceDetailsPage';
 import CreateFeatureStoreProject from './screens/create/CreateFeatureStoreProject';
 import DeploymentProgressPage from './screens/create/DeploymentProgressPage';
-import FeatureStoreListPage from './screens/manage/FeatureStoreListPage';
 
 export const featureStoreRootRoute = (): string => `/develop-train/feature-store`;
 
@@ -41,11 +40,6 @@ export const featureRoute = (
 ): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureViewName}/${featureName}`;
 
-const AreaGatedManagePage = conditionalArea(
-  SupportedArea.FEATURE_STORE_ADMIN,
-  true,
-)(accessAllowedRouteHoC(verbModelAccess('list', FeatureStoreModel))(FeatureStoreListPage));
-
 const AreaGatedCreatePage = conditionalArea(
   SupportedArea.FEATURE_STORE_ADMIN,
   true,
@@ -58,7 +52,6 @@ const AreaGatedDeployPage = conditionalArea(
 
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
-    <Route path="manage/*" element={<AreaGatedManagePage />} />
     <Route path="create" element={<AreaGatedCreatePage />} />
     <Route path="create/deploy/:namespace/:name" element={<AreaGatedDeployPage />} />
     <Route

@@ -1,12 +1,25 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
-import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import {
+  mockConnectionTypeConfigMap,
+  mockOciConnectionTypeConfigMap,
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
-import { ProjectModel } from '@odh-dashboard/cypress/cypress/utils/models';
+import {
+  HardwareProfileModel,
+  ProjectModel,
+  TemplateModel,
+} from '@odh-dashboard/cypress/cypress/utils/models';
 import { modelDetailsPage } from '@odh-dashboard/cypress/cypress/pages/modelCatalog/modelDetailsPage';
 import { modelCatalog } from '@odh-dashboard/cypress/cypress/pages/modelCatalog/modelCatalog';
 import { modelServingWizard } from '@odh-dashboard/cypress/cypress/pages/modelServing';
@@ -16,6 +29,13 @@ const SOURCE_ID = 'sample-source';
 const MODEL_NAME = 'validated-model';
 const REGISTRIES_NAMESPACE = 'odh-model-registries';
 const MODEL_URI = 'oci://quay.io/test-org/validated-model:latest';
+
+const EXPECTED_RUNTIME_ARGS = [
+  '# Validated arguments for Tool calling',
+  '--enable-auto-tool-choice',
+  '--tool-call-parser granite',
+  '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
+].join('\n');
 
 /* eslint-disable camelcase -- catalog API payloads use snake_case field names */
 const catalogModel = {
@@ -69,6 +89,7 @@ const initIntercepts = () => {
       disableModelCatalog: false,
       disableModelRegistry: false,
       toolCalling: true,
+      vLLMDeploymentOnMaaS: true,
     }),
   );
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
@@ -88,7 +109,57 @@ const initIntercepts = () => {
         },
       ],
     }),
+    mockOciConnectionTypeConfigMap(),
   ]);
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace: 'test-project', context: '*' } },
+    { applied: true },
+  );
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList([
+      mockGlobalScopedHardwareProfiles[0],
+      mockGlobalScopedHardwareProfiles[1],
+      mockHardwareProfile({
+        name: 'nvidia-profile',
+        displayName: 'NVIDIA GPU Profile',
+        identifiers: [
+          {
+            displayName: 'CPU',
+            identifier: 'cpu',
+            minCount: '4',
+            maxCount: '8',
+            defaultCount: '4',
+            resourceType: IdentifierResourceType.CPU,
+          },
+          {
+            displayName: 'Memory',
+            identifier: 'memory',
+            minCount: '8Gi',
+            maxCount: '16Gi',
+            defaultCount: '8Gi',
+            resourceType: IdentifierResourceType.MEMORY,
+          },
+          {
+            displayName: 'GPU',
+            identifier: 'nvidia.com/gpu',
+            minCount: 1,
+            maxCount: 4,
+            defaultCount: 1,
+            resourceType: IdentifierResourceType.ACCELERATOR,
+          },
+        ],
+      }),
+    ]),
+  );
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList(mockStandardModelServingTemplateK8sResources(), {
+      namespace: 'opendatahub',
+    }),
+  );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
 
   cy.interceptOdh(
@@ -155,21 +226,79 @@ const initIntercepts = () => {
   );
 };
 
+const openWizardFromCatalog = () => {
+  initIntercepts();
+  modelDetailsPage.visit(SOURCE_ID, MODEL_NAME);
+  modelCatalog.clickDeployModelButtonWithRetry();
+  modelServingWizard.findPreconfigureStep().should('be.enabled');
+};
+
+const navigateToAdvancedOptions = () => {
+  modelServingWizard.findPreconfigureProjectSelector().click();
+  modelServingWizard.findPreconfigureProjectSelectorOption('Test Project').click();
+  modelServingWizard.findNextButton().should('be.enabled').click();
+
+  modelServingWizard.findModelSourceStep().should('be.enabled');
+  modelServingWizard.findNextButton().should('be.enabled').click();
+
+  modelServingWizard.findModelDeploymentStep().should('be.enabled');
+  modelServingWizard.selectDeploymentMethodByKey('legacy');
+  modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+  modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
+  modelServingWizard.findNextButton().should('be.enabled').click();
+
+  modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
+};
+
 describe('Preconfigure deployment validated arguments', () => {
-  it('should carry validated arguments from catalog deploy into the wizard', () => {
-    initIntercepts();
-    modelDetailsPage.visit(SOURCE_ID, MODEL_NAME);
+  it('should carry validated arguments from catalog deploy through advanced and review', () => {
+    openWizardFromCatalog();
 
-    modelDetailsPage.findValidatedConfigurationsCard().should('be.visible');
-    modelDetailsPage.findToolCallingCard().should('contain.text', 'Tool calling');
-
-    modelCatalog.clickDeployModelButtonWithRetry();
-
-    modelServingWizard.findPreconfigureStep().should('be.enabled');
     modelServingWizard.findValidatedConfigurationSection('args').should('be.visible');
     modelServingWizard.findValidatedConfigurationOption('tool-calling').should('be.visible');
     modelServingWizard
       .findValidatedConfigurationOptionCheckbox('tool-calling')
       .should('be.checked');
+
+    navigateToAdvancedOptions();
+
+    modelServingWizard.findRuntimeArgsCheckbox().should('be.checked');
+    modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findReviewStepModelDetailsSection().should('exist');
+    cy.contains('Additional runtime arguments').should('exist');
+    cy.contains('--enable-auto-tool-choice').should('exist');
+    cy.contains('--tool-call-parser').should('exist');
+    cy.contains('# Validated arguments').should('not.exist');
+  });
+
+  it('should remove validated args on uncheck and preserve user edits', () => {
+    openWizardFromCatalog();
+
+    modelServingWizard
+      .findValidatedConfigurationOptionCheckbox('tool-calling')
+      .should('be.checked')
+      .click()
+      .should('not.be.checked');
+    modelServingWizard
+      .findValidatedConfigurationOptionCheckbox('tool-calling')
+      .click()
+      .should('be.checked');
+
+    navigateToAdvancedOptions();
+
+    modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
+    modelServingWizard.findRuntimeArgsTextBox().type('{moveToEnd}\n--user-custom-arg');
+
+    modelServingWizard.findPreconfigureStep().click();
+    modelServingWizard
+      .findValidatedConfigurationOptionCheckbox('tool-calling')
+      .click()
+      .should('not.be.checked');
+
+    modelServingWizard.findAdvancedOptionsStep().click();
+    modelServingWizard.findRuntimeArgsTextBox().should('have.value', '--user-custom-arg');
   });
 });
