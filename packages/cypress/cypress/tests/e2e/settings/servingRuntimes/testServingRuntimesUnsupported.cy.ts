@@ -11,7 +11,7 @@ import {
 import {
   cleanupTemplates,
   renderYamlFileWithReplacements,
-  waitForTemplateByDisplayName,
+  waitForTemplateByServingRuntimeName,
 } from '../../../../utils/oc_commands/templates';
 import { getFixturePath } from '../../../../utils/fileImportUtils';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -61,7 +61,9 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
         servingRuntimeDisplayName = `${testData.servingRuntimeDisplayName}-${uuid}`;
         duplicateservingRuntimeId = `${servingRuntimeId}-copy`;
         duplicateServingRuntimeDisplayName = `Copy of ${servingRuntimeDisplayName}`;
-
+      })
+      .then(() => {
+        cy.log('Create a project');
         cleanupTemplates(servingRuntimeId);
         cleanupTemplates(duplicateservingRuntimeId);
         createCleanProject(projectName);
@@ -102,7 +104,12 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
         SERVING_RUNTIME_NAME: servingRuntimeId,
         SERVING_RUNTIME_DISPLAY_NAME: servingRuntimeDisplayName,
       }).then((renderedYaml) => servingRuntimes.getDashboardCodeEditor().setValue(renderedYaml));
+
+      cy.step('Submit the serving runtime');
       servingRuntimes.findSubmitButton().should('be.enabled').click();
+      waitForTemplateByServingRuntimeName(servingRuntimeId);
+
+      cy.step('Verify the serving runtime is created');
       const runtimeRow = servingRuntimes.getRowById(servingRuntimeId);
       runtimeRow.find().should('exist');
       runtimeRow.shouldHaveUnsupportedLabel(true);
@@ -116,6 +123,9 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       servingRuntimes.findGenerativeAIModelOption().should('be.checked');
       servingRuntimes.getDashboardCodeEditor().containsText(testData.resourceType);
       servingRuntimes.findSubmitButton().should('be.enabled').click();
+      waitForTemplateByServingRuntimeName(duplicateservingRuntimeId);
+
+      cy.step('Verify the duplicate serving runtime is created');
       const duplicateRuntimeRow = servingRuntimes.getRowById(duplicateservingRuntimeId);
       duplicateRuntimeRow.find().should('exist');
       duplicateRuntimeRow.shouldHaveUnsupportedLabel(true);
@@ -129,6 +139,7 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
         .getDashboardCodeEditor()
         .replaceInEditor(testData.replaceSourceString, testData.replaceTargetString);
       servingRuntimes.findSubmitButton().should('be.enabled').click();
+      waitForTemplateByServingRuntimeName(duplicateservingRuntimeId);
       duplicateRuntimeRow.shouldHaveUnsupportedLabel(false);
       duplicateRuntimeRow.shouldBeEnabled(true);
 
@@ -141,9 +152,8 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       duplicateRuntimeRow.find().should('not.exist');
 
       cy.step('Verify the original unsupportedserving runtime is hidden in the deploy wizard');
-      waitForTemplateByDisplayName(servingRuntimeId);
-
-      cy.step('Verify the serving runtime is hidden in the deploy wizard');
+      waitForTemplateByServingRuntimeName(servingRuntimeId);
+      runtimeRow.shouldBeEnabled(false);
       openDeployWizardToDeploymentStep(testData.modelLocationURI);
       modelServingWizard.selectDeploymentMethodByKey(testData.deploymentMethod);
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -160,6 +170,7 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
       unsupportedStatusAcceptanceModal.findAcceptanceCheckbox().click();
       unsupportedStatusAcceptanceModal.findAcceptButton().click();
+      runtimeRowAfterVisit.shouldBeEnabled(true);
 
       openDeployWizardToDeploymentStep(testData.modelLocationURI);
       modelServingWizard.selectDeploymentMethodByKey(testData.deploymentMethod);

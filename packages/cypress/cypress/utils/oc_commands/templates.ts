@@ -16,7 +16,7 @@ export type WaitForTemplateOptions = {
  * This is useful for verifying that the backend successfully created the Template after submitting
  * the Serving Runtime form.
  */
-export const waitForTemplateByDisplayName = (
+export const waitForTemplateByServingRuntimeName = (
   servingRuntimeName: string,
   { maxAttempts = 30, pollIntervalMs = 2000 }: WaitForTemplateOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {

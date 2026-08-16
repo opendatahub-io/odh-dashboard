@@ -33,7 +33,7 @@ let resourceName: string;
 let duplicateResourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
-const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+const namespace = Cypress.env('APPLICATIONS_NAMESPACE'); 
 
 describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
   retryableBefore(() => {
@@ -49,7 +49,9 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         deploymentMethod = testData.deploymentMethod;
         acceleratorConfigName = `${testData.acceleratorConfigName}-${uuid}`;
         duplicateAcceleratorConfigName = `${acceleratorConfigName}-dup`;
-
+      })
+      .then(() => {
+        cy.log('Create a project');
         // Ensure a clean start if a previous run left a template behind
         cleanupLLMInferenceServiceConfig(acceleratorConfigName);
         cleanupLLMInferenceServiceConfig(duplicateAcceleratorConfigName);
@@ -116,6 +118,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
         llmAcceleratorConfigs.findYAMLCodeEditor().setValue(yamlContent);
       });
       llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
+      checkLLMInferenceServiceConfigState(acceleratorConfigName, namespace);
 
       cy.step('Duplicate it and create the duplicate');
       cy.then(() => {
@@ -145,6 +148,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
           expect(yamlContent).to.include(testData.resourceType);
         });
         llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
+        checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
       });
 
       cy.step('Edit the duplicate accelerator config: mark accepted and enabled');
@@ -163,6 +167,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
           .findYAMLCodeEditor()
           .replaceInEditor(testData.replaceSourceString, testData.replaceTargetString);
         llmAcceleratorConfigs.findSubmitButton().should('be.enabled').click();
+        checkLLMInferenceServiceConfigState(duplicateResourceName, namespace);
         llmAcceleratorConfigs
           .getRowByName(duplicateResourceName)
           .shouldHaveUnsupportedLabel(false)
