@@ -161,26 +161,15 @@ describe('FeatureStoreTableRow', () => {
       expect(onDeleteMock).toHaveBeenCalledWith(baseFeatureStore);
     });
 
-    it('should disable Delete action when canDelete is false', async () => {
-      const onDeleteMock = jest.fn();
-      const user = userEvent.setup();
-      renderRow({ canDelete: false, onDelete: onDeleteMock });
-
-      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
-      await user.click(kebab);
-      const deleteItem = await screen.findByRole('menuitem', { name: 'Delete' });
-      await user.click(deleteItem);
-
-      expect(onDeleteMock).not.toHaveBeenCalled();
-    });
-
-    it('should show tooltip on disabled Delete action explaining permission restriction', async () => {
+    it('should disable Delete and show permission tooltip when canDelete is false', async () => {
       const user = userEvent.setup();
       renderRow({ canDelete: false });
 
       const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
       await user.click(kebab);
       const deleteItem = await screen.findByRole('menuitem', { name: 'Delete' });
+
+      expect(deleteItem).toHaveAttribute('aria-disabled', 'true');
       await user.hover(deleteItem);
 
       await waitFor(() => {
