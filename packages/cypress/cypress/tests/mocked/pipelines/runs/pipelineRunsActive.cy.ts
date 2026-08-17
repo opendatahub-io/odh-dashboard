@@ -4,7 +4,8 @@ import {
   runtimeStateLabels,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
-import { mockDashboardConfig, buildMockRunKF } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { buildMockRunKF } from '@odh-dashboard/internal/__mocks__';
 import {
   projectName,
   pipelineId,

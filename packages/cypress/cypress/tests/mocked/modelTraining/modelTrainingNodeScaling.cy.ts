@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { TrainJobModel, WorkloadModel } from '@odh-dashboard/internal/api/models';
 import {
   projectName,

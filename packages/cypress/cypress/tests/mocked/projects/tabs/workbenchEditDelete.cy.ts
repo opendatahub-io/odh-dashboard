@@ -1,11 +1,12 @@
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { mockK8sResourceList, mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
-import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { initIntercepts } from './workbenchTestUtils';
 import { AccessMode } from '../../../../types';
 import {

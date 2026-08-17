@@ -5,9 +5,9 @@ import {
   RuntimeStateKF,
   StorageStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
-  mockK8sResourceList,
-  mockProjectK8sResource,
   buildMockRunKF,
   buildMockPipelineVersions,
   buildMockPipelineVersion,
