@@ -348,6 +348,46 @@ describe('extractReconfigureData', () => {
     ]);
   });
 
+  it('should fall back to resolvedCollection.benchmarks when job.collection.benchmarks is empty', () => {
+    const job = mockEvaluationJob({ collectionId: 'col-empty-bench', modelName: 'my-model' });
+    job.collection = { id: 'col-empty-bench', benchmarks: [] };
+    job.benchmarks = null;
+    job.pass_criteria = { threshold: 0.85 };
+
+    const resolved: Collection = {
+      resource: { id: 'col-empty-bench' },
+      name: 'S3 Collection',
+      benchmarks: [
+        {
+          id: 's3-bench-1',
+          provider_id: 'unitxt',
+          primary_score: { metric: 'f1', lower_is_better: false },
+          parameters: { template: 'default' },
+        },
+      ],
+    };
+
+    const result = extractReconfigureData(job, [], resolved);
+
+    expect(result.isCollectionFlow).toBe(true);
+    expect(result.sourceMode).not.toBe('prerecorded');
+    expect(result.primaryMetric).toBe('f1');
+    expect(result.additionalArgs).toBe(JSON.stringify({ template: 'default' }, null, 2));
+    expect(result.collection).toEqual({
+      resource: { id: 'col-empty-bench' },
+      name: 'S3 Collection',
+      pass_criteria: { threshold: 0.85 },
+      benchmarks: [
+        {
+          id: 's3-bench-1',
+          provider_id: 'unitxt',
+          primary_score: { metric: 'f1', lower_is_better: false },
+          parameters: { template: 'default' },
+        },
+      ],
+    });
+  });
+
   it('should use collection id as name when resolvedCollection is absent', () => {
     const job = mockEvaluationJob({ collectionId: 'no-resolved' });
 

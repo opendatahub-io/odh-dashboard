@@ -28,16 +28,16 @@ export type ReconfigureFormData = {
   experimentName: string | undefined;
 };
 
-const hasTestDataRef = (job: EvaluationJob): boolean => {
-  const benchmarks = job.collection?.benchmarks ?? job.benchmarks;
-  return benchmarks?.some((b) => b.test_data_ref?.s3) ?? false;
-};
+const hasTestDataRef = (
+  benchmarks: NonNullable<EvaluationJob['benchmarks']> | null | undefined,
+): boolean => benchmarks?.some((b) => b.test_data_ref?.s3) ?? false;
 
 export const inferSourceMode = (
   job: EvaluationJob,
   inferenceServices: InferenceServiceItem[],
+  benchmarks?: NonNullable<EvaluationJob['benchmarks']> | null,
 ): { sourceMode: SourceMode; modelSelection: ModelSelection } => {
-  if (hasTestDataRef(job)) {
+  if (hasTestDataRef(benchmarks ?? job.collection?.benchmarks ?? job.benchmarks)) {
     return { sourceMode: 'prerecorded', modelSelection: 'external' };
   }
 
@@ -58,15 +58,26 @@ const extractReconfigureData = (
   inferenceServices: InferenceServiceItem[],
   resolvedCollection?: Collection,
 ): ReconfigureFormData => {
-  const { sourceMode, modelSelection } = inferSourceMode(job, inferenceServices);
+  const isCollectionFlow = !!job.collection;
+
+  const jobCollectionBenchmarks = job.collection?.benchmarks;
+  const effectiveBenchmarks: EvaluationJob['benchmarks'] = isCollectionFlow
+    ? jobCollectionBenchmarks?.length
+      ? jobCollectionBenchmarks
+      : resolvedCollection?.benchmarks
+    : job.benchmarks;
+
+  const { sourceMode, modelSelection } = inferSourceMode(
+    job,
+    inferenceServices,
+    effectiveBenchmarks,
+  );
   const selectedInferenceService =
     modelSelection === 'cluster'
       ? inferenceServices.find((is) => is.name === job.model.name)
       : undefined;
-  const isCollectionFlow = !!job.collection;
 
-  const allBenchmarks = job.collection?.benchmarks ?? job.benchmarks;
-  const firstBenchmark = allBenchmarks?.[0];
+  const firstBenchmark = effectiveBenchmarks?.[0];
 
   /* eslint-disable camelcase */
   let benchmark: FlatBenchmark | undefined;
@@ -84,7 +95,7 @@ const extractReconfigureData = (
 
   let collection: Collection | undefined;
   if (isCollectionFlow && job.collection) {
-    const jobBenchmarks = job.collection.benchmarks?.map((b) => ({
+    const collectionBenchmarks = effectiveBenchmarks?.map((b) => ({
       id: b.id,
       provider_id: b.provider_id,
       primary_score: b.primary_score,
@@ -95,7 +106,7 @@ const extractReconfigureData = (
       resource: { id: job.collection.id },
       name: resolvedCollection?.name ?? job.collection.id,
       pass_criteria: job.pass_criteria,
-      benchmarks: jobBenchmarks ?? resolvedCollection?.benchmarks,
+      benchmarks: collectionBenchmarks,
     };
   }
   /* eslint-enable camelcase */
@@ -112,7 +123,7 @@ const extractReconfigureData = (
   let datasetUrl = '';
   let accessToken = '';
   if (sourceMode === 'prerecorded') {
-    const refBenchmark = allBenchmarks?.find((b) => b.test_data_ref?.s3);
+    const refBenchmark = effectiveBenchmarks?.find((b) => b.test_data_ref?.s3);
     if (refBenchmark?.test_data_ref?.s3) {
       datasetUrl = refBenchmark.test_data_ref.s3.key ?? '';
       accessToken = refBenchmark.test_data_ref.s3.secret_ref ?? '';

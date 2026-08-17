@@ -34,14 +34,19 @@ const EvaluationReconfigureLoader: React.FC = () => {
       if (!namespace || !collectionId || !needsCollectionFetch) {
         return Promise.reject(new NotReadyError('Collection fetch not needed'));
       }
-      return getCollections('', { namespace, name: collectionId })(opts).then(
-        (response) => response.items.find((c) => c.resource.id === collectionId) ?? null,
-      );
+      // TODO: RHOAIENG-84697 — use direct GET /collections/{id} once the BFF endpoint exists
+      return getCollections('', { namespace })(opts).then((response) => {
+        const match = response.items.find((c) => c.resource.id === collectionId);
+        if (!match) {
+          throw new Error(`Collection "${collectionId}" not found`);
+        }
+        return match;
+      });
     },
     [namespace, collectionId, needsCollectionFetch],
   );
 
-  const [resolvedCollection, collectionLoaded] = useFetchState<Collection | null>(
+  const [resolvedCollection, collectionLoaded, collectionError] = useFetchState<Collection | null>(
     fetchCollection,
     null,
     { initialPromisePurity: true },
@@ -49,7 +54,9 @@ const EvaluationReconfigureLoader: React.FC = () => {
 
   const collectionReady = !needsCollectionFetch || collectionLoaded;
 
-  if (jobError) {
+  const loadError = jobError ?? collectionError;
+
+  if (loadError) {
     return (
       <Bullseye>
         <EmptyState
@@ -59,7 +66,7 @@ const EvaluationReconfigureLoader: React.FC = () => {
           status="danger"
           data-testid="reconfigure-load-error"
         >
-          <EmptyStateBody>{jobError.message}</EmptyStateBody>
+          <EmptyStateBody>{loadError.message}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
               <Button

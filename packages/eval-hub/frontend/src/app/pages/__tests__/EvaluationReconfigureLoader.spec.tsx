@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationReconfigureLoader from '~/app/pages/EvaluationReconfigureLoader';
-import { EvaluationJob, InferenceServiceItem } from '~/app/types';
+import { CollectionsListResponse, EvaluationJob, InferenceServiceItem } from '~/app/types';
 
 const mockUseEvaluationJob = jest.fn<
   [EvaluationJob | null, boolean, Error | undefined],
@@ -23,6 +23,16 @@ const mockUseInferenceServices = jest.fn<
 
 jest.mock('~/app/hooks/useInferenceServices', () => ({
   useInferenceServices: (...args: [string]) => mockUseInferenceServices(...args),
+}));
+
+const mockGetCollections = jest.fn<
+  (opts: unknown) => Promise<CollectionsListResponse>,
+  [string, { namespace: string; name: string }]
+>();
+
+jest.mock('~/app/api/k8s', () => ({
+  getCollections: (...args: [string, { namespace: string; name: string }]) =>
+    mockGetCollections(...args),
 }));
 
 jest.mock('~/app/pages/StartEvaluationRunPage', () => {
@@ -107,5 +117,24 @@ describe('EvaluationReconfigureLoader', () => {
     renderLoader('my-namespace');
 
     expect(mockUseInferenceServices).toHaveBeenCalledWith('my-namespace');
+  });
+
+  it('should show an error state when getCollections returns no matching collection', async () => {
+    const job = mockEvaluationJob({ id: 'job-123', collectionId: 'missing-collection' });
+    mockUseEvaluationJob.mockReturnValue([job, true, undefined]);
+    mockGetCollections.mockReturnValue(() =>
+      Promise.resolve({ items: [{ resource: { id: 'other-collection' }, name: 'Other' }] }),
+    );
+
+    renderLoader();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('reconfigure-load-error')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('reconfigure-load-error')).toHaveTextContent(
+      'Collection "missing-collection" not found',
+    );
+    expect(screen.queryByTestId('start-evaluation-run-page')).not.toBeInTheDocument();
   });
 });
