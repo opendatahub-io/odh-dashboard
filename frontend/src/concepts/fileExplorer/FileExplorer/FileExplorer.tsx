@@ -161,7 +161,6 @@ const defaults = {
         Viewing files from: <strong>{sourceName}</strong>
       </span>
     ),
-    selectedPillPrefixFile: 'Selected file',
     selectedPillPrefixFolder: 'Selected folder',
 
     searchAriaLabel: 'Search input to find by name',
@@ -1176,14 +1175,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     Array.isArray(selectedFiles) &&
     selectedFiles.length > 0 &&
     selectedFiles.every((f) => isFolder(f));
+  // Currently the pill only renders for folder selections. If UX wants the pill
+  // to render for selected files in the future, add a file-specific category name here.
   let selectionPillLabelGroupCategoryName = '';
   if (shouldRenderSelectionPill) {
     selectionPillLabelGroupCategoryName =
       selectedFiles.length > 1
         ? defaults.labels.detailsPanelTitle
-        : isFolder(selectedFiles[0])
-        ? defaults.labels.selectedPillPrefixFolder
-        : defaults.labels.selectedPillPrefixFile;
+        : defaults.labels.selectedPillPrefixFolder;
   }
 
   return (
@@ -1284,6 +1283,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               <LabelGroup categoryName={selectionPillLabelGroupCategoryName}>
                 {selectedFiles.map((file) => (
                   <Label
+                    data-testid={`file-explorer-selection-pill-${sanitizeId(file.path)}`}
                     icon={<RhUiInformationFillIcon />}
                     color="grey"
                     key={file.path}

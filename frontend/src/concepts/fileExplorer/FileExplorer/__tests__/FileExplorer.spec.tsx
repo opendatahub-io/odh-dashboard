@@ -1323,11 +1323,8 @@ describe('FileExplorer', () => {
 
       expect(screen.getByText('Selected folder')).toBeInTheDocument();
 
-      // The pill Label has an onClose that renders a close button — find it via the pill element
-      const pillElement = document.getElementById('pill-selected-file--my-data');
-      expect(pillElement).toBeInTheDocument();
-      const pillLabel = (pillElement as HTMLElement).closest('.pf-v6-c-label');
-      const closeButton = within(pillLabel as HTMLElement).getByRole('button');
+      const pillLabel = screen.getByTestId('file-explorer-selection-pill--my-data');
+      const closeButton = within(pillLabel).getByRole('button');
       fireEvent.click(closeButton);
 
       // Folder should be deselected

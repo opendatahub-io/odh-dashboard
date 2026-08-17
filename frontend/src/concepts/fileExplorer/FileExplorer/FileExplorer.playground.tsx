@@ -363,9 +363,6 @@ const App: React.FC = () => {
     });
   }, [filesToRender, selectedFolder, activeDataset]);
 
-  const viewingSelectedFolderChildren =
-    selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
-
   useEffect(() => {
     const htmlElement = document.documentElement;
     if (isDarkTheme) {
@@ -498,12 +495,8 @@ const App: React.FC = () => {
         page={pageToRender}
         perPage={perPageToRender}
         itemCount={itemCountToRender}
-        selection={viewingSelectedFolderChildren ? 'checkbox' : selectionToRender}
-        unselectableReason={
-          viewingSelectedFolderChildren
-            ? `The ${selectedFolder.name} parent folder has been selected already`
-            : undefined
-        }
+        selection={selectionToRender}
+        unselectableReason={undefined}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {

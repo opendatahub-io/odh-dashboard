@@ -351,11 +351,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           ...result,
           forceShowAsSelected: false,
           hint: defaults.labels.includedInSelection,
-          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder?.name || ''),
+          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder.name),
         };
       }
       if (disabledSet?.has(file.path) && isFolder(file)) {
-        result = { ...result, selectable: false, disabled: disabledPaths?.[file.path] || true };
+        result = { ...result, selectable: false, disabled: disabledPaths[file.path] || true };
       }
       return result;
     });
@@ -461,14 +461,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       };
     }, [s3SecretName, fetchError]);
 
-  const viewingASelectedFoldersChildren =
-    selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
-
-  let unselectableReasonToRender = unselectableReason;
-  if (viewingASelectedFoldersChildren) {
-    unselectableReasonToRender = `The ${selectedFolder.name} parent folder has been selected already`;
-  }
-
   // Callbacks ---------------------------------------------------------------->
 
   const handleSelectFile = useCallback((file: ExplorerFiles[number], selected: boolean) => {
@@ -550,8 +542,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       page={pageToRender}
       perPage={perPageToRender}
       hasNextPage={hasNextPage}
-      unselectableReason={unselectableReasonToRender}
-      selection={viewingASelectedFoldersChildren ? 'checkbox' : selectionProp}
+      unselectableReason={unselectableReason}
+      selection={selectionProp}
       isOpen={isOpen}
       onClose={onClose}
       onSelectFile={handleSelectFile}
