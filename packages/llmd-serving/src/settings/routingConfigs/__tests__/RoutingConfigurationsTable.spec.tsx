@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate } from 'react-router';
 import { k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import RoutingConfigurationsTable from '../RoutingConfigurationsTable';
 
 jest.mock('react-router', () => ({
@@ -24,7 +24,7 @@ jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 
