@@ -1,5 +1,5 @@
 apiVersion: tekton.dev/v1
-#testhermetic1
+#testhermetic
 kind: PipelineRun
 metadata:
   annotations:
