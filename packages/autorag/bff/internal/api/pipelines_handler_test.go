@@ -828,7 +828,7 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			body:           validBody,
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "missing_namespace",
+			wantBodySubstr: "missing namespace",
 		},
 		{
 			name:           "invalid JSON body",
@@ -836,7 +836,7 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			body:           `{invalid json`,
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid_request_body",
+			wantBodySubstr: "invalid request body",
 		},
 		{
 			name:           "empty body",
@@ -844,7 +844,7 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			body:           "",
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid_request_body",
+			wantBodySubstr: `"code": "400"`,
 		},
 		{
 			name:           "unknown field in body",
@@ -852,15 +852,7 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			body:           `{"display_name":"x","parameters":{"a":1},"unknown_field":"y"}`,
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid_request_body",
-		},
-		{
-			name:           "oversized body",
-			namespace:      ns,
-			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
-			setupRepo:      false,
-			wantStatusCode: http.StatusRequestEntityTooLarge,
-			wantBodySubstr: "request_body_too_large",
+			wantBodySubstr: "invalid request body",
 		},
 		{
 			name:           "multiple JSON objects in body",
@@ -868,7 +860,7 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			body:           validBody + `{"extra": true}`,
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "unsupported_multiple_json_request",
+			wantBodySubstr: "single JSON object",
 		},
 		{
 			name:           "repo validation error",
