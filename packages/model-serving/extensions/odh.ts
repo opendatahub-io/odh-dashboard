@@ -17,6 +17,10 @@ import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWiz
 
 const ADMIN_USER = 'ADMIN_USER';
 
+// Base path of the Model deployment settings tabbed page.
+const MODEL_DEPLOYMENT_SETTINGS_PATH =
+  '/settings/model-resources-operations/model-deployment-settings';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -185,8 +189,8 @@ const extensions: (
     properties: {
       id: 'model-deployment-settings',
       title: 'Model deployment settings',
-      href: '/settings/model-resources-operations/model-deployment-settings',
-      path: '/settings/model-resources-operations/model-deployment-settings/*',
+      href: MODEL_DEPLOYMENT_SETTINGS_PATH,
+      path: `${MODEL_DEPLOYMENT_SETTINGS_PATH}/*`,
       section: 'settings-model-resources-and-operations',
       group: '1_model-resources',
     },
@@ -203,72 +207,6 @@ const extensions: (
       title: 'General settings',
       component: () => import('../src/components/settings/GeneralSettingsTab'),
       group: '1_general',
-    },
-  },
-  // Redirect old serving runtimes URL to the new model deployment settings page
-  {
-    type: 'app.route',
-    properties: {
-      path: '/settings/model-resources-operations/serving-runtimes/*',
-      component: createRedirectComponent({
-        from: '/settings/model-resources-operations/serving-runtimes/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
-      }),
-    },
-    flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/servingRuntimes/*',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
-      }),
-    },
-    flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
-    },
-  },
-  // Legacy v2 sub-path aliases: the old standalone page's own nested router
-  // (CustomServingRuntimeRoutes.tsx + v2Redirects.ts, both since removed)
-  // translated these two bookmarked URLs before landing on the add/edit form. The
-  // general `/servingRuntimes/*` redirect above only splices the wildcard tail onto
-  // the new base path, so these two specific aliases need their own routes (registered
-  // here, more specific than the wildcard above, so they win).
-  //
-  // The `add` alias has no param, so an absolute `to` (leading `/`) is fine —
-  // buildV2RedirectElement resolves it to AbsoluteRedirect, a fixed-destination
-  // `<Navigate>`. The `edit` alias needs the captured runtime name preserved, so it
-  // uses the `/*` wildcard form on both `from` and `to` instead: an absolute `to`
-  // without a wildcard would resolve to AbsoluteRedirect too, which does no parameter
-  // substitution and would navigate to the literal string `:servingRuntimeName`.
-  {
-    type: 'app.route',
-    properties: {
-      path: '/servingRuntimes/addServingRuntime',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/addServingRuntime',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/add',
-      }),
-    },
-    flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/servingRuntimes/editServingRuntime/*',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/editServingRuntime/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/edit/*',
-      }),
-    },
-    flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
   },
 ];

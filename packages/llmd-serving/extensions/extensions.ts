@@ -60,6 +60,15 @@ const TOPOLOGY_CONFIGS_TAB_PATH =
 const ROUTING_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/routing-configurations';
 
+// Base paths of the former standalone pages, kept only as redirect sources to the
+// tabs above (the standalone pages themselves have been removed).
+const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llm-accelerator-configs';
+const TOPOLOGY_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-topology-configurations';
+const ROUTING_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-routing-configurations';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -559,9 +568,9 @@ const extensions: (
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llm-accelerator-configs/*',
+        from: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
         to: `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/*`,
       }),
     },
@@ -572,9 +581,9 @@ const extensions: (
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llmd-topology-configurations/*',
+        from: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
         to: `${TOPOLOGY_CONFIGS_TAB_PATH}/*`,
       }),
     },
@@ -585,9 +594,9 @@ const extensions: (
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llmd-routing-configurations/*',
+        from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
         to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
       }),
     },
