@@ -1,7 +1,7 @@
 import { Button } from '@patternfly/react-core';
 import { DesktopIcon, PlusCircleIcon, StorageDomainIcon } from '@patternfly/react-icons';
 import type { FileRejection } from 'react-dropzone';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
@@ -20,6 +20,7 @@ import {
   getEvaluationDropRejectedNotification,
   isAllowedEvaluationJsonFile,
 } from '~/app/utilities/autoragEvaluationFile';
+import { fireAutoragEvaluationSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
@@ -28,6 +29,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
 
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const s3SelectionCommittedRef = useRef(false);
 
   const form = useFormContext<ConfigureSchema>();
   const {
@@ -92,11 +94,24 @@ function AutoragEvaluationSelect(): React.JSX.Element {
                 : errorMessage,
             );
             setStatus('danger');
+            fireAutoragEvaluationSourceConfigured({
+              evaluationSourceType: 'upload',
+              countOfDocuments: 0,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errorMessage,
+            });
             return;
           }
 
           field.onChange(response.key);
           setStatus('success');
+          fireAutoragEvaluationSourceConfigured({
+            evaluationSourceType: 'upload',
+            countOfDocuments: 1,
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
@@ -156,12 +171,30 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           namespace={namespace ?? ''}
           s3SecretName={testDataSecretName}
           isOpen
-          onClose={() => setFileExplorerOpen(false)}
+          onClose={() => {
+            if (!s3SelectionCommittedRef.current) {
+              fireAutoragEvaluationSourceConfigured({
+                evaluationSourceType: 's3',
+                countOfDocuments: 0,
+                outcome: TrackingOutcome.cancel,
+                success: true,
+              });
+            }
+            s3SelectionCommittedRef.current = false;
+            setFileExplorerOpen(false);
+          }}
           onSelectFiles={(files) => {
             if (files.length > 0) {
               const file = files[0];
               const filePath = file.path.replace(/^\//, '');
               field.onChange(filePath);
+              s3SelectionCommittedRef.current = true;
+              fireAutoragEvaluationSourceConfigured({
+                evaluationSourceType: 's3',
+                countOfDocuments: files.length,
+                outcome: TrackingOutcome.submit,
+                success: true,
+              });
             }
           }}
           allowFolderSelection={false}

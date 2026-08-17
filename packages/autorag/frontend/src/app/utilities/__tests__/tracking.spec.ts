@@ -5,6 +5,7 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTORAG_EVENTS,
+  fireAutoragEvaluationSourceConfigured,
   fireAutoragExperimentCreated,
   fireAutoragKnowledgeSourceConfigured,
   fireAutoragProjectDropdownOptionSelected,
@@ -127,6 +128,67 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
       AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
       {
         knowledgeSourceType: 'upload',
+        countOfDocuments: 0,
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: 'boom',
+      },
+    );
+  });
+});
+
+describe('fireAutoragEvaluationSourceConfigured', () => {
+  it('should fire with evaluationSourceType: s3 and outcome: submit', () => {
+    fireAutoragEvaluationSourceConfigured({
+      evaluationSourceType: 's3',
+      countOfDocuments: 1,
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+      {
+        evaluationSourceType: 's3',
+        countOfDocuments: 1,
+        outcome: TrackingOutcome.submit,
+        success: true,
+      },
+    );
+  });
+
+  it('should fire with outcome: cancel', () => {
+    fireAutoragEvaluationSourceConfigured({
+      evaluationSourceType: 's3',
+      countOfDocuments: 0,
+      outcome: TrackingOutcome.cancel,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+      {
+        evaluationSourceType: 's3',
+        countOfDocuments: 0,
+        outcome: TrackingOutcome.cancel,
+        success: true,
+      },
+    );
+  });
+
+  it('should fire with evaluationSourceType: upload, success: false and an error message', () => {
+    fireAutoragEvaluationSourceConfigured({
+      evaluationSourceType: 'upload',
+      countOfDocuments: 0,
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: 'boom',
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
+      {
+        evaluationSourceType: 'upload',
         countOfDocuments: 0,
         outcome: TrackingOutcome.submit,
         success: false,
