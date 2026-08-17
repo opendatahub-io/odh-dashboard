@@ -241,4 +241,43 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
   });
 };
 
+/**
+ * Set globalMLflowNamespaces in OdhDashboardConfig so the MLflow BFF
+ * treats prompts from those namespaces as global / read-only.
+ *
+ * @param namespaces - Array of namespace names to mark as global.
+ */
+export const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
+  const appNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { globalMLflowNamespaces: namespaces },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, appNamespace);
+
+  cy.step('Wait for globalMLflowNamespaces to be confirmed in config');
+  const expected = JSON.stringify(namespaces);
+  pollUntilSuccess(
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${appNamespace} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+    'globalMLflowNamespaces to be set',
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+};
+
+/**
+ * Clear globalMLflowNamespaces from OdhDashboardConfig (revert to default).
+ */
+export const clearGlobalMLflowNamespaces = (): void => {
+  const appNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { globalMLflowNamespaces: [] },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, appNamespace);
+
+  pollUntilSuccess(
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${appNamespace} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == []'`,
+    'globalMLflowNamespaces to be cleared',
+    { maxAttempts: 15, pollIntervalMs: 2000 },
+  );
+};
+
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';
