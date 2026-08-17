@@ -1,5 +1,5 @@
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';

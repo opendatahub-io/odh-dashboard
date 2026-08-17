@@ -2,6 +2,8 @@ import { FeatureStoreObject } from './const';
 
 export const featureStoreRootRoute = (): string => `/develop-train/feature-store`;
 
+export const featureStoreManageRoute = (): string => '/settings/environment-setup/feature-stores';
+
 export const featureStoreRoute = (
   featureStoreObject: FeatureStoreObject,
   featureStoreProject?: string,
@@ -45,3 +47,6 @@ export const featureDataSourceRoute = (
 
 export const featureDataSetRoute = (dataSetName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/datasets/${featureStoreProject}/${dataSetName}`;
+
+export const featureStoreDeployRoute = (namespace: string, name: string): string =>
+  `${featureStoreRootRoute()}/create/deploy/${namespace}/${name}`;

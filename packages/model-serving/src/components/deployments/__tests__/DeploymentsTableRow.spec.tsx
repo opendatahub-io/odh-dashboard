@@ -2,7 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { Deployment } from '../../../../extension-points';
@@ -61,6 +61,15 @@ jest.mock('@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile', ()
 jest.mock('../row/DeploymentHardwareProfileCell', () => ({
   DeploymentHardwareProfileCell: () => <td>Hardware Profile</td>,
 }));
+
+// Mock useHardwareProfileBindingState (invoked directly in DeploymentsTableRow)
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
+  const actual = jest.requireActual('@odh-dashboard/hardware-profiles/shared');
+  return {
+    ...actual,
+    useHardwareProfileBindingState: () => [null, true, undefined],
+  };
+});
 
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',

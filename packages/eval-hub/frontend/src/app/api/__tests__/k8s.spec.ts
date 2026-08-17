@@ -3,8 +3,14 @@ import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-
 import {
   getCollections,
   getEvalHubCRStatus,
+  getEvaluationJob,
   getProviders,
   createEvaluationJob,
+  LogFetchError,
+  isLogApiUnavailable,
+  isLogServerError,
+  getEvaluationJobLogs,
+  getEvaluationJobBenchmarkLogs,
 } from '~/app/api/k8s';
 import type {
   Collection,
@@ -96,6 +102,77 @@ describe('getEvalHubCRStatus', () => {
       expect.any(String),
       expect.any(Object),
       expect.any(Object),
+    );
+  });
+});
+
+describe('getEvaluationJob', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the job when response has valid results', async () => {
+    const job: EvaluationJob = {
+      resource: { id: 'job-1' },
+      status: { state: 'completed' },
+      results: { benchmarks: [{ id: 'arc_easy', metrics: {} }] },
+      model: { name: 'llama-7b' },
+    };
+    mockRestGET.mockResolvedValue({ data: job });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJob('', 'test-ns', 'job-1')({});
+
+    expect(result).toEqual(job);
+  });
+
+  it('should accept results with no benchmarks field', async () => {
+    const job: EvaluationJob = {
+      resource: { id: 'job-2' },
+      status: { state: 'pending' },
+      results: {},
+      model: { name: 'llama-7b' },
+    };
+    mockRestGET.mockResolvedValue({ data: job });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJob('', 'test-ns', 'job-2')({});
+
+    expect(result).toEqual(job);
+  });
+
+  it('should throw when results is missing from the payload', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'job-3' }, status: {}, model: {} } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-3')({})).rejects.toThrow(
+      'Invalid evaluation job: missing results',
+    );
+  });
+
+  it('should throw when results.benchmarks is not an array', async () => {
+    mockRestGET.mockResolvedValue({
+      data: {
+        resource: { id: 'job-4' },
+        status: {},
+        results: { benchmarks: 'not-an-array' },
+        model: {},
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-4')({})).rejects.toThrow(
+      'Invalid evaluation job: results.benchmarks is not an array',
+    );
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-5')({})).rejects.toThrow(
+      'Invalid response format',
     );
   });
 });
@@ -322,5 +399,344 @@ describe('createEvaluationJob', () => {
       expect.any(Object),
       expect.any(Object),
     );
+  });
+});
+
+describe('LogFetchError', () => {
+  it('should store the status code', () => {
+    const error = new LogFetchError(404, 'Not Found');
+    expect(error.statusCode).toBe(404);
+    expect(error.message).toBe('Not Found');
+    expect(error.name).toBe('LogFetchError');
+  });
+
+  it('should be an instance of Error', () => {
+    const error = new LogFetchError(500, 'Server Error');
+    expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe('isLogApiUnavailable', () => {
+  it('should return true for a LogFetchError with status 404', () => {
+    expect(isLogApiUnavailable(new LogFetchError(404, 'Not Found'))).toBe(true);
+  });
+
+  it('should return false for a LogFetchError with a non-404 status', () => {
+    expect(isLogApiUnavailable(new LogFetchError(500, 'Server Error'))).toBe(false);
+  });
+
+  it('should return false for a plain Error', () => {
+    expect(isLogApiUnavailable(new Error('generic'))).toBe(false);
+  });
+});
+
+describe('isLogServerError', () => {
+  it('should return true for a LogFetchError with status 500', () => {
+    expect(isLogServerError(new LogFetchError(500, 'Internal Server Error'))).toBe(true);
+  });
+
+  it('should return true for a LogFetchError with status 502', () => {
+    expect(isLogServerError(new LogFetchError(502, 'Bad Gateway'))).toBe(true);
+  });
+
+  it('should return false for a LogFetchError with a non-5xx status', () => {
+    expect(isLogServerError(new LogFetchError(404, 'Not Found'))).toBe(false);
+  });
+
+  it('should return false for a plain Error', () => {
+    expect(isLogServerError(new Error('generic'))).toBe(false);
+  });
+});
+
+describe('getEvaluationJobLogs', () => {
+  const mockFetch = jest.fn();
+  const textPlainHeaders = { get: () => 'text/plain' };
+  const textPlainCharsetHeaders = { get: () => 'text/plain; charset=utf-8' };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.fetch = mockFetch;
+  });
+
+  it('should fetch logs and return text on success', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve('log line 1\nlog line 2'),
+    });
+
+    const result = await getEvaluationJobLogs('', 'test-ns', 'job-1')();
+
+    expect(result).toBe('log line 1\nlog line 2');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/evaluations/jobs/job-1/logs?'),
+      expect.objectContaining({}),
+    );
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should forward AbortSignal to fetch', async () => {
+    const controller = new AbortController();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve('log output'),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'j1')(controller.signal);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it('should accept text/plain with charset parameter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainCharsetHeaders,
+      text: () => Promise.resolve('log output'),
+    });
+
+    const result = await getEvaluationJobLogs('', 'ns', 'j1')();
+
+    expect(result).toBe('log output');
+  });
+
+  it('should throw LogFetchError when Content-Type is not text/plain', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      text: () => Promise.resolve('{}'),
+    });
+
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(LogFetchError);
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(
+      'Unexpected Content-Type: application/json',
+    );
+  });
+
+  it('should throw LogFetchError when Content-Type header is missing', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(
+      'Unexpected Content-Type: missing',
+    );
+  });
+
+  it('should include tail_lines param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'j1', { tail_lines: 100 })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('tail_lines=100'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include timestamps param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'j1', { timestamps: true })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('timestamps=true'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include since_seconds param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'j1', { since_seconds: 300 })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('since_seconds=300'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should throw LogFetchError on non-ok response', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Server Error' });
+
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(LogFetchError);
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toMatchObject({
+      statusCode: 500,
+    });
+  });
+
+  it('should throw LogFetchError with 404 when log API is unavailable', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
+
+    const error = await getEvaluationJobLogs('', 'ns', 'j1')().catch((e: Error) => e);
+    expect(error).toBeInstanceOf(LogFetchError);
+    expect(isLogApiUnavailable(error as Error)).toBe(true);
+  });
+
+  it('should encode the jobId in the URL', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'job/with special')();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('job%2Fwith%20special'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should prepend hostPath to the URL', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobLogs('http://my-host', 'ns', 'j1')();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringMatching(/^http:\/\/my-host/),
+      expect.objectContaining({}),
+    );
+  });
+});
+
+describe('getEvaluationJobBenchmarkLogs', () => {
+  const mockFetch = jest.fn();
+  const textPlainHeaders = { get: () => 'text/plain' };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.fetch = mockFetch;
+  });
+
+  it('should fetch benchmark-specific logs and return text', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve('benchmark log output'),
+    });
+
+    const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 2)();
+
+    expect(result).toBe('benchmark log output');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/evaluations/jobs/j1/benchmarks/2/logs?'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should accept text/plain with charset parameter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'text/plain; charset=utf-8' },
+      text: () => Promise.resolve('output'),
+    });
+
+    const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
+
+    expect(result).toBe('output');
+  });
+
+  it('should throw LogFetchError when Content-Type is not text/plain', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      text: () => Promise.resolve('{}'),
+    });
+
+    await expect(getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)()).rejects.toThrow(
+      'Unexpected Content-Type: application/json',
+    );
+  });
+
+  it('should throw LogFetchError when Content-Type header is missing', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)()).rejects.toThrow(
+      'Unexpected Content-Type: missing',
+    );
+  });
+
+  it('should include tail_lines param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { tail_lines: 50 })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('tail_lines=50'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include timestamps param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { timestamps: true })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('timestamps=true'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include since_seconds param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { since_seconds: 300 })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('since_seconds=300'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should throw LogFetchError on non-ok response', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' });
+
+    await expect(getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)()).rejects.toThrow(LogFetchError);
   });
 });

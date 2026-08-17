@@ -197,7 +197,7 @@ The project provides custom wrappers. Use them instead of raw PF equivalents:
 | Wrapper | Location | Use instead of |
 |---------|----------|----------------|
 | `FormSection` | `components/pf-overrides/FormSection` | PF `FormSection` (adds description support) |
-| `DashboardModalFooter` | `concepts/dashboard/DashboardModalFooter` | Manual modal footer buttons |
+| `DashboardModalFooter` | `@odh-dashboard/ui-core/components/DashboardModalFooter` | Manual modal footer buttons |
 | `DashboardEmptyTableView` | `concepts/dashboard/DashboardEmptyTableView` | Manual empty table states |
 | `Table` / `TableBase` | `components/table/` | Raw PF table (adds pagination, sorting) |
 | `DeleteModal` | `pages/projects/components/DeleteModal` | Custom delete confirmations |

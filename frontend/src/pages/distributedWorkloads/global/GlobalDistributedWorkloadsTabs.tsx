@@ -13,9 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import {
   DistributedWorkloadsTabId,

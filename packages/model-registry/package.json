@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "afcc818cefcc0f0026afcc91b8c3051111d191d3"
+    "commit": "a08ada1ec146a812f4ec6a175b8ee1a7aa155cea"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -74,6 +74,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",

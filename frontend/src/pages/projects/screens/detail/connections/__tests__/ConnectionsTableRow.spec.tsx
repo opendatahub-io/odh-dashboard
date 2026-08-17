@@ -2,9 +2,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Table, Tbody } from '@patternfly/react-table';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import ConnectionsTableRow from '#~/pages/projects/screens/detail/connections/ConnectionsTableRow';
 import { mockConnection } from '#~/__mocks__/mockConnection';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import {
   ConnectionTestStatus,
   CONNECTION_TEST_ANNOTATIONS,

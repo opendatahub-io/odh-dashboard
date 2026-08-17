@@ -1,7 +1,8 @@
 PORT ?= 4003
 MOCK_K8S_CLIENT ?= false
-MOCK_HTTP_CLIENT ?= false
+MOCK_S3_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
+MOCK_MODEL_REGISTRY_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
 DEPLOYMENT_MODE ?= kubeflow
@@ -51,6 +52,11 @@ test: fmt vet envtest ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	go test ./...
 
+.PHONY: test-v
+test-v: fmt vet envtest ## Runs the full test suite with verbose output (for local development).
+	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	go test -v ./...
+
 .PHONY: build
 build: fmt vet test ## Builds the project to produce a binary executable.
 ifeq ($(DEBUG), true) ## If DEBUG is true, build with debugging symbols
@@ -63,7 +69,23 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-pipeline-server-client=$(MOCK_PIPELINE_SERVER_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY) $(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
+	go run ./cmd \
+		--port="$(PORT)" \
+		--auth-method="$(AUTH_METHOD)" \
+		--auth-token-header="$(AUTH_TOKEN_HEADER)" \
+		--auth-token-prefix="$(AUTH_TOKEN_PREFIX)" \
+		--static-assets-dir="$(STATIC_ASSETS_DIR)" \
+		--mock-k8s-client="$(MOCK_K8S_CLIENT)" \
+		--mock-s3-client="$(MOCK_S3_CLIENT)" \
+		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
+		--mock-model-registry-client="$(MOCK_MODEL_REGISTRY_CLIENT)" \
+		--dev-mode="$(DEV_MODE)" \
+		--dev-mode-client-port="$(DEV_MODE_CLIENT_PORT)" \
+		--deployment-mode="$(DEPLOYMENT_MODE)" \
+		--log-level="$(LOG_LEVEL)" \
+		--allowed-origins="$(ALLOWED_ORIGINS)" \
+		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
+		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
 
 ##@ Dependencies
 
@@ -77,8 +99,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.0.2
-ENVTEST_VERSION ?= release-0.19
+GOLANGCI_LINT_VERSION ?= v2.12.2
+ENVTEST_VERSION ?= v0.24.1
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.

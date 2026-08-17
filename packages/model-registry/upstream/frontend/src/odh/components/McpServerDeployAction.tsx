@@ -33,7 +33,7 @@ const McpServerDeployAction: React.FC = () => {
       return {
         enabled: false,
         loading: false,
-        tooltip: 'MCP server CRD is not available on this cluster',
+        tooltip: 'MCP Lifecycle is not available in this cluster.',
       };
     }
     return { enabled: true, loading: false };

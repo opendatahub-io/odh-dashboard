@@ -8,6 +8,7 @@ import {
   ProjectDirType,
   ScalingMode,
 } from './types';
+import { FeastPvcConfig } from '../../k8sTypes';
 
 export type ValidationResult = {
   valid: boolean;
@@ -42,7 +43,28 @@ const validateProjectBasics = (
   if (!data.namespace.trim()) {
     return { valid: false, message: 'Namespace is required.' };
   }
+  if (data.projectDirType === ProjectDirType.GIT) {
+    if (!data.feastProjectDir?.git?.url.trim()) {
+      return { valid: false, message: 'Git repository URL is required.' };
+    }
+    if (data.feastProjectDir.git.featureRepoPath?.startsWith('/')) {
+      return { valid: false, message: 'Feature repo path must not start with a slash.' };
+    }
+  }
   return { valid: true };
+};
+
+const validatePvc = (pvc: FeastPvcConfig | undefined, label: string): ValidationResult | null => {
+  if (!pvc) {
+    return null;
+  }
+  if (pvc.ref && !pvc.ref.name.trim()) {
+    return { valid: false, message: `${label} PVC name is required.` };
+  }
+  if ((pvc.ref || pvc.create) && !pvc.mountPath.trim()) {
+    return { valid: false, message: `${label} mount path is required.` };
+  }
+  return null;
 };
 
 const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
@@ -61,8 +83,13 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
       if (!store?.type) {
         return { valid: false, message: 'Registry DB store type is required.' };
       }
-      if (!store.secretRef.name.trim()) {
+      if (!store.secretRef?.name.trim()) {
         return { valid: false, message: 'Registry DB store secret reference is required.' };
+      }
+    } else {
+      const pvcError = validatePvc(localRegistry?.persistence?.file?.pvc, 'Registry');
+      if (pvcError) {
+        return pvcError;
       }
     }
   } else if (data.remoteRegistryType === RemoteRegistryType.HOSTNAME) {
@@ -84,7 +111,7 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
     if (!feastRef?.name.trim()) {
       return {
         valid: false,
-        message: 'FeatureStore reference name is required for remote registry.',
+        message: 'Feature store reference name is required for remote registry.',
       };
     }
   }
@@ -92,27 +119,57 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
 };
 
 const validateStoreConfig = (data: FeatureStoreFormData): ValidationResult => {
-  if (data.offlineStoreEnabled && data.offlinePersistenceType === PersistenceType.DB) {
-    const store = data.services?.offlineStore?.persistence?.store;
-    if (!store?.type) {
-      return { valid: false, message: 'Offline store DB type is required.' };
-    }
-    if (!store.secretRef.name.trim()) {
-      return { valid: false, message: 'Offline store DB secret reference is required.' };
-    }
-  }
-
+  const onlineStore = data.services?.onlineStore;
   if (data.onlinePersistenceType === PersistenceType.DB) {
-    const store = data.services?.onlineStore?.persistence?.store;
+    const store = onlineStore?.persistence?.store;
     if (!store?.type) {
       return { valid: false, message: 'Online store DB type is required.' };
     }
     if (!store.secretRef.name.trim()) {
       return { valid: false, message: 'Online store DB secret reference is required.' };
     }
+  } else {
+    const pvcError = validatePvc(onlineStore?.persistence?.file?.pvc, 'Online store');
+    if (pvcError) {
+      return pvcError;
+    }
+  }
+
+  if (data.offlineStoreEnabled) {
+    const offlineStore = data.services?.offlineStore;
+    if (data.offlinePersistenceType === PersistenceType.DB) {
+      const store = offlineStore?.persistence?.store;
+      if (!store?.type) {
+        return { valid: false, message: 'Offline store DB type is required.' };
+      }
+      if (!store.secretRef.name.trim()) {
+        return { valid: false, message: 'Offline store DB secret reference is required.' };
+      }
+    } else {
+      const pvcError = validatePvc(offlineStore?.persistence?.file?.pvc, 'Offline store');
+      if (pvcError) {
+        return pvcError;
+      }
+    }
   }
 
   return { valid: true };
+};
+
+const isMultiReplica = (data: FeatureStoreFormData): boolean =>
+  (data.scalingMode === ScalingMode.STATIC && data.replicas > 1) ||
+  (data.scalingMode === ScalingMode.HPA && data.hpaMaxReplicas > 1);
+
+const hasScalableRegistry = (data: FeatureStoreFormData): boolean => {
+  if (data.registryType !== RegistryType.LOCAL) {
+    return true;
+  }
+  const path = data.services?.registry?.local?.persistence?.file?.path;
+  return (
+    data.registryPersistenceType === PersistenceType.DB ||
+    !!path?.startsWith('s3://') ||
+    !!path?.startsWith('gs://')
+  );
 };
 
 const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
@@ -122,21 +179,11 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
     }
   }
 
-  if (data.projectDirType === ProjectDirType.GIT) {
-    if (!data.feastProjectDir?.git?.url.trim()) {
-      return { valid: false, message: 'Git repository URL is required.' };
-    }
-  }
-
   if (data.batchEngineEnabled && !data.batchEngineConfigMapName.trim()) {
     return { valid: false, message: 'Batch compute engine ConfigMap is required.' };
   }
 
   if (data.scalingEnabled) {
-    const needsMultiReplicaValidation =
-      (data.scalingMode === ScalingMode.STATIC && data.replicas > 1) ||
-      data.scalingMode === ScalingMode.HPA;
-
     if (data.scalingMode === ScalingMode.HPA) {
       if (data.hpaMaxReplicas < data.hpaMinReplicas) {
         return {
@@ -146,7 +193,7 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
       }
     }
 
-    if (needsMultiReplicaValidation) {
+    if (isMultiReplica(data)) {
       if (data.onlinePersistenceType !== PersistenceType.DB) {
         return {
           valid: false,
@@ -159,23 +206,29 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
           message: 'Scaling requires DB-backed persistence for the offline store.',
         };
       }
-      if (data.registryType === RegistryType.LOCAL) {
-        const registryPersistence = data.services?.registry?.local?.persistence;
-        const hasDBRegistry = data.registryPersistenceType === PersistenceType.DB;
-        const hasS3OrGSRegistry =
-          registryPersistence?.file?.path?.startsWith('s3://') ||
-          registryPersistence?.file?.path?.startsWith('gs://');
-        if (!hasDBRegistry && !hasS3OrGSRegistry) {
-          return {
-            valid: false,
-            message: 'Scaling requires DB-backed or remote registry, or S3/GCS registry file path.',
-          };
-        }
+      if (!hasScalableRegistry(data)) {
+        return {
+          valid: false,
+          message: 'Scaling requires DB-backed or remote registry, or S3/GCS registry file path.',
+        };
       }
     }
   }
 
   return { valid: true };
+};
+
+export const needsMultiReplicaWarning = (data: FeatureStoreFormData): boolean => {
+  if (!isMultiReplica(data)) {
+    return false;
+  }
+  if (data.onlinePersistenceType !== PersistenceType.DB) {
+    return true;
+  }
+  if (data.offlineStoreEnabled && data.offlinePersistenceType !== PersistenceType.DB) {
+    return true;
+  }
+  return !hasScalableRegistry(data);
 };
 
 export const validateFeatureStoreForm = (

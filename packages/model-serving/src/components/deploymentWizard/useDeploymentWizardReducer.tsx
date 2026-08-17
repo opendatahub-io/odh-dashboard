@@ -140,7 +140,8 @@ export const useDeploymentWizardReducer = (
             existingFieldData:
               action.payload.existingFieldData ?? initialData?.[getStateKey(field)],
             dependencies:
-              action.payload.dependencies ?? getFieldDependencies(field, mergedStateRef.current),
+              action.payload.dependencies ??
+              getFieldDependencies(field, mergedStateRef.current, initialData),
           },
         });
       } else {
@@ -164,8 +165,8 @@ export const useDeploymentWizardReducer = (
     for (const field of activeFields) {
       const isNew = !prevActiveFields.current.some((f) => f.id === field.id);
 
-      const dependencies = getFieldDependencies(field, formState);
-      const prevDependencies = getFieldDependencies(field, prevMergedState.current);
+      const dependencies = getFieldDependencies(field, formState, initialData);
+      const prevDependencies = getFieldDependencies(field, prevMergedState.current, initialData);
       const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
       if (isNew || isDependenciesChanged) {

@@ -9,9 +9,9 @@ import {
   type VolumeMount,
 } from '@odh-dashboard/k8s-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { genUID } from '@odh-dashboard/foundation';
 import { NotebookKind } from '#~/k8sTypes';
 import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
-import { genUID } from '#~/__mocks__/mockUtils';
 import { EnvironmentFromVariable } from '#~/pages/projects/types';
 
 type MockResourceConfigType = {

@@ -1,20 +1,20 @@
 /* eslint-disable camelcase */
 import { PluginStateKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
   buildMockExperimentKF,
-  mockDashboardConfig,
-  mockDscStatus,
   mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
   buildMockPipeline,
   buildMockPipelines,
   buildMockPipelineVersion,
-  mockProjectK8sResource,
-  mockRouteK8sResource,
   buildMockRunKF,
   buildMockPipelineVersions,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockCancelledGoogleRpcStatus } from '@odh-dashboard/internal/__mocks__/mockGoogleRpcStatusKF';
 import { mockArtifactStorage } from '@odh-dashboard/internal/__mocks__/mockArtifactStorage';
 import { verifyRelativeURL } from '../../../../utils/url';
@@ -212,6 +212,10 @@ describe('Compare runs', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       interceptMlflowStatus();
+      cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+        expect(req.query.workspace).to.equal(projectName);
+        req.reply({ data: { experiments: [] } });
+      }).as('getMlflowExperiments');
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {

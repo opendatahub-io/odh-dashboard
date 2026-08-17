@@ -1,6 +1,7 @@
 import * as _ from 'lodash-es';
 import { QuickStart } from '@patternfly/quickstarts/src/utils/quick-start-types';
-import { OdhApplication, OdhDocument, OdhDocumentType } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
+import { OdhDocument, OdhDocumentType } from '#~/types';
 import { combineCategoryAnnotations } from '#~/utilities/utils';
 
 export const updateDocToComponent = (

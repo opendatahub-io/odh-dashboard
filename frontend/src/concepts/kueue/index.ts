@@ -12,6 +12,7 @@ import {
   type KueueStatusInfo,
   type KueueWorkloadStatusWithMessage,
 } from './types';
+import { getDeploymentKueueSubStepMessage, isInadmissibleQuotaCondition } from './messageUtils';
 
 export const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 
@@ -75,12 +76,7 @@ const extractWorkloadConditions = (conditions: WorkloadCondition[]): ExtractedCo
     Preempted: conditions.find(
       ({ type, status }) => type === CONDITION_TYPE.Preempted && status === CONDITION_STATUS.True,
     ),
-    Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
-        type === CONDITION_TYPE.QuotaReserved &&
-        status === CONDITION_STATUS.False &&
-        reason === 'Inadmissible',
-    ),
+    Inadmissible: conditions.find(isInadmissibleQuotaCondition),
     BlockedOnPreemptionGates: conditions.find(
       ({ type, status }) =>
         type === CONDITION_TYPE.BlockedOnPreemptionGates && status === CONDITION_STATUS.True,
@@ -291,4 +287,96 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
     default:
       return { label: status, color: 'grey', IconComponent: OutlinedClockIcon };
   }
+};
+
+/**
+ * Priority order for most-restrictive-state aggregation across multiple Workload CRs.
+ * Earlier in the array = more restrictive = wins over later entries.
+ */
+const AGGREGATE_PRIORITY_ORDER: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Failed,
+  KueueWorkloadStatus.Evicted,
+  KueueWorkloadStatus.Inadmissible,
+  KueueWorkloadStatus.BlockedOnPreemptionGates,
+  KueueWorkloadStatus.Preempted,
+  KueueWorkloadStatus.Requeued,
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.AdmissionCheck,
+  KueueWorkloadStatus.Admitted,
+  KueueWorkloadStatus.Running,
+  KueueWorkloadStatus.Complete,
+];
+
+/**
+ * Aggregate Kueue status across multiple Workload CRs for one model deployment.
+ * Most-restrictive state wins — e.g. if 2 of 3 pods are Running and 1 is Queued,
+ * the model-level status is Queued.
+ *
+ * The returned workloadName belongs to the Workload that supplied the winning status,
+ * not necessarily the first Workload in the list.
+ *
+ * Returns null when workloads array is empty (model has no correlated Workload CRs).
+ */
+/** Statuses that count as "this Pod's Workload has been admitted" for the partial-admission count. */
+const ADMITTED_STATUSES: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Admitted,
+  KueueWorkloadStatus.Running,
+  KueueWorkloadStatus.Complete,
+];
+
+export const aggregateKueueStatusForModel = (
+  workloads: WorkloadKind[],
+  options?: { activePodCount?: number },
+): KueueWorkloadStatusWithMessage | null => {
+  if (workloads.length === 0) return null;
+  const statuses = workloads.map((wl) => ({
+    ...getKueueWorkloadStatusWithMessage(wl),
+    workloadName: wl.metadata?.name,
+  }));
+
+  const totalPods = Math.max(statuses.length, options?.activePodCount ?? 0);
+  // Multi-replica partial admission — total includes live Pods even when not all have a
+  // correlated Workload CR yet (scale-up / watch lag), so e.g. "3 of 5 pods admitted" can show.
+  const podAdmissionCounts =
+    totalPods > 1
+      ? {
+          admitted: statuses.filter((s) => ADMITTED_STATUSES.includes(s.status)).length,
+          total: totalPods,
+        }
+      : undefined;
+
+  for (const target of AGGREGATE_PRIORITY_ORDER) {
+    const match = statuses.find((s) => s.status === target);
+    if (match) return { ...match, podAdmissionCounts };
+  }
+  return { ...statuses[0], podAdmissionCounts };
+};
+
+/** Generic (package-agnostic) condition status values used by the deployment progress tree. */
+export type GenericConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
+
+/** Maps a Kueue status level (danger/warning/success) to a generic condition status. */
+export const getKueueConditionStatus = (status: KueueWorkloadStatus): GenericConditionStatus => {
+  const level = getKueueStatusInfo(status).status;
+  if (level === 'danger') return 'False';
+  if (level === 'warning') return 'Warning';
+  if (level === 'success') return 'True';
+  return 'Unknown';
+};
+
+export const getKueueSchedulingSubStep = (
+  kueueStatus: KueueWorkloadStatusWithMessage | null | undefined,
+): {
+  type: string;
+  label: string;
+  messageStatus: GenericConditionStatus;
+  lastTransitionTime?: string;
+} | null => {
+  if (!kueueStatus) return null;
+  return {
+    type: 'kueue',
+    label: getDeploymentKueueSubStepMessage(kueueStatus),
+    messageStatus: getKueueConditionStatus(kueueStatus.status),
+    lastTransitionTime: kueueStatus.timestamp,
+  };
 };

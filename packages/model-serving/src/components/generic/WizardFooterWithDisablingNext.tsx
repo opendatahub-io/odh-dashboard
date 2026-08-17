@@ -13,6 +13,7 @@ import {
   AlertActionLink,
 } from '@patternfly/react-core';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import { translateModelServingError } from '@odh-dashboard/model-serving/shared';
 
 type DeploymentFooterProps = {
   submitButtonText?: string;
@@ -31,9 +32,10 @@ type DeploymentFooterProps = {
  * `onSave` and `onCancel` are not provided because they are handled by the useWizardContext inside.
  */
 export const ModelDeploymentWizardFooter: React.FC<
-  Omit<DeploymentFooterProps, 'onSave' | 'onCancel' | 'isSubmitDisabled'>
+  Omit<DeploymentFooterProps, 'onSave' | 'onCancel'>
 > = ({
   submitButtonText = 'Deploy model',
+  isSubmitDisabled,
   onOverwrite,
   onRefresh,
   isLoading,
@@ -73,7 +75,10 @@ export const ModelDeploymentWizardFooter: React.FC<
                   variant="primary"
                   onClick={goToNextStep}
                   isLoading={isLoading}
-                  isDisabled={isLoading || steps[activeStep.index]?.isDisabled}
+                  isDisabled={
+                    isLoading ||
+                    (isFinalStep ? isSubmitDisabled : steps[activeStep.index]?.isDisabled)
+                  }
                 >
                   {isFinalStep ? submitButtonText : 'Next'}
                 </Button>
@@ -154,6 +159,8 @@ const DeployErrorAlert: React.FC<{
   error?: Error | null;
   clearError?: () => void;
 }> = ({ error, clearError, onOverwrite: onOverwrite, onRefresh }) => {
+  const translatedMessage = error ? translateModelServingError(error) : '';
+
   return (
     <StackItem>
       <Alert
@@ -176,7 +183,7 @@ const DeployErrorAlert: React.FC<{
           ) : undefined
         }
       >
-        {error instanceof Error ? error.message : error}
+        {translatedMessage}
       </Alert>
     </StackItem>
   );

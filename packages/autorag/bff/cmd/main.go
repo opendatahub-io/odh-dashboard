@@ -5,16 +5,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os/signal"
-	"syscall"
-
-	"github.com/opendatahub-io/autorag-library/bff/internal/api"
-	"github.com/opendatahub-io/autorag-library/bff/internal/config"
-
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/autorag-library/bff/internal/api"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 )
 
 func main() {
@@ -24,13 +24,13 @@ func main() {
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
-	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8_CLIENT", false), "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockOGXClient, "mock-ogx-client", getEnvAsBool("MOCK_OGX_CLIENT", false), "Use mock Open GenAI Stack client")
-	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
+	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Release version suffix appended to pipeline version names during discovery (default: constants.DefaultPipelineVersionSuffix)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -44,7 +44,11 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
-	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled, internal, or user_token)")
+	if err := cfg.AuthMethod.Set(getEnvAsString("AUTH_METHOD", config.AuthMethodUser.String())); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	flag.Var(&cfg.AuthMethod, "auth-method", "Authentication method (disabled, internal, or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 
@@ -68,17 +72,38 @@ func main() {
 			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
 	}
 
-	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
-	if cfg.MockS3Client && !cfg.DevMode {
-		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+	cfg.AutoRAGPipelineNamePrefix = strings.TrimSpace(cfg.AutoRAGPipelineNamePrefix)
+	if cfg.AutoRAGPipelineNamePrefix == "" {
+		logger.Error("autorag-pipeline-name-prefix must not be empty")
 		os.Exit(1)
 	}
 
-	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// Prevent mock clients from being enabled in production — MockS3Client in particular
+	// bypasses SSRF protections (the mock skips endpoint validation entirely).
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) {
+		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// Prevent disabling TLS verification in production — all authenticated outbound
+	// clients (pipelines, S3, OGX) send bearer or SA tokens over TLS.
+	if cfg.InsecureSkipVerify && !cfg.DevMode {
+		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
+	if cfg.DevMode &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) &&
+		cfg.AuthMethod == config.AuthMethodUser {
+		cfg.AuthMethod = config.AuthMethodDisabled
+	}
+
+	// MockS3Client depends on MockK8sClient since GetS3Credentials needs
 	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
-	if cfg.MockS3Client && !cfg.MockK8Client {
+	if cfg.MockS3Client && !cfg.MockK8sClient {
 		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
-			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8sClient)
 		os.Exit(1)
 	}
 
@@ -92,12 +117,6 @@ func main() {
 	// Ensure the deprecated boolean fields are consistent with the new deployment mode
 	cfg.StandaloneMode = cfg.DeploymentMode.IsStandaloneMode()
 	cfg.FederatedPlatform = cfg.DeploymentMode.IsFederatedMode()
-
-	//validate auth method
-	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
-		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
-		os.Exit(1)
-	}
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)

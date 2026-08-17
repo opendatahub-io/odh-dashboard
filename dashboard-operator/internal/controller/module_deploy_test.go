@@ -132,6 +132,79 @@ func TestBuildFederationConfigMap_NoEnabledField(t *testing.T) {
 	}
 }
 
+func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	const appNS = "apps-ns"
+	const operatorNS = "operator-ns"
+	const persesNS = "observability-ns"
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             operatorNS,
+		ApplicationsNamespace: appNS,
+	}
+
+	dashboard := &v1alpha1.Dashboard{
+		Spec: v1alpha1.DashboardSpec{
+			Observability: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "perses",
+					Namespace: persesNS,
+					Port:      8080,
+				},
+			},
+		},
+	}
+
+	statuses := allDeployedStatuses()
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, dashboard)
+	require.NoError(t, err)
+
+	assert.Equal(t, appNS, cm.Namespace,
+		"ConfigMap metadata.namespace must match ApplicationsNamespace")
+
+	data := cm.Data["module-federation-config.json"]
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(data), &entries))
+
+	seen := make(map[string]bool)
+	for _, entry := range entries {
+		name, _ := entry["name"].(string)
+		seen[name] = true
+
+		switch name {
+		case "perses":
+			proxyServices, _ := entry["proxyService"].([]interface{})
+			require.NotEmpty(t, proxyServices, "perses must have proxyService entries")
+			ps, _ := proxyServices[0].(map[string]interface{})
+			svc, _ := ps["service"].(map[string]interface{})
+			assert.Equal(t, persesNS, svc["namespace"],
+				"perses must use PersesService.Namespace, not ApplicationsNamespace")
+
+		case "coreBff":
+			proxyServices, _ := entry["proxyService"].([]interface{})
+			require.NotEmpty(t, proxyServices, "coreBff must have proxyService entries")
+			ps, _ := proxyServices[0].(map[string]interface{})
+			svc, _ := ps["service"].(map[string]interface{})
+			assert.Equal(t, appNS, svc["namespace"],
+				"coreBff proxyService.service.namespace must match ApplicationsNamespace")
+
+		default:
+			svc, ok := entry["service"].(map[string]interface{})
+			require.Truef(t, ok, "%s must have a service entry", name)
+			assert.Equalf(t, appNS, svc["namespace"],
+				"%s service.namespace must match ApplicationsNamespace", name)
+		}
+	}
+	require.True(t, seen["perses"], "perses entry must be present")
+	require.True(t, seen["coreBff"], "coreBff entry must be present")
+}
+
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {
 	s := testScheme(t)
 
