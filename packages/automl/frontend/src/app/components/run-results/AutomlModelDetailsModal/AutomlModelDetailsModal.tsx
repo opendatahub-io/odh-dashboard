@@ -132,9 +132,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
       return;
     }
     fireAutomlModelDetailsTabViewed(activeTab.key, taskType);
-    // Fire once per tab/model selection change, not on every render.
+    // Fire once per tab/model selection change, not on every render. taskType is included
+    // because it's derived from async context data (parameters) and can resolve or change
+    // after the tab is already active — omitting it would let the event report a stale or
+    // default predictionType.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, activeTabKey, selectedModelName]);
+  }, [isOpen, activeTabKey, selectedModelName, taskType]);
 
   const handleBacktestMetricsChange = React.useCallback((metrics: string[]) => {
     backtestMetricsRef.current = metrics;

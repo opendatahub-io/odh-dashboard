@@ -456,6 +456,47 @@ describe('AutomlModelDetailsModal', () => {
     }
   });
 
+  it('should re-fire the tab-viewed event with the correct predictionType once taskType resolves', () => {
+    // Simulates the modal opening before `parameters` (and thus taskType) has loaded from
+    // the async pipelineRun context — taskType falls back to the timeseries default.
+    const loadingContext = { ...mockTabularContext, parameters: {} };
+    // mockTabularContext resolves to task_type: 'multiclass'. The default tab
+    // ('model-information') is visible for every task type, so activeTabKey and
+    // selectedModelName stay the same across this transition — only taskType changes.
+    const loadedContext = mockTabularContext;
+
+    const { rerender } = render(
+      <AutomlResultsContext.Provider value={loadingContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const tabViewedCalls = () =>
+      fireMiscTrackingEventMock.mock.calls.filter(
+        ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED,
+      );
+
+    expect(tabViewedCalls()).toHaveLength(1);
+    expect(tabViewedCalls()[0][1]).toMatchObject({
+      tabName: 'modelInformation',
+      predictionType: 'timeSeriesForecasting',
+    });
+
+    rerender(
+      <AutomlResultsContext.Provider value={loadedContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    // Without taskType in the effect's dependencies, this second call would never fire and
+    // the event would permanently retain the stale "timeSeriesForecasting" predictionType.
+    expect(tabViewedCalls()).toHaveLength(2);
+    expect(tabViewedCalls()[1][1]).toMatchObject({
+      tabName: 'modelInformation',
+      predictionType: 'multiclassClassification',
+    });
+  });
+
   it('should use recomputed rank for the opened model when bestModelKey changes', () => {
     const contextWithoutBest = {
       ...mockTabularContext,
