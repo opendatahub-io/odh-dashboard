@@ -6,20 +6,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeploymentsTableRow from '~/odh/pages/mcpDeployments/McpDeploymentsTableRow';
-import useMcpDeploymentCatalogServer from '~/odh/pages/mcpDeployments/useMcpDeploymentCatalogServer';
 import {
   createMockDeployment,
   createReadyConditions,
   createInitializingConditions,
   createFailedConditions,
 } from './mcpDeploymentTestUtils';
-
-// The "MCP server" column's catalog fallback fetches catalog data; the fetch itself
-// is covered by useMcpDeploymentCatalogServer's and McpDeploymentServerCell's own
-// tests, so it's mocked here to keep this file focused on row-level rendering.
-jest.mock('~/odh/pages/mcpDeployments/useMcpDeploymentCatalogServer');
-
-const mockUseMcpDeploymentCatalogServer = jest.mocked(useMcpDeploymentCatalogServer);
 
 const renderRow = (
   deployment: McpDeployment,
@@ -43,10 +35,6 @@ const renderRow = (
   );
 
 describe('McpDeploymentsTableRow', () => {
-  beforeEach(() => {
-    mockUseMcpDeploymentCatalogServer.mockReturnValue([null, false, undefined, jest.fn()]);
-  });
-
   it('should render server column with catalog server name when set', () => {
     renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
     expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('kubernetes-mcp-server');

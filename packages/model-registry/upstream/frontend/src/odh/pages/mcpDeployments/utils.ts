@@ -35,8 +35,7 @@ export const getConnectionUrl = (deployment: McpDeployment): string | undefined 
 export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
   deployment.displayName || deployment.name;
 
-/** Sort/filter key for the "MCP server" column. For catalog-sourced rows this
- * may not match the async-resolved display name `McpDeploymentServerCell` renders. */
+/** Sort/filter key for the "MCP server" column. */
 export const getMcpServerSortKey = (deployment: McpDeployment): string =>
   deployment.registryServerDisplayName || deployment.registryServer || deployment.serverName || '';
 
