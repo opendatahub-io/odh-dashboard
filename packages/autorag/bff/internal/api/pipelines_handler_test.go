@@ -372,7 +372,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "empty body",
@@ -380,7 +380,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: `"code": "400"`,
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "unknown field in body",
@@ -388,7 +388,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "multiple JSON objects in body",

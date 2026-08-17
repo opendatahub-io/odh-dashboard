@@ -111,7 +111,9 @@ func (h *PipelinesHandler) PipelineRunHandler(w http.ResponseWriter, r *http.Req
 func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		NewUIError(http.StatusBadRequest, "missing_namespace", "missing namespace in context - ensure AttachNamespace middleware is used first").
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 
@@ -122,10 +124,16 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	if err := decoder.Decode(&req); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			payloadTooLargeResponse(h.logger, w, r, "request body exceeds maximum size")
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithTracing(r).
+				WriteTo(w)
 			return
 		}
-		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+			WithDetail("error", err.Error()).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 	var extra any
@@ -145,7 +153,10 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	}
 
 	if err := writeJSON(w, http.StatusOK, CreatePipelineRunEnvelope{Data: run}, nil); err != nil {
-		serverErrorResponse(h.logger, w, r, err)
+		h.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.Path)
+		NewUIError(http.StatusInternalServerError, "response_serialization_failed", "the server encountered a problem and could not process your request").
+			WithTracing(r).
+			WriteTo(w)
 	}
 }
 
