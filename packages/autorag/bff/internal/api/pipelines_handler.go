@@ -150,6 +150,14 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 				WriteTo(w)
 			return
 		}
+		if err != nil {
+			NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+				WithDetail("error", err.Error()).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
 		errorReason := "request body must contain only a single JSON object"
 		NewUIError(http.StatusBadRequest, "unsupported_multiple_json_request", errorReason).
 			WithDetail("reason", errorReason).
@@ -165,12 +173,19 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	if err := writeJSON(w, http.StatusOK, CreatePipelineRunEnvelope{Data: run}, nil); err != nil {
+	js, err := json.MarshalIndent(CreatePipelineRunEnvelope{Data: run}, "", "\t")
+	if err != nil {
 		h.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.Path)
 		NewUIError(http.StatusInternalServerError, "response_serialization_failed", "the server encountered a problem and could not process your request").
 			WithLogger(h.logger).
 			WithTracing(r).
 			WriteTo(w)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(append(js, '\n')); err != nil {
+		h.logger.Error("failed to write response body", "method", r.Method, "uri", r.URL.Path, "error", err.Error())
 	}
 }
 

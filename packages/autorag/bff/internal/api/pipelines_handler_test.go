@@ -423,6 +423,15 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "single JSON object",
 		},
 		{
+			name:           "malformed trailing JSON in body",
+			namespace:      ns,
+			body:           validBody + `{`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "repo validation error",
 			namespace:      ns,
 			body:           validBody,
