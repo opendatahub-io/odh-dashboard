@@ -59,10 +59,18 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
       }
 
       const models = monaco.editor.getModels();
-      const model = models[0];
-      expect(model, 'Monaco editor model').to.not.equal(undefined);
+      expect(models.length, 'Monaco editor models').to.be.greaterThan(0);
+
+      const matchingModels = models.filter((m) =>
+        m.getValue().replace(/\u00a0/g, ' ').includes(oldText),
+      );
+      expect(
+        matchingModels.length,
+        `Expected exactly one Monaco model containing: "${oldText}"`,
+      ).to.equal(1);
+
+      const model = matchingModels[0];
       const currentContent = model.getValue().replace(/\u00a0/g, ' ');
-      expect(currentContent).to.include(oldText);
       const updated = currentContent.replace(oldText, newText);
       model.setValue(updated);
     });

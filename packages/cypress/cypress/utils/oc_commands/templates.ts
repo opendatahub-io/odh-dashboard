@@ -11,7 +11,7 @@ export type WaitForTemplateOptions = {
 
 /**
  * Waits until a template exists in the cluster whose nested ServingRuntime object has
- * `metadata.name` containing the provided ServingRuntime name.
+ * `metadata.name` exactly matching the provided ServingRuntime name.
  *
  * This is useful for verifying that the backend successfully created the Template after submitting
  * the Serving Runtime form.
@@ -20,7 +20,7 @@ export const waitForTemplateByServingRuntimeName = (
   servingRuntimeName: string,
   { maxAttempts = 30, pollIntervalMs = 2000 }: WaitForTemplateOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const cmd = `oc get templates -ojson -n ${applicationNamespace} | jq -e --arg name "${servingRuntimeName}" '.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | .metadata?.name? // "" | contains($name)) | .metadata.name' >/dev/null`;
+  const cmd = `oc get templates -ojson -n ${applicationNamespace} | jq -e --arg name "${servingRuntimeName}" '.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | (.metadata?.name? // "") == $name) | .metadata.name' >/dev/null`;
   return pollUntilSuccess(cmd, `template containing ServingRuntime name "${servingRuntimeName}"`, {
     maxAttempts,
     pollIntervalMs,
@@ -40,16 +40,35 @@ export const waitForTemplateByServingRuntimeName = (
 export const cleanupTemplates = (
   servingRuntimeName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get templates -ojson -n ${applicationNamespace} | jq '.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | .metadata?.name? // "" | contains("${servingRuntimeName}")) | .metadata.name' | tr -d '"'`;
+  const ocCommand =
+    `oc get templates -ojson -n ${applicationNamespace}` +
+    ` | jq -r --arg name "${servingRuntimeName}" ` +
+    `'.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | (.metadata?.name? // "") == $name) | .metadata.name'`;
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    const templateName = result.stdout.trim();
+    const templateNames = result.stdout
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-    if (templateName) {
-      cy.log(`Template found: ${templateName}. Proceeding to delete.`);
-      const deleteCommand = `oc delete template ${templateName} -n ${applicationNamespace}`;
-      return cy.exec(deleteCommand, { failOnNonZeroExit: false });
+    if (templateNames.length > 0) {
+      if (templateNames.length === 1) {
+        cy.log(`Template found: ${templateNames[0]}. Proceeding to delete.`);
+      } else {
+        cy.log(
+          `Multiple templates found for ServingRuntime "${servingRuntimeName}": ${templateNames.join(
+            ', ',
+          )}. Proceeding to delete all exact matches.`,
+        );
+      }
+
+      let chain: Cypress.Chainable<CommandLineResult> = cy.wrap(result);
+      templateNames.forEach((templateName) => {
+        const deleteCommand = `oc delete template ${templateName} -n ${applicationNamespace}`;
+        chain = chain.then(() => cy.exec(deleteCommand, { failOnNonZeroExit: false }));
+      });
+      return chain;
     }
     cy.log('No matching template found, proceeding with the test.');
     return cy.wrap(result);
