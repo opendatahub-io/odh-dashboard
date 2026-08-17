@@ -1,17 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import { useNotification } from '@odh-dashboard/ui-core';
 import {
   fetchClusterSettings,
   updateClusterSettings,
 } from '@odh-dashboard/internal/services/clusterSettingsService';
-import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import type { ClusterSettingsType } from '@odh-dashboard/internal/types';
 import GeneralSettingsTab from '../GeneralSettingsTab';
 
-jest.mock('@odh-dashboard/plugin-core/host-api');
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   useNotification: jest.fn(),
@@ -78,7 +75,6 @@ jest.mock('../DeploymentStrategySettings', () => ({
 
 const mockFetchClusterSettings = jest.mocked(fetchClusterSettings);
 const mockUpdateClusterSettings = jest.mocked(updateClusterSettings);
-const mockFetchDashboardConfig = jest.fn();
 const mockNotification = { success: jest.fn(), error: jest.fn() };
 
 const DEFAULT_CLUSTER_SETTINGS: ClusterSettingsType = {
@@ -91,23 +87,13 @@ const DEFAULT_CLUSTER_SETTINGS: ClusterSettingsType = {
   globalMLflowNamespaces: [],
 };
 
-const MOCK_DASHBOARD_CONFIG = {
-  spec: {
-    modelServing: { deploymentStrategy: 'rolling' },
-  },
-} as unknown as DashboardConfigKind;
-
 describe('GeneralSettingsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(useHostApi).mockReturnValue({
-      fetchDashboardConfig: mockFetchDashboardConfig,
-    } as unknown as ReturnType<typeof useHostApi>);
     jest
       .mocked(useNotification)
       .mockReturnValue(mockNotification as unknown as ReturnType<typeof useNotification>);
     mockFetchClusterSettings.mockResolvedValue(DEFAULT_CLUSTER_SETTINGS);
-    mockFetchDashboardConfig.mockResolvedValue(MOCK_DASHBOARD_CONFIG);
   });
 
   const renderAndWaitForLoad = async () => {
@@ -253,7 +239,8 @@ describe('GeneralSettingsTab', () => {
     resolveUpdate?.({ success: true, error: '' });
 
     await waitFor(() => {
-      expect(screen.getByTestId('save-general-settings')).toBeDisabled();
+      expect(mockNotification.success).toHaveBeenCalled();
     });
+    expect(screen.getByTestId('save-general-settings')).toBeDisabled();
   });
 });

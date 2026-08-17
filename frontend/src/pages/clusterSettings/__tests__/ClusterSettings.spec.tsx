@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import ClusterSettings from '#~/pages/clusterSettings/ClusterSettings';
 import { useAppContext } from '#~/app/AppContext';
@@ -247,18 +247,18 @@ describe('ClusterSettings', () => {
   });
 
   it('should show model deployments section when MODEL_SERVING is on and MODEL_DEPLOYMENT_SETTINGS is off', async () => {
-    mockUseIsAreaAvailable.mockImplementation((area: string) => {
-      const result = {
-        status: area === 'model-serving-shell',
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>;
-      return result;
-    });
+    mockUseIsAreaAvailable.mockImplementation(
+      (area: string) =>
+        ({
+          status: area === SupportedArea.MODEL_SERVING,
+          featureFlags: {},
+          devFlags: {},
+          reliantAreas: {},
+          requiredComponents: {},
+          requiredCapabilities: {},
+          customCondition: jest.fn(),
+        } as ReturnType<typeof useIsAreaAvailable>),
+    );
 
     await renderAndWaitForLoad();
 
@@ -269,7 +269,8 @@ describe('ClusterSettings', () => {
 
   it('should hide model deployments section when MODEL_DEPLOYMENT_SETTINGS flag is on', async () => {
     mockUseIsAreaAvailable.mockImplementation((area: string) => {
-      const isOn = area === 'model-serving-shell' || area === 'model-deployment-settings';
+      const isOn =
+        area === SupportedArea.MODEL_SERVING || area === SupportedArea.MODEL_DEPLOYMENT_SETTINGS;
       return {
         status: isOn,
         featureFlags: {},

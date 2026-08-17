@@ -19,7 +19,6 @@ import { useServingPlatformStatuses } from '@odh-dashboard/plugin-core/host-api'
 import type { ModelServingPlatformEnabled } from '@odh-dashboard/internal/types';
 
 type ModelServingPlatformSettingsProps = {
-  initialValue: ModelServingPlatformEnabled;
   enabledPlatforms: ModelServingPlatformEnabled;
   setEnabledPlatforms: (platforms: ModelServingPlatformEnabled) => void;
   isDistributedInferencingDefault: boolean;
@@ -27,7 +26,6 @@ type ModelServingPlatformSettingsProps = {
 };
 
 const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> = ({
-  initialValue,
   enabledPlatforms,
   setEnabledPlatforms,
   isDistributedInferencingDefault,
@@ -44,23 +42,16 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
   );
 
   React.useEffect(() => {
-    const kServeDisabled = !enabledPlatforms.kServe || !kServeInstalled;
-    if (kServeDisabled) {
+    if (!enabledPlatforms.kServe || !kServeInstalled) {
       setAlert({
         variant: AlertVariant.warning,
         message:
           'Disabling all model serving platforms prevents new projects from deploying models. Models can still be deployed from existing projects that already have a serving platform.',
       });
-    } else if (initialValue.kServe && !enabledPlatforms.kServe) {
-      setAlert({
-        variant: AlertVariant.info,
-        message:
-          'Projects with models already deployed will be unaffected by deselecting single-model serving.',
-      });
     } else {
       setAlert(undefined);
     }
-  }, [enabledPlatforms, initialValue, kServeInstalled]);
+  }, [enabledPlatforms, kServeInstalled]);
 
   return (
     <Stack hasGutter>
@@ -86,8 +77,10 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
       <StackItem>
         <FormHelperText>
           <HelperText>
-            Enable users to deploy models on the cluster. Each model is deployed on its own model
-            server.
+            <HelperTextItem>
+              Enable users to deploy models on the cluster. Each model is deployed on its own model
+              server.
+            </HelperTextItem>
           </HelperText>
         </FormHelperText>
       </StackItem>
@@ -135,7 +128,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
           data-testid="enable-llmd-switch"
         />
       </StackItem>
-      <StackItem style={{ marginLeft: '40px', marginTop: '-10px' }}>
+      <StackItem className="pf-v6-u-ml-xl pf-v6-u-mt-sm">
         <Popover
           bodyContent={
             <>
@@ -151,7 +144,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
             icon={<OutlinedQuestionCircleIcon />}
             iconPosition="start"
             isInline
-            style={{ textDecoration: 'none' }}
           >
             Learn more about distributed inferencing
           </Button>

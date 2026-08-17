@@ -23,7 +23,6 @@ describe('ModelServingPlatformSettings', () => {
   const mockSetIsDistributedInferencingDefault = jest.fn();
 
   const defaultProps = {
-    initialValue: { kServe: true, LLMd: true },
     enabledPlatforms: { kServe: true, LLMd: true },
     setEnabledPlatforms: mockSetEnabledPlatforms,
     isDistributedInferencingDefault: true,

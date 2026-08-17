@@ -2,7 +2,6 @@ import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNotification } from '@odh-dashboard/ui-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import type {
   ClusterSettingsType,
   ModelServingPlatformEnabled,
@@ -15,6 +14,10 @@ import ModelServingPlatformSettings from './ModelServingPlatformSettings';
 import DeploymentStrategySettings, { DeploymentStrategy } from './DeploymentStrategySettings';
 
 const DEFAULT_DISTRIBUTED_INFERENCING = true;
+const DEFAULT_ENABLED_PLATFORMS: ModelServingPlatformEnabled = { kServe: true, LLMd: true };
+
+const isDeploymentStrategy = (value: string | undefined): value is DeploymentStrategy =>
+  Object.values<string>(DeploymentStrategy).includes(value ?? '');
 
 const GeneralSettingsTab: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false);
@@ -24,7 +27,7 @@ const GeneralSettingsTab: React.FC = () => {
   const [baselineSettings, setBaselineSettings] = React.useState<ClusterSettingsType>();
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
-    React.useState<ModelServingPlatformEnabled>({ kServe: true, LLMd: true });
+    React.useState<ModelServingPlatformEnabled>(DEFAULT_ENABLED_PLATFORMS);
   const [isDistributedInferencingDefault, setIsDistributedInferencingDefault] = React.useState(
     DEFAULT_DISTRIBUTED_INFERENCING,
   );
@@ -32,33 +35,34 @@ const GeneralSettingsTab: React.FC = () => {
     DeploymentStrategy.ROLLING,
   );
 
-  const { fetchDashboardConfig } = useHostApi();
   const notification = useNotification();
 
   React.useEffect(() => {
     let cancelled = false;
 
-    Promise.all([fetchClusterSettings(), fetchDashboardConfig()])
-      .then(([settings, config]) => {
+    fetchClusterSettings()
+      .then((settings) => {
         if (cancelled) {
           return;
         }
 
-        const deploymentStrategy =
-          (config.spec.modelServing?.deploymentStrategy as DeploymentStrategy) ??
-          DeploymentStrategy.ROLLING;
+        const deploymentStrategy = isDeploymentStrategy(settings.defaultDeploymentStrategy)
+          ? settings.defaultDeploymentStrategy
+          : DeploymentStrategy.ROLLING;
         const distributedDefault =
           settings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING;
+        const enabledPlatforms = settings.modelServingPlatformEnabled;
 
         const normalizedSettings: ClusterSettingsType = {
           ...settings,
+          modelServingPlatformEnabled: enabledPlatforms,
           isDistributedInferencingDefault: distributedDefault,
           defaultDeploymentStrategy: deploymentStrategy,
           globalMLflowNamespaces: settings.globalMLflowNamespaces ?? [],
         };
 
         setBaselineSettings(normalizedSettings);
-        setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
+        setModelServingEnabledPlatforms(enabledPlatforms);
         setIsDistributedInferencingDefault(distributedDefault);
         setDefaultDeploymentStrategy(deploymentStrategy);
         setLoaded(true);
@@ -73,7 +77,7 @@ const GeneralSettingsTab: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fetchDashboardConfig]);
+  }, []);
 
   const isSettingsChanged = React.useMemo(() => {
     if (!baselineSettings) {
@@ -150,9 +154,6 @@ const GeneralSettingsTab: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <ModelServingPlatformSettings
-            initialValue={
-              baselineSettings?.modelServingPlatformEnabled ?? { kServe: true, LLMd: true }
-            }
             enabledPlatforms={modelServingEnabledPlatforms}
             setEnabledPlatforms={setModelServingEnabledPlatforms}
             isDistributedInferencingDefault={isDistributedInferencingDefault}
