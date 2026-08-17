@@ -172,6 +172,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         <Td dataLabel={automlRunsColumns[0].label}>
           <Link
             to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+            state={{ entrySource: 'experimentsList' }}
             data-testid={`run-name-${run.run_id}`}
           >
             {run.display_name}

@@ -30,6 +30,7 @@ export const AUTOML_EVENTS = {
   S3_CONNECTION_CREATED: 'AutoML S3 Connection Created',
   LEADERBOARD_SORTED: 'AutoML Leaderboard Sorted',
   FLOW_EXITED: 'AutoML Flow Exited',
+  RESULTS_VIEWED: 'AutoML Results Viewed',
 } as const;
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
@@ -224,4 +225,36 @@ export const fireAutomlFlowExited = (
   exitDestination: AutomlExitDestination,
 ): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.FLOW_EXITED, { exitType, lastFunnelStep, exitDestination });
+};
+
+/** Where the user came from when navigating to the results page. */
+export type AutomlResultsEntrySource = 'experimentsList' | 'notification' | 'direct' | 'other';
+
+/** Router `location.state` shape set by links/navigations that lead to the results page. */
+export type AutomlResultsNavigationState = {
+  entrySource: AutomlResultsEntrySource;
+};
+
+export const isAutomlResultsNavigationState = (
+  state: unknown,
+): state is AutomlResultsNavigationState => {
+  if (!state || typeof state !== 'object' || !('entrySource' in state)) {
+    return false;
+  }
+  const { entrySource } = state;
+  return (
+    entrySource === 'experimentsList' ||
+    entrySource === 'notification' ||
+    entrySource === 'direct' ||
+    entrySource === 'other'
+  );
+};
+
+/**
+ * Fires once per run when the results page finishes loading a run. `entrySource` is read from
+ * router state set by the link/navigation that brought the user here, falling back to `'other'`
+ * when the page was reached without that state (e.g. a bookmarked/pasted URL or a page refresh).
+ */
+export const fireAutomlResultsViewed = (entrySource: AutomlResultsEntrySource): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.RESULTS_VIEWED, { entrySource });
 };

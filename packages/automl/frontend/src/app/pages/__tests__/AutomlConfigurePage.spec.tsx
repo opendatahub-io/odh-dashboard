@@ -671,6 +671,7 @@ describe('AutomlConfigurePage', () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
           '/develop-train/automl/results/test-namespace/new-run-123',
+          { state: { entrySource: 'direct' } },
         );
       });
     });

@@ -17,10 +17,12 @@ import {
   fireAutomlRunDetailsDefined,
   fireAutomlRunReconfigured,
   fireAutomlRunRetried,
+  fireAutomlResultsViewed,
   fireAutomlRunStopped,
   fireAutomlS3ConnectionCreated,
   fireAutomlTargetColumnConfigured,
   fireAutomlTrainingDataConfigured,
+  isAutomlResultsNavigationState,
   mapModelDetailsTabName,
   mapOptimizationMetric,
   mapPredictionType,
@@ -336,5 +338,36 @@ describe('AutoML tracking event firers', () => {
       lastFunnelStep: 'trainingData',
       exitDestination: 'none',
     });
+  });
+
+  it('should fire AutoML Results Viewed with the given entrySource', () => {
+    fireAutomlResultsViewed('experimentsList');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RESULTS_VIEWED, {
+      entrySource: 'experimentsList',
+    });
+  });
+});
+
+describe('isAutomlResultsNavigationState', () => {
+  it.each(['experimentsList', 'notification', 'direct', 'other'] as const)(
+    'should accept entrySource: %s',
+    (entrySource) => {
+      expect(isAutomlResultsNavigationState({ entrySource })).toBe(true);
+    },
+  );
+
+  it('should reject an unknown entrySource', () => {
+    expect(isAutomlResultsNavigationState({ entrySource: 'somethingElse' })).toBe(false);
+  });
+
+  it('should reject state missing entrySource', () => {
+    expect(isAutomlResultsNavigationState({})).toBe(false);
+  });
+
+  it('should reject null/undefined/non-object state', () => {
+    expect(isAutomlResultsNavigationState(null)).toBe(false);
+    expect(isAutomlResultsNavigationState(undefined)).toBe(false);
+    expect(isAutomlResultsNavigationState('experimentsList')).toBe(false);
   });
 });

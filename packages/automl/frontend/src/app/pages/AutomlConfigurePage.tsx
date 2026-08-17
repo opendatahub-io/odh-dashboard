@@ -318,7 +318,9 @@ function AutomlConfigurePage({
                       success: true,
                     });
                   }
-                  navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`);
+                  navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
+                    state: { entrySource: 'direct' },
+                  });
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : '';
                   if (sourceRunId) {
