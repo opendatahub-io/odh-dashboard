@@ -1387,6 +1387,43 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('train.csv')).toBeInTheDocument();
     });
 
+    it('should not fire training data / target column funnel milestones for pre-populated reconfigure values', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+      );
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        expect.anything(),
+      );
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        expect.anything(),
+      );
+    });
+
     it('should pre-select the prediction type card when task_type is provided', () => {
       renderWithInitialValues(
         {

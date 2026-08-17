@@ -303,7 +303,9 @@ function AutomlConfigure({
 
   // Funnel milestone tracking — fires once per configure-step visit when each section is
   // first completed, to measure retention through the multi-section configure flow.
-  const hasFiredTrainingDataMilestoneRef = useRef(false);
+  // Pre-populated reconfigure values are not user selections — seed the refs from them so
+  // they don't count as a milestone until the user actually changes something.
+  const hasFiredTrainingDataMilestoneRef = useRef(Boolean(initialFileKey));
   useEffect(() => {
     if (isFileSelected && !hasFiredTrainingDataMilestoneRef.current) {
       hasFiredTrainingDataMilestoneRef.current = true;
@@ -311,7 +313,7 @@ function AutomlConfigure({
     }
   }, [isFileSelected, trainingDataSourceMode]);
 
-  const hasFiredTargetColumnMilestoneRef = useRef(false);
+  const hasFiredTargetColumnMilestoneRef = useRef(Boolean(initialValues?.target_column?.trim()));
   useEffect(() => {
     if (isTargetColumnSelected && !hasFiredTargetColumnMilestoneRef.current) {
       hasFiredTargetColumnMilestoneRef.current = true;
