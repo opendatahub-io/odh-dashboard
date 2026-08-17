@@ -150,7 +150,7 @@ const initIntercepts = ({
     mockK8sResourceList(resourceFlavors.map((opts) => mockResourceFlavorK8sResource(opts))),
   );
 
-  cy.interceptOdh('POST /api/prometheus/query', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/query', (req) => {
     const { query } = req.body;
 
     // DCGM per-model queries must come before the generic 'modelName' check because
@@ -218,7 +218,7 @@ const initIntercepts = ({
     }
   });
 
-  cy.interceptOdh('POST /api/prometheus/queryRange', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/queryRange', (req) => {
     if (req.body.query && req.body.query.includes('kueue_cluster_queue_resource_usage')) {
       req.reply(
         makePrometheusRangeResponse(

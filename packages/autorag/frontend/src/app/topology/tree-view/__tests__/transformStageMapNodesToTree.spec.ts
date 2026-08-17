@@ -1,6 +1,16 @@
 /* eslint-disable camelcase */
 jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
+  NodeShape: {
+    circle: 'circle',
+  },
+  NodeStatus: {
+    default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+  },
   RunStatus: {
     Succeeded: 'Succeeded',
     Failed: 'Failed',
@@ -121,9 +131,13 @@ describe('transformStageMapNodesToTree', () => {
       (node) => node.id === 'rag_optimization__optimize_templates',
     );
     expect(optimizeTemplates?.data.stepState).toBe('active');
+    expect(optimizeTemplates?.shape).toBe('circle');
+    expect(optimizeTemplates?.status).toBe('info');
+    expect(optimizeTemplates?.width).toBe(48);
 
     const validateInputs = nodes.find((node) => node.id === 'rag_optimization__validate_inputs');
     expect(validateInputs?.data.stepState).toBe('completed');
+    expect(validateInputs?.status).toBe('success');
   });
 
   it('includes data-loader linear stages when present in the stage map', () => {
@@ -146,7 +160,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 
@@ -282,5 +296,69 @@ describe('transformStageMapNodesToTree', () => {
         target: invalidBranchId,
       }),
     );
+  });
+
+  it('collapses to the winner spine and marks the pattern terminus', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: true,
+      winnerPatternLabel: 'PatternGraphRAG',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('PatternGraphRAG');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(true);
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data
+        .showPatternsToggle,
+    ).toBe(true);
+  });
+
+  it('labels the collapsed terminus as Pattern winner when the winner is unresolved', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: false,
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('Pattern');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('uses winnerPatternLabel on the collapsed spine when the run has succeeded', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: true,
+      winnerPatternLabel: 'Best Pattern Display Name',
+      winnerPatternKey: 'PatternGraphRAG',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('Best Pattern Display Name');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(true);
+  });
+
+  it('expands all pattern branches when patternsExpanded is true', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'PatternHyDE',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(2);
+    const winner = patternNodes.find((node) => node.data.label === 'PatternHyDE');
+    expect(winner?.data.labelSubtitle).toBe('winner');
+    expect(winner?.data.showWinnerStar).toBe(true);
   });
 });

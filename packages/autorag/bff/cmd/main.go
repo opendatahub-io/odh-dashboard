@@ -30,7 +30,8 @@ func main() {
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
-	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Release version suffix appended to pipeline version names during discovery (default: constants.DefaultPipelineVersionSuffix)")
+	flag.StringVar(&cfg.IndexingPipelineNamePrefix, "indexing-pipeline-name-prefix", getEnvAsString("INDEXING_PIPELINE_NAME_PREFIX", "documents-indexing-pipeline"), "Display name for identifying the documents indexing managed pipeline during discovery (default: documents-indexing-pipeline)")
+	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Preferred pipeline version display name during discovery (default: constants.DefaultPipelineVersionSuffix, e.g. 3.5.0)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -75,6 +76,11 @@ func main() {
 	cfg.AutoRAGPipelineNamePrefix = strings.TrimSpace(cfg.AutoRAGPipelineNamePrefix)
 	if cfg.AutoRAGPipelineNamePrefix == "" {
 		logger.Error("autorag-pipeline-name-prefix must not be empty")
+		os.Exit(1)
+	}
+	cfg.IndexingPipelineNamePrefix = strings.TrimSpace(cfg.IndexingPipelineNamePrefix)
+	if cfg.IndexingPipelineNamePrefix == "" {
+		logger.Error("indexing-pipeline-name-prefix must not be empty")
 		os.Exit(1)
 	}
 

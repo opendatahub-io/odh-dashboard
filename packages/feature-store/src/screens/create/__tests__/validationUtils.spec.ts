@@ -1,4 +1,9 @@
-import { validateFeatureStoreForm, isFormValid, StepValidation } from '../validationUtils';
+import {
+  validateFeatureStoreForm,
+  isFormValid,
+  needsMultiReplicaWarning,
+  StepValidation,
+} from '../validationUtils';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -330,6 +335,49 @@ describe('validateFeatureStoreForm', () => {
       expect(result.registry.message).toBe('TLS certificate key name is required.');
     });
 
+    it('should fail when local registry file PVC ref has empty name', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.LOCAL,
+        registryPersistenceType: PersistenceType.FILE,
+        services: {
+          registry: {
+            local: {
+              server: { restAPI: true, grpc: true },
+              persistence: {
+                file: { pvc: { ref: { name: '' }, mountPath: '/data/registry' } },
+              },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(false);
+      expect(result.registry.message).toBe('Registry PVC name is required.');
+    });
+
+    it('should pass when local registry file PVC ref has valid name', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        registryType: RegistryType.LOCAL,
+        registryPersistenceType: PersistenceType.FILE,
+        services: {
+          registry: {
+            local: {
+              server: { restAPI: true, grpc: true },
+              persistence: {
+                file: { pvc: { ref: { name: 'my-pvc' }, mountPath: '/data/registry' } },
+              },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.registry.valid).toBe(true);
+    });
+
     it('should fail when feastRef name is empty', () => {
       const data = makeFormData({
         feastProject: 'test',
@@ -340,7 +388,7 @@ describe('validateFeatureStoreForm', () => {
       });
       const result = validateFeatureStoreForm(data, []);
       expect(result.registry.valid).toBe(false);
-      expect(result.registry.message).toContain('FeatureStore reference name is required');
+      expect(result.registry.message).toContain('Feature store reference name is required');
     });
   });
 
@@ -427,6 +475,112 @@ describe('validateFeatureStoreForm', () => {
         namespace: 'ns',
         offlineStoreEnabled: false,
         offlinePersistenceType: PersistenceType.DB,
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(true);
+    });
+
+    it('should fail when online store uses existing PVC with empty name', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        onlinePersistenceType: PersistenceType.FILE,
+        services: {
+          onlineStore: {
+            persistence: {
+              file: { pvc: { ref: { name: '' }, mountPath: '/data/online-store' } },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(false);
+      expect(result.storeConfig.message).toBe('Online store PVC name is required.');
+    });
+
+    it('should fail when online store PVC has empty mount path', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        onlinePersistenceType: PersistenceType.FILE,
+        services: {
+          onlineStore: {
+            persistence: {
+              file: { pvc: { ref: { name: 'my-pvc' }, mountPath: '' } },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(false);
+      expect(result.storeConfig.message).toBe('Online store mount path is required.');
+    });
+
+    it('should pass when online store uses existing PVC with valid name and mount path', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        onlinePersistenceType: PersistenceType.FILE,
+        services: {
+          onlineStore: {
+            persistence: {
+              file: { pvc: { ref: { name: 'my-pvc' }, mountPath: '/data/online-store' } },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(true);
+    });
+
+    it('should fail when offline store uses existing PVC with empty name', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        offlineStoreEnabled: true,
+        offlinePersistenceType: PersistenceType.FILE,
+        services: {
+          offlineStore: {
+            persistence: {
+              file: { pvc: { ref: { name: '' }, mountPath: '/data/offline-store' } },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(false);
+      expect(result.storeConfig.message).toBe('Offline store PVC name is required.');
+    });
+
+    it('should fail when offline store PVC create mode has empty mount path', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        offlineStoreEnabled: true,
+        offlinePersistenceType: PersistenceType.FILE,
+        services: {
+          offlineStore: {
+            persistence: {
+              file: { pvc: { create: {}, mountPath: '' } },
+            },
+          },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.storeConfig.valid).toBe(false);
+      expect(result.storeConfig.message).toBe('Offline store mount path is required.');
+    });
+
+    it('should pass when no PVC is configured (ephemeral storage)', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        onlinePersistenceType: PersistenceType.FILE,
+        services: {
+          onlineStore: {
+            persistence: { file: {} },
+          },
+        },
       });
       const result = validateFeatureStoreForm(data, []);
       expect(result.storeConfig.valid).toBe(true);
@@ -619,6 +773,22 @@ describe('validateFeatureStoreForm', () => {
         expect(result.advanced.valid).toBe(true);
       });
 
+      it('should pass when HPA with max replicas = 1 and file-based persistence', () => {
+        const data = makeFormData({
+          feastProject: 'test',
+          namespace: 'ns',
+          scalingEnabled: true,
+          scalingMode: ScalingMode.HPA,
+          hpaMinReplicas: 1,
+          hpaMaxReplicas: 1,
+          onlinePersistenceType: PersistenceType.FILE,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+        });
+        const result = validateFeatureStoreForm(data, []);
+        expect(result.advanced.valid).toBe(true);
+      });
+
       it('should fail when static scaling > 1 replica with file-based offline store', () => {
         const data = makeFormData({
           feastProject: 'test',
@@ -648,6 +818,176 @@ describe('validateFeatureStoreForm', () => {
         expect(result.advanced.message).toContain('DB-backed persistence for the offline store');
       });
     });
+  });
+});
+
+describe('needsMultiReplicaWarning', () => {
+  it.each([
+    ['static with 1 replica', { scalingMode: ScalingMode.STATIC, replicas: 1 }],
+    [
+      'HPA with max replicas = 1',
+      { scalingMode: ScalingMode.HPA, hpaMinReplicas: 1, hpaMaxReplicas: 1 },
+    ],
+  ] as [string, Partial<FeatureStoreFormData>][])(
+    'returns false when %s (not multi-replica)',
+    (_, overrides) => {
+      expect(
+        needsMultiReplicaWarning(
+          makeFormData({ ...overrides, onlinePersistenceType: PersistenceType.FILE }),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    ['static with replicas > 1', { scalingMode: ScalingMode.STATIC, replicas: 3 }],
+    [
+      'HPA with max replicas > 1',
+      { scalingMode: ScalingMode.HPA, hpaMinReplicas: 1, hpaMaxReplicas: 3 },
+    ],
+  ] as [string, Partial<FeatureStoreFormData>][])(
+    'returns true when %s with file-based online store',
+    (_, overrides) => {
+      expect(
+        needsMultiReplicaWarning(
+          makeFormData({ ...overrides, onlinePersistenceType: PersistenceType.FILE }),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it('returns true when offline store enabled with file persistence', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: true,
+          offlinePersistenceType: PersistenceType.FILE,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when offline store is disabled even with file persistence type', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: false,
+          offlinePersistenceType: PersistenceType.FILE,
+          registryType: RegistryType.REMOTE,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns true when local registry uses file persistence without object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: '/data/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when local registry uses s3:// object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: 's3://bucket/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when local registry uses gs:// object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: 'gs://bucket/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when local registry uses DB persistence', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.DB,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when registry is remote', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.REMOTE,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when all persistence is DB-backed', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: true,
+          offlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.DB,
+        }),
+      ),
+    ).toBe(false);
   });
 });
 

@@ -44,6 +44,22 @@ export type PipelineDefinition = {
   description?: string;
 };
 
+export type ManagedPipelineType = 'autorag' | 'indexing';
+
+export type ManagedPipeline = {
+  pipeline_type: ManagedPipelineType;
+  pipeline_id: string;
+  pipeline_version_id: string;
+  display_name: string;
+};
+
+export type CreateIndexingPipelineRunRequest = {
+  display_name: string;
+  description?: string;
+  /** Runtime parameters from pattern.indexing.pipeline_spec.parameters */
+  parameters: Record<string, unknown>;
+};
+
 /** Pipeline reference embedded in a run (API schema). */
 export type PipelineVersionReference = {
   pipeline_id: string;

@@ -71,6 +71,37 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   fetchS3File: jest.fn(),
+  useManagedPipelinesQuery: jest.fn().mockReturnValue({
+    data: [
+      {
+        pipeline_type: 'indexing',
+        pipeline_id: 'idx',
+        pipeline_version_id: 'v',
+        display_name: 'documents-indexing-pipeline',
+      },
+    ],
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
+
+jest.mock('~/app/hooks/mutations', () => ({
+  useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+    reset: jest.fn(),
+  }),
+}));
+
+const mockNotificationWarning = jest.fn();
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: mockNotificationWarning,
+  })),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -133,6 +164,22 @@ const createMockPattern = (name: string): AutoragPattern => ({
         optimization_metric: true,
       },
     ],
+  },
+  indexing: {
+    pipeline_spec: {
+      pipeline_name: 'documents-indexing-pipeline',
+      parameters: {
+        embedding_model_id: 'test-model',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        chunk_size: 512,
+        chunk_overlap: 50,
+        chunking_method: 'fixed',
+      },
+      overrides_allowed: [],
+    },
   },
 });
 
@@ -207,6 +254,23 @@ describe('AutoragResults', () => {
     renderWithContext();
     expect(getPipelineVisualization()).toBeInTheDocument();
     expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+  });
+
+  it('should toast a warning when managed pipelines query fails', () => {
+    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Network Error'),
+    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+
+    renderWithContext(mockPipelineRun);
+
+    expect(mockNotificationWarning).toHaveBeenCalledWith(
+      'Unable to check managed pipelines',
+      'Some features may not be available. Network Error',
+    );
+    expect(screen.queryByTestId('managed-pipelines-query-warning')).not.toBeInTheDocument();
   });
 
   it('should render when pipelineRun.state is a non-string runtime value', () => {

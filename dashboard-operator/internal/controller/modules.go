@@ -68,11 +68,6 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 		ManifestSlug: "agent-ops",
 	},
-	"dataRegistry": {
-		Name: "dataRegistry", ContainerName: "data-registry-ui", Port: 9043,
-		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
-		ManifestSlug: "data-registry",
-	},
 }
 
 // resolveModuleStatuses determines the status of each module based on

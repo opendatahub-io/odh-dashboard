@@ -1,4 +1,4 @@
-import { applyOpenShiftYaml, waitForPodReady } from '../oc_commands/baseCommands';
+import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_commands/baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
@@ -33,6 +33,18 @@ export const createFeatureStoreCR = (namespace: string, feastInstanceName: strin
     applyOpenShiftYaml(yamlContent);
     //wait for the feature store cr to be created
     waitForPodReady(feastInstanceName, '300s', namespace);
+
+    // Wait for Feast operator reconciliation so the dashboard can discover the Feature Store
+    pollUntilSuccess(
+      `oc get featurestores.feast.dev ${feastInstanceName} -n ${namespace} -o json | jq -e '.status.conditions[]? | select(.type=="Registry") | .status == "True"'`,
+      `FeatureStore/${feastInstanceName} Registry condition to be True`,
+      { maxAttempts: 60, pollIntervalMs: 5000 },
+    );
+    pollUntilSuccess(
+      `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
+      `namespace ${namespace} to have opendatahub.io/feast=true label`,
+      { maxAttempts: 30, pollIntervalMs: 5000 },
+    );
   });
 };
 

@@ -1,3 +1,4 @@
+import type { WorkloadCondition } from '#~/k8sTypes';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './types';
 
 const QUOTA_REGEX = /insufficient unused quota|quota.*exceed|exceed.*quota/i;
@@ -8,6 +9,20 @@ const FLAVOR_REGEX = /couldn't assign flavors|flavor/i;
 const QUEUE_STOPPED_REGEX = /clusterqueue.*stop|stop.*clusterqueue/i;
 const DEACTIVATED_REGEX = /deactivat/i;
 const ADMISSION_CHECK_REGEX = /admission\s*check/i;
+const PERMANENT_INADMISSIBLE_MESSAGE_REGEX = /> maximum capacity|unavailable in clusterqueue/i;
+
+/** Determines if a workload condition is an inadmissible quota condition.
+ * Permanent quota blocks — distinct from temporary `insufficient unused quota` blocks.
+ */
+export const isInadmissibleQuotaCondition = ({
+  type,
+  status,
+  reason,
+  message,
+}: Pick<WorkloadCondition, 'type' | 'status' | 'reason' | 'message'>): boolean =>
+  type === 'QuotaReserved' &&
+  status === 'False' &&
+  (reason === 'Inadmissible' || (!!message && PERMANENT_INADMISSIBLE_MESSAGE_REGEX.test(message)));
 
 /**
  * Converts raw Kueue condition messages into human-readable text for the UI.
@@ -140,9 +155,86 @@ export const toOrdinal = (n: number): string => {
   return `${n}th`;
 };
 
-/** e.g. (3, 'my-queue') → "3rd in my-queue" */
+/** e.g. (1, 'default') → "1st in default queue"; (3, 'my-queue') → "3rd in my-queue" */
 export const formatQueuePosition = (position: number, queue: string): string =>
-  `${toOrdinal(position)} in ${queue}`;
+  `${toOrdinal(position)} in ${queue.endsWith('queue') ? queue : `${queue} queue`}`;
+
+const PENDING_QUEUE_POSITION_STATUSES: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.Inadmissible,
+];
+
+/** Appends Visibility API queue position when populated (mirrors NotebookStateStatus subtitle). */
+export const appendQueuePositionToKueueMessage = (
+  message: string,
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): string => {
+  if (
+    kueueStatus.queuePosition != null &&
+    kueueStatus.queueName &&
+    PENDING_QUEUE_POSITION_STATUSES.includes(kueueStatus.status)
+  ) {
+    return `${message} (${formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName)})`;
+  }
+  return message;
+};
+
+/**
+ * Detail line for model deployment Kueue subtitle and modal sub-step body.
+ * When Visibility API provides queue position for Queued/Inadmissible, show position only;
+ * otherwise fall back to human-readable (or quota-shaped raw) message.
+ */
+export const getModelDeploymentKueueDetailMessage = (
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): string => {
+  const { queuePosition, queueName, status, message } = kueueStatus;
+  const isPendingWithPosition =
+    queuePosition != null && queueName && PENDING_QUEUE_POSITION_STATUSES.includes(status);
+
+  if (isPendingWithPosition) {
+    return formatQueuePosition(queuePosition, queueName);
+  }
+
+  const displayQueueName =
+    queueName && !queueName.endsWith('queue') ? `${queueName} queue` : queueName;
+
+  const rawMessage = message?.trim() || undefined;
+  const isQuotaShaped =
+    (status === KueueWorkloadStatus.Failed || status === KueueWorkloadStatus.Inadmissible) &&
+    rawMessage != null &&
+    (QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage));
+
+  if (isQuotaShaped) {
+    return rawMessage;
+  }
+  if (status === KueueWorkloadStatus.Requeued) {
+    return getRequeuedMessage(kueueStatus);
+  }
+  return getHumanReadableKueueMessage(status, message, displayQueueName);
+};
+
+/**
+ * Formats the multi-Pod partial-admission breakdown for model deployments, e.g. (3, 5) →
+ * "3 of 5 pods admitted". Only meaningful when `total > 1` (see podAdmissionCounts on
+ * KueueWorkloadStatusWithMessage) — callers should gate on that before using this.
+ */
+export const formatPodAdmissionCounts = (admitted: number, total: number): string =>
+  `${admitted} of ${total} pods admitted`;
+
+/** Appends partial-admission suffix when multi-replica podAdmissionCounts are present. */
+export const appendModelDeploymentPodAdmissionSuffix = (
+  detail: string,
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): string => {
+  const { podAdmissionCounts } = kueueStatus;
+  if (!podAdmissionCounts || podAdmissionCounts.total <= 1) {
+    return detail;
+  }
+  return `${detail} (${formatPodAdmissionCounts(
+    podAdmissionCounts.admitted,
+    podAdmissionCounts.total,
+  )})`;
+};
 
 /**
  * Formats a preemption toast body message with the workbench name and timestamp.
@@ -232,6 +324,36 @@ export const getKueueAnalyticsSubState = (
     default:
       return 'none';
   }
+};
+
+const DEPLOYMENT_SUBSTEP_PREFIX: Partial<Record<KueueWorkloadStatus, string>> = {
+  [KueueWorkloadStatus.Queued]: 'Queued',
+  [KueueWorkloadStatus.Requeued]: 'Requeued',
+  [KueueWorkloadStatus.Inadmissible]: 'Inadmissible',
+  [KueueWorkloadStatus.Failed]: 'Failed',
+  [KueueWorkloadStatus.Preempted]: 'Preempted',
+  [KueueWorkloadStatus.Evicted]: 'Evicted',
+  [KueueWorkloadStatus.BlockedOnPreemptionGates]: 'Blocked',
+  [KueueWorkloadStatus.AdmissionCheck]: 'Admission check',
+};
+
+export const getDeploymentKueueSubStepMessage = (
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): string => {
+  const { status } = kueueStatus;
+  const prefix = DEPLOYMENT_SUBSTEP_PREFIX[status];
+
+  if (status === KueueWorkloadStatus.Preempted) {
+    return appendModelDeploymentPodAdmissionSuffix(
+      'Preempted: Deployment re-queued, waiting for resource',
+      kueueStatus,
+    );
+  }
+
+  const body = getModelDeploymentKueueDetailMessage(kueueStatus);
+  const message = prefix ? `${prefix}: ${body}` : body;
+
+  return appendModelDeploymentPodAdmissionSuffix(message, kueueStatus);
 };
 
 /**

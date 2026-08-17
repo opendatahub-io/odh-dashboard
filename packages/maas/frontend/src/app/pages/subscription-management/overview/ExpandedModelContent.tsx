@@ -5,14 +5,22 @@ import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
-import { MaaSEvents } from '~/app/types/event-tracking';
 import {
   getAuthPolicyViewUrl,
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+} from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -83,65 +91,75 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   status,
   conditionType,
   lastTransitionTime,
-}) => (
-  <div
-    className={`${styles['maas-expandable-item']}${
-      isHighlighted ? ` ${styles['m-highlighted']}` : ''
-    }`}
-  >
-    <Table aria-label={ariaLabel} borders={false} variant="compact">
-      <Tbody isExpanded={isExpanded}>
-        <Tr>
-          <Td expand={{ rowIndex, isExpanded, onToggle }} />
-          <Td>
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-              <FlexItem>
-                <Link
-                  to={linkTo}
-                  state={linkState}
-                  className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
-                  onClick={onLinkClick}
-                >
-                  {displayName ?? name}
-                </Link>
-              </FlexItem>
-              <FlexItem>
-                <PhaseLabel
-                  phase={phase}
-                  resourceType={resourceType}
-                  statusMessage={statusMessage}
-                  status={status}
-                  conditionType={conditionType}
-                  lastTransitionTime={lastTransitionTime}
-                  reason={reason}
-                  resourceName={displayName ?? name}
-                  resourceUrl={resourceUrl}
-                  returnTo={returnTo}
-                  hideSubtext
-                  onClick={() => {
-                    fireMiscTrackingEvent(
-                      MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
-                      {
-                        popoverType: 'status',
-                        status: phase,
-                        location: PhaseLabelLocation.OVERVIEW,
-                      },
-                    );
-                  }}
-                />
-              </FlexItem>
-            </Flex>
-          </Td>
-        </Tr>
-        <Tr isExpanded={isExpanded}>
-          <Td colSpan={2}>
-            <ExpandableRowContent>{children}</ExpandableRowContent>
-          </Td>
-        </Tr>
-      </Tbody>
-    </Table>
-  </div>
-);
+}) => {
+  const { affectedModels, overviewLoaded } = useGovernanceResourceAffectedModels(
+    name,
+    phase,
+    resourceType,
+  );
+
+  return (
+    <div
+      className={`${styles['maas-expandable-item']}${
+        isHighlighted ? ` ${styles['m-highlighted']}` : ''
+      }`}
+    >
+      <Table aria-label={ariaLabel} borders={false} variant="compact">
+        <Tbody isExpanded={isExpanded}>
+          <Tr>
+            <Td expand={{ rowIndex, isExpanded, onToggle }} />
+            <Td>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <FlexItem>
+                  <Link
+                    to={linkTo}
+                    state={linkState}
+                    className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
+                    onClick={onLinkClick}
+                  >
+                    {displayName ?? name}
+                  </Link>
+                </FlexItem>
+                <FlexItem>
+                  <PhaseLabel
+                    phase={phase}
+                    resourceType={resourceType}
+                    statusMessage={statusMessage}
+                    status={status}
+                    conditionType={conditionType}
+                    lastTransitionTime={lastTransitionTime}
+                    reason={reason}
+                    resourceName={displayName ?? name}
+                    affectedModels={affectedModels}
+                    overviewLoaded={overviewLoaded}
+                    resourceUrl={resourceUrl}
+                    returnTo={returnTo}
+                    hideSubtext
+                    onClick={() => {
+                      fireMiscTrackingEvent(
+                        MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
+                        {
+                          popoverType: EventTrackingPopoverType.STATUS,
+                          status: convertStringToPopoverViewedStatus(phase),
+                          location: PhaseLabelLocation.OVERVIEW,
+                        } satisfies SubscriptionManagementStatusPopoverViewedProperties,
+                      );
+                    }}
+                  />
+                </FlexItem>
+              </Flex>
+            </Td>
+          </Tr>
+          <Tr isExpanded={isExpanded}>
+            <Td colSpan={2}>
+              <ExpandableRowContent>{children}</ExpandableRowContent>
+            </Td>
+          </Tr>
+        </Tbody>
+      </Table>
+    </div>
+  );
+};
 
 type SectionHeaderProps = {
   title: string;
@@ -204,6 +222,7 @@ type SubscriptionsSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -214,6 +233,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     subscriptions.length > 0 &&
@@ -245,6 +265,13 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               name={sub.name}
               displayName={sub.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: sub.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               returnTo={returnTo}
               phase={sub.phase}
@@ -273,6 +300,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 groups={sub.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -290,6 +318,7 @@ type PoliciesSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -300,6 +329,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     policies.length > 0 &&
@@ -331,6 +361,13 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               name={policy.name}
               displayName={policy.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: policy.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
@@ -355,6 +392,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                 groups={policy.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -386,6 +424,22 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   const togglePolicy = React.useCallback(
     (name: string) => setExpandedPolicies((prev) => toggleExpandedItem(prev, name)),
     [],
+  );
+
+  const onGroupSelect = React.useCallback(
+    (group: string) => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_GROUP_LABEL_SELECTED, {
+        subsCountPerModel: subscriptions.length,
+        policyCountPerModel: policies.length,
+        subsCountWithSelectedGroup: subscriptions.filter((sub) =>
+          (sub.groups ?? []).includes(group),
+        ).length,
+        policyCountWithSelectedGroup: policies.filter((policy) =>
+          (policy.groups ?? []).includes(group),
+        ).length,
+      });
+    },
+    [subscriptions, policies],
   );
 
   const toggleAllSubs = React.useCallback(() => {
@@ -433,6 +487,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
       <GridItem span={6}>
@@ -444,6 +499,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
     </Grid>

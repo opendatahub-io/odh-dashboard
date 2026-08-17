@@ -1,3 +1,4 @@
+import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import type { LLMInferenceServiceKind } from '../../types';
 import { getLLMdDeploymentConditions } from '../status';
@@ -233,6 +234,103 @@ describe('getLLMdDeploymentConditions', () => {
     const conditions = getLLMdDeploymentConditions(isvc);
 
     expect(conditions).toHaveLength(1);
-    expect(conditions[0].type).toBe('DeploymentRequested');
+    expect(conditions.map((c) => c.type)).toEqual(['DeploymentRequested']);
+  });
+
+  it('should omit CreatePod entirely for non-Kueue deployments (no kueueStatus)', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: {
+        conditions: [
+          {
+            type: 'PresetsCombined',
+            status: 'Unknown',
+            lastTransitionTime: '2026-05-26T13:49:27Z',
+          },
+        ],
+      },
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, null);
+
+    expect(conditions.find((c) => c.type === 'CreatePod')).toBeUndefined();
+  });
+
+  it('should show CreatePod as Unknown with an in-progress spinner while merely Queued', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: undefined,
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('Unknown');
+    expect(createPod?.inProgress).toBe(true);
+  });
+
+  it('should mark CreatePod as True once Kueue reports Admitted (quota reserved, scheduling gate lifted)', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: undefined,
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, {
+      status: KueueWorkloadStatus.Admitted,
+      queueName: 'test-queue',
+      timestamp: '2026-05-26T13:49:00Z',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('True');
+    expect(createPod?.inProgress).toBe(false);
+    expect(createPod?.message).toBeUndefined();
+    expect(createPod?.lastTransitionTime).toBe('2026-05-26T13:49:00Z');
+  });
+
+  it('should mark CreatePod as True once Kueue confirms the workload is Running (PodsReady)', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: undefined,
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, {
+      status: KueueWorkloadStatus.Running,
+      queueName: 'test-queue',
+      timestamp: '2026-05-26T13:50:00Z',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('True');
+    expect(createPod?.inProgress).toBe(false);
+    expect(createPod?.message).toBeUndefined();
+    expect(createPod?.lastTransitionTime).toBe('2026-05-26T13:50:00Z');
+  });
+
+  it('should still show the Kueue sub-step while BlockedOnPreemptionGates (quota reserved but pod creation still held)', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: undefined,
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, {
+      status: KueueWorkloadStatus.BlockedOnPreemptionGates,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).not.toBe('True');
+  });
+
+  it('should NOT mark CreatePod as True while AdmissionCheck is pending (Kueue only admits once all checks are ready)', () => {
+    const isvc: LLMInferenceServiceKind = {
+      ...mockLLMInferenceServiceK8sResource({}),
+      status: undefined,
+    };
+    const conditions = getLLMdDeploymentConditions(isvc, {
+      status: KueueWorkloadStatus.AdmissionCheck,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).not.toBe('True');
   });
 });

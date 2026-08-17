@@ -24,6 +24,7 @@ import {
   getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
+import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -35,6 +36,7 @@ type PatternDetailsModalHeaderProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
+  onRunIndexingPipeline?: (patternName: string) => void;
   comparisonEnabled?: boolean;
   comparisonPatternIndex?: number | null;
 };
@@ -49,6 +51,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onSaveNotebook,
   onTryPattern,
   onViewCode,
+  onRunIndexingPipeline,
   comparisonEnabled,
   comparisonPatternIndex,
 }) => {
@@ -161,6 +164,8 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                     onTryPattern(data.name);
                   } else if (value === 'view-code' && onViewCode) {
                     onViewCode(data.name);
+                  } else if (value === 'run-indexing' && onRunIndexingPipeline) {
+                    onRunIndexingPipeline(data.name);
                   } else if ((value === 'indexing' || value === 'inference') && onSaveNotebook) {
                     onSaveNotebook(data.name, value);
                   }
@@ -195,6 +200,15 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       data-testid="pattern-details-view-code"
                     >
                       View code
+                    </DropdownItem>
+                  )}
+                  {onRunIndexingPipeline && patternHasIndexingPipelineSpec(data) && (
+                    <DropdownItem
+                      key="run-indexing"
+                      value="run-indexing"
+                      data-testid="pattern-details-run-indexing-pipeline"
+                    >
+                      Run indexing pipeline
                     </DropdownItem>
                   )}
                   {onSaveNotebook && (

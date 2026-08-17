@@ -58,7 +58,9 @@ describe('WebSocket K8s Proxy', () => {
       pong: jest.fn(),
     };
 
-    mockConnection = mockSourceSocket;
+    mockConnection = {
+      socket: mockSourceSocket,
+    };
 
     mockFastify = {
       log: mockLog,
