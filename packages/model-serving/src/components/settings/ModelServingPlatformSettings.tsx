@@ -66,7 +66,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
               kServe: enabled,
               LLMd: enabled,
             });
-            setIsDistributedInferencingDefault(enabled);
           }}
           aria-label="Single-model serving platform enabled switch"
           id="single-model-serving-platform-enabled-switch"
@@ -123,7 +122,6 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
               ...enabledPlatforms,
               LLMd: checked,
             });
-            setIsDistributedInferencingDefault(checked);
           }}
           data-testid="enable-llmd-switch"
         />

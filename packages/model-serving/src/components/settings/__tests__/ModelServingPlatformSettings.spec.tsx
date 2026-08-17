@@ -74,7 +74,37 @@ describe('ModelServingPlatformSettings', () => {
       kServe: false,
       LLMd: false,
     });
-    expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledWith(false);
+  });
+
+  it('should not call setIsDistributedInferencingDefault when toggling model serving switch', () => {
+    render(<ModelServingPlatformSettings {...defaultProps} />);
+
+    fireEvent.click(screen.getByTestId('single-model-serving-platform-enabled-switch'));
+
+    expect(mockSetIsDistributedInferencingDefault).not.toHaveBeenCalled();
+  });
+
+  it('should not call setIsDistributedInferencingDefault when toggling llm-d switch', () => {
+    render(<ModelServingPlatformSettings {...defaultProps} />);
+
+    fireEvent.click(screen.getByTestId('enable-llmd-switch'));
+
+    expect(mockSetEnabledPlatforms).toHaveBeenCalledWith({
+      kServe: true,
+      LLMd: false,
+    });
+    expect(mockSetIsDistributedInferencingDefault).not.toHaveBeenCalled();
+  });
+
+  it('should only call setIsDistributedInferencingDefault from the dedicated default switch', () => {
+    render(
+      <ModelServingPlatformSettings {...defaultProps} isDistributedInferencingDefault={false} />,
+    );
+
+    fireEvent.click(screen.getByTestId('use-distributed-llm-default-switch'));
+
+    expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledWith(true);
+    expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledTimes(1);
   });
 
   it('should show warning when kServe is not installed', () => {
