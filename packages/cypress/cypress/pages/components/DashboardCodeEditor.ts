@@ -62,7 +62,10 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
       expect(models.length, 'Monaco editor models').to.be.greaterThan(0);
 
       const matchingModels = models.filter((m) =>
-        m.getValue().replace(/\u00a0/g, ' ').includes(oldText),
+        m
+          .getValue()
+          .replace(/\u00a0/g, ' ')
+          .includes(oldText),
       );
       expect(
         matchingModels.length,

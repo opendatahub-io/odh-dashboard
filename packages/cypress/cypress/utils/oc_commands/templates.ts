@@ -63,12 +63,18 @@ export const cleanupTemplates = (
         );
       }
 
-      let chain: Cypress.Chainable<CommandLineResult> = cy.wrap(result);
-      templateNames.forEach((templateName) => {
-        const deleteCommand = `oc delete template ${templateName} -n ${applicationNamespace}`;
-        chain = chain.then(() => cy.exec(deleteCommand, { failOnNonZeroExit: false }));
-      });
-      return chain;
+      const deleteTemplates = (idx = 0): Cypress.Chainable<CommandLineResult> => {
+        if (idx >= templateNames.length) {
+          return cy.wrap(result);
+        }
+
+        const deleteCommand = `oc delete template ${templateNames[idx]} -n ${applicationNamespace}`;
+        return cy
+          .exec(deleteCommand, { failOnNonZeroExit: false })
+          .then(() => deleteTemplates(idx + 1));
+      };
+
+      return deleteTemplates();
     }
     cy.log('No matching template found, proceeding with the test.');
     return cy.wrap(result);
