@@ -123,7 +123,14 @@ const initIntercepts = () => {
 
   cy.interceptK8sList(
     { model: SecretModel, ns: 'test-project' },
-    mockK8sResourceList([mockURISecretK8sResource({ namespace: 'test-project' })]),
+    mockK8sResourceList([
+      mockURISecretK8sResource({ namespace: 'test-project' }),
+      mockURISecretK8sResource({
+        namespace: 'test-project',
+        name: 'test-uri-secret-2',
+        displayName: 'Test URI Secret 2',
+      }),
+    ]),
   );
 
   cy.interceptK8sList(
@@ -246,7 +253,7 @@ describe('Model Deployment Tracking Events', () => {
       .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
       .should('exist')
       .click();
-    modelServingWizard.findExistingConnectionSelect().should('not.have.attr', 'disabled').click();
+    modelServingWizard.findExistingConnectionSelect().click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
@@ -364,7 +371,7 @@ describe('Model Deployment Tracking Events', () => {
       .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
       .should('exist')
       .click();
-    modelServingWizard.findExistingConnectionSelect().should('not.have.attr', 'disabled').click();
+    modelServingWizard.findExistingConnectionSelect().click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
