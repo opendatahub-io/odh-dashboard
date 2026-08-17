@@ -187,8 +187,19 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
 
   const isSubmitting = registerMutation.isPending;
 
+  // Route every user-initiated dismissal (Escape, the close control, and the Cancel button)
+  // through a single guarded handler, so none of them can bypass cancellation tracking or
+  // close the modal while a registration request is still in flight.
+  const handleCancel = React.useCallback(() => {
+    if (isSubmitting) {
+      return;
+    }
+    fireAutomlModelRegistered({ outcome: TrackingOutcome.cancel, source });
+    onClose();
+  }, [isSubmitting, onClose, source]);
+
   return (
-    <Modal isOpen onClose={onClose} variant="medium" data-testid="register-model-modal">
+    <Modal isOpen onClose={handleCancel} variant="medium" data-testid="register-model-modal">
       <ModalHeader
         title="Register model"
         description={`Register ${displayName} to a model registry`}
@@ -351,10 +362,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
         </Button>
         <Button
           variant="link"
-          onClick={() => {
-            fireAutomlModelRegistered({ outcome: TrackingOutcome.cancel, source });
-            onClose();
-          }}
+          onClick={handleCancel}
           isDisabled={isSubmitting}
           data-testid="register-model-cancel"
         >

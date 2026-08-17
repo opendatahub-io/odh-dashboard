@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   QueryClient,
   QueryClientProvider,
@@ -19,7 +20,11 @@ import RegisterModelModal, {
   REGISTRIES_LOAD_FAILURE_MESSAGE,
 } from '~/app/components/run-results/RegisterModelModal';
 import { useNotification } from '~/app/hooks/useNotification';
-import { AUTOML_FAILURE_CATEGORY, fireAutomlModelRegistered } from '~/app/utilities/tracking';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlModelRegistered,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 jest.mock('~/app/api/modelRegistry');
 jest.mock('~/app/hooks/useModelRegistriesQuery');
@@ -523,7 +528,7 @@ describe('RegisterModelModal', () => {
   });
 
   describe('cancel', () => {
-    it('should call onClose when cancel is clicked', () => {
+    beforeEach(() => {
       mockUseModelRegistriesQuery.mockReturnValue(
         mockQueryResult({
           data: mockRegistries,
@@ -531,12 +536,84 @@ describe('RegisterModelModal', () => {
           isError: false,
         }),
       );
+    });
 
+    it('should call onClose when cancel is clicked', () => {
       const onClose = jest.fn();
       renderModal({ onClose });
 
       fireEvent.click(screen.getByTestId('register-model-cancel'));
       expect(onClose).toHaveBeenCalled();
+    });
+
+    it('should call onClose and fire a cancel event when Escape is pressed', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      renderModal({ onClose });
+
+      await user.keyboard('{Escape}');
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+      );
+    });
+
+    it('should call onClose and fire a cancel event when the close control is clicked', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      renderModal({ onClose });
+
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+      );
+    });
+
+    it('should not close or fire a cancel event via Escape while a registration request is pending', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      // Override the delegated `useMutation` result for this render only, to simulate the
+      // in-flight (isPending) state without needing the PF6 Select interaction that JSDOM
+      // can't drive.
+      useMutationMock.mockImplementationOnce(
+        (options) =>
+          ({
+            ...actualUseMutation(options),
+            isPending: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          }) as any,
+      );
+      renderModal({ onClose });
+
+      await user.keyboard('{Escape}');
+
+      // PatternFly's Modal invokes onClose for Escape regardless of the disabled Cancel
+      // button — closing here would let a stray "cancel" event race with the submit
+      // success/failure event that the mutation fires once the in-flight request resolves.
+      expect(onClose).not.toHaveBeenCalled();
+      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
+    });
+
+    it('should not close or fire a cancel event via the close control while a registration request is pending', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      useMutationMock.mockImplementationOnce(
+        (options) =>
+          ({
+            ...actualUseMutation(options),
+            isPending: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          }) as any,
+      );
+      renderModal({ onClose });
+
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
     });
   });
 });
