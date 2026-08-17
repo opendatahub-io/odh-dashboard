@@ -62,7 +62,7 @@ const getPfReactIconsCreateIconSharedConfig = (
     const installed = require('@patternfly/react-icons/package.json').version;
     version = typeof installed === 'string' ? installed : undefined;
   } catch {
-    version = pfReactIconsRequiredVersion.replace(/^[\^~]/, '');
+    // Metadata unavailable; do not derive version from the requiredVersion range.
   }
   return {
     singleton: true,
