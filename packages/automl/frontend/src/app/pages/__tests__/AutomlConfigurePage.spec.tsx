@@ -1334,6 +1334,51 @@ describe('AutomlConfigurePage', () => {
           }),
         );
       });
+
+      it('should still report changedFields when the reconfigure mutation fails', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockRejectedValue(new Error('Pipeline creation failed'));
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Change the target column to a different column
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        // Re-select the prediction type, since changing the target column resets it
+        const regressionCard = await screen.findByTestId('task-type-card-regression');
+        await user.click(regressionCard);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+
+        // The diff must be computed regardless of mutation outcome — a failed reconfiguration
+        // still changed these fields, and reporting an empty diff would make failure analysis
+        // on this event unusable.
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            changedFields: 'predictionType,optimizationMetric,targetColumn',
+            outcome: 'submit',
+            success: false,
+          }),
+        );
+      });
     });
   });
 

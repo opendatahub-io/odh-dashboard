@@ -287,25 +287,30 @@ function AutomlConfigurePage({
                   optimizationMetric: mapOptimizationMetric(data.eval_metric),
                   isRecommended: isRecommendedRef.current,
                 };
+                // Computed up front (before the mutation) so it's available in both the
+                // success and failure branches below — the failure branch needs to report
+                // what the user actually changed, not an empty diff.
+                const changedFields: string[] = [];
+                if (sourceRunId) {
+                  if (data.task_type !== initialValues?.task_type) {
+                    changedFields.push('predictionType');
+                  }
+                  if (data.eval_metric !== initialValues?.eval_metric) {
+                    changedFields.push('optimizationMetric');
+                  }
+                  // The submit transformer deletes `target_column`, moving its value to
+                  // `target` (timeseries) or `label_column` (tabular) — compare against
+                  // whichever one is populated post-transform.
+                  if ((data.target ?? data.label_column) !== initialValues?.target_column) {
+                    changedFields.push('targetColumn');
+                  }
+                  if (data.train_data_secret_name !== initialValues?.train_data_secret_name) {
+                    changedFields.push('s3Connection');
+                  }
+                }
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
                   if (sourceRunId) {
-                    const changedFields: string[] = [];
-                    if (data.task_type !== initialValues?.task_type) {
-                      changedFields.push('predictionType');
-                    }
-                    if (data.eval_metric !== initialValues?.eval_metric) {
-                      changedFields.push('optimizationMetric');
-                    }
-                    // The submit transformer deletes `target_column`, moving its value to
-                    // `target` (timeseries) or `label_column` (tabular) — compare against
-                    // whichever one is populated post-transform.
-                    if ((data.target ?? data.label_column) !== initialValues?.target_column) {
-                      changedFields.push('targetColumn');
-                    }
-                    if (data.train_data_secret_name !== initialValues?.train_data_secret_name) {
-                      changedFields.push('s3Connection');
-                    }
                     fireAutomlRunReconfigured({
                       ...trackingProperties,
                       changedFields,
@@ -328,7 +333,7 @@ function AutomlConfigurePage({
                   if (sourceRunId) {
                     fireAutomlRunReconfigured({
                       ...trackingProperties,
-                      changedFields: [],
+                      changedFields,
                       outcome: TrackingOutcome.submit,
                       success: false,
                       error: errorMessage,
