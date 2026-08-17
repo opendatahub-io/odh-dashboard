@@ -41,14 +41,21 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
   }, [onConfirm]);
 
   const handleCancel = React.useCallback(() => {
+    // A stop request is already in flight (e.g. triggered via Escape/close-button, which
+    // PatternFly's Modal invokes regardless of the disabled Cancel button) — don't record a
+    // "cancel" outcome here, since handleStopClick's onConfirm will record the real submit
+    // success/failure outcome.
+    if (isSubmitting || isTerminating) {
+      return;
+    }
     fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, { outcome: TrackingOutcome.cancel, source });
     onClose();
-  }, [onClose, source]);
+  }, [isSubmitting, isTerminating, onClose, source]);
 
   const isDisabled = isSubmitting || isTerminating;
 
   return (
-    <Modal variant="small" isOpen={isOpen} onClose={onClose} data-testid="stop-run-modal">
+    <Modal variant="small" isOpen={isOpen} onClose={handleCancel} data-testid="stop-run-modal">
       <ModalHeader title="Stop pipeline run?" />
       <ModalBody>
         Are you sure you want to stop {runName ? `"${runName}"` : 'this run'}? All running tasks
