@@ -5,6 +5,7 @@ import {
   SelectionOptions,
 } from '#~/components/MultiSelection';
 import { RESOURCE_CATEGORIES, ALL_RESOURCES_WILDCARD } from './resourceCategories';
+import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import {
   ALL_CATEGORY_PREFIX,
   createCategoryFilter,
@@ -18,12 +19,14 @@ type ResourcesTreeSelectProps = {
   selectedResources: string[];
   onSelectedResourcesChange: (resources: string[]) => void;
   apiResourcesData: ApiResourcesData;
+  filterByApiGroups?: string[];
 };
 
 const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
   selectedResources,
   onSelectedResourcesChange,
   apiResourcesData,
+  filterByApiGroups,
 }) => {
   const isAllSelected = selectedResources.includes(ALL_RESOURCES_WILDCARD);
 
@@ -67,9 +70,26 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     return categories;
   }, [availableCategories, otherResources]);
 
+  const filteredCategories = React.useMemo(() => {
+    if (
+      !filterByApiGroups ||
+      filterByApiGroups.length === 0 ||
+      filterByApiGroups.includes(ALL_API_GROUPS_WILDCARD)
+    ) {
+      return allCategories;
+    }
+    const allowedGroups = new Set(filterByApiGroups);
+    return allCategories
+      .map((category) => ({
+        ...category,
+        resources: category.resources.filter((r) => allowedGroups.has(r.apiGroup)),
+      }))
+      .filter((category) => category.resources.length > 0);
+  }, [allCategories, filterByApiGroups]);
+
   const renderedResourceNames = React.useMemo(
-    () => new Set(allCategories.flatMap((c) => c.resources.map((r) => r.name))),
-    [allCategories],
+    () => new Set(filteredCategories.flatMap((c) => c.resources.map((r) => r.name))),
+    [filteredCategories],
   );
 
   const customEntries = React.useMemo(
@@ -94,7 +114,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
           selected: isAllSelected,
           className: 'odh-resource-tree__all',
         },
-        ...allCategories.flatMap((category) => {
+        ...filteredCategories.flatMap((category) => {
           const categoryResourceNames = category.resources.map((r) => r.name);
           const allInCategorySelected =
             isAllSelected || categoryResourceNames.every((r) => selectedResources.includes(r));
@@ -128,7 +148,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     };
 
     return [allOptions];
-  }, [allCategories, selectedResources, isAllSelected, customEntries]);
+  }, [filteredCategories, selectedResources, isAllSelected, customEntries]);
 
   const handleSetValue = React.useCallback(
     (updatedOptions: SelectionOptions[]) => {
@@ -151,18 +171,18 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
       const realOptions = updatedOptions.filter(
         (o) =>
           String(o.id) !== ALL_RESOURCES_WILDCARD &&
-          !allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+          !filteredCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const categoryAllOptions = updatedOptions.filter((o) =>
-        allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+        filteredCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const selected = new Set(realOptions.filter((o) => o.selected).map((o) => String(o.id)));
 
       applyCategoryToggles(
         categoryAllOptions,
-        allCategories.map((c) => ({ id: c.id, itemNames: c.resources.map((r) => r.name) })),
+        filteredCategories.map((c) => ({ id: c.id, itemNames: c.resources.map((r) => r.name) })),
         isAllSelected,
         selectedResources,
         selected,
@@ -170,7 +190,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
 
       onSelectedResourcesChange([...selected]);
     },
-    [selectedResources, onSelectedResourcesChange, isAllSelected, allCategories],
+    [selectedResources, onSelectedResourcesChange, isAllSelected, filteredCategories],
   );
 
   const filterFunction = React.useMemo(() => createCategoryFilter(ALL_RESOURCES_WILDCARD), []);

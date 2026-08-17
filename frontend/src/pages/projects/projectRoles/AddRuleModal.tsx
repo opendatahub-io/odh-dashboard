@@ -8,7 +8,8 @@ import ApiGroupsTreeSelect from './ApiGroupsTreeSelect';
 import useApiResources from './useApiResources';
 import type { RuleEntry } from './types';
 import { normalizeVerbs } from './ruleModalUtils';
-import { ALL_RESOURCES_WILDCARD } from './resourceCategories';
+import { ALL_RESOURCES_WILDCARD, RESOURCE_CATEGORIES } from './resourceCategories';
+import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 
 type AddRuleModalProps = {
   existingRule?: RuleEntry;
@@ -33,6 +34,81 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
 
   const [selectedVerbs, setSelectedVerbs] = React.useState<string[]>(
     () => existingRule?.verbs ?? [],
+  );
+
+  const resolvedApiResourcesData = apiResourcesLoaded
+    ? apiResourcesData
+    : { apiGroups: [], resources: [] };
+
+  const resourceToApiGroupMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const category of RESOURCE_CATEGORIES) {
+      for (const r of category.resources) {
+        map.set(r.name, r.apiGroup);
+      }
+    }
+    for (const r of resolvedApiResourcesData.resources) {
+      if (!map.has(r.name)) {
+        map.set(r.name, r.apiGroup);
+      }
+    }
+    return map;
+  }, [resolvedApiResourcesData.resources]);
+
+  const handleResourcesChange = React.useCallback(
+    (newResources: string[]) => {
+      setSelectedResources(newResources);
+
+      if (newResources.includes(ALL_RESOURCES_WILDCARD)) {
+        return;
+      }
+
+      const addedResources = newResources.filter((r) => !selectedResources.includes(r));
+      const groupsToAdd = new Set<string>();
+
+      for (const resource of addedResources) {
+        const apiGroup = resourceToApiGroupMap.get(resource);
+        if (apiGroup !== undefined && !selectedApiGroups.includes(apiGroup)) {
+          groupsToAdd.add(apiGroup);
+        }
+      }
+
+      if (groupsToAdd.size > 0) {
+        setSelectedApiGroups((prev) => [...prev, ...groupsToAdd]);
+      }
+    },
+    [selectedResources, selectedApiGroups, resourceToApiGroupMap],
+  );
+
+  const handleApiGroupsChange = React.useCallback(
+    (newApiGroups: string[]) => {
+      setSelectedApiGroups(newApiGroups);
+
+      if (newApiGroups.length === 0 || newApiGroups.includes(ALL_API_GROUPS_WILDCARD)) {
+        return;
+      }
+
+      if (selectedResources.includes(ALL_RESOURCES_WILDCARD)) {
+        return;
+      }
+
+      const removedGroups = selectedApiGroups.filter((g) => !newApiGroups.includes(g));
+      if (removedGroups.length === 0) {
+        return;
+      }
+
+      const allowedGroups = new Set(newApiGroups);
+      const orphanedResources = selectedResources.filter((r) => {
+        const group = resourceToApiGroupMap.get(r);
+        return group !== undefined && !allowedGroups.has(group);
+      });
+
+      if (orphanedResources.length > 0) {
+        const orphanSet = new Set(orphanedResources);
+        setSelectedResources((prev) => prev.filter((r) => !orphanSet.has(r)));
+      }
+    },
+    [selectedApiGroups, selectedResources, resourceToApiGroupMap],
   );
 
   const canSave =
@@ -93,10 +169,8 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
           >
             <ApiGroupsTreeSelect
               selectedApiGroups={selectedApiGroups}
-              onSelectedApiGroupsChange={setSelectedApiGroups}
-              apiResourcesData={
-                apiResourcesLoaded ? apiResourcesData : { apiGroups: [], resources: [] }
-              }
+              onSelectedApiGroupsChange={handleApiGroupsChange}
+              apiResourcesData={resolvedApiResourcesData}
             />
           </FormGroup>
           <FormGroup
@@ -109,10 +183,9 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
           >
             <ResourcesTreeSelect
               selectedResources={selectedResources}
-              onSelectedResourcesChange={setSelectedResources}
-              apiResourcesData={
-                apiResourcesLoaded ? apiResourcesData : { apiGroups: [], resources: [] }
-              }
+              onSelectedResourcesChange={handleResourcesChange}
+              filterByApiGroups={selectedApiGroups}
+              apiResourcesData={resolvedApiResourcesData}
             />
           </FormGroup>
           <FormGroup label="Permitted operations" fieldId="rule-verbs" isRequired>
