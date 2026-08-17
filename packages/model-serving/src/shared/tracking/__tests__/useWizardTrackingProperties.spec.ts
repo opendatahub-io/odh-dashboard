@@ -94,4 +94,39 @@ describe('useWizardTrackingProperties', () => {
       kserveProperty: 'first',
     });
   });
+
+  it('should return empty properties when CodeRef resolution throws', async () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'nvidia-nim',
+          getProperties: () => Promise.reject(new Error('CodeRef load failed')),
+        },
+      },
+    ] as never);
+
+    const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'nvidia-nim');
+    const result = await renderResult.result.current.getTrackingProperties();
+    expect(result).toEqual({});
+  });
+
+  it('should return empty properties when resolved function throws', async () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'nvidia-nim',
+          getProperties: () =>
+            Promise.resolve(() => {
+              throw new Error('getProperties execution failed');
+            }),
+        },
+      },
+    ] as never);
+
+    const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'nvidia-nim');
+    const result = await renderResult.result.current.getTrackingProperties();
+    expect(result).toEqual({});
+  });
 });

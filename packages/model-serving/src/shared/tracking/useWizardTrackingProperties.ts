@@ -29,8 +29,12 @@ export const useWizardTrackingProperties = (
       return {};
     }
 
-    const resolvedFn = await matchingExtension.properties.getProperties();
-    return resolvedFn(wizardState);
+    try {
+      const resolvedFn = await matchingExtension.properties.getProperties();
+      return resolvedFn(wizardState);
+    } catch {
+      return {};
+    }
   }, [extensions, platformId, wizardState]);
 
   return { getTrackingProperties };

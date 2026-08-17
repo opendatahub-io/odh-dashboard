@@ -67,7 +67,7 @@ export const useModelDeploymentSubmit = (
   > => {
     const serverTemplateName = formState.modelServer?.data?.selection?.name;
     return {
-      type: formState.modelType.data?.type,
+      modelType: formState.modelType.data?.type,
       runtime: serverTemplateName,
       servingRuntimeName: formState.modelServer?.data?.selection?.label,
       servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,

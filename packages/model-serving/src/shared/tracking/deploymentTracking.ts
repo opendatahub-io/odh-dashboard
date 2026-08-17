@@ -7,7 +7,7 @@ export enum DeploymentTrackingEvent {
 }
 
 export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
-  type?: string;
+  modelType?: string;
   runtime?: string;
   servingRuntimeName?: string;
   servingRuntimeFormat?: string;

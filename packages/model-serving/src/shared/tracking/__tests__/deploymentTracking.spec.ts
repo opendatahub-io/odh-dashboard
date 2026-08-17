@@ -21,7 +21,7 @@ describe('fireModelDeployed', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,
       success: true,
-      type: 'single',
+      modelType: 'single',
       runtime: 'ovms-template',
       servingRuntimeName: 'OpenVINO Model Server',
       servingRuntimeFormat: 'onnx',
@@ -40,7 +40,7 @@ describe('fireModelDeployed', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,
       success: true,
-      type: 'single',
+      modelType: 'single',
       runtime: 'ovms-template',
       servingRuntimeName: 'OpenVINO Model Server',
       servingRuntimeFormat: 'onnx',
@@ -73,7 +73,7 @@ describe('fireModelDeployed', () => {
       outcome: TrackingOutcome.submit,
       success: false,
       errorMessage: 'Connection refused',
-      type: 'single',
+      modelType: 'single',
       runtime: 'vllm-template',
       servingRuntimeName: 'vLLM',
       servingRuntimeFormat: 'pytorch',
@@ -92,7 +92,7 @@ describe('fireModelDeployed', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,
       success: true,
-      type: 'single',
+      modelType: 'single',
       runtime: 'nim-runtime',
       servingRuntimeName: 'NVIDIA NIM',
       servingRuntimeFormat: 'tensorrt',
@@ -130,7 +130,7 @@ describe('fireModelDeployed', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,
       success: true,
-      type: 'single',
+      modelType: 'single',
       runtime: 'ovms-template',
       servingRuntimeName: 'OpenVINO Model Server',
       servingRuntimeFormat: 'onnx',
