@@ -97,6 +97,7 @@ import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
   fireAutomlTargetColumnConfigured,
   fireAutomlTrainingDataConfigured,
+  type AutomlFunnelStep,
 } from '~/app/utilities/tracking';
 import LoadingFormField from './LoadingFormField';
 import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
@@ -110,12 +111,15 @@ type AutomlConfigureProps = {
   initialInputDataSecret?: SecretSelection;
   /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
   onRecommendationChange?: (isRecommended: boolean) => void;
+  /** Reports the furthest configure-step section the user has reached, for funnel exit tracking. */
+  onFunnelStepChange?: (step: AutomlFunnelStep) => void;
 };
 
 function AutomlConfigure({
   initialValues,
   initialInputDataSecret,
   onRecommendationChange,
+  onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
@@ -320,6 +324,16 @@ function AutomlConfigure({
       fireAutomlTargetColumnConfigured();
     }
   }, [isTargetColumnSelected]);
+
+  // Surface configure-step progress to the page so exit tracking (cancel/abandon/breadcrumb)
+  // reports how far the user actually got, instead of always reporting the step's entry point.
+  // Selecting the target column is what unlocks the prediction type section, so it's the signal
+  // that the user has moved past 'trainingData' into 'predictionType'.
+  useEffect(() => {
+    if (isTargetColumnSelected) {
+      onFunnelStepChange?.('predictionType');
+    }
+  }, [isTargetColumnSelected, onFunnelStepChange]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {

@@ -447,6 +447,33 @@ describe('AutomlConfigurePage', () => {
       });
     });
 
+    it('should report predictionType (not trainingData) once a target column has been selected', async () => {
+      const user = userEvent.setup();
+
+      // Progress past training data: select an AWS connection and browse to a file.
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select a target column — this is what should surface progress past 'trainingData'.
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+      await user.click(breadcrumbLink);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'predictionType',
+        exitDestination: 'experimentsList',
+      });
+    });
+
     it('should render "Create run" button', async () => {
       expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
     });

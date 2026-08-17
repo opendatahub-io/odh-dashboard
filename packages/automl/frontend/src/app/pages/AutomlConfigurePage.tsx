@@ -369,6 +369,9 @@ function AutomlConfigurePage({
                   onRecommendationChange={(isRecommended) => {
                     isRecommendedRef.current = isRecommended;
                   }}
+                  onFunnelStepChange={(funnelStep) => {
+                    funnelStepRef.current = funnelStep;
+                  }}
                 />
               )}
             </PageSection>
