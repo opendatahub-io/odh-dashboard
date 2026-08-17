@@ -20,6 +20,9 @@ spec:
         - podSelector:
             matchLabels:
               deployment: eval-hub-ui
+        - podSelector:
+            matchLabels:
+              deployment: mlflow-ui
   egress:
     - to:
         - namespaceSelector:
