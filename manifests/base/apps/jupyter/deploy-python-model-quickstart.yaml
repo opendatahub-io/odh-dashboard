@@ -67,10 +67,6 @@ spec:
         ```
         curl -X POST -d '{"hello" ":" "world"}' <URL>/prediction
         ```
-        For example:
-        ```
-        curl -X POST -d '{"hello" ":" "world"}' http://example.apps.organization.abc3.p4.openshiftapps.com/prediction
-        ```
 
         This command should return `{"prediction":"not implemented"}` as output.
       review:

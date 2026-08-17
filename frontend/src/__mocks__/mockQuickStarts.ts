@@ -125,7 +125,7 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
         },
         {
           description:
-            '### To test the sample Flask application:\n1. Click the application in the Topology view.\n2. In the panel that appears, copy the URL that appears under **Routes**.\n3. In a Jupyter notebook, navigate to a terminal view.\n4. Run this curl command, using the URL you copied in step 1.\n```\ncurl -X POST -d \'{"hello" ":" "world"}\' <URL>/prediction\n```\nFor example:\n```\ncurl -X POST -d \'{"hello" ":" "world"}\' http://example.apps.organization.abc3.p4.openshiftapps.com/prediction\n```\n\nThis should return `{"prediction":"not implemented"}` as output.',
+            '### To test the sample Flask application:\n1. Click the application in the Topology view.\n2. In the panel that appears, copy the URL that appears under **Routes**.\n3. In a Jupyter notebook, navigate to a terminal view.\n4. Run this curl command, using the URL you copied in step 1.\n```\ncurl -X POST -d \'{"hello" ":" "world"}\' <URL>/prediction\n```\n\nThis should return `{"prediction":"not implemented"}` as output.',
           review: {
             failedTaskHelp:
               'This task is not verified yet. Make sure your application built correctly. Make sure you remembered to add `/prediction` to the end of the application URL to get to the endpoint.',
