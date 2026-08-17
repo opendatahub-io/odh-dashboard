@@ -883,6 +883,50 @@ describe('AutomlConfigurePage', () => {
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
+    it('should report otherAutoml on Cancel when reconfigure was entered from the results page', async () => {
+      const user = userEvent.setup();
+      mockLocationState = { from: 'results' };
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'otherAutoml',
+      });
+    });
+
+    it('should report experimentsList (not otherAutoml) on Cancel when reconfigure was entered from the runs list', async () => {
+      // sourceRunId is set for every reconfigure flow, including from the runs list — only the
+      // `from: 'results'` location state indicates navigate(-1) returns to another AutoML run.
+      const user = userEvent.setup();
+      mockLocationState = { from: 'runsList' };
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'experimentsList',
+      });
+    });
+
     it('should display breadcrumb with source run link when navigating from results page', async () => {
       mockLocationState = { from: 'results' };
       renderWithProviders(

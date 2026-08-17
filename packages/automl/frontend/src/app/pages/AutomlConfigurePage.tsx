@@ -102,9 +102,11 @@ function AutomlConfigurePage({
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const isRecommendedRef = React.useRef(true);
   const funnelStepRef = React.useRef<AutomlFunnelStep>('defineDetails');
-  // Cancel is only rendered on step 'create'; reconfigure flows are entered from the runs
-  // list/results page rather than the experiments list, so `navigate(-1)` lands elsewhere.
-  const cancelExitDestination: AutomlExitDestination = sourceRunId
+  // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
+  // (both results-page and runs-list origins), but `navigate(-1)` only lands on another AutoML
+  // run's results page when reconfigure was entered from there — from the runs list, Cancel
+  // returns to the experiments list. Use the origin, not the presence of sourceRunId.
+  const cancelExitDestination: AutomlExitDestination = fromResultsPage
     ? 'otherAutoml'
     : 'experimentsList';
 
