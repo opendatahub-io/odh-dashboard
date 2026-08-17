@@ -2,10 +2,8 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { asProductAdminUser } from '../../utils/mockUsers';
-import { modelCatalog } from '../../pages/modelCatalog/modelCatalog';
-import { agentsCatalogPage } from '../../pages/agentsCatalog';
-import { mcpCatalogPage } from '../../pages/mcpCatalog';
+import { asProductAdminUser } from '../../../utils/mockUsers';
+import { agentsCatalogPage } from '../../../pages/agentsCatalog';
 
 const API_VERSION = 'v1';
 const REGISTRIES_NAMESPACE = 'odh-model-registries';
@@ -166,88 +164,11 @@ const setupAgentsCatalogIntercepts = () => {
   });
 };
 
-const setupMcpCatalogIntercepts = () => {
-  cy.intercept('GET', `**/model_catalog/sources*assetType=mcp_servers*`, {
-    body: {
-      data: {
-        items: [
-          {
-            id: 'sample-source',
-            name: 'Sample Source',
-            enabled: true,
-            status: 'available',
-            labels: ['community_mcp_servers'],
-          },
-        ],
-        size: 1,
-        pageSize: 10,
-        nextPageToken: '',
-      },
-    },
-  });
-
-  cy.intercept('GET', `**/model_catalog/labels*assetType=mcp_servers*`, {
-    body: {
-      data: {
-        items: [
-          {
-            name: 'community_mcp_servers',
-            displayName: 'Community MCP Servers',
-          },
-        ],
-        size: 1,
-        pageSize: 10,
-        nextPageToken: '',
-      },
-    },
-  });
-
-  cy.intercept('GET', `**/mcp_catalog/mcp_servers?*`, {
-    body: {
-      data: {
-        items: [
-          {
-            id: 'sample-mcp',
-            name: 'Sample MCP',
-            description: 'Sample MCP server',
-            source_id: 'sample-source', // eslint-disable-line camelcase
-          },
-        ],
-        size: 1,
-        pageSize: 10,
-        nextPageToken: '',
-      },
-    },
-  });
-
-  cy.intercept('GET', `**/mcp_catalog/mcp_servers/filter_options*`, {
-    body: {
-      data: {
-        filters: {},
-      },
-    },
-  });
-};
-
-describe('Catalog search input minimum width regression', () => {
+describe('Agents Catalog search input minimum width regression', () => {
   beforeEach(() => {
     asProductAdminUser();
 
     cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
-  });
-
-  it('Model Catalog search input should have minimum width of 400px', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableModelRegistry: false,
-      }),
-    );
-
-    setupModelCatalogIntercepts();
-
-    cy.visitWithLogin('/ai-hub/models/catalog');
-    modelCatalog.findSearchInput().should('be.visible').invoke('outerWidth').should('be.gte', 400);
   });
 
   it('Agents Catalog search input should have minimum width of 400px', () => {
@@ -264,26 +185,6 @@ describe('Catalog search input minimum width regression', () => {
 
     cy.visitWithLogin('/ai-hub/agents/catalog');
     agentsCatalogPage
-      .findSearchInput()
-      .should('be.visible')
-      .invoke('outerWidth')
-      .should('be.gte', 400);
-  });
-
-  it('MCP Catalog search input should have minimum width of 400px', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableModelRegistry: false,
-        mcpCatalog: true,
-      }),
-    );
-
-    setupModelCatalogIntercepts();
-    setupMcpCatalogIntercepts();
-
-    cy.visitWithLogin('/ai-hub/mcp-servers/catalog');
-    mcpCatalogPage
       .findSearchInput()
       .should('be.visible')
       .invoke('outerWidth')
