@@ -26,7 +26,7 @@ export const AUTOML_EVENTS = {
   MODEL_DETAILS_TAB_VIEWED: 'AutoML Model Details Tab Viewed',
   BACKTEST_WINDOW_METRIC_VIEWED: 'AutoML Backtest Window Metric Viewed',
   NOTEBOOK_DOWNLOADED: 'AutoML Notebook Downloaded',
-  MODEL_DETAILS_DOWNLOADED: 'AutoML Model Details Downloaded',
+  MODEL_DETAILS_DOWNLOAD_INITIATED: 'AutoML Model Details Download Initiated',
   MODEL_REGISTERED: 'AutoML Model Registered',
   S3_CONNECTION_CREATED: 'AutoML S3 Connection Created',
   LEADERBOARD_SORTED: 'AutoML Leaderboard Sorted',
@@ -199,8 +199,17 @@ export const fireAutomlNotebookDownloaded = (source: ModelActionSource): void =>
   fireMiscTrackingEvent(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, { downloadType: 'notebook', source });
 };
 
-export const fireAutomlModelDetailsDownloaded = (): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOADED, { downloadType: 'modelDetails' });
+/**
+ * Fires when the user clicks "Download" on the model details modal, which triggers the
+ * browser print dialog. This tracks intent only — `window.print()`'s `afterprint` event
+ * fires whether the user completes, saves, or cancels the dialog, so it cannot be used as
+ * proof of a completed download. Unlike `fireAutomlNotebookDownloaded`, which fires after a
+ * verified successful blob download, there is no reliable "completed" signal available here.
+ */
+export const fireAutomlModelDetailsDownloadInitiated = (): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED, {
+    downloadType: 'modelDetails',
+  });
 };
 
 export const fireAutomlModelRegistered = (

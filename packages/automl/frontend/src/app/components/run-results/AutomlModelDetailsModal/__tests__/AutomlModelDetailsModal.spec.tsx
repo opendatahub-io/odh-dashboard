@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import {
   mockTabularContext,
@@ -10,6 +11,7 @@ import {
   mockTabularFeatureImportances,
   mockTabularConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import AutomlModelDetailsModal from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal';
 
 // Mock react-router
@@ -17,6 +19,13 @@ jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock query hooks
 jest.mock('~/app/hooks/queries', () => ({
@@ -407,6 +416,41 @@ describe('AutomlModelDetailsModal', () => {
       );
 
       expect(printSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      printSpy.mockRestore();
+    }
+  });
+
+  it('should fire the download-initiated event on click, not on afterprint completion', async () => {
+    const user = userEvent.setup();
+    const printSpy = jest.spyOn(window, 'print').mockReturnValue(undefined);
+
+    try {
+      render(
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal {...defaultProps} />
+        </AutomlResultsContext.Provider>,
+      );
+
+      const downloadInitiatedCalls = () =>
+        fireMiscTrackingEventMock.mock.calls.filter(
+          ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+        );
+
+      const downloadButton = screen.getByTestId('model-details-download');
+      await user.click(downloadButton);
+
+      // Fired once, at click time — reflects user intent, not a verified completed download.
+      expect(downloadInitiatedCalls()).toHaveLength(1);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+        { downloadType: 'modelDetails' },
+      );
+
+      // Simulate the print dialog closing (whether printed, saved, or cancelled) — this
+      // must not fire a second (or "completed") event.
+      window.dispatchEvent(new Event('afterprint'));
+      expect(downloadInitiatedCalls()).toHaveLength(1);
     } finally {
       printSpy.mockRestore();
     }

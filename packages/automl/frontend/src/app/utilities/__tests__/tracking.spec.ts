@@ -8,7 +8,7 @@ import {
   fireAutomlBacktestWindowMetricViewed,
   fireAutomlFlowExited,
   fireAutomlLeaderboardSorted,
-  fireAutomlModelDetailsDownloaded,
+  fireAutomlModelDetailsDownloadInitiated,
   fireAutomlModelDetailsTabViewed,
   fireAutomlModelDetailsViewed,
   fireAutomlModelRegistered,
@@ -290,12 +290,15 @@ describe('AutoML tracking event firers', () => {
     });
   });
 
-  it('should fire AutoML Model Details Downloaded with downloadType', () => {
-    fireAutomlModelDetailsDownloaded();
+  it('should fire AutoML Model Details Download Initiated with downloadType', () => {
+    fireAutomlModelDetailsDownloadInitiated();
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOADED, {
-      downloadType: 'modelDetails',
-    });
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+      AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+      {
+        downloadType: 'modelDetails',
+      },
+    );
   });
 
   it('should fire AutoML Model Registered with registryTarget and source', () => {

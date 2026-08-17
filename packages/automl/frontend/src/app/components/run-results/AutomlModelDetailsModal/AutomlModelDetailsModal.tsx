@@ -20,7 +20,7 @@ import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import {
-  fireAutomlModelDetailsDownloaded,
+  fireAutomlModelDetailsDownloadInitiated,
   fireAutomlModelDetailsTabViewed,
   type ModelActionSource,
 } from '~/app/utilities/tracking';
@@ -110,9 +110,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isPrinting) {
       return;
     }
+    // `afterprint` fires whether the user prints, saves as PDF, or cancels the dialog — it
+    // cannot distinguish those outcomes, so it must not be used to report a completed
+    // download. Only reset the printing state here; the tracking event fires at click time
+    // in onDownload, when the user's intent is the only thing we can actually verify.
     const handleAfterPrint = () => {
       setIsPrinting(false);
-      fireAutomlModelDetailsDownloaded();
     };
     window.addEventListener('afterprint', handleAfterPrint);
     window.print();
@@ -175,7 +178,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             rankMap={rankMap}
             evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireAutomlModelDetailsDownloadInitiated();
+              setIsPrinting(true);
+            }}
             onSaveNotebook={
               onClickSaveNotebook
                 ? () => {
