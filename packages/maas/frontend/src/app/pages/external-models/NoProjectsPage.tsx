@@ -2,7 +2,7 @@ import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
-import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
+import NewProjectButton from './NewProjectButton';
 import { deploymentsExternalPath } from '~/app/pages/external-models/const';
 
 const NoProjectsPage: React.FC = () => {
@@ -12,7 +12,6 @@ const NoProjectsPage: React.FC = () => {
       <EmptyStateBody>To use external models, first create a project.</EmptyStateBody>
       <EmptyStateFooter>
         <NewProjectButton
-          closeOnCreate
           onProjectCreated={(projectName) => navigate(deploymentsExternalPath(projectName))}
         />
       </EmptyStateFooter>

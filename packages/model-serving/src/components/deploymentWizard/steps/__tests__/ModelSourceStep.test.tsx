@@ -31,13 +31,21 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn().mockReturnValue([]),
 }));
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useWatchConnectionTypes: jest.fn(() => [[], true]),
-  useServingConnections: jest.fn(() => [[], true]),
-  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
-  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
-  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
-}));
+jest.mock('@odh-dashboard/plugin-core/host-api', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-assertions, @odh-dashboard/no-restricted-imports -- test mock: provide real component via host-api bridge
+  const { default: RealConnectionTypeFormFields } = jest.requireActual(
+    '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields',
+  ) as { default: React.ComponentType };
+  return {
+    useWatchConnectionTypes: jest.fn(() => [[], true]),
+    useServingConnections: jest.fn(() => [[], true]),
+    useHostApi: jest.fn(() => ({
+      ConnectionTypeFormFields: RealConnectionTypeFormFields,
+    })),
+    useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+    useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
+  };
+});
 
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({
