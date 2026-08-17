@@ -24,7 +24,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/rhoai/odh-dashboard-rhel9:on-pr-{{revision}}
+    value: quay.io/rhoai/odh-dashboard-rhel9:odh-pr
   - name: dockerfile
     value: Dockerfile.konflux
   - name: path-context
