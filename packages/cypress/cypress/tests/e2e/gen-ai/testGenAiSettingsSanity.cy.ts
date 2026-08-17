@@ -32,7 +32,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
-    cy.fixture('e2e/genAi/testGenAiSettings.yaml', 'utf8').then((yamlContent: string) => {
+    cy.fixture('e2e/genAi/testGenAiSettingsSanity.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as CustomEndpointTestData;
 
       const apiKey = Cypress.env('GEMINI_API_KEY');

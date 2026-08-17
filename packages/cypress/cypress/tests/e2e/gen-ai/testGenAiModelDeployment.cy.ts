@@ -22,7 +22,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
   let hardwareProfileName: string;
 
   retryableBefore(() => {
-    cy.fixture('e2e/genAi/testGenAiModels.yaml', 'utf8')
+    cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
       .then((yamlContent: string) => {
         genAiTestData = yaml.load(yamlContent) as GenAiTestData;
         hardwareProfileName = genAiTestData.hardwareProfileName;
