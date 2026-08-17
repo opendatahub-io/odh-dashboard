@@ -2,8 +2,17 @@
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { rimrafSync } = require('rimraf');
-const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
+
+const getRsdoctorPlugin = () => {
+  if (process.env.RSDOCTOR !== 'true') {
+    return [];
+  }
+  // Lazy-require: @rsdoctor/rspack-plugin depends on @rspack/resolver, which has no
+  // native bindings for s390x/ppc64le. Container builds must not load it.
+  const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+  return [new RsdoctorRspackPlugin()];
+};
 
 setupDotenvFilesForEnv({ env: 'production' });
 const rspackCommon = require('./rspack.common.js');
@@ -50,7 +59,7 @@ module.exports = merge(
       }),
       // Only enable when analyzing — increases build time.
       // See https://rspack.rs/guide/optimization/use-rsdoctor
-      process.env.RSDOCTOR === 'true' && new RsdoctorRspackPlugin(),
-    ].filter(Boolean),
+      ...getRsdoctorPlugin(),
+    ],
   },
 );

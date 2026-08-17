@@ -12,6 +12,8 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { canShowModelsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import { ModelsExpandProvider } from '~/app/topology/tree-view/ModelsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
   getTreeTopologyFromResult,
@@ -57,10 +59,33 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
+  const [modelsExpanded, setModelsExpanded] = React.useState(false);
+
+  const showModelsToggle = React.useMemo(
+    () => canShowModelsExpandToggle(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
+
+  const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedModel;
 
   const pipelineTopology = React.useMemo(
-    () => getTreeTopologyFromResult(transformPipelineData(treeViewData)),
-    [treeViewData],
+    () =>
+      getTreeTopologyFromResult(
+        transformPipelineData(treeViewData, {
+          modelsExpanded,
+          winnerResolved,
+        }),
+      ),
+    [treeViewData, modelsExpanded, winnerResolved],
+  );
+
+  const modelsExpandValue = React.useMemo(
+    () => ({
+      modelsExpanded,
+      showToggle: showModelsToggle,
+      onToggle: () => setModelsExpanded((prev) => !prev),
+    }),
+    [modelsExpanded, showModelsToggle],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;
@@ -95,6 +120,12 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
       setSelectedIds([]);
     }
   }, [showTreeLoadingState]);
+
+  React.useEffect(() => {
+    if (!showModelsToggle && modelsExpanded) {
+      setModelsExpanded(false);
+    }
+  }, [showModelsToggle, modelsExpanded]);
 
   return (
     <div className="automl-pipeline-visualization" data-testid="automl-pipeline-visualization">
@@ -164,13 +195,16 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             }
           >
             <DrawerContentBody className="automl-pipeline-visualization__drawer-content">
-              <TreeTopology
-                className="automl-tree-topology-container"
-                topology={pipelineTopology}
-                loadingMode={treeLoadingMode}
-                selectedIds={selectedIds}
-                onSelectionChange={handleSelectionChange}
-              />
+              <ModelsExpandProvider value={modelsExpandValue}>
+                <TreeTopology
+                  className="automl-tree-topology-container"
+                  topology={pipelineTopology}
+                  loadingMode={treeLoadingMode}
+                  selectedIds={selectedIds}
+                  onSelectionChange={handleSelectionChange}
+                  layoutResetKey={modelsExpanded}
+                />
+              </ModelsExpandProvider>
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>
