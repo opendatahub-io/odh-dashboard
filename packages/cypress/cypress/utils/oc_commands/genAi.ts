@@ -74,6 +74,10 @@ export const enableExternalProviders = (): void => {
     'externalProviders to be true',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
+
+  // Allow the backend ResourceWatcher cycle to propagate the change to the UI.
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
+  cy.wait(30000);
 };
 
 /**

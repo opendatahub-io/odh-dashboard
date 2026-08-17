@@ -12,7 +12,6 @@ import {
   verifyEndpointResourcesCleanedUp,
   waitForModelInLSD,
   forceDashboardConfigRefresh,
-  createExternalModelViaAPI,
   createGenAiPromptViaAPI,
   deleteGenAiPromptViaAPI,
 } from '../../../utils/oc_commands/genAi';
@@ -26,11 +25,12 @@ import type { CustomEndpointTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 
+const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
+
 describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
-  // All setup chains from the fixture load so testData is always available.
   retryableBefore(() => {
     cy.fixture('e2e/genAi/testGenAiSettings.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as CustomEndpointTestData;
@@ -42,8 +42,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
         );
       }
 
-      // --- Cluster setup (no browser session needed) ---
-
+      // Enable external providers first — includes a 30 s wait for the
+      // backend ResourceWatcher to propagate before any UI validation fires.
       cy.step('Enable externalProviders in OdhDashboardConfig');
       enableExternalProviders();
 
@@ -53,8 +53,6 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
 
       cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
       enableMlflowBackend();
-
-      // --- Browser session ---
 
       cy.step(
         'Log into the application with custom endpoints, prompt management, and guardrails enabled',
@@ -66,53 +64,6 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
-
-      // --- Create custom endpoint via BFF (no UI form filling) ---
-
-      cy.step('Create external model endpoint via BFF API');
-      createExternalModelViaAPI(
-        projectName,
-        testData.modelId,
-        testData.displayName,
-        testData.endpointUrl,
-        apiKey,
-        testData.modelType,
-      )
-        .its('status')
-        .should('eq', 201);
-
-      // --- Add to playground via UI ---
-
-      cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
-
-      cy.step('Force backend to refresh config from cluster');
-      forceDashboardConfigRefresh();
-
-      cy.step('Verify model appears in AI Assets table');
-      genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
-
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
-      genAiPlayground.findConfigurationTable().should('be.visible');
-      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
-      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
-
-      // --- Wait for infrastructure ---
-
-      cy.step('Wait for OGX Server to be ready');
-      waitForOGXServerReady(projectName);
-
-      cy.step('Wait for playground service to be created');
-      waitForResource('service', testData.lsdServiceName, projectName);
-
-      cy.step('Wait for LSD pod to be fully ready');
-      waitForPodReady(testData.lsdPodPrefix, testData.lsdPodReadyTimeout, projectName);
-
-      cy.step('Wait for custom model to be registered in LSD');
-      waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
-
-      // --- Create MLflow prompt ---
 
       cy.step('Create prompt via Gen AI BFF API');
       createGenAiPromptViaAPI(
@@ -138,6 +89,82 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
 
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
+
+  it(
+    'Create custom endpoint via UI',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+
+      cy.step('Force backend to refresh config from cluster');
+      forceDashboardConfigRefresh();
+
+      cy.step('Click Create endpoint button from empty state');
+      genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
+
+      cy.step('Verify Create endpoint modal is open');
+      genAiPlayground.findCreateExternalModelModal().should('be.visible');
+
+      cy.step('Fill in Model ID');
+      genAiPlayground.findModelIdInput().clear().type(testData.modelId);
+
+      cy.step('Fill in Display name');
+      genAiPlayground.findDisplayNameInput().clear().type(testData.displayName);
+
+      cy.step('Fill in Endpoint URL');
+      const endpointHost = new URL(testData.endpointUrl).hostname;
+      expect(ALLOWED_ENDPOINT_HOSTS).to.include(
+        endpointHost,
+        `Fixture endpoint host "${endpointHost}" is not in the allowlist — refusing to send API key`,
+      );
+      genAiPlayground.findEndpointUrlInput().clear().type(testData.endpointUrl);
+
+      cy.step('Fill in API key');
+      genAiPlayground.findTokenInput().clear().type(Cypress.env('GEMINI_API_KEY'), { log: false });
+
+      cy.step('Click Verify model button');
+      genAiPlayground.findVerifyModelButton().should('be.enabled').click();
+
+      cy.step('Verify model verification succeeds');
+      genAiPlayground.findVerifySuccessAlert({ timeout: 30000 }).should('be.visible');
+
+      cy.step('Click Create button to create the endpoint');
+      genAiPlayground.findCreateEndpointSubmitButton().should('be.enabled').click();
+
+      cy.step('Verify modal closes and model appears in AI Assets table');
+      genAiPlayground.findCreateExternalModelModal().should('not.exist');
+      genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
+    },
+  );
+
+  it(
+    'Add endpoint to playground and wait for infrastructure',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Add endpoint to playground');
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findConfigurationTable().should('be.visible');
+      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
+      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
+
+      cy.step('Wait for OGX Server to be ready');
+      waitForOGXServerReady(projectName);
+
+      cy.step('Wait for playground service to be created');
+      waitForResource('service', testData.lsdServiceName, projectName);
+
+      cy.step('Wait for LSD pod to be fully ready');
+      waitForPodReady(testData.lsdPodPrefix, testData.lsdPodReadyTimeout, projectName);
+
+      cy.step('Wait for custom model to be registered in LSD');
+      waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
+    },
+  );
 
   it(
     'Verify guardrails lifecycle — user input toggle blocks malicious message',

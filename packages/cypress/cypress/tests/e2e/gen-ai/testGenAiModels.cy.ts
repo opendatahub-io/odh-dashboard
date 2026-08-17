@@ -11,18 +11,14 @@ import {
   deployGenAiModel,
   enableExternalProviders,
   disableExternalProviders,
-  forceDashboardConfigRefresh,
-  waitForModelInLSD,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { GenAiTestData, CustomEndpointTestData } from '../../../types';
+import type { GenAiTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
-
-const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify Gen AI Models - Playground Integration', { testIsolation: false }, () => {
   let genAiTestData: GenAiTestData;
@@ -156,113 +152,6 @@ describe('Verify Gen AI Models - Playground Integration', { testIsolation: false
         'Verify playground is functional (model inference not tested due to slow response time)',
       );
       cy.log('✅ Playground interface is functional and ready to receive messages');
-    },
-  );
-
-  it(
-    'Verify custom endpoint UI creation and integration with existing playground',
-    {
-      tags: ['@GenAI', '@Playground', '@NonConcurrent'],
-    },
-    () => {
-      const apiKey = Cypress.env('GEMINI_API_KEY');
-      if (!apiKey) {
-        throw new Error(
-          'GEMINI_API_KEY is not set in test-variables.yml — cannot run custom endpoint tests',
-        );
-      }
-
-      cy.fixture('e2e/genAi/testGenAiSettings.yaml', 'utf8').then((yamlContent: string) => {
-        const customData = yaml.load(yamlContent) as CustomEndpointTestData;
-
-        // Ensure externalProviders is reflected in the backend before opening the form.
-        cy.step('Force backend to refresh config from cluster');
-        forceDashboardConfigRefresh();
-
-        // Navigate to assets with custom endpoints feature enabled.
-        // The vLLM model is already in the table so no empty state.
-        cy.step('Navigate to AI asset endpoints page with custom endpoints enabled');
-        genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
-
-        cy.step('Force backend to refresh config from cluster');
-        forceDashboardConfigRefresh();
-
-        // --- Create custom endpoint via UI ---
-
-        cy.step('Click Create endpoint button');
-        genAiPlayground.findCreateEndpointButton().should('be.visible').click();
-
-        cy.step('Verify Create endpoint modal is open');
-        genAiPlayground.findCreateExternalModelModal().should('be.visible');
-
-        cy.step('Fill in Model ID');
-        genAiPlayground.findModelIdInput().clear().type(customData.modelId);
-
-        cy.step('Fill in Display name');
-        genAiPlayground.findDisplayNameInput().clear().type(customData.displayName);
-
-        cy.step('Fill in Endpoint URL');
-        const endpointHost = new URL(customData.endpointUrl).hostname;
-        expect(ALLOWED_ENDPOINT_HOSTS).to.include(
-          endpointHost,
-          `Fixture endpoint host "${endpointHost}" is not in the allowlist — refusing to send API key`,
-        );
-        genAiPlayground.findEndpointUrlInput().clear().type(customData.endpointUrl);
-
-        cy.step('Fill in API key');
-        genAiPlayground.findTokenInput().clear().type(apiKey, { log: false });
-
-        cy.step('Click Verify model button');
-        genAiPlayground.findVerifyModelButton().should('be.enabled').click();
-
-        cy.step('Verify model verification succeeds');
-        genAiPlayground.findVerifySuccessAlert({ timeout: 30000 }).should('be.visible');
-
-        cy.step('Click Create button to create the endpoint');
-        genAiPlayground.findCreateEndpointSubmitButton().should('be.enabled').click();
-
-        cy.step('Verify modal closes and custom model appears in AI Assets table');
-        genAiPlayground.findCreateExternalModelModal().should('not.exist');
-        genAiPlayground.findAiModelsTable().should('contain', customData.displayName);
-
-        // --- Add to existing playground (OGX already running from first it block) ---
-
-        cy.step('Add custom endpoint to the existing playground');
-        genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
-        genAiPlayground.findConfigurationTable().should('be.visible');
-        genAiPlayground.ensureModelCheckboxIsChecked(customData.modelId);
-        genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
-
-        cy.step('Wait for custom model to be registered in LSD');
-        waitForModelInLSD(customData.lsdServiceName, customData.modelId, projectName);
-
-        // --- Verify custom model in playground ---
-
-        cy.step('Navigate to playground');
-        genAiPlayground.navigate(projectName);
-
-        cy.step(`Select ${customData.displayName} model from dropdown`);
-        genAiPlayground.selectModelFromDropdown(customData.displayName);
-
-        cy.step(`Verify ${customData.displayName} model is selected`);
-        genAiPlayground.verifyModelIsSelected(customData.displayName);
-
-        cy.step('Verify message input is ready');
-        genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-
-        cy.step('Send a test message using the custom endpoint model');
-        genAiPlayground.sendMessage(customData.testMessage);
-
-        cy.step('Verify user message appears in chat');
-        genAiPlayground.findUserMessage().should('exist').and('contain', customData.testMessage);
-
-        cy.step('Verify assistant response is received from custom endpoint');
-        genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
-        genAiPlayground
-          .findAssistantMessage({ timeout: 60000 })
-          .should('exist')
-          .and('not.be.empty');
-      });
     },
   );
 });
