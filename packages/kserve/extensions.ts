@@ -1,4 +1,6 @@
 // eslint-disable-next-line no-restricted-syntax
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line no-restricted-syntax
 import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
@@ -28,6 +30,7 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/types';
@@ -114,7 +117,7 @@ const extensions: (
   | ModelServingAuthExtension<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
-  | DeployedModelServingDetails<KServeDeployment>
+  | DeployedModelServingDetails<KServeDeployment, FetchStateObject<TemplateKind[]>>
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
@@ -203,7 +206,12 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: KSERVE_ID,
-      ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
+      dataHook: () =>
+        import('./src/components/deploymentServingDetails').then((m) => m.useServingDetailsData),
+      ServingDetailsComponent: () =>
+        import('./src/components/deploymentServingDetails').then((m) => ({
+          default: m.default,
+        })),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
