@@ -30,7 +30,7 @@ describe('LLM accelerator configuration extensions', () => {
     );
   });
 
-  it('should not require modelDeploymentSettings to reach the accelerator tab', () => {
+  it('should gate the accelerator tab on its own feature areas only', () => {
     expect(acceleratorTab?.flags).toEqual({
       required: ['llmd-serving', 'ADMIN_USER', 'vllm-on-maas'],
     });
@@ -57,7 +57,7 @@ describe('LLM accelerator configuration extensions', () => {
     });
   });
 
-  it('should redirect the old standalone accelerator URL to the tab without requiring modelDeploymentSettings', () => {
+  it('should redirect the old standalone accelerator URL to the tab', () => {
     const redirectRoute = routeExtensions.find(
       (extension) =>
         extension.properties.path ===
@@ -96,7 +96,7 @@ describe('llm-d topology configuration extensions', () => {
     );
   });
 
-  it('should not require modelDeploymentSettings to reach the topology tab', () => {
+  it('should gate the topology tab on its own feature areas only', () => {
     expect(topologyTab?.flags).toEqual({
       required: ['llmd-topology-configs', 'ADMIN_USER'],
     });
@@ -123,7 +123,7 @@ describe('llm-d topology configuration extensions', () => {
     });
   });
 
-  it('should redirect the old standalone topology URL to the tab without requiring modelDeploymentSettings', () => {
+  it('should redirect the old standalone topology URL to the tab', () => {
     const redirectRoute = routeExtensions.find(
       (extension) =>
         extension.properties.path ===
@@ -162,7 +162,7 @@ describe('llm-d routing configuration extensions', () => {
     );
   });
 
-  it('should not require modelDeploymentSettings to reach the routing tab', () => {
+  it('should gate the routing tab on its own feature areas only', () => {
     expect(routingTab?.flags).toEqual({
       required: ['llmd-topology-configs', 'ADMIN_USER'],
     });
@@ -189,7 +189,7 @@ describe('llm-d routing configuration extensions', () => {
     });
   });
 
-  it('should redirect the old standalone routing URL to the tab without requiring modelDeploymentSettings', () => {
+  it('should redirect the old standalone routing URL to the tab', () => {
     const redirectRoute = routeExtensions.find(
       (extension) =>
         extension.properties.path ===

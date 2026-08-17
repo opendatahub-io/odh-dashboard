@@ -1,6 +1,11 @@
 import { getOdhDashboardConfigGroupsConfig } from './oc_commands/project';
 import type { CommandLineResult, DashboardConfig, NotebookControllerCullerConfig } from '../types';
-import { modelServingSettings, pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
+import { pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
+// TODO: validateModelServingPlatforms still checks the model-serving switch that used
+// to live on the Cluster Settings page; those controls moved to the General settings
+// tab, so this validation (and its e2e caller) needs to be repointed to that tab.
+// Tracked as a follow-up.
+import { modelServingSettings } from '../pages/generalSettings';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
