@@ -51,6 +51,45 @@ export const getResourceVersionByName = (resourceName: string): Cypress.Chainabl
 };
 
 /**
+ * Retrieve component release versions from the DataScienceCluster status.
+ *
+ * Queries the same source the UI uses (DSC .status.components), filters out
+ * components with managementState 'Removed' and releases with version 'unknown'.
+ *
+ * @returns A map of component key to non-empty array of version strings.
+ */
+export const getDscComponentVersions = (): Cypress.Chainable<Record<string, string[]>> => {
+  const ocCommand = `oc get DataScienceCluster -A -o json`;
+  return execWithOutput(ocCommand).then(({ exitCode, stdout, stderr }) => {
+    if (exitCode !== 0 || !stdout.trim()) {
+      cy.log(`Failed to retrieve DSC component versions:\n${stderr}`);
+      return cy.wrap<Record<string, string[]>>({});
+    }
+    const dsc = JSON.parse(stdout);
+    const components: Record<
+      string,
+      { managementState?: string; releases?: Array<{ version?: string }> }
+    > = dsc.items?.[0]?.status?.components ?? {};
+    const result: Record<string, string[]> = {};
+
+    Object.entries(components).forEach(([key, details]) => {
+      if (details.managementState === 'Removed') {
+        return;
+      }
+      const versions = (details.releases ?? [])
+        .map((r) => r.version)
+        .filter((v): v is string => !!v && v !== 'unknown');
+      if (versions.length > 0) {
+        result[key] = versions;
+      }
+    });
+
+    cy.log(`Retrieved DSC component versions: ${JSON.stringify(result)}`);
+    return cy.wrap(result);
+  });
+};
+
+/**
  * Get CSV JSON by its display name, considering active subscriptions.
  *
  * @param displayName - The display name of the product to retrieve the CSV for.
