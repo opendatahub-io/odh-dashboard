@@ -105,6 +105,7 @@ describe('ModelServingPlatformSettings', () => {
 
     expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledWith(true);
     expect(mockSetIsDistributedInferencingDefault).toHaveBeenCalledTimes(1);
+    expect(mockSetEnabledPlatforms).not.toHaveBeenCalled();
   });
 
   it('should show warning when kServe is not installed', () => {
