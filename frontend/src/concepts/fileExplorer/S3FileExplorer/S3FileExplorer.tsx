@@ -351,11 +351,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           ...result,
           forceShowAsSelected: false,
           hint: defaults.labels.includedInSelection,
-          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder.name),
+          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder?.name ?? ''),
         };
       }
       if (disabledSet?.has(file.path) && isFolder(file)) {
-        result = { ...result, selectable: false, disabled: disabledPaths[file.path] || true };
+        result = { ...result, selectable: false, disabled: disabledPaths?.[file.path] || true };
       }
       return result;
     });
