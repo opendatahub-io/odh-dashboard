@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
 import DeleteAuthPolicyModal from '~/app/pages/auth-policies/DeleteAuthPolicyModal';
@@ -32,7 +32,12 @@ type AuthPoliciesTabProps = {
 };
 
 const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
-  const [authPolicies, loaded, error, refresh] = useListAuthPolicies();
+  const {
+    policies: authPolicies,
+    policiesLoaded: loaded,
+    policiesError: error,
+    refresh,
+  } = useMaaSGovernanceContext();
   const [deleteAuthPolicy, setDeleteAuthPolicy] = React.useState<MaaSAuthPolicy | undefined>(
     undefined,
   );

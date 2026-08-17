@@ -1,12 +1,15 @@
 const path = require('path');
 
 /**
- * Webpack resolve plugin that resolves `~/` imports contextually based on the
+ * Rspack plugin that resolves `~/` imports contextually based on the
  * importing file's location. In Module Federation each package has its own
- * webpack build where `~/` maps to that package's `frontend/src/`. When
- * statically bundled in a distribution (single webpack build), the alias
- * conflicts. This plugin inspects the issuer path and resolves `~/` to the
- * correct package source directory.
+ * build where `~/` maps to that package's `frontend/src/`. When statically
+ * bundled in a distribution (single rspack build), the alias conflicts. This
+ * plugin inspects the issuer path and rewrites `~/` to the correct package
+ * source directory.
+ *
+ * Uses NormalModuleReplacementPlugin because rspack's Rust resolver does not
+ * support webpack-style resolve.plugins.
  *
  * @param {Array<{dir: string, src: string}>} mappings
  *   dir — package root (used for prefix matching against the issuer)
@@ -20,42 +23,24 @@ class ContextualTildeResolverPlugin {
     }));
   }
 
-  apply(resolver) {
-    const target = resolver.ensureHook('resolve');
+  apply(compiler) {
+    const { NormalModuleReplacementPlugin } = compiler.webpack;
 
-    resolver
-      .getHook('described-resolve')
-      .tapAsync('ContextualTildeResolverPlugin', (request, resolveContext, callback) => {
-        const req = request.request;
-        if (!req || !req.startsWith('~/')) {
-          return callback();
-        }
+    new NormalModuleReplacementPlugin(/^~\//, (resource) => {
+      const issuer = resource.contextInfo?.issuer || resource.context;
+      if (!issuer) {
+        return;
+      }
 
-        const issuer = request.context?.issuer || request.path;
-        if (!issuer) {
-          return callback();
-        }
+      const normalizedIssuer = path.resolve(issuer);
+      const mapping = this.mappings.find((m) => normalizedIssuer.startsWith(m.dir));
+      if (!mapping) {
+        return;
+      }
 
-        const normalizedIssuer = path.resolve(issuer);
-        const mapping = this.mappings.find((m) => normalizedIssuer.startsWith(m.dir));
-        if (!mapping) {
-          return callback();
-        }
-
-        const newRequest = path.join(mapping.src, req.slice(2));
-        const obj = {
-          ...request,
-          request: newRequest,
-        };
-
-        resolver.doResolve(
-          target,
-          obj,
-          `ContextualTildeResolver: ${req} → ${newRequest}`,
-          resolveContext,
-          callback,
-        );
-      });
+      // eslint-disable-next-line no-param-reassign
+      resource.request = path.join(mapping.src, resource.request.slice(2));
+    }).apply(compiler);
   }
 }
 

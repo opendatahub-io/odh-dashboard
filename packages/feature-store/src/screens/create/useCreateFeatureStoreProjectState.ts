@@ -30,8 +30,8 @@ export const DEFAULT_FEATURE_STORE_FORM_DATA: FeatureStoreFormData = {
     },
   },
 
-  authzType: AuthzType.NONE,
-  authz: undefined,
+  authzType: AuthzType.KUBERNETES,
+  authz: { kubernetes: { roles: [] } },
 
   cronJob: undefined,
   replicas: 1,

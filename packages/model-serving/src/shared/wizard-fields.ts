@@ -56,6 +56,7 @@ export {
   RuntimeArgsField,
   runtimeArgsFieldSchema,
   isValidRuntimeArgs,
+  filterRuntimeArgsForContainer,
   useRuntimeArgsField,
   type RuntimeArgsFieldData,
   type RuntimeArgsFieldHook,

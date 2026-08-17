@@ -48,7 +48,7 @@ describe('BenchmarkDrawerPanel', () => {
     expect(screen.getByText('TruthfulQA MC1')).toBeInTheDocument();
   });
 
-  it('should render nothing when benchmark is undefined', () => {
+  it('should render empty panel when benchmark is undefined', () => {
     const panel = (
       <BenchmarkDrawerPanel
         benchmark={undefined}
@@ -56,7 +56,7 @@ describe('BenchmarkDrawerPanel', () => {
         onRunBenchmark={mockOnRunBenchmark}
       />
     );
-    const { container } = render(
+    render(
       <Drawer isExpanded>
         <DrawerContent panelContent={panel}>
           <div />
@@ -64,7 +64,7 @@ describe('BenchmarkDrawerPanel', () => {
       </Drawer>,
     );
     expect(screen.queryByTestId('benchmark-drawer-panel')).not.toBeInTheDocument();
-    expect(container.querySelector('.pf-v6-c-drawer__panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('TruthfulQA MC1')).not.toBeInTheDocument();
   });
 
   it('should show provider name as plain text when no recommended_when', () => {

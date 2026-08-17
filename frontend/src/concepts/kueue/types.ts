@@ -30,6 +30,15 @@ export type KueueWorkloadStatusWithMessage = {
     count: number;
     requeueAt?: string;
   };
+  /**
+   * Multi-Pod admission breakdown (model deployments only — one Workload CR per replica Pod).
+   * Present only when there's more than one correlated Workload CR for the model, so the UI can
+   * show e.g. "3 of 5 pods admitted" instead of a single pass/fail status.
+   */
+  podAdmissionCounts?: {
+    admitted: number;
+    total: number;
+  };
 };
 
 export type KueueStatusInfo = {
@@ -51,6 +60,18 @@ export const KUEUE_STATUSES_OVERRIDE_WORKBENCH: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Preempted,
   KueueWorkloadStatus.Evicted,
   KueueWorkloadStatus.Requeued,
+  KueueWorkloadStatus.Complete,
+];
+
+/**
+ * Kueue considers a Workload admitted only once QuotaReserved AND all AdmissionChecks are
+ * ready — AdmissionCheck therefore represents a still-pending, potentially-blocking state and
+ * must NOT be treated as past admission (see kueue.sigs.k8s.io AdmissionCheck docs). A pending
+ * or retrying check can still prevent the Pod from being created.
+ */
+export const KUEUE_STATUSES_PAST_ADMISSION: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Admitted,
+  KueueWorkloadStatus.Running,
   KueueWorkloadStatus.Complete,
 ];
 

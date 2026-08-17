@@ -82,7 +82,7 @@ const PvcConfigSection: React.FC<PvcConfigSectionProps> = ({
             id={`${idPrefix}-pvc-ref`}
             name={`${idPrefix}-pvc-mode`}
             label="Use existing PVC"
-            description="Reference a pre-created PersistentVolumeClaim"
+            description="Reference an existing PersistentVolumeClaim."
             isChecked={mode === PvcMode.REF}
             onChange={() => handleModeChange(PvcMode.REF)}
           />
@@ -90,7 +90,7 @@ const PvcConfigSection: React.FC<PvcConfigSectionProps> = ({
             id={`${idPrefix}-pvc-create`}
             name={`${idPrefix}-pvc-mode`}
             label="Create new PVC"
-            description="Operator creates a PVC automatically"
+            description="Operator creates a PVC automatically."
             isChecked={mode === PvcMode.CREATE}
             onChange={() => handleModeChange(PvcMode.CREATE)}
           />

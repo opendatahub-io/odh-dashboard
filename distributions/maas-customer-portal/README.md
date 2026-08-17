@@ -65,5 +65,5 @@ BFF targets use `https://` because on-cluster BFFs serve over TLS.
 | `src/extensions.ts` | Flat nav items, redirects, user dropdown |
 | `src/extensionOverrides.ts` | Strips gen-ai nested nav (replaced by flat nav) |
 | `src/PortalContextProvider.tsx` | MaaS BFF context + ADMIN_USER flag sync |
-| `config/webpack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
+| `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |

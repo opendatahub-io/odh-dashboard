@@ -63,6 +63,8 @@ import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -185,6 +187,7 @@ function AutoragConfigure({
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
+  const { showUIError } = useUIErrorHandler();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -354,15 +357,19 @@ function AutoragConfigure({
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+          if (isUIError(err)) {
+            showUIError(err);
+          } else {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            const isConflict = errorMessage.toLowerCase().includes('unique filename');
 
-          notification.error(
-            'Failed to upload file',
-            isConflict
-              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-              : errorMessage,
-          );
+            notification.error(
+              'Failed to upload file',
+              isConflict
+                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+                : errorMessage,
+            );
+          }
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
@@ -370,7 +377,15 @@ function AutoragConfigure({
         }
       }
     },
-    [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
+    [
+      inputDataBucketName,
+      inputDataSecretName,
+      namespace,
+      notification,
+      setValue,
+      showUIError,
+      uploadFileToS3,
+    ],
   );
 
   const handleInputDataDropRejected = useCallback(

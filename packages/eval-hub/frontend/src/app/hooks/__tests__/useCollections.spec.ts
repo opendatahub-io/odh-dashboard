@@ -107,7 +107,7 @@ describe('useCollections', () => {
     const renderResult = testHook(useCollections)('test-namespace');
 
     expect(renderResult.result.current.nameFilter).toBe('');
-    expect(renderResult.result.current.categoryFilter).toBe('');
+    expect(renderResult.result.current.categoryFilter).toEqual([]);
     expect(typeof renderResult.result.current.setNameFilter).toBe('function');
     expect(typeof renderResult.result.current.setCategoryFilter).toBe('function');
   });
@@ -170,7 +170,7 @@ describe('useCollections', () => {
     const renderResult = testHook(useCollections)('test-namespace');
 
     act(() => {
-      renderResult.result.current.setCategoryFilter('language');
+      renderResult.result.current.setCategoryFilter(['language']);
     });
 
     expect(renderResult.result.current.collections).toHaveLength(2);

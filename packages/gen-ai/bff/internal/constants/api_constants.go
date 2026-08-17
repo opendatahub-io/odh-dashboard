@@ -82,5 +82,6 @@ const (
 
 	// GenAI Proxy — OpenAI-compatible surface for OGX's remote::passthrough provider.
 	// OGX base_url must include the namespace: .../api/v1/genai-proxy/ns/<namespace>
-	GenAIProxyNSModelsPath = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/models"
+	GenAIProxyNSModelsPath          = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/models"
+	GenAIProxyNSChatCompletionsPath = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/chat/completions"
 )
