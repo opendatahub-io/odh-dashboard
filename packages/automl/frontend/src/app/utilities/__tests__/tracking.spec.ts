@@ -13,6 +13,7 @@ import {
   fireAutomlModelDetailsViewed,
   fireAutomlModelRegistered,
   fireAutomlNotebookDownloaded,
+  fireAutomlProjectDropdownOptionSelected,
   fireAutomlRunCreated,
   fireAutomlRunDeleted,
   fireAutomlRunDetailsDefined,
@@ -125,6 +126,15 @@ describe('mapModelDetailsTabName', () => {
 describe('AutoML tracking event firers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should fire AutoML Project Dropdown Option Selected with the selected project', () => {
+    fireAutomlProjectDropdownOptionSelected('test-namespace');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+      AUTOML_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED,
+      { selectedProject: 'test-namespace' },
+    );
   });
 
   it('should fire AutoML Run Details Defined with outcome and hasDescription', () => {

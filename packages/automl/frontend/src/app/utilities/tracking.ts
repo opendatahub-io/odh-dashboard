@@ -14,6 +14,7 @@ import type { TaskType } from '~/app/types';
 export { TrackingOutcome };
 
 export const AUTOML_EVENTS = {
+  PROJECT_DROPDOWN_OPTION_SELECTED: 'AutoML Project Dropdown Option Selected',
   RUN_DETAILS_DEFINED: 'AutoML Run Details Defined',
   TRAINING_DATA_CONFIGURED: 'AutoML Training Data Configured',
   TARGET_COLUMN_CONFIGURED: 'AutoML Target Column Configured',
@@ -33,6 +34,10 @@ export const AUTOML_EVENTS = {
   RESULTS_VIEWED: 'AutoML Results Viewed',
   MODEL_DETAILS_VIEWED: 'AutoML Model Details Viewed',
 } as const;
+
+export const fireAutomlProjectDropdownOptionSelected = (selectedProject: string): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
+};
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
 const PREDICTION_TYPE_MAP: Record<TaskType, string> = {
