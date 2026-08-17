@@ -203,21 +203,37 @@ const AutomlConnectionModal: React.FC<Props> = ({
               ...(protocolType && { 'opendatahub.io/connection-type-protocol': protocolType }),
             };
 
-            createSecret(assembledConnection)
-              .then(async () => {
-                await onSubmit(assembledConnection);
-                fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
-                onClose(true);
-              })
-              .catch((e) => {
-                setSubmitError(e);
+            const submit = async () => {
+              try {
+                await createSecret(assembledConnection);
+              } catch (e) {
+                // Secret creation itself failed — the resource does not exist.
+                setSubmitError(e instanceof Error ? e : new Error(String(e)));
                 setIsSaving(false);
                 fireAutomlS3ConnectionCreated({
                   outcome: TrackingOutcome.submit,
                   success: false,
                   error: e instanceof Error ? e.message : undefined,
                 });
-              });
+                return;
+              }
+
+              // The Secret now exists — report that outcome immediately, independent of
+              // whatever onSubmit does next, so a later onSubmit failure can't overwrite it.
+              fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
+
+              try {
+                await onSubmit(assembledConnection);
+                onClose(true);
+              } catch (e) {
+                // The Secret was already created successfully, so this is not a creation
+                // failure. Surface it to the user, but don't emit a false S3_CONNECTION_CREATED.
+                setSubmitError(e instanceof Error ? e : new Error(String(e)));
+                setIsSaving(false);
+              }
+            };
+
+            void submit();
           }}
           error={submitError}
           isSubmitDisabled={!isFormValid || !isModified || isSaving}

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+import * as tracking from '~/app/utilities/tracking';
 
 const TEST_PROJECT = 'my-project';
 
@@ -12,7 +13,13 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   createSecret: jest.fn(),
 }));
 
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutomlS3ConnectionCreated: jest.fn(),
+}));
+
 const createSecretMock = jest.mocked(secretsApi.createSecret);
+const fireAutomlS3ConnectionCreatedMock = jest.mocked(tracking.fireAutomlS3ConnectionCreated);
 
 describe('AutomlConnectionModal', () => {
   const onCloseMock = jest.fn();
@@ -357,6 +364,54 @@ describe('AutomlConnectionModal', () => {
 
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, error: 'API error' }),
+    );
+  });
+
+  it('should report success once createSecret resolves, even if onSubmit later rejects', async () => {
+    const user = userEvent.setup();
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+
+    const addButton = screen.getByRole('button', { name: 'Add connection' });
+    await user.click(addButton);
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).toHaveBeenCalled();
+    // The Secret was created successfully, so the creation event must report success even
+    // though the later onSubmit call failed. It must not be called with success: false.
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true }),
+    );
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ success: false }),
+    );
     expect(onCloseMock).not.toHaveBeenCalledWith(true);
   });
 });
