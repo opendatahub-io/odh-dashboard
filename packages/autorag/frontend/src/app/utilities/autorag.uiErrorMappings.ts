@@ -15,4 +15,14 @@ export const autoragUIErrorMappings: UIErrorMappings = {
     title: 'Invalid request',
     description: 'The request body could not be parsed. Check the form data and try again.',
   },
+  missing_namespace: {
+    title: 'Missing namespace',
+    description:
+      'The request is missing a required namespace. Check your project selection and try again.',
+  },
+  response_serialization_failed: {
+    title: 'Server error',
+    description:
+      'The server encountered a problem while preparing the response. Try again or contact your administrator if the issue persists.',
+  },
 };
