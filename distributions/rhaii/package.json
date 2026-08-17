@@ -12,7 +12,7 @@
     "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"rspack dev --hot --config ./config/rspack.dev.js\"",
     "build": "rspack --config ./config/rspack.prod.js",
     "build:prod": "rspack --config ./config/rspack.prod.js",
-    "test-unit": "jest",
+    "test-unit": "jest --silent",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

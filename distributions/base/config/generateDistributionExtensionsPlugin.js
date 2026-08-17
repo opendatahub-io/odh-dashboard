@@ -66,8 +66,17 @@ class GenerateDistributionExtensionsPlugin {
       throw new Error(`Invalid name in distribution config: "${entry.name}"`);
     }
     if (entry.local) {
-      const normalized = path.normalize(entry.extensionsPath || '');
-      if (normalized.startsWith('..')) {
+      if (typeof entry.extensionsPath !== 'string' || entry.extensionsPath.length === 0) {
+        throw new Error(
+          `Local entry for "${entry.name}" is missing required "extensionsPath" field`,
+        );
+      }
+      const normalized = path.normalize(entry.extensionsPath);
+      if (
+        path.isAbsolute(normalized) ||
+        normalized === '..' ||
+        normalized.startsWith(`..${path.sep}`)
+      ) {
         throw new Error(
           `Local extensionsPath for "${entry.name}" must resolve within the distribution directory — got "${entry.extensionsPath}"`,
         );
@@ -85,22 +94,7 @@ class GenerateDistributionExtensionsPlugin {
   resolvePackages(config, envOverrides) {
     const entries = [];
 
-    // Add local extensions from distribution.yaml
-    const local = config.packages?.local || [];
-    for (const entry of local) {
-      if (entry && typeof entry === 'object') {
-        const resolved = {
-          name: entry.name,
-          extensionsPath: entry.extensionsPath,
-          featureFlags: entry.featureFlags,
-          local: true,
-        };
-        this.validatePackageRef(resolved);
-        entries.push(resolved);
-      }
-    }
-
-    // Add bundled packages from distribution.yaml
+    // Bundled packages first (lowest precedence)
     const bundled = config.packages?.bundled || [];
     for (const entry of bundled) {
       let resolved;
@@ -120,7 +114,22 @@ class GenerateDistributionExtensionsPlugin {
       }
     }
 
-    // Check env var overrides
+    // Local extensions second (distribution overrides)
+    const local = config.packages?.local || [];
+    for (const entry of local) {
+      if (entry && typeof entry === 'object') {
+        const resolved = {
+          name: entry.name,
+          extensionsPath: entry.extensionsPath,
+          featureFlags: entry.featureFlags,
+          local: true,
+        };
+        this.validatePackageRef(resolved);
+        entries.push(resolved);
+      }
+    }
+
+    // Env-injected packages last (highest precedence)
     for (const [envVar, pkgConfig] of Object.entries(envOverrides)) {
       if (process.env[envVar] === 'true') {
         const resolved = {
@@ -134,12 +143,13 @@ class GenerateDistributionExtensionsPlugin {
       }
     }
 
-    // Deduplicate by name — last occurrence wins (env overrides take precedence)
-    const seen = new Map();
-    for (const entry of entries) {
-      seen.set(entry.name, entry);
-    }
-    return [...seen.values()];
+    // Deduplicate by name — last occurrence wins for both content and list position
+    // (so env-injected packages stay after uniquely named local packages).
+    const lastIndexByName = new Map();
+    entries.forEach((entry, index) => {
+      lastIndexByName.set(entry.name, index);
+    });
+    return entries.filter((entry, index) => lastIndexByName.get(entry.name) === index);
   }
 
   generateFileContent(packages, configFeatureFlags) {
@@ -167,7 +177,7 @@ export default pluginExtensions;
         const from = pkg.local
           ? pkg.extensionsPath
           : `${pkg.name}/${pkg.extensionsPath.replace(/^\.\//, '')}`;
-        return `import extensions${i} from '${from}';`;
+        return `import extensions${i} from ${JSON.stringify(from)};`;
       })
       .join('\n');
 
