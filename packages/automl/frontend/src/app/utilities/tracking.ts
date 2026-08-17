@@ -31,6 +31,7 @@ export const AUTOML_EVENTS = {
   LEADERBOARD_SORTED: 'AutoML Leaderboard Sorted',
   FLOW_EXITED: 'AutoML Flow Exited',
   RESULTS_VIEWED: 'AutoML Results Viewed',
+  MODEL_DETAILS_VIEWED: 'AutoML Model Details Viewed',
 } as const;
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
@@ -257,4 +258,18 @@ export const isAutomlResultsNavigationState = (
  */
 export const fireAutomlResultsViewed = (entrySource: AutomlResultsEntrySource): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.RESULTS_VIEWED, { entrySource });
+};
+
+/** Which control on the results page the user drilled into a model's details from. */
+export type ModelDetailsEntrySource = 'resultsTable' | 'pipelineViz' | 'other';
+
+/**
+ * Fires each time the user opens the model details modal (leaderboard row name link or
+ * "View details" row action; the pipeline visualization does not yet link into the modal but
+ * the source is captured for when it does).
+ */
+export const fireAutomlModelDetailsViewed = (
+  entrySource: ModelDetailsEntrySource = 'resultsTable',
+): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, { entrySource });
 };

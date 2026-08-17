@@ -14,7 +14,12 @@ import {
   isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
-import { fireAutomlNotebookDownloaded, type ModelActionSource } from '~/app/utilities/tracking';
+import {
+  fireAutomlModelDetailsViewed,
+  fireAutomlNotebookDownloaded,
+  type ModelActionSource,
+  type ModelDetailsEntrySource,
+} from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
@@ -154,9 +159,13 @@ function AutomlResults(): React.JSX.Element {
   );
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
 
-  const handleViewDetails = React.useCallback((modelName: string, rank: number) => {
-    setModalState({ modelName, rank });
-  }, []);
+  const handleViewDetails = React.useCallback(
+    (modelName: string, rank: number, entrySource: ModelDetailsEntrySource = 'resultsTable') => {
+      setModalState({ modelName, rank });
+      fireAutomlModelDetailsViewed(entrySource);
+    },
+    [],
+  );
 
   const handleRegisterModel = React.useCallback((modelName: string, source: ModelActionSource) => {
     setRegisterModelState({ modelName, source });

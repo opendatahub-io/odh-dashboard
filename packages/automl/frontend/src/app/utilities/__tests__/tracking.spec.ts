@@ -10,6 +10,7 @@ import {
   fireAutomlLeaderboardSorted,
   fireAutomlModelDetailsDownloaded,
   fireAutomlModelDetailsTabViewed,
+  fireAutomlModelDetailsViewed,
   fireAutomlModelRegistered,
   fireAutomlNotebookDownloaded,
   fireAutomlRunCreated,
@@ -345,6 +346,22 @@ describe('AutoML tracking event firers', () => {
 
     expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RESULTS_VIEWED, {
       entrySource: 'experimentsList',
+    });
+  });
+
+  it('should fire AutoML Model Details Viewed with the given entrySource', () => {
+    fireAutomlModelDetailsViewed('pipelineViz');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+      entrySource: 'pipelineViz',
+    });
+  });
+
+  it('should default AutoML Model Details Viewed entrySource to resultsTable', () => {
+    fireAutomlModelDetailsViewed();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+      entrySource: 'resultsTable',
     });
   });
 });
