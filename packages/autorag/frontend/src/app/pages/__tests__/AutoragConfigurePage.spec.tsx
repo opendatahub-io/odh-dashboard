@@ -5,8 +5,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
+import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 // Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
 jest.mock('@patternfly/react-core', () => ({
@@ -443,6 +452,86 @@ describe('AutoragConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
       expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+  });
+
+  describe('AutoRAG Experiment Created tracking', () => {
+    it('should fire with outcome: submit and hasDescription: false when Next is clicked without a description', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+        outcome: TrackingOutcome.submit,
+        hasDescription: false,
+        success: true,
+      });
+    });
+
+    it('should fire with hasDescription: true when Next is clicked with a description filled in', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const descriptionInput = await screen.findByLabelText(/Description/i);
+      await user.type(descriptionInput, 'Some description');
+
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+        outcome: TrackingOutcome.submit,
+        hasDescription: true,
+        success: true,
+      });
+    });
+
+    it('should fire with outcome: cancel when Cancel is clicked in the create step', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+        outcome: TrackingOutcome.cancel,
+        hasDescription: false,
+        success: true,
+      });
+    });
+
+    it('should NOT fire again when Cancel is clicked from the configure step', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      fireFormTrackingEventMock.mockClear();
+
+      // Configure step only shows Back/Create run, not Cancel, so navigate(-1) elsewhere
+      // (e.g. reconfigure Cancel) should not re-fire this event.
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
     });
   });
 

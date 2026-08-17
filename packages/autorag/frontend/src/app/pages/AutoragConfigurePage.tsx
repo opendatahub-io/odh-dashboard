@@ -27,6 +27,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { fireAutoragExperimentCreated, TrackingOutcome } from '~/app/utilities/tracking';
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
@@ -88,7 +89,16 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
-  const onCancel = useCallback(() => navigate(-1), [navigate]);
+  const onCancel = useCallback(() => {
+    if (step === 'create') {
+      fireAutoragExperimentCreated({
+        outcome: TrackingOutcome.cancel,
+        hasDescription: !!description,
+        success: true,
+      });
+    }
+    navigate(-1);
+  }, [navigate, step, description]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -231,6 +241,11 @@ function AutoragConfigurePage({
             event.preventDefault();
 
             if (step === 'create') {
+              fireAutoragExperimentCreated({
+                outcome: TrackingOutcome.submit,
+                hasDescription: !!description,
+                success: true,
+              });
               setStep('configure');
               return;
             }
