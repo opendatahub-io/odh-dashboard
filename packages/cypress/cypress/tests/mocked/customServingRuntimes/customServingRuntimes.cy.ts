@@ -175,7 +175,10 @@ describe('Custom serving runtimes', () => {
       });
     });
 
-    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+    // After submitting, we return to the serving-runtime-templates list, which is now a
+    // tab on the Model deployment settings page — so the visible title is the tabbed
+    // page shell's, not a standalone "Serving runtimes" page title.
+    cy.findByTestId('app-tab-page-title').should('contain', 'Model deployment settings');
 
     cy.wsK8s(
       'ADDED',
