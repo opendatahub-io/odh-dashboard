@@ -51,7 +51,7 @@ const MaaSGovernancePage: React.FC = () => {
       <Tabs
         activeKey={activeTab}
         onSelect={onSelectTab}
-        aria-label="Subscription management tabs"
+        aria-label="MaaS governance tabs"
         inset={{ default: 'insetNone' }}
         mountOnEnter
         unmountOnExit
