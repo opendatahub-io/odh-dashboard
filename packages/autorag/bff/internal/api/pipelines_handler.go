@@ -138,6 +138,14 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
 		errorReason := "request body must contain only a single JSON object"
 		NewUIError(http.StatusBadRequest, "unsupported_multiple_json_request", errorReason).
 			WithDetail("reason", errorReason).

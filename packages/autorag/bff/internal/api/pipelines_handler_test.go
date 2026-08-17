@@ -391,6 +391,14 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "invalid_request_body",
 		},
 		{
+			name:           "oversized body",
+			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusRequestEntityTooLarge,
+			wantBodySubstr: "request_body_too_large",
+		},
+		{
 			name:           "multiple JSON objects in body",
 			body:           validBody + `{"extra": true}`,
 			repoResult:     nil,
