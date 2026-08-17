@@ -39,6 +39,13 @@ spec:
     - to:
         - podSelector:
             matchLabels:
+              deployment: model-registry-ui
+      ports:
+        - port: 8043
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
               app.kubernetes.io/instance: mlflow
       ports:
         - port: 8443

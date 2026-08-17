@@ -15,7 +15,8 @@
     "csstype": "3.2.3",
     "axios": "^1.15.0",
     "shell-quote": ">=1.8.4",
-    "@types/react": "18.3.31"
+    "@types/react": "18.3.31",
+    "dompurify": "^3.4.13"
   },
   "scripts": {
     "build": "run-s build:prod",
@@ -102,13 +103,14 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@patternfly/patternfly": "~6.5.1",
+    "@patternfly/react-code-editor": "~6.5.1",
     "@patternfly/react-core": "~6.5.1",
     "@patternfly/react-icons": "~6.5.1",
     "@patternfly/react-styles": "~6.5.1",
     "@patternfly/react-table": "~6.5.1",
     "@patternfly/react-templates": "~6.5.1",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.4.13",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.2.2",
     "react": "^18",

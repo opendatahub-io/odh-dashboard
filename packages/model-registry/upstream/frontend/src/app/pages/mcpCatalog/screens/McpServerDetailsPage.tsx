@@ -33,7 +33,7 @@ import {
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 import McpServerDetailsView from './McpServerDetailsView';
 
-const MCP_DEPLOY_ACTION_GROUP = 'mcp-catalog.server-deploy';
+const MCP_SERVER_ACTION_GROUP = 'mcp-catalog.server-actions';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
@@ -122,9 +122,13 @@ const McpServerDetailsPage: React.FC = () => {
           ) : undefined
         }
         headerAction={
-          server?.artifacts?.some((a) => a.uri) ? (
-            <ExtensibleActions actions={actionExtensions} group={MCP_DEPLOY_ACTION_GROUP} />
-          ) : undefined
+          <ExtensibleActions
+            actions={actionExtensions}
+            group={MCP_SERVER_ACTION_GROUP}
+            componentProps={{
+              server: { data: server, loaded: serverLoaded, error: serverLoadError },
+            }}
+          />
         }
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
