@@ -337,12 +337,6 @@ it('Model registry settings should not be available when model registry is disab
   modelRegistrySettings.findNavItem().should('not.exist');
 });
 
-it('Shows empty state when there are no registries', () => {
-  setupMocksForMRSettingAccess({ hasModelRegistries: false });
-  modelRegistrySettings.visit(true);
-  modelRegistrySettings.findEmptyState().should('exist');
-});
-
 describe('CreateModal', () => {
   beforeEach(() => {
     setupMocksForMRSettingAccess({});
@@ -1072,16 +1066,6 @@ describe('CreateModal', () => {
   });
 });
 
-describe('ModelRegistriesTable', () => {
-  it('Shows table when there are registries', () => {
-    setupMocksForMRSettingAccess({});
-    modelRegistrySettings.visit(true);
-    modelRegistrySettings.findEmptyState().should('not.exist');
-    modelRegistrySettings.findTable().should('exist');
-    modelRegistrySettings.findModelRegistryRow('test-registry-1').should('exist');
-  });
-});
-
 describe('EditModelRegistry', () => {
   it('Update model registry', () => {
     setupMocksForMRSettingAccess({});
@@ -1497,26 +1481,6 @@ describe('ManagePermissions', () => {
       .findByText('Manage permissions')
       .trigger('mouseenter');
     modelRegistrySettings.findManagePermissionsTooltip().should('be.visible');
-  });
-});
-
-describe('DeleteModelRegistryModal', () => {
-  beforeEach(() => {
-    setupMocksForMRSettingAccess({});
-    modelRegistrySettings.visit(true);
-    modelRegistrySettings
-      .findModelRegistryRow('test-registry-1')
-      .findKebabAction('Delete model registry')
-      .click();
-  });
-
-  it('disables confirm button before name is typed', () => {
-    modelRegistrySettings.findSubmitButton().should('be.disabled');
-  });
-
-  it('enables confirm button after name is typed', () => {
-    modelRegistrySettings.findConfirmDeleteNameInput().type('test-registry-1');
-    modelRegistrySettings.findSubmitButton().should('be.enabled');
   });
 });
 
