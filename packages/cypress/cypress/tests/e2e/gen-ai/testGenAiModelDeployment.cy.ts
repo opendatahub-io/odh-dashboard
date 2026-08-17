@@ -6,12 +6,7 @@ import {
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
-import {
-  cleanupServingRuntimeTemplate,
-  deployGenAiModel,
-  enableExternalProviders,
-  disableExternalProviders,
-} from '../../../utils/oc_commands/genAi';
+import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
@@ -20,18 +15,13 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('Verify Gen AI Models - Playground Integration', { testIsolation: false }, () => {
+describe('Verify vLLM model deployment - Playground Integration', { testIsolation: false }, () => {
   let genAiTestData: GenAiTestData;
   let projectName: string;
   let servingRuntimeName: string;
   let hardwareProfileName: string;
 
   retryableBefore(() => {
-    // Enable external providers first so the watcher has maximum time to propagate
-    // before the custom endpoint UI validation fires later in the test run.
-    cy.step('Enable externalProviders in OdhDashboardConfig');
-    enableExternalProviders();
-
     cy.fixture('e2e/genAi/testGenAiModels.yaml', 'utf8')
       .then((yamlContent: string) => {
         genAiTestData = yaml.load(yamlContent) as GenAiTestData;
@@ -71,9 +61,6 @@ describe('Verify Gen AI Models - Playground Integration', { testIsolation: false
   });
 
   after(() => {
-    cy.step('Revert externalProviders in OdhDashboardConfig');
-    disableExternalProviders();
-
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }

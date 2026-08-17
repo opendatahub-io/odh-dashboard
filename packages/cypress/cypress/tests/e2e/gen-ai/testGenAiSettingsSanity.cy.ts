@@ -27,7 +27,7 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
-describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolation: false }, () => {
+describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
@@ -91,7 +91,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
   });
 
   it(
-    'Create custom endpoint via UI',
+    'Create custom endpoint in AI asset endpoints page',
     {
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
@@ -141,7 +141,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
   );
 
   it(
-    'Add endpoint to playground and wait for infrastructure',
+    'Add endpoint to playground and wait for OGX Server to be ready',
     {
       tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
