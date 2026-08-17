@@ -335,7 +335,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           </Flex>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={onClose} data-testid="pattern-details-close">
+          <Button variant="link" onClick={onClose} data-testid="pattern-details-close">
             Close
           </Button>
         </ModalFooter>
