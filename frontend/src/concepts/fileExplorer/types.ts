@@ -30,6 +30,8 @@ export interface ExplorerFile {
   selectable?: boolean;
   disabled?: boolean | string;
   forceShowAsSelected?: boolean;
+  hint?: string | ReactNode;
+  hintTooltip?: string | ReactNode;
 }
 
 export type ExplorerFiles<T extends ExplorerFile = ExplorerFile> = T[];

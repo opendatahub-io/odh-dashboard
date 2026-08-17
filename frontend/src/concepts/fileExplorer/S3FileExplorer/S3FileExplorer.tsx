@@ -32,7 +32,18 @@ import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
 
 // Globals -------------------------------------------------------------------->
 
-const DEFAULT_PER_PAGE = 10;
+const defaults = {
+  perPage: 10,
+  labels: {
+    includedInSelection: 'Included in selection',
+    includedInSelectionReason: (folderName: string) => (
+      <span>
+        This item is included because you selected the folder <strong>{folderName}</strong>. To
+        choose only this item, select it directly.
+      </span>
+    ),
+  },
+};
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
 export const getBreadcrumbTrail = (targetPath: string): Folder[] => {
@@ -137,7 +148,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   const [hasNextPage, setHasNextPage] = useState(false);
 
   const [pageToRender, setPageToRender] = useState(1);
-  const [perPageToRender, setPerPageToRender] = useState(DEFAULT_PER_PAGE);
+  const [perPageToRender, setPerPageToRender] = useState(defaults.perPage);
   const [currentPath, setCurrentPath] = useState('/');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
@@ -176,7 +187,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     setLoadingToRender(false);
     setHasNextPage(false);
     setPageToRender(1);
-    setPerPageToRender(DEFAULT_PER_PAGE);
+    setPerPageToRender(defaults.perPage);
     setCurrentPath(effectiveRoot);
     setSelectedFolder(null);
     continuationTokensRef.current = new Map();
@@ -294,7 +305,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     resetState();
     connectionKeyRef.current = connectionKey;
 
-    fetchPath(effectiveRoot, DEFAULT_PER_PAGE, 1);
+    fetchPath(effectiveRoot, defaults.perPage, 1);
   }, [apiPath, isOpen, s3SecretName, namespace, bucket, fetchPath, resetState, effectiveRoot]);
 
   const debouncedSearch = useMemo(
@@ -336,7 +347,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     return filesToRender.map((file) => {
       let result = file;
       if (folderPrefix && file.path.startsWith(folderPrefix)) {
-        result = { ...result, forceShowAsSelected: true, selectable: false };
+        result = {
+          ...result,
+          forceShowAsSelected: false,
+          hint: defaults.labels.includedInSelection,
+          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder?.name || ''),
+        };
       }
       if (disabledSet?.has(file.path) && isFolder(file)) {
         result = { ...result, selectable: false, disabled: disabledPaths?.[file.path] || true };
@@ -456,9 +472,12 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Callbacks ---------------------------------------------------------------->
 
   const handleSelectFile = useCallback((file: ExplorerFiles[number], selected: boolean) => {
-    if (isFolder(file)) {
-      setSelectedFolder(selected ? file : null);
+    // Warning: Handling folder selection like this won't work with batch folder selection. State variable might have to also change in the future
+    let newSelectedFolder = null;
+    if (isFolder(file) && selected) {
+      newSelectedFolder = file;
     }
+    setSelectedFolder(newSelectedFolder);
   }, []);
 
   const handleNavigate = useCallback(

@@ -2,7 +2,7 @@
 
 import '@patternfly/react-core/dist/styles/base.css';
 import '@patternfly/patternfly/utilities/_index.css';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Button,
@@ -15,7 +15,7 @@ import {
   FlexItem,
   Switch,
 } from '@patternfly/react-core';
-import FileExplorer from './FileExplorer';
+import FileExplorer, { isFolder } from './FileExplorer';
 import type { Folder, ExplorerFile, ExplorerFiles, Source, Sources } from './FileExplorer';
 
 // Mocks ---------------------------------------------------------------------->
@@ -222,6 +222,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
       files: getChildItems({ allFolders: realisticFolders, allFiles: realisticFiles }, '/'),
       folders: [],
       source: mockSource,
+      selection: 'radio',
       browsable: { allFolders: realisticFolders, allFiles: realisticFiles },
     },
   ],
@@ -334,6 +335,36 @@ const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState('/');
   const [allChildItems, setAllChildItems] = useState<ExplorerFiles>([]);
   const [filteredChildItems, setFilteredChildItems] = useState<ExplorerFiles>([]);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+
+  const filesWithSelection = useMemo(() => {
+    if (!activeDataset || !selectedFolder) {
+      return filesToRender;
+    }
+    const folderPrefix = selectedFolder.path.endsWith('/')
+      ? selectedFolder.path
+      : `${selectedFolder.path}/`;
+
+    return filesToRender.map((file) => {
+      if (file.path.startsWith(folderPrefix)) {
+        return {
+          ...file,
+          forceShowAsSelected: false,
+          hint: 'Included in selection',
+          hintTooltip: (
+            <span>
+              This item is included because you selected the folder{' '}
+              <strong>{selectedFolder.name}</strong>. To choose only this item, select it directly.
+            </span>
+          ),
+        };
+      }
+      return file;
+    });
+  }, [filesToRender, selectedFolder, activeDataset]);
+
+  const viewingSelectedFolderChildren =
+    selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -373,6 +404,7 @@ const App: React.FC = () => {
     setSearchResultsCountToRender(scenario.searchResultsCount);
     setSelectionToRender(scenario.selection);
     setActiveDataset(scenario.browsable ?? null);
+    setSelectedFolder(null);
 
     if (scenario.browsable) {
       navigateTo(scenario.browsable, '/');
@@ -418,6 +450,7 @@ const App: React.FC = () => {
             <p>Selected source: {selectedSource ? JSON.stringify(selectedSource) : '—'}</p>
             <p>Current path: {currentPath}</p>
             <p>Last navigated dir: {lastNavigatedDir ? lastNavigatedDir.path : '—'}</p>
+            <p>Selected folder: {selectedFolder ? selectedFolder.path : '—'}</p>
             <p>Last folder clicked: {lastFolderClicked ? lastFolderClicked.path : '—'}</p>
             <p>Last search query: {lastSearchQuery || '—'}</p>
             <p>Page: {pageToRender ?? '—'}</p>
@@ -456,7 +489,7 @@ const App: React.FC = () => {
       </Flex>
 
       <FileExplorer
-        files={filesToRender}
+        files={filesWithSelection}
         source={sourceToRender}
         sources={sourcesToRender}
         folders={foldersToRender}
@@ -465,11 +498,24 @@ const App: React.FC = () => {
         page={pageToRender}
         perPage={perPageToRender}
         itemCount={itemCountToRender}
-        selection={selectionToRender}
+        selection={viewingSelectedFolderChildren ? 'checkbox' : selectionToRender}
+        unselectableReason={
+          viewingSelectedFolderChildren
+            ? `The ${selectedFolder.name} parent folder has been selected already`
+            : undefined
+        }
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectSource={(source) => {
           setSelectedSource(source);
+        }}
+        onSelectFile={(file, selected) => {
+          // Warning: Handling folder selection like this won't work with batch folder selection. State variable might have to also change in the future
+          let newSelectedFolder = null;
+          if (isFolder(file) && selected) {
+            newSelectedFolder = file;
+          }
+          setSelectedFolder(newSelectedFolder);
         }}
         onFolderClick={(folder) => {
           setLastFolderClicked(folder);
