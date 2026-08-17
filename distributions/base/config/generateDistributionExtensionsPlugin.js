@@ -145,19 +145,11 @@ class GenerateDistributionExtensionsPlugin {
 
     // Deduplicate by name — last occurrence wins for both content and list position
     // (so env-injected packages stay after uniquely named local packages).
-    const byName = new Map();
-    for (const entry of entries) {
-      byName.set(entry.name, entry);
-    }
     const lastIndexByName = new Map();
     entries.forEach((entry, index) => {
       lastIndexByName.set(entry.name, index);
     });
-    return entries
-      .map((entry, index) =>
-        lastIndexByName.get(entry.name) === index ? byName.get(entry.name) : null,
-      )
-      .filter(Boolean);
+    return entries.filter((entry, index) => lastIndexByName.get(entry.name) === index);
   }
 
   generateFileContent(packages, configFeatureFlags) {

@@ -195,15 +195,18 @@ describe('extractPatches', () => {
 
 describe('applySuppress', () => {
   let warnSpy: jest.SpyInstance;
+  let logSpy: jest.SpyInstance;
   let originalEnv: string | undefined;
 
   beforeEach(() => {
     warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    logSpy = jest.spyOn(console, 'log').mockImplementation();
     originalEnv = process.env.NODE_ENV;
   });
 
   afterEach(() => {
     warnSpy.mockRestore();
+    logSpy.mockRestore();
     process.env.NODE_ENV = originalEnv;
   });
 
@@ -318,7 +321,7 @@ describe('applySuppress', () => {
     expect(result[0].type).toBe('app.navigation/href');
   });
 
-  it('should warn when a suppress is applied in non-production', () => {
+  it('should log when a suppress is applied in non-production', () => {
     process.env.NODE_ENV = 'development';
 
     applySuppress([
@@ -333,8 +336,8 @@ describe('applySuppress', () => {
       }),
     ]);
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toContain('suppressed');
+    expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy.mock.calls[0][0]).toContain('suppressed');
   });
 
   it('should warn and ignore suppress extensions with missing target fields', () => {

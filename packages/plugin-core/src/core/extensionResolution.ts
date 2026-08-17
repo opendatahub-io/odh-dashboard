@@ -7,6 +7,7 @@ import { PATCH_EXTENSION_TYPE, type PatchFieldSchema } from '../extension-points
 const PATCH_SCHEMAS = new Map<string, PatchFieldSchema>([
   ['app.navigation/href', NAV_PATCH_SCHEMA],
   ['app.navigation/section', NAV_PATCH_SCHEMA],
+  ['app.tab-route/page', NAV_PATCH_SCHEMA],
 ]);
 
 const isDevBuild = (): boolean => process.env.NODE_ENV !== 'production';
@@ -17,6 +18,14 @@ const warnDev = (message: string): void => {
   }
   // eslint-disable-next-line no-console
   console.warn(message);
+};
+
+const logDev = (message: string): void => {
+  if (!isDevBuild()) {
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(message);
 };
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -107,7 +116,7 @@ export const applySuppress = (raw: LoadedExtension[]): LoadedExtension[] => {
     }
 
     const { targetType, targetId } = ext.properties;
-    warnDev(
+    logDev(
       `[PluginStore] Extension (${targetType}, ${targetId}) suppressed by plugin "${ext.pluginName}"`,
     );
     lastSuppressIndex.set(extensionKey(targetType, targetId), index);
