@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
@@ -910,16 +911,12 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     );
   });
 
-  it('should pass undefined namespace and job ID on the progress tab', () => {
+  it('should not call useEvaluationJobLogs on the progress tab', () => {
+    mockUseEvaluationJobLogs.mockClear();
     renderModal(mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' }));
 
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
-    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
-      undefined,
-      undefined,
-      undefined,
-      1000,
-    );
+    expect(mockUseEvaluationJobLogs).not.toHaveBeenCalled();
   });
 
   it('should pass benchmark index after selecting a benchmark', () => {
@@ -1110,73 +1107,78 @@ describe('EvaluationStatusModal stop button', () => {
   });
 });
 
-describe('EvaluationStatusModal retry button', () => {
-  const mockOnRetry = jest.fn();
+describe('EvaluationStatusModal reconfigure button', () => {
+  const mockOnReconfigure = jest.fn();
 
-  const renderModalWithRetry = (jobOverrides = {}) => {
+  const renderModalWithReconfigure = (jobOverrides = {}) => {
     const job = mockEvaluationJob({ ...jobOverrides });
     return render(
-      <EvaluationStatusModal
-        job={job}
-        namespace="test-ns"
-        onClose={mockOnClose}
-        onRequestRetry={mockOnRetry}
-      />,
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestReconfigure={mockOnReconfigure}
+        />
+      </MemoryRouter>,
     );
   };
 
   beforeEach(() => {
-    mockOnRetry.mockReset();
+    mockOnReconfigure.mockReset();
   });
 
-  it('should show retry button for failed jobs when onRequestRetry is provided', () => {
-    renderModalWithRetry({ state: 'failed', statusMessage: 'Something failed' });
-    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  it('should show reconfigure button for failed jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'failed', statusMessage: 'Something failed' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
   });
 
-  it('should show retry button for partially_failed jobs when onRequestRetry is provided', () => {
-    renderModalWithRetry({ state: 'partially_failed' });
-    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  it('should show reconfigure button for partially_failed jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'partially_failed' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
   });
 
-  it('should show retry button for cancelled jobs when onRequestRetry is provided', () => {
-    renderModalWithRetry({ state: 'cancelled' });
-    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  it('should show reconfigure button for cancelled jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'cancelled' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
   });
 
-  it('should show retry button for stopped jobs when onRequestRetry is provided', () => {
-    renderModalWithRetry({ state: 'stopped' });
-    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  it('should show reconfigure button for stopped jobs when onRequestReconfigure is provided', () => {
+    renderModalWithReconfigure({ state: 'stopped' });
+    expect(screen.getByTestId('status-modal-reconfigure-button')).toBeInTheDocument();
   });
 
-  it('should not show retry button for completed jobs', () => {
-    renderModalWithRetry({ state: 'completed' });
-    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+  it('should show view results button instead of reconfigure for completed jobs', () => {
+    renderModalWithReconfigure({ state: 'completed' });
+    expect(screen.getByTestId('status-modal-view-results-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
   });
 
-  it('should not show retry button for running jobs', () => {
-    renderModalWithRetry({ state: 'running' });
-    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+  it('should not show reconfigure button for running jobs', () => {
+    renderModalWithReconfigure({ state: 'running' });
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
   });
 
-  it('should not show retry button when onRequestRetry is not provided', () => {
+  it('should not show reconfigure button when onRequestReconfigure is not provided', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
   });
 
-  it('should call onRequestRetry with the job when retry button is clicked', () => {
+  it('should call onRequestReconfigure with the job when reconfigure button is clicked', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
     render(
-      <EvaluationStatusModal
-        job={job}
-        namespace="test-ns"
-        onClose={mockOnClose}
-        onRequestRetry={mockOnRetry}
-      />,
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestReconfigure={mockOnReconfigure}
+        />
+      </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByTestId('status-modal-retry-button'));
-    expect(mockOnRetry).toHaveBeenCalledWith(job);
+    fireEvent.click(screen.getByTestId('status-modal-reconfigure-button'));
+    expect(mockOnReconfigure).toHaveBeenCalledWith(job);
   });
 });

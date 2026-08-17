@@ -10,7 +10,7 @@ import {
   ModalHeader,
   Tooltip,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -26,8 +26,8 @@ import {
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { deleteEvaluationJob } from '~/app/api/k8s';
+import { evaluationReconfigureRoute } from '~/app/routes';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
-import RetryEvaluationModal from './RetryEvaluationModal';
 import StopEvaluationModal from './StopEvaluationModal';
 import './EvaluationsTableRow.scss';
 
@@ -56,8 +56,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   isSelected,
   onSelectionChange,
 }) => {
+  const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
-  const [showRetryModal, setShowRetryModal] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
@@ -70,12 +70,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const hasNamespace = !!namespace;
   const canStop =
     (currentState === 'running' || currentState === 'pending') && !isStopping && hasNamespace;
-  const isRetryable =
-    (currentState === 'failed' ||
-      currentState === 'partially_failed' ||
-      currentState === 'cancelled' ||
-      currentState === 'stopped') &&
-    hasNamespace;
+  const isReconfigurable = !IN_PROGRESS_STATES.has(currentState) && hasNamespace;
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : currentState;
   const isPreStart = isPreStartFailure(polledJobData ?? job);
@@ -147,10 +142,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     onActionComplete();
   }, [onActionComplete]);
 
-  const handleRetryComplete = React.useCallback(() => {
-    onActionComplete();
-  }, [onActionComplete]);
-
   const handleDeleteConfirm = async () => {
     if (!namespace) {
       setActionError('Namespace is required to perform this action');
@@ -186,11 +177,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           },
         ]
       : []),
-    ...(isRetryable
+    ...(isReconfigurable
       ? [
           {
-            title: 'Retry',
-            onClick: () => setShowRetryModal(true),
+            title: 'Reconfigure',
+            onClick: () => navigate(evaluationReconfigureRoute(namespace, job.resource.id)),
           },
         ]
       : []),
@@ -276,15 +267,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {actions.length > 0 && <ActionsColumn items={actions} />}
         </Td>
       </Tr>
-
-      {showRetryModal && (
-        <RetryEvaluationModal
-          job={job}
-          namespace={namespace}
-          onClose={() => setShowRetryModal(false)}
-          onComplete={handleRetryComplete}
-        />
-      )}
 
       {showStopModal && (
         <StopEvaluationModal

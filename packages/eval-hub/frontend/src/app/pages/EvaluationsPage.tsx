@@ -12,13 +12,14 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
+import { evaluationReconfigureRoute } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -29,7 +30,6 @@ import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import { EvaluationJob } from '~/app/types';
-import RetryEvaluationModal from '~/app/components/RetryEvaluationModal';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
 
 const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
@@ -52,8 +52,8 @@ const EvaluationsPage: React.FC = () => {
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
   >();
+  const navigate = useNavigate();
   const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
-  const [pendingRetryJob, setPendingRetryJob] = React.useState<EvaluationJob | undefined>();
 
   const polledJobData = React.useMemo(
     () =>
@@ -192,9 +192,9 @@ const EvaluationsPage: React.FC = () => {
               setSelectedJob(undefined);
               setPendingStopJob(job);
             }}
-            onRequestRetry={(job) => {
+            onRequestReconfigure={(job) => {
               setSelectedJob(undefined);
-              setPendingRetryJob(job);
+              navigate(evaluationReconfigureRoute(namespace, job.resource.id));
             }}
           />
         </React.Suspense>
@@ -204,14 +204,6 @@ const EvaluationsPage: React.FC = () => {
           job={pendingStopJob}
           namespace={namespace}
           onClose={() => setPendingStopJob(undefined)}
-          onComplete={refreshEvaluations}
-        />
-      )}
-      {pendingRetryJob && namespace && (
-        <RetryEvaluationModal
-          job={pendingRetryJob}
-          namespace={namespace}
-          onClose={() => setPendingRetryJob(undefined)}
           onComplete={refreshEvaluations}
         />
       )}

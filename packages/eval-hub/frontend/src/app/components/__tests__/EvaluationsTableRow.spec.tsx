@@ -4,16 +4,20 @@ import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
-import { cancelEvaluationJob, createEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
 jest.mock('~/app/api/k8s', () => ({
   cancelEvaluationJob: jest.fn(),
-  createEvaluationJob: jest.fn(),
   deleteEvaluationJob: jest.fn(),
 }));
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
-const mockCreateEvaluationJob = jest.mocked(createEvaluationJob) as jest.Mock;
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
@@ -45,7 +49,6 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
-  mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(undefined as never));
   mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
   mockOnSelectionChange.mockReset();
 });
@@ -309,108 +312,53 @@ describe('EvaluationsTableRow', () => {
   });
 
   describe('retry action', () => {
-    it('should show Retry action for failed jobs', () => {
+    it('should show Reconfigure action for failed jobs', () => {
       renderRow({ state: 'failed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
     });
 
-    it('should show Retry action for partially_failed jobs', () => {
+    it('should show Reconfigure action for partially_failed jobs', () => {
       renderRow({ state: 'partially_failed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
     });
 
-    it('should show Retry action for cancelled jobs', () => {
+    it('should show Reconfigure action for cancelled jobs', () => {
       renderRow({ state: 'cancelled' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
     });
 
-    it('should show Retry action for stopped jobs', () => {
+    it('should show Reconfigure action for stopped jobs', () => {
       renderRow({ state: 'stopped' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
     });
 
-    it('should not show Retry action for completed jobs', () => {
+    it('should show Reconfigure action for completed jobs', () => {
       renderRow({ state: 'completed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+      expect(screen.getByText('Reconfigure')).toBeInTheDocument();
     });
 
-    it('should not show Retry action for running jobs', () => {
+    it('should not show Reconfigure action for running jobs', () => {
       renderRow({ state: 'running' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reconfigure')).not.toBeInTheDocument();
     });
 
-    it('should open retry confirmation modal when Retry is clicked', () => {
-      renderRow({ state: 'failed' });
+    it('should not show Reconfigure action for pending jobs', () => {
+      renderRow({ state: 'pending' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      fireEvent.click(screen.getByText('Retry'));
-      expect(screen.getByText('Retry evaluation?')).toBeInTheDocument();
+      expect(screen.queryByText('Reconfigure')).not.toBeInTheDocument();
     });
 
-    it('should call createEvaluationJob when retry is confirmed', async () => {
+    it('should navigate to reconfigure page when Retry is clicked', () => {
       renderRow({ state: 'failed', id: 'eval-job-retry' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      fireEvent.click(screen.getByText('Retry'));
-      fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
-
-      await waitFor(() => {
-        expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
-          '',
-          'test-ns',
-          expect.objectContaining({ name: expect.any(String) }),
-        );
-        expect(mockOnActionComplete).toHaveBeenCalled();
-      });
-    });
-
-    it('should close retry modal when Cancel is clicked', () => {
-      renderRow({ state: 'failed' });
-      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      fireEvent.click(screen.getByText('Retry'));
-      expect(screen.getByText('Retry evaluation?')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId('evaluation-retry-cancel'));
-      expect(screen.queryByText('Retry evaluation?')).not.toBeInTheDocument();
-    });
-
-    it('should keep Retry available for the source job after a successful retry', async () => {
-      const job = mockEvaluationJob({ state: 'failed', id: 'eval-retry-dup' });
-      render(
-        <MemoryRouter>
-          <Table aria-label="test">
-            <Tbody>
-              <EvaluationsTableRow
-                job={job}
-                rowIndex={0}
-                namespace="test-ns"
-                collectionNameMap={{}}
-                onActionComplete={mockOnActionComplete}
-                onShowStatus={mockOnShowStatus}
-                isSelected={false}
-                onSelectionChange={mockOnSelectionChange}
-              />
-            </Tbody>
-          </Table>
-        </MemoryRouter>,
-      );
-
-      // Confirm retry
-      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      fireEvent.click(screen.getByText('Retry'));
-      fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
-
-      await waitFor(() => {
-        expect(mockOnActionComplete).toHaveBeenCalledTimes(1);
-      });
-
-      // Retry should still be available for the source job
-      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Reconfigure'));
+      expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns/reconfigure/eval-job-retry');
     });
   });
 });

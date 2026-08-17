@@ -9,6 +9,9 @@ import {
   FlexItem,
   Gallery,
   Label,
+  Modal,
+  ModalBody,
+  ModalHeader,
   Spinner,
   Title,
 } from '@patternfly/react-core';
@@ -37,6 +40,7 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
+import EvaluationEventLog from '~/app/components/EvaluationEventLog';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
@@ -53,8 +57,6 @@ const MlflowRunTabs = React.lazy(() =>
     .then((mod) => mod ?? { default: () => null })
     .catch(() => ({ default: () => null })),
 );
-
-const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
@@ -327,20 +329,38 @@ const EvaluationResultsPage: React.FC = () => {
           </div>
         )}
       </ApplicationsPage>
-      {showStatusModal && (
-        <React.Suspense
-          fallback={
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          }
+      {showStatusModal && job && namespace && (
+        <Modal
+          isOpen
+          onClose={() => setShowStatusModal(false)}
+          variant="medium"
+          aria-label="Event log"
+          data-testid="evaluation-event-log-modal"
         >
-          <EvaluationStatusModal
-            job={job ?? undefined}
-            namespace={namespace ?? ''}
-            onClose={() => setShowStatusModal(false)}
-          />
-        </React.Suspense>
+          <ModalHeader title="Event log" />
+          <ModalBody>
+            <EvaluationEventLog
+              namespace={namespace}
+              jobId={job.resource.id}
+              evaluationName={evaluationName}
+              benchmarks={(job.status.benchmarks ?? [])
+                .toSorted((a, b) => {
+                  if (a.benchmark_index != null && b.benchmark_index != null) {
+                    return a.benchmark_index - b.benchmark_index;
+                  }
+                  return a.id.localeCompare(b.id);
+                })
+                .map((bm, i) => ({
+                  key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
+                  id: bm.id,
+                  // eslint-disable-next-line camelcase
+                  benchmark_index: bm.benchmark_index,
+                }))}
+              isInProgress={false}
+              state={job.status.state}
+            />
+          </ModalBody>
+        </Modal>
       )}
     </>
   );
