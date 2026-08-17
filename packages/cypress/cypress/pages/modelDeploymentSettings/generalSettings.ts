@@ -1,4 +1,4 @@
-import { appChrome } from './appChrome';
+import { appChrome } from '../appChrome';
 
 class GeneralSettingsPage {
   visit(wait = true) {

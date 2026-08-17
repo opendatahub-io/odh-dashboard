@@ -8,7 +8,7 @@ import {
   generalSettingsPage,
   modelServingSettings,
   modelDeploymentSettings,
-} from '@odh-dashboard/cypress/cypress/pages/generalSettings';
+} from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/generalSettings';
 
 const initIntercepts = () => {
   asProductAdminUser();

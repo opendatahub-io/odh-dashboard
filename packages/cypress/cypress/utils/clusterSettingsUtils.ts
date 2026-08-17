@@ -5,7 +5,7 @@ import { pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
 // to live on the Cluster Settings page; those controls moved to the General settings
 // tab, so this validation (and its e2e caller) needs to be repointed to that tab.
 // Tracked as a follow-up.
-import { modelServingSettings } from '../pages/generalSettings';
+import { modelServingSettings } from '../pages/modelDeploymentSettings/generalSettings';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
