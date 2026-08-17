@@ -199,7 +199,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',

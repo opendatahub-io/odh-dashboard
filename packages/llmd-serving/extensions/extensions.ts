@@ -559,9 +559,8 @@ const extensions: (
     },
   },
   // Redirects from old standalone URLs to tabs on the model deployment settings page.
-  // The accelerator, topology, and routing redirects below are un-gated on
-  // modelDeploymentSettings — their standalone pages are gone, so the tabs are
-  // reachable whenever their own feature areas are enabled.
+  // The accelerator, topology, and routing standalone pages are gone; each redirect
+  // is reachable whenever the tab's own feature areas are enabled.
   {
     type: 'app.route',
     flags: {
