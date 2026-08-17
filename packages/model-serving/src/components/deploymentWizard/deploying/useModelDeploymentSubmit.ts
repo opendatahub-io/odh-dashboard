@@ -159,7 +159,7 @@ export const useModelDeploymentSubmit = (
           {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: errorMessage,
+            errorMessage,
             ...getBaseTrackingProperties(),
             ...(await getTrackingProperties()),
           },

@@ -72,7 +72,7 @@ describe('fireModelDeployed', () => {
     const properties: DeploymentTrackingProperties = {
       outcome: TrackingOutcome.submit,
       success: false,
-      error: 'Connection refused',
+      errorMessage: 'Connection refused',
       type: 'single',
       runtime: 'vllm-template',
       servingRuntimeName: 'vLLM',

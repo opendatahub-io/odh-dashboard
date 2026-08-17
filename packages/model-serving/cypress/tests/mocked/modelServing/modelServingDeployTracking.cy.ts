@@ -246,7 +246,7 @@ describe('Model Deployment Tracking Events', () => {
       .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
       .should('exist')
       .click();
-    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('not.have.attr', 'disabled').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
@@ -269,6 +269,8 @@ describe('Model Deployment Tracking Events', () => {
     // Step 3: Advanced options — enable external route for token auth
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findNextButton().should('be.enabled').click();
+
+    // Step 4: Review & Deploy
 
     // Step 4: Review — stub window.analytics.track to capture tracking events in non-dev builds
     cy.window().then((win) => {
@@ -362,7 +364,7 @@ describe('Model Deployment Tracking Events', () => {
       .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
       .should('exist')
       .click();
-    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard.findExistingConnectionSelect().should('not.have.attr', 'disabled').click();
     modelServingWizard
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
