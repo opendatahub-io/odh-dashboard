@@ -36,9 +36,7 @@ class GeneralSettingsPage {
   findSaveButton() {
     return cy.findByTestId('save-general-settings');
   }
-}
 
-class ModelServingSettings extends GeneralSettingsPage {
   findSinglePlatformSwitch() {
     return cy.findByTestId('single-model-serving-platform-enabled-switch');
   }
@@ -51,17 +49,15 @@ class ModelServingSettings extends GeneralSettingsPage {
     return cy.findByTestId('default-deployment-mode-select');
   }
 
-  findAlert() {
+  findServingPlatformAlert() {
     return cy.findByTestId('serving-platform-warning-alert');
   }
-}
 
-class ModelDeploymentSettings extends GeneralSettingsPage {
   findDistributedInferencing() {
     return cy.findByTestId('use-distributed-llm-default-switch');
   }
 
-  findAlert() {
+  findDistributedInferencingAlert() {
     return cy.findByText(
       'To use distributed inferencing, you must configure the inferencing gateway on your cluster.',
     );
@@ -77,5 +73,3 @@ class ModelDeploymentSettings extends GeneralSettingsPage {
 }
 
 export const generalSettingsPage = new GeneralSettingsPage();
-export const modelServingSettings = new ModelServingSettings();
-export const modelDeploymentSettings = new ModelDeploymentSettings();

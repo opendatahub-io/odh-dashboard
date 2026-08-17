@@ -5,7 +5,7 @@ import { pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
 // to live on the Cluster Settings page; those controls moved to the General settings
 // tab, so this validation (and its e2e caller) needs to be repointed to that tab.
 // Tracked as a follow-up.
-import { modelServingSettings } from '../pages/modelDeploymentSettings/generalSettings';
+import { generalSettingsPage } from '../pages/modelDeploymentSettings/generalSettings';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
@@ -32,13 +32,13 @@ export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig):
   cy.log(`Value of isKServeEnabled: ${String(isKServeEnabled)}`);
 
   if (isModelServingEnabled) {
-    modelServingSettings.findSinglePlatformSwitch().should('not.exist');
+    generalSettingsPage.findSinglePlatformSwitch().should('not.exist');
     cy.log('Model Serving is disabled, checkboxes should not be visible');
   } else if (isKServeEnabled) {
-    modelServingSettings.findSinglePlatformSwitch().should('not.be.checked');
+    generalSettingsPage.findSinglePlatformSwitch().should('not.be.checked');
     cy.log('Single-Platform Checkbox is disabled, it should not be checked');
   } else {
-    modelServingSettings.findSinglePlatformSwitch().should('be.checked');
+    generalSettingsPage.findSinglePlatformSwitch().should('be.checked');
     cy.log('Single-Platform Checkbox is enabled, it should be checked');
   }
 };

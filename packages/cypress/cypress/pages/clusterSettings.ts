@@ -27,7 +27,7 @@ class ClusterSettings {
   }
 
   findSubmitButton() {
-    return cy.findByTestId('s.huskyubmit-cluster-settings');
+    return cy.findByTestId('submit-cluster-settings');
   }
 }
 
