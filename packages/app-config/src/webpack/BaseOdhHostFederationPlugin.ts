@@ -1,4 +1,9 @@
-const { sharedPluginModules, getSharedModuleMetadata } = require('./shared-modules-meta.ts');
+const {
+  sharedPluginModules,
+  getSharedModuleMetadata,
+  PF_REACT_ICONS_CREATE_ICON_MODULE,
+  getPfReactIconsCreateIconSharedConfig,
+} = require('./shared-modules-meta.ts');
 const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages.ts');
 
 export type SharedModuleConfig = Record<string, unknown>;
@@ -63,6 +68,12 @@ abstract class BaseOdhHostFederationPlugin<TCompiler> {
         ...(version && { version }),
         ...(meta.eager && { eager: true }),
       };
+    }
+
+    const pfReactIconsDep = deps['@patternfly/react-icons'];
+    if (pfReactIconsDep && !(PF_REACT_ICONS_CREATE_ICON_MODULE in shared)) {
+      shared[PF_REACT_ICONS_CREATE_ICON_MODULE] =
+        getPfReactIconsCreateIconSharedConfig(pfReactIconsDep);
     }
 
     const { all: odhPackages } = getRuntimeOdhPackages();

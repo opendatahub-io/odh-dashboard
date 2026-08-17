@@ -61,7 +61,33 @@ describe('transformPipelineData', () => {
       status: 'ok',
       topology,
     });
-    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes);
+    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes, {
+      patternsExpanded: false,
+      winnerResolved: false,
+      winnerPatternLabel: undefined,
+      winnerPatternKey: undefined,
+    });
+  });
+
+  it('should pass expand and winner options through to the layout transform', () => {
+    transformStageMapNodesToTreeMock.mockReturnValue({ nodes: [], edges: [] });
+    const stageMapNodes = [makeNode('a')];
+
+    transformPipelineData(
+      {
+        stageMapNodes,
+        selectedPattern: 'pattern-h',
+        winnerPatternLabel: 'Pattern H',
+      },
+      { patternsExpanded: true, winnerResolved: true },
+    );
+
+    expect(transformStageMapNodesToTreeMock).toHaveBeenCalledWith(stageMapNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'Pattern H',
+      winnerPatternKey: 'pattern-h',
+    });
   });
 
   it('should return error status when transform throws instead of empty topology', () => {
