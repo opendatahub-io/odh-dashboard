@@ -30,27 +30,6 @@ export const getOcResourceNames = (
 };
 
 /**
- * Get the version of a resource by its name.
- *
- * @param resourceName - The name of the resource to retrieve the version for.
- * @returns A Cypress.Chainable that resolves to the version of the resource.
- */
-export const getResourceVersionByName = (resourceName: string): Cypress.Chainable<string[]> => {
-  const ocCommand = `oc get ${resourceName.replace(
-    /\s/g,
-    '',
-  )} -A -o jsonpath='{.items[*].status.releases[*].version}'`;
-  return execWithOutput(ocCommand).then(({ exitCode, stdout, stderr }) => {
-    if (exitCode !== 0) {
-      cy.log(`Failed to retrieve version of ${resourceName}:\n${stdout}\n${stderr}`);
-      return cy.wrap<string[]>([]);
-    }
-    cy.log(`Retrieved version of ${resourceName}:\n${stdout}\n${stderr}`);
-    return cy.wrap(stdout.trim().split(' '));
-  });
-};
-
-/**
  * Retrieve component release versions from the DataScienceCluster status.
  *
  * Queries the same source the UI uses (DSC .status.components), filters out
@@ -62,14 +41,23 @@ export const getDscComponentVersions = (): Cypress.Chainable<Record<string, stri
   const ocCommand = `oc get DataScienceCluster -A -o json`;
   return execWithOutput(ocCommand).then(({ exitCode, stdout, stderr }) => {
     if (exitCode !== 0 || !stdout.trim()) {
-      cy.log(`Failed to retrieve DSC component versions:\n${stderr}`);
-      return cy.wrap<Record<string, string[]>>({});
+      throw new Error(
+        `Failed to retrieve DSC component versions (exit code ${exitCode}): ${stderr}`,
+      );
     }
     const dsc = JSON.parse(stdout);
-    const components: Record<
-      string,
-      { managementState?: string; releases?: Array<{ version?: string }> }
-    > = dsc.items?.[0]?.status?.components ?? {};
+    const items: Array<{
+      status?: {
+        components?: Record<
+          string,
+          { managementState?: string; releases?: Array<{ version?: string }> }
+        >;
+      };
+    }> = dsc.items ?? [];
+    if (items.length === 0) {
+      throw new Error('No DataScienceCluster resources found on the cluster');
+    }
+    const components = items[0].status?.components ?? {};
     const result: Record<string, string[]> = {};
 
     Object.entries(components).forEach(([key, details]) => {

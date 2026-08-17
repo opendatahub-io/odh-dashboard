@@ -89,7 +89,7 @@ describe('Verify RHODS About Dialog', () => {
             const text = texts.join(' ');
             expect(versions.some((v) => text.includes(v))).to.equal(
               true,
-              `Version ${versions} not found for component ${displayName}`,
+              `Version ${versions.join(', ')} not found for component ${displayName}`,
             );
           });
         });
