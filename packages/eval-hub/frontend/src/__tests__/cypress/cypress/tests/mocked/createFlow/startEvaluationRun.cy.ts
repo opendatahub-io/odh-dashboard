@@ -556,8 +556,6 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
     startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnection');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 

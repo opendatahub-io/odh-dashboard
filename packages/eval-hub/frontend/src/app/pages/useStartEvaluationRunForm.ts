@@ -166,8 +166,7 @@ export function useStartEvaluationRunForm({
       agentName,
     });
 
-  const requiresConnectionValidation =
-    sourceMode === 'agent' || sourceMode === 'prerecorded' || modelSelection === 'external';
+  const requiresConnectionValidation = sourceMode === 'agent' || modelSelection === 'external';
 
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
@@ -336,19 +335,8 @@ export function useStartEvaluationRunForm({
     if (connectionValidation.status === 'validating') {
       return false;
     }
-    if (sourceMode === 'prerecorded') {
-      return !datasetUrlError && datasetUrl.trim() !== '';
-    }
     return !endpointUrlError && endpointUrl.trim() !== '';
-  }, [
-    requiresConnectionValidation,
-    connectionValidation.status,
-    sourceMode,
-    endpointUrlError,
-    endpointUrl,
-    datasetUrlError,
-    datasetUrl,
-  ]);
+  }, [requiresConnectionValidation, connectionValidation.status, endpointUrlError, endpointUrl]);
 
   // ── Additional args handlers ────────────────────────────────────────
 
