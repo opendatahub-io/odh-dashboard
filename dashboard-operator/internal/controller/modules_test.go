@@ -419,7 +419,7 @@ func TestModuleRegistry(t *testing.T) {
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
-		"agentOps", "automl", "autorag", "evalHub",
-		"genAi", "maas", "mlflow", "modelRegistry",
+		"agentOps", "automl", "autorag",
+		"evalHub", "genAi", "maas", "mlflow", "modelRegistry",
 	}, names)
 }

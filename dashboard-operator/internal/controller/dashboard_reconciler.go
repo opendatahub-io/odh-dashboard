@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -227,17 +228,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	mode := dashboard.Spec.DeploymentMode
+	var result ctrl.Result
+	var err error
+	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
+		result, err = r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	} else {
+		result, err = r.reconcileStandalone(ctx, dashboard, cm, cfg)
+	}
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
 func (r *DashboardReconciler) reconcileSidecar(
@@ -275,6 +291,22 @@ func (r *DashboardReconciler) reconcileSidecar(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -432,6 +464,20 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -663,6 +709,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
@@ -942,5 +992,6 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Complete(r)
 }

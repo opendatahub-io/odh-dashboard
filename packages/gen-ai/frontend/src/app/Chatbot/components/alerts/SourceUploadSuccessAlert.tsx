@@ -26,6 +26,7 @@ const SourceUploadSuccessAlert: React.FunctionComponent<SourceUploadSuccessAlert
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
+      data-testid="source-upload-success-alert"
     >
       <p>
         This source must be chunked and embedded before it is available for retrieval. This may take

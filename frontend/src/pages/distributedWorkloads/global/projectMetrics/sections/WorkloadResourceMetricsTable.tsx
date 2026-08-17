@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { SortableData, Table } from '@odh-dashboard/ui-core';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   getStatusInfo,
   getWorkloadRequestedResources,
 } from '#~/concepts/distributedWorkloads/utils';
 import { WorkloadKind } from '#~/k8sTypes';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
 import WorkloadResourceMetricsTableRow from './WorkloadResourceMetricsTableRow';

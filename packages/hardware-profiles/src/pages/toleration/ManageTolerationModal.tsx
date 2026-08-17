@@ -20,7 +20,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { type Toleration, TolerationEffect, TolerationOperator } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';

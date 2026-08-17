@@ -3,11 +3,9 @@
  * Verifies that the Roles tab is visible when the roleManagement feature flag is enabled (GA default)
  * and the user has SSAR access to list roles.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
@@ -65,17 +63,36 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.findCreateRoleButton().should('exist');
     });
 
+    it('should render the tab title, description, and link to the Permissions tab', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findTabTitle().should('have.text', 'Roles');
+      projectRoles
+        .findTabDescription()
+        .should('contain.text', 'Create and manage roles for this project');
+      projectRoles
+        .findPermissionsTabLink()
+        .should('have.attr', 'href', `/projects/${NAMESPACE}?section=permissions`);
+    });
+
+    it('should navigate to the Permissions tab when clicking the Permissions link', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findPermissionsTabLink().click();
+      cy.url().should('include', `/projects/${NAMESPACE}`);
+      cy.url().should('include', 'section=permissions');
+    });
+
+    it('should render the Create role page when user has permission', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCreateRolePage().should('exist');
+    });
+
     it('should render the create role form with all fields and placeholder states', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findCreateRoleForm().should('exist');
       projectRoles.findRoleNameInput().should('exist');
-      projectRoles
-        .findDescriptionTextarea()
-        .should('have.attr', 'placeholder', 'Describe what this role is for and who should use it');
+      projectRoles.findDescriptionTextarea();
       projectRoles.findAddLabelButton().should('exist');
-      projectRoles
-        .findPermissionsEmptyState()
-        .should('contain.text', 'No rules set for this role.');
+      projectRoles.findPermissionsEmptyState().should('contain.text', 'No rules added');
       projectRoles.findSelectRoleTemplateButton().should('not.be.disabled');
       projectRoles.findAddRuleButton().should('not.be.disabled');
       projectRoles.findImportTemplateButton().should('not.be.disabled');

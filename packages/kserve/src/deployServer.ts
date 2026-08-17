@@ -1,10 +1,10 @@
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { ServingRuntimeModel } from '@odh-dashboard/internal/api/index';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { type InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
-import type { KServeDeployment } from './deployments';
+import type { KServeDeployment } from './types';
 
 type CreatingServingRuntimeObject = {
   project: string;
@@ -14,7 +14,7 @@ type CreatingServingRuntimeObject = {
   templateName?: string;
 };
 
-const assembleServingRuntime = (data: CreatingServingRuntimeObject): ServingRuntimeKind => {
+export const assembleServingRuntime = (data: CreatingServingRuntimeObject): ServingRuntimeKind => {
   const { project, name, servingRuntime, scope, templateName } = data;
 
   const updatedServingRuntime = structuredClone(servingRuntime);
@@ -35,18 +35,16 @@ const assembleServingRuntime = (data: CreatingServingRuntimeObject): ServingRunt
 };
 
 export const createServingRuntime = (
-  data: CreatingServingRuntimeObject,
-  dryRun?: boolean,
+  servingRuntime: ServingRuntimeKind,
+  opts?: K8sAPIOptions,
 ): Promise<ServingRuntimeKind> => {
-  const assembledServingRuntime = assembleServingRuntime(data);
-
   return k8sCreateResource<ServingRuntimeKind>(
     applyK8sAPIOptions(
       {
         model: ServingRuntimeModel,
-        resource: assembledServingRuntime,
+        resource: servingRuntime,
       },
-      { dryRun: dryRun ?? false },
+      opts,
     ),
   );
 };

@@ -1,4 +1,5 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
@@ -86,16 +87,8 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
-    apiKeysPage.visitKeysAndSubs();
-    cy.wait('@initialSearch');
-  });
-
-  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
-    // When mySubscriptions is disabled, the /maas/tokens route is used (no tabbed layout).
     apiKeysPage.visit();
-    apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findSubscriptionsTab().should('not.exist');
-    apiKeysPage.findApiKeysTab().should('not.exist');
+    cy.wait('@initialSearch');
   });
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
@@ -138,7 +131,6 @@ describe('API Keys Page', () => {
     cy.wait('@apiKeysSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findDescription().should('exist');
 
     // Table shows no results for the active filter since only revoked keys exist
     apiKeysPage.findTable().should('exist');
@@ -184,7 +176,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
-  it('should display a useful error state when the API keys search fails', () => {
+  it('should display a useful error state when the API keys search fails and still show the tabs', () => {
     cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
       body: {
@@ -198,6 +190,8 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@searchError');
     apiKeysPage.findErrorState().should('exist');
+    apiKeysPage.findSubscriptionsTab().should('exist');
+    apiKeysPage.findApiKeysTab().should('exist');
     apiKeysPage
       .findErrorState()
       .should(
@@ -829,6 +823,9 @@ describe('API Keys Page (Admin)', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'initialSearch',
     );
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
@@ -901,7 +898,7 @@ describe('API Keys Page (Admin)', () => {
   });
 });
 
-describe('API keys (mySubscriptions feature flag)', () => {
+describe('API keys - Subscription Tab', () => {
   beforeEach(() => {
     asClusterAdminUser();
     cy.interceptOdh(
@@ -949,7 +946,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should navigate to subscriptions tab', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
@@ -969,7 +966,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display subscription view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -995,7 +992,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display model view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -1024,7 +1021,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
     const graniteDescription =
       'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -1074,7 +1071,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
       ],
     });
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -1086,7 +1083,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   it('should show empty state when no subscriptions exist', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();

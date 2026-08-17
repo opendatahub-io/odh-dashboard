@@ -1,18 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
-const VirtualModulesPlugin = require('webpack-virtual-modules');
+const { rspack } = require('@rspack/core');
 
 /**
- * Webpack plugin that reads a distribution.yaml config file and generates
+ * Rspack plugin that reads a distribution.yaml config file and generates
  * a virtual module with extension imports for all declared packages.
  *
  * Follows the same pattern as frontend/config/generateExtensionsPlugin.js.
+ * Uses rspack's built-in VirtualModulesPlugin so nothing is written to disk.
  *
  * @example
  * new GenerateDistributionExtensionsPlugin({
  *   configPath: path.resolve(__dirname, '../distribution.yaml'),
- *   targetFile: 'src/distribution-extensions.ts',
+ *   targetFile: path.join(SRC_DIR, 'distribution-extensions.ts'),
  *   envOverrides: {
  *     ENABLE_MODEL_SERVING: {
  *       package: '@odh-dashboard/model-serving',
@@ -27,21 +28,24 @@ class GenerateDistributionExtensionsPlugin {
     this.targetFile = options.targetFile;
 
     const config = this.readConfig(options.configPath);
-    const packages = this.resolvePackages(config, options.envOverrides || {});
+    this.packages = this.resolvePackages(config, options.envOverrides || {});
+    this.configFeatureFlags = config.featureFlags || {};
 
     console.log(
       'Distribution extensions:',
-      packages.length > 0 ? packages.map((p) => `${p.name}${p.local ? ' (local)' : ''}`) : '(none)',
+      this.packages.length > 0
+        ? this.packages.map((p) => `${p.name}${p.local ? ' (local)' : ''}`)
+        : '(none)',
     );
-
-    const content = this.generateFileContent(packages, config.featureFlags || {});
-    this.virtualModules = new VirtualModulesPlugin({
-      [this.targetFile]: content,
-    });
   }
 
   apply(compiler) {
-    this.virtualModules.apply(compiler);
+    const relativePath = path.relative(compiler.context, this.targetFile);
+    const content = this.generateFileContent(this.packages, this.configFeatureFlags);
+
+    new rspack.experiments.VirtualModulesPlugin({
+      [relativePath]: content,
+    }).apply(compiler);
   }
 
   readConfig(configPath) {

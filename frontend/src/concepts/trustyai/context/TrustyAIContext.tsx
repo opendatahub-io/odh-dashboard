@@ -1,12 +1,13 @@
 import React from 'react';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import useTrustyAINamespaceCR from '#~/concepts/trustyai/useTrustyAINamespaceCR';
 import useTrustyAIAPIState, { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import { TrustyAIContextData } from '#~/concepts/trustyai/context/types';
 import { DEFAULT_TRUSTY_CONTEXT_DATA } from '#~/concepts/trustyai/context/const';
 import useFetchContextData from '#~/concepts/trustyai/context/useFetchContextData';
 import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
-import { TrustyInstallState, TrustyStatusStates } from '#~/concepts/trustyai/types';
+import { TrustyStatusStates } from '#~/concepts/trustyai/types';
 
 type TrustyAIContextProps = {
   namespace: string;

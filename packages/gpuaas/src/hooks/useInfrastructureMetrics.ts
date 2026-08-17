@@ -3,6 +3,7 @@ import usePrometheusQuery from '@odh-dashboard/internal/api/prometheus/usePromet
 import { PrometheusQueryResponse } from '@odh-dashboard/internal/types';
 import {
   INFRASTRUCTURE_REFRESH_INTERVAL,
+  PROMETHEUS_CLUSTER_QUERY_PATH,
   PROMQL_ACCELERATOR_ALLOCATABLE,
   PROMQL_ACCELERATOR_IN_USE,
   PROMQL_COMPUTE_UTILIZATION,
@@ -12,7 +13,7 @@ import {
   PROMQL_MEMORY_UTILIZATION,
 } from '../const';
 
-const PROMETHEUS_API = '/api/prometheus/query';
+const PROMETHEUS_API = PROMETHEUS_CLUSTER_QUERY_PATH;
 
 type AcceleratorMetrics = {
   total: number;

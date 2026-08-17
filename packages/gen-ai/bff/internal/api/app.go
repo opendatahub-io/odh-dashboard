@@ -303,16 +303,26 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	if cfg.MockBFFClients {
-		logger.Info("Using mock BFF client factory")
-		bffFactory = bffmocks.NewMockClientFactory(logger)
+		mockFactory := bffmocks.NewMockClientFactory(logger)
+		if cfg.BFFMLflowDevURL != "" {
+			logger.Info("Using composite BFF client factory: real HTTP for MLflow, mock for others",
+				"mlflowDevURL", sanitizeURLForLog(cfg.BFFMLflowDevURL))
+			realFactory := bffclient.NewRealClientFactory(bffConfig, rootCAs, false, logger)
+			bffFactory = bffclient.NewCompositeClientFactory(
+				realFactory, mockFactory,
+				[]bffclient.BFFTarget{bffclient.BFFTargetMLflow}, logger)
+		} else {
+			logger.Info("Using mock BFF client factory")
+			bffFactory = mockFactory
+		}
 	} else {
 		logger.Info("Using real BFF client factory",
 			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
 			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
-			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL,
+			"maasDevURL", sanitizeURLForLog(bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL),
 			"mlflowServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).ServiceName,
 			"mlflowServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).Port,
-			"mlflowDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL)
+			"mlflowDevURL", sanitizeURLForLog(bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL))
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
@@ -527,6 +537,15 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentProfileHandler)))
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
+
+	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
+	// Auth is handled by InjectRequestIdentity middleware (JWT forwarded by OGX via
+	// X-OGX-Provider-Data → forward_headers → x-forwarded-access-token).
+	// No AttachNamespace/RequireAccessToService: namespace is in the URL path.
+	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
+	// block the endpoint with a 503 when the MaaS BFF is not configured.
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
+	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.GenAIProxyNSChatCompletionsHandler)
 
 	// App Router
 	appMux := http.NewServeMux()

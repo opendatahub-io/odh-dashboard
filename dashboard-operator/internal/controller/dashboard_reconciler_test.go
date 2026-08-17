@@ -149,6 +149,7 @@ func TestReconcile(t *testing.T) {
 			wantProvisioned: boolPtr(true),
 			wantURL:         "https://dashboard.apps.example.com",
 			wantGeneration:  3,
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
 		},
 		{
 			name:       "kustomize failure",
@@ -201,6 +202,7 @@ func TestReconcile(t *testing.T) {
 			wantProvisioned: boolPtr(true),
 			wantURL:         "https://dashboard.apps.example.com",
 			wantGeneration:  1,
+			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
 			wantModuleCount: registrySize,
 			wantModulePhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
@@ -827,7 +829,7 @@ data:
 	})
 
 	require.NoError(t, err)
-	assert.Zero(t, result.RequeueAfter)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))

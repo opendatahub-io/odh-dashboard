@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import PasswordInput from '@odh-dashboard/internal/components/PasswordInput';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';

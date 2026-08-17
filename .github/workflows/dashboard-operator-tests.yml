@@ -21,6 +21,7 @@ on:
 
 jobs:
   test:
+    name: Dashboard Operator Tests
     permissions:
       contents: read
     runs-on: ubuntu-latest

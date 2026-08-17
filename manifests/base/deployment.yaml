@@ -27,13 +27,13 @@ spec:
       serviceAccount: odh-dashboard
       containers:
         - name: odh-dashboard
-          image: $(odh-dashboard-image)
+          image: odh-dashboard-image
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: GATEWAY_DOMAIN
-              value: ""
+              value: ''
             - name: MODULE_FEDERATION_CONFIG
               valueFrom:
                 configMapKeyRef:
@@ -54,7 +54,7 @@ spec:
                 - -f
                 - -s
                 - --max-time
-                - "10"
+                - '10'
                 - http://127.0.0.1:8080/
             initialDelaySeconds: 30
             timeoutSeconds: 15
@@ -68,7 +68,7 @@ spec:
                 - -f
                 - -s
                 - --max-time
-                - "10"
+                - '10'
                 - http://127.0.0.1:8080/api/health
             initialDelaySeconds: 30
             timeoutSeconds: 15
@@ -100,8 +100,8 @@ spec:
             - --auth-header-user-field-name=X-Auth-Request-User
             - --auth-header-groups-field-name=X-Auth-Request-Groups
             - --proxy-endpoints-port=8444
-            - --v=10
-          image: $(kube-rbac-proxy)
+            - --v=0
+          image: kube-rbac-proxy
           ports:
             - containerPort: 8443
               name: dashboard-ui
@@ -152,7 +152,7 @@ spec:
               name: odh-ca-cert
               subPath: odh-ca-bundle.crt
         - name: core-bff
-          image: $(core-bff-image)
+          image: core-bff-image
           imagePullPolicy: Always
           ports:
             - containerPort: 8943
@@ -224,7 +224,8 @@ spec:
                 - ALL
       volumes:
         - name: core-bff-tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
         - name: proxy-tls
           secret:
             secretName: dashboard-proxy-tls
@@ -235,13 +236,13 @@ spec:
           configMap:
             name: odh-trusted-ca-bundle
             items:
-            - key: ca-bundle.crt
-              path: odh-trusted-ca-bundle.crt
+              - key: ca-bundle.crt
+                path: odh-trusted-ca-bundle.crt
             optional: true
         - name: odh-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
             items:
-            - key: odh-ca-bundle.crt
-              path: odh-ca-bundle.crt
+              - key: odh-ca-bundle.crt
+                path: odh-ca-bundle.crt
             optional: true

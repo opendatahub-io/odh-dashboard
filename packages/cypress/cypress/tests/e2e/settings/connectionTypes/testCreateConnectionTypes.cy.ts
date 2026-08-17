@@ -205,7 +205,7 @@ describe('Verify Connection Type Creation', () => {
   it(
     'Verify User Can Duplicate, Edit and Delete a Connection Type',
     {
-      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes'],
+      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes', '@ConnectionTypesCI'],
     },
     () => {
       cy.step('Log into the application');

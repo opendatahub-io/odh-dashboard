@@ -103,3 +103,55 @@ func TestGeneralBffConfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateInsecureSkipVerify(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		insecureSkipVerify    bool
+		certFile              string
+		expectedError         bool
+		expectedErrorContains string
+	}{
+		{
+			name:               "InsecureSkipVerify disabled - should pass",
+			insecureSkipVerify: false,
+			expectedError:      false,
+		},
+		{
+			name:               "InsecureSkipVerify enabled without cert-file - should pass with warning",
+			insecureSkipVerify: true,
+			expectedError:      false,
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with cert-file - should fail",
+			insecureSkipVerify:    true,
+			certFile:              "/etc/tls/tls.crt",
+			expectedError:         true,
+			expectedErrorContains: "TLS certificates are mounted",
+		},
+		{
+			name:               "InsecureSkipVerify disabled with cert-file - should pass",
+			insecureSkipVerify: false,
+			certFile:           "/etc/tls/tls.crt",
+			expectedError:      false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateInsecureSkipVerify(
+				tc.insecureSkipVerify,
+				tc.certFile,
+			)
+
+			if tc.expectedError {
+				assert.Error(t, err, "Expected validation to fail")
+				if tc.expectedErrorContains != "" {
+					assert.Contains(t, err.Error(), tc.expectedErrorContains)
+				}
+			} else {
+				assert.NoError(t, err, "Expected validation to pass")
+			}
+		})
+	}
+}

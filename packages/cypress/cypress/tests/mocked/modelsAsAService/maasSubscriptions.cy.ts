@@ -1,4 +1,5 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
@@ -11,15 +12,19 @@ import {
   subscriptionsPage,
   viewSubscriptionPage,
   subscriptionManagementPage,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
   mockSubscriptionInfo,
   mockSubscriptionInfoMissingModelSummaries,
-  mockSubscriptionFormData,
+  interceptMaasGovernanceData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
+import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
@@ -35,9 +40,7 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
 };
 
 describe('Subscriptions Page', () => {
@@ -88,7 +91,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
@@ -114,8 +117,33 @@ describe('Subscriptions Page', () => {
 
     const failedRow = subscriptionsPage.getRow('failed-sub');
     failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabelSubtext().should('exist');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Subscription failed');
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
+
+    const degradedRow = subscriptionsPage.getRow('degraded-sub');
+    degradedRow.findPhase().should('contain.text', 'Degraded');
+    degradedRow.findPhaseLabel().click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findAffectedModelsTable().should('exist');
+    phaseModal.findAffectedModelName('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelNamespace('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatus('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatusMessage('granite-3-8b-instruct').should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
 
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
@@ -123,7 +151,7 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit').should('exist');
@@ -174,17 +202,17 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().type('Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.findFilterInput().type('enterprise');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.findFilterInput().type('general users');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
   });
 
   it('should disable the action buttons for a deleting subscription in the table and view page', () => {
@@ -225,7 +253,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 6);
+    subscriptionsPage.findRows().should('have.length', 7);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -298,14 +326,52 @@ describe('View Subscription Page', () => {
     viewSubscriptionPage.visit(subscriptionName);
     viewSubscriptionPage.findPageError().should('exist');
   });
+
+  it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
+    });
+
+    subscriptionManagementPage.visit('subscriptions');
+    subscriptionsPage.findTable().should('exist');
+    subscriptionsPage.findRows().should('have.length', 8);
+    subscriptionsPage.findCreateSubscriptionButton().should('exist');
+
+    subscriptionsPage.findFilterInput().type('premium');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 8);
+
+    subscriptionsPage.getRow('Premium Team Subscription').findTitleButton().click();
+    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
+    viewSubscriptionPage.findYamlTab().click();
+    viewSubscriptionPage.findYamlContent().should('exist');
+    viewSubscriptionPage.findYamlContent().should('contain.text', 'MaaSSubscription');
+    stubClipboard('copiedYAML');
+    viewSubscriptionPage.findYAMLCodeEditor().copyToClipboard().should('exist').click();
+    getClipboardContent('copiedYAML').then((copied: string[]) => {
+      expect(copied).to.have.length.at.least(1);
+      const yamlContent = copied[0];
+      expect(yamlContent).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(yamlContent).to.include('kind: MaaSSubscription');
+    });
+
+    stubDownload('downloadedYAML');
+    viewSubscriptionPage.findYAMLCodeEditor().download().should('exist').click();
+    getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+      expect(downloads).to.have.length.at.least(1);
+      expect(downloads[0].fileName).to.include('premium-team-sub');
+      expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(downloads[0].content).to.include('kind: MaaSSubscription');
+    });
+  });
 });
 
 describe('Subscription Create Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh('POST /maas/api/v1/new-subscription', {
       data: mockCreateSubscriptionResponse(),
     }).as('createSubscription');
@@ -354,7 +420,9 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findAddModelsButton().click();
     addModelsToSubscriptionModal.shouldBeOpen();
     addModelsToSubscriptionModal.findTable().should('exist');
-    addModelsToSubscriptionModal.findToggleModelButton('granite-3-8b-instruct').click();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
     addModelsToSubscriptionModal.findConfirmButton().click();
 
     // Verify the model appears in the subscription models table
@@ -365,7 +433,7 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
     editRateLimitsModal.shouldBeOpen();
     editRateLimitsModal.findCountInput(0).clear();
-    editRateLimitsModal.findCountInput(0).type('100000');
+    editRateLimitsModal.findCountInput(0).type('1000000001'); // exceeds max value
     editRateLimitsModal.findSaveButton().should('be.disabled');
     editRateLimitsModal
       .findHelperText(0)
@@ -373,7 +441,7 @@ describe('Subscription Create Page', () => {
     editRateLimitsModal.findCountInput(0).clear();
     editRateLimitsModal.findCountInput(0).type('5000');
     editRateLimitsModal.findTimeInput(0).clear();
-    editRateLimitsModal.findTimeInput(0).type('100000');
+    editRateLimitsModal.findTimeInput(0).type('999999'); // 6 digits -> exceeds max value
     editRateLimitsModal.findSaveButton().should('be.disabled');
     editRateLimitsModal
       .findHelperText(0)
@@ -425,9 +493,6 @@ describe('Edit Subscription Page', () => {
 
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh(
       'GET /maas/api/v1/subscription-info/:name',
       { path: { name: subscriptionName } },

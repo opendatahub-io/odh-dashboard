@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-  getDashboardConfigTemplateOrder,
-  getDashboardConfigTemplateDisablement,
-} from '@odh-dashboard/internal/api/index';
-import { useDashboardNamespace, useTemplates } from '@odh-dashboard/plugin-core/host-api';
+  useDashboardNamespace,
+  useHostApi,
+  useTemplates,
+} from '@odh-dashboard/plugin-core/host-api';
 import type { K8sWatchResult, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimePlatform,
@@ -48,6 +48,7 @@ import {
  */
 export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<TemplateKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const { getDashboardConfigTemplateOrder, getDashboardConfigTemplateDisablement } = useHostApi();
 
   const [templates, loaded, error] = useTemplates(namespace || dashboardNamespace);
   const {

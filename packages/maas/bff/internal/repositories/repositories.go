@@ -16,7 +16,7 @@ type SubscriptionsRepositoryInterface interface {
 	CreateSubscription(ctx context.Context, request models.CreateSubscriptionRequest) (*models.CreateSubscriptionResponse, error)
 	UpdateSubscription(ctx context.Context, name string, request models.UpdateSubscriptionRequest) (*models.CreateSubscriptionResponse, error)
 	DeleteSubscription(ctx context.Context, name string) error
-	GetFormData(ctx context.Context) (*models.SubscriptionFormDataResponse, error)
+	ListGroups(ctx context.Context) ([]string, error)
 	GetAuthPoliciesForSubscription(ctx context.Context, subscriptionName string) ([]models.MaaSAuthPolicy, error)
 	GetModelRefSummaries(ctx context.Context, refs []models.ModelSubscriptionRef) ([]models.MaaSModelRefSummary, error)
 }

@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "packages/automl/**"
+      - "packages/autox-core/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - "packages/automl/**"
+      - "packages/autox-core/**"
       - ".github/workflows/automl-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
@@ -19,6 +21,7 @@ on:
 
 jobs:
   test:
+    name: AutoML BFF Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

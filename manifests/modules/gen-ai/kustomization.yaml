@@ -12,22 +12,27 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: gen-ai-ui-image
-    objref:
-      kind: ConfigMap
-      name: gen-ai-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gen-ai-ui-image
-  - name: pgvector-image
-    objref:
-      kind: ConfigMap
-      name: gen-ai-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.pgvector-image
 replacements:
+  - source:
+      kind: ConfigMap
+      name: gen-ai-params
+      fieldPath: data.gen-ai-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: gen-ai-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=gen-ai-ui].image
+  - source:
+      kind: ConfigMap
+      name: gen-ai-params
+      fieldPath: data.pgvector-image
+    targets:
+      - select:
+          kind: Deployment
+          name: gen-ai-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=RELATED_IMAGE_POSTGRESQL_16_IMAGE].value
   - source:
       kind: ConfigMap
       name: gen-ai-params
@@ -38,5 +43,3 @@ replacements:
           name: gen-ai-ui
         fieldPaths:
           - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
-configurations:
-  - params.yaml

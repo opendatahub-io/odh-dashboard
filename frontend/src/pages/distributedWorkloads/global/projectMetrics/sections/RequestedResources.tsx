@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { CardBody, Gallery, GalleryItem } from '@patternfly/react-core';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   getQueueRequestedResources,
   getTotalSharedQuota,
 } from '#~/concepts/distributedWorkloads/utils';
 import { bytesAsPreciseGiB } from '#~/utilities/number';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import { RequestedResourcesBulletChart } from './RequestedResourcesBulletChart';
 

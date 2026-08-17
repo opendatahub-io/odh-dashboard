@@ -1,8 +1,6 @@
 class ModelDetailsPage {
-  visit() {
-    const sourceName = 'source-2';
-    const modelName = 'sample%20category%201-model-1';
-    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceName}/${modelName}/overview`);
+  visit(sourceId = 'source-2', modelName = 'sample%20category%201-model-1') {
+    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/overview`);
     this.wait();
   }
 
@@ -87,9 +85,34 @@ class ModelDetailsPage {
     return cy.findByTestId('overview-tab');
   }
 
+  findSecurityInsightsTab() {
+    return cy.findByTestId('security-insights-tab');
+  }
+
+  findSecurityInsightsTabContent() {
+    return cy.findByTestId('security-insights-tab-content');
+  }
+
+  findSecurityInsightsView() {
+    return cy.findByTestId('security-insights-view');
+  }
+
+  findSecurityInsightsTable() {
+    return cy.findByTestId('security-insights-table');
+  }
+
+  findSecurityInsightsEmptyState() {
+    return cy.findByTestId('security-insights-empty-state');
+  }
+
   clickPerformanceInsightsTab() {
     this.findPerformanceInsightsTab().click();
     return this;
+  }
+
+  visitSecurityInsights(sourceId = 'sample-source', modelName = 'repo1%2Fmodel1') {
+    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/security-insights`);
+    this.wait();
   }
 
   findHardwareConfigurationTable() {
@@ -121,7 +144,7 @@ class ModelDetailsPage {
   }
 
   findToolCallingToggle() {
-    return cy.get('#tool-calling-toggle');
+    return this.findToolCallingCard().findByRole('button', { name: 'Tool Calling' });
   }
 
   findValidatedDeploymentResourceLabels() {

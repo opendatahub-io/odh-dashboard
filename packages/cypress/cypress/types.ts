@@ -509,12 +509,15 @@ export type ModelRegistryTestData = {
   uriPrimary: string;
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeS390x: string;
+  servingRuntimeX86: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  deploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;
@@ -534,6 +537,7 @@ export type ModelRegistryTestData = {
   defaultMysqlPort: string;
   defaultPostgresPort: string;
   defaultDatabaseName: string;
+  defaultPostgresDatabaseName: string;
   statusAvailable: string;
 
   // Database configuration testing
@@ -586,6 +590,10 @@ export type ModelRegistryTestData = {
   // Hardware profile configuration
   hardwareProfileName: string;
   hardwareProfileYamlPath: string;
+
+  // Advanced settings — serving runtime args and environment variables
+  servingRuntimeArgs: string;
+  envVars: Array<{ name: string; value: string }>;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -678,6 +686,18 @@ export type CustomEndpointTestData = {
   lsdServiceName: string;
   lsdPodPrefix: string;
   lsdPodReadyTimeout: string;
+  prompt: {
+    name: string;
+    template: string;
+    commitMessage: string;
+    testMessageWithPrompt: string;
+  };
+  rag: {
+    fileName: string;
+    fixturePath: string;
+    testQuestion: string;
+    expectedContentFragment: string;
+  };
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */

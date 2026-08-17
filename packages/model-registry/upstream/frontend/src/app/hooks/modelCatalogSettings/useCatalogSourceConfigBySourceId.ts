@@ -1,24 +1,12 @@
-import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
-import React from 'react';
+import { FetchState } from 'mod-arch-core';
+import * as React from 'react';
 import { CatalogSourceConfig } from '~/app/modelCatalogTypes';
 import { ModelCatalogSettingsContext } from '~/app/context/modelCatalogSettings/ModelCatalogSettingsContext';
+import { useSourceConfigById } from '~/app/shared/catalogSettings/hooks/useSourceConfigById';
 
-type State = CatalogSourceConfig | null;
-
-export const useCatalogSourceConfigBySourceId = (sourceId: string): FetchState<State> => {
+export const useCatalogSourceConfigBySourceId = (
+  sourceId: string,
+): FetchState<CatalogSourceConfig | null> => {
   const { apiState } = React.useContext(ModelCatalogSettingsContext);
-  const call = React.useCallback<FetchStateCallbackPromise<State>>(
-    (opts) => {
-      if (!apiState.apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
-      }
-      if (!sourceId) {
-        return Promise.reject(new NotReadyError('No source id'));
-      }
-
-      return apiState.api.getCatalogSourceConfig(opts, sourceId);
-    },
-    [apiState, sourceId],
-  );
-  return useFetchState(call, null, { initialPromisePurity: true });
+  return useSourceConfigById(apiState.apiAvailable, apiState.api.getCatalogSourceConfig, sourceId);
 };
