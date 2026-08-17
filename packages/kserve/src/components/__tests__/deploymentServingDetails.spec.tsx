@@ -77,6 +77,25 @@ describe('DeploymentServingDetails', () => {
     expect(screen.getByTestId(VERSION_STATUS)).toHaveTextContent('Latest');
   });
 
+  it('should not trigger the project-scoped fetch when the global template is found', () => {
+    const server = mockServingRuntimeK8sResource({ templateName: 'ovms', version: '1.0.0' });
+    const globalTemplate = mockServingRuntimeTemplateK8sResource({
+      name: 'ovms',
+      version: '1.0.0',
+    });
+
+    render(
+      <DeploymentServingDetails
+        deployment={makeDeployment(server)}
+        data={fetchState([globalTemplate], true)}
+      />,
+    );
+
+    // The project fetch is gated off (third arg false), so no project-scoped API call is made.
+    expect(mockUseFetchTemplate).toHaveBeenCalledWith('ovms', server.metadata.namespace, false);
+    expect(mockUseFetchTemplate).not.toHaveBeenCalledWith('ovms', server.metadata.namespace, true);
+  });
+
   it('should show the "template removed" label when the template is not found anywhere', () => {
     const server = mockServingRuntimeK8sResource({ templateName: 'ovms', version: '1.0.0' });
     // Global list loaded but empty -> the component falls back to the project fetch, which also

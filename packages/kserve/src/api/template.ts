@@ -29,6 +29,9 @@ export const useFetchTemplate = (
     if (!shouldFetch) {
       return Promise.reject(new NotReadyError('Project template fetch disabled'));
     }
+    if (!name) {
+      return Promise.reject(new NotReadyError('Name required to fetch template'));
+    }
     if (!namespace) {
       return Promise.reject(new NotReadyError('Namespace required to fetch template'));
     }

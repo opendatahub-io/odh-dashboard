@@ -23,6 +23,7 @@ import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/mo
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { K8sResourceCommon, TemplateKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import type { KServeDeployment } from '../types';
 import { useFetchTemplate, useFetchTemplates } from '../api/template';
 
@@ -85,7 +86,8 @@ const DeploymentServingDetails: React.FC<Props> = ({ deployment, data }) => {
     );
   }, [template, servingRuntime]);
 
-  const isTemplateRemoved = !!templateName && (allLoaded || error) && !template;
+  const isTemplateRemoved =
+    !!templateName && (allLoaded || getGenericErrorCode(error) === 404) && !template;
 
   return (
     <>
