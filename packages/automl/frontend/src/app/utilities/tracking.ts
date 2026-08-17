@@ -60,7 +60,8 @@ const OPTIMIZATION_METRIC_MAP: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
-const isKnownTaskType = (value: string): value is TaskType => value in PREDICTION_TYPE_MAP;
+const isKnownTaskType = (value: string): value is TaskType =>
+  Object.prototype.hasOwnProperty.call(PREDICTION_TYPE_MAP, value);
 
 export const mapPredictionType = (taskType?: string): string | undefined => {
   if (!taskType) {

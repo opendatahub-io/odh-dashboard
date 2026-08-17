@@ -66,6 +66,15 @@ describe('mapPredictionType', () => {
   it('should return undefined for empty string input', () => {
     expect(mapPredictionType('')).toBeUndefined();
   });
+
+  it('should pass through inherited Object.prototype property names unchanged, not resolve them', () => {
+    // 'toString' is `in` the map's prototype chain but is not an own property — a naive
+    // `value in PREDICTION_TYPE_MAP` check would incorrectly treat it as a known task type
+    // and return Object.prototype.toString (a function) instead of a string.
+    const result = mapPredictionType('toString');
+    expect(result).toBe('toString');
+    expect(typeof result).toBe('string');
+  });
 });
 
 describe('mapOptimizationMetric', () => {
