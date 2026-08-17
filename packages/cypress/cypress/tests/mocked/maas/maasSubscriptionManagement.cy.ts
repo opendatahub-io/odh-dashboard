@@ -48,7 +48,7 @@ const setupCommonIntercepts = () => {
   );
 };
 
-describe('Subscription Management Page / Overview Tab', () => {
+describe('MaaS Governance Page / Overview Tab', () => {
   beforeEach(() => {
     setupCommonIntercepts();
   });
