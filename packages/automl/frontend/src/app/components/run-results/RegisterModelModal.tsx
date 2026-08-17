@@ -41,6 +41,19 @@ type RegisterModelModalProps = {
   source: ModelActionSource;
 };
 
+// Registration failures can originate from the model registry, the BFF's proxying layer, or the
+// underlying provider, and their raw messages may embed backend/proxy/tenant/credential details
+// (CWE-209: Generation of Error Message Containing Sensitive Information). Never render
+// error.message directly in the UI — show only this fixed, user-safe message.
+export const REGISTRATION_FAILURE_MESSAGE =
+  'Model registration failed. Try again or contact an administrator.';
+
+// Same CWE-209 concern as above: a failure to list model registries can originate from the
+// same backend/proxying layer and may embed the same kind of sensitive operational detail in
+// its error message. Never render error.message directly in the UI here either.
+export const REGISTRIES_LOAD_FAILURE_MESSAGE =
+  'Unable to load model registries. Try again or contact an administrator.';
+
 const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName, source }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, pipelineRun } = useAutomlResultsContext();
@@ -50,13 +63,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     data: registriesData,
     isLoading: registriesLoading,
     isError: registriesError,
-    error: registriesQueryError,
   } = useModelRegistriesQuery();
-
-  const registriesErrorMessage =
-    registriesQueryError instanceof Error
-      ? registriesQueryError.message
-      : 'Failed to load model registries';
 
   const registries = registriesData?.model_registries ?? [];
   const readyRegistries = registries.filter((r) => r.is_ready);
@@ -133,9 +140,8 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
       });
       onClose();
     },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      notification.error('Failed to register model', errorMessage);
+    onError: () => {
+      notification.error('Failed to register model', REGISTRATION_FAILURE_MESSAGE);
       fireAutomlModelRegistered({
         outcome: TrackingOutcome.submit,
         success: false,
@@ -196,9 +202,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               isInline
               data-testid="register-model-error"
             >
-              {registerMutation.error instanceof Error
-                ? registerMutation.error.message
-                : 'An unknown error occurred'}
+              {REGISTRATION_FAILURE_MESSAGE}
             </Alert>
           )}
 
@@ -209,7 +213,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem variant="error" data-testid="registries-error">
-                    {registriesErrorMessage}
+                    {REGISTRIES_LOAD_FAILURE_MESSAGE}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
