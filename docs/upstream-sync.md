@@ -257,10 +257,10 @@ Behavior:
 
 1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
 2. If already up to date, exit without a PR.
-3. Otherwise run `npm run update-subtree -w packages/model-registry` on branch `automated/model-registry-upstream-sync`.
-4. On conflict or sync failure, open (or comment on) a GitHub issue for manual `/upstream-sync` — **no PR**.
+3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
+4. On conflict or sync failure, a separate notify job opens (or comments on) a GitHub issue for manual `/upstream-sync` — **no PR**.
 5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
-6. Only if those checks pass, push the branch and create or update a PR against `main`.
+6. Only if those checks pass, a separate **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, and creates or updates a PR against `main`.
 
 Manual sync with `/upstream-sync` remains available for conflicts and ad-hoc syncs.
 
