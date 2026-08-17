@@ -106,11 +106,12 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
         trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_EXPANDED, {
           argumentName: toolCallingArgumentName,
           modelName: getModelName(model.name),
+          validatedDeploymentResource: validatedDeploymentResources.join(', '),
         });
       }
       return next;
     });
-  }, [model.name, toolCallingArgumentName, trackSimpleEvent]);
+  }, [model.name, toolCallingArgumentName, trackSimpleEvent, validatedDeploymentResources]);
 
   const modelTypeRaw = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.MODEL_TYPE)
