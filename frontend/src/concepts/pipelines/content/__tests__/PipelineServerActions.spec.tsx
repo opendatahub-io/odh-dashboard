@@ -69,6 +69,7 @@ describe('PipelineServerActions', () => {
       refreshState: jest.fn(),
       managedPipelines: undefined,
       mlflowIntegrationMode: undefined,
+      mlflowInjectUserEnvVars: false,
       apiAvailable: true,
       api: {} as never,
       pipelineLoadError: undefined,

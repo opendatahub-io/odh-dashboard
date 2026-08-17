@@ -73,7 +73,7 @@ jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType', () => ({
   useMlmdContextsByType: jest.fn(() => [[], true, undefined]),
 }));
 jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsByRuns', () => ({
-  useGetExecutionsByRuns: jest.fn(() => [[], false]),
+  useGetExecutionsByRuns: jest.fn(() => [[], false, undefined, jest.fn()]),
 }));
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -266,7 +266,7 @@ describe('PipelineRunTable', () => {
       const executionMaps = mlflowRuns.map((run) => ({
         [run.run_id]: [createMockExecution(`task-${run.run_id}-0`, `nested-${run.run_id}-0`)],
       }));
-      mockUseGetExecutionsByRuns.mockReturnValue([executionMaps, true]);
+      mockUseGetExecutionsByRuns.mockReturnValue([executionMaps, true, undefined, jest.fn()]);
 
       renderTable({ runs: mlflowRuns, totalSize: mlflowRuns.length });
 
