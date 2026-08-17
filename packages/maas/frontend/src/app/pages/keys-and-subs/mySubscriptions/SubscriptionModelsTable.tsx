@@ -1,6 +1,7 @@
 import {
   Button,
   ClipboardCopy,
+  clipboardCopyFunc,
   Content,
   ContentVariants,
   Flex,
@@ -45,7 +46,8 @@ export const ModelInfoPopover: React.FC<{
           hoverTip="Copy"
           clickTip="Copied"
           data-testid="model-id-copy"
-          onCopy={() => {
+          onCopy={(event, text) => {
+            clipboardCopyFunc(event, text);
             fireMiscTrackingEvent(MaaSEvents.MODEL_ID_COPIED, { modelIdFrom: context });
           }}
         >

@@ -130,15 +130,14 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     });
   };
 
-  const onUsernameChange = React.useCallback(
-    (value: string) => {
-      pendingUsernameSearch.current = true;
-      setFilterData((prev) => ({ ...prev, username: value }));
-      setPage(1);
-      setIsFetching(value !== localUsername);
-    },
-    [localUsername],
-  );
+  const onUsernameChange = React.useCallback((value: string) => {
+    pendingUsernameSearch.current = true;
+    setFilterData((prev) => ({ ...prev, username: value }));
+    setPage(1);
+    // Always mark fetching so search telemetry waits for the filtered response.
+    // localUsername is already in sync when the user submits the SearchInput.
+    setIsFetching(true);
+  }, []);
 
   const onStatusToggle = React.useCallback((status: APIKeyDisplayStatus) => {
     setFilterData((prev) => {
