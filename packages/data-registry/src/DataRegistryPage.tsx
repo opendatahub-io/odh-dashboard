@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Bullseye,
   PageSection,
   Content,
   EmptyState,
@@ -8,8 +9,9 @@ import {
   Flex,
   FlexItem,
   Button,
+  Spinner,
 } from '@patternfly/react-core';
-import { OutlinedFolderIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, OutlinedFolderIcon } from '@patternfly/react-icons';
 import { useSearchParams, Link } from 'react-router-dom';
 import SimpleSelect, {
   type SimpleSelectOption,
@@ -19,7 +21,7 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 const DataRegistryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProject = searchParams.get('project') || '';
-  const { projects } = React.useContext(ProjectsContext);
+  const { projects, loaded, loadError } = React.useContext(ProjectsContext);
   const selectedProject = projects.some((p) => p.metadata.name === requestedProject)
     ? requestedProject
     : '';
@@ -35,12 +37,39 @@ const DataRegistryPage: React.FC = () => {
 
   const handleProjectSelect = React.useCallback(
     (key: string) => {
-      const params = new URLSearchParams(searchParams);
-      params.set('project', key);
-      setSearchParams(params);
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        params.set('project', key);
+        return params;
+      });
     },
-    [searchParams, setSearchParams],
+    [setSearchParams],
   );
+
+  if (!loaded) {
+    return (
+      <PageSection hasBodyWrapper={false} isFilled>
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      </PageSection>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <PageSection hasBodyWrapper={false} isFilled>
+        <EmptyState
+          headingLevel="h2"
+          titleText="Unable to load projects"
+          icon={ExclamationCircleIcon}
+          variant={EmptyStateVariant.lg}
+        >
+          <EmptyStateBody>{loadError.message}</EmptyStateBody>
+        </EmptyState>
+      </PageSection>
+    );
+  }
 
   return (
     <>
