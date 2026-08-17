@@ -232,8 +232,8 @@ const extensions: (
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
   },
-  // Legacy v2 sub-path aliases: pre-RHOAIENG-80077, the old standalone page's own
-  // nested router (CustomServingRuntimeRoutes.tsx + v2Redirects.ts, both removed)
+  // Legacy v2 sub-path aliases: the old standalone page's own nested router
+  // (CustomServingRuntimeRoutes.tsx + v2Redirects.ts, both since removed)
   // translated these two bookmarked URLs before landing on the add/edit form. The
   // general `/servingRuntimes/*` redirect above only splices the wildcard tail onto
   // the new base path, so these two specific aliases need their own routes (registered

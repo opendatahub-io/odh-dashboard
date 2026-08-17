@@ -2,8 +2,8 @@ import extensions from '../odh';
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
-// Guards the two legacy v2 serving-runtime redirect aliases restored in
-// RHOAIENG-80077 (`/servingRuntimes/addServingRuntime` and
+// Guards the two legacy v2 serving-runtime redirect aliases
+// (`/servingRuntimes/addServingRuntime` and
 // `/servingRuntimes/editServingRuntime/*`). These are covered end-to-end by
 // `packages/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimes.cy.ts`,
 // but that spec is slow and has shown flakiness unrelated to these routes — this cheap,

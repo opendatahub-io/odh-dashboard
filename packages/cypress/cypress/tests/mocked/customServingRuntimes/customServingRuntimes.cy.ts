@@ -299,7 +299,7 @@ describe('Custom serving runtimes', () => {
     });
 
     // The pre-migration standalone routes (`CustomServingRuntimeRoutes.tsx` +
-    // `v2Redirects.ts`, both removed in RHOAIENG-80077) used to translate these two
+    // `v2Redirects.ts`, both since removed) used to translate these two
     // legacy sub-path aliases via a nested router before landing on the add/edit form.
     // That mapping is now restored as two dedicated `app.route` redirects in
     // `packages/model-serving/extensions/odh.ts`, registered more specifically than

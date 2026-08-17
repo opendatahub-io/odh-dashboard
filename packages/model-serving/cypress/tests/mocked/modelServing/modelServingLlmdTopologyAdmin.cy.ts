@@ -47,8 +47,6 @@ const initIntercepts = ({
     }),
   );
 
-  // The topology tab is always-on now (RHOAIENG-80077); no modelDeploymentSettings
-  // flag is required to reach it.
   const config = mockDashboardConfig({
     disableKServe: false,
     disableLLMd: false,
