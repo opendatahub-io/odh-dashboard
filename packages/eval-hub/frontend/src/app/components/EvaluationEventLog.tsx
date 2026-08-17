@@ -171,14 +171,18 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
   );
 
   const handleCopy = React.useCallback(() => {
-    navigator.clipboard.writeText(entry.raw).then(
-      () => {
-        setCopied(true);
-        clearTimeout(copyTimeoutRef.current);
-        copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
-      },
-      () => undefined,
-    );
+    try {
+      navigator.clipboard.writeText(entry.raw).then(
+        () => {
+          setCopied(true);
+          clearTimeout(copyTimeoutRef.current);
+          copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
+        },
+        () => undefined,
+      );
+    } catch {
+      // clipboard API unavailable (e.g. non-HTTPS context)
+    }
   }, [entry.raw]);
 
   const rowClass = [
@@ -204,7 +208,6 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
       return (
         <div className={`${rowClass} evalhub-log-viewer__row--benchmark`}>
           <div className="evalhub-log-viewer__cell--full">{entry.benchmarkName}</div>
-          {copyButton}
         </div>
       );
     }
