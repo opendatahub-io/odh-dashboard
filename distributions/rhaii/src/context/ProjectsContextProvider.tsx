@@ -6,9 +6,8 @@ import {
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
+import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
-
-const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 /** Dashboard install namespace — excluded from the selectable project list. */
 const DASHBOARD_NAMESPACE = 'opendatahub';
 
@@ -37,6 +36,9 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     React.useState<ProjectsContextType['preferredProject']>(null);
   const initializedFromStorage = React.useRef(false);
 
+  // Fetch once on mount. The BFF exposes a REST endpoint (not a watch),
+  // so there is no streaming refresh. waitForProject handles the case
+  // where a newly-created namespace needs to appear.
   React.useEffect(() => {
     let unmounted = false;
     const controller = new AbortController();
@@ -117,35 +119,51 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     }
   }, [loaded, projects, storedPreferredName]);
 
-  const isMounted = React.useRef(true);
-  React.useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
+  const waitControllerRef = React.useRef<AbortController | null>(null);
+  const waitTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const waitRejectRef = React.useRef<((reason: Error) => void) | null>(null);
+
+  const cancelActiveWait = React.useCallback(() => {
+    waitRejectRef.current?.(new DOMException('The operation was aborted.', 'AbortError'));
+    waitRejectRef.current = null;
+    waitControllerRef.current?.abort();
+    waitControllerRef.current = null;
+    if (waitTimerRef.current != null) {
+      clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
   }, []);
+
+  React.useEffect(() => () => cancelActiveWait(), [cancelActiveWait]);
 
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
     (projectName) =>
       new Promise((resolve, reject) => {
+        cancelActiveWait();
         const controller = new AbortController();
+        waitControllerRef.current = controller;
+        waitRejectRef.current = reject;
+
         const timer = setTimeout(() => {
+          waitRejectRef.current = null;
           controller.abort();
           reject(new Error(`Timed out waiting for project "${projectName}"`));
         }, WAIT_FOR_PROJECT_TIMEOUT_MS);
+        waitTimerRef.current = timer;
 
         const poll = async (): Promise<void> => {
-          if (!isMounted.current || controller.signal.aborted) {
+          if (controller.signal.aborted) {
             return;
           }
           try {
             const fresh = await fetchNamespaces(controller.signal);
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref may change during await
-            if (!isMounted.current || controller.signal.aborted) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
+            if (controller.signal.aborted) {
               return;
             }
             if (fresh.find(byName(projectName))) {
               clearTimeout(timer);
+              waitRejectRef.current = null;
               setProjectData(fresh);
               resolve();
               return;
@@ -160,7 +178,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         };
         void poll();
       }),
-    [],
+    [cancelActiveWait],
   );
 
   const contextValue = React.useMemo<ProjectsContextType>(

@@ -1,4 +1,8 @@
 export { ModelStatusIcon } from './ModelStatusIcon';
+export {
+  getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleColor,
+} from './getDeploymentStatusSubtitle';
 export { renderDeploymentResourceVersionLabels } from './renderDeploymentResourceVersionLabels';
 /** @deprecated Use renderDeploymentResourceVersionLabels instead. */
 export { default as ServingRuntimeVersionLabel } from './ServingRuntimeVersionLabel';

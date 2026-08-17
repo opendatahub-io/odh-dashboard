@@ -7,6 +7,7 @@ type Repositories struct {
 	Namespace   *NamespaceRepository
 	Experiments *ExperimentsRepository
 	Prompts     *PromptsRepository
+	MCPRegistry *MCPRegistryRepository
 }
 
 func NewRepositories() *Repositories {
@@ -16,5 +17,6 @@ func NewRepositories() *Repositories {
 		Namespace:   NewNamespaceRepository(),
 		Experiments: NewExperimentsRepository(),
 		Prompts:     NewPromptsRepository(),
+		MCPRegistry: NewMCPRegistryRepository(),
 	}
 }

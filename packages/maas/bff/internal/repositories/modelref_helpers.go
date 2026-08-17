@@ -94,7 +94,12 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *model
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
-	summary.StatusMessage = extractReadyConditionMessage(content)
+	ready := extractReadyCondition(content)
+	summary.StatusMessage = ready.Message
+	summary.Reason = ready.Reason
+	summary.Status = ready.Status
+	summary.ConditionType = ready.ConditionType
+	summary.LastTransitionTime = ready.LastTransitionTime
 	summary.GovernanceAttached = isConditionStatusTrue(content, "GovernanceAttached")
 
 	endpoint, _, _ := unstructured.NestedString(content, "status", "endpoint")

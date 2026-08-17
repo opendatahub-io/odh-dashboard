@@ -44,7 +44,6 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
-	// Log the detailed error message as a warning
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
 	httpError := &httpclient.HTTPError{
@@ -55,6 +54,28 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 		},
 	}
 	app.errorResponse(w, r, httpError)
+}
+
+// httpErrorFromRaw converts a non-2xx RawResponse into the structured HTTPError
+// used across the API. GETRaw (unlike GET) does not turn upstream error statuses
+// into HTTPErrors, so callers that proxy a RawResponse must translate failures
+// themselves rather than forwarding the upstream's plaintext body verbatim. It
+// prefers a JSON error body from upstream and falls back to a generic message.
+func httpErrorFromRaw(resp *httpclient.RawResponse) *httpclient.HTTPError {
+	var errorResponse httpclient.ErrorResponse
+	if err := json.Unmarshal(resp.Body, &errorResponse); err != nil {
+		errorResponse = httpclient.ErrorResponse{
+			Code:    strconv.Itoa(resp.StatusCode),
+			Message: fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(resp.Body)),
+		}
+	}
+	if errorResponse.Code == "" {
+		errorResponse.Code = strconv.Itoa(resp.StatusCode)
+	}
+	return &httpclient.HTTPError{
+		StatusCode:    resp.StatusCode,
+		ErrorResponse: errorResponse,
+	}
 }
 
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *httpclient.HTTPError) {
@@ -97,11 +118,16 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message string) {
 	app.logger.Warn("Conflict detected", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
+	displayMessage := message
+	if displayMessage == "" {
+		displayMessage = "the resource was modified by another request, please retry"
+	}
+
 	httpError := &httpclient.HTTPError{
 		StatusCode: http.StatusConflict,
 		ErrorResponse: httpclient.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusConflict),
-			Message: "the resource was modified by another request, please retry",
+			Message: displayMessage,
 		},
 	}
 	app.errorResponse(w, r, httpError)

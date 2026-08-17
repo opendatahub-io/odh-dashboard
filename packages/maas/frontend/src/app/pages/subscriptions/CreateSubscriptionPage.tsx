@@ -7,11 +7,11 @@ import {
   getBreadcrumbLabelFromState,
   getPreSelectedModelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const CreateSubscriptionPage: React.FC = () => {
-  const [formData, loaded, error] = useSubscriptionPolicyFormData();
+  const { groups, modelRefs, subscriptions, policies, loaded, error } = useMaaSGovernanceContext();
   const { state } = useLocation();
   const backUrl = getBackUrl(state, 'subscriptions');
   const returnTo = backUrl;
@@ -32,7 +32,10 @@ const CreateSubscriptionPage: React.FC = () => {
       loadError={error}
     >
       <CreateSubscriptionForm
-        formData={formData}
+        groups={groups}
+        modelRefs={modelRefs}
+        subscriptions={subscriptions}
+        policies={policies}
         returnTo={returnTo}
         preSelectedModel={preSelectedModel}
       />

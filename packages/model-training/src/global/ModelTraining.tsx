@@ -13,7 +13,7 @@ import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 
-import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';

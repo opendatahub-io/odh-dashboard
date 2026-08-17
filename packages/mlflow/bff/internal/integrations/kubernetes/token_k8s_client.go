@@ -141,28 +141,22 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
-// CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
+// canWriteResourceInNamespace runs a SelfSubjectAccessReview against
+// mlflow.kubeflow.org/<resource> in namespace, using the token bound to
+// this client at construction time (the user's forwarded token), so it
+// always checks the authenticated user's permissions.
 //
-// This uses SelfSubjectAccessReview to check permission on
-// mlflow.kubeflow.org/registeredmodels resources. This matches the permissions
-// granted by the mlflow-edit ClusterRole, which allows:
-//   - apiGroups: ["mlflow.kubeflow.org"]
-//     resources: ["registeredmodels", "experiments", "runs"]
-//     verbs: ["create", "update", "patch", "delete"]
-//
-// The prompt registry stores prompts as RegisteredModel resources in MLflow.
-// The verb parameter must be one of: "create" (for save operations) or "delete"
-// (for delete operations) to match the actual operation being performed.
-//
-// SSAR uses the token bound to this client at construction time (the user's
-// forwarded token), so it always checks the authenticated user's permissions.
-func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
+// The verb parameter must be one of: "create" (for save operations),
+// "update" (for partial-update/PATCH operations), or "delete" (for delete
+// operations) to match the actual operation being performed.
+func (kc *TokenKubernetesClient) canWriteResourceInNamespace(
 	ctx context.Context,
 	namespace string,
 	verb string,
+	resource string,
 ) (bool, error) {
 	// Validate verb to prevent misuse
-	if verb != "create" && verb != "delete" {
+	if verb != "create" && verb != "update" && verb != "delete" {
 		return false, &InvalidVerbError{Verb: verb}
 	}
 
@@ -174,7 +168,7 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 			ResourceAttributes: &authv1.ResourceAttributes{
 				Namespace: namespace,
 				Group:     "mlflow.kubeflow.org",
-				Resource:  "registeredmodels",
+				Resource:  resource,
 				Verb:      verb,
 			},
 		},
@@ -184,17 +178,53 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 	if err != nil {
 		kc.Logger.Error("failed to check write permissions",
 			slog.String("namespace", namespace),
+			slog.String("resource", resource),
 			slog.Any("error", err))
-		return false, fmt.Errorf("failed to check write permissions in namespace %s: %w", namespace, err)
+		return false, fmt.Errorf("failed to check write permissions for %s in namespace %s: %w", resource, namespace, err)
 	}
 
 	if !resp.Status.Allowed {
 		kc.Logger.Warn("permission denied",
 			slog.String("namespace", namespace),
+			slog.String("resource", resource),
 			slog.String("verb", verb),
 			slog.String("reason", resp.Status.Reason),
 			slog.String("evaluation_error", resp.Status.EvaluationError))
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+// CanWritePromptsInNamespace checks if the user can write prompts to the
+// namespace via mlflow.kubeflow.org/registeredmodels SSAR checks.
+//
+// This uses SelfSubjectAccessReview to check permission on
+// mlflow.kubeflow.org/registeredmodels resources. This matches the permissions
+// granted by the mlflow-edit ClusterRole, which allows:
+//   - apiGroups: ["mlflow.kubeflow.org"]
+//     resources: ["registeredmodels", "experiments", "runs"]
+//     verbs: ["create", "update", "patch", "delete"]
+//
+// The prompt registry stores prompts as RegisteredModel resources in MLflow.
+// See canWriteResourceInNamespace for the shared SSAR/verb-validation logic.
+func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
+	ctx context.Context,
+	namespace string,
+	verb string,
+) (bool, error) {
+	return kc.canWriteResourceInNamespace(ctx, namespace, verb, "registeredmodels")
+}
+
+// CanWriteMCPServersInNamespace checks if the user can write MCP Registry
+// servers to the namespace via mlflow.kubeflow.org/mcpservers SSAR checks.
+// MCP servers are not backed by a real Kubernetes CRD; this pseudo-resource
+// exists purely so RBAC can grant/deny write access to the MCP Registry.
+//
+// See canWriteResourceInNamespace for the shared SSAR/verb-validation logic.
+func (kc *TokenKubernetesClient) CanWriteMCPServersInNamespace(
+	ctx context.Context,
+	namespace string,
+	verb string,
+) (bool, error) {
+	return kc.canWriteResourceInNamespace(ctx, namespace, verb, "mcpservers")
 }

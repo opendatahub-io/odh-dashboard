@@ -1,0 +1,48 @@
+{
+  "component_id": "autogluon_timeseries_models_training",
+  "started_at": "2026-07-16T19:41:02.391204Z",
+  "completed_at": "2026-07-16T19:51:14.908316Z",
+  "stages": [
+    {
+      "id": "load_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:41:02.476147Z",
+      "train_rows": 35522,
+      "test_rows": 29612
+    },
+    {
+      "id": "model_selection",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:41:35.188870Z",
+      "top_n": 3,
+      "selected_models": [
+        "RecursiveTabular",
+        "Theta",
+        "WeightedEnsemble"
+      ],
+      "steps": [
+        "feature_engineering",
+        "model_training",
+        "stacking",
+        "evaluation"
+      ]
+    },
+    {
+      "id": "refit_and_evaluate",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:51:14.904427Z",
+      "model_count": 3,
+      "eval_metric": "mean_absolute_scaled_error"
+    },
+    {
+      "id": "build_leaderboard",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:51:14.907974Z",
+      "best_model": "RecursiveTabular_FULL",
+      "model_count": 3
+    }
+  ],
+  "metadata": {
+    "display_name": "Timeseries Models Training Status"
+  }
+}

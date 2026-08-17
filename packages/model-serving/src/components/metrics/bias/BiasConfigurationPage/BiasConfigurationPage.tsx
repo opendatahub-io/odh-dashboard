@@ -5,7 +5,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import ManageBiasConfigurationModal from './BiasConfigurationModal/ManageBiasConfigurationModal';
 import BiasConfigurationTable from './BiasConfigurationTable';

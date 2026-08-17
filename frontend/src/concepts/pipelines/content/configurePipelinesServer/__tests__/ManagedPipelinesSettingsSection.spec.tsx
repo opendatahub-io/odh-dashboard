@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ManagedPipelinesSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/ManagedPipelinesSettingsSection';
 import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
+import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 
 const baseConfig: PipelineServerConfigType = {
@@ -11,6 +12,10 @@ const baseConfig: PipelineServerConfigType = {
   storeYamlInKubernetes: true,
   enableCaching: true,
   enableManagedPipelines: false,
+  mlflow: {
+    integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+    injectUserEnvVars: false,
+  },
 };
 
 describe('ManagedPipelinesSettingsSection', () => {

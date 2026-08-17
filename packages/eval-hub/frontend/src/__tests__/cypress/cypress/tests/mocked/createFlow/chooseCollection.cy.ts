@@ -130,6 +130,148 @@ describe('Choose Collection Page', () => {
   });
 });
 
+const zetaSuite = mockCollection({
+  id: 'col-zeta',
+  name: 'Zeta Suite',
+  category: 'Accuracy',
+  description: 'Zeta evaluation collection.',
+  benchmarkIds: ['truthfulqa_mc2'],
+});
+
+describe('Choose Collection Page - Sort', () => {
+  beforeEach(() => {
+    initIntercepts({
+      collections: [safetySuite, reasoningSuite, accuracySuite, zetaSuite],
+    });
+  });
+
+  it('should sort collections alphabetically by name', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+    chooseCollectionPage.selectSortOption('name');
+
+    chooseCollectionPage
+      .findCollectionsGallery()
+      .findAllByTestId(/^collection-card-/)
+      .first()
+      .should('contain.text', 'Accuracy Suite');
+
+    chooseCollectionPage
+      .findCollectionsGallery()
+      .findAllByTestId(/^collection-card-/)
+      .last()
+      .should('contain.text', 'Zeta Suite');
+  });
+
+  it('should sort collections by category', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+    chooseCollectionPage.selectSortOption('category');
+
+    chooseCollectionPage
+      .findCollectionsGallery()
+      .findAllByTestId(/^collection-card-/)
+      .first()
+      .should('contain.text', 'Accuracy Suite');
+
+    chooseCollectionPage
+      .findCollectionsGallery()
+      .findAllByTestId(/^collection-card-/)
+      .last()
+      .should('contain.text', 'Safety Suite');
+  });
+});
+
+describe('Choose Collection Page - Category Filter', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
+  });
+
+  it('should allow selecting multiple categories', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCategoryToggle().click();
+    chooseCollectionPage.findCategoryOption('Safety').click();
+    chooseCollectionPage.findCategoryOption('Reasoning').click();
+    chooseCollectionPage.findCategoryToggle().click();
+
+    chooseCollectionPage.findCollectionCard('col-safety').should('exist');
+    chooseCollectionPage.findCollectionCard('col-reasoning').should('exist');
+    chooseCollectionPage.findCollectionCard('col-accuracy').should('not.exist');
+  });
+
+  it('should search within category dropdown', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+    chooseCollectionPage.findCategoryToggle().click();
+
+    chooseCollectionPage.findCategorySearchInput().type('Reas');
+
+    chooseCollectionPage.findCategoryOption('Reasoning').should('exist');
+    chooseCollectionPage.findCategoryOption('Safety').should('not.exist');
+    chooseCollectionPage.findCategoryOption('Accuracy').should('not.exist');
+  });
+
+  it('should show badge count on category filter toggle', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+    chooseCollectionPage.selectCategoryOption('Reasoning');
+
+    chooseCollectionPage.findCategoryFilterBadge().should('have.text', '1');
+  });
+});
+
+describe('Choose Collection Page - Combined Filters', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
+  });
+
+  it('should combine name and category filters', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.selectCategoryOption('Safety');
+    chooseCollectionPage.findCollectionCard('col-safety').should('exist');
+    chooseCollectionPage.findCollectionCard('col-reasoning').should('not.exist');
+
+    chooseCollectionPage.findNameFilterInput().type('nonexistent');
+    chooseCollectionPage.findCollectionsEmptyState().should('exist');
+  });
+
+  it('should clear all filters at once', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.selectCategoryOption('Safety');
+    chooseCollectionPage.findNameFilterInput().type('nonexistent');
+
+    chooseCollectionPage.findCollectionsEmptyState().should('exist');
+
+    chooseCollectionPage.findClearAllFiltersButton().click();
+
+    chooseCollectionPage.findCollectionsGallery().should('exist');
+    chooseCollectionPage.findCollectionCard('col-safety').should('exist');
+    chooseCollectionPage.findCollectionCard('col-reasoning').should('exist');
+    chooseCollectionPage.findCollectionCard('col-accuracy').should('exist');
+  });
+});
+
+describe('Choose Collection Page - Truncation Alert', () => {
+  it('should show truncation alert when total exceeds fetch limit', () => {
+    initIntercepts({
+      collections: [safetySuite, reasoningSuite],
+      totalCount: 999,
+    });
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findTruncationAlert().should('exist');
+    chooseCollectionPage
+      .findTruncationAlert()
+      .should('contain.text', 'Not all collections are shown');
+  });
+
+  it('should not show truncation alert when all collections are returned', () => {
+    initIntercepts({ collections: [safetySuite, reasoningSuite] });
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findTruncationAlert().should('not.exist');
+  });
+});
+
 describe('Choose Collection Page - Pagination', () => {
   it('should paginate when collections exceed the page size', () => {
     const manyCollections = Array.from({ length: 10 }, (_, i) =>

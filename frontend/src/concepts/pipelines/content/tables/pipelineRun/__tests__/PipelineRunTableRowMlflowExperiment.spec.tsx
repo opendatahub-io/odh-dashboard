@@ -38,7 +38,7 @@ describe('PipelineRunTableRowMlflowExperiment', () => {
 
     expect(screen.getByRole('link', { name: 'Exp 1' })).toHaveAttribute(
       'href',
-      '/develop-train/mlflow/experiments/exp-id-1?workspace=test-namespace',
+      '/develop-train/mlflow/experiments/exp-id-1/runs?workspace=test-namespace&searchFilter=',
     );
   });
 
@@ -66,7 +66,7 @@ describe('PipelineRunTableRowMlflowExperiment', () => {
 
     expect(screen.getByRole('link', { name: 'Exp from input' })).toHaveAttribute(
       'href',
-      '/develop-train/mlflow/experiments/exp-id-from-lookup?workspace=test-namespace',
+      '/develop-train/mlflow/experiments/exp-id-from-lookup/runs?workspace=test-namespace&searchFilter=',
     );
   });
 
@@ -126,5 +126,71 @@ describe('PipelineRunTableRowMlflowExperiment', () => {
 
     expect(screen.getByTestId('mlflow-experiment-loading')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders the experiment name instead of skeleton when loading fails with an error', () => {
+    render(
+      <BrowserRouter>
+        <PipelineRunTableRowMlflowExperiment
+          run={buildMockRunKF({
+            // eslint-disable-next-line camelcase
+            plugins_input: {
+              mlflow: {
+                // eslint-disable-next-line camelcase
+                experiment_name: 'Exp on error',
+              },
+            },
+          })}
+          mlflow={{
+            isAvailable: true,
+            experiments: [],
+            loaded: false,
+            error: new Error('fetch failed'),
+          }}
+        />
+      </BrowserRouter>,
+    );
+
+    expect(screen.queryByTestId('mlflow-experiment-loading')).not.toBeInTheDocument();
+    expect(screen.getByText('Exp on error')).toBeInTheDocument();
+  });
+
+  it('does not link using plugins_output experiment_id when plugin state is FAILED', () => {
+    render(
+      <BrowserRouter>
+        <PipelineRunTableRowMlflowExperiment
+          run={buildMockRunKF({
+            // eslint-disable-next-line camelcase
+            plugins_output: {
+              mlflow: {
+                entries: {
+                  // eslint-disable-next-line camelcase
+                  experiment_name: { value: 'Failed Exp' },
+                  // eslint-disable-next-line camelcase
+                  experiment_id: { value: 'failed-exp-id' },
+                },
+                state: PluginStateKF.PLUGIN_FAILED,
+              },
+            },
+            // eslint-disable-next-line camelcase
+            plugins_input: {
+              mlflow: {
+                // eslint-disable-next-line camelcase
+                experiment_name: 'Input Exp',
+                // eslint-disable-next-line camelcase
+                experiment_id: 'input-exp-id',
+              },
+            },
+          })}
+          mlflow={{ isAvailable: true, experiments: [], loaded: true }}
+        />
+      </BrowserRouter>,
+    );
+
+    // Falls back to plugins_input — never uses the failed plugins_output id.
+    expect(screen.getByRole('link', { name: 'Input Exp' })).toHaveAttribute(
+      'href',
+      '/develop-train/mlflow/experiments/input-exp-id/runs?workspace=test-namespace&searchFilter=',
+    );
   });
 });

@@ -13,6 +13,7 @@ import type {
   ModelLocationData,
 } from '../src/shared/types/form-data';
 import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
@@ -74,6 +75,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
+        externalData: ExternalDataMap,
         projectName: string,
         existingDeployment?: D,
         modelResource?: D['model'],
@@ -172,8 +174,8 @@ export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deploy
   {
     /** The ID of the WizardField this apply extension is associated with */
     fieldId: string;
-    /** The platform this apply extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this apply extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Apply function that modifies the deployment based on the field's data.
      * @param deployment - The deployment resource being assembled
@@ -205,8 +207,8 @@ export type WizardFieldExtractorExtension<
   {
     /** The ID of the WizardField this extractor is associated with */
     fieldId: string;
-    /** The platform this extractor applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this extractor applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Extract function that retrieves the field's initial data from a deployment.
      * @param deployment - The deployment resource to extract data from
@@ -221,10 +223,9 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension.type === 'model-serving.deployment/wizard-field-extractor';
 
 /**
- * Extension for performing dry-run validation of side-effect resources before a deployment is saved.
+ * Extension for making side-effect resources before a deployment is saved.
  * This runs before the inference service is created, in the same phase as other dry runs,
  * allowing extensions to validate that their associated resources can be created without conflicts.
- * Unlike post-deploy, errors thrown here propagate and block the deployment.
  *
  * The `fieldId` links this to a specific WizardFieldExtension so it is only
  * executed when that field is active.
@@ -237,25 +238,45 @@ export type WizardFieldDeploymentFunctionsExtension<
   {
     /** The ID of the WizardField this deployment functions extension is associated with */
     fieldId: string;
-    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this deployment functions extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
-     * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
+     * Async function that runs before the deployment is saved. Throw to block the deployment.
+     *
+     * Called twice: first with `dryRun === true` alongside the other dry runs to validate,
+     * then again with `dryRun !== true` to perform the actual side effects before the
+     * deployment is created.
+     *
      * @param fieldData - The current data from the associated wizard field
      * @param wizardState - The full wizard form state for context (includes project name, etc.)
-     * @param modelResource - The assembled model resource (not yet created, may lack uid/namespace)
+     * @param deployment - The assembled deployment (not yet created, may lack uid/namespace)
      * @param existingDeployment - The deployment before editing, or undefined for a create
+     * @param dryRun - True for the validation pass, falsy for the real pass
      */
-    preDeploy: CodeRef<
+    preDeploy: null | CodeRef<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
         deployment: D,
         existingDeployment?: D,
+        dryRun?: boolean,
       ) => Promise<D>
     >;
-    postDeploy: CodeRef<
-      (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
+    /**
+     * Async function that runs after the deployment is saved.
+     *
+     * Called twice: first with `dryRun === true` alongside the other dry runs to validate,
+     * then again with `dryRun !== true` once the deployment has been created.
+     *
+     * @param fieldData - The current data from the associated wizard field
+     * @param deployedModel - The full deployment resource. On the dry run pass this is the
+     * assembled deployment; on the real pass it is the created deployment returned by the
+     * deploy method.
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     * @param dryRun - True for the validation pass, falsy for the real pass
+     */
+    postDeploy: null | CodeRef<
+      (fieldData: T, deployedModel: D, existingDeployment?: D, dryRun?: boolean) => Promise<void>
     >;
   }
 >;

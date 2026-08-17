@@ -1,8 +1,5 @@
-import {
-  mock200Status,
-  mockRoleBindingK8sResource,
-  mockUserRoleBindingSubject,
-} from '#~/__mocks__';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource, mockUserRoleBindingSubject } from '#~/__mocks__';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {

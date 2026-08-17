@@ -5,7 +5,10 @@ import SelectedNodeInputOutputTab from '#~/concepts/pipelines/content/pipelinesD
 import LogsTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { Execution } from '#~/third_party/mlmd';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
+import { getMlflowExperimentId } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { renderDetailItems } from './utils';
 
 enum PipelineRunNodeTab {
@@ -18,12 +21,15 @@ enum PipelineRunNodeTab {
 type PipelineRunDrawerRightTabsProps = {
   task: PipelineTask;
   executions: Execution[];
+  run?: PipelineRunKF | null;
 };
 
 const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
   task,
   executions,
+  run,
 }) => {
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const hasNoInputsOutputs = !task.inputs && !task.outputs;
   const [selection, setSelection] = React.useState<string>(
     hasNoInputsOutputs ? PipelineRunNodeTab.DETAILS : PipelineRunNodeTab.INPUT_OUTPUT,
@@ -37,6 +43,12 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
     .get('cached_execution_id')
     ?.getStringValue();
 
+  const mlflowRunId = isMlflowAvailable
+    ? taskExecution?.getCustomPropertiesMap().get('plugins.mlflow.run_id')?.getStringValue()
+    : undefined;
+
+  const mlflowExperimentId = isMlflowAvailable && run ? getMlflowExperimentId(run) : undefined;
+
   const tabs: Record<string, { title: string; isDisabled?: boolean; content: React.ReactNode }> = {
     [PipelineRunNodeTab.INPUT_OUTPUT]: {
       title: 'Input/Output',
@@ -45,7 +57,13 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
     },
     [PipelineRunNodeTab.DETAILS]: {
       title: 'Task details',
-      content: <SelectedNodeDetailsTab task={task} />,
+      content: (
+        <SelectedNodeDetailsTab
+          task={task}
+          mlflowRunId={mlflowRunId}
+          mlflowExperimentId={mlflowExperimentId}
+        />
+      ),
     },
     [PipelineRunNodeTab.VOLUMES]: {
       title: 'Volumes',

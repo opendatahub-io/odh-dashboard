@@ -185,12 +185,12 @@ it('should display project-scoped label when notebook uses project image', () =>
 
 ### 5. Mock Data Pattern
 
-**ALWAYS use `@odh-dashboard/internal/__mocks__`**:
+**ALWAYS use shared mock factories** (from `@odh-dashboard/internal/__mocks__` or type-owning packages):
 
 ```typescript
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockNotebookState } from '#~/__mocks__/mockNotebookState';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 
 const renderRow = (notebook = mockNotebookK8sResource({})) => {
   const notebookState = mockNotebookState(notebook);
@@ -305,7 +305,7 @@ Before committing:
 - [ ] Counted interactions for each test (clicks, waits, types)
 - [ ] Checked for duplicate coverage in existing Jest tests
 - [ ] Converted fine-grain UI tests (NO interaction + NO waits)
-- [ ] Used `@odh-dashboard/internal/__mocks__` for all mock data
+- [ ] Used shared mock factories (`@odh-dashboard/internal/__mocks__` or type-owning packages) for all mock data
 - [ ] Added clear comments to Cypress file documenting what was converted/removed
 - [ ] Verified new Jest tests pass
 - [ ] Verified remaining Cypress tests pass
@@ -318,7 +318,7 @@ Before committing:
 ❌ **Using file size instead of CI execution time** — Size ≠ execution time  
 ❌ **Converting workflow tests** — Tests with clicks/waits/API calls should stay in Cypress  
 ❌ **Not checking for duplicates** — Remove redundant Cypress tests already covered by Jest  
-❌ **Inline mock data** — Always use `@odh-dashboard/internal/__mocks__`  
+❌ **Inline mock data** — Always use shared mock factories (`@odh-dashboard/internal/__mocks__` or type-owning packages)  
 ❌ **Forgetting to document removals** — Add comments explaining what was converted/removed  
 
 ✅ **Focus on CI bottlenecks** — Use actual GitHub Actions execution times  

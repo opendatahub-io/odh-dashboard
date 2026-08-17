@@ -5,9 +5,11 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormGroupLabelHelp,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Popover,
   Stack,
   StackItem,
   TextInput,
@@ -101,7 +103,18 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
   }, [hasInvalidLabels, onHasInvalidLabelsChange]);
 
   return (
-    <FormGroup label="Labels" fieldId="role-labels">
+    <FormGroup
+      label="Labels"
+      fieldId="role-labels"
+      labelHelp={
+        <Popover bodyContent="Labels are optional key/value pairs for organizing roles. They help you filter and find roles but don't affect permissions.">
+          <FormGroupLabelHelp
+            aria-label="More info about labels"
+            data-testid="create-project-role-labels-help-popover"
+          />
+        </Popover>
+      }
+    >
       <Content component="p">{LABELS_FORM_DESCRIPTION}</Content>
       {labels.length > 0 && (
         <Flex spaceItems={{ default: 'spaceItemsSm' }} className="pf-v6-u-mb-sm">
@@ -115,7 +128,8 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
               Value
             </Content>
           </FlexItem>
-          <FlexItem className="pf-v6-u-visibility-hidden">
+          {/* Reserves space to align headers with the per-row remove button column */}
+          <FlexItem style={{ visibility: 'hidden' }}>
             <Button variant="plain" aria-hidden tabIndex={-1}>
               <MinusCircleIcon />
             </Button>

@@ -1,8 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Execution, Value } from '#~/third_party/mlmd';
 import { buildMockRunKF } from '#~/__mocks__/mockRunKF';
-import { RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { PluginStateKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import {
@@ -10,6 +12,7 @@ import {
   getMlflowMocks,
   setupMlflowMocks,
 } from '#~/concepts/pipelines/content/tables/__tests__/pipelineRunTableTestUtils';
+import { useGetExecutionsByRuns } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsByRuns';
 
 jest.mock('#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable');
 jest.mock('#~/concepts/mlflow/hooks/useMlflowExperiments');
@@ -66,6 +69,12 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact', () => ({
   useFetchRunArtifact: jest.fn(() => [[], true, undefined]),
 }));
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType', () => ({
+  useMlmdContextsByType: jest.fn(() => [[], true, undefined]),
+}));
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsByRuns', () => ({
+  useGetExecutionsByRuns: jest.fn(() => [[], false]),
+}));
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
@@ -80,6 +89,33 @@ jest.mock('#~/utilities/useNotification', () => ({
 }));
 
 const { useIsMlflowPipelinesAvailable } = getMlflowMocks();
+const mockUseGetExecutionsByRuns = jest.mocked(useGetExecutionsByRuns);
+
+const createMockExecution = (taskName: string, mlflowRunId: string): Execution => {
+  const exec = new Execution();
+  const nameVal = new Value();
+  exec.getCustomPropertiesMap().set('task_name', nameVal.setStringValue(taskName));
+  const runIdVal = new Value();
+  exec.getCustomPropertiesMap().set('plugins.mlflow.run_id', runIdVal.setStringValue(mlflowRunId));
+  return exec;
+};
+
+const buildMlflowRun = (index: number) =>
+  buildMockRunKF({
+    display_name: `MLflow run ${index}`,
+    run_id: `mlflow-run-${index}`,
+    state: RuntimeStateKF.SUCCEEDED,
+    plugins_output: {
+      mlflow: {
+        entries: {
+          root_run_id: { value: `root-${index}` },
+          experiment_id: { value: `exp-${index}` },
+          experiment_name: { value: `Experiment ${index}` },
+        },
+        state: PluginStateKF.PLUGIN_SUCCEEDED,
+      },
+    },
+  });
 
 const defaultProps: React.ComponentProps<typeof PipelineRunTable> = {
   runs: [],
@@ -213,6 +249,33 @@ describe('PipelineRunTable', () => {
       const timeElement = row?.querySelector('time');
       expect(timeElement).not.toBeNull();
       expect(timeElement?.getAttribute('datetime')).toContain('2024-01-02T10:00:05');
+    });
+  });
+
+  describe('compare runs button', () => {
+    it('should disable compare when root + nested MLflow runs exceed 10', async () => {
+      const user = userEvent.setup();
+      const mlflowRuns = Array.from({ length: 8 }, (_, i) => buildMlflowRun(i));
+
+      useIsMlflowPipelinesAvailable.default.mockReturnValue({
+        available: true,
+        loaded: true,
+        error: undefined,
+      });
+
+      const executionMaps = mlflowRuns.map((run) => ({
+        [run.run_id]: [createMockExecution(`task-${run.run_id}-0`, `nested-${run.run_id}-0`)],
+      }));
+      mockUseGetExecutionsByRuns.mockReturnValue([executionMaps, true]);
+
+      renderTable({ runs: mlflowRuns, totalSize: mlflowRuns.length });
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      for (const checkbox of checkboxes) {
+        await user.click(checkbox);
+      }
+
+      expect(screen.getByTestId('compare-runs-button')).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });

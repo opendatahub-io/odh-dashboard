@@ -21,14 +21,25 @@ import type {
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  AreaExtension,
+  RouteExtension,
+  TabRouteTabExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
-import type { KServeDeployment } from './src/deployments';
+import type { KServeDeployment } from './src/types';
 
 export const KSERVE_ID = 'kserve';
+const ADMIN_USER = 'ADMIN_USER';
+
+// Duplicated from src/settings/servingRuntimeTemplates/paths.ts — extensions.ts
+// may not import runtime values from src (no-restricted-syntax). Kept in sync by
+// extensions/__tests__/extensions.spec.ts.
+const SERVING_RUNTIME_TEMPLATES_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates';
 
 const kserveServingRuntimeFieldExtension: WizardFieldExtension<
   KServeServingRuntimeFieldType,
@@ -113,6 +124,8 @@ const extensions: (
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<DeploymentMethodFieldData, KServeDeployment>
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
+  | TabRouteTabExtension
+  | RouteExtension
 )[] = [
   {
     type: 'app.area',
@@ -306,6 +319,50 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'serving-runtime-templates',
+      title: 'Serving runtime templates',
+      component: () =>
+        import('./src/settings/servingRuntimeTemplates/ServingRuntimeTemplatesTabRoutes'),
+      group: '2_serving-runtimes',
+    },
+  },
+  // Full-page breakout routes for the serving runtime add/edit/duplicate forms.
+  // These are placeholders until RHOAIENG-68986 migrates the real forms; gated
+  // identically to the tab so they only exist when the tab does.
+  ...(
+    [
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/edit/:servingRuntimeName`,
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/duplicate/:servingRuntimeName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          SupportedArea.CUSTOM_RUNTIMES,
+          ADMIN_USER,
+        ],
+      },
+      properties: {
+        path,
+        component: () =>
+          import('./src/settings/servingRuntimeTemplates/ServingRuntimeTemplatesFormRoutes'),
+      },
+    }),
+  ),
 ];
 
 export default extensions;

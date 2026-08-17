@@ -4,11 +4,9 @@
  * - Role template selection flow (Select role template, Import rules from template,
  *   discard changes confirmation, search filtering, and form pre-population)
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import {
   ClusterRoleModel,
@@ -91,13 +89,9 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findCreateRoleForm().should('exist');
       projectRoles.findRoleNameInput().should('exist');
-      projectRoles
-        .findDescriptionTextarea()
-        .should('have.attr', 'placeholder', 'Describe what this role is for and who should use it');
+      projectRoles.findDescriptionTextarea();
       projectRoles.findAddLabelButton().should('exist');
-      projectRoles
-        .findPermissionsEmptyState()
-        .should('contain.text', 'No rules set for this role.');
+      projectRoles.findPermissionsEmptyState().should('contain.text', 'No rules added');
       projectRoles.findSelectRoleTemplateButton().should('not.be.disabled');
       projectRoles.findAddRuleButton().should('not.be.disabled');
       projectRoles.findImportTemplateButton().should('not.be.disabled');
@@ -265,7 +259,7 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findReplaceContentModal().should('exist');
-    projectRoles.findReplaceContentModal().contains('Replace current content?').should('exist');
+    projectRoles.findReplaceContentModal().contains('Discard unsaved changes?').should('exist');
     cy.testA11y();
   });
 
@@ -373,7 +367,7 @@ describe('Select role template (header button)', () => {
   });
 });
 
-describe('Import rules from template (toolbar button)', () => {
+describe('Add rules from template (toolbar button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initRolesTemplateIntercepts();

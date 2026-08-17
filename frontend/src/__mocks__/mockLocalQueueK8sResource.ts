@@ -1,6 +1,6 @@
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import { genUID } from '@odh-dashboard/foundation';
 import { LocalQueueKind } from '#~/k8sTypes';
-import { genUID } from '#~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;

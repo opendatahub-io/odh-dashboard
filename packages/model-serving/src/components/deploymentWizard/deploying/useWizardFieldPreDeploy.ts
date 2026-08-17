@@ -5,6 +5,12 @@ import { type Deployment } from '../../../../extension-points';
 import { isWizardFieldDeploymentFunctionsExtension } from '../../../../extension-points/deployment-wizard';
 import { useActiveFields } from '../dynamicFormUtils';
 
+export type RunPreDeployFns = (
+  deployment: Deployment,
+  existingDeployment?: Deployment,
+  dryRun?: boolean,
+) => Promise<Deployment>;
+
 /**
  * Hook that returns an async function to dry-run all active pre-deploy extensions before
  * a deployment is saved. Each extension receives the field's current data, the full wizard
@@ -19,7 +25,7 @@ import { useActiveFields } from '../dynamicFormUtils';
 export const useWizardFieldPreDeploy = (
   wizardState: WizardFormData['state'],
 ): {
-  runPreDeploy: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>;
+  runPreDeploy: RunPreDeployFns;
   preDeployExtensionsLoaded: boolean;
 } => {
   const [preDeployExtensions, preDeployExtensionsLoaded] = useResolvedExtensions(
@@ -36,18 +42,25 @@ export const useWizardFieldPreDeploy = (
     [preDeployExtensions, activeFields],
   );
 
-  const runPreDeploy = React.useCallback(
-    async (deployment: Deployment, existingDeployment?: Deployment): Promise<Deployment> => {
+  const runPreDeploy = React.useCallback<RunPreDeployFns>(
+    async (
+      deployment: Deployment,
+      existingDeployment?: Deployment,
+      dryRun?: boolean,
+    ): Promise<Deployment> => {
       let current = deployment;
       for (const ext of activePreDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        current = await ext.properties.preDeploy(
-          fieldData,
-          wizardState,
-          current,
-          existingDeployment,
-        );
+        if (typeof ext.properties.preDeploy === 'function') {
+          current = await ext.properties.preDeploy(
+            fieldData,
+            wizardState,
+            current,
+            existingDeployment,
+            dryRun,
+          );
+        }
       }
       return current;
     },

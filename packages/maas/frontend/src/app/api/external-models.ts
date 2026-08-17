@@ -36,7 +36,8 @@ const isExternalProviderDetails = (v: unknown): v is ExternalProviderDetails =>
   typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&
-  isOptionalString(v.statusMessage);
+  isOptionalString(v.statusMessage) &&
+  isOptionalString(v.reason);
 
 const isProviderRef = (v: unknown): v is ProviderRef =>
   isRecord(v) &&
@@ -52,7 +53,8 @@ const isExternalModelMaaSModelRefStatus = (v: unknown): v is ExternalModelMaaSMo
   isRecord(v) &&
   isOptionalString(v.phase) &&
   isOptionalString(v.endpoint) &&
-  isOptionalString(v.statusMessage);
+  isOptionalString(v.statusMessage) &&
+  isOptionalString(v.reason);
 
 const isExternalModel = (v: unknown): v is ExternalModel =>
   isRecord(v) &&
@@ -65,6 +67,7 @@ const isExternalModel = (v: unknown): v is ExternalModel =>
     (Array.isArray(v.providerRefs) && v.providerRefs.every(isProviderRef))) &&
   isOptionalString(v.phase) &&
   isOptionalString(v.statusMessage) &&
+  isOptionalString(v.reason) &&
   (v.maaSModelRef === undefined || isExternalModelMaaSModelRefStatus(v.maaSModelRef));
 
 /** Coerce null providerRefs (Go nil slice → JSON null) to empty arrays. */

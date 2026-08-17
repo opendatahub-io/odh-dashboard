@@ -160,10 +160,6 @@ class McpDeployModal {
     return this.findModal().findByTestId('mcp-deploy-oci-image-input');
   }
 
-  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-project-selector');
-  }
-
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModal().findByTestId('modal-submit-button');
   }
@@ -209,11 +205,6 @@ class McpServerDetailsPage {
 
   findBreadcrumbServerName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('breadcrumb-server-name');
-  }
-
-  // PF6 Button's isLoading spinner is internal to PatternFly -- no data-testid is available
-  findDeployButtonSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDeployButton().find('[role="progressbar"]');
   }
 }
 
