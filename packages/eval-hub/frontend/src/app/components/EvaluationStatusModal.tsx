@@ -633,7 +633,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
             Stop evaluation
           </Button>
         )}
-        {onRequestReconfigure && isReconfigurable && state === 'completed' && (
+        {isReconfigurable && state === 'completed' && (
           <Button
             variant="primary"
             component={(props) => (

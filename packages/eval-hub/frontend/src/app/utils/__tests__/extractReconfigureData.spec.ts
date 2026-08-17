@@ -1,5 +1,5 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import type { EvaluationJob, InferenceServiceItem } from '~/app/types';
+import type { Collection, EvaluationJob, InferenceServiceItem } from '~/app/types';
 import extractReconfigureData, { inferSourceMode } from '~/app/utils/extractReconfigureData';
 
 const mockInferenceService = (name: string, url?: string): InferenceServiceItem => ({
@@ -234,6 +234,41 @@ describe('extractReconfigureData', () => {
     expect(result.accessToken).toBe('access-token-123');
   });
 
+  it('should extract prerecorded fields when only a later benchmark has test_data_ref', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source', collectionId: 'col-1' });
+    job.collection = {
+      id: 'col-1',
+      benchmarks: [
+        { id: 'b1', provider_id: 'p1' },
+        {
+          id: 'b2',
+          provider_id: 'p2',
+          test_data_ref: {
+            s3: { key: 's3://bucket/later.jsonl', secret_ref: 'token-456' },
+          },
+        },
+      ],
+    };
+    job.benchmarks = null;
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.sourceMode).toBe('prerecorded');
+    expect(result.datasetUrl).toBe('s3://bucket/later.jsonl');
+    expect(result.accessToken).toBe('token-456');
+  });
+
+  it('should default prerecorded fields when no benchmark has test_data_ref', () => {
+    const job = mockEvaluationJob({ modelName: 'dataset-source' });
+    job.benchmarks = [{ id: 'b1' }];
+    job.model.url = 'https://ext.example.com/v1';
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.datasetUrl).toBe('');
+    expect(result.accessToken).toBe('');
+  });
+
   it('should fall back to resource id for evaluation name when name is not set', () => {
     const job = mockEvaluationJob({ id: 'fallback-id' });
 
@@ -253,6 +288,72 @@ describe('extractReconfigureData', () => {
     expect(result.benchmark).toBeUndefined();
     expect(result.primaryMetric).toBeUndefined();
     expect(result.additionalArgs).toBe('');
+  });
+
+  it('should populate benchmarks from resolvedCollection when job.collection has only id', () => {
+    const job = mockEvaluationJob({ collectionId: 'col-only' });
+    job.pass_criteria = { threshold: 0.8 };
+
+    const resolved: Collection = {
+      resource: { id: 'col-only' },
+      name: 'My Collection',
+      benchmarks: [
+        {
+          id: 'rb1',
+          provider_id: 'prov-a',
+          primary_score: { metric: 'acc', lower_is_better: false },
+        },
+        { id: 'rb2', provider_id: 'prov-b' },
+      ],
+    };
+
+    const result = extractReconfigureData(job, [], resolved);
+
+    expect(result.isCollectionFlow).toBe(true);
+    expect(result.collection).toEqual({
+      resource: { id: 'col-only' },
+      name: 'My Collection',
+      pass_criteria: { threshold: 0.8 },
+      benchmarks: resolved.benchmarks,
+    });
+  });
+
+  it('should prefer job.collection.benchmarks over resolvedCollection when both exist', () => {
+    const job = mockEvaluationJob({ collectionId: 'col-both' });
+    job.collection = {
+      id: 'col-both',
+      benchmarks: [{ id: 'jb1', provider_id: 'jp1' }],
+    };
+    job.benchmarks = null;
+
+    const resolved: Collection = {
+      resource: { id: 'col-both' },
+      name: 'Resolved Name',
+      benchmarks: [
+        { id: 'rb1', provider_id: 'rp1' },
+        { id: 'rb2', provider_id: 'rp2' },
+      ],
+    };
+
+    const result = extractReconfigureData(job, [], resolved);
+
+    expect(result.collection?.benchmarks).toEqual([
+      {
+        id: 'jb1',
+        provider_id: 'jp1',
+        primary_score: undefined,
+        pass_criteria: undefined,
+        parameters: undefined,
+      },
+    ]);
+  });
+
+  it('should use collection id as name when resolvedCollection is absent', () => {
+    const job = mockEvaluationJob({ collectionId: 'no-resolved' });
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.collection?.name).toBe('no-resolved');
   });
 });
 

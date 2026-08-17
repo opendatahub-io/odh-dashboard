@@ -56,6 +56,7 @@ export const inferSourceMode = (
 const extractReconfigureData = (
   job: EvaluationJob,
   inferenceServices: InferenceServiceItem[],
+  resolvedCollection?: Collection,
 ): ReconfigureFormData => {
   const { sourceMode, modelSelection } = inferSourceMode(job, inferenceServices);
   const selectedInferenceService =
@@ -83,17 +84,18 @@ const extractReconfigureData = (
 
   let collection: Collection | undefined;
   if (isCollectionFlow && job.collection) {
+    const jobBenchmarks = job.collection.benchmarks?.map((b) => ({
+      id: b.id,
+      provider_id: b.provider_id,
+      primary_score: b.primary_score,
+      pass_criteria: b.pass_criteria,
+      parameters: b.parameters,
+    }));
     collection = {
       resource: { id: job.collection.id },
-      name: job.collection.id,
+      name: resolvedCollection?.name ?? job.collection.id,
       pass_criteria: job.pass_criteria,
-      benchmarks: job.collection.benchmarks?.map((b) => ({
-        id: b.id,
-        provider_id: b.provider_id,
-        primary_score: b.primary_score,
-        pass_criteria: b.pass_criteria,
-        parameters: b.parameters,
-      })),
+      benchmarks: jobBenchmarks ?? resolvedCollection?.benchmarks,
     };
   }
   /* eslint-enable camelcase */
@@ -109,9 +111,12 @@ const extractReconfigureData = (
 
   let datasetUrl = '';
   let accessToken = '';
-  if (sourceMode === 'prerecorded' && firstBenchmark?.test_data_ref?.s3) {
-    datasetUrl = firstBenchmark.test_data_ref.s3.key ?? '';
-    accessToken = firstBenchmark.test_data_ref.s3.secret_ref ?? '';
+  if (sourceMode === 'prerecorded') {
+    const refBenchmark = allBenchmarks?.find((b) => b.test_data_ref?.s3);
+    if (refBenchmark?.test_data_ref?.s3) {
+      datasetUrl = refBenchmark.test_data_ref.s3.key ?? '';
+      accessToken = refBenchmark.test_data_ref.s3.secret_ref ?? '';
+    }
   }
 
   return {

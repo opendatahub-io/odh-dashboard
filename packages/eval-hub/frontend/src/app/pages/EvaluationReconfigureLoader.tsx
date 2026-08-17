@@ -10,10 +10,13 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
+import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { getCollections } from '~/app/api/k8s';
 import { evaluationsBaseRoute } from '~/app/routes';
 import extractReconfigureData from '~/app/utils/extractReconfigureData';
+import type { Collection } from '~/app/types';
 import StartEvaluationRunPage from './StartEvaluationRunPage';
 
 const EvaluationReconfigureLoader: React.FC = () => {
@@ -22,6 +25,29 @@ const EvaluationReconfigureLoader: React.FC = () => {
   const [job, jobLoaded, jobError] = useEvaluationJob(namespace, jobId);
 
   const { inferenceServices, loaded: isLoaded } = useInferenceServices(namespace ?? '');
+
+  const collectionId = job?.collection?.id;
+  const needsCollectionFetch = !!job?.collection && !job.collection.benchmarks?.length;
+
+  const fetchCollection = React.useCallback<FetchStateCallbackPromise<Collection | null>>(
+    (opts) => {
+      if (!namespace || !collectionId || !needsCollectionFetch) {
+        return Promise.reject(new NotReadyError('Collection fetch not needed'));
+      }
+      return getCollections('', { namespace, name: collectionId })(opts).then(
+        (response) => response.items.find((c) => c.resource.id === collectionId) ?? null,
+      );
+    },
+    [namespace, collectionId, needsCollectionFetch],
+  );
+
+  const [resolvedCollection, collectionLoaded] = useFetchState<Collection | null>(
+    fetchCollection,
+    null,
+    { initialPromisePurity: true },
+  );
+
+  const collectionReady = !needsCollectionFetch || collectionLoaded;
 
   if (jobError) {
     return (
@@ -49,7 +75,7 @@ const EvaluationReconfigureLoader: React.FC = () => {
     );
   }
 
-  if (!jobLoaded || !job || !isLoaded) {
+  if (!jobLoaded || !job || !isLoaded || !collectionReady) {
     return (
       <Bullseye>
         <Spinner aria-label="Loading evaluation data" />
@@ -57,7 +83,11 @@ const EvaluationReconfigureLoader: React.FC = () => {
     );
   }
 
-  const initialValues = extractReconfigureData(job, inferenceServices);
+  const initialValues = extractReconfigureData(
+    job,
+    inferenceServices,
+    resolvedCollection ?? undefined,
+  );
 
   return <StartEvaluationRunPage initialValues={initialValues} sourceJobId={jobId} />;
 };

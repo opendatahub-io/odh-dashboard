@@ -38,12 +38,14 @@ const renderModal = (
   polledJobData?: EvaluationJob,
 ) =>
   render(
-    <EvaluationStatusModal
-      job={job}
-      namespace="test-ns"
-      polledJobData={polledJobData}
-      onClose={mockOnClose}
-    />,
+    <MemoryRouter>
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        polledJobData={polledJobData}
+        onClose={mockOnClose}
+      />
+    </MemoryRouter>,
   );
 
 const switchToEventsLog = () => fireEvent.click(screen.getByTestId('events-log-tab'));
@@ -470,7 +472,11 @@ describe('EvaluationStatusModal description text', () => {
     job.resource.created_at = '2026-02-20T10:00:00Z';
     job.resource.updated_at = '2026-02-20T10:05:12Z';
 
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    render(
+      <MemoryRouter>
+        <EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />
+      </MemoryRouter>,
+    );
 
     const description = screen.getByTestId('status-description');
     expect(description).toHaveTextContent('Evaluation completed successfully. Total time: 5m 12s');
@@ -1061,12 +1067,14 @@ describe('EvaluationStatusModal stop button', () => {
   const renderModalWithStop = (jobOverrides = {}) => {
     const job = mockEvaluationJob({ state: 'running', ...jobOverrides });
     return render(
-      <EvaluationStatusModal
-        job={job}
-        namespace="test-ns"
-        onClose={mockOnClose}
-        onRequestStop={mockOnRequestStop}
-      />,
+      <MemoryRouter>
+        <EvaluationStatusModal
+          job={job}
+          namespace="test-ns"
+          onClose={mockOnClose}
+          onRequestStop={mockOnRequestStop}
+        />
+      </MemoryRouter>,
     );
   };
 
@@ -1171,6 +1179,16 @@ describe('EvaluationStatusModal reconfigure button', () => {
     renderModalWithReconfigure({ state: 'completed' });
     expect(screen.getByTestId('status-modal-view-results-button')).toBeInTheDocument();
     expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
+  });
+
+  it('should show view results button for completed jobs without onRequestReconfigure', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+    render(
+      <MemoryRouter>
+        <EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('status-modal-view-results-button')).toBeInTheDocument();
   });
 
   it('should not show reconfigure button for running jobs', () => {

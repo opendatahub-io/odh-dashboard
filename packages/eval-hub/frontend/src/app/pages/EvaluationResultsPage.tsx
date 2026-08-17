@@ -40,9 +40,10 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
-import EvaluationEventLog from '~/app/components/EvaluationEventLog';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const EvaluationEventLog = React.lazy(() => import('~/app/components/EvaluationEventLog'));
 
 interface MlflowRunTabsProps {
   experimentId: string;
@@ -339,26 +340,38 @@ const EvaluationResultsPage: React.FC = () => {
         >
           <ModalHeader title="Event log" />
           <ModalBody>
-            <EvaluationEventLog
-              namespace={namespace}
-              jobId={job.resource.id}
-              evaluationName={evaluationName}
-              benchmarks={(job.status.benchmarks ?? [])
-                .toSorted((a, b) => {
-                  if (a.benchmark_index != null && b.benchmark_index != null) {
-                    return a.benchmark_index - b.benchmark_index;
-                  }
-                  return a.id.localeCompare(b.id);
-                })
-                .map((bm, i) => ({
-                  key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
-                  id: bm.id,
-                  // eslint-disable-next-line camelcase
-                  benchmark_index: bm.benchmark_index,
-                }))}
-              isInProgress={false}
-              state={job.status.state}
-            />
+            <React.Suspense
+              fallback={
+                <Bullseye>
+                  <Spinner />
+                </Bullseye>
+              }
+            >
+              <EvaluationEventLog
+                namespace={namespace}
+                jobId={job.resource.id}
+                evaluationName={evaluationName}
+                benchmarks={(job.status.benchmarks ?? [])
+                  .toSorted((a, b) => {
+                    if (a.benchmark_index != null && b.benchmark_index != null) {
+                      return a.benchmark_index - b.benchmark_index;
+                    }
+                    return a.id.localeCompare(b.id);
+                  })
+                  .map((bm, i) => ({
+                    key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
+                    id: bm.id,
+                    // eslint-disable-next-line camelcase
+                    benchmark_index: bm.benchmark_index,
+                  }))}
+                isInProgress={
+                  job.status.state === 'running' ||
+                  job.status.state === 'pending' ||
+                  job.status.state === 'stopping'
+                }
+                state={job.status.state}
+              />
+            </React.Suspense>
           </ModalBody>
         </Modal>
       )}
