@@ -110,6 +110,46 @@ describe('TrainJobTableRow', () => {
     expect(statusLabel).toHaveTextContent('Running');
   });
 
+  it('should show the pause/resume toggle for running jobs', () => {
+    renderRow({ jobStatus: TrainingJobState.RUNNING });
+    const toggle = screen.getByTestId('state-action-toggle');
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveTextContent('Pause');
+  });
+
+  it('should show the pause/resume toggle for paused jobs', () => {
+    const job = mockTrainJobK8sResource({
+      name: 'paused-job',
+      namespace: 'test-project',
+      status: TrainingJobState.PAUSED,
+      suspend: true,
+    });
+    renderRow({ job, jobStatus: TrainingJobState.PAUSED });
+    const toggle = screen.getByTestId('state-action-toggle');
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveTextContent('Resume');
+  });
+
+  it('should not show the pause/resume toggle for succeeded jobs', () => {
+    const job = mockTrainJobK8sResource({
+      name: 'completed-job',
+      namespace: 'test-project',
+      status: TrainingJobState.SUCCEEDED,
+    });
+    renderRow({ job, jobStatus: TrainingJobState.SUCCEEDED });
+    expect(screen.queryByTestId('state-action-toggle')).not.toBeInTheDocument();
+  });
+
+  it('should not show the pause/resume toggle for failed jobs', () => {
+    const job = mockTrainJobK8sResource({
+      name: 'failed-job',
+      namespace: 'test-project',
+      status: TrainingJobState.FAILED,
+    });
+    renderRow({ job, jobStatus: TrainingJobState.FAILED });
+    expect(screen.queryByTestId('state-action-toggle')).not.toBeInTheDocument();
+  });
+
   it('should display progress bar for running job with progress percentage', () => {
     const job = mockTrainJobK8sResource({
       name: 'image-classification-job',

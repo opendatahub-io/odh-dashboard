@@ -76,6 +76,18 @@ describe('PipelineServerActions', () => {
     });
   });
 
+  it('should disable the kebab toggle when isDisabled is set', () => {
+    render(
+      <PipelineAndVersionContext.Provider value={mockContextValue}>
+        <PipelineServerActions variant="kebab" isDisabled />
+      </PipelineAndVersionContext.Provider>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Pipeline server action kebab toggle' }),
+    ).toBeDisabled();
+  });
+
   it('should show the ability to delete the pipeline server kebab option', () => {
     render(
       <PipelineAndVersionContext.Provider value={mockContextValue}>
