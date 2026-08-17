@@ -22,9 +22,11 @@ type pipelinesRepository interface {
 	GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, page int64) (*models.PipelineRunsData, error)
 	GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error)
 	CreateRun(ctx context.Context, namespace string, req models.CreateAutoRAGRunRequest) (*models.PipelineRun, error)
+	CreateIndexingRun(ctx context.Context, namespace string, req models.CreateIndexingPipelineRunRequest) (*models.PipelineRun, error)
 	TerminateRun(ctx context.Context, namespace, runID string) error
 	RetryRun(ctx context.Context, namespace, runID string) error
 	DeleteRun(ctx context.Context, namespace, runID string) error
+	ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error)
 	EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error)
 }
 
@@ -38,6 +40,7 @@ const maxRequestBodyBytes = 10 << 20
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
+type ManagedPipelinesEnvelope Envelope[*models.ManagedPipelinesData, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 func (h *PipelinesHandler) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -136,6 +139,44 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	}
 
 	run, err := h.repo.CreateRun(r.Context(), namespace, req)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, CreatePipelineRunEnvelope{Data: run}, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
+	}
+}
+
+// CreateIndexingPipelineRunHandler handles POST /api/v1/indexing-pipeline-runs
+func (h *PipelinesHandler) CreateIndexingPipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	var req models.CreateIndexingPipelineRunRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			payloadTooLargeResponse(h.logger, w, r, "request body exceeds maximum size")
+			return
+		}
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		return
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		badRequestResponse(h.logger, w, r, "request body must contain only a single JSON object")
+		return
+	}
+
+	run, err := h.repo.CreateIndexingRun(r.Context(), namespace, req)
 	if err != nil {
 		h.mapPipelineError(w, r, err)
 		return
@@ -245,6 +286,25 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)
+}
+
+// ListManagedPipelinesHandler handles GET /api/v1/managed-pipelines
+func (h *PipelinesHandler) ListManagedPipelinesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
+
+	result, err := h.repo.ListManagedPipelines(r.Context(), namespace)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, ManagedPipelinesEnvelope{Data: result}, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
+	}
 }
 
 // EnableManagedPipelinesHandler handles POST /api/v1/managed-pipelines/enable

@@ -680,6 +680,7 @@ export type GenAiTestData = {
 
 export type CustomEndpointTestData = {
   modelId: string;
+  modelType: string;
   displayName: string;
   endpointUrl: string;
   testMessage: string;
@@ -697,6 +698,10 @@ export type CustomEndpointTestData = {
     fixturePath: string;
     testQuestion: string;
     expectedContentFragment: string;
+  };
+  guardrails: {
+    safeMessage: string;
+    maliciousMessage: string;
   };
 };
 

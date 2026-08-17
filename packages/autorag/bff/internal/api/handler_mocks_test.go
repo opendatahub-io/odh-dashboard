@@ -186,6 +186,14 @@ func (m *mockPipelinesRepo) CreateRun(ctx context.Context, namespace string, req
 	return args.Get(0).(*models.PipelineRun), args.Error(1)
 }
 
+func (m *mockPipelinesRepo) CreateIndexingRun(ctx context.Context, namespace string, req models.CreateIndexingPipelineRunRequest) (*models.PipelineRun, error) {
+	args := m.Called(ctx, namespace, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.PipelineRun), args.Error(1)
+}
+
 func (m *mockPipelinesRepo) TerminateRun(ctx context.Context, namespace, runID string) error {
 	args := m.Called(ctx, namespace, runID)
 	return args.Error(0)
@@ -199,6 +207,14 @@ func (m *mockPipelinesRepo) RetryRun(ctx context.Context, namespace, runID strin
 func (m *mockPipelinesRepo) DeleteRun(ctx context.Context, namespace, runID string) error {
 	args := m.Called(ctx, namespace, runID)
 	return args.Error(0)
+}
+
+func (m *mockPipelinesRepo) ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error) {
+	args := m.Called(ctx, namespace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ManagedPipelinesData), args.Error(1)
 }
 
 func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error) {
