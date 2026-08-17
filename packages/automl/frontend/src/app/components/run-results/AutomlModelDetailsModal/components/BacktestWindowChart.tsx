@@ -379,24 +379,47 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     [onSelectedMetricsChange],
   );
 
+  // Fires one "viewed" event per metric that becomes newly visible, skipping any metric
+  // already recorded in trackedMetricsRef so toggling a metric off and back on (or
+  // selecting "Show all" more than once) doesn't re-fire it in the same modal session.
+  const trackNewlyAddedMetrics = React.useCallback((addedMetrics: string[]) => {
+    addedMetrics.forEach((metric) => {
+      if (!trackedMetricsRef.current.has(metric)) {
+        trackedMetricsRef.current.add(metric);
+        fireAutomlBacktestWindowMetricViewed(metric);
+      }
+    });
+  }, []);
+
   const onSelect = React.useCallback(
     (_e: React.MouseEvent | undefined, value: string | number | undefined) => {
       const strValue = String(value);
       if (strValue === SHOW_ALL) {
-        updateMetrics(isAllSelected ? [normalizedEvalMetric] : [...metricKeys]);
+        if (isAllSelected) {
+          updateMetrics([normalizedEvalMetric]);
+        } else {
+          updateMetrics([...metricKeys]);
+          trackNewlyAddedMetrics(metricKeys.filter((m) => !selectedMetrics.includes(m)));
+        }
       } else {
         const isAdding = !selectedMetrics.includes(strValue);
         const next = isAdding
           ? [...selectedMetrics, strValue]
           : selectedMetrics.filter((m) => m !== strValue);
         updateMetrics(next.length === 0 ? [normalizedEvalMetric] : next);
-        if (isAdding && !trackedMetricsRef.current.has(strValue)) {
-          trackedMetricsRef.current.add(strValue);
-          fireAutomlBacktestWindowMetricViewed(strValue);
+        if (isAdding) {
+          trackNewlyAddedMetrics([strValue]);
         }
       }
     },
-    [isAllSelected, normalizedEvalMetric, metricKeys, selectedMetrics, updateMetrics],
+    [
+      isAllSelected,
+      normalizedEvalMetric,
+      metricKeys,
+      selectedMetrics,
+      updateMetrics,
+      trackNewlyAddedMetrics,
+    ],
   );
 
   const toggleLabel = isAllSelected
