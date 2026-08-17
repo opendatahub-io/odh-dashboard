@@ -11,6 +11,7 @@ export const AUTORAG_EVENTS = {
   EXPERIMENT_CREATED: 'AutoRAG Experiment Created',
   KNOWLEDGE_SOURCE_CONFIGURED: 'AutoRAG Knowledge Source Configured',
   EVALUATION_SOURCE_CONFIGURED: 'AutoRAG Evaluation Source Configured',
+  MODELS_SELECTED: 'AutoRAG Models Selected',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -81,4 +82,25 @@ export const fireAutoragEvaluationSourceConfigured = (
   properties: EvaluationSourceConfiguredProperties,
 ): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, properties);
+};
+
+export type ModelsSelectedProperties = {
+  countOfFoundationModels: number;
+  countOfEmbeddingModels: number;
+  outcome: TrackingOutcome;
+  success: boolean;
+  error?: string;
+};
+
+/**
+ * Fires when the user completes (or abandons) the "Model configuration" milestone — the
+ * foundation/embedding model selection modal reached from "Models to test" in the configure
+ * step. `outcome: submit` fires when Save is clicked (the modal is only dirty-enabled, so a
+ * submit always reflects a change to the selection); `outcome: cancel` fires when Cancel is
+ * clicked or the modal is dismissed (X/Escape/backdrop), in which case the in-progress selection
+ * is reverted. This is a pure local step with no backend call, so `success` is always `true` and
+ * `error` is omitted.
+ */
+export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
 };

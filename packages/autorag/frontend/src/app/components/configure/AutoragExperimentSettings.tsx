@@ -9,6 +9,7 @@ import {
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ConfigureSchema, EXPERIMENT_SETTINGS_FIELDS } from '~/app/schemas/configure.schema';
+import { fireAutoragModelsSelected, TrackingOutcome } from '~/app/utilities/tracking';
 import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
 
 type AutoragExperimentSettingsProps = {
@@ -23,15 +24,28 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
   revertChanges,
 }) => {
   const {
+    getValues,
     formState: { isDirty, errors },
   } = useFormContext<ConfigureSchema>();
 
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
+
+  const fireModelsSelected = (outcome: TrackingOutcome) => {
+    const { generation_models: foundationModels, embedding_models: embeddingModels } = getValues();
+    fireAutoragModelsSelected({
+      countOfFoundationModels: foundationModels.length,
+      countOfEmbeddingModels: embeddingModels.length,
+      outcome,
+      success: true,
+    });
+  };
+
   return (
     <Modal
       variant={ModalVariant.medium}
       isOpen={isOpen}
       onClose={() => {
+        fireModelsSelected(TrackingOutcome.cancel);
         revertChanges();
         onClose();
       }}
@@ -44,7 +58,10 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       <ModalFooter>
         <Button
           variant="primary"
-          onClick={onClose}
+          onClick={() => {
+            fireModelsSelected(TrackingOutcome.submit);
+            onClose();
+          }}
           isDisabled={!isDirty || hasFieldErrors}
           data-testid="experiment-settings-save"
         >
@@ -53,6 +70,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
         <Button
           variant="link"
           onClick={() => {
+            fireModelsSelected(TrackingOutcome.cancel);
             revertChanges();
             onClose();
           }}

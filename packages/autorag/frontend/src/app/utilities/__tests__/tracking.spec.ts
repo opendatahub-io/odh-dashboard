@@ -8,6 +8,7 @@ import {
   fireAutoragEvaluationSourceConfigured,
   fireAutoragExperimentCreated,
   fireAutoragKnowledgeSourceConfigured,
+  fireAutoragModelsSelected,
   fireAutoragProjectDropdownOptionSelected,
 } from '~/app/utilities/tracking';
 
@@ -195,5 +196,39 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
         error: 'boom',
       },
     );
+  });
+});
+
+describe('fireAutoragModelsSelected', () => {
+  it('should fire with outcome: submit and the selected model counts', () => {
+    fireAutoragModelsSelected({
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 2,
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 2,
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+  });
+
+  it('should fire with outcome: cancel and zero counts when nothing is selected', () => {
+    fireAutoragModelsSelected({
+      countOfFoundationModels: 0,
+      countOfEmbeddingModels: 0,
+      outcome: TrackingOutcome.cancel,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
+      countOfFoundationModels: 0,
+      countOfEmbeddingModels: 0,
+      outcome: TrackingOutcome.cancel,
+      success: true,
+    });
   });
 });
