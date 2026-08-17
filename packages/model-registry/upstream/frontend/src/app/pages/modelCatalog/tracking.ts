@@ -4,7 +4,7 @@
  */
 export const MODEL_CATALOG_EVENTS = {
   VALIDATED_ARGUMENTS_COPIED: 'Model Catalog Validated Arguments Copied',
-  VALIDATED_ARGUMENTS_EXPANDED: 'Model Catalog Validated Arguments Expanded',
+  VALIDATED_ARGUMENTS_EXPANDED: 'Model Catalog Validated Arguments Card Expanded',
   VALIDATED_ARGUMENTS_FILTER_APPLIED: 'Model Catalog Validated Arguments Filter Applied',
   VALIDATED_LABEL_CLICKED: 'Model Catalog Validated Label Clicked',
 } as const;
