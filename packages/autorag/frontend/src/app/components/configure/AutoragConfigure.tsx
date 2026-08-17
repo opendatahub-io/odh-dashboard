@@ -96,6 +96,7 @@ import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
   resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
+import { fireAutoragKnowledgeSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
 import {
   getInputDataDropRejectedNotification,
   INPUT_DATA_FILE_ACCEPT,
@@ -183,6 +184,10 @@ function AutoragConfigure({
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the S3 file browser's "Select" primary action already fired the Knowledge
+  // Source Configured event for the current open/close cycle, so onClose doesn't also fire it
+  // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
+  const inputDataS3SelectionCommittedRef = useRef(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
 
@@ -355,6 +360,12 @@ function AutoragConfigure({
           return;
         }
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+        fireAutoragKnowledgeSourceConfigured({
+          knowledgeSourceType: 'upload',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
           if (isUIError(err)) {
@@ -370,6 +381,13 @@ function AutoragConfigure({
                 : errorMessage,
             );
           }
+          fireAutoragKnowledgeSourceConfigured({
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 0,
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: errorMessage,
+          });
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
@@ -1136,7 +1154,18 @@ function AutoragConfigure({
         namespace={namespace}
         s3SecretName={selectedSecret?.name}
         isOpen={Boolean(fileExplorerMode)}
-        onClose={() => setFileExplorerMode(false)}
+        onClose={() => {
+          if (fileExplorerMode === 'input_data' && !inputDataS3SelectionCommittedRef.current) {
+            fireAutoragKnowledgeSourceConfigured({
+              knowledgeSourceType: 's3',
+              countOfDocuments: 0,
+              outcome: TrackingOutcome.cancel,
+              success: true,
+            });
+          }
+          inputDataS3SelectionCommittedRef.current = false;
+          setFileExplorerMode(false);
+        }}
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
@@ -1144,6 +1173,13 @@ function AutoragConfigure({
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
               setSelectedInputDataFile(file);
+              inputDataS3SelectionCommittedRef.current = true;
+              fireAutoragKnowledgeSourceConfigured({
+                knowledgeSourceType: 's3',
+                countOfDocuments: files.length,
+                outcome: TrackingOutcome.submit,
+                success: true,
+              });
             }
             if (fileExplorerMode === 'test_data') {
               setValue('test_data_key', filePath, { shouldValidate: true });
