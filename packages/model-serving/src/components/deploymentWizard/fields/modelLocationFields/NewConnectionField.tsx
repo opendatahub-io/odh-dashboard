@@ -10,7 +10,8 @@ import type {
   ConnectionTypeDataField,
   ConnectionTypeValueType,
 } from '@odh-dashboard/k8s-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isConnectionTypeFormFieldsExtension } from '@odh-dashboard/plugin-core/extension-points';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../../../shared/types/form-data';
@@ -30,7 +31,12 @@ const NewConnectionField: React.FC<Props> = ({
   modelLocationData,
   connectionType,
 }) => {
-  const { ConnectionTypeFormFields } = useHostApi();
+  const [formFieldExtensions, extensionsLoaded] = useResolvedExtensions(
+    isConnectionTypeFormFieldsExtension,
+  );
+  const ConnectionTypeFormFields = extensionsLoaded
+    ? formFieldExtensions[0]?.properties.component.default
+    : undefined;
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
     return modelLocationData.fieldValues;
@@ -111,13 +117,15 @@ const NewConnectionField: React.FC<Props> = ({
 
   return (
     <FormGroup>
-      <ConnectionTypeFormFields
-        fields={fields}
-        isPreview={false}
-        isDisabled={modelLocationData?.disableInputFields}
-        onChange={handleFieldChange}
-        connectionValues={connectionValues}
-      />
+      {ConnectionTypeFormFields ? (
+        <ConnectionTypeFormFields
+          fields={fields}
+          isPreview={false}
+          isDisabled={modelLocationData?.disableInputFields}
+          onChange={handleFieldChange}
+          connectionValues={connectionValues}
+        />
+      ) : null}
       {renderAdditionalFields()}
       <CreateConnectionInputFields
         createConnectionData={wizardState.state.createConnectionData.data}
