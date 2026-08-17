@@ -128,6 +128,24 @@ const AutomlConnectionModal: React.FC<Props> = ({
     ? getConnectionProtocolType(selectedConnectionType)
     : undefined;
 
+  // Tracks whether createSecret has already resolved for this modal instance, so a later
+  // close/cancel doesn't emit a conflicting cancel event once a success (or failure) outcome
+  // has already been reported for the creation attempt.
+  const hasCreatedSecretRef = React.useRef(false);
+
+  const handleClose = React.useCallback(() => {
+    // Block close requests (Escape, X button, Cancel button) while creation is in flight —
+    // the Secret may already exist by the time this resolves, so closing now would leave the
+    // parent unaware and could still race with the in-flight submit's own onClose(true) call.
+    if (isSaving) {
+      return;
+    }
+    if (!hasCreatedSecretRef.current) {
+      fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+    }
+    onClose();
+  }, [isSaving, onClose]);
+
   const handleConnectionTypeChange = (name: string) => {
     if (name === selectedConnectionType?.metadata.name) {
       return;
@@ -143,14 +161,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={() => {
-        fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
-        onClose();
-      }}
-      variant="medium"
-    >
+    <Modal isOpen onClose={handleClose} variant="medium">
       <ModalHeader title="Add a connection" />
       <ModalBody>
         <Form>
@@ -182,10 +193,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
       <ModalFooter>
         <DashboardModalFooter
           submitLabel="Add connection"
-          onCancel={() => {
-            fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
-            onClose();
-          }}
+          onCancel={handleClose}
           onSubmit={() => {
             setIsSaving(true);
             setSubmitError(undefined);
@@ -224,6 +232,9 @@ const AutomlConnectionModal: React.FC<Props> = ({
 
               // The Secret now exists — report that outcome immediately, independent of
               // whatever onSubmit does next, so a later onSubmit failure can't overwrite it.
+              // Also mark creation as complete so a later close/cancel doesn't emit a
+              // conflicting cancel event for the same creation attempt.
+              hasCreatedSecretRef.current = true;
               fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
 
               try {

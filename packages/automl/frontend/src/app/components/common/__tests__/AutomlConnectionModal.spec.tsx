@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
@@ -421,5 +421,98 @@ describe('AutomlConnectionModal', () => {
       expect.objectContaining({ success: false }),
     );
     expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should not emit a conflicting cancel event when Cancel is clicked after onSubmit rejects', async () => {
+    const user = userEvent.setup();
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+    await user.click(screen.getByRole('button', { name: 'Add connection' }));
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    fireAutomlS3ConnectionCreatedMock.mockClear();
+
+    // The Secret was already reported as created (success: true) above. Cancelling now, after
+    // the async onSubmit failed, must not emit a second, conflicting cancel event for the same
+    // creation attempt.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+    expect(onCloseMock).toHaveBeenCalledWith();
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should block close attempts (Cancel and Escape) while createSecret is still pending', async () => {
+    const user = userEvent.setup();
+    let resolveCreateSecret: (() => void) | undefined;
+    createSecretMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreateSecret = () => resolve({} as Awaited<ReturnType<typeof createSecretMock>>);
+      }),
+    );
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+    await user.click(screen.getByRole('button', { name: 'Add connection' }));
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).not.toHaveBeenCalled();
+
+    // Creation is still pending — a Cancel click must not close the modal or fire a cancel
+    // event, since the Secret may still be created out from under a closed modal.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Escape must be blocked the same way, since it reaches the same close handler.
+    await user.keyboard('{Escape}');
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Once creation resolves, the normal flow proceeds and the modal is allowed to close.
+    resolveCreateSecret?.();
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
   });
 });
