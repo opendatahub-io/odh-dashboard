@@ -44,6 +44,7 @@ import {
   isRunInProgress,
   orderPatternsByLeaderboardRank,
 } from '~/app/utilities/utils';
+import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
@@ -320,6 +321,7 @@ type AutoragLeaderboardProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
+  onRunIndexingPipeline?: (patternName: string) => void;
 };
 
 function AutoragLeaderboard({
@@ -327,6 +329,7 @@ function AutoragLeaderboard({
   onSaveNotebook,
   onTryPattern,
   onViewCode,
+  onRunIndexingPipeline,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
@@ -1057,6 +1060,15 @@ function AutoragLeaderboard({
                               {
                                 title: 'View code',
                                 onClick: () => onViewCode(entry.patternKey),
+                              },
+                            ]
+                          : []),
+                        ...(onRunIndexingPipeline &&
+                        patternHasIndexingPipelineSpec(patterns[entry.patternKey])
+                          ? [
+                              {
+                                title: 'Run indexing pipeline',
+                                onClick: () => onRunIndexingPipeline(entry.patternKey),
                               },
                             ]
                           : []),

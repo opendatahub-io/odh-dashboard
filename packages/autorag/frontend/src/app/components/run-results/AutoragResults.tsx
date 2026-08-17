@@ -1,9 +1,11 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { fetchS3File } from '~/app/hooks/queries';
+import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
+import { useNotification } from '~/app/hooks/useNotification';
+import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
@@ -17,9 +19,11 @@ import {
   normalizePipelineRunState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
+import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
+import RunIndexingPipelineModal from './RunIndexingPipelineModal';
 import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
@@ -31,6 +35,8 @@ type AutoragResultsProps = {
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
+  const notification = useNotification();
   const {
     pipelineRun,
     patterns,
@@ -43,6 +49,31 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     bestPatternKey,
   } = useAutoragResultsContext();
   const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
+  const [runIndexingPatternName, setRunIndexingPatternName] = React.useState<string | null>(null);
+  const [runIndexingError, setRunIndexingError] = React.useState<string | null>(null);
+
+  const {
+    data: managedPipelines,
+    isError: managedPipelinesQueryFailed,
+    error: managedPipelinesQueryError,
+  } = useManagedPipelinesQuery(namespace);
+  const indexingPipelineAvailable = React.useMemo(
+    () => managedPipelines?.some((pipeline) => pipeline.pipeline_type === 'indexing') ?? false,
+    [managedPipelines],
+  );
+
+  React.useEffect(() => {
+    if (!managedPipelinesQueryFailed) {
+      return;
+    }
+    notification.warning(
+      'Unable to check managed pipelines',
+      managedPipelinesQueryError instanceof Error
+        ? `Some features may not be available. ${managedPipelinesQueryError.message}`
+        : 'Some features may not be available.',
+    );
+  }, [managedPipelinesQueryFailed, managedPipelinesQueryError, notification]);
+  const createIndexingRunMutation = useCreateIndexingPipelineRunMutation(namespace ?? '');
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
@@ -165,6 +196,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     [selectedPatternName, patternsArray],
   );
 
+  const runIndexingPattern = runIndexingPatternName ? patterns[runIndexingPatternName] : undefined;
+
   const [downloadError, setDownloadError] = React.useState<{
     patternName: string;
     message: string;
@@ -173,6 +206,59 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   const handleViewDetails = React.useCallback((patternName: string) => {
     setSelectedPatternName(patternName);
   }, []);
+
+  const handleOpenRunIndexing = React.useCallback(
+    (patternName: string) => {
+      setRunIndexingError(null);
+      createIndexingRunMutation.reset();
+      setRunIndexingPatternName(patternName);
+    },
+    [createIndexingRunMutation],
+  );
+
+  const handleCloseRunIndexing = React.useCallback(() => {
+    if (createIndexingRunMutation.isPending) {
+      return;
+    }
+    setRunIndexingPatternName(null);
+    setRunIndexingError(null);
+  }, [createIndexingRunMutation.isPending]);
+
+  const handleConfirmRunIndexing = React.useCallback(
+    async ({ runName, description }: { runName: string; description?: string }) => {
+      if (!namespace || !runIndexingPattern) {
+        setRunIndexingError('Pattern or namespace is not available. Please try again.');
+        return;
+      }
+
+      const requestOrError = buildIndexingPipelineRunRequest(
+        runIndexingPattern,
+        runName,
+        description,
+      );
+      if ('error' in requestOrError) {
+        setRunIndexingError(requestOrError.error);
+        return;
+      }
+
+      setRunIndexingError(null);
+      try {
+        const run = await createIndexingRunMutation.mutateAsync(requestOrError);
+        setRunIndexingPatternName(null);
+        const runPath = `/develop-train/pipelines/runs/${namespace}/runs/${run.run_id}`;
+        notification.success('Indexing pipeline run has been started', undefined, [
+          {
+            title: 'View run',
+            onClick: () => navigate(runPath),
+          },
+        ]);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        setRunIndexingError(errorMessage);
+      }
+    },
+    [namespace, runIndexingPattern, createIndexingRunMutation, notification, navigate],
+  );
 
   const handleSaveNotebook = React.useCallback(
     async (patternName: string, notebookType: 'indexing' | 'inference') => {
@@ -217,6 +303,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
+  const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;
+
   return (
     <>
       <Stack hasGutter>
@@ -250,6 +338,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             onSaveNotebook={handleSaveNotebook}
             onTryPattern={onTryPattern}
             onViewCode={onViewCode}
+            onRunIndexingPipeline={runIndexingHandler}
           />
         </StackItem>
       </Stack>
@@ -268,9 +357,19 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             onSaveNotebook={handleSaveNotebook}
             onTryPattern={onTryPattern}
             onViewCode={onViewCode}
+            onRunIndexingPipeline={runIndexingHandler}
           />
         </React.Suspense>
       )}
+      <RunIndexingPipelineModal
+        isOpen={runIndexingPatternName !== null}
+        onClose={handleCloseRunIndexing}
+        onConfirm={handleConfirmRunIndexing}
+        isSubmitting={createIndexingRunMutation.isPending}
+        pattern={runIndexingPattern}
+        sourceRunName={pipelineRun?.display_name}
+        errorMessage={runIndexingError}
+      />
     </>
   );
 }

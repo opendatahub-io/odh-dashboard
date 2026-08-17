@@ -17,6 +17,14 @@ const (
 	pipelinePrefix = "documents-rag-optimization-pipeline"
 )
 
+const (
+	ragPipelineID             = "e7eda8ed-d10c-4ed1-9db7-fef992cdd7a3"
+	ragPipelineVersionID      = "59534d80-7597-4abe-8eda-f33369cd22d7"
+	indexingPipelineID        = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	indexingPipelineVersionID = "b2c3d4e5-f6a7-8901-bcde-f01234567891"
+	defaultExperimentID       = "5942a476-a034-4fcb-9f87-4da694115f50"
+)
+
 // fakePipelineSpec includes a publish-component-stage-map task so the frontend
 // activates the stage-map topology path. Component IDs in the stage map
 // (e.g. "test_data_loader") map to task IDs via componentIdToTaskId() which
@@ -59,12 +67,6 @@ var fakePipelineSpec = json.RawMessage(`{
     }
   }
 }`)
-
-const (
-	ragPipelineID        = "e7eda8ed-d10c-4ed1-9db7-fef992cdd7a3"
-	ragPipelineVersionID = "59534d80-7597-4abe-8eda-f33369cd22d7"
-	defaultExperimentID  = "5942a476-a034-4fcb-9f87-4da694115f50"
-)
 
 // PipelinesClient is a stateful fake implementation of pipelines.Client.
 type PipelinesClient struct {
@@ -196,8 +198,9 @@ func (c *PipelinesClient) ListPipelines(_ context.Context, _ string, _ string) (
 	return &plsvc.PipelinesResponse{
 		Pipelines: []plsvc.Pipeline{
 			{PipelineID: ragPipelineID, DisplayName: "documents-rag-optimization-pipeline"},
+			{PipelineID: indexingPipelineID, DisplayName: "documents-indexing-pipeline"},
 		},
-		TotalSize: 1,
+		TotalSize: 2,
 	}, nil
 }
 
@@ -211,9 +214,14 @@ func (c *PipelinesClient) GetPipelineVersion(_ context.Context, _ string, pipeli
 }
 
 func (c *PipelinesClient) ListPipelineVersions(_ context.Context, _ string, pipelineID string) (*plsvc.PipelineVersionsResponse, error) {
+	versionID := ragPipelineVersionID
+	displayName := "3.5.0"
+	if pipelineID == indexingPipelineID {
+		versionID = indexingPipelineVersionID
+	}
 	return &plsvc.PipelineVersionsResponse{
 		PipelineVersions: []plsvc.PipelineVersion{
-			{PipelineVersionID: ragPipelineVersionID, PipelineID: pipelineID, DisplayName: "latest"},
+			{PipelineVersionID: versionID, PipelineID: pipelineID, DisplayName: displayName},
 		},
 		TotalSize: 1,
 	}, nil

@@ -145,8 +145,8 @@ type EnvConfig struct {
 	// Default: "autogluon-tabular-training-pipeline"
 	AutoMLTabularPipelineNamePrefix string
 
-	// PipelineVersionSuffix is the release version suffix appended to pipeline version
-	// names during discovery (e.g. "<prefix>-<suffix>"). Override via PIPELINE_VERSION_SUFFIX
+	// PipelineVersionSuffix is the release version used as the preferred pipeline version
+	// display name during discovery. Override via PIPELINE_VERSION_SUFFIX
 	// env var when the deployed pipeline version differs from the built-in default.
 	// Default: constants.DefaultPipelineVersionSuffix
 	PipelineVersionSuffix string
