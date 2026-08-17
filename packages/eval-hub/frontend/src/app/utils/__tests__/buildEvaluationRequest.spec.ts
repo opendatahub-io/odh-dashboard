@@ -140,13 +140,13 @@ describe('buildEvaluationRequest', () => {
       accessToken: 'tok-123',
     };
 
-    it('should use sourceName as model.name and set url to empty', () => {
+    it('should use sourceName as model.name and omit url', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
       expect(result.model.name).toBe('gpt-4o');
-      expect(result.model.url).toBe('');
+      expect(result.model).not.toHaveProperty('url');
     });
 
     it('should not include model.auth even if apiKeySecretRef is set', () => {

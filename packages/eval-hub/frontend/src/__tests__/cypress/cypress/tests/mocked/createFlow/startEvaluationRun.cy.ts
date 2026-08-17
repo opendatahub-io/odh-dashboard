@@ -581,7 +581,7 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
 
     cy.wait('@createPrerecordedJob').then((interception) => {
       expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
-      expect(interception.request.body.model).to.have.property('url', '');
+      expect(interception.request.body.model).to.not.have.property('url');
       expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
         type: 'pre_recorded_data',
         s3: {

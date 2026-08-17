@@ -120,7 +120,7 @@ const buildEvaluationRequest = ({
   return {
     name: evaluationName.trim(),
     model: {
-      url: resolvedUrl,
+      ...(resolvedUrl ? { url: resolvedUrl } : {}),
       name: resolvedModelName,
       // eslint-disable-next-line camelcase
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
