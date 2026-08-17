@@ -202,6 +202,7 @@ describe('EvaluationStatusModal download', () => {
     const job = mockEvaluationJob({ state: 'running' });
     job.status.benchmarks = makeBenchmarks([
       { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
     ]);
 
     renderModal(job);
@@ -277,11 +278,9 @@ describe('EvaluationStatusModal benchmark summary', () => {
 
   it('should not show benchmark summary for single-benchmark jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Job failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -380,7 +379,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_origin: 'runtime',
     };
 
@@ -393,7 +391,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_code: 'quota_exceeded',
     };
 
@@ -406,7 +403,6 @@ describe('EvaluationStatusModal failure detail labels', () => {
     const job = mockEvaluationJob({ state: 'failed' });
     job.status.message = {
       message: 'Error occurred',
-      // eslint-disable-next-line camelcase
       message_code: 'some_new_code',
     };
 
@@ -443,13 +439,11 @@ describe('EvaluationStatusModal running state header', () => {
 
   it('should show benchmark progress count', () => {
     const job = mockEvaluationJob({ state: 'running' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'completed' },
       { id: 'bm-b', benchmark_index: 1, status: 'running' },
       { id: 'bm-c', benchmark_index: 2, status: 'pending' },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -473,10 +467,8 @@ describe('EvaluationStatusModal running state header', () => {
 describe('EvaluationStatusModal description text', () => {
   it('should show success message with total time for completed jobs', () => {
     const job = mockEvaluationJob({ state: 'completed' });
-    /* eslint-disable camelcase */
     job.resource.created_at = '2026-02-20T10:00:00Z';
     job.resource.updated_at = '2026-02-20T10:05:12Z';
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -494,10 +486,8 @@ describe('EvaluationStatusModal description text', () => {
 
   it('should show elapsed time for failed jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something went wrong' });
-    /* eslint-disable camelcase */
     job.resource.created_at = '2026-02-20T10:00:00Z';
     job.resource.updated_at = '2026-02-20T10:17:23Z';
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -509,13 +499,11 @@ describe('EvaluationStatusModal description text', () => {
 describe('EvaluationStatusModal failure summary alert', () => {
   it('should show failure summary alert for multi-benchmark failed jobs', () => {
     const job = mockEvaluationJob({ state: 'partially_failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err-a' } },
       { id: 'bm-b', benchmark_index: 1, status: 'completed' },
       { id: 'bm-c', benchmark_index: 2, status: 'failed', error_message: { message: 'err-c' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -527,11 +515,9 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
   it('should show job error message for single-benchmark failed jobs', () => {
     const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Job crashed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -563,7 +549,6 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
     try {
       const job = mockEvaluationJob({ state: 'partially_failed' });
-      /* eslint-disable camelcase */
       job.status.benchmarks = [
         {
           id: 'bm-a',
@@ -579,7 +564,6 @@ describe('EvaluationStatusModal failure summary alert', () => {
           error_message: { message: 'err-c' },
         },
       ];
-      /* eslint-enable camelcase */
 
       render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -632,7 +616,12 @@ describe('EvaluationStatusModal log parsing', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
@@ -647,7 +636,12 @@ describe('EvaluationStatusModal log parsing', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
@@ -690,7 +684,6 @@ describe('EvaluationStatusModal log parsing', () => {
 describe('EvaluationStatusModal view benchmark logs', () => {
   it('should switch to events-log tab when "View logs" is clicked for a failed benchmark', () => {
     const job = mockEvaluationJob({ state: 'failed' });
-    /* eslint-disable camelcase */
     job.status.benchmarks = [
       {
         id: 'bm-a',
@@ -699,7 +692,6 @@ describe('EvaluationStatusModal view benchmark logs', () => {
         error_message: { message: 'err' },
       },
     ];
-    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
@@ -798,7 +790,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'running' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -823,7 +820,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'toxigen', benchmark_index: 0, status: 'running' },
+      { id: 'arc_easy', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -884,7 +886,12 @@ describe('EvaluationStatusModal log level filter', () => {
       refresh: jest.fn(),
     });
 
-    renderModal();
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'toxigen', benchmark_index: 0, status: 'running' },
+      { id: 'arc_easy', benchmark_index: 1, status: 'running' },
+    ]);
+    renderModal(job);
     switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
@@ -921,8 +928,10 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
 
   it('should pass benchmark index after selecting a benchmark', () => {
     const job = mockEvaluationJob({ state: 'running' });
-    // eslint-disable-next-line camelcase
-    job.status.benchmarks = [{ id: 'bm-a', benchmark_index: 0, status: 'completed' }];
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+    ]);
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
     switchToEventsLog();
@@ -932,10 +941,21 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
 
     expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
   });
+
+  it('should hide the benchmark selector when there is only one benchmark', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    job.status.benchmarks = makeBenchmarks([
+      { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+    ]);
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    switchToEventsLog();
+
+    expect(screen.queryByTestId('benchmark-log-selector')).not.toBeInTheDocument();
+  });
 });
 
 describe('EvaluationStatusModal pre-start failure', () => {
-  /* eslint-disable camelcase */
   it('should show "Not started" when no benchmark has started_at or error_message', () => {
     const job = mockEvaluationJob({
       state: 'failed',
@@ -1033,7 +1053,6 @@ describe('EvaluationStatusModal pre-start failure', () => {
     expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('Not started');
     expect(screen.getByTestId('status-detail-header')).not.toHaveTextContent('Not started');
   });
-  /* eslint-enable camelcase */
 });
 
 describe('EvaluationStatusModal stop button', () => {

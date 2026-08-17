@@ -337,14 +337,16 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
 
   const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
 
+  const isSingleBenchmark = benchmarks.length <= 1;
+
   const filteredLogEntries = React.useMemo(() => {
     if (logLevelFilter === 'all') {
-      return logEntries;
+      return isSingleBenchmark ? logEntries.filter((e) => !e.isSectionHeader) : logEntries;
     }
 
     const filtered = logEntries.filter((entry) => {
       if (entry.isSectionHeader) {
-        return true;
+        return !isSingleBenchmark;
       }
       if (logLevelFilter === 'warnings') {
         return entry.level === 'warning' || entry.level === 'error';
@@ -375,7 +377,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     }
 
     return result;
-  }, [logEntries, logLevelFilter]);
+  }, [logEntries, logLevelFilter, isSingleBenchmark]);
 
   const hasLogContent =
     logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
@@ -391,41 +393,44 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     <Stack hasGutter>
       <StackItem>
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-          <FlexItem>
-            <Select
-              isOpen={isBenchmarkSelectOpen}
-              onOpenChange={setIsBenchmarkSelectOpen}
-              onSelect={(_e, value) => {
-                setSelectedBenchmark(String(value));
-                setIsBenchmarkSelectOpen(false);
-              }}
-              selected={selectedBenchmark}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsBenchmarkSelectOpen((prev) => !prev)}
-                  isExpanded={isBenchmarkSelectOpen}
-                  data-testid="benchmark-log-selector"
-                >
-                  {selectedBenchmark === ALL_BENCHMARKS
-                    ? 'All benchmarks'
-                    : (benchmarks.find((b) => b.benchmark_index === parseInt(selectedBenchmark, 10))
-                        ?.id ?? `Benchmark ${selectedBenchmark}`)}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
-                {benchmarks.map((bm) =>
-                  bm.benchmark_index != null ? (
-                    <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
-                      {bm.id}
-                    </SelectOption>
-                  ) : null,
+          {benchmarks.length > 1 ? (
+            <FlexItem>
+              <Select
+                isOpen={isBenchmarkSelectOpen}
+                onOpenChange={setIsBenchmarkSelectOpen}
+                onSelect={(_e, value) => {
+                  setSelectedBenchmark(String(value));
+                  setIsBenchmarkSelectOpen(false);
+                }}
+                selected={selectedBenchmark}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsBenchmarkSelectOpen((prev) => !prev)}
+                    isExpanded={isBenchmarkSelectOpen}
+                    data-testid="benchmark-log-selector"
+                  >
+                    {selectedBenchmark === ALL_BENCHMARKS
+                      ? 'All benchmarks'
+                      : (benchmarks.find(
+                          (b) => b.benchmark_index === parseInt(selectedBenchmark, 10),
+                        )?.id ?? `Benchmark ${selectedBenchmark}`)}
+                  </MenuToggle>
                 )}
-              </SelectList>
-            </Select>
-          </FlexItem>
+              >
+                <SelectList>
+                  <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
+                  {benchmarks.map((bm) =>
+                    bm.benchmark_index != null ? (
+                      <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
+                        {bm.id}
+                      </SelectOption>
+                    ) : null,
+                  )}
+                </SelectList>
+              </Select>
+            </FlexItem>
+          ) : null}
           <FlexItem>
             <Tooltip content={`Filter: ${LOG_LEVEL_FILTER_LABELS[logLevelFilter]}`}>
               <Dropdown
