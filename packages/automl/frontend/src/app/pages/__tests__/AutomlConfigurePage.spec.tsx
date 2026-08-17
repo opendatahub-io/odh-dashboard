@@ -10,7 +10,7 @@ import {
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
-import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+import { AUTOML_EVENTS, AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
 
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
@@ -759,6 +759,16 @@ describe('AutomlConfigurePage', () => {
           'Pipeline creation failed',
         );
       });
+
+      // The in-product notification may keep the detailed message, but analytics must only
+      // ever see the fixed, allowlisted failure category — never the raw Error.message, which
+      // may originate from the backend/proxy and embed sensitive details.
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.RUN_CREATED,
+        expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
+      );
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('Pipeline creation failed');
     });
 
     it('should show generic error when error is not an Error instance', async () => {
@@ -1376,8 +1386,13 @@ describe('AutomlConfigurePage', () => {
             changedFields: 'predictionType,optimizationMetric,targetColumn',
             outcome: 'submit',
             success: false,
+            // Analytics must only ever see the fixed, allowlisted failure category — never
+            // the raw Error.message, which may embed backend/proxy-originated sensitive details.
+            error: AUTOML_FAILURE_CATEGORY,
           }),
         );
+        const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+        expect(allTrackingCalls).not.toContain('Pipeline creation failed');
       });
     });
   });

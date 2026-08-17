@@ -96,17 +96,31 @@ export type AutomlExitDestination = 'experimentsList' | 'home' | 'otherAutoml' |
  */
 export type ModelActionSource = 'leaderboard' | 'modelDetailsModal';
 
+/**
+ * Allowlisted, non-sensitive failure category for outcome-tracking `error` fields.
+ * `Error.message` from run actions, configuration, and model registration failures may
+ * originate from the backend, a proxy, or a dependency, and can embed credentials, tenant
+ * identifiers, resource details, user input, or internal endpoint information. Never forward
+ * a raw error message into analytics — detailed messages belong only in the in-product
+ * notification shown via `useNotification`. Callers must map caught errors to this fixed set
+ * before passing them to an outcome-tracking event.
+ */
+export type AutomlFailureCategory = 'actionFailed';
+
+/** The single allowlisted failure category currently in use — see {@link AutomlFailureCategory}. */
+export const AUTOML_FAILURE_CATEGORY: AutomlFailureCategory = 'actionFailed';
+
 export type RunOutcomeTrackingProperties = {
   outcome: TrackingOutcome;
   success?: boolean;
-  error?: string;
+  error?: AutomlFailureCategory;
   source?: RunActionSource;
 };
 
 export type ModelActionOutcomeProperties = {
   outcome: TrackingOutcome;
   success?: boolean;
-  error?: string;
+  error?: AutomlFailureCategory;
   source?: ModelActionSource;
 };
 

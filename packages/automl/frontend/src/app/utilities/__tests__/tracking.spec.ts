@@ -5,6 +5,7 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTOML_EVENTS,
+  AUTOML_FAILURE_CATEGORY,
   fireAutomlBacktestWindowMetricViewed,
   fireAutomlFlowExited,
   fireAutomlLeaderboardSorted,
@@ -243,13 +244,17 @@ describe('AutoML tracking event firers', () => {
     });
   });
 
-  it('should fire AutoML Run Retried', () => {
-    fireAutomlRunRetried({ outcome: TrackingOutcome.submit, success: false, error: 'boom' });
+  it('should fire AutoML Run Retried with the allowlisted failure category, not a raw message', () => {
+    fireAutomlRunRetried({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTOML_FAILURE_CATEGORY,
+    });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_RETRIED, {
       outcome: TrackingOutcome.submit,
       success: false,
-      error: 'boom',
+      error: AUTOML_FAILURE_CATEGORY,
     });
   });
 

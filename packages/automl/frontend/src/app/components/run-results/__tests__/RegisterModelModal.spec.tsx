@@ -2,7 +2,12 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  UseMutationOptions,
+} from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { AutomlResultsContextProps } from '~/app/context/AutomlResultsContext';
@@ -10,14 +15,33 @@ import * as modelRegistryApi from '~/app/api/modelRegistry';
 import * as useModelRegistriesQueryModule from '~/app/hooks/useModelRegistriesQuery';
 import type { ModelRegistriesResponse } from '~/app/types';
 import RegisterModelModal from '~/app/components/run-results/RegisterModelModal';
+import { AUTOML_FAILURE_CATEGORY, fireAutomlModelRegistered } from '~/app/utilities/tracking';
 
 jest.mock('~/app/api/modelRegistry');
 jest.mock('~/app/hooks/useModelRegistriesQuery');
+
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutomlModelRegistered: jest.fn(),
+}));
+
+// `useMutation` is spied on (delegating to the real implementation) purely to capture the
+// `onError` callback the component registers, so it can be invoked directly below — the full
+// submit-via-UI flow requires a PF6 Select interaction that doesn't work in JSDOM (see the
+// 'submission' describe block).
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useMutation: jest.fn(),
+}));
 
 const mockRegisterModel = jest.mocked(modelRegistryApi.registerModel);
 const mockUseModelRegistriesQuery = jest.mocked(
   useModelRegistriesQueryModule.useModelRegistriesQuery,
 );
+const fireAutomlModelRegisteredMock = jest.mocked(fireAutomlModelRegistered);
+const useMutationMock = jest.mocked(useMutation);
+const actualUseMutation =
+  jest.requireActual<typeof import('@tanstack/react-query')>('@tanstack/react-query').useMutation;
 
 // Helper to create partial UseQueryResult mocks without full type ceremony
 const mockQueryResult = (
@@ -102,9 +126,18 @@ const renderModal = (
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let capturedMutationOptions: UseMutationOptions<any, unknown, any> | undefined;
+
 describe('RegisterModelModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    capturedMutationOptions = undefined;
+    useMutationMock.mockImplementation((options) => {
+      capturedMutationOptions = options;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+      return actualUseMutation(options as any);
+    });
   });
 
   describe('loading state', () => {
@@ -390,6 +423,31 @@ describe('RegisterModelModal', () => {
       // Submit is disabled without registry
       expect(screen.getByTestId('register-model-submit')).toBeDisabled();
       expect(mockRegisterModel).not.toHaveBeenCalled();
+    });
+
+    it('should fire the allowlisted failure category, not the raw error message, on registration failure', () => {
+      renderModal();
+
+      // `useMutation` is spied on above purely to capture the component's `onError` callback,
+      // sidestepping the PF6 Select interaction limitation noted above.
+      expect(capturedMutationOptions?.onError).toBeDefined();
+      capturedMutationOptions?.onError?.(
+        new Error('registry rejected request: tenant=acme-corp key=AKIAabc123'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+        undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+      );
+
+      // Analytics must only ever see the fixed, allowlisted failure category — never the raw
+      // Error.message, which may originate from the backend/proxy and embed sensitive details.
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
+      );
+      const allTrackingCalls = JSON.stringify(fireAutomlModelRegisteredMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-corp');
+      expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
   });
 

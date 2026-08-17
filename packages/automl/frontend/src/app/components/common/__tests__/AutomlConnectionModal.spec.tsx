@@ -334,7 +334,9 @@ describe('AutomlConnectionModal', () => {
 
   it('should not call onClose with true when createSecret rejects', async () => {
     const user = userEvent.setup();
-    createSecretMock.mockRejectedValueOnce(new Error('API error'));
+    createSecretMock.mockRejectedValueOnce(
+      new Error('AWS_SECRET_ACCESS_KEY=super-secret-value; endpoint=internal-proxy.svc:8443'),
+    );
 
     render(
       <AutomlConnectionModal
@@ -365,9 +367,15 @@ describe('AutomlConnectionModal', () => {
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();
     expect(onCloseMock).not.toHaveBeenCalledWith(true);
+    // Analytics must only ever see the fixed, allowlisted failure category — never the raw
+    // Error.message, which may contain credentials, tenant identifiers, or internal endpoints.
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
     expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false, error: 'API error' }),
+      expect.objectContaining({ success: false, error: tracking.AUTOML_FAILURE_CATEGORY }),
     );
+    const allCallArgs = JSON.stringify(fireAutomlS3ConnectionCreatedMock.mock.calls);
+    expect(allCallArgs).not.toContain('super-secret-value');
+    expect(allCallArgs).not.toContain('internal-proxy.svc');
   });
 
   it('should report success once createSecret resolves, even if onSubmit later rejects', async () => {

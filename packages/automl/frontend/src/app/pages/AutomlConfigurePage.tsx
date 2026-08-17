@@ -28,6 +28,7 @@ import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 import {
+  AUTOML_FAILURE_CATEGORY,
   fireAutomlFlowExited,
   fireAutomlRunCreated,
   fireAutomlRunDetailsDefined,
@@ -336,7 +337,7 @@ function AutomlConfigurePage({
                       changedFields,
                       outcome: TrackingOutcome.submit,
                       success: false,
-                      error: errorMessage,
+                      error: AUTOML_FAILURE_CATEGORY,
                       source: reconfigureSource,
                     });
                   } else {
@@ -344,7 +345,7 @@ function AutomlConfigurePage({
                       ...trackingProperties,
                       outcome: TrackingOutcome.submit,
                       success: false,
-                      error: errorMessage,
+                      error: AUTOML_FAILURE_CATEGORY,
                     });
                   }
                   notification.error('Failed to create pipeline run', errorMessage);

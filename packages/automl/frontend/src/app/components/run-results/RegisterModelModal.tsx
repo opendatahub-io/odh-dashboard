@@ -29,6 +29,7 @@ import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
+  AUTOML_FAILURE_CATEGORY,
   fireAutomlModelRegistered,
   TrackingOutcome,
   type ModelActionSource,
@@ -139,7 +140,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
         outcome: TrackingOutcome.submit,
         success: false,
         source,
-        error: errorMessage,
+        error: AUTOML_FAILURE_CATEGORY,
       });
     },
   });

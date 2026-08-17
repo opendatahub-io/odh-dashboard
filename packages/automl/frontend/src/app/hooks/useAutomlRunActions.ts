@@ -7,6 +7,7 @@ import {
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
+  AUTOML_FAILURE_CATEGORY,
   fireAutomlRunDeleted,
   fireAutomlRunRetried,
   fireAutomlRunStopped,
@@ -54,7 +55,7 @@ export const useAutomlRunActions = (
       fireAutomlRunRetried({
         outcome: TrackingOutcome.submit,
         success: false,
-        error: errorMessage,
+        error: AUTOML_FAILURE_CATEGORY,
         source,
       });
       throw error;
@@ -81,7 +82,7 @@ export const useAutomlRunActions = (
       fireAutomlRunStopped({
         outcome: TrackingOutcome.submit,
         success: false,
-        error: errorMessage,
+        error: AUTOML_FAILURE_CATEGORY,
         source,
       });
       throw error;
@@ -108,7 +109,7 @@ export const useAutomlRunActions = (
       fireAutomlRunDeleted({
         outcome: TrackingOutcome.submit,
         success: false,
-        error: errorMessage,
+        error: AUTOML_FAILURE_CATEGORY,
         source,
       });
       throw error;

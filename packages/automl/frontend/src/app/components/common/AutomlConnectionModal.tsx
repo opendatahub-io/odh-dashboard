@@ -20,7 +20,11 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { fireAutomlS3ConnectionCreated, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlS3ConnectionCreated,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
 
@@ -213,7 +217,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
                 fireAutomlS3ConnectionCreated({
                   outcome: TrackingOutcome.submit,
                   success: false,
-                  error: e instanceof Error ? e.message : undefined,
+                  error: AUTOML_FAILURE_CATEGORY,
                 });
                 return;
               }
