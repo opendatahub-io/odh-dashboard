@@ -123,6 +123,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         submitButtonText={primaryButtonText}
         onOverwrite={onOverwrite}
         onRefresh={onRefresh}
+        deploymentName={wizardFormData.state.k8sNameDesc.data.name}
       />
     ),
     [
@@ -133,6 +134,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       primaryButtonText,
       onRefresh,
       onOverwrite,
+      wizardFormData.state.k8sNameDesc.data.name,
     ],
   );
 
@@ -193,6 +195,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 isLoading={isLoading}
                 error={submitError}
                 clearError={clearSubmitError}
+                deploymentName={wizardFormData.state.k8sNameDesc.data.name}
               />
             </PageSection>
           </>
