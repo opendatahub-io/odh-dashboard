@@ -79,7 +79,10 @@ describe('Feature Store Create Page', () => {
     featureStoreCreatePage.findBackButton().should('be.disabled');
   });
 
-  it('should navigate back to overview when Cancel is clicked', () => {
+  it('should navigate back to the previous page when Cancel is clicked', () => {
+    cy.visitWithLogin(
+      '/develop-train/feature-store/overview?devFeatureFlags=Feature+store+plugin%3Dtrue',
+    );
     featureStoreCreatePage.visit();
     featureStoreCreatePage.findCancelButton().click();
     cy.url().should('include', '/feature-store/overview');

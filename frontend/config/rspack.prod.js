@@ -1,11 +1,21 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-const { merge } = require('webpack-merge');
+const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { rimrafSync } = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
+const getRsdoctorPlugin = () => {
+  if (process.env.RSDOCTOR !== 'true') {
+    return [];
+  }
+  // Lazy-require: @rsdoctor/rspack-plugin depends on @rspack/resolver, which has no
+  // native bindings for s390x/ppc64le. Container builds must not load it.
+  const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+  return [new RsdoctorRspackPlugin()];
+};
+
 setupDotenvFilesForEnv({ env: 'production' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -28,26 +38,10 @@ module.exports = merge(
       }),
     ],
   },
-  webpackCommon('production'),
+  rspackCommon('production'),
   {
     mode: 'production',
     devtool: 'source-map',
-    // Rspack 2 defaults omit assets/modules from stats JSON; enable them for
-    // `build:bundle-profile` / webpack-bundle-analyzer (`_ODH_OUTPUT_ONLY=true`).
-    ...(OUTPUT_ONLY === 'true'
-      ? {
-          stats: {
-            all: false,
-            ids: true,
-            assets: true,
-            chunks: true,
-            modules: true,
-            entrypoints: true,
-            chunkGroups: true,
-            reasons: true,
-          },
-        }
-      : {}),
     output: {
       filename: '[name].[contenthash].js',
     },
@@ -63,6 +57,9 @@ module.exports = merge(
         filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
+      // Only enable when analyzing — increases build time.
+      // See https://rspack.rs/guide/optimization/use-rsdoctor
+      ...getRsdoctorPlugin(),
     ],
   },
 );

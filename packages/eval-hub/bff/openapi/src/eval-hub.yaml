@@ -683,6 +683,7 @@ components:
         message_origin:
           type: string
           description: Origin of the error (server, runtime, adapter, sdk)
+          enum: [server, runtime, adapter, sdk]
 
     JobResource:
       type: object
@@ -742,12 +743,20 @@ components:
           type: string
         provider_id:
           type: string
+        benchmark_index:
+          type: integer
+          minimum: 0
         status:
           type: string
+        started_at:
+          type: string
+          format: date-time
         completed_at:
           type: string
           format: date-time
         error_message:
+          $ref: '#/components/schemas/JobMessage'
+        warning_message:
           $ref: '#/components/schemas/JobMessage'
 
     BenchmarkResult:

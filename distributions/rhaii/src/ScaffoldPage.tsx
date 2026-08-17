@@ -15,7 +15,7 @@ const ScaffoldPage: React.FC = () => (
     <Content component={ContentVariants.h1}>Scaffold Plugin</Content>
     <Content component={ContentVariants.p}>
       This page validates that the RHAII distribution pattern is working correctly. The extension
-      loading pipeline, provider wiring, and webpack config sharing are all functioning if you can
+      loading pipeline, provider wiring, and rspack config sharing are all functioning if you can
       see this page.
     </Content>
     <Card>
@@ -28,7 +28,7 @@ const ScaffoldPage: React.FC = () => (
             Base shell components are importable from rhaii
           </ListItem>
           <ListItem icon={<CheckCircleIcon />}>
-            Webpack config sharing via webpack-merge works
+            Rspack config sharing via rspack-merge works
           </ListItem>
           <ListItem icon={<CheckCircleIcon />}>
             PluginStore + ExtensibilityContext loads extensions

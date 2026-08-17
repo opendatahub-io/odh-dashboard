@@ -5,6 +5,8 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
+  HelperText,
+  HelperTextItem,
   Icon,
   // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- custom modal with ProgressStepper timeline and embedded status badge; ContentModal does not support this layout
   Modal,
@@ -28,18 +30,29 @@ import {
   Timestamp,
   TimestampTooltipVariant,
 } from '@patternfly/react-core';
-import { InProgressIcon } from '@patternfly/react-icons';
+import { InProgressIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import {
+  t_global_text_color_status_danger_default as DangerColor,
+  t_global_color_status_warning_300 as WarningColor,
+  t_global_color_nonstatus_purple_400 as PurpleColor,
+  t_global_font_weight_body_bold as BoldWeight,
+} from '@patternfly/react-tokens';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
-import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
+import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
+import {
+  ModelStatusIcon,
+  getDeploymentStatusSubtitleColor,
+} from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import DeploymentResourcesTab from './DeploymentResourcesTab';
 import type {
   Deployment,
   DeploymentCondition,
   DeploymentConditionStatus,
+  DeploymentStatus,
 } from '../../../extension-points';
 
 type DeploymentStatusModalProps = {
@@ -81,12 +94,27 @@ const ConditionTimestamp: React.FC<{ isoString?: string }> = ({ isoString }) => 
 const getMessageColor = (status: DeploymentConditionStatus | undefined): string | undefined => {
   switch (status) {
     case 'False':
-      return 'var(--pf-t--global--text--color--status--danger--default)';
+      return DangerColor.var;
     case 'Warning':
-      return 'var(--pf-t--global--text--color--status--warning--default)';
+      return WarningColor.var;
     default:
       return undefined;
   }
+};
+
+const getConditionMessageColor = (
+  condition: DeploymentCondition,
+  deploymentStatus?: DeploymentStatus | null,
+): string | undefined => {
+  if (
+    condition.type === 'CreatePod' &&
+    deploymentStatus?.kueueStatus?.status &&
+    KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(deploymentStatus.kueueStatus.status)
+  ) {
+    return getDeploymentStatusSubtitleColor(deploymentStatus);
+  }
+  const messageStatus = condition.messageStatus ?? condition.status;
+  return getMessageColor(messageStatus);
 };
 
 /** In-progress steps (e.g. waiting on Kueue) render a spinner instead of the default variant icon. */
@@ -101,9 +129,10 @@ const InProgressStepIcon: React.FC = () => (
 
 const ConditionDescription: React.FC<{
   condition: DeploymentCondition;
-}> = ({ condition }) => {
+  deploymentStatus?: DeploymentStatus | null;
+}> = ({ condition, deploymentStatus }) => {
   const messageStatus = condition.messageStatus ?? condition.status;
-  const messageColor = getMessageColor(messageStatus);
+  const messageColor = getConditionMessageColor(condition, deploymentStatus);
   const showMessage =
     Boolean(condition.message) &&
     (messageStatus === 'False' || messageStatus === 'Warning' || messageStatus === 'Unknown');
@@ -124,7 +153,8 @@ const ConditionDescription: React.FC<{
 
 const ConditionChildren: React.FC<{
   children: DeploymentCondition[];
-}> = ({ children }) => (
+  deploymentStatus?: DeploymentStatus | null;
+}> = ({ children, deploymentStatus }) => (
   <ProgressStepper isVertical style={{ paddingTop: 'var(--pf-t--global--spacer--sm)' }}>
     {children.map((child) => (
       <ProgressStep
@@ -134,7 +164,7 @@ const ConditionChildren: React.FC<{
         aria-label={`${child.label}: ${child.status ?? 'pending'}`}
         id={`condition-child-${child.type}`}
         titleId={`condition-child-${child.type}-title`}
-        description={<ConditionDescription condition={child} />}
+        description={<ConditionDescription condition={child} deploymentStatus={deploymentStatus} />}
         data-testid={`deployment-condition-${child.type}`}
       >
         {child.label}
@@ -143,9 +173,10 @@ const ConditionChildren: React.FC<{
   </ProgressStepper>
 );
 
-const ConditionsProgressStepper: React.FC<{ conditions: DeploymentCondition[] }> = ({
-  conditions,
-}) => (
+const ConditionsProgressStepper: React.FC<{
+  conditions: DeploymentCondition[];
+  deploymentStatus?: DeploymentStatus | null;
+}> = ({ conditions, deploymentStatus }) => (
   <ProgressStepper isVertical data-testid="deployment-status-steps">
     {conditions.map((condition) => (
       <ProgressStep
@@ -157,9 +188,11 @@ const ConditionsProgressStepper: React.FC<{ conditions: DeploymentCondition[] }>
         titleId={`condition-${condition.type}-title`}
         description={
           <>
-            <ConditionDescription condition={condition} />
+            <ConditionDescription condition={condition} deploymentStatus={deploymentStatus} />
             {condition.children && condition.children.length > 0 && (
-              <ConditionChildren>{condition.children}</ConditionChildren>
+              <ConditionChildren deploymentStatus={deploymentStatus}>
+                {condition.children}
+              </ConditionChildren>
             )}
           </>
         }
@@ -173,6 +206,32 @@ const ConditionsProgressStepper: React.FC<{ conditions: DeploymentCondition[] }>
 
 const PROGRESS_TAB = 'progress';
 const RESOURCES_TAB = 'resources';
+
+const DeploymentProgressDisclaimer: React.FC = () => (
+  <HelperText data-testid="deployment-status-progress-disclaimer">
+    <HelperTextItem
+      variant="indeterminate"
+      icon={<InfoCircleIcon style={{ color: PurpleColor.var }} />}
+      style={{ fontWeight: BoldWeight.var }}
+    >
+      Steps may occur in any order, depending on the deployment type.
+    </HelperTextItem>
+  </HelperText>
+);
+
+const DeploymentProgressTab: React.FC<{
+  conditions: DeploymentCondition[];
+  deploymentStatus?: DeploymentStatus | null;
+}> = ({ conditions, deploymentStatus }) => (
+  <Stack hasGutter>
+    <StackItem>
+      <DeploymentProgressDisclaimer />
+    </StackItem>
+    <StackItem>
+      <ConditionsProgressStepper conditions={conditions} deploymentStatus={deploymentStatus} />
+    </StackItem>
+  </Stack>
+);
 
 const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   deployment,
@@ -261,7 +320,7 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                 deploymentName={deployment.model.metadata.name}
               />
             ) : (
-              <ConditionsProgressStepper conditions={conditions} />
+              <DeploymentProgressTab conditions={conditions} deploymentStatus={deployment.status} />
             )}
           </StackItem>
         </Stack>
