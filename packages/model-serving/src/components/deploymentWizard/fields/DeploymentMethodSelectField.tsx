@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   useModelServingClusterSettings,
@@ -105,7 +105,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   externalData,
   isEditing,
 }) => {
-  const { trackEvent } = useHostApi();
+  const { trackEvent } = useHostApiCore();
   const options = externalData?.data.options ?? [];
 
   return (
