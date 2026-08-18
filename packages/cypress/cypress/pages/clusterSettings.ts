@@ -31,44 +31,6 @@ class ClusterSettings {
   }
 }
 
-class ModelSergingSettings extends ClusterSettings {
-  findSinglePlatformSwitch() {
-    return cy.findByTestId('single-model-serving-platform-enabled-switch');
-  }
-
-  findEnableLLMdSwitch() {
-    return cy.findByTestId('enable-llmd-switch');
-  }
-
-  findSinglePlatformDeploymentModeSelect() {
-    return cy.findByTestId('default-deployment-mode-select');
-  }
-
-  findAlert() {
-    return cy.findByTestId('serving-platform-warning-alert');
-  }
-}
-
-class ModelDeploymentSettings extends ClusterSettings {
-  findDistributedInferencing() {
-    return cy.findByTestId('use-distributed-llm-default-switch');
-  }
-
-  findAlert() {
-    return cy.findByText(
-      'To use distributed inferencing, you must configure the inferencing gateway on your cluster.',
-    );
-  }
-
-  findRollingUpdateRadio() {
-    return cy.findByTestId('deployment-strategy-rolling');
-  }
-
-  findRecreateRadio() {
-    return cy.findByTestId('deployment-strategy-recreate');
-  }
-}
-
 class PVCSizeSettings extends ClusterSettings {
   findInput() {
     return cy.findByTestId('pvc-size-input');
@@ -135,8 +97,6 @@ class GlobalProjectSettingsPage extends ClusterSettings {
 }
 
 export const clusterSettings = new ClusterSettings();
-export const modelServingSettings = new ModelSergingSettings();
-export const modelDeploymentSettings = new ModelDeploymentSettings();
 export const pvcSizeSettings = new PVCSizeSettings();
 export const cullerSettings = new CullterSettings();
 export const telemetrySettings = new TelemetrySettings();

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionCloseButton,
   Button,
   Content,
   Tooltip,
@@ -9,9 +8,6 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -23,10 +19,6 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  MenuToggle,
-  Select,
-  SelectList,
-  SelectOption,
   Skeleton,
   Stack,
   StackItem,
@@ -39,33 +31,25 @@ import {
   AngleRightIcon,
   BanIcon,
   CheckCircleIcon,
-  CopyIcon,
-  DownloadIcon,
   ExclamationCircleIcon,
-  FilterIcon,
-  ExclamationTriangleIcon,
   InProgressIcon,
   PendingIcon,
   SyncAltIcon,
   TimesCircleIcon,
 } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
+import { evaluationResultsRoute } from '~/app/routes';
 import {
   formatDate,
   formatDurationCompact,
   getBenchmarkName,
   getEvaluationName,
 } from '~/app/utilities/evaluationUtils';
-import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
-import {
-  getEvaluationJobLogs,
-  getEvaluationJobBenchmarkLogs,
-  isLogApiUnavailable,
-  isLogServerError,
-} from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
+import EvaluationEventLog from './EvaluationEventLog';
 import './EvaluationStatusModal.scss';
 
 type EvaluationStatusModalProps = {
@@ -73,222 +57,9 @@ type EvaluationStatusModalProps = {
   namespace: string;
   polledJobData?: EvaluationJob;
   onClose: () => void;
+  onRequestStop?: (job: EvaluationJob) => void;
+  onRequestReconfigure?: (job: EvaluationJob) => void;
 };
-
-const ALL_BENCHMARKS = 'all';
-const LOG_VIEWER_TAIL_LINES = 1000;
-
-type LogLevelFilter = 'all' | 'warnings' | 'errors';
-
-const LOG_LEVEL_FILTER_LABELS: Record<LogLevelFilter, string> = {
-  all: 'All messages',
-  warnings: 'Warnings and errors',
-  errors: 'Errors only',
-};
-
-const downloadString = (filename: string, data: string): void => {
-  const blob = new Blob([data], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-};
-
-type LogLevel = 'error' | 'warning' | 'info' | 'debug';
-
-type LogEntry = {
-  raw: string;
-  timestamp?: string;
-  level?: LogLevel;
-  message: string;
-  continuation?: string;
-  isSectionHeader: boolean;
-  benchmarkName?: string;
-  isEmptyFilterNotice?: boolean;
-};
-
-const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
-const LOG_LINE_RE =
-  /^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}[,.\d]*)\s+-\s+(\S+)\s+-\s+(INFO|WARNING|ERROR|DEBUG)\s+-\s+([\s\S]*)/i;
-const BENCHMARK_HEADER_RE = /benchmark_id=(\S+)/;
-
-const formatLogTimestamp = (raw: string): string => {
-  const normalized = raw.replace(',', '.').replace(' ', 'T');
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) {
-    return raw;
-  }
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-};
-
-const LOG_LEVEL_MAP: Record<string, LogLevel> = {
-  info: 'info',
-  warning: 'warning',
-  error: 'error',
-  debug: 'debug',
-};
-
-// eslint-disable-next-line no-control-regex -- intentional: strips ANSI escape sequences from log output
-const ANSI_RE = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
-const stripAnsi = (text: string): string => text.replace(ANSI_RE, '');
-
-const parseLogEntries = (raw: string): LogEntry[] => {
-  const lines = stripAnsi(raw).replace(/\r\n?/g, '\n').split('\n');
-  const entries: LogEntry[] = [];
-
-  for (const line of lines) {
-    const isNewEntry = TIMESTAMP_RE.test(line) || line.startsWith('===');
-    const isContinuation = /^\s/.test(line);
-    if (isNewEntry || entries.length === 0 || !isContinuation) {
-      if (line.startsWith('===')) {
-        const bmMatch = BENCHMARK_HEADER_RE.exec(line);
-        entries.push({
-          raw: line,
-          message: line,
-          isSectionHeader: true,
-          benchmarkName: bmMatch?.[1],
-        });
-      } else {
-        const match = LOG_LINE_RE.exec(line);
-        if (match) {
-          entries.push({
-            raw: line,
-            timestamp: match[1].trim(),
-            level: LOG_LEVEL_MAP[match[3].toLowerCase()],
-            message: match[4].trim(),
-            isSectionHeader: false,
-          });
-        } else {
-          entries.push({ raw: line, message: line, isSectionHeader: false });
-        }
-      }
-    } else {
-      const current = entries[entries.length - 1];
-      current.raw += `\n${line}`;
-      current.continuation = current.continuation ? `${current.continuation}\n${line}` : line;
-    }
-  }
-
-  return entries.filter((e) => e.message.trim() || e.continuation?.trim());
-};
-
-const LOG_ERROR_ICON = (
-  <Icon status="danger" isInline title="Error">
-    <ExclamationCircleIcon />
-  </Icon>
-);
-
-const LOG_WARNING_ICON = (
-  <Icon status="warning" isInline title="Warning">
-    <ExclamationTriangleIcon />
-  </Icon>
-);
-
-const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
-  entry,
-  hideBorder,
-}) => {
-  const [copied, setCopied] = React.useState(false);
-  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
-
-  React.useEffect(
-    () => () => {
-      clearTimeout(copyTimeoutRef.current);
-    },
-    [],
-  );
-
-  const handleCopy = React.useCallback(() => {
-    navigator.clipboard.writeText(entry.raw).then(
-      () => {
-        setCopied(true);
-        clearTimeout(copyTimeoutRef.current);
-        copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
-      },
-      () => undefined,
-    );
-  }, [entry.raw]);
-
-  const rowClass = [
-    'evalhub-log-viewer__row',
-    entry.isSectionHeader ? 'evalhub-log-viewer__row--section' : '',
-    hideBorder ? 'evalhub-log-viewer__row--no-border' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  const copyButton = (
-    <div className="evalhub-log-viewer__copy">
-      <Tooltip content={copied ? 'Copied' : 'Copy'}>
-        <Button variant="plain" aria-label="Copy log entry" onClick={handleCopy}>
-          {copied ? <CheckCircleIcon /> : <CopyIcon />}
-        </Button>
-      </Tooltip>
-    </div>
-  );
-
-  if (entry.isSectionHeader) {
-    if (entry.benchmarkName) {
-      return (
-        <div className={`${rowClass} evalhub-log-viewer__row--benchmark`}>
-          <div className="evalhub-log-viewer__cell--full">{entry.benchmarkName}</div>
-          {copyButton}
-        </div>
-      );
-    }
-    return (
-      <div className={rowClass}>
-        <div className="evalhub-log-viewer__cell--timestamp" />
-        <div className="evalhub-log-viewer__cell--message">{entry.message}</div>
-        {copyButton}
-      </div>
-    );
-  }
-
-  const fullMessage = entry.continuation
-    ? `${entry.message}\n${entry.continuation}`
-    : entry.message;
-
-  return (
-    <div className={rowClass}>
-      <div className="evalhub-log-viewer__cell--timestamp" title={entry.timestamp}>
-        {entry.timestamp ? formatLogTimestamp(entry.timestamp) : ''}
-      </div>
-      <div className="evalhub-log-viewer__cell--message">
-        {entry.level === 'error' ? <>{LOG_ERROR_ICON} </> : null}
-        {entry.level === 'warning' ? <>{LOG_WARNING_ICON} </> : null}
-        {fullMessage}
-      </div>
-      {copyButton}
-    </div>
-  );
-};
-
-const LogSkeletonRows: React.FC = () => (
-  <>
-    {Array.from({ length: 32 }, (_, i) => (
-      <div key={i} className="evalhub-log-viewer__row">
-        <div className="evalhub-log-viewer__cell--timestamp">
-          <Skeleton width="80%" height="1em" />
-        </div>
-        <div className="evalhub-log-viewer__cell--message">
-          <Skeleton width={`${60 + ((i * 17) % 30)}%`} height="1em" />
-        </div>
-      </div>
-    ))}
-  </>
-);
 
 type BenchmarkStatusConfig = {
   icon: React.ReactNode;
@@ -537,38 +308,17 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   namespace,
   polledJobData,
   onClose,
+  onRequestStop,
+  onRequestReconfigure,
 }) => {
   const [activeTab, setActiveTab] = React.useState<string>('progress');
-  const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
-  const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
-  const [logLevelFilter, setLogLevelFilter] = React.useState<LogLevelFilter>('all');
-  const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = React.useState(false);
+  const [logBenchmarkIndex, setLogBenchmarkIndex] = React.useState<number | undefined>();
   const [isFailureSummaryExpanded, setIsFailureSummaryExpanded] = React.useState(false);
   const [failureSummaryEl, setFailureSummaryEl] = React.useState<HTMLParagraphElement | null>(null);
   const failureSummaryRef = React.useCallback((node: HTMLParagraphElement | null) => {
     setFailureSummaryEl(node);
   }, []);
   const [isFailureSummaryTruncated, setIsFailureSummaryTruncated] = React.useState(false);
-  const logContainerRef = React.useRef<HTMLDivElement>(null);
-  const benchmarkIndex = React.useMemo(() => {
-    if (selectedBenchmark === ALL_BENCHMARKS) {
-      return undefined;
-    }
-    const parsed = parseInt(selectedBenchmark, 10);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }, [selectedBenchmark]);
-
-  const {
-    logs,
-    loaded: logsLoaded,
-    error: logsError,
-    refresh,
-  } = useEvaluationJobLogs(
-    activeTab === 'events-log' ? namespace : undefined,
-    activeTab === 'events-log' ? job?.resource.id : undefined,
-    benchmarkIndex,
-    LOG_VIEWER_TAIL_LINES,
-  );
 
   const progressBenchmarks = React.useMemo(
     () =>
@@ -600,16 +350,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     [progressBenchmarks],
   );
 
-  const [downloading, setDownloading] = React.useState(false);
-  const [downloadError, setDownloadError] = React.useState<Error | undefined>();
-  const downloadAbortRef = React.useRef<AbortController>();
-
   const jobId = job?.resource.id;
 
   React.useEffect(() => {
     if (jobId) {
       setActiveTab('progress');
-      setSelectedBenchmark(ALL_BENCHMARKS);
+      setLogBenchmarkIndex(undefined);
       setIsFailureSummaryExpanded(false);
     }
   }, [jobId]);
@@ -644,87 +390,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     }
   }, [evaluationName]);
 
-  const handleDownload = React.useCallback(async () => {
-    if (!namespace || !job?.resource.id) {
-      return;
-    }
-    downloadAbortRef.current?.abort();
-    const controller = new AbortController();
-    downloadAbortRef.current = controller;
-    setDownloading(true);
-    setDownloadError(undefined);
-    try {
-      const fetcher =
-        benchmarkIndex != null
-          ? getEvaluationJobBenchmarkLogs('', namespace, job.resource.id, benchmarkIndex)
-          : getEvaluationJobLogs('', namespace, job.resource.id);
-      const fullLogs = await fetcher(controller.signal);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const bmSuffix = benchmarkIndex != null ? `-benchmark-${benchmarkIndex}` : '';
-      downloadString(`${evaluationName}${bmSuffix}-logs-${timestamp}.log`, fullLogs);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        return;
-      }
-      setDownloadError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setDownloading(false);
-    }
-  }, [namespace, job?.resource.id, evaluationName, benchmarkIndex]);
-
-  React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
-
-  React.useEffect(() => {
-    if (typeof logContainerRef.current?.scrollTo === 'function') {
-      logContainerRef.current.scrollTo(0, 0);
-    }
-  }, [selectedBenchmark]);
-
-  const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
-
-  const filteredLogEntries = React.useMemo(() => {
-    if (logLevelFilter === 'all') {
-      return logEntries;
-    }
-
-    const filtered = logEntries.filter((entry) => {
-      if (entry.isSectionHeader) {
-        return true;
-      }
-      if (logLevelFilter === 'warnings') {
-        return entry.level === 'warning' || entry.level === 'error';
-      }
-      return entry.level === 'error';
-    });
-
-    const emptyNotice: LogEntry = {
-      raw: '',
-      message: `No ${logLevelFilter === 'errors' ? 'error' : 'warning or error'} logs in this section.`,
-      isSectionHeader: false,
-      isEmptyFilterNotice: true,
-    };
-
-    const result: LogEntry[] = [];
-    for (let i = 0; i < filtered.length; i++) {
-      result.push(filtered[i]);
-      if (
-        filtered[i].isSectionHeader &&
-        (i + 1 >= filtered.length || filtered[i + 1].isSectionHeader)
-      ) {
-        result.push(emptyNotice);
-      }
-    }
-
-    if (result.length === 0 && logEntries.length > 0) {
-      result.push(emptyNotice);
-    }
-
-    return result;
-  }, [logEntries, logLevelFilter]);
-
-  const hasLogContent =
-    logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
-
   // Prefer polled state so the badge updates on the 10s cycle rather than waiting for the 30s list refresh
   const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
@@ -751,20 +416,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     isInProgress ? now : (polledJobData?.resource.updated_at ?? job.resource.updated_at),
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
+  const isReconfigurable = !isInProgress;
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
   const isPreStart = isPreStartFailure(polledJobData ?? job);
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
-    setSelectedBenchmark(String(bmIndex));
+    setLogBenchmarkIndex(bmIndex);
     setActiveTab('events-log');
   };
-
-  let logViewerClassName = 'evalhub-log-viewer';
-  if (state === 'completed') {
-    logViewerClassName += ' evalhub-log-viewer--completed';
-  } else if (isInProgress) {
-    logViewerClassName += ' evalhub-log-viewer--running';
-  }
 
   const descriptionText =
     state === 'completed'
@@ -896,7 +555,10 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           </Stack>
           <Tabs
             activeKey={activeTab}
-            onSelect={(_e, key) => setActiveTab(String(key))}
+            onSelect={(_e, key) => {
+              setActiveTab(String(key));
+              setLogBenchmarkIndex(undefined);
+            }}
             data-testid="status-modal-tabs"
             className="evalhub-status-modal__tabs"
           >
@@ -949,212 +611,49 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               </StackItem>
             </Stack>
           ) : activeTab === 'events-log' ? (
-            <Stack hasGutter>
-              <StackItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-                  <FlexItem>
-                    <Select
-                      isOpen={isBenchmarkSelectOpen}
-                      onOpenChange={setIsBenchmarkSelectOpen}
-                      onSelect={(_e, value) => {
-                        setSelectedBenchmark(String(value));
-                        setIsBenchmarkSelectOpen(false);
-                      }}
-                      selected={selectedBenchmark}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setIsBenchmarkSelectOpen((prev) => !prev)}
-                          isExpanded={isBenchmarkSelectOpen}
-                          data-testid="benchmark-log-selector"
-                        >
-                          {selectedBenchmark === ALL_BENCHMARKS
-                            ? 'All benchmarks'
-                            : (progressBenchmarks.find(
-                                (b) => b.benchmark_index === parseInt(selectedBenchmark, 10),
-                              )?.id ?? `Benchmark ${selectedBenchmark}`)}
-                        </MenuToggle>
-                      )}
-                    >
-                      <SelectList>
-                        <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
-                        {progressBenchmarks.map((bm) =>
-                          bm.benchmark_index != null ? (
-                            <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
-                              {bm.id}
-                            </SelectOption>
-                          ) : null,
-                        )}
-                      </SelectList>
-                    </Select>
-                  </FlexItem>
-                  <FlexItem>
-                    <Tooltip content={`Filter: ${LOG_LEVEL_FILTER_LABELS[logLevelFilter]}`}>
-                      <Dropdown
-                        isOpen={isLogLevelFilterOpen}
-                        onOpenChange={setIsLogLevelFilterOpen}
-                        onSelect={(_e, value) => {
-                          if (value === 'all' || value === 'warnings' || value === 'errors') {
-                            setLogLevelFilter(value);
-                          }
-                          setIsLogLevelFilterOpen(false);
-                        }}
-                        toggle={(toggleRef) => (
-                          <MenuToggle
-                            ref={toggleRef}
-                            variant="plain"
-                            onClick={() => setIsLogLevelFilterOpen((prev) => !prev)}
-                            isExpanded={isLogLevelFilterOpen}
-                            aria-label="Filter log level"
-                            data-testid="log-level-filter"
-                          >
-                            <FilterIcon />
-                          </MenuToggle>
-                        )}
-                      >
-                        <DropdownList>
-                          {(['all', 'warnings', 'errors'] as const).map((value) => (
-                            <DropdownItem
-                              key={value}
-                              value={value}
-                              isSelected={logLevelFilter === value}
-                            >
-                              {LOG_LEVEL_FILTER_LABELS[value]}
-                            </DropdownItem>
-                          ))}
-                        </DropdownList>
-                      </Dropdown>
-                    </Tooltip>
-                  </FlexItem>
-                  <FlexItem>
-                    <Tooltip content="Refresh logs">
-                      <Button
-                        variant="plain"
-                        aria-label="Refresh logs"
-                        onClick={refresh}
-                        data-testid="refresh-logs-button"
-                      >
-                        <SyncAltIcon />
-                      </Button>
-                    </Tooltip>
-                  </FlexItem>
-                  <FlexItem align={{ default: 'alignRight' }}>
-                    <Button
-                      variant="link"
-                      aria-label="Download log"
-                      onClick={handleDownload}
-                      isDisabled={!logsLoaded || !hasLogContent || downloading}
-                      isLoading={downloading}
-                      data-testid="download-logs-button"
-                      icon={<DownloadIcon />}
-                    >
-                      Download log
-                    </Button>
-                  </FlexItem>
-                </Flex>
-              </StackItem>
-              {downloadError ? (
-                <StackItem>
-                  <Alert
-                    variant="warning"
-                    isInline
-                    title="Failed to download logs"
-                    data-testid="download-error-alert"
-                    actionClose={
-                      <AlertActionCloseButton onClose={() => setDownloadError(undefined)} />
-                    }
-                  >
-                    {downloadError.message}
-                  </Alert>
-                </StackItem>
-              ) : null}
-              <StackItem>
-                <div
-                  ref={logContainerRef}
-                  className={logViewerClassName}
-                  data-testid="log-content"
-                  role="log"
-                  // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-                  tabIndex={0}
-                  aria-label="Evaluation log output"
-                >
-                  {!logsLoaded ? (
-                    <LogSkeletonRows />
-                  ) : logsError && isLogApiUnavailable(logsError) ? (
-                    <Alert
-                      className="evalhub-log-viewer__alert"
-                      variant="info"
-                      isInline
-                      title="Logs not available"
-                      data-testid="logs-unavailable-alert"
-                    >
-                      Detailed logs are not available on this server version.
-                    </Alert>
-                  ) : logsError && isInProgress && isLogServerError(logsError) ? (
-                    <Alert
-                      className="evalhub-log-viewer__alert"
-                      variant="info"
-                      isInline
-                      title="Logs not yet available"
-                      data-testid="logs-pending-alert"
-                      actionLinks={
-                        <Button variant="link" onClick={refresh}>
-                          Retry
-                        </Button>
-                      }
-                    >
-                      The evaluation pod may still be starting. Try again in a moment.
-                    </Alert>
-                  ) : logsError ? (
-                    <Alert
-                      className="evalhub-log-viewer__alert"
-                      variant="danger"
-                      isInline
-                      title="Failed to load logs"
-                      data-testid="logs-error-alert"
-                      actionLinks={
-                        <Button variant="link" onClick={refresh}>
-                          Retry
-                        </Button>
-                      }
-                    >
-                      {logsError.message}
-                    </Alert>
-                  ) : !hasLogContent ? (
-                    <Alert
-                      className="evalhub-log-viewer__alert"
-                      variant="info"
-                      isInline
-                      title="No log content available"
-                      data-testid="logs-empty-alert"
-                    >
-                      Logs may have expired after pod cleanup.
-                    </Alert>
-                  ) : (
-                    filteredLogEntries.map((entry, i, arr) => {
-                      if (entry.isEmptyFilterNotice) {
-                        return (
-                          <div
-                            key={i}
-                            className="evalhub-log-viewer__row evalhub-log-viewer__row--empty-filter"
-                            data-testid="log-filter-empty-notice"
-                          >
-                            <div className="evalhub-log-viewer__cell--full">{entry.message}</div>
-                          </div>
-                        );
-                      }
-                      const hideBorder =
-                        i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
-                      return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;
-                    })
-                  )}
-                </div>
-              </StackItem>
-            </Stack>
+            <EvaluationEventLog
+              namespace={namespace}
+              jobId={job.resource.id}
+              evaluationName={evaluationName}
+              benchmarks={progressBenchmarks}
+              isInProgress={isInProgress}
+              state={state}
+              activeBenchmarkIndex={logBenchmarkIndex}
+            />
           ) : null}
         </div>
       </ModalBody>
       <ModalFooter>
+        {onRequestStop && (state === 'running' || state === 'pending') && (
+          <Button
+            variant="primary"
+            onClick={() => onRequestStop(job)}
+            data-testid="status-modal-stop-button"
+          >
+            Stop evaluation
+          </Button>
+        )}
+        {isReconfigurable && state === 'completed' && (
+          <Button
+            variant="primary"
+            component={(props) => (
+              <Link {...props} to={evaluationResultsRoute(namespace, job.resource.id)} />
+            )}
+            onClick={onClose}
+            data-testid="status-modal-view-results-button"
+          >
+            View results
+          </Button>
+        )}
+        {onRequestReconfigure && isReconfigurable && state !== 'completed' && (
+          <Button
+            variant="primary"
+            onClick={() => onRequestReconfigure(job)}
+            data-testid="status-modal-reconfigure-button"
+          >
+            Reconfigure evaluation
+          </Button>
+        )}
         <Button variant="link" onClick={onClose} data-testid="status-modal-close-button">
           Close
         </Button>

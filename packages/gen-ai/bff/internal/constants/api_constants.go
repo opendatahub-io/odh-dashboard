@@ -84,4 +84,5 @@ const (
 	// OGX base_url must include the namespace: .../api/v1/genai-proxy/ns/<namespace>
 	GenAIProxyNSModelsPath          = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/models"
 	GenAIProxyNSChatCompletionsPath = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/chat/completions"
+	GenAIProxyNSEmbeddingsPath      = ApiPathPrefix + "/genai-proxy/ns/:namespace/v1/embeddings"
 )

@@ -32,7 +32,6 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  modelDeploymentSettings: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimWizard: false,
@@ -159,10 +158,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
-  },
-  [SupportedArea.MODEL_DEPLOYMENT_SETTINGS]: {
-    featureFlags: ['modelDeploymentSettings'],
-    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],

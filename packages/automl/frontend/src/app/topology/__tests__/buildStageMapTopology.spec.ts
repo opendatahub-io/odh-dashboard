@@ -322,15 +322,14 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
 
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
-      expect(syncNodes).toHaveLength(1);
-      expect(syncNodes[0]?.id).toBe('training__load_data');
+      expect(syncNodes.map((n) => n.id)).toContain('training__load_data');
+      expect(syncNodes.map((n) => n.id)).toContain('training__model_selection');
 
-      // Without explicit model_selection stage status, post-branch follows the coarse
-      // component-level RUNNING state instead of staying pending.
+      // Post-branch stays pending until model selection finishes.
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const evalNode = nodes.find((n) => n.id === 'training__evaluate_models');
-      expect(refitNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(evalNode?.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(refitNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(evalNode?.data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should pulse branch steps while model selection runs and succeed model nodes when it completes', () => {
@@ -358,19 +357,21 @@ describe('buildStageMapTopology', () => {
         expect(node.data?.runStatus).toBe(RunStatus.InProgress);
       });
 
-      // model_selection is the sole sync; every in-progress branch child/model must pulse
+      // model_selection is the sole sync; branch step dots pulse together; model winners use sync decorator
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
       expect(syncNodes).toHaveLength(1);
       expect(syncNodes[0]?.id).toBe('training__model_selection');
 
-      const branchChildren = nodes.filter(
-        (n) =>
-          (n.id.includes('__step__') || n.id.includes('__model__')) &&
-          n.type !== 'DEFAULT_SPACER_NODE',
+      const branchStepNodes = nodes.filter(
+        (n) => n.id.includes('__step__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
-      expect(branchChildren.length).toBeGreaterThan(0);
-      branchChildren.forEach((node) => {
+      expect(branchStepNodes.length).toBeGreaterThan(0);
+      branchStepNodes.forEach((node) => {
         expect(node.data?.activeIconVariant).toBe('pulse');
+      });
+
+      modelNodes.forEach((node) => {
+        expect(node.data?.activeIconVariant).toBeUndefined();
       });
 
       // Explicit model_selection stage status lets us keep post-branch pending until the
@@ -403,8 +404,7 @@ describe('buildStageMapTopology', () => {
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const buildNode = nodes.find((n) => n.id === 'training__build_leaderboard');
       expect(refitNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      // Only the current post-branch frontier runs; later stages stay pending.
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should use fallback label for unknown step IDs', () => {
@@ -627,7 +627,7 @@ describe('buildStageMapTopology', () => {
       expect(modelNodes[1].label).toBe('ModelB');
     });
 
-    it('should show terminal status on placeholder model nodes when run is cancelled', () => {
+    it('should show pending status on placeholder model nodes when run is cancelled', () => {
       const stageMap = makeStageMap([noModelsComponent]);
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
 
@@ -636,7 +636,7 @@ describe('buildStageMapTopology', () => {
       );
       expect(modelNodes).toHaveLength(3);
       modelNodes.forEach((node) => {
-        expect(node.data?.runStatus).toBe(RunStatus.Failed);
+        expect(node.data?.runStatus).toBe(RunStatus.Pending);
       });
     });
   });
@@ -707,13 +707,13 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
     });
 
-    it('should translate skipped status', () => {
+    it('should translate skipped status as pending (never-ran downstream)', () => {
       const stageMap = makeStageMap([
         makeComponent('comp', [makeStage('validate_inputs', { status: 'skipped' })]),
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      expect(nodes[0].data?.runStatus).toBe(RunStatus.Skipped);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should fall back to component run status from runDetails', () => {
@@ -761,7 +761,7 @@ describe('buildStageMapTopology', () => {
 
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
-      expect(nodes[1].data?.runStatus).toBe(RunStatus.Failed);
+      expect(nodes[1].data?.runStatus).toBe(RunStatus.Pending);
       expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
     });
 
@@ -796,7 +796,7 @@ describe('buildStageMapTopology', () => {
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
-    it('should keep branch and post-branch stages pending when model selection fails', () => {
+    it('should fail the select models section and keep post-branch stages pending when model selection fails', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'training',
@@ -819,9 +819,9 @@ describe('buildStageMapTopology', () => {
       expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['training__step__feature_engineering__branch-0'].data?.runStatus).toBe(
-        RunStatus.Pending,
+        RunStatus.Failed,
       );
-      expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -855,7 +855,7 @@ describe('buildStageMapTopology', () => {
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
-    it('should mark all stages in a failed component when no inline stage status exists', () => {
+    it('should show only the first failed stage when the component fails without inline stage status', () => {
       const stageMap = makeStageMap([
         makeComponent('automl_data_loader', [
           makeStage('prepare_data'),
@@ -881,15 +881,15 @@ describe('buildStageMapTopology', () => {
       expect(byId.automl_data_loader__prepare_data.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.autogluon_models_training__load_data.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.autogluon_models_training__model_selection.data?.runStatus).toBe(
-        RunStatus.Failed,
+        RunStatus.Pending,
       );
       expect(
         byId['autogluon_models_training__step__feature_engineering__branch-0'].data?.runStatus,
-      ).toBe(RunStatus.Failed);
+      ).toBe(RunStatus.Pending);
       expect(byId['autogluon_models_training__model__branch-0'].data?.runStatus).toBe(
-        RunStatus.Failed,
+        RunStatus.Pending,
       );
-      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );
@@ -921,15 +921,15 @@ describe('buildStageMapTopology', () => {
       expect(byId.automl_data_loader__prepare_data.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.autogluon_models_training__load_data.data?.runStatus).toBe(RunStatus.Cancelled);
       expect(byId.autogluon_models_training__model_selection.data?.runStatus).toBe(
-        RunStatus.Cancelled,
+        RunStatus.Pending,
       );
       expect(
         byId['autogluon_models_training__step__feature_engineering__branch-0'].data?.runStatus,
-      ).toBe(RunStatus.Cancelled);
+      ).toBe(RunStatus.Pending);
       expect(byId['autogluon_models_training__model__branch-0'].data?.runStatus).toBe(
-        RunStatus.Cancelled,
+        RunStatus.Pending,
       );
-      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );
@@ -958,8 +958,8 @@ describe('buildStageMapTopology', () => {
       expect(byId.data_prep__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.data_prep__cleanse.data?.runStatus).toBe(RunStatus.InProgress);
       expect(byId.data_prep__cleanse.data?.activeIconVariant).toBe('sync');
-      expect(byId.data_prep__split_data.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.data_prep__split_data.data?.activeIconVariant).toBe('pulse');
+      expect(byId.data_prep__split_data.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.data_prep__split_data.data?.activeIconVariant).toBeUndefined();
       // Later components stay pending until this component finishes.
       expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -969,30 +969,34 @@ describe('buildStageMapTopology', () => {
         makeComponent('data_prep', [makeStage('validate_inputs', { status: 'completed' })], {
           completed_at: '2025-01-01T01:00:00Z',
         }),
-        makeComponent('training', [
-          makeStage('load_data'),
-          makeStage('model_selection', {
-            selected_models: ['m1'],
-            steps: ['feature_engineering'],
-          }),
-          makeStage('refit_full'),
-          makeStage('build_leaderboard'),
-        ]),
+        makeComponent(
+          'training',
+          [
+            makeStage('load_data'),
+            makeStage('model_selection', {
+              selected_models: ['m1'],
+              steps: ['feature_engineering'],
+            }),
+            makeStage('refit_full'),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T01:00:01Z' },
+        ),
       ]);
 
       const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
       const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
 
       expect(byId.data_prep__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
-      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.training__load_data.data?.activeIconVariant).toBe('sync');
+      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__model_selection.data?.activeIconVariant).toBe('sync');
       expect(byId['training__step__feature_engineering__branch-0'].data?.runStatus).toBe(
         RunStatus.InProgress,
       );
       expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
   });
 
@@ -1044,7 +1048,7 @@ describe('buildStageMapTopology', () => {
       expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
-    it('should keep later stages pending when an earlier stage is explicitly started', () => {
+    it('should keep later stages in progress when an earlier stage is explicitly started', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -1060,7 +1064,60 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.activeIconVariant).toBeUndefined();
       expect(nodes[1].data?.activeIconVariant).toBe('sync');
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
+    });
+
+    it('should keep load data on the active frontier when it publishes started status', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'training',
+          [
+            makeStage('load_data', { status: 'started' }),
+            makeStage('model_selection', {
+              selected_models: ['m1'],
+              steps: ['feature_engineering'],
+            }),
+            makeStage('refit_full'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__load_data.data?.activeIconVariant).toBe('sync');
+      expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.InProgress);
+    });
+
+    it('should advance to model selection when load data has no inline status yet', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'training',
+          [
+            makeStage('load_data'),
+            makeStage('model_selection', {
+              status: 'started',
+              selected_models: ['m1'],
+              steps: ['feature_engineering'],
+            }),
+            makeStage('refit_full'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__model_selection.data?.activeIconVariant).toBe('sync');
+      expect(byId['training__step__feature_engineering__branch-0'].data?.runStatus).toBe(
+        RunStatus.InProgress,
+      );
+      expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should assign sync only once when multiple stages report inline started status', () => {
@@ -1079,8 +1136,10 @@ describe('buildStageMapTopology', () => {
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
 
       expect(syncNodes).toHaveLength(1);
-      expect(syncNodes[0]?.id).toBe('comp__validate_inputs');
-      expect(nodes.find((n) => n.id === 'comp__load_data')?.data?.activeIconVariant).toBe('pulse');
+      expect(syncNodes[0]?.id).toBe('comp__load_data');
+      expect(nodes.find((n) => n.id === 'comp__validate_inputs')?.data?.runStatus).toBe(
+        RunStatus.Succeeded,
+      );
     });
   });
 

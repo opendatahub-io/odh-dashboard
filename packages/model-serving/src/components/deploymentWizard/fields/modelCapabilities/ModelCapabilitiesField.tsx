@@ -9,6 +9,7 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
   Label,
@@ -106,6 +107,13 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
         fieldId={`${id}-capabilities`}
         data-testid="model-capabilities-field-group"
       >
+        <FormHelperText className="pf-v6-u-mb-md">
+          <HelperText>
+            <HelperTextItem>
+              Tag this model with its capabilities so users can easily identify what it supports.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
         <Flex
           gap={{ default: 'gapSm' }}
           alignItems={{ default: 'alignItemsCenter' }}

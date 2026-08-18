@@ -29,15 +29,10 @@ describe('Verify tool calling configuration in Model Catalog', () => {
 
   it(
     'Tool calling labels, filter, and validated arguments card are displayed',
-    { tags: ['@Dashboard', '@ModelCatalog', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelCatalog'] },
     () => {
       cy.step('Login as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
-
-      cy.step('Enable toolCalling feature flag');
-      cy.window().then((win) => {
-        win.sessionStorage.setItem('odh-feature-flags', '{"toolCalling":true}');
-      });
 
       cy.step('Navigate to Model Catalog');
       modelCatalog.visit();

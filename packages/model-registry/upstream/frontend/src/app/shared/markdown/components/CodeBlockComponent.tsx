@@ -8,9 +8,11 @@ import {
 
 type CodeBlockComponentProps = {
   children: string;
+  /** Called after clipboard write succeeds. */
+  onCopy?: () => void;
 };
 
-const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({ children }) => {
+const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({ children, onCopy }) => {
   const [copied, setCopied] = React.useState(false);
   const id = React.useId();
 
@@ -18,10 +20,11 @@ const CodeBlockComponent: React.FC<CodeBlockComponentProps> = ({ children }) => 
     try {
       await navigator.clipboard.writeText(children);
       setCopied(true);
+      onCopy?.();
     } catch {
       // clipboard write failed — don't show success
     }
-  }, [children]);
+  }, [children, onCopy]);
 
   const actions = (
     <CodeBlockAction>

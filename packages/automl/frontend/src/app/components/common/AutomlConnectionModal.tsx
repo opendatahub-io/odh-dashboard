@@ -20,6 +20,11 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlS3ConnectionCreated,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
 
@@ -123,6 +128,24 @@ const AutomlConnectionModal: React.FC<Props> = ({
     ? getConnectionProtocolType(selectedConnectionType)
     : undefined;
 
+  // Tracks whether createSecret has already resolved for this modal instance, so a later
+  // close/cancel doesn't emit a conflicting cancel event once a success (or failure) outcome
+  // has already been reported for the creation attempt.
+  const hasCreatedSecretRef = React.useRef(false);
+
+  const handleClose = React.useCallback(() => {
+    // Block close requests (Escape, X button, Cancel button) while creation is in flight —
+    // the Secret may already exist by the time this resolves, so closing now would leave the
+    // parent unaware and could still race with the in-flight submit's own onClose(true) call.
+    if (isSaving) {
+      return;
+    }
+    if (!hasCreatedSecretRef.current) {
+      fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+    }
+    onClose();
+  }, [isSaving, onClose]);
+
   const handleConnectionTypeChange = (name: string) => {
     if (name === selectedConnectionType?.metadata.name) {
       return;
@@ -138,13 +161,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={() => {
-        onClose();
-      }}
-      variant="medium"
-    >
+    <Modal isOpen onClose={handleClose} variant="medium">
       <ModalHeader title="Add a connection" />
       <ModalBody>
         <Form>
@@ -176,7 +193,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
       <ModalFooter>
         <DashboardModalFooter
           submitLabel="Add connection"
-          onCancel={onClose}
+          onCancel={handleClose}
           onSubmit={() => {
             setIsSaving(true);
             setSubmitError(undefined);
@@ -198,15 +215,40 @@ const AutomlConnectionModal: React.FC<Props> = ({
               ...(protocolType && { 'opendatahub.io/connection-type-protocol': protocolType }),
             };
 
-            createSecret(assembledConnection)
-              .then(async () => {
+            const submit = async () => {
+              try {
+                await createSecret(assembledConnection);
+              } catch (e) {
+                // Secret creation itself failed — the resource does not exist.
+                setSubmitError(e instanceof Error ? e : new Error(String(e)));
+                setIsSaving(false);
+                fireAutomlS3ConnectionCreated({
+                  outcome: TrackingOutcome.submit,
+                  success: false,
+                  error: AUTOML_FAILURE_CATEGORY,
+                });
+                return;
+              }
+
+              // The Secret now exists — report that outcome immediately, independent of
+              // whatever onSubmit does next, so a later onSubmit failure can't overwrite it.
+              // Also mark creation as complete so a later close/cancel doesn't emit a
+              // conflicting cancel event for the same creation attempt.
+              hasCreatedSecretRef.current = true;
+              fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
+
+              try {
                 await onSubmit(assembledConnection);
                 onClose(true);
-              })
-              .catch((e) => {
-                setSubmitError(e);
+              } catch (e) {
+                // The Secret was already created successfully, so this is not a creation
+                // failure. Surface it to the user, but don't emit a false S3_CONNECTION_CREATED.
+                setSubmitError(e instanceof Error ? e : new Error(String(e)));
                 setIsSaving(false);
-              });
+              }
+            };
+
+            void submit();
           }}
           error={submitError}
           isSubmitDisabled={!isFormValid || !isModified || isSaving}
