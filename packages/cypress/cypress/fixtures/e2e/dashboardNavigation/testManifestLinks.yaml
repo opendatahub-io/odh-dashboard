@@ -28,3 +28,6 @@ excludedSubstrings:
   - www3.
   - w3.org
   - serif.com
+  # Slack's edge/WAF intermittently 403s automated (non-browser) requests to this
+  # URL regardless of headers sent; the link itself works fine for real users.
+  - elasticstack.slack.com
