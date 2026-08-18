@@ -5,6 +5,7 @@ import {
   getTemplateEnabled,
   setListDisabled,
   getServingRuntimeDisplayNameFromTemplate,
+  getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
@@ -46,6 +47,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
   const notification = useNotification();
 
   const unsupportedUnaccepted = isUnsupportedUnaccepted(template);
+  const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
 
   React.useEffect(() => {
     if (templateDisablementLoaded) {
@@ -130,9 +132,9 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
   return (
     <>
       <Switch
-        id={`custom-serving-runtime-enabled-toggle-${template.metadata.name}`}
-        aria-label={`${template.metadata.name}-enabled-toggle`}
-        data-testid={`custom-serving-runtime-enabled-toggle-${template.metadata.name}`}
+        id={`custom-serving-runtime-enabled-toggle-${servingRuntimeName}`}
+        aria-label={`${servingRuntimeName}-enabled-toggle`}
+        data-testid={`custom-serving-runtime-enabled-toggle-${servingRuntimeName}`}
         isChecked={effectiveEnabled}
         onChange={handleChange}
         isDisabled={isLoading}
