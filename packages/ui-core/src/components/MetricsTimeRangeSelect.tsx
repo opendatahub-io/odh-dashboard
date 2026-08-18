@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { asEnumMember, enumIterator } from '@odh-dashboard/foundation';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
-import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
-import { isTimeframeTitle } from '#~/concepts/metrics/utils';
+import SimpleSelect, { SimpleSelectOption } from './SimpleSelect';
+import { TimeframeTitle } from '../types/metrics';
+import { MetricsCommonContext } from '../contexts/MetricsCommonContext';
+import { isTimeframeTitle } from '../utilities/metrics';
 
 export const MetricsTimeRangeSelect: React.FC = () => {
   const { currentTimeframe, setCurrentTimeframe } = React.useContext(MetricsCommonContext);

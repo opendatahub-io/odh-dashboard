@@ -1,6 +1,6 @@
-import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
-import type { SetBrowserStorageHook } from '@odh-dashboard/ui-core/utilities';
-import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { useBrowserStorage } from './useBrowserStorage';
+import type { SetBrowserStorageHook } from './useBrowserStorage';
+import { TimeframeTitle } from '../types/metrics';
 
 const useCurrentTimeframeBrowserStorage = (): [
   TimeframeTitle,
