@@ -3,8 +3,8 @@ import { DataScienceStackComponentMap } from '@odh-dashboard/internal/concepts/a
 import { aboutDialog } from '../../../pages/aboutDialog';
 import {
   getCsvByDisplayName,
+  getDscComponentVersions,
   getInstalledProductName,
-  getResourceVersionByName,
   getSubscriptionChannelFromCsv,
   getVersionFromCsv,
 } from '../../../utils/oc_commands/applications';
@@ -16,6 +16,7 @@ const dataScienceStackComponentMap = DataScienceStackComponentMap;
 describe('Verify RHODS About Dialog', () => {
   let odhCsv: Record<string, unknown>;
   let productName: string;
+  let dscVersions: Partial<Record<string, string[]>>;
 
   retryableBefore(async () => {
     cy.log('Auto-detecting installed product (RHOAI or ODH)...');
@@ -27,6 +28,9 @@ describe('Verify RHODS About Dialog', () => {
       getCsvByDisplayName(productName, 'default').then((csv) => {
         odhCsv = csv as Record<string, unknown>;
       });
+    });
+    getDscComponentVersions().then((versions) => {
+      dscVersions = versions;
     });
   });
 
@@ -76,19 +80,18 @@ describe('Verify RHODS About Dialog', () => {
       aboutDialog.isAdminAccessLevel();
 
       aboutDialog.findTable().then(() => {
-        Object.entries(dataScienceStackComponentMap).forEach(([, component]) => {
-          cy.step(`Verify versions in About dialog's table for component: ${component}`);
-          aboutDialog.getComponentReleasesText(component).then((texts) => {
-            getResourceVersionByName(component).then((version) => {
-              if (version.length === 0) {
-                return;
-              }
-              const text = texts.join(' ');
-              expect(version.some((v) => text.includes(v))).to.equal(
-                true,
-                `Version ${version} not found for component ${component}`,
-              );
-            });
+        Object.entries(dataScienceStackComponentMap).forEach(([componentKey, displayName]) => {
+          const versions = dscVersions[componentKey];
+          if (!versions) {
+            return;
+          }
+          cy.step(`Verify versions in About dialog's table for component: ${displayName}`);
+          aboutDialog.getComponentReleasesText(displayName).then((texts) => {
+            const text = texts.join(' ');
+            expect(versions.some((v) => text.includes(v))).to.equal(
+              true,
+              `Version ${versions.join(', ')} not found for component ${displayName}`,
+            );
           });
         });
       });
