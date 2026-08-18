@@ -8,6 +8,7 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  fireAutoragRunRetried,
   fireAutoragRunStopped,
   TrackingOutcome,
   type RunActionSource,
@@ -48,11 +49,18 @@ export const useAutoragRunActions = (
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      fireAutoragRunRetried({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      fireAutoragRunRetried({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -60,7 +68,7 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful retry.
     }
-  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {

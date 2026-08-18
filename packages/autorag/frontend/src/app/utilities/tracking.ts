@@ -22,6 +22,7 @@ export const AUTORAG_EVENTS = {
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
   RUN_RECONFIGURED: 'AutoRAG Run Reconfigured',
   RUN_STOPPED: 'AutoRAG Run Stopped',
+  RUN_RETRIED: 'AutoRAG Run Retried',
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
@@ -340,6 +341,16 @@ export type RunOutcomeTrackingProperties = {
  */
 export const fireAutoragRunStopped = (properties: RunOutcomeTrackingProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, properties);
+};
+
+/**
+ * Fires when the user retries a run via the runs table's kebab menu (`source: 'runsList'`) or
+ * the results page's header button (`source: 'resultsPage'`). Unlike stop, retry has no
+ * confirmation modal — it's a direct action — so this always fires with `outcome: submit`,
+ * with `success`/`error` reflecting whether the retry request succeeded.
+ */
+export const fireAutoragRunRetried = (properties: RunOutcomeTrackingProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_RETRIED, properties);
 };
 
 /**

@@ -2,7 +2,11 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
-import { AUTORAG_FAILURE_CATEGORY, fireAutoragRunStopped } from '~/app/utilities/tracking';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragRunRetried,
+  fireAutoragRunStopped,
+} from '~/app/utilities/tracking';
 
 const mockNotification = {
   success: jest.fn(),
@@ -32,9 +36,11 @@ jest.mock('~/app/hooks/useNotification', () => ({
 jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual('~/app/utilities/tracking'),
   fireAutoragRunStopped: jest.fn(),
+  fireAutoragRunRetried: jest.fn(),
 }));
 
 const fireAutoragRunStoppedMock = jest.mocked(fireAutoragRunStopped);
+const fireAutoragRunRetriedMock = jest.mocked(fireAutoragRunRetried);
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -153,7 +159,7 @@ describe('useAutoragRunActions', () => {
   });
 
   describe('handleRetry', () => {
-    it('should show success notification on successful retry', async () => {
+    it('should show success notification and fire success: true on successful retry', async () => {
       const { result } = renderHook(() => useAutoragRunActions('test-ns', 'run-123', 'runsList'), {
         wrapper,
       });
@@ -166,25 +172,46 @@ describe('useAutoragRunActions', () => {
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      expect(fireAutoragRunRetriedMock).toHaveBeenCalledWith({
+        outcome: 'submit',
+        success: true,
+        source: 'runsList',
+      });
     });
 
-    it('should show error notification when retry fails', async () => {
-      const mockMutateAsync = jest.fn().mockRejectedValue(new Error('Retry failed'));
+    it('should show error notification when retry fails, and fire the allowlisted failure category rather than the raw error message', async () => {
+      const errorMessage =
+        'Network error (403): AccessDenied for tenant acme-corp using key AKIAabc123';
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error(errorMessage));
       const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
       useRetryPipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
       });
 
-      const { result } = renderHook(() => useAutoragRunActions('test-ns', 'run-123', 'runsList'), {
-        wrapper,
-      });
+      const { result } = renderHook(
+        () => useAutoragRunActions('test-ns', 'run-123', 'resultsPage'),
+        {
+          wrapper,
+        },
+      );
 
       await act(async () => {
         await expect(result.current.handleRetry()).rejects.toThrow();
       });
 
-      expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
+      expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', errorMessage);
+      // The in-product notification may keep the detailed message, but analytics must only
+      // ever see the fixed, allowlisted category.
+      expect(fireAutoragRunRetriedMock).toHaveBeenCalledWith({
+        outcome: 'submit',
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source: 'resultsPage',
+      });
+      const allTrackingCalls = JSON.stringify(fireAutoragRunRetriedMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-corp');
+      expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
   });
 });

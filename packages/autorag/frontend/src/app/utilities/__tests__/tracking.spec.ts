@@ -15,6 +15,7 @@ import {
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragRunReconfigured,
+  fireAutoragRunRetried,
   fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
@@ -515,6 +516,34 @@ describe('fireAutoragRunStopped', () => {
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
       outcome: TrackingOutcome.cancel,
       source: 'runsList',
+    });
+  });
+});
+
+describe('fireAutoragRunRetried', () => {
+  it('should fire with outcome: submit and success: true, given a source', () => {
+    fireAutoragRunRetried({ outcome: TrackingOutcome.submit, success: true, source: 'runsList' });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RETRIED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      source: 'runsList',
+    });
+  });
+
+  it('should fire with success: false and the allowlisted failure category on failure', () => {
+    fireAutoragRunRetried({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'resultsPage',
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RETRIED, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'resultsPage',
     });
   });
 });
