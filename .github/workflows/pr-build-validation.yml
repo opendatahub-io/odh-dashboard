@@ -10,7 +10,7 @@ on:
       - 'packages/**'
       - 'Dockerfile'
       - 'package.json'
-      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
       - 'manifests/**'
       - '.github/workflows/pr-build-validation.yml'
 
@@ -67,9 +67,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "::group::Checking package-lock.json for unsupported protocols"
+          echo "::group::Checking pnpm-lock.yaml for unsupported protocols"
           # Check for protocols that Hermeto/Cachi2 cannot resolve
-          UNSUPPORTED=$(grep -E '"resolved":\s*"(git\+|github:|file:)' package-lock.json || true)
+          UNSUPPORTED=$(grep -E 'resolution:.*(git\+|github:|file:)|tarball:.*(git\+|github:|file:)' pnpm-lock.yaml || true)
           if [ -n "$UNSUPPORTED" ]; then
             echo "❌ FAIL: Found unsupported dependency protocols for hermetic builds:"
             echo "$UNSUPPORTED"
@@ -81,57 +81,47 @@ jobs:
           echo "✅ PASS: No unsupported protocols found"
           echo "::endgroup::"
 
-          echo "::group::Verifying all dependencies have resolved URLs"
-          # Check that all node_modules dependencies have resolved field
-          # Skip root package ("") and workspace packages (don't start with "node_modules/")
-          if command -v jq &> /dev/null; then
-            MISSING_RESOLVED=$(jq -r '.packages | to_entries[] | select(.key | startswith("node_modules/")) | select(.value.resolved == null or .value.resolved == "") | .key' package-lock.json || true)
-            if [ -n "$MISSING_RESOLVED" ]; then
-              echo "❌ FAIL: Found dependencies without resolved URLs"
-              echo "$MISSING_RESOLVED"
-              exit 1
-            fi
-            echo "✅ PASS: All dependencies have resolved URLs"
-          else
-            echo "⚠️  WARNING: jq not installed, skipping detailed lockfile validation"
-          fi
-          echo "::endgroup::"
-
-      - name: Test hermetic npm install
+      - name: Test hermetic pnpm install
         run: |
           set -euo pipefail
-          echo "::group::Testing hermetic npm install with network disabled"
+          echo "::group::Testing hermetic pnpm install with network disabled"
 
           # Two-stage approach:
-          # 1. Populate npm cache with network enabled (using npm ci)
-          # 2. Test that npm ci --offline works (simulates hermetic environment)
+          # 1. Populate pnpm store with network enabled
+          # 2. Test that pnpm install --offline works (simulates hermetic environment)
+
+          PNPM_VERSION=$(jq -r '.packageManager | sub("^pnpm@"; "")' package.json)
 
           # Create Dockerfile that tests hermetic install capability
-          cat > Dockerfile.hermetic-test <<'DOCKERFILE'
+          cat > Dockerfile.hermetic-test <<DOCKERFILE
           FROM node:22-alpine AS cache-builder
+          RUN npm install -g pnpm@${PNPM_VERSION}
           WORKDIR /cache
-          COPY package.json package-lock.json ./
+          COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+          COPY backend ./backend
+          COPY frontend ./frontend
           COPY packages ./packages
-          # Populate cache - this validates lockfile is complete
-          RUN npm ci --cache /npm-cache --prefer-offline
+          COPY distributions ./distributions
+          RUN pnpm install --frozen-lockfile --store-dir /pnpm-store
 
           FROM node:22-alpine AS hermetic-test
+          RUN npm install -g pnpm@${PNPM_VERSION}
           WORKDIR /test
-          # Copy populated cache from previous stage
-          COPY --from=cache-builder /npm-cache /root/.npm
-          COPY package.json package-lock.json ./
+          COPY --from=cache-builder /pnpm-store /pnpm-store
+          COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+          COPY backend ./backend
+          COPY frontend ./frontend
           COPY packages ./packages
-          # Install using ONLY cached deps (offline mode)
-          # This simulates Konflux/Hermeto hermetic build
-          RUN npm ci --offline --cache /root/.npm
+          COPY distributions ./distributions
+          RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm-store
           DOCKERFILE
 
-          # Build the image - hermetic-test stage should work entirely from cache
+          # Build the image - hermetic-test stage should work entirely from store
           if ! docker build -f Dockerfile.hermetic-test -t hermetic-test --target hermetic-test . 2>&1 | tee /tmp/hermetic-build.log; then
             echo "❌ FAIL: Hermetic install failed"
             echo ""
             echo "The offline install failed, which means:"
-            echo "  - package-lock.json is incomplete or out of sync, OR"
+            echo "  - pnpm-lock.yaml is incomplete or out of sync, OR"
             echo "  - Dependencies have dynamic resolution that requires network access"
             echo ""
             echo "::group::Last 50 lines of build output"
@@ -144,7 +134,7 @@ jobs:
           docker rmi hermetic-test || true
           rm -f Dockerfile.hermetic-test
 
-          echo "✅ PASS: Hermetic install succeeded (all dependencies resolved from lockfile cache)"
+          echo "✅ PASS: Hermetic install succeeded (all dependencies resolved from lockfile store)"
           echo "::endgroup::"
 
       - name: Validate workspace dependencies vs Dockerfile COPY
@@ -909,7 +899,7 @@ jobs:
 
           # Check if root build files changed (affects all BFF builds)
           ROOT_BUILD_CHANGED=false
-          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|package-lock\.json)$'; then
+          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|pnpm-lock\.yaml)$'; then
             ROOT_BUILD_CHANGED=true
             echo "Root build files changed — all BFF modules will be built"
           fi
