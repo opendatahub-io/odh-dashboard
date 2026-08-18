@@ -1,4 +1,3 @@
-import type { ClusterSettingsType } from '@odh-dashboard/internal/types';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
@@ -6,8 +5,20 @@ import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUse
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
 import { generalSettingsPage } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/generalSettings';
 
-// Inlined here rather than imported from @odh-dashboard/internal/__mocks__ so this spec's
-// compilation stays within the package's tsconfig rootDir (frontend/src is outside it).
+// Structural type + factory inlined here rather than importing ClusterSettingsType /
+// mockClusterSettings from @odh-dashboard/internal (frontend/src). Those live outside this
+// package's tsconfig rootDir and pull the whole frontend/src/__mocks__ tree into the cypress
+// ts-loader program, breaking compilation of every model-serving spec (TS6059).
+type ClusterSettingsType = {
+  userTrackingEnabled: boolean;
+  cullerTimeout: number;
+  pvcSize: number;
+  modelServingPlatformEnabled: { kServe: boolean; LLMd: boolean };
+  isDistributedInferencingDefault?: boolean;
+  defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
+};
+
 const mockClusterSettings = (
   overrides: Partial<ClusterSettingsType> = {},
 ): ClusterSettingsType => ({
