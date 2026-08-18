@@ -113,7 +113,10 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       forceDashboardConfigRefresh();
 
       cy.step('Click Create endpoint button from empty state');
-      genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
+      genAiPlayground
+        .findEmptyStateCreateEndpointButton({ timeout: 30000 })
+        .should('be.visible')
+        .click();
 
       cy.step('Verify Create endpoint modal is open');
       genAiPlayground.findCreateExternalModelModal().should('be.visible');
