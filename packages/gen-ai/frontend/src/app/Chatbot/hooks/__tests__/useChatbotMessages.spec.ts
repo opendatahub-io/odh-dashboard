@@ -1168,8 +1168,7 @@ describe('useChatbotMessages', () => {
       });
 
       const firstCallHeaders = mockCreateResponse.mock.calls[0][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const firstSessionId = firstCallHeaders?.['X-Session-ID'];
 
       await act(async () => {
@@ -1177,8 +1176,7 @@ describe('useChatbotMessages', () => {
       });
 
       const secondCallHeaders = mockCreateResponse.mock.calls[1][1]?.headers as
-        | Record<string, string>
-        | undefined;
+        Record<string, string> | undefined;
       const secondSessionId = secondCallHeaders?.['X-Session-ID'];
 
       expect(firstSessionId).toBeDefined();

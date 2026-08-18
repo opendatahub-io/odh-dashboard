@@ -829,10 +829,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
+<<<<<<< HEAD
         location.state?.model ||
         location.state?.mcpServerStatuses ||
         location.state?.openSettingsToTab ||
         location.state?.vectorStoreId,
+=======
+      location.state?.model ||
+      location.state?.mcpServerStatuses ||
+      location.state?.openSettingsToTab,
+>>>>>>> 89207b14a (fix: resolve pnpm CI blockers for webpack builds and type-check)
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
