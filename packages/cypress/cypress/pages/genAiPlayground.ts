@@ -7,6 +7,8 @@ const GEN_AI_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
+const GEN_AI_ALL_FLAGS =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -379,6 +381,117 @@ class GenAiPlayground {
   clearChat() {
     cy.findByTestId('new-chat-button').should('be.visible').click();
     cy.findByTestId('confirm-button').should('be.visible').click();
+  }
+
+  // Agent configuration management navigation
+  navigateToPlaygroundWithAgentManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_ALL_FLAGS}`);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToAssetsWithAgentManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_ALL_FLAGS}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  // AI Assets — Agents tab
+  findAgentsTab() {
+    return cy.findByTestId('ai-assets-tab-agentprofile');
+  }
+
+  findAgentProfilesTable() {
+    return cy.findByTestId('agent-profiles-table');
+  }
+
+  findAgentProfilesEmptyState() {
+    return cy.findByTestId('agent-profiles-empty-state');
+  }
+
+  findAgentRowByName(agentName: string) {
+    const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy
+      .contains('[data-testid^="agent-profile-row-"] td', new RegExp(`^\\s*${escaped}\\s*$`))
+      .closest('[data-testid^="agent-profile-row-"]');
+  }
+
+  findAgentKebabByName(agentName: string) {
+    return this.findAgentRowByName(agentName).find('[data-testid^="agent-profile-kebab-"]');
+  }
+
+  findDeleteAgentDropdownItem() {
+    return cy
+      .get('[data-testid^="delete-agent-profile-"]')
+      .not(
+        '[data-testid="delete-agent-profile-modal"],[data-testid="delete-agent-profile-confirm-button"]',
+      );
+  }
+
+  findDeleteAgentModal() {
+    return cy.findByTestId('delete-agent-profile-modal');
+  }
+
+  findDeleteAgentConfirmButton() {
+    return cy.findByTestId('delete-agent-profile-confirm-button');
+  }
+
+  findTryInPlaygroundByName(agentName: string) {
+    return this.findAgentRowByName(agentName).find('[data-testid^="try-in-playground-"]');
+  }
+
+  // Settings panel — agent save / load buttons
+  findSettingsPanelSaveAsButton() {
+    return cy.findByTestId('settings-panel-save-as-button');
+  }
+
+  findSettingsPanelSaveButton() {
+    return cy.findByTestId('settings-panel-save-button');
+  }
+
+  findSettingsPanelLoadButton() {
+    return cy.findByTestId('settings-panel-load-button');
+  }
+
+  // Save agent modal
+  findSaveAgentProfileModal() {
+    return cy.findByTestId('save-agent-profile-modal');
+  }
+
+  findSaveAgentNameInput() {
+    return cy.findByTestId('save-agent-profile-name-input');
+  }
+
+  findSaveAgentSubmitButton() {
+    return cy.findByTestId('save-agent-profile-submit-button');
+  }
+
+  // Load agent modal
+  findLoadAgentProfileModal() {
+    return cy.findByTestId('load-agent-profile-modal');
+  }
+
+  findLoadAgentSearchInput() {
+    return cy.findByTestId('load-agent-profile-search');
+  }
+
+  findLoadAgentEmptyState() {
+    return cy.findByTestId('load-agent-profile-empty-state');
+  }
+
+  loadAgentByName(agentName: string) {
+    this.findSettingsPanelLoadButton().should('be.visible').click();
+    this.findLoadAgentProfileModal().should('be.visible');
+    this.findLoadAgentSearchInput().clear().type(agentName);
+    cy.get('[data-testid^="load-agent-profile-button-"]').should('have.length', 1).first().click();
+    this.findLoadAgentProfileModal().should('not.exist');
+  }
+
+  // Agent loaded indicator in playground header
+  findAgentNameTitle(options?: { timeout?: number }) {
+    return cy.findByTestId('agent-name-title', options);
+  }
+
+  findAgentUnsavedIndicator() {
+    return cy.findByTestId('agent-unsaved-indicator');
   }
 }
 

@@ -710,6 +710,11 @@ export type CustomEndpointTestData = {
     commitMessage: string;
     testMessageWithPrompt: string;
   };
+  prompt2: {
+    name: string;
+    template: string;
+    commitMessage: string;
+  };
   rag: {
     fileName: string;
     fixturePath: string;
@@ -719,6 +724,10 @@ export type CustomEndpointTestData = {
   guardrails: {
     safeMessage: string;
     maliciousMessage: string;
+  };
+  agent: {
+    name: string;
+    description: string;
   };
 };
 
