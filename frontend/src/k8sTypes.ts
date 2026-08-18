@@ -105,6 +105,7 @@ export type ModelRegistry = {
   displayName: string;
   description: string;
   serverAddress?: string;
+  isAvailable?: boolean;
 };
 
 export type AccessModeSettings = Partial<Record<AccessMode, boolean>>;

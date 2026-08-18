@@ -13,6 +13,7 @@ import type {
   ModelLocationData,
 } from '../src/shared/types/form-data';
 import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
@@ -74,6 +75,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
+        externalData: ExternalDataMap,
         projectName: string,
         existingDeployment?: D,
         modelResource?: D['model'],
@@ -172,8 +174,8 @@ export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deploy
   {
     /** The ID of the WizardField this apply extension is associated with */
     fieldId: string;
-    /** The platform this apply extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this apply extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Apply function that modifies the deployment based on the field's data.
      * @param deployment - The deployment resource being assembled
@@ -205,8 +207,8 @@ export type WizardFieldExtractorExtension<
   {
     /** The ID of the WizardField this extractor is associated with */
     fieldId: string;
-    /** The platform this extractor applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this extractor applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Extract function that retrieves the field's initial data from a deployment.
      * @param deployment - The deployment resource to extract data from
@@ -236,8 +238,8 @@ export type WizardFieldDeploymentFunctionsExtension<
   {
     /** The ID of the WizardField this deployment functions extension is associated with */
     fieldId: string;
-    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this deployment functions extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Async function that runs before the deployment is saved. Throw to block the deployment.
      *
@@ -285,3 +287,28 @@ export const isWizardFieldDeploymentFunctionsExtension = <
   extension: Extension,
 ): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-deployment-functions';
+
+/**
+ * Extension for contributing per-platform tracking properties to the Model Deployed event.
+ * Spokes register this extension so the hub can collect platform-specific analytics data
+ * without importing from spoke packages.
+ */
+export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/tracking-properties',
+  {
+    platform: D['modelServingPlatformId'];
+    /**
+     * Extract platform-specific tracking properties from the wizard form state.
+     * These are merged into the base Model Deployed / Model Updated event properties.
+     */
+    getProperties: CodeRef<
+      (
+        wizardState: WizardFormData['state'],
+      ) => Record<string, string | number | boolean | undefined>
+    >;
+  }
+>;
+export const isWizardTrackingPropertiesExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardTrackingPropertiesExtension<D> =>
+  extension.type === 'model-serving.deployment/tracking-properties';

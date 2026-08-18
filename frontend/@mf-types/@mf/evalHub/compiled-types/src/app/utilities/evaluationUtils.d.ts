@@ -6,6 +6,7 @@ export declare const getBenchmarkName: (job: EvaluationJob, collectionNameMap?: 
 export declare const getAllBenchmarkNames: (job: EvaluationJob) => string[];
 export declare const getBenchmarkDisplayName: (id: string) => string;
 export declare const getResultScore: (job: EvaluationJob) => string;
+export declare const formatAsPercentage: (value: number) => string;
 export declare const getBenchmarkResultScore: (job: EvaluationJob, benchmarkId: string, benchmarkIndex?: number) => string;
 export declare const getResultPass: (job: EvaluationJob) => boolean | null;
 export declare const formatDuration: (startStr?: string, endStr?: string) => string | null;

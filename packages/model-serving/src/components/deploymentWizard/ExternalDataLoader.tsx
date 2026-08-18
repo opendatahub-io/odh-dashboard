@@ -6,6 +6,13 @@ import type { InitialWizardFormData, WizardField } from '../../shared/types/form
 
 export type ExternalDataMap = Record<string, { loaded: boolean; loadError?: Error; data: unknown }>;
 
+/**
+ * The map only holds entries for active fields (removed on unmount), so every entry must be
+ * settled before the form data derived from it can be deployed.
+ */
+export const isExternalDataReady = (externalData: ExternalDataMap): boolean =>
+  Object.values(externalData).every((entry) => entry.loaded || entry.loadError);
+
 type ExternalDataLoaderProps = {
   fields: WizardField<unknown, unknown>[];
   initialData?: InitialWizardFormData;

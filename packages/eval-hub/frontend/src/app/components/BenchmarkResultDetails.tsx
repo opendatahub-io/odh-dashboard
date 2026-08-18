@@ -13,8 +13,13 @@ import {
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { useProvider } from '~/app/hooks/useProvider';
-import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import {
+  formatAsPercentage,
+  getBenchmarkDisplayName,
+  getJobBenchmarks,
+} from '~/app/utilities/evaluationUtils';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -28,10 +33,10 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   job,
 }) => {
   const result = job.results.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
   const benchmarkConfig = getJobBenchmarks(job).find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
 
   const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
@@ -42,7 +47,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   }
 
   const benchmarkStatus = job.status.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
   const passStatus =
     result.test?.pass ??
@@ -113,12 +118,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Primary metric</DescriptionListTerm>
-          <DescriptionListDescription>{primaryMetricName}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {primaryMetricName !== '-' ? getMetricDisplayName(primaryMetricName) : '-'}
+          </DescriptionListDescription>
         </DescriptionListGroup>
-        {threshold != null && (
+        {typeof threshold === 'number' && Number.isFinite(threshold) && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
-            <DescriptionListDescription>{threshold}</DescriptionListDescription>
+            <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
         {complements?.length ? (

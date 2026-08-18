@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { NIMWizardFields } from './modelServing/NIMWizardFields';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
@@ -787,6 +788,18 @@ class InferenceServiceRow extends ModelServingRow {
     return this.find().findByTestId('model-status-text').should('include.text', label);
   }
 
+  findCapabilitiesCell() {
+    return this.find().find('[data-label="Capabilities"]');
+  }
+
+  findCapabilitiesGroup() {
+    return this.findCapabilitiesCell().findByTestId('deployment-capabilities');
+  }
+
+  findCapabilityLabels() {
+    return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
@@ -923,6 +936,8 @@ class ModelServingSection {
 }
 
 class ModelServingWizard extends Wizard {
+  nim = new NIMWizardFields();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
@@ -945,6 +960,26 @@ class ModelServingWizard extends Wizard {
 
   findPreconfigureProjectSelectorOption(name: string) {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  findValidatedConfigurationSection(forField: string) {
+    return cy.findByTestId(`validated-configuration-section-${forField}`);
+  }
+
+  findValidatedConfigurationOption(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-${optionSlug}`);
+  }
+
+  findValidatedConfigurationOptionCheckbox(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-checkbox-${optionSlug}`);
+  }
+
+  findValidatedConfigurationViewArguments(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-view-arguments-${optionSlug}`);
+  }
+
+  findValidatedConfigurationArgumentsPopoverContent(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-arguments-popover-content-${optionSlug}`);
   }
 
   findModelSourceStep() {
@@ -1320,6 +1355,67 @@ class ModelServingWizard extends Wizard {
 
   findUseCaseInput() {
     return cy.findByTestId('use-case-input');
+  }
+
+  findModelCapabilitiesField() {
+    return cy.findByTestId('model-capabilities-field');
+  }
+
+  findAddCapabilityButton() {
+    return cy.findByTestId('add-capability-btn');
+  }
+
+  findWellKnownCapabilityOption(capability: string) {
+    return cy.findByTestId(`well-known-capability-${capability}`);
+  }
+
+  findCustomCapabilityInput() {
+    return cy.findByTestId('custom-capability-input');
+  }
+
+  findAddCustomCapabilityButton() {
+    return cy.findByTestId('add-custom-capability-btn');
+  }
+
+  findCapabilityLabel(capability: string) {
+    return cy.findByTestId(`capability-label-${capability}`);
+  }
+
+  openAddCapabilityDropdown() {
+    this.findAddCapabilityButton().click();
+    return this;
+  }
+
+  selectWellKnownCapability(capability: string) {
+    this.openAddCapabilityDropdown();
+    this.findWellKnownCapabilityOption(capability).click();
+    return this;
+  }
+
+  addCustomCapability(capability: string) {
+    this.openAddCapabilityDropdown();
+    this.findCustomCapabilityInput().type(capability);
+    this.findAddCustomCapabilityButton().click();
+    return this;
+  }
+
+  removeCapability(capability: string) {
+    this.findCapabilityLabel(capability).findByLabelText(`Close ${capability}`).click();
+    return this;
+  }
+
+  navigateGenerativeLegacyToAdvancedOptions() {
+    this.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+    this.findModelLocationSelectOption('Existing connection').click();
+    this.findExistingConnectionSelect().click();
+    this.findExistingConnectionSelectOption('Test URI Secret').click();
+    this.findNextButton().click();
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('legacy');
+    this.findServingRuntimeTemplateSearchSelector().click();
+    this.selectGlobalScopedTemplateOption('vLLM NVIDIA');
+    this.findNextButton().click();
+    return this;
   }
 
   findCPURequestedInput() {

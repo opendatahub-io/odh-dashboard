@@ -52,6 +52,9 @@ const ClusterSettings: React.FC = () => {
   const { dashboardConfig } = useAppContext();
   const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
+  const modelDeploymentSettingsEnabled = useIsAreaAvailable(
+    SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+  ).status;
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
@@ -212,7 +215,7 @@ const ClusterSettings: React.FC = () => {
       provideChildrenPadding
     >
       <Stack hasGutter>
-        {modelServingEnabled && (
+        {modelServingEnabled && !modelDeploymentSettingsEnabled && (
           <SettingSection title="Model deployments">
             <Stack hasGutter>
               <StackItem>

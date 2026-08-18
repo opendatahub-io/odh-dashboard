@@ -17,7 +17,7 @@ describe('Verify OOTB Connection Types', () => {
 
   it(
     'should have pre-installed label and unable to be edited or deleted',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes', '@ConnectionTypesCI'] },
     () => {
       cy.step('Navigate to Connection Types view');
       cy.visitWithLogin(

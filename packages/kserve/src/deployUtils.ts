@@ -50,10 +50,11 @@ import {
   type DeploymentMethodFieldData,
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
+  filterRuntimeArgsForContainer,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { KServeDeployment } from './deployments';
+import type { KServeDeployment } from './types';
 
 export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
 export const KSERVE_VISIBILITY_LABEL = 'networking.kserve.io/visibility';
@@ -257,12 +258,13 @@ export const applyRuntimeArgs = (
   runtimeArgs: RuntimeArgsFieldData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
+  const containerArgs = filterRuntimeArgsForContainer(runtimeArgs.args);
   result.spec.predictor.model = {
     ...result.spec.predictor.model,
-    ...(runtimeArgs.enabled && { args: runtimeArgs.args }),
+    ...(runtimeArgs.enabled && containerArgs.length > 0 && { args: containerArgs }),
   };
 
-  if (!runtimeArgs.enabled) {
+  if (!runtimeArgs.enabled || containerArgs.length === 0) {
     delete result.spec.predictor.model.args;
   }
 

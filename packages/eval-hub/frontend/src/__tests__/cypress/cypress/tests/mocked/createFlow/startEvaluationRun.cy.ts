@@ -257,15 +257,15 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'accuracy');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'f1');
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
   it('should include pass_criteria in submission when threshold is set from metadata', () => {
@@ -341,7 +341,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
