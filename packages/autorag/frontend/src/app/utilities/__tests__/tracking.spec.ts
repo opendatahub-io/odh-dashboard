@@ -13,6 +13,7 @@ import {
   fireAutoragKnowledgeSourceConfigured,
   fireAutoragLeaderboardPresetApplied,
   fireAutoragModelsSelected,
+  fireAutoragPatternsCompared,
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragCodeSnippetsExported,
@@ -820,4 +821,36 @@ describe('fireAutoragLeaderboardPresetApplied', () => {
       );
     },
   );
+});
+
+describe('fireAutoragPatternsCompared', () => {
+  it('should fire AutoRAG Patterns Compared with the given interactionType, rankDifference, and scoreDifference', () => {
+    fireAutoragPatternsCompared('initial', 1, 0.4);
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+      interactionType: 'initial',
+      rankDifference: 1,
+      scoreDifference: 0.4,
+    });
+  });
+
+  it('should fire with interactionType: changed and negative rankDifference/scoreDifference', () => {
+    fireAutoragPatternsCompared('changed', -5, -0.15);
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+      interactionType: 'changed',
+      rankDifference: -5,
+      scoreDifference: -0.15,
+    });
+  });
+
+  it('should round scoreDifference to 4 decimal places to avoid floating-point noise', () => {
+    fireAutoragPatternsCompared('initial', 1, 0.45 - 0.66);
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+      interactionType: 'initial',
+      rankDifference: 1,
+      scoreDifference: -0.21,
+    });
+  });
 });

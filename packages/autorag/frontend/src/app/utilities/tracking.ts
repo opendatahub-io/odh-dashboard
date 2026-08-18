@@ -35,6 +35,7 @@ export const AUTORAG_EVENTS = {
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
   CODE_SNIPPETS_EXPORTED: 'AutoRAG Code Snippets Exported',
   LEADERBOARD_PRESET_APPLIED: 'AutoRAG Leaderboard Preset Applied',
+  PATTERNS_COMPARED: 'AutoRAG Patterns Compared',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -639,4 +640,46 @@ export type LeaderboardPresetType =
  */
 export const fireAutoragLeaderboardPresetApplied = (presetType: LeaderboardPresetType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, { presetType });
+};
+
+/**
+ * Whether this comparison selection was the first one made after enabling "Compare patterns"
+ * (`'initial'`), or a subsequent swap via "Change comparison" (`'changed'`) — surfaces whether
+ * users settle on one comparison or keep exploring different pairings.
+ */
+export type PatternComparedInteractionType = 'initial' | 'changed';
+
+/**
+ * Rounds a raw score delta to 4 decimal places to avoid floating-point noise (e.g.
+ * `0.45 - 0.66` producing `-0.21000000000000002`) leaking into analytics payloads.
+ */
+const roundScoreDifference = (value: number): number => Math.round(value * 10000) / 10000;
+
+/**
+ * Fires when the user confirms a pattern selection in the pattern details modal's comparison
+ * select modal — both for the initial "Compare patterns" selection and for a subsequent "Change
+ * comparison" swap to a different pattern. The comparison feature is a fixed 1-vs-1 pairing (a
+ * single `comparisonPatternIndex`, not a multi-select), so there is no meaningful
+ * "how many patterns at once" count to report — it is always exactly 2 (primary + comparison).
+ *
+ * `rankDifference` is signed: `comparisonRank - primaryRank`. Ranks are unique 1-based integers
+ * (see `computePatternRankMap`), so this is always well-defined and comparable across every run
+ * regardless of which metric is optimized.
+ *
+ * `scoreDifference` is signed: `comparisonScore - primaryScore` (each pattern's optimized-metric
+ * mean score). Left as a raw number (rather than a bucketed 'better'/'worse'/'tie' category) for
+ * full precision within a given run/metric — note that unlike `rankDifference`, raw score deltas
+ * from different runs aren't necessarily on the same scale if they optimize different metrics, so
+ * this field is best analyzed per-run/per-metric rather than aggregated wholesale across events.
+ */
+export const fireAutoragPatternsCompared = (
+  interactionType: PatternComparedInteractionType,
+  rankDifference: number,
+  scoreDifference: number,
+): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+    interactionType,
+    rankDifference,
+    scoreDifference: roundScoreDifference(scoreDifference),
+  });
 };
