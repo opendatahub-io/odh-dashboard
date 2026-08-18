@@ -79,6 +79,7 @@ export default defineConfig({
     mfConfigs: getModuleFederationConfigs(true),
   },
   defaultCommandTimeout: 10000,
+  requestTimeout: 10000,
   e2e: {
     injectDocumentDomain: true,
     baseUrl: BASE_URL,
