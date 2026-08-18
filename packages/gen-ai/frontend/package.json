@@ -26,7 +26,7 @@
     "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
     "test:type-check": "tsc --noEmit",
     "test:type-check:standalone": "tsc --noEmit -p tsconfig-standalone.json",
-    "test:unit": "pnpm run test:jest -- --silent",
+    "test:unit": "jest --silent",
     "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
     "lint:fix": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src --fix",
     "format": "prettier --check --write \"./src/**/*.{tsx,ts}\"",

@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { tanstackQueryCoreAlias } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
@@ -273,6 +274,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      ...tanstackQueryCoreAlias(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

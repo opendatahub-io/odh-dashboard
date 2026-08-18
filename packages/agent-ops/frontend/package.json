@@ -27,7 +27,7 @@
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
     "test:cypress-ci": "pnpm exec concurrently -P -k -s first \"pnpm run cypress:server:build && pnpm run cypress:server\" \"pnpm exec wait-on tcp:127.0.0.1:9001 && pnpm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest",
-    "test:unit": "pnpm run test:jest -- --silent",
+    "test:unit": "jest --silent",
     "test:fix": "eslint ./src ./*.js --fix && prettier --write ./*.js ./*.mjs ./*.md ../*.md",
     "test:lint": "eslint --max-warnings 0 ./src ./*.js && prettier --check ./*.js ./*.mjs ./*.md ../*.md",
     "test:type-check": "tsc --noEmit",
