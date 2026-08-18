@@ -507,9 +507,6 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               datasetUrlError={form.datasetUrlError}
               touched={form.touched}
               markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
             />
           )}
 
