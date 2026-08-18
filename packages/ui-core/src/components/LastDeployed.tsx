@@ -3,15 +3,27 @@ import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { relativeTime } from '../utilities/time';
 
+type ResourceWithConditions = K8sResourceCommon & {
+  status?: {
+    conditions?: Array<{
+      type?: string;
+      status?: string;
+      lastTransitionTime?: string;
+    }>;
+  };
+};
+
 type LastDeployedProps = {
-  resource: K8sResourceCommon;
+  resource: ResourceWithConditions;
 };
 
 export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
   const conditions = Array.isArray(resource.status?.conditions) ? resource.status.conditions : [];
-  const readyCondition = conditions.find((c) => c.type === 'Ready' && c.status === 'True');
+  const readyCondition = conditions.find(
+    (condition) => condition.type === 'Ready' && condition.status === 'True',
+  );
 
-  if (!readyCondition) {
+  if (!readyCondition?.lastTransitionTime) {
     return <>-</>;
   }
 

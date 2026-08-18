@@ -44,10 +44,27 @@ export const deploymentLastDeployedSort = (a: Deployment, b: Deployment): number
   };
 
   const getConditions = (deployment: Deployment): Condition[] => {
-    if (deployment.model.status && Array.isArray(deployment.model.status.conditions)) {
-      return deployment.model.status.conditions;
+    const { status } = deployment.model;
+    if (!status || typeof status !== 'object' || !('conditions' in status)) {
+      return [];
     }
-    return [];
+    const { conditions } = status;
+    if (!Array.isArray(conditions)) {
+      return [];
+    }
+    return conditions.filter(
+      (condition): condition is Condition =>
+        typeof condition === 'object' &&
+        condition !== null &&
+        'type' in condition &&
+        'status' in condition &&
+        'lastTransitionTime' in condition &&
+        typeof condition.type === 'string' &&
+        (condition.status === 'True' ||
+          condition.status === 'False' ||
+          condition.status === 'Unknown') &&
+        typeof condition.lastTransitionTime === 'string',
+    );
   };
 
   const aReadyCondition = getConditions(a).find((c) => c.type === 'Ready');
