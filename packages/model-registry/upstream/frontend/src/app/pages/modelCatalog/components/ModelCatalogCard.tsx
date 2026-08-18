@@ -26,7 +26,6 @@ import {
   MODEL_CATALOG_POPOVER_MESSAGES,
   CATALOG_VALUE_LABEL_KEYS,
 } from '~/concepts/modelCatalog/const';
-import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogLabels from './ModelCatalogLabels';
@@ -44,7 +43,6 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
     : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
-  const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const { trackSimpleEvent } = useUserInteraction();
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -116,7 +114,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
       <CardFooter>
         <ModelCatalogLabels
           tasks={model.tasks ?? []}
-          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
+          validatedTasks={model.validatedTasks}
           provider={model.provider}
           labels={[...allLabels.filter((label) => label !== 'validated'), ...valueLabels]}
           numLabels={isValidated ? 2 : 3}

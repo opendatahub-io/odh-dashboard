@@ -66,7 +66,7 @@ const catalogModel = {
 };
 /* eslint-enable camelcase */
 
-const initIntercepts = () => {
+const initIntercepts = ({ toolCalling = true }: { toolCalling?: boolean } = {}) => {
   asProductAdminUser();
 
   cy.interceptOdh(
@@ -88,7 +88,7 @@ const initIntercepts = () => {
       disableKServe: false,
       disableModelCatalog: false,
       disableModelRegistry: false,
-      toolCalling: true,
+      toolCalling,
       vLLMDeploymentOnMaaS: true,
     }),
   );
@@ -300,5 +300,14 @@ describe('Preconfigure deployment validated arguments', () => {
 
     modelServingWizard.findAdvancedOptionsStep().click();
     modelServingWizard.findRuntimeArgsTextBox().should('have.value', '--user-custom-arg');
+  });
+
+  it('should not show the tool calling checkbox when the toolCalling flag is off', () => {
+    initIntercepts({ toolCalling: false });
+    modelDetailsPage.visit(SOURCE_ID, MODEL_NAME);
+    modelCatalog.clickDeployModelButtonWithRetry();
+    modelServingWizard.findPreconfigureStep().should('be.enabled');
+    modelServingWizard.findValidatedConfigurationSection('args').should('not.exist');
+    modelServingWizard.findValidatedConfigurationOption('tool-calling').should('not.exist');
   });
 });
