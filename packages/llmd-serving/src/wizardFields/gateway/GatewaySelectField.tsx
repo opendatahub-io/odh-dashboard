@@ -103,9 +103,32 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
 
   const toggleProps = !isDisabled && externalData?.loadError ? { status: 'warning' as const } : {};
 
+  const selectEl = (
+    <SimpleSelect
+      isFullWidth
+      options={options}
+      onChange={(key) => {
+        if (!key || key === selectedGatewayKey) {
+          onChange({ selection: undefined });
+          return;
+        }
+        const gateway =
+          externalData?.data?.find((g) => key === getGatewayKey(g)) ??
+          (key === initialMissingKey ? initialValue?.selection : undefined);
+        onChange({ selection: gateway });
+      }}
+      placeholder="Select a gateway"
+      value={selectedGatewayKey ?? undefined}
+      toggleProps={toggleProps}
+      dataTestId="gateway-select"
+      isDisabled={isDisabled}
+      autoSelectOnlyOption={false}
+    />
+  );
+
   return (
     <FormGroup
-    fieldId="gateway-select"
+      fieldId="gateway-select"
       label="Gateway selection"
       labelHelp={
         labelHelpPopover ? (
@@ -127,54 +150,10 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
         <StackItem>
           {disabledTooltip && isDisabled ? (
             <Tooltip content={disabledTooltip}>
-              <span
-                style={{ display: 'block' }}
-                tabIndex={0}
-                data-testid="gateway-select-tooltip-wrapper"
-              >
-                <SimpleSelect
-                  isFullWidth
-                  options={options}
-                  onChange={(key) => {
-                    if (!key || key === selectedGatewayKey) {
-                      onChange({ selection: undefined });
-                      return;
-                    }
-                    const gateway =
-                      externalData?.data?.find((g) => key === getGatewayKey(g)) ??
-                      (key === initialMissingKey ? initialValue?.selection : undefined);
-                    onChange({ selection: gateway });
-                  }}
-                  placeholder="Select a gateway"
-                  value={selectedGatewayKey ?? undefined}
-                  toggleProps={toggleProps}
-                  dataTestId="gateway-select"
-                  isDisabled={isDisabled}
-                  autoSelectOnlyOption={false}
-                />
-              </span>
+              <div data-testid="gateway-select-tooltip-wrapper">{selectEl}</div>
             </Tooltip>
           ) : (
-            <SimpleSelect
-              isFullWidth
-              options={options}
-              onChange={(key) => {
-                if (!key || key === selectedGatewayKey) {
-                  onChange({ selection: undefined });
-                  return;
-                }
-                const gateway =
-                  externalData?.data?.find((g) => key === getGatewayKey(g)) ??
-                  (key === initialMissingKey ? initialValue?.selection : undefined);
-                onChange({ selection: gateway });
-              }}
-              placeholder="Select a gateway"
-              value={selectedGatewayKey ?? undefined}
-              toggleProps={toggleProps}
-              dataTestId="gateway-select"
-              isDisabled={isDisabled}
-              autoSelectOnlyOption={false}
-            />
+            selectEl
           )}
           {!isDisabled && externalData?.loadError && (
             <FormHelperText>

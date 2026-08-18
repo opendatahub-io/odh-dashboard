@@ -18,11 +18,16 @@ const FieldGroupHelpLabelIcon: React.FC<FieldGroupHelpLabelIconProps> = ({
   buttonTestId,
   popoverBodyTestId,
 }) => {
-  const bodyContent: React.ComponentProps<typeof Popover>['bodyContent'] = popoverBodyTestId
-    ? typeof content === 'function'
-      ? (hide) => <div data-testid={popoverBodyTestId}>{content(hide)}</div>
-      : <div data-testid={popoverBodyTestId}>{content}</div>
-    : content;
+  let bodyContent: React.ComponentProps<typeof Popover>['bodyContent'] = content;
+
+  if (popoverBodyTestId) {
+    bodyContent =
+      typeof content === 'function' ? (
+        (hide) => <div data-testid={popoverBodyTestId}>{content(hide)}</div>
+      ) : (
+        <div data-testid={popoverBodyTestId}>{content}</div>
+      );
+  }
 
   return (
     <Popover

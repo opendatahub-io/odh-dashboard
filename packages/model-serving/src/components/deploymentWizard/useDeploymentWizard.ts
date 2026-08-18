@@ -213,7 +213,10 @@ export const useModelDeploymentWizard = (
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
     useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
 
-  const tokenAuthOverrides = computedOverrides.tokenAuthentication ?? {};
+  const tokenAuthOverrides = React.useMemo(
+    () => computedOverrides.tokenAuthentication ?? {},
+    [computedOverrides.tokenAuthentication],
+  );
   const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
