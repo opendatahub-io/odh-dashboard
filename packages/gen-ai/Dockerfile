@@ -3,8 +3,8 @@
 FROM registry.access.redhat.com/ubi9/nodejs-20 AS ui-builder
 USER root
 WORKDIR /usr/src/workspace
-# Copy root workspace manifest (needed for npm workspaces)
-COPY package.json package-lock.json* ./
+# Copy root workspace manifest and lockfile for pnpm
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy frontend workspace manifests (for @odh-dashboard/internal)
 COPY frontend/package.json ./frontend/
 COPY frontend/src/package.json ./frontend/src/
@@ -20,13 +20,12 @@ COPY packages/gen-ai/frontend/package*.json ./packages/gen-ai/frontend/
 COPY packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
 RUN chown -R default:root /usr/src/workspace && chmod -R g+w /usr/src/workspace
 USER default
-# Install workspace dependencies at root level
-RUN npm ci --ignore-scripts
-# Change to module directory and install module dependencies
+# Install pnpm and workspace dependencies
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
 WORKDIR /usr/src/workspace/packages/gen-ai/frontend
-RUN npm ci --ignore-scripts
 ENV DEPLOYMENT_MODE=standalone
-RUN npm run build:prod
+RUN pnpm run build:prod
 
 # Backend build stage
 FROM registry.redhat.io/ubi9/go-toolset:1.26 AS bff-builder

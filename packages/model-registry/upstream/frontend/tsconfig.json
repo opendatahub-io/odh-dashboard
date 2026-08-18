@@ -44,6 +44,8 @@
     "node_modules",
     "dist",
     "public-cypress",
-    "src/__tests__/cypress"
+    "src/__tests__/cypress",
+    "config",
+    "jest.config.js"
   ]
 }

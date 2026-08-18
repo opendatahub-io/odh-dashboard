@@ -23,8 +23,8 @@ ARG PLATFORM_MODE
 WORKDIR /usr/src/workspace
 
 ### Workspace setup
-# Copy root workspace manifest first (allows npm to compute workspace graph)
-COPY --chown=default:root package.json package-lock.json* ./
+# Copy root workspace manifest and lockfile for pnpm workspace resolution.
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy the MaaS Consumer Portal workspace and the source packages used by its production build.
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root distributions/maas-consumer-portal/ ./distributions/maas-consumer-portal/
@@ -50,32 +50,18 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 # Change file ownership to the assemble user
 USER default
 
-# Install workspace dependencies first (this creates node_modules at workspace level)
-RUN npm cache clean --force
-# Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --ignore-scripts
-
-# Set up the specific module
-WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-
-# Install module dependencies
-RUN npm ci --ignore-scripts
+# Install pnpm and workspace dependencies
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
 
 # Build the module
-RUN npm run build:prod
-
-# MaaS Consumer Portal compilation consumes MaaS and GenAI frontend source directly. They are
-# independently locked workspaces, so install their production-build inputs in
-# their own node_modules directories before compiling the portal.
-WORKDIR /usr/src/workspace/packages/maas/frontend
-RUN npm ci --ignore-scripts
-WORKDIR /usr/src/workspace/packages/gen-ai/frontend
-RUN npm ci --ignore-scripts
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+RUN pnpm run build:prod
 
 # The MaaS Consumer Portal is a root workspace and its Rspack config writes to public/
 # (rather than the Core BFF frontend's dist/ directory).
 WORKDIR /usr/src/workspace
-RUN npm run build:prod --workspace @odh-dashboard/maas-consumer-portal-distribution
+RUN pnpm --filter @odh-dashboard/maas-consumer-portal-distribution run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
