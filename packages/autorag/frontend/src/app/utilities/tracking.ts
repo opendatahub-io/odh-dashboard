@@ -29,6 +29,7 @@ export const AUTORAG_EVENTS = {
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
+  NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -499,4 +500,21 @@ export type PlaygroundOpenedSource = 'resultsTable' | 'patternDetails' | 'other'
  */
 export const fireAutoragPlaygroundOpened = (source: PlaygroundOpenedSource): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.PLAYGROUND_OPENED, { source });
+};
+
+/**
+ * Which artifact was downloaded from a pattern's "Save as notebook" actions. `'other'` is part
+ * of the taxonomy but is not currently fired — the only two notebook types produced today are
+ * `'indexing'` and `'inference'`.
+ */
+export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
+
+/**
+ * Fires when a pattern notebook has actually finished downloading (i.e. the S3 fetch succeeded
+ * and the browser download was triggered) — from either the results table/leaderboard or the
+ * pattern details modal's "Save as ... notebook" actions. Does not fire on a failed download
+ * attempt, since the signal we care about is completed engagement, not the click itself.
+ */
+export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
 };

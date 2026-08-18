@@ -20,7 +20,10 @@ import {
   sanitizeFilename,
 } from '~/app/utilities/utils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
-import type { PlaygroundOpenedSource } from '~/app/utilities/tracking';
+import {
+  fireAutoragNotebookDownloaded,
+  type PlaygroundOpenedSource,
+} from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
@@ -293,6 +296,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         const safePatternName = sanitizeFilename(patternName);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
+        fireAutoragNotebookDownloaded(notebookType);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({

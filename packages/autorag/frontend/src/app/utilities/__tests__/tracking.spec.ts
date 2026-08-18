@@ -15,6 +15,7 @@ import {
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragExperimentDeleted,
+  fireAutoragNotebookDownloaded,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   fireAutoragRunReconfigured,
@@ -710,6 +711,19 @@ describe('fireAutoragPlaygroundOpened', () => {
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PLAYGROUND_OPENED, {
         source,
+      });
+    },
+  );
+});
+
+describe('fireAutoragNotebookDownloaded', () => {
+  it.each(['indexing', 'inference', 'other'] as const)(
+    'should fire AutoRAG Notebook Downloaded with notebookType: %s',
+    (notebookType) => {
+      fireAutoragNotebookDownloaded(notebookType);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType,
       });
     },
   );

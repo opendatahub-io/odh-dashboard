@@ -4,7 +4,9 @@ import { fireEvent, render, screen, within, waitFor } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import {
   AutoragResultsContext,
   type AutoragResultsContextProps,
@@ -93,6 +95,13 @@ jest.mock('~/app/hooks/mutations', () => ({
     reset: jest.fn(),
   }),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: jest.fn().mockReturnValue({
@@ -486,6 +495,9 @@ describe('AutoragResults', () => {
       });
 
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'indexing',
+      });
     });
 
     it('should successfully download inference notebook when all data is valid', async () => {
@@ -516,6 +528,36 @@ describe('AutoragResults', () => {
           'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
         );
       });
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'inference',
+      });
+    });
+
+    it('should not fire AutoRAG Notebook Downloaded when the download fails', async () => {
+      const testPattern = createMockPattern('Pattern1');
+      const patterns = { Pattern1: testPattern };
+
+      fetchS3FileMock.mockRejectedValueOnce(new Error('boom'));
+
+      renderWithContext(mockPipelineRun, patterns);
+
+      const leaderboard = screen.getByTestId('leaderboard-table');
+      const firstRow = within(leaderboard).getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+
+      await userEvent.click(kebabButton);
+
+      const saveNotebookAction = screen.getByText('Save as indexing notebook');
+      await userEvent.click(saveNotebookAction);
+
+      await waitFor(() => {
+        expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 
