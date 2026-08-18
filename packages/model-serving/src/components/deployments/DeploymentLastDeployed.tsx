@@ -4,7 +4,7 @@ import { LastDeployed } from '@odh-dashboard/ui-core';
 import { Deployment, ModelResourceType } from '../../../extension-points';
 
 type ModelWithStatus = ModelResourceType & {
-  status?: { conditions?: { type: string; lastTransitionTime: string }[] };
+  status?: { conditions?: { type: string; lastTransitionTime?: string }[] };
   metadata: ModelResourceType['metadata'] & K8sResourceCommon['metadata'];
 };
 

@@ -77,9 +77,8 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         scheme: 'https',
       },
     },
-    persistenceAgent: {
-      deploy: true,
-      numWorkers: 2,
+    persistentAgent: {
+      pipelineAPIServerName: name,
     },
   },
   status: {

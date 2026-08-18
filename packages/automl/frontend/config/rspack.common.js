@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const path = require('path');
-const { rspack } = require('@rspack/core');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
@@ -36,21 +37,18 @@ module.exports = (env) => ({
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              detectSyntax: 'auto',
-              jsc: {
-                transform: {
-                  react: {
-                    runtime: 'classic',
-                    refresh: env === 'development',
+          env === 'development'
+            ? { loader: 'swc-loader' }
+            : {
+                loader: 'ts-loader',
+                options: {
+                  transpileOnly: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
                   },
                 },
               },
-            },
-          },
-        ].filter(Boolean),
+        ],
       },
       {
         test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -78,6 +76,7 @@ module.exports = (env) => ({
         use: {
           loader: 'file-loader',
           options: {
+            // Limit at 50k. larger files emitted into separate files
             limit: 5000,
             outputPath: 'fonts',
             name: '[name].[ext]',
@@ -131,10 +130,7 @@ module.exports = (env) => ({
           COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-styles/css/assets/images',
-          ),
+          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
           path.resolve(
             RELATIVE_DIRNAME,
             'node_modules/@patternfly/react-core/dist/styles/assets/images',
@@ -171,8 +167,11 @@ module.exports = (env) => ({
       {
         test: /\.s[ac]ss$/i,
         use: [
-          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
+          // Creates `style` nodes from JS strings
+          'style-loader',
+          // Translates CSS into CommonJS
           'css-loader',
+          // Compiles Sass to CSS
           'sass-loader',
         ],
       },
@@ -183,7 +182,7 @@ module.exports = (env) => ({
     ],
   },
   output: {
-    filename: '[name].js',
+    filename: '[name].bundle.js',
     path: DIST_DIR,
     publicPath: 'auto',
     uniqueName: name,
@@ -194,7 +193,7 @@ module.exports = (env) => ({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
-    new rspack.HtmlRspackPlugin({
+    new HtmlWebpackPlugin({
       template: path.join(SRC_DIR, 'index.html'),
       title: PRODUCT_NAME,
       favicon: path.join(SRC_DIR, 'images', FAVICON),
@@ -204,7 +203,7 @@ module.exports = (env) => ({
       },
       chunks: ['app'],
     }),
-    new rspack.CopyRspackPlugin({
+    new CopyPlugin({
       patterns: [
         {
           from: path.join(SRC_DIR, 'locales'),

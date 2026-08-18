@@ -70,3 +70,6 @@ overrides:
   adm-zip: '>=0.6.0'
   '@cypress/code-coverage>js-yaml': '>=4.3.0'
   'xmlbuilder2>js-yaml': '^3.14.2'
+  '@types/minimatch': '5.1.2'
+  '@mui/material@>=7>@mui/utils': '^7.3.11'
+  '@mui/material@>=7>@mui/system': '^7.3.11'

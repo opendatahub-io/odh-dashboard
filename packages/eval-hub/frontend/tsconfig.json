@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../../..",
     "outDir": "dist",
     "module": "esnext",
     "target": "es2021",
     "lib": [
-      "es2021",
+      "es2022",
       "dom",
       "ES2022.Object",
       "ES2023.Array"

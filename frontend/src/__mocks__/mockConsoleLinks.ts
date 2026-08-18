@@ -17,8 +17,7 @@ export const mockConsoleLink = ({
   href,
   imageURL,
 }: ConsoleLinkData): ConsoleLinkKind => ({
-  apiVersion: 'v1',
-  apiGroup: 'openshift.io',
+  apiVersion: 'console.openshift.io/v1',
   kind: 'ConsoleLink',
   metadata: {
     name,
