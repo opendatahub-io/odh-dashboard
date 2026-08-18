@@ -14,6 +14,7 @@ import {
   fireAutoragModelsSelected,
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
+  fireAutoragCodeSnippetsExported,
   fireAutoragExperimentDeleted,
   fireAutoragNotebookDownloaded,
   fireAutoragPatternDetailsDownloadInitiated,
@@ -776,5 +777,27 @@ describe('fireAutoragPatternDetailsDownloadInitiated', () => {
       AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
       { downloadType: 'patternDetails' },
     );
+  });
+});
+
+describe('fireAutoragCodeSnippetsExported', () => {
+  it.each(['playground', 'resultsTable', 'patternDetails', 'other'] as const)(
+    'should fire AutoRAG Code Snippets Exported with action: viewed and entrySource: %s',
+    (entrySource) => {
+      fireAutoragCodeSnippetsExported('viewed', entrySource);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED,
+        { action: 'viewed', entrySource },
+      );
+    },
+  );
+
+  it('should fire AutoRAG Code Snippets Exported with action: copied and no entrySource', () => {
+    fireAutoragCodeSnippetsExported('copied');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
+      action: 'copied',
+    });
   });
 });

@@ -24,6 +24,7 @@ import {
   fireAutoragNotebookDownloaded,
   fireAutoragPatternDetailsViewed,
   type PlaygroundOpenedSource,
+  type ViewCodeEntrySource,
 } from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
@@ -35,7 +36,7 @@ const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/Patte
 
 type AutoragResultsProps = {
   onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
-  onViewCode?: (patternName: string) => void;
+  onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
@@ -346,7 +347,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             onTryPattern={
               onTryPattern ? (patternName) => onTryPattern(patternName, 'resultsTable') : undefined
             }
-            onViewCode={onViewCode}
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'resultsTable') : undefined
+            }
             onRunIndexingPipeline={runIndexingHandler}
           />
         </StackItem>
@@ -369,7 +372,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
                 ? (patternName) => onTryPattern(patternName, 'patternDetails')
                 : undefined
             }
-            onViewCode={onViewCode}
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'patternDetails') : undefined
+            }
             onRunIndexingPipeline={runIndexingHandler}
           />
         </React.Suspense>

@@ -33,6 +33,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
+  CODE_SNIPPETS_EXPORTED: 'AutoRAG Code Snippets Exported',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -584,5 +585,34 @@ export const fireAutoragPatternDetailsViewed = (source: PatternDetailsEntrySourc
 export const fireAutoragPatternDetailsDownloadInitiated = (): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED, {
     downloadType: 'patternDetails',
+  });
+};
+
+/** Whether the user viewed or copied a "View code" (curl/Node.js/Go/Python) snippet. */
+export type CodeSnippetAction = 'viewed' | 'copied';
+
+/**
+ * Where the "View code" modal was opened from: the Playground drawer's "View Code" button
+ * (`'playground'`), a results-table row's "View code" kebab action (`'resultsTable'`), or the
+ * pattern details modal's "View code" dropdown item (`'patternDetails'`). `'other'` is a
+ * defensive catch-all for any future entry point added before this taxonomy is updated.
+ */
+export type ViewCodeEntrySource = 'playground' | 'resultsTable' | 'patternDetails' | 'other';
+
+/**
+ * Fires with `action: 'viewed'` and an `entrySource` when the "View code" modal is opened. Fires
+ * once per open, regardless of which language tab is initially shown. Fires with
+ * `action: 'copied'` (no `entrySource`) when the user clicks a tab's "Copy" button and the
+ * clipboard write succeeds — not fired on a rejected clipboard write (e.g. denied permission);
+ * which tab/entry point was copied from isn't tracked separately from the "viewed" event for the
+ * same modal session.
+ */
+export const fireAutoragCodeSnippetsExported = (
+  action: CodeSnippetAction,
+  entrySource?: ViewCodeEntrySource,
+): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.CODE_SNIPPETS_EXPORTED, {
+    action,
+    ...(entrySource ? { entrySource } : {}),
   });
 };

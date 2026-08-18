@@ -885,6 +885,72 @@ describe('AutoragResults', () => {
     });
   });
 
+  describe('onViewCode source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should call onViewCode with source: resultsTable from the leaderboard action', () => {
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View code'));
+
+      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should call onViewCode with source: patternDetails from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+      const viewCodeAction = await screen.findByText('View code');
+      await user.click(viewCodeAction);
+
+      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+    });
+  });
+
   describe('AutoRAG Pattern Details Viewed tracking', () => {
     const patterns = {
       Pattern1: createMockPattern('Pattern1'),

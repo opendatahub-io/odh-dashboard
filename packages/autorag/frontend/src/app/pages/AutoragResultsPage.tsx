@@ -41,11 +41,12 @@ import {
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
+  fireAutoragCodeSnippetsExported,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
 } from '~/app/utilities/tracking';
-import type { PlaygroundOpenedSource } from '~/app/utilities/tracking';
+import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -307,11 +308,12 @@ function AutoragResultsPage(): React.JSX.Element {
   } | null>(null);
 
   const handleViewCode = React.useCallback(
-    (patternName: string) => {
+    (patternName: string, source: ViewCodeEntrySource) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
       if (responsesTemplate) {
         setViewCodePattern({ patternName, responsesTemplate });
+        fireAutoragCodeSnippetsExported('viewed', source);
       }
     },
     [patterns],
@@ -335,7 +337,7 @@ function AutoragResultsPage(): React.JSX.Element {
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
                 onSelectPattern={openPlaygroundForPattern}
-                onViewCode={handleViewCode}
+                onViewCode={(patternName) => handleViewCode(patternName, 'playground')}
               />
             ) : undefined
           }
