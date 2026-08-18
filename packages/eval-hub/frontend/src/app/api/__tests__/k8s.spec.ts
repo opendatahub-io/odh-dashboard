@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
 import {
+  getCollection,
   getCollections,
   getEvalHubCRStatus,
   getEvaluationJob,
@@ -173,6 +174,79 @@ describe('getEvaluationJob', () => {
 
     await expect(getEvaluationJob('', 'test-ns', 'job-5')({})).rejects.toThrow(
       'Invalid response format',
+    );
+  });
+});
+
+describe('getCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the collection when response is valid', async () => {
+    const collection: Collection = {
+      resource: { id: 'col-1' },
+      name: 'Open LLM Leaderboard v2',
+      category: 'General',
+    };
+    mockRestGET.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollection('', 'test-ns', 'col-1')({});
+
+    expect(result).toEqual(collection);
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid response format',
+    );
+  });
+
+  it('should call restGET with the correct URL and namespace query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col-1' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    await getCollection('', 'my-ns', 'col-1')(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1',
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should encode the collection ID in the URL', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col/special' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollection('', 'ns', 'col/special')({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col%2Fspecial',
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should pass the hostPath to restGET', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'col-1' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollection('http://my-host', 'ns', 'col-1')({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      'http://my-host',
+      expect.any(String),
+      expect.any(Object),
+      expect.any(Object),
     );
   });
 });

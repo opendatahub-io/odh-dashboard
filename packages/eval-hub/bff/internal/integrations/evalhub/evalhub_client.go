@@ -49,6 +49,7 @@ type EvalHubClientInterface interface {
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
+	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
@@ -580,6 +581,23 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 		resp.Items = []Collection{}
 	}
 	return *resp, nil
+}
+
+// GetCollection retrieves a single benchmark collection by ID.
+// The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
+func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[Collection](c, ctx, path, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "GetCollection")
+	}
+	return resp, nil
 }
 
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.

@@ -345,6 +345,16 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
+func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	collections := mockCollections()
+	for i := range collections {
+		if collections[i].Resource.ID == id {
+			return &collections[i], nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
 	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
 	for i := range jobs {

@@ -177,6 +177,23 @@ export const deleteEvaluationJob =
       ),
     ).then(() => undefined);
 
+export const getCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<Collection> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>
   (opts: APIOptions): Promise<CollectionsListResponse> => {
