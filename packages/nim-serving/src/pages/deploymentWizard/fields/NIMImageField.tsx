@@ -12,7 +12,12 @@ import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hoo
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
-import { getImageRepository, normalizeVersion } from '../../../api/images/utils';
+import {
+  formatImageString,
+  getImageRepository,
+  normalizeVersion,
+  parseImageString,
+} from '../../../api/images/utils';
 import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
 
 export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
@@ -86,7 +91,13 @@ const nimImageFieldSchema = z.object({
 
 type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 
-const getImageOptionKey = (image: NIMImageFieldValue): string => `${image.repository}:${image.tag}`;
+export const getImageOptionKey = (image: NIMImageFieldValue): string =>
+  `${image.repository}:${image.tag}`;
+
+export const toNIMImageFieldValue = (image: string): NIMImageFieldValue => {
+  const [host, namespace, name, tag] = parseImageString(image);
+  return { repository: formatImageString([host, namespace, name, '']), tag };
+};
 
 const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
   const seen = new Set<string | number>();
