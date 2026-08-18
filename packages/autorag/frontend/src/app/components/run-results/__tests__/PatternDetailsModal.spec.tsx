@@ -342,6 +342,40 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
     });
+
+    it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail (RHOAIENG-85307)', async () => {
+      // Start in loading state — tab is visible, simulating the window Cypress finds it in CI
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      });
+
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      const { rerender } = render(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
+
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Evaluation results fetch fails (e.g. malformed JSON from S3)
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      rerender(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
+
+      // Tab must remain in DOM — removing it while active caused the CI crash
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+
+      // Error state must be shown inside the tab
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
+
+      // Close button must still work — this is the regression assertion from the CI failure
+      await user.click(screen.getByLabelText('Close'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Tab reset behavior', () => {
@@ -486,6 +520,51 @@ describe('PatternDetailsModal', () => {
       });
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('compare patterns toggle', () => {
+    const twoPatternProps = {
+      ...defaultProps,
+      patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+    };
+
+    it('should disable compare toggle when on Sample Q&A tab and evaluation results fail', async () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+
+      const user = userEvent.setup();
+      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab (stays visible because isEvaluationError keeps it shown)
+      await user.click(screen.getByTestId('tab-sample_qa'));
+      rerender(<PatternDetailsModal {...twoPatternProps} />);
+
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
+    });
+
+    it('should not disable compare toggle on settings tabs even when evaluation results fail', () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      // Default tab is pattern_information — toggle should not be disabled
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
+    });
+
+    it('should enable compare toggle when evaluation results load successfully', () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: mockEvaluationResults,
+        isLoading: false,
+        isError: false,
+      });
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
   });
 

@@ -68,7 +68,17 @@ export function usePatternEvaluationResults(
 
       const blob = await fetchS3File(namespace, key, { signal });
       const text = await blob.text();
-      const parsed: unknown = JSON.parse(text);
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        throw new Error(
+          `Failed to parse evaluation results from S3 key "${key}": ${
+            e instanceof Error ? e.message : 'Invalid JSON'
+          }`,
+        );
+      }
 
       if (!Array.isArray(parsed)) {
         throw new Error(`Invalid evaluation results: expected array, got ${typeof parsed}`);
