@@ -17,6 +17,21 @@ const mockServices: HostApiServices = {
   deleteSecret: jest.fn(),
   patchSecretWithOwnerReference: jest.fn(),
   patchSecretWithProtocolAnnotation: jest.fn(),
+  useWatchConnectionTypes: jest.fn(() => [[], false, undefined, jest.fn()]),
+  useServingConnections: jest.fn(() => [[], false, undefined, jest.fn()]),
+  getDashboardConfigTemplateOrder: jest.fn(),
+  getDashboardConfigTemplateDisablement: jest.fn(),
+  useModelServingMetrics: jest.fn(() => ({ data: {}, refresh: jest.fn() })),
+  useServingPlatformStatuses: jest.fn(() => ({
+    kServe: { enabled: false, installed: false },
+    kServeNIM: { enabled: false, installed: false },
+    platformEnabledCount: 0,
+    refreshNIMAvailability: jest.fn(),
+  })),
+  isProjectNIMSupported: jest.fn(() => false),
+  trackEvent: jest.fn(),
+  createProject: jest.fn(),
+  registeredModelDeploymentsRoute: jest.fn(() => ''),
 };
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>

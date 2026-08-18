@@ -1,8 +1,11 @@
 import React from 'react';
 import { FetchOptions } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
-import { TimeframeStep, TimeframeTimeRange } from '#~/concepts/metrics/const';
-import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';
+import {
+  TimeframeTitle,
+  type PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/ui-core/types/metrics';
+import { TimeframeStep, TimeframeTimeRange } from '@odh-dashboard/ui-core/utilities/metrics';
+import { PendingContextResourceData } from '#~/types';
 import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 

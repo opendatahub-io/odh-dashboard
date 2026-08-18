@@ -117,10 +117,18 @@ export function getPipelineSummaryDetails(
     {
       label: 'Patterns evaluated',
       value: resolvePatternsEvaluated(componentStageMap, patterns)?.toString() ?? '—',
+      help: {
+        header: 'Pattern',
+        body: 'A specific combination of chunking, embedding, retrieval, and generation settings being tested.',
+      },
     },
     {
       label: 'Winning pattern',
       value: resolveWinningPatternDisplay(patterns, bestPatternKey) ?? '—',
+      help: {
+        header: 'Winning pattern',
+        body: 'The configuration that achieved the highest evaluation score during optimization.',
+      },
     },
     {
       label: 'Evaluation metric',

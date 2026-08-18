@@ -35,6 +35,7 @@ export const preDeployMaaSModelRef = async (
   wizardState: WizardFormData['state'],
   deployment: LLMdDeployment,
   existingDeployment?: LLMdDeployment,
+  dryRun?: boolean,
 ): Promise<LLMdDeployment> => {
   if (typeof fieldData.isChecked !== 'boolean') {
     return deployment;
@@ -50,6 +51,11 @@ export const preDeployMaaSModelRef = async (
   const displayName = modelResource.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = modelResource.metadata.annotations?.['openshift.io/description'] ?? '';
   const modelCapabilities = parseModelCapabilities(modelResource.metadata.annotations);
+
+  // real run is done in postDeploy
+  if (!dryRun) {
+    return deployment;
+  }
 
   if (existingDeployment) {
     if (!isChecked) {
@@ -110,18 +116,25 @@ export const preDeployMaaSModelRef = async (
  */
 export const postDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
-  deployedModel: LLMdDeployment['model'],
+  deployedModel: LLMdDeployment,
   existingDeployment?: LLMdDeployment,
+  dryRun?: boolean,
 ): Promise<void> => {
-  const { name, namespace, uid } = deployedModel.metadata;
+  const { name, namespace, uid } = deployedModel.model.metadata;
   if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
     return;
   }
   const { isChecked } = fieldData;
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
-  const displayName = deployedModel.metadata.annotations?.['openshift.io/display-name'] ?? name;
-  const description = deployedModel.metadata.annotations?.['openshift.io/description'] ?? '';
-  const modelCapabilities = parseModelCapabilities(deployedModel.metadata.annotations);
+  const displayName =
+    deployedModel.model.metadata.annotations?.['openshift.io/display-name'] ?? name;
+  const description = deployedModel.model.metadata.annotations?.['openshift.io/description'] ?? '';
+  const modelCapabilities = parseModelCapabilities(deployedModel.model.metadata.annotations);
+
+  // Dryrun is done in preDeploy
+  if (dryRun) {
+    return;
+  }
 
   if (existingDeployment) {
     if (!isChecked) {

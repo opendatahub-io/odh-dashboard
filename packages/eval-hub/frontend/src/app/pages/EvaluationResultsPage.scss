@@ -1,0 +1,13 @@
+.eval-hub-results__metadata-text {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.eval-hub-results__metadata-icon {
+  color: var(--pf-t--global--icon--color--subtle);
+}
+
+.eval-hub-results__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}

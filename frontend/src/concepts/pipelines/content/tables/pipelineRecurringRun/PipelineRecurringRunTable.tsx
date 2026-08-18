@@ -58,7 +58,11 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
   const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
-  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+  const {
+    data: mlflowExperiments,
+    loaded: mlflowExperimentsLoaded,
+    error: mlflowExperimentsError,
+  } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
@@ -144,6 +148,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
               isAvailable: isMlflowAvailable,
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
+              error: mlflowExperimentsError,
             }}
           />
         )}

@@ -36,6 +36,13 @@ spec:
       ports:
         - port: 6443
           protocol: TCP
+    # Internal maas-api Service (odh-ai-gateway-infra / redhat-ai-gateway-infra) for
+    # /v1/tenants gateway discovery before passthrough uses the external URL on 443.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 8443
+          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

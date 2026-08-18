@@ -1,4 +1,5 @@
 import React from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import {
   ModularArchConfig,
   DeploymentMode,
@@ -8,12 +9,15 @@ import {
   useSettings,
 } from 'mod-arch-core';
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
+import { createEvalHubQueryClient } from '~/app/utilities/queryClient';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import AppRoutes from '~/app/AppRoutes';
 import { registerMlflowEmbeddedRemote } from './registerMlflowEmbeddedRemote';
 
 registerMlflowEmbeddedRemote();
+
+const queryClient = createEvalHubQueryClient();
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -64,7 +68,9 @@ const EvalHubWrapperContent: React.FC = () => {
     <AppContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
-          <AppRoutes />
+          <QueryClientProvider client={queryClient}>
+            <AppRoutes />
+          </QueryClientProvider>
         </NotificationContextProvider>
       </BrowserStorageContextProvider>
     </AppContext.Provider>

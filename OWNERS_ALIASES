@@ -52,6 +52,8 @@ aliases:
   hardware-profiles-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
+    - srtanish1992
+    - nananosirova
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -95,6 +97,7 @@ aliases:
   pipelines-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
+    - srtanish1992
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -103,13 +106,13 @@ aliases:
   # General Dashboard infrastructure
   platform-approvers:
     - christianvogt
+    - liday-rh
     - lucferbux
   platform-reviewers:
     - christianvogt
     - jenny-s51
     - liday-rh
     - lucferbux
-    - rsun19
 
   # Quality / E2E testing
   quality-e2e-testing-approvers:
@@ -120,6 +123,8 @@ aliases:
     - nikhils-2
     - jefho-rh
     - tamdavid-git
+    - ikeola13
+    - NickGagan
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
@@ -129,14 +134,19 @@ aliases:
     - jefho-rh
     - tamdavid-git
     - zahra-j6
+    - ikeola13
+    - NickGagan
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
     - Gkrumbach07
+    - srtanish1992
+    - nananosirova
   workbenches-reviewers:
     - srtanish1992
     - Gkrumbach07
     - DaltheCow
+    - nananosirova
 
   # Gen AI
   gen-ai-approvers:
@@ -241,15 +251,12 @@ aliases:
 
   # Eval Hub
   eval-hub-approvers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
+    - jefho-rh
 
   eval-hub-reviewers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
@@ -270,6 +277,17 @@ aliases:
     - paulovmr
   distributions-reviewers:
     - jenny-s51
+
+  # Data Registry
+  data-registry-approvers:
+    - briangallagher
+    - Fiona-Waters
+    - MStokluska
+  data-registry-reviewers:
+    - briangallagher
+    - Fiona-Waters
+    - MStokluska
+    - Slowlybomb
 
   # MLflow
   mlflow-approvers:

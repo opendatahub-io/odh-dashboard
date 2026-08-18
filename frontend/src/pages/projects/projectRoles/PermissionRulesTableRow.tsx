@@ -17,10 +17,10 @@ const PermissionRulesTableRow: React.FC<PermissionRulesTableRowProps> = ({
   onRemove,
 }) => (
   <Tr data-testid={`rule-row-${rule.id}`}>
-    <Td dataLabel="Resource types">{formatRuleValues(rule.resources)}</Td>
-    <Td dataLabel="Actions">{formatRuleValues(rule.verbs)}</Td>
-    <Td dataLabel="API group">{formatRuleValues(rule.apiGroups)}</Td>
-    <Td dataLabel="Resource name">{formatRuleValues(rule.resourceNames)}</Td>
+    <Td dataLabel="Resources">{formatRuleValues(rule.resources)}</Td>
+    <Td dataLabel="Operations">{formatRuleValues(rule.verbs)}</Td>
+    <Td dataLabel="API groups">{formatRuleValues(rule.apiGroups)}</Td>
+    <Td dataLabel="Resource names">{formatRuleValues(rule.resourceNames)}</Td>
     <Td isActionCell modifier="nowrap" className="pf-v6-u-text-align-right">
       <Tooltip content="Edit rule">
         <Button

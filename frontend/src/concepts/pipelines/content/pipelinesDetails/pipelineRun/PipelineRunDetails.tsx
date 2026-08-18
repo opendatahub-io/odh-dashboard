@@ -137,6 +137,7 @@ const PipelineRunDetails: React.FC<
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
       executions={drawerExecutions}
+      run={run}
     />
   ) : null;
 

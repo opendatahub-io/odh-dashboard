@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/feature-store",
   "description": "Feature store plugin for managing feature engineering and data pipelines.",
   "version": "0.0.0",
-  "e2eCiTags": ["@FeatureStoreCI"],
+  "e2eCiTags": [
+    "@FeatureStoreCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -55,7 +57,8 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/ui-core": "*",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

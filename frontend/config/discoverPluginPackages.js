@@ -1,6 +1,6 @@
 const { execSync } = require('child_process');
 
-// Avoids running `npm query` multiple times within the same webpack build process,
+// Avoids running `npm query` multiple times within the same rspack build process,
 // since both discoverPluginPackages() and getPluginPackageDetails() need this data.
 let cachedWorkspacePackages = null;
 
@@ -84,7 +84,7 @@ function discoverPluginPackages() {
 }
 
 /**
- * Get details of plugin packages for webpack chunk grouping.
+ * Get details of plugin packages for rspack chunk grouping.
  * Returns the short name and filesystem location for each plugin package,
  * excluding the host internal package.
  * @returns {{ name: string, shortName: string, location: string }[]}

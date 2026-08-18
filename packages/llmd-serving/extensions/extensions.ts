@@ -13,12 +13,14 @@ import type {
   AssembleModelResourceExtension,
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
+  WizardFieldDeploymentFunctionsExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
@@ -42,6 +44,38 @@ import type {
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
+
+// Keep in sync with ../src/settings/llmAcceleratorConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llm-accelerator-configs';
+const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations';
+
+// Keep in sync with ../src/settings/topologyConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const TOPOLOGY_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-topology-configurations';
+const TOPOLOGY_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/topology-configurations';
+
+// Keep in sync with ../src/settings/routingConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const ROUTING_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-routing-configurations';
+const ROUTING_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/routing-configurations';
+
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
 
 // When vLLMOnMaaS enabled + llmdTemplates disabled: show accelerator config for all llm-d (single-node fallback)
 const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
@@ -77,52 +111,6 @@ const llmConfigOptionsFieldExtensionWithTemplates: WizardFieldExtension<
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const topologyTypeFieldExtension: WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const customTopologyConfigFieldExtension: WizardFieldExtension<
-  CustomTopologyConfigFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/CustomTopologyConfigField').then(
-        (m) => m.CustomTopologyConfigFieldWizardField,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const advancedRoutingFieldExtension: WizardFieldExtension<
-  AdvancedRoutingFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/AdvancedRoutingField').then(
-        (m) => m.AdvancedRoutingFieldWizardField,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
   },
 };
 
@@ -174,9 +162,36 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
   },
 };
 
-// ─── Topology / Routing Apply + Extract Extensions ─────────────────────────────
+// ───────────────────Topology Config Extensions ───────────────────
 
-const topologyTypeApplyExtension: WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment> =
+export type TopologyConfigsExtensionsType =
+  // Topology type
+  | WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<TopologyTypeFieldData, LLMdDeployment>
+  // Topology config
+  | WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  | WizardFieldDeploymentFunctionsExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  // Router config
+  | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>;
+
+export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
+  // ─── Topology type ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>,
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {
@@ -185,84 +200,105 @@ const topologyTypeApplyExtension: WizardFieldApplyExtension<TopologyTypeFieldDat
       apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyType),
     },
     flags: {
-      required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
-  };
-
-const topologyTypeExtractorExtension: WizardFieldExtractorExtension<
-  TopologyTypeFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/topology-type',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyType),
+  } satisfies WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/topology-type',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyType),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<TopologyTypeFieldData, LLMdDeployment>,
+  // ─── Topology config ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/CustomTopologyConfigField').then(
+          (m) => m.CustomTopologyConfigFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldApplyExtension<CustomTopologyConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<CustomTopologyConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-deployment-functions',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      preDeploy: () => import('../src/deployments/topology').then((m) => m.preDeployTopologyConfig),
+      postDeploy: null,
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
   },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const topologyConfigApplyExtension: WizardFieldApplyExtension<
-  CustomTopologyConfigFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-apply',
-  properties: {
-    fieldId: 'llmd-serving/custom-topology-config',
-    platform: LLMD_SERVING_ID,
-    apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const topologyConfigExtractorExtension: WizardFieldExtractorExtension<
-  CustomTopologyConfigFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/custom-topology-config',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const routingConfigApplyExtension: WizardFieldApplyExtension<
-  AdvancedRoutingFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-apply',
-  properties: {
-    fieldId: 'llmd-serving/advanced-routing',
-    platform: LLMD_SERVING_ID,
-    apply: () => import('../src/deployments/topology').then((m) => m.applyRoutingConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const routingConfigExtractorExtension: WizardFieldExtractorExtension<
-  AdvancedRoutingFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/advanced-routing',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractRoutingConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
+  // ─── Router config ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/AdvancedRoutingField').then(
+          (m) => m.AdvancedRoutingFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'llmd-serving/advanced-routing',
+      platform: LLMD_SERVING_ID,
+      apply: () => import('../src/deployments/topology').then((m) => m.applyRoutingConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/advanced-routing',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractRoutingConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+];
 
 const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<
   { method: string },
@@ -321,8 +357,10 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
+  | TabRouteTabExtension
 )[] = [
   {
     type: 'app.area',
@@ -509,15 +547,7 @@ const extensions: (
   },
   llmConfigOptionsFieldExtensionNoTemplates,
   llmConfigOptionsFieldExtensionWithTemplates,
-  topologyTypeFieldExtension,
-  customTopologyConfigFieldExtension,
-  advancedRoutingFieldExtension,
-  topologyTypeApplyExtension,
-  topologyTypeExtractorExtension,
-  topologyConfigApplyExtension,
-  topologyConfigExtractorExtension,
-  routingConfigApplyExtension,
-  routingConfigExtractorExtension,
+  ...topologyConfigsExtensions,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
@@ -535,13 +565,14 @@ const extensions: (
     type: 'app.navigation/href',
     flags: {
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llm-accelerator-configs',
       title: 'LLM accelerator configurations',
-      href: '/settings/model-resources-operations/llm-accelerator-configs',
+      href: LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       group: '1_model-resources',
     },
   },
@@ -549,23 +580,28 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
+  // Standalone llm-d topology configurations page — nav item + route. Hidden when
+  // modelDeploymentSettings is on (disallowed flag); removed entirely by
+  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
   {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llmd-topology-configurations',
       title: 'llm-d topology configurations',
-      href: '/settings/model-resources-operations/llmd-topology-configurations',
+      href: TOPOLOGY_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
       group: '2_model-resources',
     },
   },
@@ -573,23 +609,28 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
-      component: () => import('../src/settings/TopologyConfigurationsRoutes'),
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+      component: () => import('../src/settings/topologyConfigs/TopologyConfigurationsRoutes'),
     },
   },
+  // Standalone llm-d routing configurations page — nav item + route. Hidden when
+  // modelDeploymentSettings is on (disallowed flag); removed entirely by
+  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
   {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llmd-routing-configurations',
       title: 'llm-d routing configurations',
-      href: '/settings/model-resources-operations/llmd-routing-configurations',
+      href: ROUTING_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
       group: '2_model-resources',
     },
   },
@@ -597,12 +638,196 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
-      component: () => import('../src/settings/RoutingConfigurationsRoutes'),
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
+      component: () => import('../src/settings/routingConfigs/RoutingConfigurationsRoutes'),
     },
   },
+  // Redirects from old standalone URLs to tabs on the model deployment settings page
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        LLMD_SERVING_ID,
+        ADMIN_USER,
+        SupportedArea.VLLM_ON_MAAS,
+      ],
+    },
+    properties: {
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${TOPOLOGY_CONFIGS_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        LLMD_SERVING_ID,
+        ADMIN_USER,
+        SupportedArea.VLLM_ON_MAAS,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'llm-accelerator-configurations',
+      title: 'LLM accelerator configurations',
+      component: () =>
+        import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigTabRoutes'),
+      group: '3_accelerator',
+    },
+  },
+  // Full-page breakout routes for the accelerator configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/add`,
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          LLMD_SERVING_ID,
+          ADMIN_USER,
+          SupportedArea.VLLM_ON_MAAS,
+        ],
+      },
+      properties: {
+        path,
+        component: () =>
+          import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormRoutes'),
+      },
+    }),
+  ),
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'topology-configurations',
+      title: 'llm-d topology configurations',
+      component: () => import('../src/settings/topologyConfigs/TopologyConfigTabRoutes'),
+      group: '4_topology',
+    },
+  },
+  // Full-page breakout routes for the topology configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/add/:topologyType`,
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+          ADMIN_USER,
+        ],
+      },
+      properties: {
+        path,
+        component: () => import('../src/settings/topologyConfigs/TopologyConfigFormRoutes'),
+      },
+    }),
+  ),
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'routing-configurations',
+      title: 'llm-d routing configurations',
+      component: () => import('../src/settings/routingConfigs/RoutingConfigTabRoutes'),
+      group: '5_routing',
+    },
+  },
+  // Full-page breakout routes for the routing configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${ROUTING_CONFIGS_TAB_PATH}/add`,
+      `${ROUTING_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${ROUTING_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+          ADMIN_USER,
+        ],
+      },
+      properties: {
+        path,
+        component: () => import('../src/settings/routingConfigs/RoutingConfigFormRoutes'),
+      },
+    }),
+  ),
 ];
 
 export default extensions;

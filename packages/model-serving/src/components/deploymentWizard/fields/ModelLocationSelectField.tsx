@@ -22,7 +22,7 @@ import type {
   ConnectionTypeConfigMapObj,
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';

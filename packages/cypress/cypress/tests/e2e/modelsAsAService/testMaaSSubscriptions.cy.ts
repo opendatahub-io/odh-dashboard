@@ -274,7 +274,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
 
       // Verify the model appears in the subscription models table
@@ -336,7 +336,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
 
       // Verify the model appears in the subscription models table

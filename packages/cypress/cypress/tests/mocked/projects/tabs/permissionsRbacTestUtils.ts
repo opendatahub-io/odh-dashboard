@@ -1,15 +1,15 @@
 /**
  * Shared utilities and intercepts for projectRBAC permissions tests.
  */
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   mockClusterRoleK8sResource,
-  mockDashboardConfig,
   mockGroupRoleBindingSubject,
-  mockK8sResourceList,
-  mockProjectK8sResource,
   mockRoleK8sResource,
   mockUserRoleBindingSubject,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import {
   ClusterRoleModel,

@@ -11,6 +11,8 @@ import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/share
 import {
   ServingRuntimePlatform,
   getDisplayNameFromServingRuntimeTemplate,
+  getPVCNameFromURI,
+  isPVCUri,
 } from '@odh-dashboard/model-serving/shared';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
@@ -698,35 +700,5 @@ export const getPVCFromURI = (
     return pvcs?.find((pvc) => pvc.metadata.name === pvcName);
   } catch {
     return undefined;
-  }
-};
-
-export const getPVCNameFromURI = (uri: string): string => {
-  try {
-    const url = new URL(uri);
-    if (url.protocol !== 'pvc:') {
-      return '';
-    }
-    return url.hostname;
-  } catch {
-    return '';
-  }
-};
-
-export const isPVCUri = (uri: string): boolean => {
-  try {
-    const url = new URL(uri);
-    return url.protocol === 'pvc:';
-  } catch {
-    return false;
-  }
-};
-
-export const getModelPathFromUri = (uri: string): string => {
-  try {
-    const url = new URL(uri);
-    return url.pathname.replace(/^\//, '');
-  } catch {
-    return '';
   }
 };

@@ -1,4 +1,4 @@
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import { WorkloadCondition, WorkloadKind, WorkloadOwnerType, WorkloadPodSet } from '#~/k8sTypes';
 

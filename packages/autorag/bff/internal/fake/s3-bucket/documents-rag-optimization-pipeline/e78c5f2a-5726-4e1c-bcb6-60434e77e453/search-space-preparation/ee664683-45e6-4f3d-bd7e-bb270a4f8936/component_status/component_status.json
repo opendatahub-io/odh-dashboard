@@ -1,0 +1,15 @@
+{
+  "component_id": "search_space_preparation",
+  "started_at": "2026-07-16T19:40:38.742205Z",
+  "completed_at": "2026-07-16T19:40:41.837230Z",
+  "stages": [
+    {
+      "id": "prepare_search_space",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:41.837070Z"
+    }
+  ],
+  "metadata": {
+    "display_name": "Search Space Preparation Status"
+  }
+}

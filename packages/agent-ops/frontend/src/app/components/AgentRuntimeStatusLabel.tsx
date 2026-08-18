@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Label, Popover } from '@patternfly/react-core';
+import { Label } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -14,7 +14,6 @@ import {
 
 type AgentRuntimeStatusLabelProps = {
   status: string | undefined;
-  statusMessage?: string;
 };
 
 const statusIconMap: Record<AgentRuntimeDisplayStatus, React.ReactNode> = {
@@ -25,18 +24,13 @@ const statusIconMap: Record<AgentRuntimeDisplayStatus, React.ReactNode> = {
   [AgentRuntimeDisplayStatus.Unknown]: <QuestionCircleIcon />,
 };
 
-const AgentRuntimeStatusLabel: React.FC<AgentRuntimeStatusLabelProps> = ({
-  status,
-  statusMessage,
-}) => {
+const AgentRuntimeStatusLabel: React.FC<AgentRuntimeStatusLabelProps> = ({ status }) => {
   const { displayStatus, labelStatus, labelColor, labelVariant } = mapAgentRuntimeStatus(status);
-  const hasPopover = !!statusMessage;
 
-  const label = (
+  return (
     <Label
       variant={labelVariant ?? 'outline'}
       isCompact
-      isClickable={hasPopover}
       data-testid="agent-runtime-status-label"
       status={labelStatus}
       color={labelColor}
@@ -44,21 +38,6 @@ const AgentRuntimeStatusLabel: React.FC<AgentRuntimeStatusLabelProps> = ({
     >
       {displayStatus}
     </Label>
-  );
-
-  if (!hasPopover) {
-    return label;
-  }
-
-  return (
-    <Popover
-      data-testid="agent-runtime-status-popover"
-      headerContent={displayStatus}
-      bodyContent={statusMessage}
-      position="top"
-    >
-      {label}
-    </Popover>
   );
 };
 

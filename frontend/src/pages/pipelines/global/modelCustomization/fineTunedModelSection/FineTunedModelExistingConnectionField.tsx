@@ -10,12 +10,12 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import { ConnectionDetailsHelperText } from '@odh-dashboard/ui-core/components/connectionTypes/ConnectionDetailsHelperText';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   getConnectionTypeDisplayName,
   getConnectionTypeRef,
 } from '#~/concepts/connectionTypes/utils';
-import { ConnectionDetailsHelperText } from '#~/concepts/connectionTypes/ConnectionDetailsHelperText';
 
 type FineTunedModelExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
