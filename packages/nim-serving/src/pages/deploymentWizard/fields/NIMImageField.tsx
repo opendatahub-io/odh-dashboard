@@ -99,9 +99,12 @@ export const toNIMImageFieldValue = (image: string): NIMImageFieldValue => {
   return { repository: formatImageString([host, namespace, name, '']), tag };
 };
 
-const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
-  const seen = new Set<string | number>();
-  return images.flatMap((image) => {
+const getNIMImageOptions = (
+  images: NIMImage[],
+  existingSelection?: NIMImageFieldValue,
+): { options: NIMImageOption[]; existingOptionNotFound: boolean } => {
+  const seen = new Set<string>();
+  const result = images.flatMap((image) => {
     if (!image.namespace) {
       return [];
     }
@@ -121,6 +124,19 @@ const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
       return acc;
     }, []);
   });
+
+  let existingOptionNotFound = false;
+  // Add the existing value if it's not found in the list
+  if (existingSelection && !seen.has(getImageOptionKey(existingSelection))) {
+    existingOptionNotFound = true;
+    result.unshift({
+      value: getImageOptionKey(existingSelection),
+      content: getImageOptionKey(existingSelection),
+      repository: existingSelection.repository,
+      tag: existingSelection.tag,
+    });
+  }
+  return { options: result, existingOptionNotFound };
 };
 
 type NIMImageFieldComponentProps = {
@@ -143,16 +159,12 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [externalData?.data.nimImages.images],
   );
 
-  const options: NIMImageOption[] = React.useMemo(() => getNIMImageOptions(images), [images]);
+  const { options, existingOptionNotFound } = React.useMemo(
+    () => getNIMImageOptions(images, value),
+    [images, value],
+  );
 
-  const selectedKey = React.useMemo(() => {
-    if (!value?.repository) {
-      return '';
-    }
-    const currentKey = getImageOptionKey(value);
-    const matched = options.find((opt) => String(opt.value) === currentKey);
-    return matched ? String(matched.value) : currentKey;
-  }, [value, options]);
+  const selectedKey = value ? getImageOptionKey(value) : undefined;
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
@@ -230,6 +242,13 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         <HelperText>
           <HelperTextItem variant="error">
             There was a problem fetching the NIM models. Please try again later.
+          </HelperTextItem>
+        </HelperText>
+      )}
+      {existingOptionNotFound && (
+        <HelperText>
+          <HelperTextItem variant="warning">
+            The existing NIM image was not found. The deployment may not work as expected.
           </HelperTextItem>
         </HelperText>
       )}
