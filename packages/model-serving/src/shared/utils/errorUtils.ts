@@ -17,7 +17,7 @@ const K8S_RESOURCE_PATTERNS: [RegExp, string][] = Object.entries(K8S_RESOURCE_TY
 const getResourceTypeName = (kind?: string): string =>
   (kind && K8S_RESOURCE_TYPE_MAP[kind]) || 'resource';
 
-export const translateModelServingError = (error: unknown): string => {
+export const translateModelServingError = (error: unknown, displayName?: string): string => {
   if (
     error instanceof K8sStatusError &&
     error.statusObject.code === 409 &&
@@ -25,7 +25,7 @@ export const translateModelServingError = (error: unknown): string => {
   ) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const details = error.statusObject.details as { name?: string; kind?: string } | undefined;
-    const name = details?.name;
+    const name = displayName || details?.name;
     const resourceType = getResourceTypeName(details?.kind);
     return name
       ? `A ${resourceType} with the name "${name}" already exists. Please choose a different ${resourceType} name.`

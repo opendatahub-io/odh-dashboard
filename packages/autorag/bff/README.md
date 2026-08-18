@@ -17,9 +17,12 @@ This service exposes the following endpoints:
 - GET `/api/v1/s3/file` – retrieve a file from S3 storage
 - GET `/api/v1/ogx/models` – list available models from Open GenAI Stack Distribution
 - GET `/api/v1/ogx/vector-stores` – list available vector stores from Open GenAI Stack Distribution
-- GET `/api/v1/pipeline-runs` – query pipeline runs from Kubeflow Pipelines
-- GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
+- GET `/api/v1/pipeline-runs` – query AutoRAG pipeline runs from Kubeflow Pipelines
+- GET `/api/v1/pipeline-runs/:runId` – get a single managed pipeline run (AutoRAG or indexing) with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
+- POST `/api/v1/indexing-pipeline-runs` – create a documents indexing pipeline run
+- GET `/api/v1/managed-pipelines` – list discovered managed pipelines (autorag, indexing)
+- POST `/api/v1/managed-pipelines/enable` – enable managed pipelines on a DSPA
 
 ## Development
 

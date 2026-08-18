@@ -30,7 +30,8 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'failed':
       return RunStatus.Failed;
     case 'skipped':
-      return RunStatus.Skipped;
+      // Stage-map "skipped" means never ran due to upstream failure — show as pending in UI.
+      return RunStatus.Pending;
     default:
       return undefined;
   }
@@ -78,6 +79,21 @@ export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => 
     return 'pulse';
   };
 };
+
+/** Branch fan-out dots always pulse together while the branch phase is running. */
+export const resolveBranchStepActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'pulse' : undefined);
+
+/** Optimize templates keeps the sync badge while its branch section runs. */
+export const resolveOptimizeTemplatesActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'sync' : undefined);
+
+/** Pattern terminus nodes use sync while the branch phase is running. */
+export const resolvePatternTerminusActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'sync' : undefined);
 
 const getTerminalRunFailureStatus = (
   runState?: string,
@@ -145,32 +161,15 @@ export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
   preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID && isInlineStageFailure(stage));
 
-/**
- * Branch fan-out steps are not run when pattern optimization explicitly failed inline — keep
- * them pending. When the component failed without granular stage status, branches inherit
- * Failed.
- */
-export const resolveBranchPhaseStatus = (
-  patternSelectionStatus: RunStatus | undefined,
-  patternSelectionStage?: ComponentStageMapStage,
-): RunStatus | undefined =>
-  patternSelectionStatus === RunStatus.Failed && isInlineStageFailure(patternSelectionStage)
-    ? RunStatus.Pending
-    : patternSelectionStatus;
-
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
-
-const hasAnyInlineStageStatus = (stages: ComponentStageMapStage[]): boolean =>
-  stages.some((stage) => translateStageStatus(stage.status) != null);
 
 /**
  * Resolves per-stage statuses in pipeline order.
  *
  * Stages with inline status use that status. When the component is in progress,
- * only the next unresolved stage gets InProgress — later stages stay pending so
- * the tree advances one frontier at a time between status polls. Failures still
- * block later stages (pending after inline failure; terminal run failure propagates).
+ * unresolved stages without inline status all show InProgress together. Failures still
+ * block later stages.
  */
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
@@ -179,10 +178,8 @@ export const resolveSequentialStageRunStatuses = (
   hasExplicitFailureInPipeline = false,
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
-  const hasInlineStatuses = hasAnyInlineStageStatus(stages);
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
-  let assignedActiveSlot = false;
   let propagatedTerminal: RunStatus | undefined;
 
   const resolveUnresolved = (stage: ComponentStageMapStage): RunStatus | undefined =>
@@ -205,7 +202,6 @@ export const resolveSequentialStageRunStatuses = (
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
       } else if (inlineStatus === RunStatus.InProgress || resolved === RunStatus.InProgress) {
-        assignedActiveSlot = true;
         blockSubsequent = true;
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
@@ -215,30 +211,33 @@ export const resolveSequentialStageRunStatuses = (
 
     if (blockSubsequent) {
       if (propagatedTerminal != null) {
-        statusById.set(stage.id, propagatedTerminal);
+        statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
       if (blockedByInlineFailure) {
         statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
-      if (componentStatus === RunStatus.InProgress && !assignedActiveSlot) {
+      if (componentStatus === RunStatus.InProgress) {
         const resolved = resolveUnresolved(stage);
-        statusById.set(stage.id, resolved);
-        if (isStageTerminalFailure(resolved)) {
+        if (isStageFinished(resolved)) {
+          statusById.set(stage.id, resolved);
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
           propagatedTerminal = resolved;
         } else {
-          assignedActiveSlot = true;
+          statusById.set(stage.id, RunStatus.InProgress);
         }
-        // Keep blockSubsequent so later unresolved stages stay pending / terminal.
-      } else if (componentStatus === RunStatus.Failed) {
+        continue;
+      }
+      if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
-      } else if (componentStatus === RunStatus.Cancelled) {
-        statusById.set(stage.id, RunStatus.Cancelled);
       } else if (componentStatus === RunStatus.Succeeded) {
         statusById.set(stage.id, RunStatus.Succeeded);
+      } else if (componentStatus === RunStatus.Cancelled) {
+        statusById.set(stage.id, RunStatus.Pending);
       } else if (componentStatus === RunStatus.Skipped) {
-        statusById.set(stage.id, RunStatus.Skipped);
+        statusById.set(stage.id, RunStatus.Pending);
       } else {
         statusById.set(stage.id, RunStatus.Pending);
       }
@@ -246,22 +245,17 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.InProgress) {
-      if (!hasInlineStatuses) {
-        statusById.set(stage.id, resolveUnresolved(stage));
-        continue;
-      }
-      if (!assignedActiveSlot) {
-        const resolved = resolveUnresolved(stage);
+      const resolved = resolveUnresolved(stage);
+      if (isStageFinished(resolved)) {
+        statusById.set(stage.id, resolved);
+      } else if (isStageTerminalFailure(resolved)) {
         statusById.set(stage.id, resolved);
         blockSubsequent = true;
-        if (isStageTerminalFailure(resolved)) {
-          propagatedTerminal = resolved;
-        } else {
-          assignedActiveSlot = true;
-        }
+        propagatedTerminal = resolved;
       } else {
-        statusById.set(stage.id, RunStatus.Pending);
+        statusById.set(stage.id, RunStatus.InProgress);
       }
+      blockSubsequent = true;
       continue;
     }
 
@@ -272,13 +266,13 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.Cancelled) {
-      statusById.set(stage.id, RunStatus.Cancelled);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
       continue;
     }
 
     if (componentStatus === RunStatus.Skipped) {
-      statusById.set(stage.id, RunStatus.Skipped);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
       continue;
     }
@@ -371,14 +365,7 @@ export const promoteWaitingFrontierToInProgress = (
 
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
 
-  const isDependencySatisfied = (
-    depId: string,
-    promoted: Set<string>,
-    visiting: Set<string> = new Set(),
-  ): boolean => {
-    if (promoted.has(depId)) {
-      return true;
-    }
+  const isDependencySatisfied = (depId: string, visiting: Set<string> = new Set()): boolean => {
     if (visiting.has(depId)) {
       return false;
     }
@@ -393,7 +380,7 @@ export const promoteWaitingFrontierToInProgress = (
       const parents = dep.runAfterTasks ?? [];
       return (
         parents.length > 0 &&
-        parents.every((parentId) => isDependencySatisfied(parentId, promoted, visiting))
+        parents.every((parentId) => isDependencySatisfied(parentId, new Set(visiting)))
       );
     }
 
@@ -404,39 +391,15 @@ export const promoteWaitingFrontierToInProgress = (
     (node) => node.type !== DEFAULT_SPACER_NODE_TYPE && isWaitingStatus(node.data?.runStatus),
   );
 
-  const componentIdOf = (nodeId: string): string => nodeId.split('__')[0] ?? nodeId;
-
   // Seed with nodes whose predecessors are already finished (cross-component / next-pod gap).
   const promoteIds = new Set(
     waitingNodes
       .filter((node) => {
         const deps = node.runAfterTasks ?? [];
-        return deps.length > 0 && deps.every((depId) => isDependencySatisfied(depId, new Set()));
+        return deps.length > 0 && deps.every((depId) => isDependencySatisfied(depId));
       })
       .map((node) => node.id),
   );
-
-  // Only expand within the seeded component(s). That way the between-pod waiting state for
-  // the next component matches its coarse all-running state, without lighting later ones.
-  const frontierComponentIds = new Set([...promoteIds].map(componentIdOf));
-
-  let expanded = true;
-  while (expanded) {
-    expanded = false;
-    for (const node of waitingNodes) {
-      if (promoteIds.has(node.id) || !frontierComponentIds.has(componentIdOf(node.id))) {
-        continue;
-      }
-      const deps = node.runAfterTasks ?? [];
-      if (deps.length === 0) {
-        continue;
-      }
-      if (deps.every((depId) => isDependencySatisfied(depId, promoteIds))) {
-        promoteIds.add(node.id);
-        expanded = true;
-      }
-    }
-  }
 
   if (promoteIds.size === 0) {
     return nodes;
@@ -453,10 +416,26 @@ export const promoteWaitingFrontierToInProgress = (
       data: {
         ...node.data,
         runStatus,
-        activeIconVariant: resolveActiveIconVariant(runStatus),
+        activeIconVariant: resolvePromotedNodeActiveIconVariant(node.id, resolveActiveIconVariant),
       },
     };
   });
+};
+
+export const resolvePromotedNodeActiveIconVariant = (
+  nodeId: string,
+  resolvePipelineActiveIconVariant: ActiveIconVariantResolver,
+): ActiveIconVariant | undefined => {
+  if (nodeId.includes('__step__')) {
+    return resolveBranchStepActiveIconVariant(RunStatus.InProgress);
+  }
+  if (nodeId.endsWith(`__${BRANCHING_STAGE_ID}`)) {
+    return resolveOptimizeTemplatesActiveIconVariant(RunStatus.InProgress);
+  }
+  if (nodeId.includes('__pattern__')) {
+    return resolvePatternTerminusActiveIconVariant(RunStatus.InProgress);
+  }
+  return resolvePipelineActiveIconVariant(RunStatus.InProgress);
 };
 
 /** True when every stage has a recognized inline status (no unresolved gaps). */

@@ -188,7 +188,7 @@ spec:
                       description: 'When true, enables the Agents Catalog page.'
                     toolCalling:
                       type: boolean
-                      description: 'When true, enables tool-calling configuration for supported models in the model catalog and the deployment wizard.'
+                      description: 'When true, enables the tool-calling checkbox in the deployment wizard for catalog models that have validated tool-calling arguments.'
                     modelCapabilities:
                       type: boolean
                       description: 'When true, enables model capabilities selection in the deployment wizard and the Capabilities column on the deployments table.'

@@ -330,15 +330,14 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
 
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
-      expect(syncNodes).toHaveLength(1);
-      expect(syncNodes[0]?.id).toBe('rag_optimization__validate_inputs');
+      expect(syncNodes.map((n) => n.id)).toContain('rag_optimization__validate_inputs');
+      expect(syncNodes.map((n) => n.id)).toContain('rag_optimization__optimize_templates');
 
-      // Without explicit optimize_templates stage status, post-branch follows the coarse
-      // component-level RUNNING state instead of staying pending.
+      // Post-branch stays pending until optimize_templates finishes.
       const runNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
       const writeNode = nodes.find((n) => n.id === 'rag_optimization__write_patterns');
-      expect(runNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(writeNode?.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(runNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(writeNode?.data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should pulse branch steps while pattern optimization runs and succeed pattern nodes when it completes', () => {
@@ -366,18 +365,21 @@ describe('buildStageMapTopology', () => {
         expect(node.data?.runStatus).toBe(RunStatus.InProgress);
       });
 
-      // optimize_templates is the sole sync; every in-progress branch child/pattern must pulse
+      // optimize_templates syncs; each pattern terminus syncs; branch steps pulse.
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
-      expect(syncNodes).toHaveLength(1);
+      expect(syncNodes).toHaveLength(3);
       expect(syncNodes[0]?.id).toBe('rag_optimization__optimize_templates');
+      expect(syncNodes.map((n) => n.id)).toEqual([
+        'rag_optimization__optimize_templates',
+        'rag_optimization__pattern__branch-0',
+        'rag_optimization__pattern__branch-1',
+      ]);
 
-      const branchChildren = nodes.filter(
-        (n) =>
-          (n.id.includes('__step__') || n.id.includes('__pattern__')) &&
-          n.type !== 'DEFAULT_SPACER_NODE',
+      const branchStepNodes = nodes.filter(
+        (n) => n.id.includes('__step__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
-      expect(branchChildren.length).toBeGreaterThan(0);
-      branchChildren.forEach((node) => {
+      expect(branchStepNodes.length).toBeGreaterThan(0);
+      branchStepNodes.forEach((node) => {
         expect(node.data?.activeIconVariant).toBe('pulse');
       });
 
@@ -411,8 +413,7 @@ describe('buildStageMapTopology', () => {
       const runNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
       const buildNode = nodes.find((n) => n.id === 'rag_optimization__build_leaderboard');
       expect(runNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      // Only the current post-branch frontier runs; later stages stay pending.
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should use fallback label for unknown step IDs', () => {
@@ -736,13 +737,13 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
     });
 
-    it('should translate skipped status', () => {
+    it('should translate skipped status as pending (never-ran downstream)', () => {
       const stageMap = makeStageMap([
         makeComponent('comp', [makeStage('validate_inputs', { status: 'skipped' })]),
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      expect(nodes[0].data?.runStatus).toBe(RunStatus.Skipped);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should fall back to component run status from runDetails', () => {
@@ -828,7 +829,7 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
-    it('should keep branch and post-branch stages pending when pattern optimization fails', () => {
+    it('should fail the branch section and keep post-branch stages pending when pattern optimization fails', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'rag_optimization',
@@ -851,9 +852,70 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
+    });
+
+    it('should fail the branch section in the production component shape when optimize_templates fails inline', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'rag_templates_optimization',
+          [
+            makeStage('optimize_templates', {
+              status: 'failed',
+              steps: ['chunking', 'embedding', 'retrieval', 'generation', 'evaluation'],
+            }),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.rag_templates_optimization__optimize_templates.data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_templates_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_templates_optimization__pattern__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId.rag_templates_optimization__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+    });
+
+    it('should fail the branch section when pattern optimization was running and the run fails', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'rag_optimization',
+          [
+            makeStage('validate_inputs', { status: 'completed' }),
+            makeStage('optimize_templates', {
+              status: 'started',
+              steps: ['chunking', 'embedding'],
+            }),
+            makeStage('run_optimization'),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -914,10 +976,10 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Failed,
+        RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
-      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );
@@ -947,13 +1009,13 @@ describe('buildStageMapTopology', () => {
       const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
 
       expect(byId.test_data_loader__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
-      expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Cancelled);
-      expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Cancelled,
+        RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Cancelled);
-      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );
@@ -1021,7 +1083,7 @@ describe('buildStageMapTopology', () => {
       expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
-    it('should keep later stages pending when an earlier stage is explicitly started', () => {
+    it('should keep later stages in progress when an earlier stage is explicitly started', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -1037,7 +1099,7 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.activeIconVariant).toBeUndefined();
       expect(nodes[1].data?.activeIconVariant).toBe('sync');
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should promote remaining stages within the current component after a completed predecessor', () => {
@@ -1056,8 +1118,8 @@ describe('buildStageMapTopology', () => {
       expect(byId.test_data_loader__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.test_data_loader__load_benchmark.data?.runStatus).toBe(RunStatus.InProgress);
       expect(byId.test_data_loader__load_benchmark.data?.activeIconVariant).toBe('sync');
-      expect(byId.test_data_loader__write_output.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.test_data_loader__write_output.data?.activeIconVariant).toBe('pulse');
+      expect(byId.test_data_loader__write_output.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.test_data_loader__write_output.data?.activeIconVariant).toBeUndefined();
       // Later components stay pending until this component finishes.
       expect(byId.documents_discovery__discover_documents.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -1067,15 +1129,19 @@ describe('buildStageMapTopology', () => {
         makeComponent('test_data_loader', [makeStage('load_benchmark', { status: 'completed' })], {
           completed_at: '2025-01-01T01:00:00Z',
         }),
-        makeComponent('rag_optimization', [
-          makeStage('validate_inputs'),
-          makeStage('optimize_templates', {
-            selected_patterns: ['p1'],
-            steps: ['chunking'],
-          }),
-          makeStage('run_optimization'),
-          makeStage('build_leaderboard'),
-        ]),
+        makeComponent(
+          'rag_optimization',
+          [
+            makeStage('validate_inputs'),
+            makeStage('optimize_templates', {
+              selected_patterns: ['p1'],
+              steps: ['chunking'],
+            }),
+            makeStage('run_optimization'),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T01:00:01Z' },
+        ),
       ]);
 
       const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
@@ -1091,8 +1157,59 @@ describe('buildStageMapTopology', () => {
       expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(
         RunStatus.InProgress,
       );
-      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
+    });
+
+    it('should keep build_leaderboard pending while optimize_templates runs in the production component shape', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'search_space_preparation',
+          [makeStage('prepare_search_space', { status: 'completed' })],
+          {
+            completed_at: '2025-01-01T01:00:00Z',
+          },
+        ),
+        makeComponent(
+          'rag_templates_optimization',
+          [
+            makeStage('optimize_templates', {
+              selected_patterns: ['p1'],
+              steps: ['chunking', 'embedding', 'retrieval', 'generation', 'evaluation'],
+            }),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T01:00:01Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.rag_templates_optimization__optimize_templates.data?.runStatus).toBe(
+        RunStatus.InProgress,
+      );
+      expect(byId.rag_templates_optimization__optimize_templates.data?.activeIconVariant).toBe(
+        'sync',
+      );
+      expect(byId['rag_templates_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
+        RunStatus.InProgress,
+      );
+      expect(
+        byId['rag_templates_optimization__step__chunking__branch-0'].data?.activeIconVariant,
+      ).toBe('pulse');
+      expect(byId['rag_templates_optimization__pattern__branch-0'].data?.runStatus).toBe(
+        RunStatus.InProgress,
+      );
+      expect(byId['rag_templates_optimization__pattern__branch-0'].data?.activeIconVariant).toBe(
+        'sync',
+      );
+      expect(byId.rag_templates_optimization__build_leaderboard.data?.runStatus).toBe(
+        RunStatus.Pending,
+      );
+      expect(
+        byId.rag_templates_optimization__build_leaderboard.data?.activeIconVariant,
+      ).toBeUndefined();
     });
 
     it('should assign sync only once when multiple stages report inline started status', () => {

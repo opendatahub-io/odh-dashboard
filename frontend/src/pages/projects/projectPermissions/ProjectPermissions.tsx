@@ -25,6 +25,7 @@ import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import useFilters from '#~/utilities/useFilters';
 import SubjectRolesTableSection from './SubjectRolesTableSection';
 import {
   FilterDataType,
@@ -42,10 +43,8 @@ const ProjectPermissions: React.FC = () => {
   const [subjectScope, setSubjectScope] = React.useState<SubjectScopeFilter>(
     SubjectScopeFilter.all,
   );
-  const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
-  const clearFilters = React.useCallback(() => {
-    setFilterData(initialFilterData);
-  }, []);
+  const { filterData, setFilterData, onClearFilters } =
+    useFilters<FilterDataType>(initialFilterData);
 
   return (
     <PageSection
@@ -89,7 +88,7 @@ const ProjectPermissions: React.FC = () => {
         ) : (
           <>
             <StackItem>
-              <Toolbar clearAllFilters={clearFilters}>
+              <Toolbar clearAllFilters={onClearFilters}>
                 <ToolbarContent>
                   <ToolbarItem>
                     <SimpleSelect
@@ -168,7 +167,7 @@ const ProjectPermissions: React.FC = () => {
                 <SubjectRolesTableSection
                   subjectKind="user"
                   filterData={filterData}
-                  onClearFilters={clearFilters}
+                  onClearFilters={onClearFilters}
                 />
               </StackItem>
             ) : null}
@@ -177,7 +176,7 @@ const ProjectPermissions: React.FC = () => {
                 <SubjectRolesTableSection
                   subjectKind="group"
                   filterData={filterData}
-                  onClearFilters={clearFilters}
+                  onClearFilters={onClearFilters}
                 />
               </StackItem>
             ) : null}

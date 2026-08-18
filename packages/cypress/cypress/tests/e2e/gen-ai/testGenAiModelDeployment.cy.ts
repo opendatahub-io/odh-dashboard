@@ -15,18 +15,17 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
-describe('Verify Gen AI Namespace - Creation and Connection', () => {
-  let testData: GenAiTestData;
+describe('Verify vLLM model deployment - Playground Integration', { testIsolation: false }, () => {
+  let genAiTestData: GenAiTestData;
   let projectName: string;
-
   let servingRuntimeName: string;
   let hardwareProfileName: string;
 
   retryableBefore(() => {
-    cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
+    cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
       .then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as GenAiTestData;
-        hardwareProfileName = testData.hardwareProfileName;
+        genAiTestData = yaml.load(yamlContent) as GenAiTestData;
+        hardwareProfileName = genAiTestData.hardwareProfileName;
       })
       .then(() => getVllmCpuAmd64RuntimeInfo())
       .then((info) => {
@@ -34,7 +33,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         return cleanupServingRuntimeTemplate(servingRuntimeName);
       })
       .then(() => {
-        const prefix = testData.projectNamePrefix;
+        const prefix = genAiTestData.projectNamePrefix;
         return cy
           .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
             failOnNonZeroExit: false,
@@ -54,7 +53,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
             return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
               () => {
                 cy.step('Deploy Gen AI model via oc commands');
-                deployGenAiModel(projectName, testData);
+                deployGenAiModel(projectName, genAiTestData);
               },
             );
           });
@@ -77,7 +76,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   });
 
   it(
-    'Verify User can send message to Playground',
+    'Verify deployed model works in playground',
     {
       tags: [
         '@Sanity',
@@ -104,37 +103,37 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');
-      genAiPlayground.ensureModelCheckboxIsChecked(testData.modelDeploymentName);
+      genAiPlayground.ensureModelCheckboxIsChecked(genAiTestData.modelDeploymentName);
 
       cy.step('Click Create button in the modal');
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Wait for llama-stack-config ConfigMap to be created');
-      waitForResource('configmap', testData.configMapName, projectName);
+      waitForResource('configmap', genAiTestData.configMapName, projectName);
 
       cy.step('Wait for OGXServer to be ready');
       waitForOGXServerReady(projectName);
 
       cy.step('Wait for playground service to be created');
-      waitForResource('service', testData.playgroundServiceName, projectName);
+      waitForResource('service', genAiTestData.playgroundServiceName, projectName);
 
       cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);
 
-      cy.step(`Select ${testData.inferenceServiceName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(testData.inferenceServiceName);
+      cy.step(`Select ${genAiTestData.inferenceServiceName} model from dropdown`);
+      genAiPlayground.selectModelFromDropdown(genAiTestData.inferenceServiceName);
 
-      cy.step(`Verify ${testData.inferenceServiceName} model is selected`);
-      genAiPlayground.verifyModelIsSelected(testData.inferenceServiceName);
+      cy.step(`Verify ${genAiTestData.inferenceServiceName} model is selected`);
+      genAiPlayground.verifyModelIsSelected(genAiTestData.inferenceServiceName);
 
       cy.step('Verify message input is ready and functional');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
 
       cy.step('Send a test message to verify chatbot interface is working');
-      genAiPlayground.sendMessage(testData.testMessage);
+      genAiPlayground.sendMessage(genAiTestData.testMessage);
 
       cy.step('Verify user message appears in chat');
-      genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
+      genAiPlayground.findUserMessage().should('exist').and('contain', genAiTestData.testMessage);
 
       cy.step(
         'Verify playground is functional (model inference not tested due to slow response time)',
