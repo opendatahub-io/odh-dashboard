@@ -357,6 +357,13 @@ export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type ModelCapabilitiesTestData = DataScienceProjectData & {
+  wellKnownCapabilities: string[];
+  customCapabilities: string[];
+  modelName: string;
+  awsBucket: 'BUCKET_1' | 'BUCKET_3';
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };

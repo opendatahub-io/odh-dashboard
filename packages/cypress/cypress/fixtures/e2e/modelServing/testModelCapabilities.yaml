@@ -4,6 +4,9 @@ projectDisplayName: 'Test Model Capabilities'
 modelName: 'test-capabilities-model'
 resourceType: 'InferenceService'
 
+# Test Data Connection
+awsBucket: 'BUCKET_1'
+
 # Model Capabilities Test Data
 wellKnownCapabilities:
   - 'Vision'

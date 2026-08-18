@@ -1,3 +1,5 @@
+import { pollUntilSuccess } from './baseCommands';
+
 /**
  * Verifies that an InferenceService has a specific annotation with the expected value
  * @param namespace - Project/namespace name
@@ -12,19 +14,21 @@ export const verifyInferenceServiceAnnotation = (
   annotationKey: string,
   expectedValue: string,
 ): Cypress.Chainable<boolean> => {
-  return cy
-    .exec(
-      `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.metadata.annotations.${annotationKey}}'`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => {
-      cy.log(`Checking InferenceService annotation: ${annotationKey} in namespace '${namespace}'`);
-      if (result.code === 0) {
-        const actualValue = result.stdout.trim();
-        cy.log(`Annotation value: ${actualValue}`);
-        return actualValue === expectedValue;
-      }
-      cy.log(`Failed to get InferenceService annotation: ${result.stderr}`);
-      return false;
-    });
+  const command = `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.metadata.annotations.${annotationKey}}'`;
+
+  // Poll until the InferenceService has the annotation (it may not exist immediately after submit)
+  return pollUntilSuccess(
+    command,
+    `InferenceService ${inferenceServiceName} annotation ${annotationKey}`,
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  ).then((result) => {
+    cy.log(`Checking InferenceService annotation: ${annotationKey} in namespace '${namespace}'`);
+    if (result.exitCode === 0) {
+      const actualValue = result.stdout.trim();
+      cy.log(`Annotation value: ${actualValue}`);
+      return actualValue === expectedValue;
+    }
+    cy.log(`Failed to get InferenceService annotation: ${result.stderr}`);
+    return false;
+  });
 };

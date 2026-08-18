@@ -1,5 +1,5 @@
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
-import type { DataScienceProjectData } from '../../../types';
+import type { DataScienceProjectData, ModelCapabilitiesTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { loadDSPFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -8,9 +8,8 @@ import { provisionProjectForModelServing } from '../../../utils/oc_commands/mode
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { verifyInferenceServiceAnnotation } from '../../../utils/oc_commands/inferenceService';
 
-let testData: DataScienceProjectData;
+let testData: ModelCapabilitiesTestData;
 let projectName: string;
-const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
 // RHOAIENG-80920 - Model Capabilities feature
@@ -18,11 +17,11 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
   retryableBefore(() => {
     return loadDSPFixture('e2e/modelServing/testModelCapabilities.yaml').then(
       (fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
+        testData = fixtureData as ModelCapabilitiesTestData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         provisionProjectForModelServing(
           projectName,
-          awsBucket,
+          testData.awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
       },
