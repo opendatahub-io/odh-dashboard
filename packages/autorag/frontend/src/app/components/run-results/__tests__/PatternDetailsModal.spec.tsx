@@ -567,6 +567,29 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('tab-sample_qa'));
       expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
+
+    it('should show error state when comparison results fail but primary succeeds', async () => {
+      mockUsePatternEvaluationResults.mockImplementation((_namespace, _basePath, patternName) => {
+        if (patternName === 'pattern1') {
+          return { data: undefined, isLoading: false, isError: true };
+        }
+        return { data: mockEvaluationResults, isLoading: false, isError: false };
+      });
+
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab — visible because primary data exists
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Enable comparison mode — toggle is not disabled (no errors yet)
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Comparison fetch errors — error state must be shown
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
+    });
   });
 
   describe('comparison mode', () => {
