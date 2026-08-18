@@ -477,6 +477,76 @@ describe('AutoragConnectionModal', () => {
     );
   });
 
+  it('should lock all fields once the Secret has been created, so a retry cannot submit edited values', async () => {
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+
+    const addButton = screen.getByRole('button', { name: 'Add connection' });
+    await act(async () => {
+      addButton.click();
+    });
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(createSecretMock).toHaveBeenCalledTimes(1);
+
+    // The Secret already exists — every field must now be locked so a user can't change the
+    // connection type, name/description, or values before retrying, which would otherwise
+    // silently be discarded (the retry always resubmits the already-created connection).
+    expect(screen.getByRole('combobox')).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'Connection description' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'short text 1' })).toBeDisabled();
+    expect(screen.getByTestId('connection-locked-for-retry-alert')).toBeInTheDocument();
+
+    // The retry itself must still be possible.
+    const addButtonAfterFailure = screen.getByRole('button', { name: 'Add connection' });
+    expect(addButtonAfterFailure).toBeEnabled();
+    await act(async () => {
+      addButtonAfterFailure.click();
+    });
+
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
+    expect(createSecretMock).toHaveBeenCalledTimes(1);
+    expect(onSubmitMock).toHaveBeenCalledTimes(2);
+    // The connection resubmitted on retry must be the one whose Secret actually exists — the
+    // (blocked) name field is still 'my-conn', matching what was actually created.
+    expect(onSubmitMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          annotations: expect.objectContaining({
+            'openshift.io/display-name': 'my-conn',
+          }),
+        }),
+      }),
+    );
+  });
+
   it('should not emit a conflicting cancel event when Cancel is clicked after createSecret rejects', async () => {
     createSecretMock.mockRejectedValueOnce(new Error('boom'));
 

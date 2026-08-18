@@ -159,7 +159,7 @@ describe('AutoragExperimentSettings', () => {
       });
     });
 
-    it('should fire with countOfFoundationModels/countOfEmbeddingModels: 0 when no models are selected', async () => {
+    it('should not fire a submit event or close when Save is clicked with zero models selected', async () => {
       // Save is disabled unless the form is dirty; force it dirty with empty selections.
       renderComponent(
         {},
@@ -172,15 +172,16 @@ describe('AutoragExperimentSettings', () => {
       // Use fireEvent (synchronous) instead of userEvent here: clicking Save with zero models
       // selected races against the async zod validation that disables the button once it detects
       // the empty arrays are invalid, so a synchronous dispatch is needed to land the click before
-      // that validation resolves and flips isDisabled.
+      // that validation resolves and flips isDisabled. The click handler itself re-checks the live
+      // model counts (not just the — possibly stale — disabled state), so it must be a no-op here:
+      // no false "success" event, and the modal must not close on an invalid selection.
       fireEvent.click(screen.getByTestId('experiment-settings-save'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
-        countOfFoundationModels: 0,
-        countOfEmbeddingModels: 0,
-        outcome: TrackingOutcome.submit,
-        success: true,
-      });
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.MODELS_SELECTED,
+        expect.objectContaining({ outcome: TrackingOutcome.submit }),
+      );
+      expect(defaultProps.onClose).not.toHaveBeenCalled();
 
       // Flush the async validation triggered on mount so its state update is captured within
       // act(), rather than resolving after the test completes.

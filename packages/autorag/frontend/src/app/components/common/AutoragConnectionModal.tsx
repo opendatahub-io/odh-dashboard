@@ -1,5 +1,6 @@
 import React from 'react';
-import { Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import { Alert, Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import './AutoragConnectionModal.scss';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import ConnectionTypeForm from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -157,34 +158,56 @@ const AutoragConnectionModal: React.FC<Props> = ({
     setConnectionValues(obj ? getDefaultValues(obj) : {});
   };
 
+  // Once the Secret has actually been created, the fields must be locked: assembleConnectionSecret
+  // captures a snapshot at submit time, and a retry after an onSubmit failure intentionally reuses
+  // that already-created connection (see the `submit` callback below) rather than re-creating the
+  // Secret. Leaving fields editable here would let a user change values that silently never reach
+  // the Secret or the retried onSubmit call.
+  const isLockedForRetry = !!createdConnectionRef.current;
+
   return (
     <Modal isOpen onClose={handleClose} variant="medium">
       <ModalHeader title="Add a connection" />
       <ModalBody>
-        <Form>
-          <ConnectionTypeForm
-            options={enabledConnectionTypes}
-            connectionType={selectedConnectionType}
-            setConnectionType={handleConnectionTypeChange}
-            connectionNameDesc={nameDescData}
-            setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
-              if (!isModified) {
-                setIsModified(true);
-              }
-              setNameDescData(key, value);
-            }}
-            connectionValues={connectionValues}
-            onChange={(field, value) => {
-              if (!isModified) {
-                setIsModified(true);
-              }
-              setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-            }}
-            onValidate={(field, error) =>
-              setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
-            }
-            connectionErrors={connectionErrors}
+        {isLockedForRetry && (
+          <Alert
+            variant="info"
+            isInline
+            isPlain
+            title="This connection was created. Retry saving it, or cancel to discard it."
+            data-testid="connection-locked-for-retry-alert"
           />
+        )}
+        <Form>
+          <fieldset
+            disabled={isLockedForRetry}
+            className="autorag-connection-modal__fieldset"
+            data-testid="connection-form-fieldset"
+          >
+            <ConnectionTypeForm
+              options={enabledConnectionTypes}
+              connectionType={selectedConnectionType}
+              setConnectionType={handleConnectionTypeChange}
+              connectionNameDesc={nameDescData}
+              setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+                if (!isModified) {
+                  setIsModified(true);
+                }
+                setNameDescData(key, value);
+              }}
+              connectionValues={connectionValues}
+              onChange={(field, value) => {
+                if (!isModified) {
+                  setIsModified(true);
+                }
+                setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+              }}
+              onValidate={(field, error) =>
+                setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
+              }
+              connectionErrors={connectionErrors}
+            />
+          </fieldset>
         </Form>
       </ModalBody>
       <ModalFooter>
