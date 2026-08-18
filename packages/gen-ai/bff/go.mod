@@ -55,7 +55,6 @@ require (
 	github.com/aws/aws-sdk-go v1.55.6 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
-	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
@@ -172,4 +171,4 @@ require (
 )
 
 // Replace the upstream ogx-k8s-operator with the Open Data Hub fork
-replace github.com/ogx-ai/ogx-k8s-operator => github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260512184943-d419c039b7b9
+replace github.com/ogx-ai/ogx-k8s-operator => github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260715152424-7b8c8149f3b2
