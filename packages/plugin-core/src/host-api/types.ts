@@ -155,7 +155,7 @@ export type HostApiServices = {
   /** Create a new OpenShift project (username injected by host). */
   createProject: (displayName: string, description: string, k8sName?: string) => Promise<string>;
 
-  /** Render connection type form fields for a given connection type. */
+  /** Render connection type form fields inside the deployment wizard. */
   ConnectionTypeFormFields: React.ComponentType<ConnectionTypeFormFieldsProps>;
 
   /** React contexts provided by the host for use in federated modules. */
