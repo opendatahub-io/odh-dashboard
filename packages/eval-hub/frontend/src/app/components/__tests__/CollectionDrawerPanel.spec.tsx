@@ -232,6 +232,7 @@ describe('CollectionDrawerPanel', () => {
           ...makeBenchmark('toxigen', 'lm_evaluation_harness'),
           pass_criteria: { threshold: 0.3 },
           primary_score: { metric: 'provider_metric', lower_is_better: false },
+          url: 'https://provider.example.com/toxigen',
         },
       ],
     ]);
@@ -245,6 +246,7 @@ describe('CollectionDrawerPanel', () => {
           provider_id: 'lm_evaluation_harness',
           pass_criteria: { threshold: 0.85 },
           primary_score: { metric: 'collection_metric', lower_is_better: false },
+          url: 'https://collection.example.com/toxigen',
         },
       ],
     });
@@ -257,6 +259,9 @@ describe('CollectionDrawerPanel', () => {
     expect(screen.queryByText('30%')).not.toBeInTheDocument();
     expect(screen.getByText('collection_metric')).toBeInTheDocument();
     expect(screen.queryByText('provider_metric')).not.toBeInTheDocument();
+
+    const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });
+    expect(datasetLink).toHaveAttribute('href', 'https://collection.example.com/toxigen');
   });
 
   it('should fall back to provider defaults when collection benchmark has no overrides', () => {
@@ -267,6 +272,7 @@ describe('CollectionDrawerPanel', () => {
           ...makeBenchmark('toxigen', 'lm_evaluation_harness'),
           pass_criteria: { threshold: 0.3 },
           primary_score: { metric: 'provider_metric', lower_is_better: false },
+          url: 'https://provider.example.com/toxigen',
         },
       ],
     ]);
@@ -283,5 +289,8 @@ describe('CollectionDrawerPanel', () => {
 
     expect(screen.getByText('30%')).toBeInTheDocument();
     expect(screen.getByText('provider_metric')).toBeInTheDocument();
+
+    const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });
+    expect(datasetLink).toHaveAttribute('href', 'https://provider.example.com/toxigen');
   });
 });
