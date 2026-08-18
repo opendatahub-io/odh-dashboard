@@ -141,9 +141,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Verify YAML Viewer');
       // Stub clipboard API AFTER page load (window changes on navigation)
       stubClipboard('copiedYAML');
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
+      // Ensure deployment method is selected (may already be auto-selected)
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
