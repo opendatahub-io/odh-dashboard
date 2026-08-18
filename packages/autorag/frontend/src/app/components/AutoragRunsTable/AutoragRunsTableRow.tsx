@@ -58,7 +58,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
   const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
-    useAutoragRunActions(namespace, run.run_id, onActionComplete);
+    useAutoragRunActions(namespace, run.run_id, 'runsList', onActionComplete);
 
   const baseRunTerminatable = isRunTerminatable(run.state);
   const runTerminatable = baseRunTerminatable && !stopInitiated;
@@ -176,6 +176,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={run.display_name}
+        source="runsList"
       />
       <DeleteRunModal
         isOpen={isDeleteModalOpen}

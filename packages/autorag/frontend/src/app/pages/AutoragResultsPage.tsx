@@ -85,6 +85,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
     runId ?? '',
+    'resultsPage',
   );
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
@@ -415,6 +416,7 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
+        source="resultsPage"
       />
       {viewCodePattern && (
         <ViewCodeModal

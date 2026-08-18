@@ -21,6 +21,7 @@ export const AUTORAG_EVENTS = {
   VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
   RUN_RECONFIGURED: 'AutoRAG Run Reconfigured',
+  RUN_STOPPED: 'AutoRAG Run Stopped',
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
@@ -312,6 +313,33 @@ export const fireAutoragRunReconfigured = (properties: RunReconfiguredProperties
     ...properties,
     changedFields: properties.changedFields.join(','),
   });
+};
+
+/**
+ * Distinguishes which page/control a run action (stop, retry, delete, reconfigure) was
+ * triggered from — the runs table's per-row kebab (`ActionsColumn`) menu on the experiments
+ * list, or the standalone header button on the single-run results page.
+ */
+export type RunActionSource = 'runsList' | 'resultsPage';
+
+export type RunOutcomeTrackingProperties = {
+  outcome: TrackingOutcome;
+  /** Omitted on `outcome: cancel` — no backend call is made when the confirmation modal is dismissed. */
+  success?: boolean;
+  error?: AutoragFailureCategory;
+  source: RunActionSource;
+};
+
+/**
+ * Fires from the "Stop pipeline run?" confirmation modal, reachable from either the runs table's
+ * kebab menu (`source: 'runsList'`) or the results page's header button (`source: 'resultsPage'`).
+ * `outcome: cancel` fires when the modal is dismissed (Cancel, X, Escape, backdrop) before the
+ * stop request has been submitted — no backend call has been made yet, so `success` is omitted
+ * in that case. `outcome: submit` fires once the terminate request resolves, with `success`/
+ * `error` reflecting whether it succeeded.
+ */
+export const fireAutoragRunStopped = (properties: RunOutcomeTrackingProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, properties);
 };
 
 /**

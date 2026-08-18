@@ -15,6 +15,7 @@ import {
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragRunReconfigured,
+  fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
@@ -477,6 +478,43 @@ describe('fireAutoragRunReconfigured', () => {
       countOfEmbeddingModels: 0,
       changedFields: '',
       outcome: TrackingOutcome.cancel,
+    });
+  });
+});
+
+describe('fireAutoragRunStopped', () => {
+  it('should fire with outcome: submit and success: true, given a source', () => {
+    fireAutoragRunStopped({ outcome: TrackingOutcome.submit, success: true, source: 'runsList' });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      source: 'runsList',
+    });
+  });
+
+  it('should fire with success: false and the allowlisted failure category on failure', () => {
+    fireAutoragRunStopped({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'resultsPage',
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'resultsPage',
+    });
+  });
+
+  it('should fire with outcome: cancel and no success/error', () => {
+    fireAutoragRunStopped({ outcome: TrackingOutcome.cancel, source: 'runsList' });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_STOPPED, {
+      outcome: TrackingOutcome.cancel,
+      source: 'runsList',
     });
   });
 });
