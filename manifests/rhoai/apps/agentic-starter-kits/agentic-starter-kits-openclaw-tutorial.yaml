@@ -6,10 +6,10 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'Build a Coding Assistant with OpenClaw'
+  displayName: 'Use the OpenClaw agent harness with platform services'
   description: >-
-    Deploy an open-source AI coding assistant built on OpenClaw with
-    gateway-based model routing to any OpenAI-compatible endpoint and a
-    web-based coding interface.
+    Run the OpenClaw coding assistant on OpenShift AI with the RH AI Inference
+    stack. Covers containerized coding workflows with a web coding interface
+    and optional MLflow tracing via an OTel sidecar.
   url: 'https://red.ht/3UqX4RN'
   appName: agentic-starter-kits

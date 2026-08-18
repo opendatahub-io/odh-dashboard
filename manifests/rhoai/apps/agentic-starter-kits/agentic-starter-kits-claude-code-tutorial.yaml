@@ -6,10 +6,11 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'Build a Coding Agent with Claude Code'
+  displayName: 'Use the Claude Code agent harness with platform services'
   description: >-
-    Deploy Anthropic's Claude Code CLI as a containerized coding agent for
-    AI-powered code generation, multi-file editing, debugging, and git-aware
-    repository exploration with MCP tool integration.
+    Run Anthropic's Claude Code CLI on OpenShift AI with the RH AI Inference
+    stack for model serving. Covers containerized coding workflows with
+    multi-file editing, debugging, and git-aware operations, plus optional
+    MLflow tracing.
   url: 'https://red.ht/4hrKMCi'
   appName: agentic-starter-kits

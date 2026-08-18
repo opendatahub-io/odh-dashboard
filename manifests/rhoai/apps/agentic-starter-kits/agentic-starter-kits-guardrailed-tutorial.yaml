@@ -6,10 +6,11 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'Build a Guardrailed Agent with LangGraph'
+  displayName: 'Use LangGraph with NeMo Guardrails on OpenShift AI'
   description: >-
-    Add a NeMo Guardrails safety layer to a LangGraph ReAct agent using the
-    proxy pattern. Covers content safety, topical guardrails, and regex-based
-    input filtering for a banking customer service example.
+    Run a LangGraph ReAct agent with NeMo Guardrails on RHOAI (TrustyAI
+    NemoGuardrails CRD), using the RH AI Inference stack for the main model
+    and NIM for content and topic safety. Shows the proxy pattern with a
+    banking customer-service example.
   url: 'https://red.ht/3RV5Yq1'
   appName: agentic-starter-kits
