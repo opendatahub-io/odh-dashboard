@@ -83,8 +83,15 @@ export type RunConfigTrackingProperties = {
 /** Distinguishes which page/control a run action (retry, stop, delete, reconfigure) was triggered from. */
 export type RunActionSource = 'runsList' | 'resultsPage';
 
-/** Identifies where the user was in the configure flow when they exited without completing it. */
-export type AutomlFunnelStep = 'defineDetails' | 'trainingData' | 'predictionType' | 'run';
+/**
+ * Identifies where the user was in the configure flow when they exited without completing it.
+ * `'trainingData'` and `'predictionType'` only apply to the create-run flow, where the configure
+ * screen's sections are genuinely unlocked progressively. In the reconfigure flow the entire
+ * configure screen (file, target column, prediction type, etc.) is already fully populated on
+ * mount, so there's no equivalent progression to observe — reconfigure reports `'configure'`
+ * once that screen is reached, with no further sub-step granularity.
+ */
+export type AutomlFunnelStep = 'defineDetails' | 'trainingData' | 'predictionType' | 'configure';
 
 /** Where the user ended up after exiting the configure flow. `'none'` covers cases (e.g. tab close) where the destination can't be determined. */
 export type AutomlExitDestination = 'experimentsList' | 'home' | 'otherAutoml' | 'none';
@@ -248,13 +255,25 @@ export const fireAutomlLeaderboardSorted = (
  * Fires when the user leaves the configure flow before creating a run — either via an explicit
  * in-app action (Cancel, breadcrumb) or by abandoning the tab/browser entirely. Not fired on a
  * successful run creation, nor when navigating between steps within the flow (e.g. Back).
+ *
+ * `changedFields` is only meaningful for the reconfigure flow, where `lastFunnelStep` alone
+ * can't say whether the user changed anything before leaving (the form starts fully populated).
+ * It's a comma-joined list of the same field names used by `fireAutomlRunReconfigured`'s
+ * `changedFields` (empty string if reconfiguring with no changes made), and is omitted entirely
+ * for the create-run flow.
  */
 export const fireAutomlFlowExited = (
   exitType: 'abandon' | 'navigate',
   lastFunnelStep: AutomlFunnelStep,
   exitDestination: AutomlExitDestination,
+  changedFields?: string,
 ): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.FLOW_EXITED, { exitType, lastFunnelStep, exitDestination });
+  fireMiscTrackingEvent(AUTOML_EVENTS.FLOW_EXITED, {
+    exitType,
+    lastFunnelStep,
+    exitDestination,
+    ...(changedFields !== undefined && { changedFields }),
+  });
 };
 
 /** Where the user came from when navigating to the results page. */

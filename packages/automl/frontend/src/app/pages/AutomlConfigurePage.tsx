@@ -89,15 +89,33 @@ function AutomlConfigurePage({
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
+  // The actual baseline the form starts from — not just `initialValues`, which reconfigure
+  // loaders may leave partially populated (e.g. `eval_metric` is omitted when it can't be
+  // resolved from the source run's pipeline parameters). Diffing against raw `initialValues`
+  // would treat every such omitted field as "changed" the instant the schema default resolves
+  // to anything other than `undefined`, even with no user action at all.
+  const initialFormValues = React.useMemo(
+    () => ({ ...configureSchema.defaults, ...initialValues }),
+    [initialValues],
+  );
+
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...initialValues },
+    defaultValues: initialFormValues,
   });
 
   const [displayName, description] = useWatch({
     control: form.control,
     name: createFields,
+  });
+
+  // Watched purely to compute `changedFieldsOnExit` below — mirrors the same four fields
+  // `fireAutomlRunReconfigured` diffs at submit time, so abandon/cancel tracking reports the
+  // same notion of "changed" as a successful (or failed) reconfigure submission would.
+  const [watchedTaskType, watchedEvalMetric, watchedTargetColumn, watchedSecretName] = useWatch({
+    control: form.control,
+    name: ['task_type', 'eval_metric', 'target_column', 'train_data_secret_name'],
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
@@ -111,15 +129,60 @@ function AutomlConfigurePage({
     ? 'otherAutoml'
     : 'experimentsList';
 
+  // Only meaningful for reconfigure: the configure screen starts fully populated, so unlike the
+  // create flow there's no "how far did they get" to report — instead report whether the user
+  // changed anything before leaving. `undefined` (rather than `''`) for the create flow, so the
+  // field is omitted from that event entirely instead of always reporting "no changes".
+  const changedFieldsOnExit = React.useMemo(() => {
+    if (!sourceRunId) {
+      return undefined;
+    }
+    const fields: string[] = [];
+    if (watchedTaskType !== initialFormValues.task_type) {
+      fields.push('predictionType');
+    }
+    if (watchedEvalMetric !== initialFormValues.eval_metric) {
+      fields.push('optimizationMetric');
+    }
+    if (watchedTargetColumn !== initialFormValues.target_column) {
+      fields.push('targetColumn');
+    }
+    if (watchedSecretName !== initialFormValues.train_data_secret_name) {
+      fields.push('s3Connection');
+    }
+    return fields.join(',');
+  }, [
+    sourceRunId,
+    watchedTaskType,
+    watchedEvalMetric,
+    watchedTargetColumn,
+    watchedSecretName,
+    initialFormValues,
+  ]);
+  // Kept in a ref (like funnelStepRef) so the beforeunload listener below — registered once,
+  // with an empty dependency array — always reads the latest value instead of a stale closure.
+  const changedFieldsOnExitRef = React.useRef(changedFieldsOnExit);
+  useEffect(() => {
+    changedFieldsOnExitRef.current = changedFieldsOnExit;
+  }, [changedFieldsOnExit]);
+
   useEffect(() => {
     if (step === 'configure') {
-      funnelStepRef.current = 'trainingData';
+      // Reconfigure's configure screen is fully populated on mount, so there's no equivalent
+      // to the create flow's progressive trainingData → predictionType unlocking — it's always
+      // just 'configure', with changedFieldsOnExit carrying the meaningful signal instead.
+      funnelStepRef.current = sourceRunId ? 'configure' : 'trainingData';
     }
-  }, [step]);
+  }, [step, sourceRunId]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      fireAutomlFlowExited('abandon', funnelStepRef.current, 'none');
+      fireAutomlFlowExited(
+        'abandon',
+        funnelStepRef.current,
+        'none',
+        changedFieldsOnExitRef.current,
+      );
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -127,7 +190,12 @@ function AutomlConfigurePage({
 
   const onCancel = useCallback(() => {
     fireAutomlRunDetailsDefined(TrackingOutcome.cancel, Boolean(description?.trim()));
-    fireAutomlFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
+    fireAutomlFlowExited(
+      'navigate',
+      funnelStepRef.current,
+      cancelExitDestination,
+      changedFieldsOnExitRef.current,
+    );
     navigate(-1);
   }, [navigate, description, cancelExitDestination]);
 
@@ -237,7 +305,12 @@ function AutomlConfigurePage({
               <Link
                 to={getRedirectPath(namespace!)}
                 onClick={() =>
-                  fireAutomlFlowExited('navigate', funnelStepRef.current, 'experimentsList')
+                  fireAutomlFlowExited(
+                    'navigate',
+                    funnelStepRef.current,
+                    'experimentsList',
+                    changedFieldsOnExitRef.current,
+                  )
                 }
               >
                 AutoML: {namespace}
@@ -248,7 +321,12 @@ function AutomlConfigurePage({
                 <Link
                   to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
                   onClick={() =>
-                    fireAutomlFlowExited('navigate', funnelStepRef.current, 'otherAutoml')
+                    fireAutomlFlowExited(
+                      'navigate',
+                      funnelStepRef.current,
+                      'otherAutoml',
+                      changedFieldsOnExitRef.current,
+                    )
                   }
                 >
                   <Truncate content={sourceRunName} />
@@ -293,19 +371,21 @@ function AutomlConfigurePage({
                 // what the user actually changed, not an empty diff.
                 const changedFields: string[] = [];
                 if (sourceRunId) {
-                  if (data.task_type !== initialValues?.task_type) {
+                  // Diffed against `initialFormValues` (the form's actual starting point),
+                  // not the raw `initialValues` prop — see its definition above for why.
+                  if (data.task_type !== initialFormValues.task_type) {
                     changedFields.push('predictionType');
                   }
-                  if (data.eval_metric !== initialValues?.eval_metric) {
+                  if (data.eval_metric !== initialFormValues.eval_metric) {
                     changedFields.push('optimizationMetric');
                   }
                   // The submit transformer deletes `target_column`, moving its value to
                   // `target` (timeseries) or `label_column` (tabular) — compare against
                   // whichever one is populated post-transform.
-                  if ((data.target ?? data.label_column) !== initialValues?.target_column) {
+                  if ((data.target ?? data.label_column) !== initialFormValues.target_column) {
                     changedFields.push('targetColumn');
                   }
-                  if (data.train_data_secret_name !== initialValues?.train_data_secret_name) {
+                  if (data.train_data_secret_name !== initialFormValues.train_data_secret_name) {
                     changedFields.push('s3Connection');
                   }
                 }
@@ -375,9 +455,17 @@ function AutomlConfigurePage({
                   onRecommendationChange={(isRecommended) => {
                     isRecommendedRef.current = isRecommended;
                   }}
-                  onFunnelStepChange={(funnelStep) => {
-                    funnelStepRef.current = funnelStep;
-                  }}
+                  // Reconfigure's configure screen has no genuine sub-step progression to
+                  // report (see funnelStepRef effect above) — only wire this up for the
+                  // create-run flow, so a pre-populated reconfigure target column can't
+                  // advance funnelStepRef the way it used to.
+                  onFunnelStepChange={
+                    sourceRunId
+                      ? undefined
+                      : (funnelStep) => {
+                          funnelStepRef.current = funnelStep;
+                        }
+                  }
                 />
               )}
             </PageSection>

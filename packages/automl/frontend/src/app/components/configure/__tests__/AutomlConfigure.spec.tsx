@@ -1424,6 +1424,86 @@ describe('AutomlConfigure', () => {
       );
     });
 
+    it('should fire the target column milestone and funnel step only when a pre-populated target column is replaced', () => {
+      const onFunnelStepChange = jest.fn();
+      const initialValues = {
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'data.csv',
+        task_type: 'multiclass' as const,
+        target_column: 'risk_category',
+        top_n: 3,
+      };
+      renderWithQueryClient(
+        <AutomlConfigure
+          initialValues={initialValues}
+          initialInputDataSecret={{
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          }}
+          onFunnelStepChange={onFunnelStepChange}
+        />,
+        initialValues,
+      );
+
+      // Mount: the pre-populated target column must not count as a user selection.
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        expect.anything(),
+      );
+      expect(onFunnelStepChange).not.toHaveBeenCalled();
+
+      // Replace the pre-populated target column with a real user selection.
+      fireEvent.click(screen.getByTestId('target_column-select'));
+      fireEvent.click(screen.getByRole('option', { name: /income/ }));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        {},
+      );
+      expect(onFunnelStepChange).toHaveBeenCalledWith('predictionType');
+    });
+
+    it('should fire the training data milestone only when a pre-populated training data file is replaced', () => {
+      const initialValues = {
+        train_data_secret_name: 'Test Secret 1',
+        train_data_bucket_name: 'test-bucket-1',
+        train_data_file_key: 'old-data.csv',
+        top_n: 3,
+      };
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ...initialValues,
+        },
+        initialValues,
+      );
+
+      // Mount: the pre-populated training data file must not count as a user selection.
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        expect.anything(),
+      );
+
+      // Replace the pre-populated file via the file explorer — a real user selection.
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+        { trainingDataSourceType: 'select' },
+      );
+    });
+
     it('should pre-select the prediction type card when task_type is provided', () => {
       renderWithInitialValues(
         {

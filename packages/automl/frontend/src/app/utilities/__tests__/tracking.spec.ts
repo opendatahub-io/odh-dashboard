@@ -368,6 +368,26 @@ describe('AutoML tracking event firers', () => {
     });
   });
 
+  it('should include changedFields when provided (reconfigure exits)', () => {
+    fireAutomlFlowExited('navigate', 'configure', 'experimentsList', 'targetColumn');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      exitType: 'navigate',
+      lastFunnelStep: 'configure',
+      exitDestination: 'experimentsList',
+      changedFields: 'targetColumn',
+    });
+  });
+
+  it('should omit changedFields entirely when not provided (create-run flow exits)', () => {
+    fireAutomlFlowExited('navigate', 'trainingData', 'experimentsList');
+
+    const [, properties] = fireMiscTrackingEventMock.mock.calls[
+      fireMiscTrackingEventMock.mock.calls.length - 1
+    ] as [string, Record<string, unknown>];
+    expect(properties).not.toHaveProperty('changedFields');
+  });
+
   it('should fire AutoML Results Viewed with the given entrySource', () => {
     fireAutomlResultsViewed('experimentsList');
 

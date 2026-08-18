@@ -305,35 +305,25 @@ function AutomlConfigure({
     onRecommendationChange?.(!selectedColumn?.task_type || taskType === selectedColumn.task_type);
   }, [selectedColumn, taskType, onRecommendationChange]);
 
-  // Funnel milestone tracking — fires once per configure-step visit when each section is
-  // first completed, to measure retention through the multi-section configure flow.
-  // Pre-populated reconfigure values are not user selections — seed the refs from them so
-  // they don't count as a milestone until the user actually changes something.
-  const hasFiredTrainingDataMilestoneRef = useRef(Boolean(initialFileKey));
-  useEffect(() => {
-    if (isFileSelected && !hasFiredTrainingDataMilestoneRef.current) {
+  // Funnel milestone tracking — fires once per configure-step visit, the first time each
+  // section is completed via an actual user selection, to measure retention through the
+  // multi-section configure flow. These refs always start false (even in reconfigure flows
+  // where the value is pre-populated): the milestones and funnel-step progress below are
+  // fired directly from the training-data and target-column *selection handlers*, not from
+  // effects watching the resulting form value. A generic effect can't tell a pre-populated
+  // reconfigure value apart from a real selection, and doesn't reset when the value is later
+  // cleared (e.g. by the file-change reset effect) — so replacing a pre-populated value would
+  // silently never fire again. Firing from the handlers sidesteps both problems, since those
+  // handlers only ever run in response to a user action.
+  const hasFiredTrainingDataMilestoneRef = useRef(false);
+  const hasFiredTargetColumnMilestoneRef = useRef(false);
+
+  const fireTrainingDataMilestoneOnce = useCallback((mode: 'select' | 'upload') => {
+    if (!hasFiredTrainingDataMilestoneRef.current) {
       hasFiredTrainingDataMilestoneRef.current = true;
-      fireAutomlTrainingDataConfigured(trainingDataSourceMode);
+      fireAutomlTrainingDataConfigured(mode);
     }
-  }, [isFileSelected, trainingDataSourceMode]);
-
-  const hasFiredTargetColumnMilestoneRef = useRef(Boolean(initialValues?.target_column?.trim()));
-  useEffect(() => {
-    if (isTargetColumnSelected && !hasFiredTargetColumnMilestoneRef.current) {
-      hasFiredTargetColumnMilestoneRef.current = true;
-      fireAutomlTargetColumnConfigured();
-    }
-  }, [isTargetColumnSelected]);
-
-  // Surface configure-step progress to the page so exit tracking (cancel/abandon/breadcrumb)
-  // reports how far the user actually got, instead of always reporting the step's entry point.
-  // Selecting the target column is what unlocks the prediction type section, so it's the signal
-  // that the user has moved past 'trainingData' into 'predictionType'.
-  useEffect(() => {
-    if (isTargetColumnSelected) {
-      onFunnelStepChange?.('predictionType');
-    }
-  }, [isTargetColumnSelected, onFunnelStepChange]);
+  }, []);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -470,6 +460,7 @@ function AutomlConfigure({
           return;
         }
         setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
+        fireTrainingDataMilestoneOnce('upload');
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
           const errorMessage = err instanceof Error ? err.message : String(err);
@@ -488,7 +479,15 @@ function AutomlConfigure({
         }
       }
     },
-    [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+    [
+      namespace,
+      notification,
+      setValue,
+      trainDataBucketName,
+      trainDataSecretName,
+      uploadFileToS3,
+      fireTrainingDataMilestoneOnce,
+    ],
   );
 
   const handleTrainingDataDropRejected = useCallback(
@@ -909,6 +908,20 @@ function AutomlConfigure({
                                         shouldValidate: true,
                                       });
                                     }
+                                    // Fired here, from the actual selection, rather than from an
+                                    // effect watching target_column — a pre-populated reconfigure
+                                    // value must not be mistaken for a user action, and this handler
+                                    // only ever runs in response to one.
+                                    if (!hasFiredTargetColumnMilestoneRef.current) {
+                                      hasFiredTargetColumnMilestoneRef.current = true;
+                                      fireAutomlTargetColumnConfigured();
+                                    }
+                                    // Surface configure-step progress to the page so exit tracking
+                                    // (cancel/abandon/breadcrumb) reports how far the user actually
+                                    // got. Selecting the target column unlocks the prediction type
+                                    // section, so it's the signal that the user has moved past
+                                    // 'trainingData' into 'predictionType'.
+                                    onFunnelStepChange?.('predictionType');
                                   }
                                 }}
                                 selected={field.value}
@@ -1201,6 +1214,7 @@ function AutomlConfigure({
             const filePath = file.path.replace(/^\//, '');
             setValue('train_data_file_key', filePath, { shouldValidate: true });
             setSelectedTrainingDataFile(file);
+            fireTrainingDataMilestoneOnce('select');
           }
         }}
         allowFolderSelection={false}

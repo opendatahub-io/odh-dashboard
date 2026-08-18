@@ -938,6 +938,7 @@ describe('AutomlConfigurePage', () => {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'otherAutoml',
+        changedFields: '',
       });
     });
 
@@ -961,6 +962,7 @@ describe('AutomlConfigurePage', () => {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
+        changedFields: '',
       });
     });
 
@@ -1393,6 +1395,90 @@ describe('AutomlConfigurePage', () => {
         );
         const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
         expect(allTrackingCalls).not.toContain('Pipeline creation failed');
+      });
+    });
+
+    describe('AutoML Flow Exited tracking - reconfigure funnel step and changedFields', () => {
+      const initialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        train_data_secret_name: 'Test AWS Secret',
+        train_data_bucket_name: 'test-bucket',
+        train_data_file_key: 'my-data/train.csv',
+        task_type: 'binary' as const,
+        target_column: 'column1',
+        eval_metric: 'accuracy' as const,
+        top_n: 7,
+      };
+      const initialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      it('should report configure (not trainingData/predictionType) with an empty changedFields when nothing was changed', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={initialValues}
+            initialInputDataSecret={initialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // The configure screen is fully populated on mount — reconfigure has no equivalent to
+        // the create flow's progressive trainingData → predictionType unlocking to report.
+        await screen.findByTestId('target_column-select');
+
+        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+        await user.click(breadcrumbLink);
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+          exitType: 'navigate',
+          lastFunnelStep: 'configure',
+          exitDestination: 'experimentsList',
+          changedFields: '',
+        });
+      });
+
+      it('should report the changed fields when the user modifies the target column before leaving', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={initialValues}
+            initialInputDataSecret={initialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Selecting a different column also changes its inferred task type, and therefore the
+        // task-type-default optimization metric — same three-field diff as the equivalent
+        // submit-time changedFields test above, for the same fixture and interaction.
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+        await user.click(breadcrumbLink);
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+          exitType: 'navigate',
+          lastFunnelStep: 'configure',
+          exitDestination: 'experimentsList',
+          changedFields: 'predictionType,optimizationMetric,targetColumn',
+        });
       });
     });
   });
