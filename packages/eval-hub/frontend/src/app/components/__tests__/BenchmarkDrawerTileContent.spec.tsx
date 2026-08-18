@@ -308,6 +308,21 @@ describe('BenchmarkDrawerTileContent', () => {
       expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
     });
 
+    it('should not be collapsible when tile has no description or metadata', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Empty Benchmark"
+          id="bench-empty"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /collapse/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Empty Benchmark')).toBeInTheDocument();
+      expect(screen.getByText('bench-empty')).toBeInTheDocument();
+    });
+
     it('should still show header name and subtitle when collapsed', () => {
       render(
         <BenchmarkDrawerTileContent

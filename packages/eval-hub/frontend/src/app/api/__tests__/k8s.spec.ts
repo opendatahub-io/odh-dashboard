@@ -267,6 +267,70 @@ describe('getCollections', () => {
       expect.any(Object),
     );
   });
+
+  it('should filter out collection items missing resource.id', async () => {
+    const items = [
+      { resource: { id: 'col-valid' }, name: 'Valid' },
+      { name: 'No resource' },
+      { resource: {}, name: 'No id' },
+      { resource: { id: 'col-also-valid' }, name: 'Also Valid' },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(2);
+    expect(result.items.map((c) => c.resource.id)).toEqual(['col-valid', 'col-also-valid']);
+  });
+
+  it('should filter out collection items missing name', async () => {
+    const items = [{ resource: { id: 'col-1' }, name: 'Has Name' }, { resource: { id: 'col-2' } }];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].name).toBe('Has Name');
+  });
+
+  it('should filter out invalid benchmarks within valid collection items', async () => {
+    const items = [
+      {
+        resource: { id: 'col-1' },
+        name: 'Collection',
+        benchmarks: [
+          { id: 'bench-valid' },
+          { notAnId: true },
+          { id: 123 },
+          { id: 'bench-also-valid', provider_id: 'prov' },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: { items } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].benchmarks).toHaveLength(2);
+    expect(result.items[0].benchmarks?.map((b) => b.id)).toEqual([
+      'bench-valid',
+      'bench-also-valid',
+    ]);
+  });
+
+  it('should sanitize array response the same as object response', async () => {
+    const items = [{ resource: { id: 'col-valid' }, name: 'Valid' }, { name: 'Missing resource' }];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'ns' })({});
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].resource.id).toBe('col-valid');
+  });
 });
 
 describe('getProviders', () => {
@@ -329,6 +393,87 @@ describe('getProviders', () => {
       expect.any(Object),
       expect.any(Object),
     );
+  });
+
+  it('should filter out providers missing resource.id', async () => {
+    const items = [
+      { resource: { id: 'prov-valid' }, name: 'Valid Provider' },
+      { name: 'No resource' },
+      { resource: {}, name: 'No id' },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].resource.id).toBe('prov-valid');
+  });
+
+  it('should filter out providers missing name', async () => {
+    const items = [
+      { resource: { id: 'prov-1' }, name: 'Has Name' },
+      { resource: { id: 'prov-2' } },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Has Name');
+  });
+
+  it('should filter out invalid benchmarks within valid providers', async () => {
+    const items = [
+      {
+        resource: { id: 'prov-1' },
+        name: 'Provider',
+        benchmarks: [
+          { id: 'bench-good', name: 'Good Bench' },
+          { id: 'bench-no-name' },
+          { name: 'No ID' },
+          { id: 'bench-also-good', name: 'Also Good' },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].benchmarks).toHaveLength(2);
+    expect(result[0].benchmarks?.map((b) => b.id)).toEqual(['bench-good', 'bench-also-good']);
+  });
+
+  it('should filter out non-string metrics from provider benchmarks', async () => {
+    const items = [
+      {
+        resource: { id: 'prov-1' },
+        name: 'Provider',
+        benchmarks: [
+          { id: 'bench-1', name: 'Bench', metrics: ['accuracy', 42, 'f1', null, 'bleu'] },
+        ],
+      },
+    ];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result[0].benchmarks?.[0].metrics).toEqual(['accuracy', 'f1', 'bleu']);
+  });
+
+  it('should preserve providers with no benchmarks field', async () => {
+    const items = [{ resource: { id: 'prov-1' }, name: 'Plain Provider' }];
+    mockRestGET.mockResolvedValue({ data: items });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getProviders('', 'ns')({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].benchmarks).toBeUndefined();
   });
 });
 

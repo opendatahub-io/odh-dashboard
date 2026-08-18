@@ -51,6 +51,12 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   const [benchmarkSearch, setBenchmarkSearch] = React.useState('');
   const [metricFilter, setMetricFilter] = React.useState<string[]>([]);
 
+  const collectionId = collection?.resource.id;
+  React.useEffect(() => {
+    setBenchmarkSearch('');
+    setMetricFilter([]);
+  }, [collectionId]);
+
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
     (collection?.benchmarks ?? []).forEach((b) => {

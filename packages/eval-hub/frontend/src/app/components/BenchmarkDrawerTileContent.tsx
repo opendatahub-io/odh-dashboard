@@ -58,7 +58,6 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   isCompact = false,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const collapsible = isCollapsible && showHeader;
   const resolvedUrl = toSafeExternalUrl(url) ?? getBenchmarkDatasetUrl(id);
 
   const compactFontStyle: React.CSSProperties | undefined = isCompact
@@ -73,6 +72,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
 
   const hasMetrics = metrics && metrics.length > 0;
   const hasDescriptionList = hasMetrics || providerName || primaryScore || passCriteria;
+  const collapsible = isCollapsible && showHeader && (!!description || !!hasDescriptionList);
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: isCompact ? 'gapSm' : 'gapMd' }}>
