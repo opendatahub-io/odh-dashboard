@@ -20,6 +20,7 @@ const renderModal = (props: Partial<React.ComponentProps<typeof DeleteRunModal>>
     onConfirm: jest.fn(),
     isDeleting: false,
     runName: 'my-test-run',
+    source: 'runsList',
     ...props,
   };
   return render(<DeleteRunModal {...defaultProps} />);
@@ -99,6 +100,18 @@ describe('DeleteRunModal', () => {
       outcome: TrackingOutcome.cancel,
       source: 'runsList',
     });
+  });
+
+  it('should report the source it was opened from in the cancel event', async () => {
+    const user = userEvent.setup();
+    renderModal({ source: 'resultsPage' });
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EXPERIMENT_DELETED,
+      expect.objectContaining({ source: 'resultsPage' }),
+    );
   });
 
   it('should close and fire a cancel event on Escape when no delete request is pending', async () => {
@@ -194,6 +207,7 @@ describe('DeleteRunModal', () => {
         onConfirm={onConfirm}
         isDeleting
         runName="my-test-run"
+        source="runsList"
       />,
     );
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
@@ -207,6 +221,7 @@ describe('DeleteRunModal', () => {
         onConfirm={onConfirm}
         isDeleting={false}
         runName="my-test-run"
+        source="runsList"
       />,
     );
 

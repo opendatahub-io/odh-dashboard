@@ -120,12 +120,12 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
     );
   });
 
-  it('should fire with outcome: cancel', () => {
+  it('should fire with outcome: cancel and success: false, since nothing was configured', () => {
     fireAutoragKnowledgeSourceConfigured({
       knowledgeSourceType: 's3',
       countOfDocuments: 0,
       outcome: TrackingOutcome.cancel,
-      success: true,
+      success: false,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -134,7 +134,7 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
         knowledgeSourceType: 's3',
         countOfDocuments: 0,
         outcome: TrackingOutcome.cancel,
-        success: true,
+        success: false,
       },
     );
   });
@@ -181,12 +181,12 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
     );
   });
 
-  it('should fire with outcome: cancel', () => {
+  it('should fire with outcome: cancel and success: false, since nothing was configured', () => {
     fireAutoragEvaluationSourceConfigured({
       evaluationSourceType: 's3',
       countOfDocuments: 0,
       outcome: TrackingOutcome.cancel,
-      success: true,
+      success: false,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -195,7 +195,7 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
         evaluationSourceType: 's3',
         countOfDocuments: 0,
         outcome: TrackingOutcome.cancel,
-        success: true,
+        success: false,
       },
     );
   });

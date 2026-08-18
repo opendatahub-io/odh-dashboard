@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import { AUTORAG_EVENTS, TrackingOutcome, type RunActionSource } from '~/app/utilities/tracking';
 
 type DeleteRunModalProps = {
   isOpen: boolean;
@@ -20,6 +20,7 @@ type DeleteRunModalProps = {
   onConfirm: () => void;
   isDeleting: boolean;
   runName?: string;
+  source: RunActionSource;
 };
 
 const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
@@ -28,6 +29,7 @@ const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
   onConfirm,
   isDeleting,
   runName,
+  source,
 }) => {
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
   // Mirrors `isDeleting` but flips to `true` synchronously the instant the Delete button is
@@ -66,10 +68,10 @@ const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
     setConfirmInputValue('');
     fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
       outcome: TrackingOutcome.cancel,
-      source: 'runsList',
+      source,
     });
     onClose();
-  }, [isBusy, onClose]);
+  }, [isBusy, onClose, source]);
 
   const handleDeleteClick = () => {
     // Set synchronously, before calling onConfirm(), so isBusy is already true by the time

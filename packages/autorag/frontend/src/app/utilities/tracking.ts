@@ -91,7 +91,8 @@ export type KnowledgeSourceConfiguredProperties = {
  * step — selecting a file/folder from an S3 connection via the file browser, or uploading a file
  * directly. `outcome: submit` covers both a successful selection/upload and a failed upload
  * attempt (see `success`/`error`); `outcome: cancel` fires when the S3 browser is dismissed
- * without a selection being made.
+ * without a selection being made, in which case `success` is always `false` since no document
+ * was actually configured.
  */
 export const fireAutoragKnowledgeSourceConfigured = (
   properties: KnowledgeSourceConfiguredProperties,
@@ -114,7 +115,8 @@ export type EvaluationSourceConfiguredProperties = {
  * step — selecting a JSON file from an S3 connection via the file browser, or uploading one
  * directly. `outcome: submit` covers both a successful selection/upload and a failed upload
  * attempt (see `success`/`error`); `outcome: cancel` fires when the S3 browser is dismissed
- * without a selection being made.
+ * without a selection being made, in which case `success` is always `false` since no document
+ * was actually configured.
  */
 export const fireAutoragEvaluationSourceConfigured = (
   properties: EvaluationSourceConfiguredProperties,

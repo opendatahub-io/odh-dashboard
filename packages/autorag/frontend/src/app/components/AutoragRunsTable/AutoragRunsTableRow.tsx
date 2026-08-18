@@ -185,6 +185,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
         runName={run.display_name}
+        source="runsList"
       />
     </>
   );

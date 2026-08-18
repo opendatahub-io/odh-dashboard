@@ -1168,7 +1168,9 @@ function AutoragConfigure({
               knowledgeSourceType: 's3',
               countOfDocuments: 0,
               outcome: TrackingOutcome.cancel,
-              success: true,
+              // No file was ever selected/committed, so nothing was actually configured —
+              // `success: true` would misleadingly imply the milestone was completed.
+              success: false,
             });
           }
           inputDataS3SelectionCommittedRef.current = false;

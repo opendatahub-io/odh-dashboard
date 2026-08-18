@@ -748,7 +748,7 @@ describe('AutoragEvaluationSelect', () => {
       );
     });
 
-    it('should fire with outcome: cancel when the S3 file browser is closed without a selection', async () => {
+    it('should fire with outcome: cancel and success: false when the S3 file browser is closed without a selection', async () => {
       const user = userEvent.setup();
 
       renderWithProviders(<AutoragEvaluationSelect />);
@@ -762,7 +762,7 @@ describe('AutoragEvaluationSelect', () => {
           evaluationSourceType: 's3',
           countOfDocuments: 0,
           outcome: TrackingOutcome.cancel,
-          success: true,
+          success: false,
         },
       );
     });

@@ -793,7 +793,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should fire with outcome: cancel when the S3 file browser is dismissed without a selection', () => {
+    it('should fire with outcome: cancel and success: false when the S3 file browser is dismissed without a selection', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
@@ -805,7 +805,7 @@ describe('AutoragConfigure', () => {
           knowledgeSourceType: 's3',
           countOfDocuments: 0,
           outcome: TrackingOutcome.cancel,
-          success: true,
+          success: false,
         },
       );
     });
