@@ -1607,6 +1607,60 @@ describe('AutoragLeaderboard component', () => {
       });
     });
 
+    describe('AutoRAG Leaderboard Preset Applied tracking', () => {
+      it('should fire with the mapped presetType when a preset is selected', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+        fireMiscTrackingEventMock.mockClear();
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('organize-by-toggle'));
+        fireEvent.click(screen.getByText('Optimization metrics and chunking'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
+          { presetType: 'optimizationMetricsAndChunking' },
+        );
+      });
+
+      it('should fire on selection even if the modal is subsequently cancelled', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+        fireMiscTrackingEventMock.mockClear();
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('organize-by-toggle'));
+        fireEvent.click(screen.getByText('Full configuration'));
+        fireEvent.click(screen.getByText('Cancel'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
+          { presetType: 'fullConfiguration' },
+        );
+      });
+
+      it('should not fire when the modal is opened but no preset is selected', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+        fireMiscTrackingEventMock.mockClear();
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
+          expect.anything(),
+        );
+      });
+    });
+
     it('should display column count in toolbar', () => {
       renderWithContext({
         patterns: mockStandardPatterns,

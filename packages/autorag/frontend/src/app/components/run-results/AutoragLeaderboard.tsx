@@ -48,8 +48,10 @@ import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import {
   fireAutoragResultsColumnToggled,
+  fireAutoragLeaderboardPresetApplied,
   mapOptimizationMetric,
   type ResultsColumnName,
+  type LeaderboardPresetType,
 } from '~/app/utilities/tracking';
 import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
@@ -318,6 +320,18 @@ const getColumnAnalyticsName = (
   }
   return SETTINGS_COLUMN_ANALYTICS_NAMES[columnId] ?? 'other';
 };
+
+// Explicit allowlist mapping each "Manage columns" quick-select preset's display label to its
+// discrete analytics identity — mirrors `SETTINGS_COLUMN_ANALYTICS_NAMES` above so a label
+// rename doesn't silently break (or leak into) the analytics taxonomy.
+const PRESET_ANALYTICS_TYPES: Record<string, LeaderboardPresetType> = {
+  'Optimization metrics': 'optimizationMetrics',
+  'Optimization metrics and chunking': 'optimizationMetricsAndChunking',
+  'Full configuration': 'fullConfiguration',
+};
+
+const getPresetAnalyticsType = (presetLabel: string): LeaderboardPresetType =>
+  PRESET_ANALYTICS_TYPES[presetLabel] ?? 'other';
 
 const getColumnInfoProps = (
   columnId: string,
@@ -1158,6 +1172,9 @@ function AutoragLeaderboard({
         defaultColumns={defaultColumns}
         applyColumns={handleApplyColumns}
         presets={columnPresets}
+        onPresetSelect={(presetLabel) =>
+          fireAutoragLeaderboardPresetApplied(getPresetAnalyticsType(presetLabel))
+        }
       />
     </Card>
   );

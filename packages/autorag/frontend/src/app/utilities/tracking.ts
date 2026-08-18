@@ -34,6 +34,7 @@ export const AUTORAG_EVENTS = {
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
   PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
   CODE_SNIPPETS_EXPORTED: 'AutoRAG Code Snippets Exported',
+  LEADERBOARD_PRESET_APPLIED: 'AutoRAG Leaderboard Preset Applied',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -615,4 +616,27 @@ export const fireAutoragCodeSnippetsExported = (
     action,
     ...(entrySource ? { entrySource } : {}),
   });
+};
+
+/**
+ * Discrete, bounded identity for a "Manage columns" quick-select preset, independent of its
+ * display label. `'other'` is a defensive catch-all for any future preset added before this
+ * taxonomy is updated.
+ */
+export type LeaderboardPresetType =
+  | 'optimizationMetrics'
+  | 'optimizationMetricsAndChunking'
+  | 'fullConfiguration'
+  | 'other';
+
+/**
+ * Fires when the user selects a preset from the "Manage columns" modal's "Quick select" control
+ * (applying that preset's column set to the current view). Does not fire for the underlying
+ * column visibility changes themselves — those are covered by
+ * {@link fireAutoragResultsColumnToggled} on Save. Fires on selection, not gated by whether the
+ * modal is subsequently saved or cancelled, since choosing the preset is itself the signal we
+ * care about.
+ */
+export const fireAutoragLeaderboardPresetApplied = (presetType: LeaderboardPresetType): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, { presetType });
 };

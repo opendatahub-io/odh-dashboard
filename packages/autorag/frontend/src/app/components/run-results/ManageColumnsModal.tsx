@@ -40,6 +40,7 @@ type ManageColumnsModalProps = {
   defaultColumns: ColumnManagementModalColumn[];
   applyColumns: (columns: ColumnManagementModalColumn[]) => void;
   presets?: ColumnPreset[];
+  onPresetSelect?: (presetLabel: string) => void;
 };
 
 type ColumnState = ColumnManagementModalColumn & { isShown: boolean };
@@ -51,6 +52,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   defaultColumns,
   applyColumns,
   presets,
+  onPresetSelect,
 }) => {
   const [currentColumns, setCurrentColumns] = React.useState<ColumnState[]>(() =>
     appliedColumns.map((col) => ({
@@ -150,6 +152,7 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
         isShown: preset.visibleColumnKeys.includes(col.key),
       })),
     );
+    onPresetSelect?.(preset.label);
   };
 
   const selectedCount = currentColumns.filter((c) => c.isShown).length;

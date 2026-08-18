@@ -11,6 +11,7 @@ import {
   fireAutoragExperimentCreated,
   fireAutoragFlowExited,
   fireAutoragKnowledgeSourceConfigured,
+  fireAutoragLeaderboardPresetApplied,
   fireAutoragModelsSelected,
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
@@ -800,4 +801,23 @@ describe('fireAutoragCodeSnippetsExported', () => {
       action: 'copied',
     });
   });
+});
+
+describe('fireAutoragLeaderboardPresetApplied', () => {
+  it.each([
+    'optimizationMetrics',
+    'optimizationMetricsAndChunking',
+    'fullConfiguration',
+    'other',
+  ] as const)(
+    'should fire AutoRAG Leaderboard Preset Applied with presetType: %s',
+    (presetType) => {
+      fireAutoragLeaderboardPresetApplied(presetType);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
+        { presetType },
+      );
+    },
+  );
 });
