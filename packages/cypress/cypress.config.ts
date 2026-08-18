@@ -92,7 +92,33 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       registerCypressGrep(config);
       cypressHighResolution(on, config);
-      coverage(on, config);
+      // Rspack MF runtime is a data:text/javascript URI; nyc HTML reports ENAMETOOLONG on it.
+      /* eslint-disable @typescript-eslint/consistent-type-assertions */
+      coverage(
+        ((event: string, handler: unknown) => {
+          if (
+            event === 'task' &&
+            handler &&
+            typeof handler === 'object' &&
+            'combineCoverage' in handler
+          ) {
+            const tasks = handler as { combineCoverage: (sent: string) => unknown };
+            const original = tasks.combineCoverage.bind(tasks);
+            tasks.combineCoverage = (sent: string) => {
+              const map = JSON.parse(sent) as Record<string, unknown>;
+              for (const key of Object.keys(map)) {
+                if (/data:text|__module_federation/i.test(key)) {
+                  delete map[key];
+                }
+              }
+              return original(JSON.stringify(map));
+            };
+          }
+          (on as (eventName: string, eventHandler: unknown) => void)(event, handler);
+        }) as Cypress.PluginEvents,
+        config,
+      );
+      /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
 
       on('before:browser:launch', (browser, launchOptions) => {
