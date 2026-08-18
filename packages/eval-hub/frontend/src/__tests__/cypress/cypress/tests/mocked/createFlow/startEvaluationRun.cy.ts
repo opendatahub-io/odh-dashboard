@@ -27,7 +27,7 @@ const mockInferenceServices = (
     url?: string;
     ready: boolean;
     model_format_name?: string;
-    api_protocol?: string;
+    api_protocol?: 'REST' | 'gRPC';
   }[] = [],
 ) => {
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
@@ -691,6 +691,14 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });
