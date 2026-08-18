@@ -7,7 +7,11 @@ const notProvided = (name: string) => () => {
 
 /**
  * Domain-specific services bridged from the host to federated modules.
- * These shrink over time as domain logic relocates into owning packages.
+ *
+ * This is the backward-compatible Domain bridge — the shrinking leftover of the
+ * original host API, retained so existing `useHostApi()` consumers keep working.
+ * Prefer HostApiCoreContext / HostApiInfraContext for new code; removal of this
+ * bridge is tracked by RHOAIENG-79894 / RHOAIENG-79895.
  *
  * For core infrastructure (namespace, access, tracking, config) use HostApiCoreContext.
  * For K8s operations (secrets, projects, PVCs) use HostApiInfraContext.

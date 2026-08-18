@@ -1,4 +1,7 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
+// `HostApiContext` / `useHostApi` are the backward-compatible Domain bridge,
+// retained until the domain surface is fully migrated (RHOAIENG-79894 /
+// RHOAIENG-79895). Prefer the Core and Infra APIs below for new code.
 export { HostApiContext } from './HostApiContext';
 export { HostApiCoreContext } from './HostApiCoreContext';
 export { HostApiInfraContext } from './HostApiInfraContext';
