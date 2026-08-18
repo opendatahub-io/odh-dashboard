@@ -121,7 +121,7 @@ export type ServingRuntimeKind = K8sResourceCommon & {
     nodeSelector?: NodeSelector;
     volumes?: Volume[];
     imagePullSecrets?: ImagePullSecret[];
-  };
+  } & Record<string, unknown>;
 };
 
 export enum DeploymentMode {

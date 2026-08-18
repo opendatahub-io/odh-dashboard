@@ -75,6 +75,7 @@ export type ModelResourceType = K8sResourceCommon & {
         'opendatahub.io/model-type': string;
       }>;
   };
+  status?: Record<string, unknown>;
 };
 
 /**

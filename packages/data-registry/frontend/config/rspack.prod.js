@@ -1,24 +1,17 @@
 /* eslint-disable no-console */
 const path = require('path');
-const { merge } = require('rspack-merge');
-const { rspack } = require('@rspack/core');
+const { merge } = require('webpack-merge');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const TerserJSPlugin = require('terser-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
-const getRsdoctorPlugin = () => {
-  if (process.env.RSDOCTOR !== 'true') {
-    return [];
-  }
-  // Lazy-require: @rsdoctor/rspack-plugin depends on @rspack/resolver, which has no
-  // native bindings for s390x/ppc64le. Container builds must not load it.
-  const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
-  return [new RsdoctorRspackPlugin()];
-};
-
 setupDotenvFilesForEnv({ env: 'production' });
-const rspackCommon = require('./rspack.common.js');
+const webpackCommon = require('./webpack.common.js');
+const { patternFlyCssIncludes } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
-const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
@@ -39,7 +32,7 @@ module.exports = merge(
       }),
     ],
   },
-  rspackCommon('production'),
+  webpackCommon('production'),
   {
     mode: 'production',
     devtool: 'source-map',
@@ -48,31 +41,20 @@ module.exports = merge(
     },
     optimization: {
       minimize: true,
-      minimizer: [
-        new rspack.SwcJsMinimizerRspackPlugin(),
-        new rspack.LightningCssMinimizerRspackPlugin(),
-      ],
+      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
     },
     plugins: [
-      new rspack.CssExtractRspackPlugin({
+      new MiniCssExtractPlugin({
         filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
-      // Only enable when analyzing — increases build time.
-      // See https://rspack.rs/guide/optimization/use-rsdoctor
-      ...getRsdoctorPlugin(),
     ],
     module: {
       rules: [
         {
           test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-          ],
-          use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
+          use: [MiniCssExtractPlugin.loader, 'css-loader'],
         },
       ],
     },
