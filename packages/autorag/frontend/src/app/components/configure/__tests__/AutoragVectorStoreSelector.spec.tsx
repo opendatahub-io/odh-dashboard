@@ -5,10 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -19,6 +21,12 @@ jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   useOgxVectorStoreProvidersQuery: jest.fn(),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNotificationError = jest.fn();
 const mockNotificationWarning = jest.fn();
@@ -40,13 +48,14 @@ const configureSchema = createConfigureSchema();
 type FormWrapperProps = {
   children: React.ReactNode;
   onFormChange?: (values: unknown) => void;
+  defaultValues?: Partial<typeof configureSchema.defaults>;
 };
 
-const FormWrapper: React.FC<FormWrapperProps> = ({ children, onFormChange }) => {
+const FormWrapper: React.FC<FormWrapperProps> = ({ children, onFormChange, defaultValues }) => {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
 
   React.useEffect(() => {
@@ -67,14 +76,19 @@ const FormWrapper: React.FC<FormWrapperProps> = ({ children, onFormChange }) => 
 
 const renderWithProviders = (
   component: React.ReactElement,
-  options?: { onFormChange?: (values: unknown) => void },
+  options?: {
+    onFormChange?: (values: unknown) => void;
+    defaultValues?: Partial<typeof configureSchema.defaults>;
+  },
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <FormWrapper onFormChange={options?.onFormChange}>{component}</FormWrapper>
+      <FormWrapper onFormChange={options?.onFormChange} defaultValues={options?.defaultValues}>
+        {component}
+      </FormWrapper>
     </QueryClientProvider>,
   );
 };
@@ -327,6 +341,86 @@ describe('AutoragVectorStoreSelector', () => {
       // Verify the display format shows provider_id with deployment and name
       expect(screen.getByText('milvus (remote Milvus)')).toBeInTheDocument();
       expect(screen.getByTestId('vector-store-option-milvus')).toBeInTheDocument();
+    });
+  });
+
+  describe('AutoRAG Vector Store Configured tracking', () => {
+    it('should fire with the categorized provider type and compatible provider count on selection', () => {
+      renderWithProviders(<AutoragVectorStoreSelector />);
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(screen.getByText('milvus (remote Milvus)'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED,
+        {
+          providerType: 'milvus',
+          countOfCompatibleProviders: 2,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire again with pgvector when a different provider is selected afterward', () => {
+      renderWithProviders(<AutoragVectorStoreSelector />);
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(screen.getByText('milvus (remote Milvus)'));
+      fireFormTrackingEventMock.mockClear();
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(screen.getByText('pgvector (remote Pgvector)'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED,
+        {
+          providerType: 'pgvector',
+          countOfCompatibleProviders: 2,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should not fire on initial mount when a provider is pre-filled (reconfigure)', () => {
+      renderWithProviders(<AutoragVectorStoreSelector />, {
+        defaultValues: { vector_io_provider_id: 'milvus' }, // eslint-disable-line camelcase
+      });
+
+      expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
+        'milvus (remote Milvus)',
+      );
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
+    });
+
+    it('should not fire when the auto-clear-stale-selection effect resets the field', () => {
+      const { rerender } = renderWithProviders(
+        <AutoragVectorStoreSelector />,
+        { defaultValues: { vector_io_provider_id: 'milvus' } }, // eslint-disable-line camelcase
+      );
+
+      // Provider list refreshes and no longer includes the previously selected "milvus" —
+      // this should silently clear the field via the effect, not fire a tracking event.
+      mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+        data: mockVectorStoreProvidersResponse([
+          { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
+        ]),
+        isLoading: false,
+      } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const preFilledDefaults = { vector_io_provider_id: 'milvus' }; // eslint-disable-line camelcase
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <FormWrapper defaultValues={preFilledDefaults}>
+            <AutoragVectorStoreSelector />
+          </FormWrapper>
+        </QueryClientProvider>,
+      );
+
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
     });
   });
 });

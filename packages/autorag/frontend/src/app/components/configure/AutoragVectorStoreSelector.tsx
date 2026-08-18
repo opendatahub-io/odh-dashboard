@@ -11,6 +11,11 @@ import {
 } from '~/app/schemas/configure.schema';
 import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { OgxVectorStoreProvider } from '~/app/types';
+import {
+  fireAutoragVectorStoreConfigured,
+  toVectorStoreProviderType,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 /**
  * Formats a provider for display.
@@ -118,6 +123,17 @@ const AutoragVectorStoreSelector: React.FC = () => {
         const provider = providers.find((p) => p.provider_id === selectedProviderId);
         fieldOnChange(provider ? provider.provider_id : '');
         setIsOpen(false);
+        if (provider) {
+          const providerType = toVectorStoreProviderType(provider.provider_type);
+          if (providerType) {
+            fireAutoragVectorStoreConfigured({
+              providerType,
+              countOfCompatibleProviders: providers.length,
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+          }
+        }
       }}
       selected={fieldValue}
       toggle={(toggleRef) => (

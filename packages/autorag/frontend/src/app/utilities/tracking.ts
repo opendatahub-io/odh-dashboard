@@ -12,6 +12,7 @@ export const AUTORAG_EVENTS = {
   KNOWLEDGE_SOURCE_CONFIGURED: 'AutoRAG Knowledge Source Configured',
   EVALUATION_SOURCE_CONFIGURED: 'AutoRAG Evaluation Source Configured',
   MODELS_SELECTED: 'AutoRAG Models Selected',
+  VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -117,4 +118,49 @@ export type ModelsSelectedProperties = {
  */
 export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
+};
+
+/** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
+export type VectorStoreProviderType = 'milvus' | 'pgvector';
+
+/**
+ * Maps a raw `OgxVectorStoreProvider.provider_type` (e.g. `"remote::milvus"`) to the categorized
+ * {@link VectorStoreProviderType} used in analytics. Returns `undefined` for any provider type
+ * outside the current allowlist — callers must skip firing the tracking event in that case rather
+ * than forwarding an uncategorized value. This keeps the tracked property to a fixed, non-sensitive
+ * set even though the underlying `provider_id` is a free-form, admin-assigned string that must
+ * never be sent to analytics.
+ */
+export const toVectorStoreProviderType = (
+  providerType: string,
+): VectorStoreProviderType | undefined => {
+  switch (providerType) {
+    case 'remote::milvus':
+      return 'milvus';
+    case 'remote::pgvector':
+      return 'pgvector';
+    default:
+      return undefined;
+  }
+};
+
+export type VectorStoreConfiguredProperties = {
+  providerType: VectorStoreProviderType;
+  countOfCompatibleProviders: number;
+  outcome: TrackingOutcome;
+  success: boolean;
+};
+
+/**
+ * Fires when the user selects a vector I/O provider in the "Configure details" step of the
+ * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
+ * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
+ * the effect that clears a stale selection when the provider list refreshes, and never from the
+ * initial/reconfigure pre-fill of `vector_io_provider_id`. This is a pure local field selection
+ * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
+ */
+export const fireAutoragVectorStoreConfigured = (
+  properties: VectorStoreConfiguredProperties,
+): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED, properties);
 };
