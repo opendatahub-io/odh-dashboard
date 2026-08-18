@@ -154,7 +154,7 @@ const ViewSubscriptionPage: React.FC = () => {
           onSelect={(_event, key) => {
             setActiveTab(key);
             if (key === 'yaml') {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 context: EventTrackingContext.DETAILS,
               });
