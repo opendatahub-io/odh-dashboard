@@ -111,7 +111,10 @@ func (h *PipelinesHandler) PipelineRunHandler(w http.ResponseWriter, r *http.Req
 func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		NewUIError(http.StatusBadRequest, "missing_namespace", "missing namespace in context - ensure AttachNamespace middleware is used first").
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 
@@ -122,17 +125,43 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	if err := decoder.Decode(&req); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			payloadTooLargeResponse(h.logger, w, r, "request body exceeds maximum size")
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
 			return
 		}
-		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
+		NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+			WithDetail("error", err.Error()).
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
+		if err != nil {
+			NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+				WithDetail("error", err.Error()).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
 		errorReason := "request body must contain only a single JSON object"
 		NewUIError(http.StatusBadRequest, "unsupported_multiple_json_request", errorReason).
 			WithDetail("reason", errorReason).
+			WithLogger(h.logger).
 			WithTracing(r).
 			WriteTo(w)
 		return
@@ -144,8 +173,19 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	if err := writeJSON(w, http.StatusOK, CreatePipelineRunEnvelope{Data: run}, nil); err != nil {
-		serverErrorResponse(h.logger, w, r, err)
+	js, err := json.MarshalIndent(CreatePipelineRunEnvelope{Data: run}, "", "\t")
+	if err != nil {
+		h.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.Path)
+		NewUIError(http.StatusInternalServerError, "response_serialization_failed", "the server encountered a problem and could not process your request").
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(append(js, '\n')); err != nil {
+		h.logger.Error("failed to write response body", "method", r.Method, "uri", r.URL.Path, "error", err.Error())
 	}
 }
 
