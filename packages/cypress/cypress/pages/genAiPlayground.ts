@@ -277,6 +277,14 @@ class GenAiPlayground {
     return cy.findByTestId('prompt-name-title');
   }
 
+  findVariableInputPanel() {
+    return cy.findByTestId('prompt-variable-input-panel');
+  }
+
+  findVariableInput(variableName: string) {
+    return cy.findByTestId(`prompt-variable-input-${variableName}`);
+  }
+
   // RAG / Knowledge upload methods
   findKnowledgeTab() {
     return cy.findByTestId('chatbot-settings-page-tab-knowledge');

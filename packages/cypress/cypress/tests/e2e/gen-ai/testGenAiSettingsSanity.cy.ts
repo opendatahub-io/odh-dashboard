@@ -251,7 +251,22 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
         .should('be.visible')
         .and('contain', testData.prompt.name);
 
-      cy.step('Send a test message using the loaded prompt context');
+      cy.step(
+        'Verify the {{ }} template survived the MLflow round-trip and rendered a variable input',
+      );
+      genAiPlayground.findVariableInputPanel().should('be.visible');
+      genAiPlayground.findVariableInput(testData.prompt.variableName).should('be.visible');
+
+      cy.step('Fill in the variable value and confirm it is reflected in the panel');
+      genAiPlayground
+        .findVariableInput(testData.prompt.variableName)
+        .clear()
+        .type(testData.prompt.variableValue);
+      genAiPlayground
+        .findVariableInput(testData.prompt.variableName)
+        .should('have.value', testData.prompt.variableValue);
+
+      cy.step('Send a test message using the loaded prompt context and filled-in variable');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
       genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
 

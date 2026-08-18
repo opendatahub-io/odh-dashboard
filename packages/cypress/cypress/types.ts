@@ -692,6 +692,8 @@ export type CustomEndpointTestData = {
     template: string;
     commitMessage: string;
     testMessageWithPrompt: string;
+    variableName: string;
+    variableValue: string;
   };
   rag: {
     fileName: string;

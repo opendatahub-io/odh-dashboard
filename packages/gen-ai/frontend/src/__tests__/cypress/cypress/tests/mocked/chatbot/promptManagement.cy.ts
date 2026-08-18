@@ -798,4 +798,132 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
       },
     );
   });
+
+  describe('Template Variables', () => {
+    const TEMPLATED_PROMPT_NAME = 'summarization-prompt';
+    const TEMPLATED_PROMPT_TEXT = 'You are a {{role}} assistant for {{topic}}.';
+
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+
+      cy.interceptGenAi(
+        'GET /api/v1/mlflow/prompts',
+        { query: { namespace } },
+        mockMLflowPromptsList(),
+      ).as('listPrompts');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*/versions**', {
+        statusCode: 200,
+        body: mockMLflowPromptVersionsResponse(),
+      }).as('listVersions');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*', (req) => {
+        if (req.url.includes('/versions')) {
+          return;
+        }
+        req.reply({
+          statusCode: 200,
+          body: {
+            data: mockMLflowPromptVersion({
+              name: TEMPLATED_PROMPT_NAME,
+              template: TEMPLATED_PROMPT_TEXT,
+              scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+            }),
+          },
+        });
+      }).as('getPrompt');
+
+      cy.intercept('POST', '**/api/v1/lsd/responses**', {
+        statusCode: 200,
+        body: {
+          data: {
+            id: 'test-response-id',
+            model: 'Llama-3.2-3B-Instruct',
+            status: 'completed',
+            created_at: Date.now(),
+            output: [
+              {
+                id: 'output-1',
+                type: 'completion_message',
+                content: [{ type: 'output_text', text: 'This is a mocked response' }],
+              },
+            ],
+            usage: { input_tokens: 5, output_tokens: 10, total_tokens: 15 },
+          },
+        },
+      }).as('createResponse');
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+
+      cy.step('Open prompt tab and load a prompt containing {{variable}} placeholders');
+      openSettingsPromptTab();
+      promptAssistant.findLoadPromptButton().click();
+      cy.wait('@listPrompts');
+      promptManagementModal.findTableRow(TEMPLATED_PROMPT_NAME).click();
+      promptManagementModal.findLoadButton().should('be.enabled').click();
+      promptManagementModal.find().should('not.exist');
+    });
+
+    it(
+      'should render one variable input per placeholder found in the loaded template',
+      { tags: ['@GenAI', '@PromptManagement', '@Variables'] },
+      () => {
+        cy.step('Verify the variable panel renders with one input per unique variable');
+        promptAssistant.findVariablePanel().should('be.visible');
+        promptAssistant.findVariableInput('role').should('be.visible');
+        promptAssistant.findVariableInput('topic').should('be.visible');
+      },
+    );
+
+    it(
+      'should reflect typed values in the variable inputs',
+      { tags: ['@GenAI', '@PromptManagement', '@Variables'] },
+      () => {
+        cy.step('Fill in variable values');
+        promptAssistant.findVariableInput('role').clear().type('coding');
+        promptAssistant.findVariableInput('topic').clear().type('TypeScript');
+
+        cy.step('Verify the panel reflects the entered values');
+        promptAssistant.findVariableInput('role').should('have.value', 'coding');
+        promptAssistant.findVariableInput('topic').should('have.value', 'TypeScript');
+      },
+    );
+
+    it(
+      'should substitute variable values into the outgoing request before it hits inference',
+      { tags: ['@GenAI', '@PromptManagement', '@Variables'] },
+      () => {
+        cy.step('Fill in variable values');
+        promptAssistant.findVariableInput('role').clear().type('coding');
+        promptAssistant.findVariableInput('topic').clear().type('TypeScript');
+
+        cy.step('Send a chat message');
+        chatbotPage.sendMessage('Hello');
+
+        cy.step('Verify the outgoing request body has the substituted instructions');
+        cy.wait('@createResponse').then((interception) => {
+          expect(interception.request.body).to.have.property(
+            'instructions',
+            'You are a coding assistant for TypeScript.',
+          );
+        });
+      },
+    );
+  });
 });
