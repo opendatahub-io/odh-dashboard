@@ -10,7 +10,7 @@ import { CubesIcon, ErrorCircleOIcon } from '@patternfly/react-icons';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
 import { RefreshIntervalTitle, TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
-import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
+import { MetricsCommonContext } from '@odh-dashboard/ui-core/contexts/MetricsCommonContext';
 import useKserveMetricsConfigMap from '#~/concepts/metrics/kserve/useKserveMetricsConfigMap';
 import useKserveMetricsGraphDefinitions from '#~/concepts/metrics/kserve/useKserveMetricsGraphDefinitions';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';

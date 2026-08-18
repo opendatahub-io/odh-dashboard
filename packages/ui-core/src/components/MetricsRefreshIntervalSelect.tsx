@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { asEnumMember, enumIterator } from '@odh-dashboard/foundation';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
-import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
-import { isRefreshIntervalTitle } from '#~/concepts/metrics/utils';
+import SimpleSelect, { SimpleSelectOption } from './SimpleSelect';
+import { RefreshIntervalTitle } from '../types/metrics';
+import { MetricsCommonContext } from '../contexts/MetricsCommonContext';
+import { isRefreshIntervalTitle } from '../utilities/metrics';
 
 export const MetricsRefreshIntervalSelect: React.FC = () => {
   const { currentRefreshInterval, setCurrentRefreshInterval } =
