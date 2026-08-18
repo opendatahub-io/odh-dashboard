@@ -95,11 +95,11 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findRuleApiGroupsToggle().click();
     projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
     cy.findByTestId('select-multi-typeahead-apps').click();
-    cy.get('body').click(0, 0);
+    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('{esc}');
     projectRoles.findRuleResourceTypesToggle().click();
     projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
     cy.findByTestId('select-multi-typeahead-Deployments').click();
-    cy.get('body').click(0, 0);
+    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('{esc}');
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleSaveButton().click();
     projectRoles.findYamlViewToggle().click();

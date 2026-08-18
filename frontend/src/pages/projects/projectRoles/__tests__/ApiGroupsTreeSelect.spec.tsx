@@ -370,4 +370,25 @@ describe('ApiGroupsTreeSelect', () => {
       expect(menuItem).toBeInTheDocument();
     });
   });
+
+  it('should not convert a custom API group named "__core__" to empty string', async () => {
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={['__core__', 'apps']}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    await openDropdown();
+
+    const appsMenuItem = screen.getByTestId('select-multi-typeahead-apps');
+    await act(async () => {
+      fireEvent.click(within(appsMenuItem).getByText('apps'));
+    });
+
+    const result = mockOnChange.mock.calls[0][0] as string[];
+    expect(result).toContain('__core__');
+    expect(result).not.toContain('');
+  });
 });

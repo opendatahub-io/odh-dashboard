@@ -154,7 +154,12 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
       const selected = new Set(
         realOptions
           .filter((o) => o.selected)
-          .map((o) => (String(o.id) === CORE_GROUP_ID ? '' : String(o.id))),
+          .map((o) => {
+            if (String(o.id) === CORE_GROUP_ID && o.className === 'odh-api-group-tree__group') {
+              return '';
+            }
+            return String(o.id);
+          }),
       );
 
       applyCategoryToggles(
