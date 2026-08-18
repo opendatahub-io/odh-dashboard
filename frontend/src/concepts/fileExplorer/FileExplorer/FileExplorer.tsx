@@ -509,7 +509,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                       select={{
                         rowIndex,
                         onSelect,
-                        isSelected: Boolean(isSelected || file.forceShowAsSelected),
+                        isSelected,
                         isDisabled: isUnselectable,
                         variant: selection,
                       }}

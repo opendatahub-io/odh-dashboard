@@ -349,7 +349,6 @@ const App: React.FC = () => {
       if (file.path.startsWith(folderPrefix)) {
         return {
           ...file,
-          forceShowAsSelected: false,
           hint: 'Included in selection',
           hintTooltip: (
             <span>

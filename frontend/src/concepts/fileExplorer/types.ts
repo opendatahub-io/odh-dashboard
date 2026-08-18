@@ -29,7 +29,6 @@ export interface ExplorerFile {
   hidden?: boolean;
   selectable?: boolean;
   disabled?: boolean | string;
-  forceShowAsSelected?: boolean;
   hint?: string | ReactNode;
   /** Only rendered when `hint` is also set — the rendering code gates on `hint` first. */
   hintTooltip?: string | ReactNode;

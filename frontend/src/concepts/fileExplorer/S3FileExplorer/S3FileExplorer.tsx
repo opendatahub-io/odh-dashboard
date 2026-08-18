@@ -337,7 +337,6 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Derived state -------------------------------------------------------------->
 
   const filesWithSelection = useMemo(() => {
-    const disabledSet = disabledPaths ? new Set(Object.keys(disabledPaths)) : undefined;
     const folderPrefix = selectedFolder
       ? selectedFolder.path.endsWith('/')
         ? selectedFolder.path
@@ -346,16 +345,15 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
     return filesToRender.map((file) => {
       let result = file;
-      if (folderPrefix && file.path.startsWith(folderPrefix)) {
+      if (selectedFolder && folderPrefix && file.path.startsWith(folderPrefix)) {
         result = {
           ...result,
-          forceShowAsSelected: false,
           hint: defaults.labels.includedInSelection,
-          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder?.name ?? ''),
+          hintTooltip: defaults.labels.includedInSelectionReason(selectedFolder.name),
         };
       }
-      if (disabledSet?.has(file.path) && isFolder(file)) {
-        result = { ...result, selectable: false, disabled: disabledPaths?.[file.path] || true };
+      if (disabledPaths && file.path in disabledPaths && isFolder(file)) {
+        result = { ...result, selectable: false, disabled: disabledPaths[file.path] ?? true };
       }
       return result;
     });
