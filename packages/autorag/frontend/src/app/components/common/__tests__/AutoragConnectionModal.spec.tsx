@@ -455,7 +455,11 @@ describe('AutoragConnectionModal', () => {
       addButton.click();
     });
 
-    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      ),
+    ).toBeInTheDocument();
     expect(createSecretMock).toHaveBeenCalledTimes(1);
     expect(onSubmitMock).toHaveBeenCalledTimes(1);
 
@@ -512,7 +516,11 @@ describe('AutoragConnectionModal', () => {
       addButton.click();
     });
 
-    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      ),
+    ).toBeInTheDocument();
     expect(createSecretMock).toHaveBeenCalledTimes(1);
 
     // The Secret already exists — every field must now be locked so a user can't change the
@@ -666,7 +674,11 @@ describe('AutoragConnectionModal', () => {
       screen.getByRole('button', { name: 'Add connection' }).click();
     });
 
-    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      ),
+    ).toBeInTheDocument();
 
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).toHaveBeenCalled();
@@ -738,7 +750,11 @@ describe('AutoragConnectionModal', () => {
       screen.getByRole('button', { name: 'Add connection' }).click();
     });
 
-    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      ),
+    ).toBeInTheDocument();
     fireAutoragS3ConnectionCreatedMock.mockClear();
 
     // The Secret was already reported as created (success: true) above. Cancelling now, after

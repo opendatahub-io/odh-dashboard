@@ -280,10 +280,17 @@ const AutoragConnectionModal: React.FC<Props> = ({
               try {
                 await onSubmit(connectionToSubmit);
                 onClose(true);
-              } catch (e) {
+              } catch {
                 // The Secret was already created successfully, so this is not a creation
                 // failure. Surface it to the user, but don't emit a false S3_CONNECTION_CREATED.
-                setSubmitError(e instanceof Error ? e : new Error(String(e)));
+                // Don't render the raw error — onSubmit is caller-supplied and its failure
+                // could originate from a backend/proxy response we can't guarantee is safe
+                // to display verbatim.
+                setSubmitError(
+                  new Error(
+                    'The connection was created, but AutoRAG could not select it. Retry saving it.',
+                  ),
+                );
                 setIsSaving(false);
               }
             };
