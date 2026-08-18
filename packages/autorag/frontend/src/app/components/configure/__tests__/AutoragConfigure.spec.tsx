@@ -1243,6 +1243,121 @@ describe('AutoragConfigure', () => {
       expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
       expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
     });
+
+    it('should drop restored model selections that are no longer available and fall back to all models', () => {
+      // The restored selection references a model that is no longer returned by
+      // the current secret/provider (e.g. removed/deprecated upstream).
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          // "removed-llm-model" no longer exists in the current models response.
+          generation_models: ['removed-llm-model'],
+          embedding_models: ['removed-embed-model'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['removed-llm-model'],
+          embedding_models: ['removed-embed-model'],
+        },
+      );
+
+      // Falls back to all currently available models rather than keeping the
+      // now-nonexistent restored IDs.
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'llm-model-2']);
+      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
+      expect(getLatestFormValues().generation_models).not.toContain('removed-llm-model');
+      expect(getLatestFormValues().embedding_models).not.toContain('removed-embed-model');
+    });
+
+    it('should keep only the still-available restored models when some restored selections are stale', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          // "llm-model-1" is still available, "removed-llm-model" is not.
+          generation_models: ['llm-model-1', 'removed-llm-model'],
+          embedding_models: ['embed-model-1'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1', 'removed-llm-model'],
+          embedding_models: ['embed-model-1'],
+        },
+      );
+
+      // Only the still-valid restored selection is kept; since at least one valid
+      // restored ID remains, it does NOT fall back to all available models.
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
+    });
   });
 
   describe('invalid secret selection', () => {

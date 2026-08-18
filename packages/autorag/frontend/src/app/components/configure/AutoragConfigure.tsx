@@ -262,15 +262,38 @@ function AutoragConfigure({
         .map((model) => model.id)
         .toSorted((a, b) => a.localeCompare(b));
 
+      // Restored selections (e.g. from reconfigure) may reference models that are
+      // no longer returned for this secret (removed/deprecated upstream). Drop
+      // any IDs that aren't currently available before deciding whether to keep
+      // the restored selection or fall back to "all models".
+      const retainedGenerationModels = currentGenModels.filter((modelId) =>
+        allLlmModels.includes(modelId),
+      );
+      const retainedEmbeddingModels = currentEmbModels.filter((modelId) =>
+        allEmbeddingModels.includes(modelId),
+      );
+
+      if (
+        retainedGenerationModels.length < currentGenModels.length ||
+        retainedEmbeddingModels.length < currentEmbModels.length
+      ) {
+        notification.warning(
+          'Some previously selected models are unavailable',
+          'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+        );
+      }
+
       reset({
         ...currentValues,
         // eslint-disable-next-line camelcase
-        generation_models: currentGenModels.length > 0 ? currentGenModels : allLlmModels,
+        generation_models:
+          retainedGenerationModels.length > 0 ? retainedGenerationModels : allLlmModels,
         // eslint-disable-next-line camelcase
-        embedding_models: currentEmbModels.length > 0 ? currentEmbModels : allEmbeddingModels,
+        embedding_models:
+          retainedEmbeddingModels.length > 0 ? retainedEmbeddingModels : allEmbeddingModels,
       });
     }
-  }, [allModelsData, isModelsError, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
