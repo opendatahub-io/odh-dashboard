@@ -16,6 +16,10 @@ import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
+import SessionExpiredModal from '~/app/SessionExpiredModal';
+
+const isAuthError = (e?: Error): boolean =>
+  !!e?.message && /unauthorized|forbidden/i.test(e.message);
 
 const App: React.FC = () => {
   const {
@@ -44,11 +48,20 @@ const App: React.FC = () => {
   );
 
   const error = configError || namespacesLoadError || initializationError;
+  const isUnauthorized =
+    isAuthError(configError) ||
+    isAuthError(namespacesLoadError) ||
+    isAuthError(initializationError);
 
   const sidebar = <PageSidebar isSidebarOpen={false} />;
 
   // We lack the critical data to startup the app
   if (error) {
+    // Check for unauthorized state — session cookie has expired
+    if (isUnauthorized) {
+      return <SessionExpiredModal />;
+    }
+
     // There was an error fetching critical data
     return (
       <Page sidebar={sidebar}>
