@@ -1210,5 +1210,6 @@ describe('ChatbotPlayground — "Try in playground" from a vector store', () => 
     const config = useChatbotConfigStore.getState().getConfiguration(DEFAULT_CONFIG_ID);
     expect(config?.knowledgeMode).toBe(DEFAULT_CONFIGURATION.knowledgeMode);
     expect(config?.selectedVectorStoreId).toBe(DEFAULT_CONFIGURATION.selectedVectorStoreId);
+    expect(config?.isRagEnabled).toBe(DEFAULT_CONFIGURATION.isRagEnabled);
   });
 });
