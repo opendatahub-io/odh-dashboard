@@ -1,4 +1,6 @@
-const { pnpmTransformIgnorePatterns } = require('../../../scripts/jest/pnpmTransformIgnorePatterns');
+const {
+  pnpmTransformIgnorePatterns,
+} = require('../../../scripts/jest/pnpmTransformIgnorePatterns');
 
 module.exports = {
   roots: ['<rootDir>/src/'],

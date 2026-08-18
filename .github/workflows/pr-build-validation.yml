@@ -108,6 +108,7 @@ jobs:
           RUN npm install -g pnpm@${PNPM_VERSION}
           WORKDIR /test
           COPY --from=cache-builder /pnpm-store /pnpm-store
+          COPY --from=cache-builder /root/.cache/pnpm /root/.cache/pnpm
           COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
           COPY backend ./backend
           COPY frontend ./frontend
