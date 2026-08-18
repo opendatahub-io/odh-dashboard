@@ -391,4 +391,30 @@ describe('ApiGroupsTreeSelect', () => {
     expect(result).toContain('__core__');
     expect(result).not.toContain('');
   });
+
+  it('should not convert a discovered group named "__core__" to empty string', async () => {
+    const dataWithCoreCollision: ApiResourcesData = {
+      apiGroups: [...mockApiResourcesData.apiGroups, '__core__'],
+      resources: [],
+    };
+
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={['__core__', 'apps']}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={dataWithCoreCollision}
+      />,
+    );
+
+    await openDropdown();
+
+    const appsMenuItem = screen.getByTestId('select-multi-typeahead-apps');
+    await act(async () => {
+      fireEvent.click(within(appsMenuItem).getByText('apps'));
+    });
+
+    const result = mockOnChange.mock.calls[0][0] as string[];
+    expect(result).toContain('__core__');
+    expect(result).not.toContain('');
+  });
 });
