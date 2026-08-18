@@ -7,6 +7,7 @@ import {
   deleteMlflowExperimentViaAPI,
   getMlflowExperimentIdByName,
   logMlflowRunsViaAPI,
+  freeExperimentName,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -46,7 +47,20 @@ describe('Verify MLflow Experiments page', () => {
       .then(() => {
         cy.step('Enable all features required for MLflow Experiments');
         return enableMlflowFeatures();
+      })
+      .then(() => {
+        const experimentName = `${testData.experiments[0].name}-${uuid}`;
+        const renamedName = `${testData.experiments[0].renamedName}-${uuid}`;
+        return freeExperimentName(projectName, experimentName).then(() =>
+          freeExperimentName(projectName, renamedName),
+        );
       });
+  });
+
+  beforeEach(() => {
+    cy.clearAllCookies();
+    cy.clearAllLocalStorage();
+    cy.clearAllSessionStorage();
   });
 
   after(() => {

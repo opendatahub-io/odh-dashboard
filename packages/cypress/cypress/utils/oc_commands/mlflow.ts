@@ -752,6 +752,56 @@ export const deleteMlflowExperimentViaAPI = (
   );
 
 /**
+ * Rename an MLflow experiment. Useful for freeing up a name before recreating,
+ * since MLflow's delete is only a soft-delete that retains the UNIQUE name constraint.
+ */
+export const renameMlflowExperimentViaAPI = (
+  workspace: string,
+  experimentId: string,
+  newName: string,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/update',
+    { experiment_id: experimentId, new_name: newName }, // eslint-disable-line camelcase
+    workspace,
+  );
+
+/**
+ * Restore a soft-deleted MLflow experiment so it can be renamed or reused.
+ */
+export const restoreMlflowExperimentViaAPI = (
+  workspace: string,
+  experimentId: string,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/restore',
+    { experiment_id: experimentId }, // eslint-disable-line camelcase
+    workspace,
+  );
+
+/**
+ * Free up an experiment name by renaming the existing experiment (active or deleted).
+ * MLflow soft-delete retains the UNIQUE name constraint, so this is needed to allow
+ * creating a new experiment with the same name after a test retry.
+ */
+export const freeExperimentName = (
+  workspace: string,
+  experimentName: string,
+): Cypress.Chainable<void> =>
+  getMlflowExperimentIdByName(workspace, experimentName).then((id) => {
+    if (!id) {
+      return;
+    }
+    const suffix = `-stale-${Date.now()}`;
+    cy.log(`Freeing experiment name: ${experimentName} (id=${id}) → ${experimentName}${suffix}`);
+    restoreMlflowExperimentViaAPI(workspace, id).then(() =>
+      renameMlflowExperimentViaAPI(workspace, id, `${experimentName}${suffix}`).then(() =>
+        deleteMlflowExperimentViaAPI(workspace, id),
+      ),
+    );
+  });
+
+/**
  * Look up an MLflow experiment by name and return its ID, or undefined if not found.
  */
 export const getMlflowExperimentIdByName = (
