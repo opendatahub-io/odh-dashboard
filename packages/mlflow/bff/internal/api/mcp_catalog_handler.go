@@ -46,12 +46,12 @@ func (app *App) requireCatalogServerIDAndNamespace(w http.ResponseWriter, r *htt
 // GetMcpServerToolsHandler proxies GET /api/v1/mcp-catalog/servers/:id/tools to the
 // model-registry catalog BFF (GET /mcp_catalog/mcp_servers/:id/tools).
 func (app *App) GetMcpServerToolsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	mrClient, ok := app.modelRegistryClientOrUnavailable(w, r)
+	serverID, namespace, ok := app.requireCatalogServerIDAndNamespace(w, r, ps)
 	if !ok {
 		return
 	}
 
-	serverID, namespace, ok := app.requireCatalogServerIDAndNamespace(w, r, ps)
+	mrClient, ok := app.modelRegistryClientOrUnavailable(w, r)
 	if !ok {
 		return
 	}
@@ -80,12 +80,12 @@ func (app *App) GetMcpServerToolsHandler(w http.ResponseWriter, r *http.Request,
 // GetMcpServerConverterHandler proxies GET /api/v1/mcp-catalog/servers/:id/mcpserver
 // to MR GET /mcp_catalog/mcp_servers/:id/mcpserver.
 func (app *App) GetMcpServerConverterHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	mrClient, ok := app.modelRegistryClientOrUnavailable(w, r)
+	serverID, namespace, ok := app.requireCatalogServerIDAndNamespace(w, r, ps)
 	if !ok {
 		return
 	}
 
-	serverID, namespace, ok := app.requireCatalogServerIDAndNamespace(w, r, ps)
+	mrClient, ok := app.modelRegistryClientOrUnavailable(w, r)
 	if !ok {
 		return
 	}

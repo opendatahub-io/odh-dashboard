@@ -146,4 +146,20 @@ describe('McpServerRegisterAction', () => {
     await user.click(screen.getByTestId('mcp-register-button'));
     expect(screen.queryByTestId('mcp-register-modal')).not.toBeInTheDocument();
   });
+
+  it('should keep the modal open if catalog data or MLflow status changes after it opened', async () => {
+    const user = userEvent.setup();
+    const catalogServer = mockMcpServer({ id: 'server-1', toolCount: 1 });
+    const { rerender } = render(
+      <McpServerRegisterAction server={{ data: catalogServer, loaded: true }} />,
+    );
+
+    await user.click(screen.getByTestId('mcp-register-button'));
+    expect(screen.getByTestId('mcp-register-modal')).toBeInTheDocument();
+
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true, error: true });
+    rerender(<McpServerRegisterAction server={{ data: null, loaded: true }} />);
+
+    expect(screen.getByTestId('mcp-register-modal')).toBeInTheDocument();
+  });
 });

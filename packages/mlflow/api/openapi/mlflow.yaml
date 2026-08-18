@@ -2101,7 +2101,7 @@ components:
           description: Optional human-readable label stored on the parent MCP server.
         icons:
           type: array
-          description: Optional icons stored on the parent MCP server (https URLs only).
+          description: Optional icons stored on the parent MCP server (http or https URLs).
           items:
             type: object
             required:

@@ -15,10 +15,9 @@ class McpRegisterPage {
     return cy.findByRole('tooltip');
   }
 
-  shouldBeOnRegistryDetails(name: string, workspace: string) {
-    const encodedName = encodeURIComponent(name).replace(/\./g, '%252E');
+  shouldBeOnRegistryDetails(encodedName: string, workspace: string) {
     cy.location('pathname').should('eq', `/ai-hub/mcp-servers/registry/${encodedName}`);
-    cy.location('search').should('eq', `?workspace=${encodeURIComponent(workspace)}`);
+    cy.location('search').should('eq', `?workspace=${workspace}`);
   }
 }
 

@@ -88,6 +88,47 @@ const initRegisterIntercepts = ({
 
   interceptMlflowStatus(mlflowConfigured);
 
+  cy.intercept('GET', `${BFF_PREFIX}/model_catalog/sources*`, {
+    body: {
+      data: {
+        items: [
+          {
+            id: 'source-1',
+            name: 'Community',
+            labels: ['community'],
+            status: 'available',
+            enabled: true,
+          },
+        ],
+        size: 1,
+        pageSize: 10,
+        nextPageToken: '',
+      },
+    },
+  });
+
+  cy.intercept('GET', `${BFF_PREFIX}/model_catalog/labels*`, {
+    body: {
+      data: {
+        items: [{ name: 'community', displayName: 'Community', description: 'Community servers' }],
+        size: 1,
+        pageSize: 10,
+        nextPageToken: '',
+      },
+    },
+  });
+
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers_filter_options*`, {
+    body: {
+      data: {
+        deploymentModes: ['local'],
+        providers: ['Kubernetes'],
+        transports: ['http'],
+        tags: ['kubernetes'],
+      },
+    },
+  });
+
   cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}*`, {
     body: { data: catalogServer },
   });
@@ -148,16 +189,22 @@ describe('MCP Register from Catalog', () => {
   it('should register the server, toast success, and navigate to the registry details page', () => {
     initRegisterIntercepts();
 
-    cy.intercept('POST', `${MLFLOW_BFF_PREFIX}/mcp-registry/register*`, {
-      statusCode: 201,
-      body: {
-        data: {
-          version: {
-            name: TEST_REGISTRY_NAME,
-            version: '1.0.0',
+    cy.intercept('POST', `${MLFLOW_BFF_PREFIX}/mcp-registry/register*`, (req) => {
+      expect(req.url).to.include(`workspace=${encodeURIComponent(TEST_PROJECT)}`);
+      const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      expect(payload).to.include({ name: TEST_REGISTRY_NAME });
+      expect(payload.server_json).to.include({ name: TEST_REGISTRY_NAME, version: '1.0.0' });
+      req.reply({
+        statusCode: 201,
+        body: {
+          data: {
+            version: {
+              name: TEST_REGISTRY_NAME,
+              version: '1.0.0',
+            },
           },
         },
-      },
+      });
     }).as('registerMcpServer');
 
     mcpRegisterPage.visit(TEST_SERVER_ID);
@@ -171,6 +218,6 @@ describe('MCP Register from Catalog', () => {
     toastNotifications
       .findToastNotification(0)
       .should('contain.text', `Registered as ${TEST_REGISTRY_NAME} v1.0.0`);
-    mcpRegisterPage.shouldBeOnRegistryDetails(TEST_REGISTRY_NAME, TEST_PROJECT);
+    mcpRegisterPage.shouldBeOnRegistryDetails('kubernetes%2Fmcp-server', TEST_PROJECT);
   });
 });

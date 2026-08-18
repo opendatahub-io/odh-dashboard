@@ -1,8 +1,10 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import type { LoadedExtension, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import ProjectSelectorFieldWrapper from '~/odh/components/ProjectSelectorFieldWrapper';
+import type { ProjectSelectorExtension, ProjectSelectorFieldProps } from '~/odh/extension-points';
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useResolvedExtensions: jest.fn(),
@@ -23,9 +25,18 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', (
 
 const mockUseResolvedExtensions = jest.mocked(useResolvedExtensions);
 
-const HostSelector: React.FC<{ namespace: string }> = ({ namespace }) => (
+const HostSelector: React.FC<ProjectSelectorFieldProps> = ({ namespace }) => (
   <div data-testid="host-project-selector">{namespace || 'none'}</div>
 );
+
+const hostSelectorExtension: LoadedExtension<ResolvedExtension<ProjectSelectorExtension>> = {
+  type: 'mlflow.project/selector',
+  uid: 'host-project-selector',
+  pluginName: 'test-plugin',
+  properties: {
+    component: { default: HostSelector },
+  },
+};
 
 describe('ProjectSelectorFieldWrapper', () => {
   beforeEach(() => {
@@ -43,18 +54,7 @@ describe('ProjectSelectorFieldWrapper', () => {
   });
 
   it('should render the host extension component when available', () => {
-    mockUseResolvedExtensions.mockReturnValue([
-      [
-        {
-          type: 'mlflow.project/selector',
-          properties: {
-            component: { default: HostSelector },
-          },
-        },
-      ] as never,
-      true,
-      [],
-    ]);
+    mockUseResolvedExtensions.mockReturnValue([[hostSelectorExtension], true, []]);
 
     render(
       <ProjectSelectorFieldWrapper
