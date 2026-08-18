@@ -5,13 +5,13 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
@@ -232,6 +232,18 @@ const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
+// Captures the live react-hook-form instance so tests can assert on exact
+// form state (e.g. which model IDs are selected) instead of only on rendered
+// text, which can't distinguish "same count, different models" regressions.
+let latestForm: UseFormReturn<ConfigureSchema> | undefined;
+
+const getLatestFormValues = (): ConfigureSchema => {
+  if (!latestForm) {
+    throw new Error('Form has not been rendered yet');
+  }
+  return latestForm.getValues();
+};
+
 const FormWrapper: React.FC<{
   children: React.ReactNode;
   defaultValues?: Partial<typeof configureSchema.defaults>;
@@ -241,6 +253,7 @@ const FormWrapper: React.FC<{
     resolver: zodResolver(configureSchema.full),
     defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
+  latestForm = form as unknown as UseFormReturn<ConfigureSchema>;
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
@@ -1222,8 +1235,13 @@ describe('AutoragConfigure', () => {
         },
       );
 
+      // Assert the exact retained model IDs (not just counts) so a regression that
+      // swaps the selection for a same-sized set of different models (e.g.
+      // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
       expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
+      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
     });
   });
 
