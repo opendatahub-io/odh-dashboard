@@ -229,18 +229,17 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      // Check for .cy.ts files
-      const testFilePaths = findTestFiles(testPath);
-
-      if (testFilePaths.length === 0) {
-        continue;
-      }
-
       const pkgPrefix = `pkg-${pkgRelPath.replace(/\//g, '-')}`;
       const mockedPattern = pkg.cypress.mocked;
       // Extract test base dir from glob: "tests/mocked/**/*.cy.ts" -> "tests/mocked"
       const testBaseDir = mockedPattern.replace(/\/?\*\*\/\*\.cy\.ts$/, '');
       const fullTestBaseDir = path.join('packages', pkgRelPath, testBaseDir);
+
+      const testFilePaths = findTestFiles(fullTestBaseDir);
+
+      if (testFilePaths.length === 0) {
+        continue;
+      }
 
       // Get file info with sizes
       const allFiles = testFilePaths.map((filePath) => {
