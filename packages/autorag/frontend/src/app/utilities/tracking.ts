@@ -18,11 +18,25 @@ export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string
   fireMiscTrackingEvent(AUTORAG_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
 };
 
+/**
+ * Allowlisted, non-sensitive failure category for outcome-tracking `error` fields.
+ * `Error.message` from upload, selection, and configuration failures may originate from the
+ * backend, a proxy, or a dependency, and can embed credentials, tenant identifiers, resource
+ * details, user input, or internal endpoint information. Never forward a raw error message into
+ * analytics — detailed messages belong only in the in-product notification shown via
+ * `useNotification`. Callers must map caught errors to this fixed set before passing them to an
+ * outcome-tracking event.
+ */
+export type AutoragFailureCategory = 'actionFailed';
+
+/** The single allowlisted failure category currently in use — see {@link AutoragFailureCategory}. */
+export const AUTORAG_FAILURE_CATEGORY: AutoragFailureCategory = 'actionFailed';
+
 export type ExperimentCreatedProperties = {
   outcome: TrackingOutcome;
   hasDescription: boolean;
   success?: boolean;
-  error?: string;
+  error?: AutoragFailureCategory;
 };
 
 /**
@@ -45,7 +59,7 @@ export type KnowledgeSourceConfiguredProperties = {
   countOfDocuments: number;
   outcome: TrackingOutcome;
   success: boolean;
-  error?: string;
+  error?: AutoragFailureCategory;
 };
 
 /**
@@ -68,7 +82,7 @@ export type EvaluationSourceConfiguredProperties = {
   countOfDocuments: number;
   outcome: TrackingOutcome;
   success: boolean;
-  error?: string;
+  error?: AutoragFailureCategory;
 };
 
 /**
@@ -89,7 +103,7 @@ export type ModelsSelectedProperties = {
   countOfEmbeddingModels: number;
   outcome: TrackingOutcome;
   success: boolean;
-  error?: string;
+  error?: AutoragFailureCategory;
 };
 
 /**

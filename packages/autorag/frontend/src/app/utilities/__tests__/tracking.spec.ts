@@ -5,6 +5,7 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
   fireAutoragEvaluationSourceConfigured,
   fireAutoragExperimentCreated,
   fireAutoragKnowledgeSourceConfigured,
@@ -60,19 +61,19 @@ describe('fireAutoragExperimentCreated', () => {
     });
   });
 
-  it('should pass through success: false and error when provided', () => {
+  it('should pass through success: false and an allowlisted failure category when provided', () => {
     fireAutoragExperimentCreated({
       outcome: TrackingOutcome.submit,
       hasDescription: false,
       success: false,
-      error: 'boom',
+      error: AUTORAG_FAILURE_CATEGORY,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
       outcome: TrackingOutcome.submit,
       hasDescription: false,
       success: false,
-      error: 'boom',
+      error: AUTORAG_FAILURE_CATEGORY,
     });
   });
 });
@@ -116,13 +117,13 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
     );
   });
 
-  it('should fire with knowledgeSourceType: upload, success: false and an error message', () => {
+  it('should fire with knowledgeSourceType: upload, success: false and an allowlisted failure category', () => {
     fireAutoragKnowledgeSourceConfigured({
       knowledgeSourceType: 'upload',
       countOfDocuments: 0,
       outcome: TrackingOutcome.submit,
       success: false,
-      error: 'boom',
+      error: AUTORAG_FAILURE_CATEGORY,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -132,7 +133,7 @@ describe('fireAutoragKnowledgeSourceConfigured', () => {
         countOfDocuments: 0,
         outcome: TrackingOutcome.submit,
         success: false,
-        error: 'boom',
+        error: AUTORAG_FAILURE_CATEGORY,
       },
     );
   });
@@ -177,13 +178,13 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
     );
   });
 
-  it('should fire with evaluationSourceType: upload, success: false and an error message', () => {
+  it('should fire with evaluationSourceType: upload, success: false and an allowlisted failure category', () => {
     fireAutoragEvaluationSourceConfigured({
       evaluationSourceType: 'upload',
       countOfDocuments: 0,
       outcome: TrackingOutcome.submit,
       success: false,
-      error: 'boom',
+      error: AUTORAG_FAILURE_CATEGORY,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
@@ -193,7 +194,7 @@ describe('fireAutoragEvaluationSourceConfigured', () => {
         countOfDocuments: 0,
         outcome: TrackingOutcome.submit,
         success: false,
-        error: 'boom',
+        error: AUTORAG_FAILURE_CATEGORY,
       },
     );
   });

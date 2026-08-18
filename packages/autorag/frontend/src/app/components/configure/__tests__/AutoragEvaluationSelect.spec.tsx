@@ -14,7 +14,11 @@ import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
-import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -679,10 +683,10 @@ describe('AutoragEvaluationSelect', () => {
       });
     });
 
-    it('should fire with success: false and the error message on a failed upload', async () => {
+    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
       const user = userEvent.setup();
       const file = new File(['test content'], 'test.json', { type: 'application/json' });
-      mockUploadMutateAsync.mockRejectedValue(new Error('Upload failed'));
+      mockUploadMutateAsync.mockRejectedValue(new Error('Upload failed: s3://acme-secret-bucket'));
 
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
@@ -696,10 +700,13 @@ describe('AutoragEvaluationSelect', () => {
             countOfDocuments: 0,
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'Upload failed',
+            error: AUTORAG_FAILURE_CATEGORY,
           },
         );
       });
+
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
     });
 
     it('should fire with evaluationSourceType: s3 and countOfDocuments: 1 when a file is selected', async () => {

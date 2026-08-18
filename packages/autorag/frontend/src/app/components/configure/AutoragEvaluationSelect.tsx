@@ -20,7 +20,11 @@ import {
   getEvaluationDropRejectedNotification,
   isAllowedEvaluationJsonFile,
 } from '~/app/utilities/autoragEvaluationFile';
-import { fireAutoragEvaluationSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragEvaluationSourceConfigured,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
@@ -99,7 +103,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
               countOfDocuments: 0,
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errorMessage,
+              error: AUTORAG_FAILURE_CATEGORY,
             });
             return;
           }

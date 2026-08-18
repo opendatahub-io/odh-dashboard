@@ -96,7 +96,11 @@ import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
   resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
-import { fireAutoragKnowledgeSourceConfigured, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragKnowledgeSourceConfigured,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 import {
   getInputDataDropRejectedNotification,
   INPUT_DATA_FILE_ACCEPT,
@@ -386,7 +390,7 @@ function AutoragConfigure({
             countOfDocuments: 0,
             outcome: TrackingOutcome.submit,
             success: false,
-            error: errorMessage,
+            error: AUTORAG_FAILURE_CATEGORY,
           });
         }
       } finally {

@@ -19,7 +19,11 @@ import {
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
 import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
-import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
@@ -825,7 +829,7 @@ describe('AutoragConfigure', () => {
       });
     });
 
-    it('should fire with success: false and the error message on a failed upload', async () => {
+    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
@@ -835,7 +839,9 @@ describe('AutoragConfigure', () => {
 
       const file = new File(['hello'], 'notes.txt', { type: 'text/plain' });
       getMockS3MutateAsync().mockClear();
-      getMockS3MutateAsync().mockRejectedValueOnce(new Error('upload exploded'));
+      getMockS3MutateAsync().mockRejectedValueOnce(
+        new Error('upload exploded: s3://acme-secret-bucket'),
+      );
       fireFormTrackingEventMock.mockClear();
       fireEvent.change(fileInput!, { target: { files: [file] } });
 
@@ -847,10 +853,13 @@ describe('AutoragConfigure', () => {
             countOfDocuments: 0,
             outcome: TrackingOutcome.submit,
             success: false,
-            error: 'upload exploded',
+            error: AUTORAG_FAILURE_CATEGORY,
           },
         );
       });
+
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
     });
   });
 
