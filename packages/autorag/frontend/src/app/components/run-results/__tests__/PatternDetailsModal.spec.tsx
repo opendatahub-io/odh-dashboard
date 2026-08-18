@@ -3,13 +3,22 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
 import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: (...args: unknown[]) => mockUsePatternEvaluationResults(...args),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockPattern: AutoragPattern = {
   name: 'pattern0',
@@ -442,6 +451,22 @@ describe('PatternDetailsModal', () => {
         render(<PatternDetailsModal {...defaultProps} />);
         await user.click(screen.getByTestId('pattern-details-download'));
         expect(printSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        printSpy.mockRestore();
+      }
+    });
+
+    it('should fire AutoRAG Pattern Details Download Initiated when Download is clicked', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
+          { downloadType: 'patternDetails' },
+        );
       } finally {
         printSpy.mockRestore();
       }

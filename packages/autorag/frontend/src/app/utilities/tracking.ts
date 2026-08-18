@@ -32,6 +32,7 @@ export const AUTORAG_EVENTS = {
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
   PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
+  PATTERN_DETAILS_DOWNLOAD_INITIATED: 'AutoRAG Pattern Details Download Initiated',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -571,4 +572,17 @@ export type PatternDetailsEntrySource = 'resultsTable' | 'pipelineVis' | 'other'
  */
 export const fireAutoragPatternDetailsViewed = (source: PatternDetailsEntrySource): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, { source });
+};
+
+/**
+ * Fires when the user clicks "Download" in the pattern details modal header. That action opens
+ * the browser's native print dialog (`window.print()`) rather than a direct file download, and
+ * the dialog's `afterprint` event fires whether the user actually saves a PDF or cancels — so
+ * there is no reliable "completed" signal to wait for. This fires on the click itself, same as
+ * {@link fireAutoragEvaluationTemplateDownloaded}.
+ */
+export const fireAutoragPatternDetailsDownloadInitiated = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED, {
+    downloadType: 'patternDetails',
+  });
 };

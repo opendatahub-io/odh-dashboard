@@ -27,6 +27,7 @@ import {
   getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
+import { fireAutoragPatternDetailsDownloadInitiated } from '~/app/utilities/tracking';
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
@@ -207,7 +208,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             rank={rank}
             optimizedMetric={optimizedMetric}
             onPatternChange={onPatternChange}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireAutoragPatternDetailsDownloadInitiated();
+              setIsPrinting(true);
+            }}
             onSaveNotebook={onSaveNotebook}
             onTryPattern={
               onTryPattern

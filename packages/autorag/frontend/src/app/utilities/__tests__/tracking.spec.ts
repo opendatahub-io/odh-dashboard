@@ -16,6 +16,7 @@ import {
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragExperimentDeleted,
   fireAutoragNotebookDownloaded,
+  fireAutoragPatternDetailsDownloadInitiated,
   fireAutoragPatternDetailsViewed,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsColumnToggled,
@@ -765,4 +766,15 @@ describe('fireAutoragPatternDetailsViewed', () => {
       );
     },
   );
+});
+
+describe('fireAutoragPatternDetailsDownloadInitiated', () => {
+  it('should fire AutoRAG Pattern Details Download Initiated with downloadType: patternDetails', () => {
+    fireAutoragPatternDetailsDownloadInitiated();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
+      { downloadType: 'patternDetails' },
+    );
+  });
 });
