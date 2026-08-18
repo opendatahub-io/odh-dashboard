@@ -73,7 +73,10 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
     () =>
       selectedApiGroups.filter(
         (g) =>
-          g !== ALL_API_GROUPS_WILDCARD && g !== CORE_GROUP_ID && !renderedApiGroupNames.has(g),
+          g !== ALL_API_GROUPS_WILDCARD &&
+          g !== CORE_GROUP_ID &&
+          !g.startsWith(ALL_CATEGORY_PREFIX) &&
+          !renderedApiGroupNames.has(g),
       ),
     [selectedApiGroups, renderedApiGroupNames],
   );

@@ -75,7 +75,10 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
   const customEntries = React.useMemo(
     () =>
       selectedResources.filter(
-        (r) => r !== ALL_RESOURCES_WILDCARD && !renderedResourceNames.has(r),
+        (r) =>
+          r !== ALL_RESOURCES_WILDCARD &&
+          !r.startsWith(ALL_CATEGORY_PREFIX) &&
+          !renderedResourceNames.has(r),
       ),
     [selectedResources, renderedResourceNames],
   );

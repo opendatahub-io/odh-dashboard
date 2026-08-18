@@ -443,4 +443,30 @@ describe('ApiGroupsTreeSelect', () => {
     const result = mockOnChange.mock.calls[0][0] as string[];
     expect(result).not.toContain('__builtin_core_group__');
   });
+
+  it('should not create a duplicate option when selectedApiGroups contains ALL_CATEGORY_PREFIX value', async () => {
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={['__all_category__core', 'apps']}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    await openDropdown();
+
+    // The category-prefixed value should be excluded from custom entries
+    // so only the category header option exists with that ID — no duplicate
+    const categoryOptions = screen.getAllByTestId('select-multi-typeahead-Core');
+    expect(categoryOptions).toHaveLength(1);
+
+    // Deselecting 'apps' should not emit the category prefix value
+    const appsMenuItem = screen.getByTestId('select-multi-typeahead-apps');
+    await act(async () => {
+      fireEvent.click(within(appsMenuItem).getByText('apps'));
+    });
+
+    const result = mockOnChange.mock.calls[0][0] as string[];
+    expect(result).not.toContain('__all_category__core');
+  });
 });

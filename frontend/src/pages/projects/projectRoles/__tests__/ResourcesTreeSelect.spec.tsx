@@ -528,4 +528,30 @@ describe('ResourcesTreeSelect', () => {
     expect(screen.getByText('Services')).toBeInTheDocument();
     expect(screen.getByText('ConfigMaps')).toBeInTheDocument();
   });
+
+  it('should not create a duplicate option when selectedResources contains ALL_CATEGORY_PREFIX value', async () => {
+    render(
+      <ResourcesTreeSelect
+        selectedResources={['__all_category__core', 'pods']}
+        onSelectedResourcesChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    await openDropdown();
+
+    // The category-prefixed value should be excluded from custom entries
+    // so only the category header option exists with that ID — no duplicate
+    const categoryOptions = screen.getAllByTestId('select-multi-typeahead-Core');
+    expect(categoryOptions).toHaveLength(1);
+
+    // Deselecting 'pods' should not emit the category prefix value
+    const podsMenuItem = screen.getByTestId('select-multi-typeahead-Pods');
+    await act(async () => {
+      fireEvent.click(within(podsMenuItem).getByText('Pods'));
+    });
+
+    const result = mockOnChange.mock.calls[0][0] as string[];
+    expect(result).not.toContain('__all_category__core');
+  });
 });
