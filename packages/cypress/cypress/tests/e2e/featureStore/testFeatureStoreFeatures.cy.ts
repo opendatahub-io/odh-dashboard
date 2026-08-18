@@ -2,18 +2,22 @@ import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { shouldHaveTotalCount } from '../../../utils/featureStoreUtils';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
 import type { FeatureStoreTestData } from '../../../types';
 import {
+  applyFeastPermissionViaSdk,
   createFeatureStoreCR,
   createRouteAndGetUrl,
+  createSavedDatasetViaSdk,
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { getAllFeatureStoreCounts } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
 describe('Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
@@ -60,25 +64,55 @@ describe('Feature Store Page Validation', () => {
         .then(() => {
           cy.log(`Creating Namespace: ${projectName}`);
           createCleanProject(projectName);
+
+          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+          // in the permitted namespace. Grant both the oc CLI user (REST count calls)
+          // and the dashboard login user (UI) admin on this project.
+          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
+            const ocUser = whoami.stdout.trim();
+            if (ocUser) {
+              return addUserToProject(projectName, ocUser, 'admin').then(() =>
+                addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin'),
+              );
+            }
+            return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
+          });
+        })
+        .then(() => {
+          createRegistryStep(projectName);
           createFeatureStoreCR(projectName, testData.feastInstanceName);
         })
         .then(() => {
-          // Create route and fetch counts for the Feast instance
+          // Write permission.py + feast apply (loads feature defs), then register dataset
           return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-            return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
-              (feastInstanceCounts) => {
-                // Assign all counts from the returned object
-                featureCount = feastInstanceCounts.featureCount;
-                entityCount = feastInstanceCounts.entityCount;
-                datasetCount = feastInstanceCounts.datasetCount;
-                dataSourceCount = feastInstanceCounts.dataSourceCount;
-                featureViewCount = feastInstanceCounts.featureViewCount;
-                featureServiceCount = feastInstanceCounts.featureServiceCount;
+            const { NAME: awsBucketName } = AWS_BUCKETS.BUCKET_1;
 
-                cy.log('Counts assigned successfully:', feastInstanceCounts);
-                return cy.wrap(feastInstanceCounts);
-              },
-            );
+            return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
+              name: 'feast-auth',
+              project: testData.feastCreditScoringProject,
+              namespaces: [projectName],
+            }).then(() => {
+              return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {
+                name: testData.datasetName,
+                project: testData.feastCreditScoringProject,
+                storagePath: `s3://${awsBucketName}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
+                featureServiceName: testData.featureServiceName,
+              }).then(() => {
+                return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
+                  (feastInstanceCounts) => {
+                    featureCount = feastInstanceCounts.featureCount;
+                    entityCount = feastInstanceCounts.entityCount;
+                    datasetCount = feastInstanceCounts.datasetCount;
+                    dataSourceCount = feastInstanceCounts.dataSourceCount;
+                    featureViewCount = feastInstanceCounts.featureViewCount;
+                    featureServiceCount = feastInstanceCounts.featureServiceCount;
+
+                    cy.log('Counts assigned successfully:', feastInstanceCounts);
+                    return cy.wrap(feastInstanceCounts);
+                  },
+                );
+              });
+            });
           });
         });
     });
@@ -89,6 +123,9 @@ describe('Feature Store Page Validation', () => {
       cy.log('Skipping cleanup: Tests were skipped');
       return;
     }
+
+    cy.log(`Removing S3 registry files for: ${projectName}`);
+    deleteFeastRegistryFiles(projectName);
 
     cy.log(`Deleting Namespace: ${projectName}`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
