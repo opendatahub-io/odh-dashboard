@@ -78,16 +78,16 @@ done
 
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 
-# Find workspace location using npm query
-WORKSPACE_INFO=$(npm query ".workspace[name=\"$PACKAGE_NAME\"]" 2>/dev/null)
-if [ -z "$WORKSPACE_INFO" ] || [ "$WORKSPACE_INFO" = "[]" ]; then
+# Find workspace location using pnpm workspace query
+WORKSPACE_INFO=$(node "$MONOREPO_ROOT/scripts/query-workspace-packages.js" | jq -c ".[] | select(.name==\"$PACKAGE_NAME\")" | head -1)
+if [ -z "$WORKSPACE_INFO" ]; then
   error_msg "Package '$PACKAGE_NAME' not found"
   echo "Available packages:"
-  npm query ".workspace" | jq -r '.[].name' | sed 's/^/  /'
+  node "$MONOREPO_ROOT/scripts/query-workspace-packages.js" | jq -r '.[].name' | sed 's/^/  /'
   clean_exit 1 "" true
 fi
 
-WORKSPACE_LOCATION=$(echo "$WORKSPACE_INFO" | jq -r '.[0].location')
+WORKSPACE_LOCATION=$(echo "$WORKSPACE_INFO" | jq -r '.path')
 if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
   error_msg "Could not determine location for package '$PACKAGE_NAME'"
   clean_exit 1 "" true

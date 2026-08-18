@@ -4,7 +4,7 @@ on:
     paths:
       - 'packages/model-registry/**'
       - '.github/workflows/model-registry-frontend-tests.yml'
-      - '.github/actions/module-caches/**'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -14,7 +14,7 @@ on:
     paths:
       - 'packages/model-registry/**'
       - '.github/workflows/model-registry-frontend-tests.yml'
-      - '.github/actions/module-caches/**'
+      - '.github/actions/pnpm-setup/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -30,15 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - name: model-registry node_modules cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -47,7 +43,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-
 
-      - name: Install model-registry dependencies
+      - name: Install model-registry upstream dependencies
         working-directory: packages/model-registry/upstream/frontend
         run: npm install && npx --no-install cypress install
 

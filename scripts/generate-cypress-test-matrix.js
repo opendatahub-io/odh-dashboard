@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { WORKSPACE_QUERY_SCRIPT } = require('./workspace-query-path');
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
@@ -196,11 +197,11 @@ function generateCentralTestGroups() {
 }
 
 /**
- * Discover package-based cypress tests using npm query and split by file size
+ * Discover package-based cypress tests using the pnpm workspace and split by file size
  */
 function generatePackageTestGroups() {
   try {
-    const output = execSync("npm query '.workspace' --json", {
+    const output = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
     });
@@ -214,10 +215,7 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      // Use the workspace location field (relative to repo root) instead of
-      // deriving from the package name, which breaks for nested paths like
-      // packages/model-serving/cypress
-      const pkgRelPath = pkg.location?.replace(/^packages\//, '');
+      const pkgRelPath = pkg.path?.replace(/^packages\//, '');
       if (!pkgRelPath) {
         continue;
       }

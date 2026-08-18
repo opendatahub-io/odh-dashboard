@@ -28,7 +28,7 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies: ## Install dependencies for frontend
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s + MLflow via uv, falls back to static)
@@ -44,7 +44,7 @@ dev-bff: ## Run BFF connecting to a real MLflow instance (requires .env.local wi
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-mlflow-up
 dev-mlflow-up: ## Start local MLflow tracking server for development
@@ -82,7 +82,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9110 PROXY_PORT=4020 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9110 PROXY_PORT=4020 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -151,11 +151,11 @@ kind-deployment:
 ############ Component Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:

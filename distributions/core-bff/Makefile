@@ -35,7 +35,7 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF in mock mode with auth disabled (recommended for local dev)
@@ -44,7 +44,7 @@ dev-bff: ## Run BFF in mock mode with auth disabled (recommended for local dev)
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=patternfly npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=patternfly pnpm run start:dev
 
 .PHONY: dev-start
 dev-start: ## Start in mock mode - recommended for local development
@@ -59,7 +59,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9112 PROXY_PORT=8082 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9112 PROXY_PORT=8082 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -71,7 +71,7 @@ dev-bff-federated-mock:
 
 .PHONY: dev-frontend-federated-mock
 dev-frontend-federated-mock:
-	cd frontend && AUTH_METHOD=disabled DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9112 PROXY_PORT=8082 npm run start:dev
+	cd frontend && AUTH_METHOD=disabled DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9112 PROXY_PORT=8082 pnpm run start:dev
 
 .PHONY: dev-start-mock-federated
 dev-start-mock-federated:
@@ -135,11 +135,11 @@ docker-push-federated:
 ############ Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:

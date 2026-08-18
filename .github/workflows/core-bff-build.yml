@@ -37,36 +37,10 @@ jobs:
         with:
           go-version: '1.25.0'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Use pinned npm version
-        shell: bash
-        run: |
-          pkg_manager="$(jq -r .packageManager package.json)"
-          if [[ ! "$pkg_manager" =~ ^npm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Invalid packageManager field: must match npm@MAJOR.MINOR.PATCH"
-            exit 1
-          fi
-          npm install -g "$pkg_manager" --prefix "$(dirname "$(which node)")/.."
-          echo "npm: $(npm --version)"
-      - name: core-bff root node_modules cache
-        id: core-bff-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: distributions/core-bff/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-root-${{ hashFiles('distributions/core-bff/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-root-
-
-      - name: core-bff frontend node_modules cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: distributions/core-bff/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-${{ hashFiles('distributions/core-bff/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-
 
       - name: Lint
         working-directory: distributions/core-bff/bff
@@ -80,17 +54,9 @@ jobs:
         working-directory: distributions/core-bff/bff
         run: make test
 
-      - name: Install core-bff dependencies
-        working-directory: distributions/core-bff
-        run: npm install --ignore-scripts --no-package-lock --legacy-peer-deps
-
-      - name: Install frontend dependencies
-        working-directory: distributions/core-bff/frontend
-        run: npm install
-      
       - name: Validate OpenAPI spec
         working-directory: distributions/core-bff
-        run: npm run lint:openapi
+        run: pnpm run lint:openapi
 
       - name: Check if there are uncommitted file changes
         working-directory: distributions/core-bff

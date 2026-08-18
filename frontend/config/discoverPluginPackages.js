@@ -1,11 +1,12 @@
 const { execSync } = require('child_process');
+const { WORKSPACE_QUERY_SCRIPT } = require('../../scripts/workspace-query-path');
 
-// Avoids running `npm query` multiple times within the same rspack build process,
+// Avoids running workspace query multiple times within the same rspack build process,
 // since both discoverPluginPackages() and getPluginPackageDetails() need this data.
 let cachedWorkspacePackages = null;
 
 /**
- * Get all workspace packages using npm query (memoized).
+ * Get all workspace packages (memoized).
  * @returns {Array} Array of workspace package objects
  */
 function getWorkspacePackages() {
@@ -13,13 +14,13 @@ function getWorkspacePackages() {
     return cachedWorkspacePackages;
   }
   try {
-    const stdout = execSync('npm query .workspace --json', {
+    const stdout = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, {
       encoding: 'utf8',
     });
     cachedWorkspacePackages = JSON.parse(stdout);
     return cachedWorkspacePackages;
   } catch (error) {
-    console.warn('Error querying workspaces with npm query:', error.message);
+    console.warn('Error querying workspace packages:', error.message);
     cachedWorkspacePackages = [];
     return cachedWorkspacePackages;
   }
@@ -99,7 +100,7 @@ function getPluginPackageDetails() {
       }
       if (!pkg.path) {
         console.warn(
-          `Plugin package ${pkg.name} has no path from npm query, skipping chunk grouping`,
+          `Plugin package ${pkg.name} has no path from workspace query, skipping chunk grouping`,
         );
         return false;
       }

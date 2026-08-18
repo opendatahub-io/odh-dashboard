@@ -280,9 +280,13 @@ function createEmptyCoverageForPackages(
 function main() {
   // Get all workspace packages
   console.log('Finding workspace packages...');
-  const workspacePackagesResult = execCommandSafe('npm query .workspace --json');
+  const workspacePackagesResult = execCommandSafe(
+    `node "${path.join(__dirname, 'query-workspace-packages.js')}"`,
+  );
   if (!workspacePackagesResult) {
-    throw new Error('Failed to get workspace packages. Make sure npm workspace is configured.');
+    throw new Error(
+      'Failed to get workspace packages. Make sure the pnpm workspace is configured.',
+    );
   }
 
   // Parse the JSON output and extract paths

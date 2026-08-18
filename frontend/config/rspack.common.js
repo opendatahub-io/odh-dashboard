@@ -36,7 +36,7 @@ const pluginPackageDetails = getPluginPackageDetails();
 if (pluginPackageDetails.length === 0) {
   console.warn(
     'Warning: No plugin packages discovered. The pluginChunks splitChunks group will have no effect. ' +
-      'Check that workspace packages have ./extensions exports and that npm query is working.',
+      'Check that workspace packages have ./extensions exports and that workspace discovery is working.',
   );
 }
 
