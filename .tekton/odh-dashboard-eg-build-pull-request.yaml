@@ -1,5 +1,5 @@
 apiVersion: tekton.dev/v1
-#testhermetic
+#testhermetic2
 kind: PipelineRun
 metadata:
   annotations:
@@ -32,6 +32,7 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
+    - 'odh-pr-{{pull_request_number}}'
   - name: build-args
     value:
     - "BUILD_MODE=RHOAI"
