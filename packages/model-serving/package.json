@@ -70,6 +70,7 @@
     "./components/metrics/performance/ModelGraphs": "./src/components/metrics/performance/ModelGraphs.tsx",
     "./components/metrics/performance/PerformanceTab": "./src/components/metrics/performance/PerformanceTab.tsx",
     "./concepts/useStopModalPreference": "./src/concepts/useStopModalPreference.ts",
+    "./hooks/useServingPlatformStatuses": "./src/hooks/useServingPlatformStatuses.ts",
     "./__mocks__/mockInferenceServiceK8sResource": "./src/__mocks__/mockInferenceServiceK8sResource.ts",
     "./__mocks__/mockServingRuntimeK8sResource": "./src/__mocks__/mockServingRuntimeK8sResource.ts",
     "./__mocks__/mockServingRuntimeTemplateK8sResource": "./src/__mocks__/mockServingRuntimeTemplateK8sResource.ts",
