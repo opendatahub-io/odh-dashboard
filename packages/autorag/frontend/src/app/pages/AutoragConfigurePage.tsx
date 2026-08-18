@@ -29,8 +29,10 @@ import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  buildRunReconfiguredChangedFields,
   fireAutoragExperimentCreated,
   fireAutoragFlowExited,
+  fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
   mapOptimizationMetric,
   TrackingOutcome,
@@ -50,6 +52,16 @@ const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
+
+/** Order-independent equality, used to diff model selections for "AutoRAG Run Reconfigured" without treating a same-set reordering as a change. */
+const arraysEqualUnordered = (a: string[], b: string[]): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const sortedA = a.toSorted();
+  const sortedB = b.toSorted();
+  return sortedA.every((value, index) => value === sortedB[index]);
+};
 
 type AutoragConfigurePageProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -92,10 +104,20 @@ function AutoragConfigurePage({
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
+  // The actual baseline the form starts from — not just `initialValues`, which the reconfigure
+  // loader may leave partially populated (e.g. a field it couldn't parse from the source run's
+  // pipeline parameters). Diffing "AutoRAG Run Reconfigured"'s `changedFields` against raw
+  // `initialValues` would treat every such omitted field as "changed" the instant the schema
+  // default resolves to anything other than `undefined`, even with no user action at all.
+  const initialFormValues = useMemo(
+    () => ({ ...configureSchema.defaults, ...initialValues }),
+    [initialValues],
+  );
+
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...initialValues },
+    defaultValues: initialFormValues,
   });
 
   const [displayName, description, ogxSecretName] = useWatch({
@@ -113,6 +135,44 @@ function AutoragConfigurePage({
   const knowledgeSourceTypeRef = useRef<KnowledgeSourceType>();
   const evaluationSourceTypeRef = useRef<EvaluationSourceType>();
   const vectorDatabaseRef = useRef<VectorStoreProviderType>();
+
+  // Builds the shared config summary + `changedFields` diff for "AutoRAG Run Reconfigured",
+  // from either `form.handleSubmit`'s `data` (submit) or `form.getValues()` (cancel) — both are
+  // the same `ConfigureSchema` shape. `knowledgeSourceType`/`evaluationSourceType`/
+  // `vectorDatabase` are flagged as changed the same way their value is populated at all: the
+  // user actually (re)selected that source/provider this session (see the refs' doc comment
+  // above for why this can't be a value comparison). `optimizationMetric` and `models` are
+  // diffed directly against `initialFormValues`.
+  const computeReconfigureTracking = useCallback(
+    (
+      values: Pick<
+        ConfigureSchema,
+        'optimization_metric' | 'generation_models' | 'embedding_models'
+      >,
+    ) => {
+      const runConfigSummary = {
+        knowledgeSourceType: knowledgeSourceTypeRef.current,
+        evaluationSourceType: evaluationSourceTypeRef.current,
+        optimizationMetric: mapOptimizationMetric(values.optimization_metric),
+        vectorDatabase: vectorDatabaseRef.current,
+        countOfFoundationModels: values.generation_models.length,
+        countOfEmbeddingModels: values.embedding_models.length,
+      };
+      const changedFields = buildRunReconfiguredChangedFields({
+        knowledgeSourceTypeChanged: knowledgeSourceTypeRef.current !== undefined,
+        evaluationSourceTypeChanged: evaluationSourceTypeRef.current !== undefined,
+        optimizationMetricChanged:
+          values.optimization_metric !== initialFormValues.optimization_metric,
+        vectorDatabaseChanged: vectorDatabaseRef.current !== undefined,
+        modelsChanged:
+          !arraysEqualUnordered(values.generation_models, initialFormValues.generation_models) ||
+          !arraysEqualUnordered(values.embedding_models, initialFormValues.embedding_models),
+      });
+      return { runConfigSummary, changedFields };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- knowledgeSourceTypeRef/evaluationSourceTypeRef/vectorDatabaseRef only ever touch refs, so they're safe to omit.
+    [initialFormValues],
+  );
 
   // How far the user has actually gotten in the configure flow, for "AutoRAG Flow Exited".
   // Advances monotonically (never regresses) as knowledge/evaluation/models milestones complete
@@ -212,10 +272,36 @@ function AutoragConfigurePage({
         hasDescription: !!description,
         success: true,
       });
+      // Cancel is only rendered on step 'create', so this is the only place a reconfigure
+      // attempt can be abandoned before ever submitting — no backend call has been made yet,
+      // hence no `success` on this outcome (see fireAutoragRunReconfigured's doc comment).
+      if (sourceRunId) {
+        // `getValues()`'s inferred type is loosened by `zodResolver`'s post-transform output
+        // type (a TS inference limitation, not a runtime gap — every field is always populated
+        // by `configureSchema.defaults`); the same widening is why `handleSubmit`'s callback
+        // below is explicitly annotated `(data: ConfigureSchema) => ...` rather than left
+        // inferred.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const currentValues = form.getValues() as ConfigureSchema;
+        const { runConfigSummary, changedFields } = computeReconfigureTracking(currentValues);
+        fireAutoragRunReconfigured({
+          ...runConfigSummary,
+          changedFields,
+          outcome: TrackingOutcome.cancel,
+        });
+      }
     }
     fireAutoragFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
     navigate(-1);
-  }, [navigate, step, description, cancelExitDestination]);
+  }, [
+    navigate,
+    step,
+    description,
+    cancelExitDestination,
+    sourceRunId,
+    form,
+    computeReconfigureTracking,
+  ]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -400,6 +486,12 @@ function AutoragConfigurePage({
                       knowledgeSourceTypeRef.current === 's3' ||
                       evaluationSourceTypeRef.current === 's3',
                   };
+                  // Also computed up front, before the mutation, so a failed reconfigure
+                  // submission still reports what the user actually changed relative to the
+                  // source run, rather than an empty diff.
+                  const reconfigureTracking = sourceRunId
+                    ? computeReconfigureTracking(data)
+                    : undefined;
                   try {
                     const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
                     fireAutoragRunTriggered({
@@ -407,6 +499,14 @@ function AutoragConfigurePage({
                       outcome: TrackingOutcome.submit,
                       success: true,
                     });
+                    if (reconfigureTracking) {
+                      fireAutoragRunReconfigured({
+                        ...reconfigureTracking.runConfigSummary,
+                        changedFields: reconfigureTracking.changedFields,
+                        outcome: TrackingOutcome.submit,
+                        success: true,
+                      });
+                    }
                     navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                   } catch (error) {
                     fireAutoragRunTriggered({
@@ -415,6 +515,15 @@ function AutoragConfigurePage({
                       success: false,
                       error: AUTORAG_FAILURE_CATEGORY,
                     });
+                    if (reconfigureTracking) {
+                      fireAutoragRunReconfigured({
+                        ...reconfigureTracking.runConfigSummary,
+                        changedFields: reconfigureTracking.changedFields,
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        error: AUTORAG_FAILURE_CATEGORY,
+                      });
+                    }
                     catchUIError(error, () =>
                       notification.error(
                         'Failed to create pipeline run',

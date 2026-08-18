@@ -6,6 +6,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTORAG_EVENTS,
   AUTORAG_FAILURE_CATEGORY,
+  buildRunReconfiguredChangedFields,
   fireAutoragEvaluationSourceConfigured,
   fireAutoragExperimentCreated,
   fireAutoragFlowExited,
@@ -13,6 +14,7 @@ import {
   fireAutoragModelsSelected,
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
+  fireAutoragRunReconfigured,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
@@ -352,6 +354,129 @@ describe('fireAutoragRunTriggered', () => {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
+    });
+  });
+});
+
+describe('buildRunReconfiguredChangedFields', () => {
+  it('should return an empty array when nothing changed', () => {
+    expect(
+      buildRunReconfiguredChangedFields({
+        knowledgeSourceTypeChanged: false,
+        evaluationSourceTypeChanged: false,
+        optimizationMetricChanged: false,
+        vectorDatabaseChanged: false,
+        modelsChanged: false,
+      }),
+    ).toEqual([]);
+  });
+
+  it('should list every field that changed, in a fixed order', () => {
+    expect(
+      buildRunReconfiguredChangedFields({
+        knowledgeSourceTypeChanged: true,
+        evaluationSourceTypeChanged: true,
+        optimizationMetricChanged: true,
+        vectorDatabaseChanged: true,
+        modelsChanged: true,
+      }),
+    ).toEqual([
+      'knowledgeSourceType',
+      'evaluationSourceType',
+      'optimizationMetric',
+      'vectorDatabase',
+      'models',
+    ]);
+  });
+
+  it('should list only the fields that changed', () => {
+    expect(
+      buildRunReconfiguredChangedFields({
+        knowledgeSourceTypeChanged: false,
+        evaluationSourceTypeChanged: true,
+        optimizationMetricChanged: false,
+        vectorDatabaseChanged: false,
+        modelsChanged: true,
+      }),
+    ).toEqual(['evaluationSourceType', 'models']);
+  });
+});
+
+describe('fireAutoragRunReconfigured', () => {
+  it('should join changedFields with a comma and fire with success: true on submit', () => {
+    fireAutoragRunReconfigured({
+      knowledgeSourceType: 's3',
+      evaluationSourceType: undefined,
+      optimizationMetric: 'answerFaithfulness',
+      vectorDatabase: 'milvus',
+      countOfFoundationModels: 2,
+      countOfEmbeddingModels: 1,
+      changedFields: ['knowledgeSourceType', 'optimizationMetric'],
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+      knowledgeSourceType: 's3',
+      evaluationSourceType: undefined,
+      optimizationMetric: 'answerFaithfulness',
+      vectorDatabase: 'milvus',
+      countOfFoundationModels: 2,
+      countOfEmbeddingModels: 1,
+      changedFields: 'knowledgeSourceType,optimizationMetric',
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+  });
+
+  it('should fire an empty string for changedFields when nothing changed', () => {
+    fireAutoragRunReconfigured({
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 1,
+      changedFields: [],
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.RUN_RECONFIGURED,
+      expect.objectContaining({ changedFields: '' }),
+    );
+  });
+
+  it('should fire with success: false and the allowlisted error category on failure', () => {
+    fireAutoragRunReconfigured({
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 0,
+      changedFields: ['models'],
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.RUN_RECONFIGURED,
+      expect.objectContaining({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: 'actionFailed',
+      }),
+    );
+  });
+
+  it('should fire with outcome: cancel and no success field', () => {
+    fireAutoragRunReconfigured({
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 0,
+      changedFields: [],
+      outcome: TrackingOutcome.cancel,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+      countOfFoundationModels: 1,
+      countOfEmbeddingModels: 0,
+      changedFields: '',
+      outcome: TrackingOutcome.cancel,
     });
   });
 });

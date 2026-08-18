@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -1038,6 +1038,305 @@ describe('AutoragConfigurePage', () => {
       // The raw error message must never reach analytics.
       expect(JSON.stringify(fireFormTrackingEventMock.mock.calls)).not.toContain(
         'Pipeline creation failed',
+      );
+    });
+  });
+
+  describe('AutoRAG Run Reconfigured tracking', () => {
+    // Matches the models `useOgxModelsQuery` is mocked to return above — AutoragConfigure's own
+    // model-initialization effect always resets generation_models/embedding_models to "select
+    // all available models" on mount, overwriting whatever a reconfigure's initialValues
+    // provided, so this is the only way to get a genuine "no changes" baseline for `models`.
+    const noChangeReconfigureInitialValues = {
+      display_name: 'Original Run - 1',
+      ogx_secret_name: 'Test OGX Secret',
+      vector_io_provider_id: 'chromadb',
+      input_data_secret_name: 'Test AWS Secret',
+      input_data_bucket_name: 'test-bucket',
+      input_data_key: 'my-data/input.pdf',
+      test_data_secret_name: 'Test AWS Secret',
+      test_data_bucket_name: 'test-bucket',
+      test_data_key: 'eval.json',
+      optimization_metric: 'faithfulness' as const,
+      generation_models: ['llama-3-8b', 'llama-3-70b'],
+      embedding_models: ['text-embedding-ada-002'],
+    };
+    const reconfigureInitialOgxSecret = {
+      uuid: 'ogx-secret-1',
+      name: 'Test OGX Secret',
+      data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+      type: 'ogx',
+      invalid: false,
+    };
+    const reconfigureInitialSecret = {
+      uuid: 'aws-secret-1',
+      name: 'Test AWS Secret',
+      displayName: 'Test AWS Secret',
+      data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+      type: 's3',
+      invalid: false,
+    };
+
+    const navigateToReconfigureConfigureStep = async () => {
+      const user = userEvent.setup();
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+      expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+      return user;
+    };
+
+    it('should fire with success: true and an empty changedFields when nothing was changed', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      const runButton = await screen.findByRole('button', { name: 'Create new run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+          knowledgeSourceType: undefined,
+          evaluationSourceType: undefined,
+          optimizationMetric: 'answerFaithfulness',
+          vectorDatabase: undefined,
+          countOfFoundationModels: 2,
+          countOfEmbeddingModels: 1,
+          changedFields: '',
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
+      });
+    });
+
+    it('should not fire for a non-reconfigure (new run) submission', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RUN_TRIGGERED,
+          expect.anything(),
+        );
+      });
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.RUN_RECONFIGURED,
+        expect.anything(),
+      );
+    });
+
+    it('should include optimizationMetric in changedFields when it is changed', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      fireEvent.click(screen.getByTestId('optimization-metric-select'));
+      await waitFor(() => {
+        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Answer correctness'));
+
+      const runButton = await screen.findByRole('button', { name: 'Create new run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            optimizationMetric: 'answerCorrectness',
+            changedFields: 'optimizationMetric',
+            outcome: TrackingOutcome.submit,
+            success: true,
+          }),
+        );
+      });
+    });
+
+    it('should include knowledgeSourceType in changedFields when the knowledge source is re-selected', async () => {
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      // Re-select via the real S3 browser flow, so knowledgeSourceTypeRef is actually set.
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      const runButton = await screen.findByRole('button', { name: 'Create new run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            knowledgeSourceType: 's3',
+            changedFields: 'knowledgeSourceType',
+            outcome: TrackingOutcome.submit,
+            success: true,
+          }),
+        );
+      });
+    });
+
+    it('should fire with success: false, the allowlisted error category, and a non-empty changedFields on failure', async () => {
+      mockMutateAsync.mockRejectedValue(new Error('Pipeline creation failed'));
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      fireEvent.click(screen.getByTestId('optimization-metric-select'));
+      await waitFor(() => {
+        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Answer correctness'));
+
+      const runButton = await screen.findByRole('button', { name: 'Create new run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            changedFields: 'optimizationMetric',
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: 'actionFailed',
+          }),
+        );
+      });
+      // The raw error message must never reach analytics.
+      expect(JSON.stringify(fireFormTrackingEventMock.mock.calls)).not.toContain(
+        'Pipeline creation failed',
+      );
+    });
+
+    it('should fire with outcome: cancel, no success field, and changedFields reflecting a change made before returning to the create step', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={noChangeReconfigureInitialValues}
+          initialInputDataSecret={reconfigureInitialSecret}
+          initialOgxSecret={reconfigureInitialOgxSecret}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const user = await navigateToReconfigureConfigureStep();
+
+      fireEvent.click(screen.getByTestId('optimization-metric-select'));
+      await waitFor(() => {
+        expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText('Answer correctness'));
+
+      await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+      fireFormTrackingEventMock.mockClear();
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.RUN_RECONFIGURED,
+        expect.objectContaining({
+          changedFields: 'optimizationMetric',
+          outcome: TrackingOutcome.cancel,
+        }),
+      );
+      // Cancel fires no backend call, so `success` must be omitted entirely.
+      const [, cancelProperties] = fireFormTrackingEventMock.mock.calls.find(
+        ([eventName]) => eventName === AUTORAG_EVENTS.RUN_RECONFIGURED,
+      )!;
+      expect(cancelProperties).not.toHaveProperty('success');
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should not fire on cancel for a non-reconfigure (new run) submission', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(cancelButton);
+
+      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.RUN_RECONFIGURED,
+        expect.anything(),
       );
     });
   });

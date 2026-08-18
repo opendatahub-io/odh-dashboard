@@ -20,6 +20,7 @@ export const AUTORAG_EVENTS = {
   MODELS_SELECTED: 'AutoRAG Models Selected',
   VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
+  RUN_RECONFIGURED: 'AutoRAG Run Reconfigured',
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
@@ -235,6 +236,82 @@ export type RunTriggeredProperties = {
  */
 export const fireAutoragRunTriggered = (properties: RunTriggeredProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.RUN_TRIGGERED, properties);
+};
+
+/**
+ * Converts the individual "did this section change vs. the source run" signals into the
+ * `changedFields` list used by {@link fireAutoragRunReconfigured}. Centralized so the field-name
+ * taxonomy — and the "actually reselected" vs. "value differs" distinction per field, see that
+ * function's doc comment — lives in one tested place instead of being duplicated at each call
+ * site.
+ */
+export const buildRunReconfiguredChangedFields = (signals: {
+  knowledgeSourceTypeChanged: boolean;
+  evaluationSourceTypeChanged: boolean;
+  optimizationMetricChanged: boolean;
+  vectorDatabaseChanged: boolean;
+  modelsChanged: boolean;
+}): string[] => {
+  const changedFields: string[] = [];
+  if (signals.knowledgeSourceTypeChanged) {
+    changedFields.push('knowledgeSourceType');
+  }
+  if (signals.evaluationSourceTypeChanged) {
+    changedFields.push('evaluationSourceType');
+  }
+  if (signals.optimizationMetricChanged) {
+    changedFields.push('optimizationMetric');
+  }
+  if (signals.vectorDatabaseChanged) {
+    changedFields.push('vectorDatabase');
+  }
+  if (signals.modelsChanged) {
+    changedFields.push('models');
+  }
+  return changedFields;
+};
+
+export type RunReconfiguredProperties = {
+  /**
+   * Flagged in `changedFields` when the user actually (re)selected a knowledge source this
+   * session — see {@link RunTriggeredProperties.knowledgeSourceType} for why this can't be a
+   * plain value comparison. Reports the current selection the same way {@link
+   * RunTriggeredProperties.knowledgeSourceType} does, so `undefined` here means the pre-filled
+   * source was never re-selected through the UI.
+   */
+  knowledgeSourceType?: KnowledgeSourceType;
+  /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
+  evaluationSourceType?: EvaluationSourceType;
+  optimizationMetric?: RagOptimizationMetric;
+  /** See {@link RunReconfiguredProperties.knowledgeSourceType} — same caveat applies. */
+  vectorDatabase?: VectorStoreProviderType;
+  countOfFoundationModels: number;
+  countOfEmbeddingModels: number;
+  /**
+   * Which top-level sections differ from the source run's configuration at the time this event
+   * fires — comma-joined by {@link fireAutoragRunReconfigured} before sending, since analytics
+   * properties can't carry raw arrays. Built with {@link buildRunReconfiguredChangedFields}.
+   */
+  changedFields: string[];
+  outcome: TrackingOutcome;
+  /** Omitted on `outcome: cancel` — no backend call is made when the user cancels before submitting. */
+  success?: boolean;
+  error?: AutoragFailureCategory;
+};
+
+/**
+ * Fires from the reconfigure flow only (`sourceRunId` set) — never for a new-run create. Fires
+ * with `outcome: submit` when "Create new run" is clicked, alongside "AutoRAG Run Triggered"
+ * (which fires for every submission, reconfigure or not, but does not report what changed), with
+ * `success`/`error` reflecting the same pipeline-run creation result. Also fires with
+ * `outcome: cancel` when the user cancels out of the flow from the "Define details" step before
+ * ever submitting — before any backend call is made, so `success` is omitted in that case.
+ */
+export const fireAutoragRunReconfigured = (properties: RunReconfiguredProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+    ...properties,
+    changedFields: properties.changedFields.join(','),
+  });
 };
 
 /**
