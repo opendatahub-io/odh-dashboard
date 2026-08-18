@@ -42,6 +42,10 @@ describe('AnalyticsContext', () => {
       return null;
     };
     render(<Capture />);
+    if (!analytics) {
+      throw new Error('AnalyticsContext did not provide an AnalyticsAPI');
+    }
+    const api = analytics;
 
     const formProperties: FormTrackingEventProperties = { outcome: TrackingOutcome.submit };
     const miscProperties: MiscTrackingEventProperties = { key: 'value' };
@@ -52,12 +56,12 @@ describe('AnalyticsContext', () => {
     };
 
     expect(() => {
-      expect(analytics?.fireFormTrackingEvent('event', formProperties)).toBeUndefined();
-      expect(analytics?.fireMiscTrackingEvent('event', miscProperties)).toBeUndefined();
-      expect(analytics?.fireLinkTrackingEvent('event', linkProperties)).toBeUndefined();
-      expect(analytics?.fireSimpleTrackingEvent('event')).toBeUndefined();
-      expect(analytics?.firePageEvent()).toBeUndefined();
-      expect(analytics?.fireIdentifyEvent(identifyProperties)).toBeUndefined();
+      expect(api.fireFormTrackingEvent('event', formProperties)).toBeUndefined();
+      expect(api.fireMiscTrackingEvent('event', miscProperties)).toBeUndefined();
+      expect(api.fireLinkTrackingEvent('event', linkProperties)).toBeUndefined();
+      expect(api.fireSimpleTrackingEvent('event')).toBeUndefined();
+      expect(api.firePageEvent()).toBeUndefined();
+      expect(api.fireIdentifyEvent(identifyProperties)).toBeUndefined();
     }).not.toThrow();
   });
 
