@@ -1,6 +1,8 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
+const { pnpmTransformIgnorePatterns } = require('../../scripts/jest/pnpmTransformIgnorePatterns');
+
 export default {
   testMatch: ['**/?(*.)+(spec|test).?([mc])[cjt]s?(x)'],
 
@@ -28,9 +30,7 @@ export default {
   testEnvironment: 'jest-environment-jsdom',
 
   // include projects from node_modules as required
-  transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/(?:lodash-es|yaml|@openshift|uuid|@patternfly|d3|delaunator|robust-predicates|internmap|monaco-editor)|lodash-es|yaml|@openshift|uuid|@patternfly|d3|delaunator|robust-predicates|internmap|monaco-editor))',
-  ],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
 
   setupFilesAfterEnv: [require.resolve('./config/jest.setup.ts')],
 
