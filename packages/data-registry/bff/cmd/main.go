@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -67,6 +68,10 @@ func main() {
 	// Ensure the deprecated boolean fields are consistent with the new deployment mode
 	cfg.StandaloneMode = cfg.DeploymentMode.IsStandaloneMode()
 	cfg.FederatedPlatform = cfg.DeploymentMode.IsFederatedMode()
+
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
+		os.Exit(1)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
@@ -139,4 +144,24 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+
+	if certFile != "" {
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used when TLS certificates are mounted",
+			"cert_file", certFile,
+			"insecure_skip_verify", insecureSkipVerify,
+			"fix", "Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var",
+		)
+		return errors.New("InsecureSkipVerify cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
+	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
+		"use_case", "local development only - NEVER use in production",
+	)
+	return nil
 }

@@ -10,6 +10,7 @@ import { BYONImage } from '#~/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import useFilters from '#~/utilities/useFilters';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -86,7 +87,7 @@ export type BYONImagesTableProps = {
 };
 
 export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
-  const [filterData, setFilterData] = React.useState<BYONImagesFilterDataType>(
+  const { filterData, setFilterData, onClearFilters } = useFilters<BYONImagesFilterDataType>(
     initialBYONImagesFilterData,
   );
   const sessionToggleIndexRef = React.useRef(0);
@@ -139,7 +140,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         return { ...prev, [key]: filterValue };
       });
     },
-    [],
+    [setFilterData],
   );
 
   React.useEffect(() => {
@@ -172,11 +173,6 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
       safeFireFilterEvent(trackingProperties);
     }
   }, [filterData, filteredImages.length, images.length]);
-
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialBYONImagesFilterData),
-    [setFilterData],
-  );
 
   const claimSessionToggleIndex = React.useCallback(() => {
     const index = sessionToggleIndexRef.current;
