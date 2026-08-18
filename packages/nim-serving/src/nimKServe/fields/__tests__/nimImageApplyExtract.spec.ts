@@ -5,10 +5,13 @@ import { applyNIMImageFieldData, extractNIMKServeImageFieldData } from '../nimIm
 
 const NIM_IMAGE = { repository: 'nvcr.io/nim/snowflake/arctic-embed-l', tag: '1.0.1' };
 
-const makeServingRuntime = (kserveContainerImage?: string): ServingRuntimeKind => ({
+const makeServingRuntime = (
+  kserveContainerImage?: string,
+  annotations?: Record<string, string>,
+): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
-  metadata: { name: 'test-model', namespace: 'test-project' },
+  metadata: { name: 'test-model', namespace: 'test-project', annotations },
   spec: {
     containers: [
       { name: 'transformer-container' },
@@ -94,7 +97,20 @@ describe('extractNIMKServeImageFieldData', () => {
     });
   });
 
-  it('should return undefined for a non-NIM (non-nvcr.io) image', () => {
+  it('should prefill a mirror-registry image when the NIM runtime stamp annotation is present', () => {
+    const deployment = makeDeployment(
+      makeServingRuntime('mirror.local/nim/snowflake/arctic-embed-l:1.0.1', {
+        'runtimes.opendatahub.io/nvidia-nim': 'true',
+      }),
+    );
+
+    expect(extractNIMKServeImageFieldData(deployment)).toEqual({
+      repository: 'mirror.local/nim/snowflake/arctic-embed-l',
+      tag: '1.0.1',
+    });
+  });
+
+  it('should return undefined for a non-NIM (non-nvcr.io) image without the annotation', () => {
     const deployment = makeDeployment(makeServingRuntime('quay.io/some/image:1.0'));
 
     expect(extractNIMKServeImageFieldData(deployment)).toBeUndefined();

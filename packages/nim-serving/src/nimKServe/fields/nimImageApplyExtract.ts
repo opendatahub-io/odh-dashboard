@@ -1,12 +1,12 @@
 import { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { parseImageString } from '../../api/images/utils';
 import { KSERVE_CONTAINER_NAME } from '../../constants';
-import { NIM_IMAGE_REGISTRY } from '../../api/images/constants';
 import {
   getImageOptionKey,
   NIMImageFieldValue,
   toNIMImageFieldValue,
 } from '../../pages/deploymentWizard/fields/NIMImageField';
+import { isNIMKServeDeployment } from '../extractFormData';
 
 const setNIMDeploymentModelFormat = (
   deployment: KServeDeployment,
@@ -105,7 +105,7 @@ export const extractNIMKServeImageFieldData = (
   deployment: KServeDeployment,
 ): NIMImageFieldValue | undefined => {
   const image = getNIMKServeContainerImage(deployment);
-  if (!image?.startsWith(NIM_IMAGE_REGISTRY)) {
+  if (!image || !isNIMKServeDeployment(deployment)) {
     return undefined;
   }
   return toNIMImageFieldValue(image);
