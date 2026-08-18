@@ -15,7 +15,7 @@ jest.mock('#~/pages/pipelines/global/experiments/executions/ExecutionsTable', ()
   MockExecutionsTable.displayName = 'MockExecutionsTable';
   return { __esModule: true, default: MockExecutionsTable };
 });
-jest.mock('#~/pages/UnauthorizedError', () => {
+jest.mock('@odh-dashboard/ui-core/components/UnauthorizedError', () => {
   const MockUnauthorizedError = () => <div data-testid="unauthorized-error">UnauthorizedError</div>;
   MockUnauthorizedError.displayName = 'MockUnauthorizedError';
   return { __esModule: true, default: MockUnauthorizedError };

@@ -8,7 +8,7 @@ jest.mock('#~/api/errorUtils', () => ({
   getGenericErrorCode: jest.fn(() => null),
 }));
 
-jest.mock('#~/pages/UnauthorizedError', () => {
+jest.mock('@odh-dashboard/ui-core/components/UnauthorizedError', () => {
   const UnauthorizedError = () => <div data-testid="unauthorized-error" />;
   return { __esModule: true, default: UnauthorizedError };
 });
