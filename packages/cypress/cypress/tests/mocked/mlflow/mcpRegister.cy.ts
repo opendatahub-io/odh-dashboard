@@ -129,8 +129,20 @@ const initRegisterIntercepts = ({
     },
   });
 
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}*`, {
-    body: { data: catalogServer },
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(`${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}(\\?|$)`),
+    },
+    { body: { data: catalogServer } },
+  );
+
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/tools*`, {
+    body: { data: catalogTools },
+  });
+
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/mcpserver*`, {
+    body: { data: mockMcpServerCR() },
   });
 
   cy.intercept('GET', `${MLFLOW_BFF_PREFIX}/mcp-catalog/servers/${TEST_SERVER_ID}/tools*`, {
@@ -209,7 +221,11 @@ describe('MCP Register from Catalog', () => {
 
     mcpRegisterPage.visit(TEST_SERVER_ID);
 
-    mcpRegisterPage.findRegisterButton().should('be.visible').click();
+    mcpRegisterPage
+      .findRegisterButton()
+      .should('be.visible')
+      .and('not.have.attr', 'aria-disabled', 'true')
+      .click();
     mcpRegisterModal.shouldBeOpen();
     mcpRegisterModal.selectProject('Test Project');
     mcpRegisterModal.findSubmitButton().should('not.be.disabled').click();
