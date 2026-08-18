@@ -43,4 +43,17 @@ describe('pnpmResolverIncludes', () => {
     assert.equal(isVendorCss(lodashPath, FRONTEND_DIR, ROOT_NODE_MODULES), false);
     assert.equal(isFontOrPficonAsset(lodashPath), false);
   });
+
+  it('returns a local @tanstack/query-core alias when installed in a package', () => {
+    const { tanstackQueryCoreAlias } = require('../pnpmResolverIncludes');
+    const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
+    const alias = tanstackQueryCoreAlias(genAiDir);
+    assert.ok(alias['@tanstack/query-core']);
+    assert.ok(alias['@tanstack/query-core'].endsWith('node_modules/@tanstack/query-core'));
+  });
+
+  it('returns an empty alias object when query-core is not installed locally', () => {
+    const { tanstackQueryCoreAlias } = require('../pnpmResolverIncludes');
+    assert.deepEqual(tanstackQueryCoreAlias('/tmp/nonexistent-package'), {});
+  });
 });
