@@ -32,6 +32,9 @@ module.exports = (env) => ({
                 options: {
                   transpileOnly: true,
                   experimentalWatchApi: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
+                  },
                 },
               },
         ],

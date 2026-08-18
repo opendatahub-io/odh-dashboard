@@ -43,6 +43,9 @@ module.exports = (env) => ({
                 loader: 'ts-loader',
                 options: {
                   transpileOnly: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
+                  },
                 },
               },
         ],
