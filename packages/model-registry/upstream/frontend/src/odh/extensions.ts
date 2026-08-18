@@ -297,7 +297,7 @@ const extensions: (
     properties: {
       id: 'deploy-mcp-server',
       label: 'Deploy MCP server',
-      group: 'mcp-catalog.server-deploy',
+      group: 'mcp-catalog.server-actions',
       component: () => import('./components/McpServerDeployAction'),
     },
   },
