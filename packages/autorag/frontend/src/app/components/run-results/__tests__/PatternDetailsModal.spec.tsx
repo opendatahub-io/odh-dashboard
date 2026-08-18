@@ -343,7 +343,7 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
     });
 
-    it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail (RHOAIENG-85307)', async () => {
+    it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail', async () => {
       // Start in loading state — tab is visible, simulating the window Cypress finds it in CI
       mockUsePatternEvaluationResults.mockReturnValue({
         data: undefined,
