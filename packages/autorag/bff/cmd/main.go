@@ -4,17 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/api"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
-
-	"log/slog"
-	"net/http"
-	"os"
-	"time"
 )
 
 func main() {
