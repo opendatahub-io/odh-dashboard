@@ -5,14 +5,16 @@ import { loadDSPFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { provisionProjectForModelServing } from '../../../utils/oc_commands/modelServing';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { verifyInferenceServiceAnnotation } from '../../../utils/oc_commands/inferenceService';
 
 let testData: DataScienceProjectData;
 let projectName: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Model Capabilities', () => {
+// RHOAIENG-80920 - Model Capabilities feature
+describe('Verify user can manage model capabilities in deployment wizard and deployments table', () => {
   retryableBefore(() => {
     return loadDSPFixture('e2e/modelServing/testModelCapabilities.yaml').then(
       (fixtureData: DataScienceProjectData) => {
@@ -31,12 +33,12 @@ describe('Model Capabilities', () => {
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
   });
 
-  describe('Wizard', () => {
+  describe('Verify user can manage capabilities in deployment wizard', () => {
     it(
       'Verify user can add well-known capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -49,21 +51,33 @@ describe('Model Capabilities', () => {
 
         cy.step('Select model capabilities');
         modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.selectWellKnownCapability('Vision');
-        modelServingWizard.selectWellKnownCapability('Transcription');
-        modelServingWizard.findCapabilityLabel('Vision').should('exist');
-        modelServingWizard.findCapabilityLabel('Transcription').should('exist');
+        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
+        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[1]);
+        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[0]).should('exist');
+        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[1]).should('exist');
 
-        cy.step('Complete wizard without full deployment');
-        // ponytail: reviewer said deployment doesn't need to complete - just verify capabilities UI
+        cy.step('Complete wizard and deploy model');
+        modelServingWizard.findSubmitButton().click();
+
+        cy.step('Verify InferenceService annotation');
+        const expectedCapabilities = [
+          testData.wellKnownCapabilities[0],
+          testData.wellKnownCapabilities[1],
+        ].join(',');
+        verifyInferenceServiceAnnotation(
+          projectName,
+          testData.modelName,
+          'model-capabilities',
+          expectedCapabilities,
+        ).should('be.true');
       },
     );
 
     it(
       'Verify user can add custom capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -76,16 +90,16 @@ describe('Model Capabilities', () => {
 
         cy.step('Add custom capability');
         modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.addCustomCapability('MyCustomCap');
-        modelServingWizard.findCapabilityLabel('MyCustomCap').should('exist');
+        modelServingWizard.addCustomCapability(testData.customCapabilities[0]);
+        modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
       },
     );
 
     it(
       'Verify user can remove capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -98,20 +112,20 @@ describe('Model Capabilities', () => {
 
         cy.step('Add and remove capability');
         modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.selectWellKnownCapability('Vision');
-        modelServingWizard.addCustomCapability('ToRemove');
-        modelServingWizard.findCapabilityLabel('ToRemove').should('exist');
-        modelServingWizard.removeCapability('ToRemove');
-        modelServingWizard.findCapabilityLabel('ToRemove').should('not.exist');
-        modelServingWizard.findCapabilityLabel('Vision').should('exist');
+        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
+        modelServingWizard.addCustomCapability(testData.customCapabilities[1]);
+        modelServingWizard.findCapabilityLabel(testData.customCapabilities[1]).should('exist');
+        modelServingWizard.removeCapability(testData.customCapabilities[1]);
+        modelServingWizard.findCapabilityLabel(testData.customCapabilities[1]).should('not.exist');
+        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[0]).should('exist');
       },
     );
 
     it(
       'Verify error when adding duplicate custom capability',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -123,10 +137,10 @@ describe('Model Capabilities', () => {
         modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
 
         cy.step('Add duplicate capability and verify error');
-        modelServingWizard.addCustomCapability('MyCustomCap');
-        modelServingWizard.findCapabilityLabel('MyCustomCap').should('exist');
+        modelServingWizard.addCustomCapability(testData.customCapabilities[0]);
+        modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
         modelServingWizard.openAddCapabilityDropdown();
-        modelServingWizard.findCustomCapabilityInput().type('MyCustomCap');
+        modelServingWizard.findCustomCapabilityInput().type(testData.customCapabilities[0]);
         modelServingWizard.findAddCustomCapabilityButton().click();
         modelServingWizard
           .findCustomCapabilityError()
@@ -136,9 +150,9 @@ describe('Model Capabilities', () => {
 
     it(
       'Verify well-known options removed from dropdown after selection',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -150,18 +164,22 @@ describe('Model Capabilities', () => {
         modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
 
         cy.step('Select capability and verify it is removed from dropdown');
-        modelServingWizard.selectWellKnownCapability('Vision');
+        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
         modelServingWizard.openAddCapabilityDropdown();
-        modelServingWizard.findWellKnownCapabilityOption('Vision').should('not.exist');
-        modelServingWizard.findWellKnownCapabilityOption('Transcription').should('exist');
+        modelServingWizard
+          .findWellKnownCapabilityOption(testData.wellKnownCapabilities[0])
+          .should('not.exist');
+        modelServingWizard
+          .findWellKnownCapabilityOption(testData.wellKnownCapabilities[1])
+          .should('exist');
       },
     );
 
     it(
       'Verify field hidden when feature flag disabled',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, LDAP_ADMIN_USER);
 
         cy.step('Navigate to deployments page');
         modelServingGlobal.visit(projectName);
@@ -176,18 +194,12 @@ describe('Model Capabilities', () => {
         modelServingWizard.findModelCapabilitiesField().should('not.exist');
       },
     );
-  });
 
-  describe('Table Column', () => {
+    // Table column tests continue from wizard context
     it(
       'Verify Capabilities column shows when flag is enabled',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, HTPASSWD_CLUSTER_ADMIN_USER);
-
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
-
         cy.step('Verify Capabilities column exists');
         cy.findByTestId('deployments-table').should('exist');
         cy.findByTestId('deployments-table').find('th').contains('Capabilities').should('exist');
@@ -196,11 +208,9 @@ describe('Model Capabilities', () => {
 
     it(
       'Verify Capabilities column hidden when flag is disabled',
-      { tags: ['@Dashboard', '@ModelServing', '@ModelCapabilities'] },
+      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
       () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, HTPASSWD_CLUSTER_ADMIN_USER);
-
-        cy.step('Navigate to deployments page');
+        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, LDAP_ADMIN_USER);
         modelServingGlobal.visit(projectName);
 
         cy.step('Verify Capabilities column does not exist');
