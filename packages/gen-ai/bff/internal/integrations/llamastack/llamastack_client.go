@@ -388,7 +388,7 @@ type CreateResponseParams struct {
 	Store *bool
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
-	// ProviderData contains custom provider headers (e.g., vllm_api_token)
+	// ProviderData contains custom provider headers
 	ProviderData map[string]interface{}
 	// GuardrailOpts carries the inline NeMo guardrail configuration for this request.
 	// Input moderation is applied before the LlamaStack call; output moderation is applied

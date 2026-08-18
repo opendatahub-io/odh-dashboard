@@ -28,10 +28,6 @@ const (
 
 	// PassthroughProviderType is the OGX/LlamaStack provider type for passthrough.
 	PassthroughProviderType = "remote::passthrough"
-
-	// PassthroughForwardHeaderKey is the key in X-OGX-Provider-Data JSON that carries the user JWT.
-	// OGX maps this to the outbound header specified in forward_headers config.
-	PassthroughForwardHeaderKey = "vllm_api_token"
 )
 
 type EmbeddingModelConfig struct {

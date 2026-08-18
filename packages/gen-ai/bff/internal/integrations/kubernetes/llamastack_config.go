@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -402,12 +401,6 @@ func EmptyConfig() map[string]interface{} {
 // NewPassthroughProvider creates a remote::passthrough provider entry that enables
 // OGX to dynamically discover models via the BFF's /v1/models endpoint.
 //
-// forward_headers is a map from X-OGX-Provider-Data JSON keys to outbound HTTP
-// headers. When a user request carries X-OGX-Provider-Data: {"vllm_api_token": "<jwt>"},
-// OGX reads vllm_api_token and sends it as the x-forwarded-access-token header to the BFF.
-// This is how per-user credentials flow through OGX without OGX knowing about K8s auth.
-// Auth is always required — OGX forwards the user's JWT on every call.
-//
 // refresh_models: true causes OGX to call GET /v1/models so new models
 // appear in the routing table for /v1/chat/completions.
 func NewPassthroughProvider(providerID, baseURL string) Provider {
@@ -415,11 +408,8 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 		ProviderID:   providerID,
 		ProviderType: constants.PassthroughProviderType,
 		Config: map[string]interface{}{
-			"base_url": baseURL,
-			"api_key":  "",
-			"forward_headers": map[string]interface{}{
-				constants.PassthroughForwardHeaderKey: config.DefaultAuthTokenHeader,
-			},
+			"base_url":       baseURL,
+			"api_key":        "",
 			"refresh_models": true,
 		},
 	}

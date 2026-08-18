@@ -1371,8 +1371,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Should return user JWT provider data
 		assert.NotNil(t, providerData)
-		assert.Contains(t, providerData, "vllm_api_token")
-		assert.Equal(t, "test-token", providerData["vllm_api_token"])
+		assert.Contains(t, providerData, "passthrough_api_key")
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
 	})
 
 	t.Run("should detect MaaS model by prefix when model_source_type is empty", func(t *testing.T) {
@@ -1391,7 +1391,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 		// Without proper K8s client, should fall back to user JWT
 		// (MaaS detection fails, falls back to getUserJWTProviderData)
 		assert.NotNil(t, providerData)
-		assert.Contains(t, providerData, "vllm_api_token")
+		assert.Contains(t, providerData, "passthrough_api_key")
 	})
 
 	t.Run("should return user JWT for namespace model_source_type", func(t *testing.T) {
@@ -1407,8 +1407,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 
 		// Should fall back to auto-detection which returns user JWT
 		assert.NotNil(t, providerData)
-		assert.Contains(t, providerData, "vllm_api_token")
-		assert.Equal(t, "test-token", providerData["vllm_api_token"])
+		assert.Contains(t, providerData, "passthrough_api_key")
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
 	})
 
 	t.Run("should successfully retrieve custom endpoint API key when ConfigMap and Secret exist", func(t *testing.T) {
@@ -1487,8 +1487,8 @@ func TestGetProviderDataRouting(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.NotNil(t, providerData)
-		assert.Contains(t, providerData, "vllm_api_token")
-		assert.Equal(t, "test-token", providerData["vllm_api_token"])
+		assert.Contains(t, providerData, "passthrough_api_key")
+		assert.Equal(t, "test-token", providerData["passthrough_api_key"])
 	})
 }
 

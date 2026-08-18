@@ -870,7 +870,7 @@ func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[
 
 	app.logger.Debug("Injected user JWT token as provider data", "model", modelID)
 	return map[string]interface{}{
-		"vllm_api_token": identity.Token,
+		"passthrough_api_key": identity.Token,
 	}
 }
 
@@ -911,7 +911,7 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscri
 	// Inject token as provider data
 	app.logger.Debug("Injected MaaS provider data", "model", modelID)
 	return map[string]interface{}{
-		"vllm_api_token": token,
+		"maas_ephemeral_api_token": token,
 	}
 }
 

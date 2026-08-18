@@ -1560,12 +1560,6 @@ func TestNewPassthroughProvider(t *testing.T) {
 	assert.Equal(t, "https://apps.cluster.example.com/api/v1/genai-proxy/ns/my-ns", provider.Config["base_url"])
 	assert.Equal(t, "", provider.Config["api_key"], "api_key should be empty string")
 	assert.Equal(t, true, provider.Config["refresh_models"])
-
-	// forward_headers is a map: X-OGX-Provider-Data key → outbound HTTP header
-	headers, ok := provider.Config["forward_headers"].(map[string]interface{})
-	require.True(t, ok, "forward_headers should be a map")
-	assert.Equal(t, "x-forwarded-access-token", headers["vllm_api_token"],
-		"vllm_api_token key should map to x-forwarded-access-token header")
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
