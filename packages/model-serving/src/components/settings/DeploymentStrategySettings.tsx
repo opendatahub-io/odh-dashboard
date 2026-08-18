@@ -1,0 +1,65 @@
+import * as React from 'react';
+import { Flex, FlexItem, Radio, Stack, StackItem } from '@patternfly/react-core';
+
+export enum DeploymentStrategy {
+  ROLLING = 'rolling',
+  RECREATE = 'recreate',
+}
+
+type DeploymentStrategySettingsProps = {
+  defaultDeploymentStrategy: DeploymentStrategy;
+  setDefaultDeploymentStrategy: (value: DeploymentStrategy) => void;
+};
+
+const DeploymentStrategySettings: React.FC<DeploymentStrategySettingsProps> = ({
+  defaultDeploymentStrategy,
+  setDefaultDeploymentStrategy,
+}) => (
+  <Stack hasGutter>
+    <StackItem>
+      <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <FlexItem>
+          <div className="pf-v6-u-font-weight-bold">Default deployment strategy</div>
+        </FlexItem>
+      </Flex>
+    </StackItem>
+    <StackItem>
+      <Stack hasGutter>
+        <StackItem>
+          <Radio
+            id="deployment-strategy-rolling"
+            name="deployment-strategy"
+            label={<span className="pf-v6-u-font-weight-bold">Rolling update</span>}
+            description={
+              <>
+                Existing inference service pods are terminated <u>after</u> new ones are started.
+                This ensures zero downtime and continuous availability.
+              </>
+            }
+            isChecked={defaultDeploymentStrategy === DeploymentStrategy.ROLLING}
+            onChange={() => setDefaultDeploymentStrategy(DeploymentStrategy.ROLLING)}
+            data-testid="deployment-strategy-rolling"
+          />
+        </StackItem>
+        <StackItem>
+          <Radio
+            id="deployment-strategy-recreate"
+            name="deployment-strategy"
+            label={<span className="pf-v6-u-font-weight-bold">Recreate</span>}
+            description={
+              <>
+                All existing inference service pods are terminated <u>before</u> any new ones are
+                started. This saves resources but guarantees a period of downtime.
+              </>
+            }
+            isChecked={defaultDeploymentStrategy === DeploymentStrategy.RECREATE}
+            onChange={() => setDefaultDeploymentStrategy(DeploymentStrategy.RECREATE)}
+            data-testid="deployment-strategy-recreate"
+          />
+        </StackItem>
+      </Stack>
+    </StackItem>
+  </Stack>
+);
+
+export default DeploymentStrategySettings;

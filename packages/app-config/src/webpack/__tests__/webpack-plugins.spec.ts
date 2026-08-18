@@ -1,9 +1,16 @@
 import type { SharedModuleMetadata } from '../shared-modules-meta.ts';
 import type { RuntimeOdhPackages, WorkspacePackageInfo } from '../getRuntimeOdhPackages.ts';
 
-const { sharedPluginModules, getSharedModuleMetadata } = require('../shared-modules-meta.ts') as {
+const {
+  sharedPluginModules,
+  getSharedModuleMetadata,
+  PF_REACT_ICONS_CREATE_ICON_MODULE,
+  getPfReactIconsCreateIconSharedConfig,
+} = require('../shared-modules-meta.ts') as {
   sharedPluginModules: Record<string, Partial<SharedModuleMetadata>>;
   getSharedModuleMetadata: (moduleName: string) => SharedModuleMetadata;
+  PF_REACT_ICONS_CREATE_ICON_MODULE: string;
+  getPfReactIconsCreateIconSharedConfig: (requiredVersion: string) => Record<string, unknown>;
 };
 const { getRuntimeOdhPackages } = require('../getRuntimeOdhPackages.ts') as {
   getRuntimeOdhPackages: (packages?: WorkspacePackageInfo[]) => RuntimeOdhPackages;
@@ -83,6 +90,39 @@ describe('getSharedModuleMetadata', () => {
     expect(meta.eager).toBe(true);
     expect(meta.allowFallback).toBe(false);
     expect(meta.singleton).toBe(true);
+  });
+});
+
+describe('getPfReactIconsCreateIconSharedConfig', () => {
+  const concreteSemver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+  it('returns singleton sharing metadata for the createIcon deep import', () => {
+    const config = getPfReactIconsCreateIconSharedConfig('^6.4.0');
+    expect(PF_REACT_ICONS_CREATE_ICON_MODULE).toBe('@patternfly/react-icons/dist/esm/createIcon');
+    expect(config.singleton).toBe(true);
+    expect(config.requiredVersion).toBe('^6.4.0');
+    if (config.version !== undefined) {
+      expect(config.version).toEqual(expect.stringMatching(concreteSemver));
+    }
+  });
+
+  it('omits version when package metadata cannot be loaded', () => {
+    jest.isolateModules(() => {
+      jest.doMock('@patternfly/react-icons/package.json', () => {
+        throw new Error('Cannot find module');
+      });
+      const { getPfReactIconsCreateIconSharedConfig: getConfig } =
+        require('../shared-modules-meta.ts') as {
+          getPfReactIconsCreateIconSharedConfig: (
+            requiredVersion: string,
+          ) => Record<string, unknown>;
+        };
+      const config = getConfig('^6.4.0');
+      expect(config).toEqual({
+        singleton: true,
+        requiredVersion: '^6.4.0',
+      });
+    });
   });
 });
 

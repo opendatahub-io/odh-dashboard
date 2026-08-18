@@ -3,17 +3,17 @@
 // expressions in any imported module, which would pull ExternalModelsWrapper
 // into the build graph and re-introduce the model-serving dependency.
 // Remove this file once RHOAIENG-79896 fixes the NewProjectButton → API barrel → model-serving chain.
-import {
+import type {
   AreaExtension,
+  HrefNavItemExtension,
   RouteExtension,
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const MODEL_AS_SERVICE_ID = 'modelAsService';
-const ADMIN_USER = 'ADMIN_USER';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
-type PortalExtensions = RouteExtension | AreaExtension | TaskItemExtension;
+type PortalExtensions = RouteExtension | AreaExtension | TaskItemExtension | HrefNavItemExtension;
 
 const PORTAL_EXTENSIONS: PortalExtensions[] = [
   {
@@ -28,13 +28,16 @@ const PORTAL_EXTENSIONS: PortalExtensions[] = [
     },
   },
   {
-    type: 'app.route',
+    type: 'app.navigation/href',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
-      path: '/maas/maas-governance/*',
-      component: () => import('./MaaSWrapper'),
+      id: 'maas-tokens-subscriptions-view',
+      title: 'API keys',
+      href: '/maas/keys-and-subs',
+      section: 'gen-ai-studio',
+      path: '/maas/keys-and-subs/*',
     },
   },
   {
