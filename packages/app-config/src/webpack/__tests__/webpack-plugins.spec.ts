@@ -254,7 +254,7 @@ describe('OdhFederationPlugin share policy', () => {
     });
 
     expect(lastConfig?.name).toBe('host');
-    expect(lastConfig?.runtime).toBeUndefined();
+    expect(lastConfig?.runtime).toBe(false);
     expect(lastConfig?.exposes).toEqual({});
     expect(lastConfig?.remotes).toEqual({ maas: 'maas@http://localhost/remoteEntry.js' });
     expect(lastConfig?.shared.react).toEqual(

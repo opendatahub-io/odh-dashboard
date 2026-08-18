@@ -44,7 +44,7 @@ export type ModuleFederationPluginClass<TCompiler> = new (config: ModuleFederati
  *
  * - **Host** (`isHost: true`): eager must-share modules, `import: true` (bundled).
  * - **Remote** (`isHost: false`): `import: false` for must-share / host-provided
- *   modules, `runtime: false`.
+ *   modules.
  *
  * React / PatternFly / SDK versions come from `package.json` in webpack
  * `compiler.options.context`.
@@ -117,7 +117,7 @@ abstract class BaseOdhFederationPlugin<TCompiler extends FederationCompiler> {
       ...(remotes && { remotes }),
       shared,
       exposes: exposes ?? {},
-      ...(!isHost && { runtime: false }),
+      runtime: false,
       ...(dts !== undefined && { dts }),
     };
     new ModuleFederationPlugin(config).apply(compiler);

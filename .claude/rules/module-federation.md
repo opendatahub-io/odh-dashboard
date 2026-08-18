@@ -38,7 +38,7 @@ The host never exposes modules (`exposes: {}`). Remotes expose `./extensions` an
 See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and webpack template. In brief:
 
 1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service) and `"exports": { "./extensions": "..." }`
-2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons and `runtime: false` (when `isHost` is false) are applied by the plugin.
+2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons are applied by the plugin.
 3. **`src/odh/extensions.ts`** — export a default array of `Extension` objects
 4. **Static bundling** — `discoverPluginPackages.js` finds `./extensions` exports and generates `plugin-extensions.ts` at build time
 
