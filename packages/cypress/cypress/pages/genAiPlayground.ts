@@ -404,7 +404,10 @@ class GenAiPlayground {
   }
 
   findAgentRowByName(agentName: string) {
-    return cy.contains('[data-testid^="agent-profile-row-"]', agentName);
+    const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy
+      .contains('[data-testid^="agent-profile-row-"] td', new RegExp(`^\\s*${escaped}\\s*$`))
+      .closest('[data-testid^="agent-profile-row-"]');
   }
 
   findAgentKebabByName(agentName: string) {
