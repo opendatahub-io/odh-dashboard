@@ -74,7 +74,15 @@ func TestToCreateMCPServerVersionRequest(t *testing.T) {
 	assert.Equal(t, req.ServerJSON, got.ServerJSON)
 	assert.Equal(t, req.Status, got.Status)
 	assert.Equal(t, req.Source, got.Source)
-	assert.Equal(t, models.CatalogToolsToRegistryTools(req.Tools), got.Tools)
+	assert.Equal(t, []models.MCPTool{
+		{
+			Name: "search",
+			InputSchema: map[string]any{
+				"type":       "object",
+				"properties": map[string]any{},
+			},
+		},
+	}, got.Tools)
 }
 
 func TestMCPServerVersionLocation(t *testing.T) {

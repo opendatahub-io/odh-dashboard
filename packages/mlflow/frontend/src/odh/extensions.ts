@@ -1,8 +1,11 @@
-import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  ActionExtension,
+  NavExtension,
+  RouteExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
-const extensions: (NavExtension | RouteExtension | Extension)[] = [
+const extensions: (NavExtension | RouteExtension | ActionExtension)[] = [
   // Navigation section kept commented out, only used for local testing
   // {
   //   type: 'app.navigation/section',

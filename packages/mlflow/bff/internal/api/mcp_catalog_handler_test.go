@@ -105,11 +105,9 @@ func TestGetMcpServerToolsHandlerForwardsQueryParams(t *testing.T) {
 }
 
 func TestGetMcpServerToolsHandlerMissingServerID(t *testing.T) {
-	mockClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetModelRegistry)
 	app := &App{logger: testLogger()}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/mcp-catalog/servers//tools?namespace=kubeflow", nil)
-	req = requestWithModelRegistryClient(req, mockClient)
 
 	app.GetMcpServerToolsHandler(rr, req, httprouter.Params{{Key: "id", Value: ""}})
 
@@ -119,11 +117,9 @@ func TestGetMcpServerToolsHandlerMissingServerID(t *testing.T) {
 }
 
 func TestGetMcpServerToolsHandlerMissingNamespace(t *testing.T) {
-	mockClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetModelRegistry)
 	app := &App{logger: testLogger()}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/mcp-catalog/servers/server-1/tools", nil)
-	req = requestWithModelRegistryClient(req, mockClient)
 
 	app.GetMcpServerToolsHandler(rr, req, httprouter.Params{{Key: "id", Value: "server-1"}})
 
@@ -224,11 +220,9 @@ func TestGetMcpServerConverterHandlerSuccess(t *testing.T) {
 }
 
 func TestGetMcpServerConverterHandlerMissingServerID(t *testing.T) {
-	mockClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetModelRegistry)
 	app := &App{logger: testLogger()}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/mcp-catalog/servers//mcpserver?namespace=kubeflow", nil)
-	req = requestWithModelRegistryClient(req, mockClient)
 
 	app.GetMcpServerConverterHandler(rr, req, httprouter.Params{{Key: "id", Value: ""}})
 
@@ -238,11 +232,9 @@ func TestGetMcpServerConverterHandlerMissingServerID(t *testing.T) {
 }
 
 func TestGetMcpServerConverterHandlerMissingNamespace(t *testing.T) {
-	mockClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetModelRegistry)
 	app := &App{logger: testLogger()}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/mcp-catalog/servers/server-1/mcpserver", nil)
-	req = requestWithModelRegistryClient(req, mockClient)
 
 	app.GetMcpServerConverterHandler(rr, req, httprouter.Params{{Key: "id", Value: "server-1"}})
 

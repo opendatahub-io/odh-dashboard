@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
 import { useMLflowStatus } from '@odh-dashboard/internal/concepts/mlflow/hooks/useMLflowStatus';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import type { McpServer } from '~/app/types/mcpCatalogTypes';
+import type { McpDeploySpec, McpServer } from '~/app/types/mcpCatalogTypes';
 import { useMcpServerConverter } from '~/app/hooks/useMcpServerCatalog';
 import { getRegisterButtonState } from '~/odh/utils';
 import McpRegisterModal from '~/odh/components/McpRegisterModal';
@@ -13,6 +13,19 @@ type McpServerRegisterActionProps = {
     loaded: boolean;
     error?: Error;
   };
+};
+
+const isMcpServerRegisterActionProps = (
+  props: Record<string, unknown>,
+): props is McpServerRegisterActionProps => {
+  const { server } = props;
+  return typeof server === 'object' && server !== null && 'loaded' in server && 'data' in server;
+};
+
+type OpenRegisterModal = {
+  server: McpServer;
+  registriesNamespace: string;
+  deploySpec?: McpDeploySpec;
 };
 
 const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ server }) => {
@@ -33,14 +46,18 @@ const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ serve
     mlflowConfigured: mlflowStatus.configured,
     converterSettled: crLoaded || !!crError,
   });
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [openModal, setOpenModal] = React.useState<OpenRegisterModal | null>(null);
 
   const registerButton = (
     <Button
       variant={ButtonVariant.secondary}
       onClick={() => {
-        if (buttonState.enabled) {
-          setIsModalOpen(true);
+        if (buttonState.enabled && server.data) {
+          setOpenModal({
+            server: server.data,
+            registriesNamespace,
+            deploySpec: crData?.spec,
+          });
         }
       }}
       isAriaDisabled={!buttonState.enabled}
@@ -58,16 +75,23 @@ const McpServerRegisterAction: React.FC<McpServerRegisterActionProps> = ({ serve
       ) : (
         registerButton
       )}
-      {isModalOpen && buttonState.enabled && server.data && (
+      {openModal && (
         <McpRegisterModal
-          server={server.data}
-          registriesNamespace={registriesNamespace}
-          deploySpec={crData?.spec}
-          onClose={() => setIsModalOpen(false)}
+          server={openModal.server}
+          registriesNamespace={openModal.registriesNamespace}
+          deploySpec={openModal.deploySpec}
+          onClose={() => setOpenModal(null)}
         />
       )}
     </FlexItem>
   );
 };
 
-export default McpServerRegisterAction;
+const McpServerRegisterActionExtension: React.ComponentType<Record<string, unknown>> = (props) => {
+  if (!isMcpServerRegisterActionProps(props)) {
+    return null;
+  }
+  return <McpServerRegisterAction {...props} />;
+};
+
+export default McpServerRegisterActionExtension;

@@ -160,16 +160,22 @@ const McpServerTagsField: React.FC<McpServerTagsFieldProps> = ({ tags, onChange 
   };
 
   const handleBlurKey = (index: number) => {
+    const tag = tags.at(index);
+    if (!tag) {
+      return;
+    }
     setTouchedKeys((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
-    const tag = tags[index];
     if (tag.key.trim() && !tag.value.trim()) {
       setTouchedValues((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
     }
   };
 
   const handleBlurValue = (index: number) => {
+    const tag = tags.at(index);
+    if (!tag) {
+      return;
+    }
     setTouchedValues((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
-    const tag = tags[index];
     if (tag.value.trim() && !tag.key.trim()) {
       setTouchedKeys((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
     }

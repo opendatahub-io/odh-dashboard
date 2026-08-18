@@ -76,4 +76,19 @@ describe('McpServerTagsField', () => {
 
     expect(screen.getByText('Enter a key')).toBeInTheDocument();
   });
+
+  it('should ignore blur after the tag row has been removed', () => {
+    const onChange = jest.fn();
+    const tags = [
+      mockMcpTagEntry({ key: 'team', value: 'platform' }),
+      mockMcpTagEntry({ key: 'env', value: 'prod' }),
+    ];
+    const { rerender } = render(<McpServerTagsField tags={tags} onChange={onChange} />);
+    const secondKey = screen.getByTestId('mcp-register-tag-key-1');
+
+    fireEvent.click(screen.getByTestId('mcp-register-tag-remove-1'));
+    rerender(<McpServerTagsField tags={tags.slice(0, 1)} onChange={onChange} />);
+
+    expect(() => fireEvent.blur(secondKey)).not.toThrow();
+  });
 });
