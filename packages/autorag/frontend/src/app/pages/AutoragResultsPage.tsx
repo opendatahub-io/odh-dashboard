@@ -41,9 +41,11 @@ import {
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
+  fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
 } from '~/app/utilities/tracking';
+import type { PlaygroundOpenedSource } from '~/app/utilities/tracking';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -252,15 +254,19 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-  const handleTryPattern = React.useCallback(
-    (patternName: string) => {
+  // Opens (or switches the pattern within) the playground drawer. Returns whether a pattern was
+  // actually opened, so callers can decide whether to fire tracking — this function itself never
+  // fires tracking, since it's also used to switch patterns from within an already-open drawer
+  // (see `onSelectPattern` below), which is not a new "open".
+  const openPlaygroundForPattern = React.useCallback(
+    (patternName: string): boolean => {
       const pattern = patterns?.[patternName];
       if (!pattern) {
-        return;
+        return false;
       }
       const responsesTemplate = pattern.inference?.responses_template;
       if (!responsesTemplate) {
-        return;
+        return false;
       }
 
       const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
@@ -280,10 +286,20 @@ function AutoragResultsPage(): React.JSX.Element {
           chunkMethod: pattern.settings?.chunking?.method || 'N/A',
         },
       });
+      return true;
     },
     [patterns, pipelineRun],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+
+  const handleTryPattern = React.useCallback(
+    (patternName: string, source: PlaygroundOpenedSource) => {
+      if (openPlaygroundForPattern(patternName)) {
+        fireAutoragPlaygroundOpened(source);
+      }
+    },
+    [openPlaygroundForPattern],
+  );
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
     patternName: string;
@@ -318,7 +334,7 @@ function AutoragResultsPage(): React.JSX.Element {
                 responsesTemplate={drawerContent.responsesTemplate}
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
-                onSelectPattern={handleTryPattern}
+                onSelectPattern={openPlaygroundForPattern}
                 onViewCode={handleViewCode}
               />
             ) : undefined

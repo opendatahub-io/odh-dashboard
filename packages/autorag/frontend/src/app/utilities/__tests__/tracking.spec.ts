@@ -15,6 +15,7 @@ import {
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragExperimentDeleted,
+  fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   fireAutoragRunReconfigured,
   fireAutoragRunRetried,
@@ -699,4 +700,17 @@ describe('isAutoragResultsNavigationState', () => {
     expect(isAutoragResultsNavigationState(undefined)).toBe(false);
     expect(isAutoragResultsNavigationState('experimentsList')).toBe(false);
   });
+});
+
+describe('fireAutoragPlaygroundOpened', () => {
+  it.each(['resultsTable', 'patternDetails', 'other'] as const)(
+    'should fire AutoRAG Playground Opened with source: %s',
+    (source) => {
+      fireAutoragPlaygroundOpened(source);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PLAYGROUND_OPENED, {
+        source,
+      });
+    },
+  );
 });

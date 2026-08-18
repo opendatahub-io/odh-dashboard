@@ -20,6 +20,7 @@ import {
   sanitizeFilename,
 } from '~/app/utilities/utils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import type { PlaygroundOpenedSource } from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
@@ -29,7 +30,7 @@ import './AutoragResults.scss';
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 type AutoragResultsProps = {
-  onTryPattern?: (patternName: string) => void;
+  onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
   onViewCode?: (patternName: string) => void;
 };
 
@@ -336,7 +337,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
+            onTryPattern={
+              onTryPattern ? (patternName) => onTryPattern(patternName, 'resultsTable') : undefined
+            }
             onViewCode={onViewCode}
             onRunIndexingPipeline={runIndexingHandler}
           />
@@ -355,7 +358,11 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
+            onTryPattern={
+              onTryPattern
+                ? (patternName) => onTryPattern(patternName, 'patternDetails')
+                : undefined
+            }
             onViewCode={onViewCode}
             onRunIndexingPipeline={runIndexingHandler}
           />

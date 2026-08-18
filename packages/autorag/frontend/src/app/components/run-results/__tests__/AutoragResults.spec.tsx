@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -91,6 +91,14 @@ jest.mock('~/app/hooks/mutations', () => ({
     mutateAsync: jest.fn(),
     isPending: false,
     reset: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
+  usePatternEvaluationResults: jest.fn().mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isError: false,
   }),
 }));
 
@@ -208,6 +216,7 @@ describe('AutoragResults', () => {
     patterns: Record<string, AutoragPattern> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
+    props?: React.ComponentProps<typeof AutoragResults>,
   ) =>
     render(
       <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
@@ -224,7 +233,7 @@ describe('AutoragResults', () => {
                   ...contextOverrides,
                 }}
               >
-                <AutoragResults />
+                <AutoragResults {...props} />
               </AutoragResultsContext.Provider>
             }
           />
@@ -765,6 +774,72 @@ describe('AutoragResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+    });
+  });
+
+  describe('onTryPattern source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should call onTryPattern with source: resultsTable from the leaderboard action', () => {
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('Try this pattern'));
+
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should call onTryPattern with source: patternDetails from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+      const tryPatternAction = await screen.findByText('Try this pattern');
+      await user.click(tryPatternAction);
+
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
     });
   });
 });

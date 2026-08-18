@@ -28,6 +28,7 @@ export const AUTORAG_EVENTS = {
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
+  PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -480,4 +481,22 @@ export const fireAutoragEvaluationTemplateDownloaded = (): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED, {
     downloadType: 'evaluationTemplate',
   });
+};
+
+/**
+ * Where the user opened the pattern chat/playground drawer from. `'other'` is part of the
+ * taxonomy but is not currently fired by this package — every known "Try this pattern" entry
+ * point maps to one of the other two values.
+ */
+export type PlaygroundOpenedSource = 'resultsTable' | 'patternDetails' | 'other';
+
+/**
+ * Fires when the user opens the pattern chat/playground drawer to try a pattern — from the
+ * results table/leaderboard's "Try this pattern" action (`source: 'resultsTable'`) or from the
+ * pattern details modal's "Try this pattern" action (`source: 'patternDetails'`). Does not fire
+ * when the user switches patterns from the pattern select within an already-open playground
+ * drawer — that's a pattern swap, not a new "open".
+ */
+export const fireAutoragPlaygroundOpened = (source: PlaygroundOpenedSource): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.PLAYGROUND_OPENED, { source });
 };
