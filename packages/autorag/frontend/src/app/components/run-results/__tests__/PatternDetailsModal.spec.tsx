@@ -344,6 +344,12 @@ describe('PatternDetailsModal', () => {
     });
 
     it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail', async () => {
+      // Use two patterns so the compare toggle is rendered
+      const twoPatternProps = {
+        ...defaultProps,
+        patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+      };
+
       // Start in loading state — tab is visible, simulating the window Cypress finds it in CI
       mockUsePatternEvaluationResults.mockReturnValue({
         data: undefined,
@@ -353,7 +359,7 @@ describe('PatternDetailsModal', () => {
 
       const user = userEvent.setup();
       const onClose = jest.fn();
-      const { rerender } = render(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
+      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
 
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
       await user.click(screen.getByTestId('tab-sample_qa'));
@@ -364,13 +370,16 @@ describe('PatternDetailsModal', () => {
         isLoading: false,
         isError: true,
       });
-      rerender(<PatternDetailsModal {...defaultProps} onClose={onClose} />);
+      rerender(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
 
       // Tab must remain in DOM — removing it while active caused the CI crash
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
 
       // Error state must be shown inside the tab
       expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
+
+      // Compare toggle must be disabled on the Sample Q&A tab with an error
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
 
       // Close button must still work — this is the regression assertion from the CI failure
       await user.click(screen.getByLabelText('Close'));
