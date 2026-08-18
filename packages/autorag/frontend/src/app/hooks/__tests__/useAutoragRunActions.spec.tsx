@@ -4,6 +4,7 @@ import React from 'react';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  fireAutoragExperimentDeleted,
   fireAutoragRunRetried,
   fireAutoragRunStopped,
 } from '~/app/utilities/tracking';
@@ -37,10 +38,12 @@ jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual('~/app/utilities/tracking'),
   fireAutoragRunStopped: jest.fn(),
   fireAutoragRunRetried: jest.fn(),
+  fireAutoragExperimentDeleted: jest.fn(),
 }));
 
 const fireAutoragRunStoppedMock = jest.mocked(fireAutoragRunStopped);
 const fireAutoragRunRetriedMock = jest.mocked(fireAutoragRunRetried);
+const fireAutoragExperimentDeletedMock = jest.mocked(fireAutoragExperimentDeleted);
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -210,6 +213,63 @@ describe('useAutoragRunActions', () => {
         source: 'resultsPage',
       });
       const allTrackingCalls = JSON.stringify(fireAutoragRunRetriedMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-corp');
+      expect(allTrackingCalls).not.toContain('AKIAabc123');
+    });
+  });
+
+  describe('handleDelete', () => {
+    it('should show success notification and fire success: true on successful delete', async () => {
+      const { result } = renderHook(() => useAutoragRunActions('test-ns', 'run-123', 'runsList'), {
+        wrapper,
+      });
+
+      await act(async () => {
+        await result.current.handleDelete();
+      });
+
+      expect(mockNotification.success).toHaveBeenCalledWith(
+        'Run deleted successfully',
+        'The pipeline run has been permanently removed',
+      );
+      expect(fireAutoragExperimentDeletedMock).toHaveBeenCalledWith({
+        outcome: 'submit',
+        success: true,
+        source: 'runsList',
+      });
+    });
+
+    it('should show error notification when delete fails, and fire the allowlisted failure category rather than the raw error message', async () => {
+      const errorMessage =
+        'Network error (403): AccessDenied for tenant acme-corp using key AKIAabc123';
+      const mockMutateAsync = jest.fn().mockRejectedValue(new Error(errorMessage));
+      const { useDeletePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      useDeletePipelineRunMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+      });
+
+      const { result } = renderHook(
+        () => useAutoragRunActions('test-ns', 'run-123', 'resultsPage'),
+        {
+          wrapper,
+        },
+      );
+
+      await act(async () => {
+        await expect(result.current.handleDelete()).rejects.toThrow();
+      });
+
+      expect(mockNotification.error).toHaveBeenCalledWith('Failed to delete run', errorMessage);
+      // The in-product notification may keep the detailed message, but analytics must only
+      // ever see the fixed, allowlisted category.
+      expect(fireAutoragExperimentDeletedMock).toHaveBeenCalledWith({
+        outcome: 'submit',
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source: 'resultsPage',
+      });
+      const allTrackingCalls = JSON.stringify(fireAutoragExperimentDeletedMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });

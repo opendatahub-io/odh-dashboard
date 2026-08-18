@@ -8,6 +8,7 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  fireAutoragExperimentDeleted,
   fireAutoragRunRetried,
   fireAutoragRunStopped,
   TrackingOutcome,
@@ -128,11 +129,18 @@ export const useAutoragRunActions = (
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
+      fireAutoragExperimentDeleted({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       notification.error(
         'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      fireAutoragExperimentDeleted({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -140,7 +148,7 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful delete.
     }
-  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   return {
     handleRetry,

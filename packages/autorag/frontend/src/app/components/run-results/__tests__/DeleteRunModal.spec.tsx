@@ -2,7 +2,16 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
+import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const renderModal = (props: Partial<React.ComponentProps<typeof DeleteRunModal>> = {}) => {
   const defaultProps: React.ComponentProps<typeof DeleteRunModal> = {
@@ -77,7 +86,7 @@ describe('DeleteRunModal', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('should call onClose when Cancel is clicked', async () => {
+  it('should call onClose and fire a cancel event when Cancel is clicked', async () => {
     const onClose = jest.fn();
     const user = userEvent.setup();
     renderModal({ onClose });
@@ -86,6 +95,36 @@ describe('DeleteRunModal', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+      outcome: TrackingOutcome.cancel,
+      source: 'runsList',
+    });
+  });
+
+  it('should close and fire a cancel event on Escape when no delete request is pending', async () => {
+    const onClose = jest.fn();
+    renderModal({ onClose });
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EXPERIMENT_DELETED,
+      expect.objectContaining({ outcome: TrackingOutcome.cancel, source: 'runsList' }),
+    );
+  });
+
+  it('should not close or fire a cancel event on Escape while isDeleting is true', async () => {
+    const onClose = jest.fn();
+    renderModal({ onClose, isDeleting: true });
+
+    await userEvent.keyboard('{Escape}');
+
+    // PatternFly's Modal invokes onClose for Escape regardless of the disabled Cancel
+    // button — closing here would let a stray "cancel" event race with the submit
+    // success/failure event fired once the in-flight delete request resolves.
+    expect(onClose).not.toHaveBeenCalled();
+    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
   });
 
   it('should disable buttons when isDeleting is true', async () => {

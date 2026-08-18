@@ -23,6 +23,7 @@ export const AUTORAG_EVENTS = {
   RUN_RECONFIGURED: 'AutoRAG Run Reconfigured',
   RUN_STOPPED: 'AutoRAG Run Stopped',
   RUN_RETRIED: 'AutoRAG Run Retried',
+  EXPERIMENT_DELETED: 'AutoRAG Experiment Deleted',
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
@@ -351,6 +352,17 @@ export const fireAutoragRunStopped = (properties: RunOutcomeTrackingProperties):
  */
 export const fireAutoragRunRetried = (properties: RunOutcomeTrackingProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.RUN_RETRIED, properties);
+};
+
+/**
+ * Fires from the "Delete AutoRAG optimization run?" confirmation modal, reachable from the
+ * experiments list's kebab menu (`source: 'runsList'`). `outcome: cancel` fires when the modal
+ * is dismissed (Cancel, X, Escape, backdrop) before the delete has been submitted — no backend
+ * call has been made yet, so `success` is omitted in that case. `outcome: submit` fires once the
+ * delete request resolves, with `success`/`error` reflecting whether it succeeded.
+ */
+export const fireAutoragExperimentDeleted = (properties: RunOutcomeTrackingProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, properties);
 };
 
 /**

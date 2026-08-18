@@ -14,6 +14,7 @@ import {
   fireAutoragModelsSelected,
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
+  fireAutoragExperimentDeleted,
   fireAutoragRunReconfigured,
   fireAutoragRunRetried,
   fireAutoragRunStopped,
@@ -544,6 +545,47 @@ describe('fireAutoragRunRetried', () => {
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
       source: 'resultsPage',
+    });
+  });
+});
+
+describe('fireAutoragExperimentDeleted', () => {
+  it('should fire with outcome: submit and success: true, given a source', () => {
+    fireAutoragExperimentDeleted({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      source: 'runsList',
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      source: 'runsList',
+    });
+  });
+
+  it('should fire with success: false and the allowlisted failure category on failure', () => {
+    fireAutoragExperimentDeleted({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'runsList',
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+      source: 'runsList',
+    });
+  });
+
+  it('should fire with outcome: cancel when the delete confirmation modal is dismissed', () => {
+    fireAutoragExperimentDeleted({ outcome: TrackingOutcome.cancel, source: 'runsList' });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+      outcome: TrackingOutcome.cancel,
+      source: 'runsList',
     });
   });
 });
