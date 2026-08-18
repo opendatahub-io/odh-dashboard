@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import useAccessibleNamespaces from '../useAccessibleNamespaces';
 
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useHostApi: jest.fn(),
+  useHostApiCore: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
@@ -14,7 +14,7 @@ jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
   return actual;
 });
 
-const mockUseHostApi = jest.mocked(useHostApi);
+const mockUseHostApiCore = jest.mocked(useHostApiCore);
 const checkAccessMock = jest.fn();
 
 const makeProject = (name: string, displayName?: string): ProjectKind =>
@@ -42,8 +42,8 @@ const createWrapper = (projects: ProjectKind[], loaded = true) => {
 describe('useAccessibleNamespaces', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseHostApi.mockReturnValue({ checkAccess: checkAccessMock } as unknown as ReturnType<
-      typeof useHostApi
+    mockUseHostApiCore.mockReturnValue({ checkAccess: checkAccessMock } as unknown as ReturnType<
+      typeof useHostApiCore
     >);
   });
 
