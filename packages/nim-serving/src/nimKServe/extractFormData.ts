@@ -5,7 +5,7 @@ import {
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { getNIMKServeContainerImage } from './fields/nimImageApplyExtract';
 import { NIM_IMAGE_REGISTRY } from '../api/images/constants';
-import { NIM_RUNTIME_TEMPLATE_ANNOTATION } from '../api/servingruntime/consts';
+import { NIM_RUNTIME_STAMP_ANNOTATION } from '../api/servingruntime/consts';
 
 // Legacy NIM deploys as a plain KServe InferenceService (modelServingPlatformId === KSERVE_ID),
 // so it shares KServe's form-data extension. We detect NIM by the nvcr.io image on the runtime
@@ -13,7 +13,7 @@ import { NIM_RUNTIME_TEMPLATE_ANNOTATION } from '../api/servingruntime/consts';
 // where the image prefix differs. Either match lets this extension win over KServe's via priority.
 export const isNIMKServeDeployment = (deployment: KServeDeployment): boolean =>
   (getNIMKServeContainerImage(deployment)?.startsWith(NIM_IMAGE_REGISTRY) ?? false) ||
-  !!deployment.server?.metadata.annotations?.[NIM_RUNTIME_TEMPLATE_ANNOTATION];
+  !!deployment.server?.metadata.annotations?.[NIM_RUNTIME_STAMP_ANNOTATION];
 
 // Only reached when isActive already confirmed this is a NIM deployment, so it always marks NIM.
 // The image itself is prefilled by the nimImage wizard-field-extractor, not here.

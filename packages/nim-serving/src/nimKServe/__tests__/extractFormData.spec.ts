@@ -29,12 +29,12 @@ describe('isNIMKServeDeployment', () => {
     ).toBe(true);
   });
 
-  it('should detect NIM from the runtime template annotation when the image is a mirror registry', () => {
+  it('should detect NIM from the runtime stamp annotation when the image is a mirror registry', () => {
     expect(
       isNIMKServeDeployment(
         makeDeployment(
           makeServingRuntime('mirror.local/nim/test:1.0.0', {
-            'opendatahub.io/template-name': 'nvidia-nim-runtime',
+            'runtimes.opendatahub.io/nvidia-nim': 'true',
           }),
         ),
       ),

@@ -69,6 +69,9 @@ export const mockNimInferenceService = ({
     limits: { cpu: '16', memory: '64Gi' },
     requests: { cpu: '8', memory: '32Gi' },
   },
+  hardwareProfileName,
+  hardwareProfileNamespace,
+  hardwareProfileResourceVersion,
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
@@ -76,6 +79,9 @@ export const mockNimInferenceService = ({
     displayName,
     namespace,
     resources,
+    hardwareProfileName,
+    hardwareProfileNamespace,
+    hardwareProfileResourceVersion,
   });
 
   delete inferenceService.metadata.labels?.name;
@@ -93,7 +99,13 @@ export const mockNimInferenceService = ({
   return inferenceService;
 };
 
-export const mockNimServingRuntime = (): ServingRuntimeKind => {
+export const mockNimServingRuntime = ({
+  image,
+}: {
+  // When set, the runtime carries a `kserve-container` with this image so edit-detection
+  // (isNIMKServeDeployment) recognizes it and the image field prefills on edit.
+  image?: string;
+} = {}): ServingRuntimeKind => {
   const servingRuntime = mockServingRuntimeK8sResource({
     name: 'test-name',
     displayName: 'Test Name',
@@ -101,6 +113,11 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
   if (servingRuntime.metadata.annotations) {
     servingRuntime.metadata.annotations['opendatahub.io/template-display-name'] = 'NVIDIA NIM';
     servingRuntime.metadata.annotations['opendatahub.io/template-name'] = 'nvidia-nim-runtime';
+  }
+  if (image) {
+    servingRuntime.spec.containers = [
+      { ...servingRuntime.spec.containers[0], name: 'kserve-container', image },
+    ];
   }
 
   return servingRuntime;

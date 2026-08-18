@@ -127,7 +127,11 @@ const getNIMImageOptions = (
 
   let existingOptionNotFound = false;
   // Add the existing value if it's not found in the list
-  if (existingSelection && !seen.has(getImageOptionKey(existingSelection))) {
+  if (
+    existingSelection?.repository &&
+    existingSelection.tag &&
+    !seen.has(getImageOptionKey(existingSelection))
+  ) {
     existingOptionNotFound = true;
     result.unshift({
       value: getImageOptionKey(existingSelection),
@@ -164,7 +168,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [images, value],
   );
 
-  const selectedKey = value ? getImageOptionKey(value) : undefined;
+  const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
@@ -247,7 +251,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
       )}
       {existingOptionNotFound && (
         <HelperText>
-          <HelperTextItem variant="warning">
+          <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
             The existing NIM image was not found. The deployment may not work as expected.
           </HelperTextItem>
         </HelperText>
