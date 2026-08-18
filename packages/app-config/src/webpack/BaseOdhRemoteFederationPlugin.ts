@@ -4,7 +4,12 @@ import type {
   SharedModuleConfig,
 } from './BaseOdhHostFederationPlugin.ts';
 
-const { sharedPluginModules, getSharedModuleMetadata } = require('./shared-modules-meta.ts');
+const {
+  sharedPluginModules,
+  getSharedModuleMetadata,
+  PF_REACT_ICONS_CREATE_ICON_MODULE,
+  getPfReactIconsCreateIconSharedConfig,
+} = require('./shared-modules-meta.ts');
 const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages.ts');
 
 export type { SharedModuleConfig };
@@ -61,6 +66,12 @@ abstract class BaseOdhRemoteFederationPlugin<TCompiler> {
         ...(version && { version }),
         ...(!isStandalone && !meta.allowFallback && { import: false }),
       };
+    }
+
+    const pfReactIconsDep = deps['@patternfly/react-icons'];
+    if (pfReactIconsDep && !(PF_REACT_ICONS_CREATE_ICON_MODULE in shared)) {
+      shared[PF_REACT_ICONS_CREATE_ICON_MODULE] =
+        getPfReactIconsCreateIconSharedConfig(pfReactIconsDep);
     }
 
     // Host-provided ODH packages: import: false. Federated-only packages stay
