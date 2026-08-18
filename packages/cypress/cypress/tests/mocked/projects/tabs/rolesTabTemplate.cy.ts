@@ -203,11 +203,11 @@ describe('Add rules from template (toolbar button)', () => {
     projectRoles.findRuleApiGroupsToggle().click();
     projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
     cy.findByTestId('select-multi-typeahead-apps').click();
-    projectRoles.findRuleApiGroupsToggle().parent().find('input').blur();
+    cy.press(Cypress.Keyboard.Keys.TAB);
     projectRoles.findRuleResourceTypesToggle().click();
     projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
     cy.findByTestId('select-multi-typeahead-Deployments').click();
-    projectRoles.findRuleResourceTypesToggle().parent().find('input').blur();
+    cy.press(Cypress.Keyboard.Keys.TAB);
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleSaveButton().click();
 
