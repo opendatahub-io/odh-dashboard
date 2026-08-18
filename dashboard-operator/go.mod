@@ -54,7 +54,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/k8s-manifest-kit/engine v0.2.1-0.20260302092700-39c16f95d249 // indirect
+	github.com/k8s-manifest-kit/engine cf083f1ed69b // indirect
 	github.com/k8s-manifest-kit/pkg v0.2.1-0.20260302085906-6946a2e8e1d5 // indirect
 	github.com/k8s-manifest-kit/renderer-helm v0.3.1-0.20260303100010-977618f3f59b // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
