@@ -20,14 +20,14 @@ const selectApiGroup = (apiGroup: string) => {
   projectRoles.findRuleApiGroupsToggle().click();
   projectRoles.findRuleApiGroupsToggle().parent().find('input').type(apiGroup);
   cy.findByTestId(`select-multi-typeahead-${apiGroup}`).click();
-  projectRoles.findRuleApiGroupsToggle().parent().find('input').type('{esc}');
+  projectRoles.findRuleApiGroupsToggle().parent().find('input').blur();
 };
 
 const selectResource = (resource: string, label: string) => {
   projectRoles.findRuleResourceTypesToggle().click();
   projectRoles.findRuleResourceTypesToggle().parent().find('input').type(resource);
   cy.findByTestId(`select-multi-typeahead-${label}`).click();
-  projectRoles.findRuleResourceTypesToggle().parent().find('input').type('{esc}');
+  projectRoles.findRuleResourceTypesToggle().parent().find('input').blur();
 };
 
 const addRule = (apiGroup: string, resource: string, resourceLabel: string, verb: string) => {
