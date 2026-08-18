@@ -9,6 +9,8 @@ import {
   DataListCheck,
   DataListItemCells,
   DataListItemRow,
+  Flex,
+  FlexItem,
   MenuToggle,
   Modal,
   ModalBody,
@@ -233,13 +235,31 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
                       value={preset.label}
                       data-testid={`organize-by-option-${preset.label}`}
                     >
-                      <Radio
-                        isChecked={selectedPreset === preset.label}
-                        name="organize-by-radio"
-                        label={preset.label}
-                        id={`preset-${preset.label}`}
-                        onChange={() => handlePresetSelect(preset.label)}
-                      />
+                      {/*
+                        The radio and its label are intentionally not wired together via
+                        PatternFly's `label` prop (which renders a native `<label htmlFor>`).
+                        Browsers forward a click on such a label to its associated input,
+                        producing a second click event that bubbles up to this SelectOption
+                        and would double-fire `onSelect`/`handlePresetSelect`. Rendering the
+                        radio (with an accessible name via `aria-label`) and the visible text
+                        as separate, unassociated elements keeps this as a single click target
+                        so `Select`'s `onSelect` remains the sole source of truth.
+                      */}
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsSm' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                      >
+                        <FlexItem>
+                          <Radio
+                            isChecked={selectedPreset === preset.label}
+                            name="organize-by-radio"
+                            aria-label={preset.label}
+                            id={`preset-${preset.label}`}
+                            readOnly
+                          />
+                        </FlexItem>
+                        <FlexItem>{preset.label}</FlexItem>
+                      </Flex>
                     </SelectOption>
                   ))}
                 </SelectList>

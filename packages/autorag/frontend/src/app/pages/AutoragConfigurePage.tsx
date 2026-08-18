@@ -235,14 +235,19 @@ function AutoragConfigurePage({
 
   // Catches a full page/tab close or refresh while the configure flow is in progress. Does not
   // catch in-app navigation away (e.g. the host dashboard's global nav) — see
-  // `fireAutoragFlowExited`'s doc comment for why that isn't covered.
+  // `fireAutoragFlowExited`'s doc comment for why that isn't covered. Skipped while a run
+  // submission is in flight or has already succeeded: the backend may have already accepted the
+  // run by the time the page unloads, so reporting 'abandon' here would be inaccurate.
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (form.formState.isSubmitting || form.formState.isSubmitSuccessful) {
+        return;
+      }
       fireAutoragFlowExited('abandon', funnelStepRef.current, 'none');
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
 
   const runTriggeredTrackingContextValue = useMemo<RunTriggeredTrackingContextProps>(
     () => ({

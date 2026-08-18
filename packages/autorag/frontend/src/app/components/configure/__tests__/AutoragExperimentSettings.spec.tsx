@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -160,7 +160,6 @@ describe('AutoragExperimentSettings', () => {
     });
 
     it('should fire with countOfFoundationModels/countOfEmbeddingModels: 0 when no models are selected', async () => {
-      const user = userEvent.setup();
       // Save is disabled unless the form is dirty; force it dirty with empty selections.
       renderComponent(
         {},
@@ -170,13 +169,23 @@ describe('AutoragExperimentSettings', () => {
         },
       );
 
-      await user.click(screen.getByTestId('experiment-settings-cancel'));
+      // Use fireEvent (synchronous) instead of userEvent here: clicking Save with zero models
+      // selected races against the async zod validation that disables the button once it detects
+      // the empty arrays are invalid, so a synchronous dispatch is needed to land the click before
+      // that validation resolves and flips isDisabled.
+      fireEvent.click(screen.getByTestId('experiment-settings-save'));
 
       expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.MODELS_SELECTED, {
         countOfFoundationModels: 0,
         countOfEmbeddingModels: 0,
-        outcome: TrackingOutcome.cancel,
+        outcome: TrackingOutcome.submit,
         success: true,
+      });
+
+      // Flush the async validation triggered on mount so its state update is captured within
+      // act(), rather than resolving after the test completes.
+      await waitFor(() => {
+        expect(screen.getByTestId('experiment-settings-save')).toBeDisabled();
       });
     });
 

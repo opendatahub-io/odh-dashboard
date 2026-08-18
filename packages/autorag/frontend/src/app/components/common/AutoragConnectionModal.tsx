@@ -120,10 +120,15 @@ const AutoragConnectionModal: React.FC<Props> = ({
     ? getConnectionProtocolType(selectedConnectionType)
     : undefined;
 
-  // Tracks whether createSecret has already resolved for this modal instance, so a later
-  // close/cancel doesn't emit a conflicting cancel event once a success (or failure) outcome
-  // has already been reported for the creation attempt.
-  const hasCreatedSecretRef = React.useRef(false);
+  // Holds the Connection object once createSecret has actually succeeded, so a later retry
+  // (after an onSubmit failure) can skip re-creating the already-existing Secret and simply
+  // retry onSubmit with the same connection.
+  const createdConnectionRef = React.useRef<Connection>();
+
+  // Tracks whether a creation outcome (success OR failure) has already been reported for this
+  // modal instance, so a later close/cancel doesn't emit a conflicting cancel event once that
+  // outcome has already been reported.
+  const hasReportedOutcomeRef = React.useRef(false);
 
   const handleClose = React.useCallback(() => {
     // Block close requests (Escape, X button, Cancel button) while creation is in flight — the
@@ -132,7 +137,7 @@ const AutoragConnectionModal: React.FC<Props> = ({
     if (isSaving) {
       return;
     }
-    if (!hasCreatedSecretRef.current) {
+    if (!hasReportedOutcomeRef.current) {
       fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
     }
     onClose();
@@ -208,29 +213,49 @@ const AutoragConnectionModal: React.FC<Props> = ({
             };
 
             const submit = async () => {
-              try {
-                await createSecret(assembledConnection);
-              } catch (e) {
-                // Secret creation itself failed — the resource does not exist.
-                setSubmitError(e instanceof Error ? e : new Error(String(e)));
-                setIsSaving(false);
+              // If a previous attempt already created the Secret (and only onSubmit failed),
+              // don't re-create it on retry — reuse the already-created connection instead.
+              let connectionToSubmit = createdConnectionRef.current;
+
+              if (!connectionToSubmit) {
+                try {
+                  await createSecret(assembledConnection);
+                } catch {
+                  // Secret creation itself failed — the resource does not exist. Mark the
+                  // outcome as reported so a later close/cancel doesn't emit a conflicting
+                  // cancel event, but don't surface the raw error to the user — it may
+                  // contain credentials or internal endpoint details from the backend.
+                  hasReportedOutcomeRef.current = true;
+                  setSubmitError(
+                    new Error(
+                      'Failed to create the S3 connection. Please check your connection details and try again.',
+                    ),
+                  );
+                  setIsSaving(false);
+                  fireAutoragS3ConnectionCreated({
+                    outcome: TrackingOutcome.submit,
+                    success: false,
+                    error: AUTORAG_FAILURE_CATEGORY,
+                  });
+                  return;
+                }
+
+                // The Secret now exists — report that outcome immediately, independent of
+                // whatever onSubmit does next, so a later onSubmit failure can't overwrite it.
+                // Also remember the created connection and mark creation as complete so a
+                // later retry doesn't re-create the Secret and a later close/cancel doesn't
+                // emit a conflicting cancel event for the same creation attempt.
+                createdConnectionRef.current = assembledConnection;
+                hasReportedOutcomeRef.current = true;
                 fireAutoragS3ConnectionCreated({
                   outcome: TrackingOutcome.submit,
-                  success: false,
-                  error: AUTORAG_FAILURE_CATEGORY,
+                  success: true,
                 });
-                return;
+                connectionToSubmit = assembledConnection;
               }
 
-              // The Secret now exists — report that outcome immediately, independent of
-              // whatever onSubmit does next, so a later onSubmit failure can't overwrite it.
-              // Also mark creation as complete so a later close/cancel doesn't emit a
-              // conflicting cancel event for the same creation attempt.
-              hasCreatedSecretRef.current = true;
-              fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
-
               try {
-                await onSubmit(assembledConnection);
+                await onSubmit(connectionToSubmit);
                 onClose(true);
               } catch (e) {
                 // The Secret was already created successfully, so this is not a creation

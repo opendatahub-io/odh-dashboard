@@ -527,7 +527,7 @@ describe('AutoragConfigurePage', () => {
       });
     });
 
-    it('should NOT fire again when Cancel is clicked from the configure step', async () => {
+    it('should not render a Cancel button on the configure step', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -540,12 +540,8 @@ describe('AutoragConfigurePage', () => {
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
-      fireFormTrackingEventMock.mockClear();
-
-      // Configure step only shows Back/Create run, not Cancel, so navigate(-1) elsewhere
-      // (e.g. reconfigure Cancel) should not re-fire this event.
+      // Configure step only shows Back/Create run, not Cancel.
       expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
-      expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
     });
   });
 
@@ -1502,6 +1498,48 @@ describe('AutoragConfigurePage', () => {
         lastFunnelStep: 'defineDetails',
         exitDestination: 'none',
       });
+    });
+
+    it('should NOT fire abandon on a page/tab close while a run submission is still in flight', async () => {
+      const user = userEvent.setup();
+      // Never resolves within this test, simulating a submission that is still pending when
+      // beforeunload fires.
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      mockMutateAsync.mockReturnValue(new Promise(() => {}));
+
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      await user.click(runButton);
+
+      // Confirm the submission is actually in flight before simulating the tab close.
+      await waitFor(() => {
+        expect(mockMutateAsync).toHaveBeenCalled();
+      });
+
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.FLOW_EXITED,
+        expect.objectContaining({ exitType: 'abandon' }),
+      );
     });
 
     describe('reconfigure flow', () => {

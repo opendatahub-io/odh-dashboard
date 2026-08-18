@@ -1619,6 +1619,7 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(screen.getByTestId('organize-by-toggle'));
         fireEvent.click(screen.getByText('Optimization metrics and chunking'));
 
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
           { presetType: 'optimizationMetricsAndChunking' },
@@ -1637,6 +1638,7 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(screen.getByText('Full configuration'));
         fireEvent.click(screen.getByText('Cancel'));
 
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
           { presetType: 'fullConfiguration' },

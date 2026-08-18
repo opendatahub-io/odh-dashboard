@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -149,5 +149,70 @@ describe('DeleteRunModal', () => {
     renderModal({ isOpen: false });
 
     expect(screen.queryByTestId('delete-run-modal')).not.toBeInTheDocument();
+  });
+
+  it('should not close or fire a cancel event if Escape is pressed synchronously right after clicking Delete, before the isDeleting prop updates', async () => {
+    const onClose = jest.fn();
+    const onConfirm = jest.fn();
+    const user = userEvent.setup();
+    // isDeleting stays false throughout this test — it's externally controlled by the
+    // parent and won't auto-update just because the click handler ran. The fix relies on
+    // local `isSubmitting` state to close the gap instead.
+    renderModal({ onClose, onConfirm, isDeleting: false });
+
+    await user.type(screen.getByTestId('confirm-delete-input'), 'my-test-run');
+
+    // Click Delete and immediately fire Escape in the same synchronous step — no await in
+    // between — to reproduce the real race: by the time the very next line runs, the local
+    // `isSubmitting` state (set synchronously inside the click handler) must already be
+    // `true`, well before any microtask-scheduled `isDeleting` prop update could occur.
+    fireEvent.click(screen.getByTestId('confirm-delete-run-button'));
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EXPERIMENT_DELETED,
+      expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+    );
+  });
+
+  it('should re-enable Cancel after a failed deletion (isDeleting cycles true -> false)', async () => {
+    const onClose = jest.fn();
+    const onConfirm = jest.fn();
+    const user = userEvent.setup();
+    const { rerender } = renderModal({ onClose, onConfirm, isDeleting: false });
+
+    await user.type(screen.getByTestId('confirm-delete-input'), 'my-test-run');
+    await user.click(screen.getByTestId('confirm-delete-run-button'));
+
+    // The mutation starts: parent re-renders with isDeleting: true.
+    rerender(
+      <DeleteRunModal
+        isOpen
+        onClose={onClose}
+        onConfirm={onConfirm}
+        isDeleting
+        runName="my-test-run"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+    // The mutation fails and settles: parent re-renders with isDeleting back to false, but
+    // the modal stays open so the user can retry or cancel.
+    rerender(
+      <DeleteRunModal
+        isOpen
+        onClose={onClose}
+        onConfirm={onConfirm}
+        isDeleting={false}
+        runName="my-test-run"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

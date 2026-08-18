@@ -704,7 +704,9 @@ describe('AutoragEvaluationSelect', () => {
     it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
       const user = userEvent.setup();
       const file = new File(['test content'], 'test.json', { type: 'application/json' });
-      mockUploadMutateAsync.mockRejectedValue(new Error('Upload failed: s3://acme-secret-bucket'));
+      mockUploadMutateAsync.mockRejectedValueOnce(
+        new Error('Upload failed: s3://acme-secret-bucket'),
+      );
 
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 

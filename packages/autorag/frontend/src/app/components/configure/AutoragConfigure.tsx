@@ -1184,7 +1184,9 @@ function AutoragConfigure({
               inputDataS3SelectionCommittedRef.current = true;
               fireAutoragKnowledgeSourceConfigured({
                 knowledgeSourceType: 's3',
-                countOfDocuments: files.length,
+                // Only files[0] is ever committed to input_data_key, so report 1 committed
+                // document regardless of how many files the picker returned (e.g. a folder).
+                countOfDocuments: 1,
                 outcome: TrackingOutcome.submit,
                 success: true,
               });

@@ -776,7 +776,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should fire with countOfDocuments matching the number of files returned (e.g. a folder)', () => {
+    it('should fire with countOfDocuments: 1 even when the picker returns multiple files (only the first is committed)', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
@@ -786,7 +786,7 @@ describe('AutoragConfigure', () => {
         AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
         {
           knowledgeSourceType: 's3',
-          countOfDocuments: 2,
+          countOfDocuments: 1,
           outcome: TrackingOutcome.submit,
           success: true,
         },

@@ -408,6 +408,120 @@ describe('AutoragConnectionModal', () => {
     const allCallArgs = JSON.stringify(fireAutoragS3ConnectionCreatedMock.mock.calls);
     expect(allCallArgs).not.toContain('super-secret-value');
     expect(allCallArgs).not.toContain('internal-proxy.svc');
+
+    // The raw backend error must never be rendered to the user either — only the fixed,
+    // user-facing message.
+    expect(screen.queryByText(/super-secret-value/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/internal-proxy\.svc/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Failed to create the S3 connection. Please check your connection details and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('should not re-create the Secret when retrying submit after onSubmit rejects', async () => {
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+
+    const addButton = screen.getByRole('button', { name: 'Add connection' });
+    await act(async () => {
+      addButton.click();
+    });
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    expect(createSecretMock).toHaveBeenCalledTimes(1);
+    expect(onSubmitMock).toHaveBeenCalledTimes(1);
+
+    // Retry: the Secret already exists from the first attempt, so createSecret must not be
+    // called again — only onSubmit is retried.
+    await act(async () => {
+      addButton.click();
+    });
+
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
+
+    expect(createSecretMock).toHaveBeenCalledTimes(1);
+    expect(onSubmitMock).toHaveBeenCalledTimes(2);
+    // Only the original creation success should have ever been reported — the retry must not
+    // emit a second, duplicate submit-success event.
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: tracking.TrackingOutcome.submit, success: true }),
+    );
+  });
+
+  it('should not emit a conflicting cancel event when Cancel is clicked after createSecret rejects', async () => {
+    createSecretMock.mockRejectedValueOnce(new Error('boom'));
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
+
+    // The failure outcome was already reported above. Cancelling now must not emit a second,
+    // conflicting cancel event for the same (failed) creation attempt.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
+    expect(onCloseMock).toHaveBeenCalledWith();
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
   });
 
   it('should fire outcome: submit, success: true when createSecret resolves', async () => {

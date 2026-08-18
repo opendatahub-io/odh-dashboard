@@ -413,11 +413,16 @@ describe('AutoragVectorStoreSelector', () => {
       expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
     });
 
-    it('should not fire when the auto-clear-stale-selection effect resets the field', () => {
-      const { rerender } = renderWithProviders(
-        <AutoragVectorStoreSelector />,
-        { defaultValues: { vector_io_provider_id: 'milvus' } }, // eslint-disable-line camelcase
-      );
+    it('should not fire when the auto-clear-stale-selection effect resets the field', async () => {
+      let formValues: unknown;
+      const onFormChange = (values: unknown) => {
+        formValues = values;
+      };
+
+      const { rerender } = renderWithProviders(<AutoragVectorStoreSelector />, {
+        defaultValues: { vector_io_provider_id: 'milvus' }, // eslint-disable-line camelcase
+        onFormChange,
+      });
 
       // Provider list refreshes and no longer includes the previously selected "milvus" —
       // this should silently clear the field via the effect, not fire a tracking event.
@@ -432,11 +437,17 @@ describe('AutoragVectorStoreSelector', () => {
       const preFilledDefaults = { vector_io_provider_id: 'milvus' }; // eslint-disable-line camelcase
       rerender(
         <QueryClientProvider client={queryClient}>
-          <FormWrapper defaultValues={preFilledDefaults}>
+          <FormWrapper defaultValues={preFilledDefaults} onFormChange={onFormChange}>
             <AutoragVectorStoreSelector />
           </FormWrapper>
         </QueryClientProvider>,
       );
+
+      await waitFor(() => {
+        expect(formValues).toMatchObject({
+          vector_io_provider_id: '', // eslint-disable-line camelcase
+        });
+      });
 
       expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
     });
