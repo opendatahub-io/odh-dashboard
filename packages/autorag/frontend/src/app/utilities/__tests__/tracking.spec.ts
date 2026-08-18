@@ -13,6 +13,7 @@ import {
   fireAutoragModelsSelected,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragRunTriggered,
+  fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
   mapOptimizationMetric,
   toVectorStoreProviderType,
@@ -382,6 +383,39 @@ describe('fireAutoragFlowExited', () => {
       exitType: 'navigate',
       lastFunnelStep: 'run',
       exitDestination: 'otherGenAi',
+    });
+  });
+});
+
+describe('fireAutoragS3ConnectionCreated', () => {
+  it('should fire with outcome: submit and success: true', () => {
+    fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+  });
+
+  it('should fire with outcome: submit, success: false, and the allowlisted failure category', () => {
+    fireAutoragS3ConnectionCreated({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+    });
+  });
+
+  it('should fire with outcome: cancel and no success/error', () => {
+    fireAutoragS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
+      outcome: TrackingOutcome.cancel,
     });
   });
 });

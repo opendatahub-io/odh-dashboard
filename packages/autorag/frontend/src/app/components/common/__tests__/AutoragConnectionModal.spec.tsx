@@ -1,9 +1,10 @@
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React, { act } from 'react';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import * as tracking from '~/app/utilities/tracking';
 
 const TEST_PROJECT = 'my-project';
 
@@ -11,7 +12,13 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   createSecret: jest.fn(),
 }));
 
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutoragS3ConnectionCreated: jest.fn(),
+}));
+
 const createSecretMock = jest.mocked(secretsApi.createSecret);
+const fireAutoragS3ConnectionCreatedMock = jest.mocked(tracking.fireAutoragS3ConnectionCreated);
 
 describe('AutoragConnectionModal', () => {
   const onCloseMock = jest.fn();
@@ -353,7 +360,9 @@ describe('AutoragConnectionModal', () => {
   });
 
   it('should not call onClose with true when createSecret rejects', async () => {
-    createSecretMock.mockRejectedValueOnce(new Error('API error'));
+    createSecretMock.mockRejectedValueOnce(
+      new Error('AWS_SECRET_ACCESS_KEY=super-secret-value; endpoint=internal-proxy.svc:8443'),
+    );
 
     render(
       <AutoragConnectionModal
@@ -390,5 +399,236 @@ describe('AutoragConnectionModal', () => {
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();
     expect(onCloseMock).not.toHaveBeenCalledWith(true);
+    // Analytics must only ever see the fixed, allowlisted failure category — never the raw
+    // Error.message, which may contain credentials, tenant identifiers, or internal endpoints.
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, error: tracking.AUTORAG_FAILURE_CATEGORY }),
+    );
+    const allCallArgs = JSON.stringify(fireAutoragS3ConnectionCreatedMock.mock.calls);
+    expect(allCallArgs).not.toContain('super-secret-value');
+    expect(allCallArgs).not.toContain('internal-proxy.svc');
+  });
+
+  it('should fire outcome: submit, success: true when createSecret resolves', async () => {
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledWith({
+      outcome: tracking.TrackingOutcome.submit,
+      success: true,
+    });
+  });
+
+  it('should report success once createSecret resolves, even if onSubmit later rejects', async () => {
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).toHaveBeenCalled();
+    // The Secret was created successfully, so the creation event must report success even
+    // though the later onSubmit call failed. It must not be called with success: false.
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true }),
+    );
+    expect(fireAutoragS3ConnectionCreatedMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ success: false }),
+    );
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should fire outcome: cancel when Cancel is clicked before creation', async () => {
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+
+    expect(fireAutoragS3ConnectionCreatedMock).toHaveBeenCalledWith({
+      outcome: tracking.TrackingOutcome.cancel,
+    });
+  });
+
+  it('should not emit a conflicting cancel event when Cancel is clicked after onSubmit rejects', async () => {
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    fireAutoragS3ConnectionCreatedMock.mockClear();
+
+    // The Secret was already reported as created (success: true) above. Cancelling now, after
+    // the async onSubmit failed, must not emit a second, conflicting cancel event for the same
+    // creation attempt.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+
+    expect(fireAutoragS3ConnectionCreatedMock).not.toHaveBeenCalled();
+    expect(onCloseMock).toHaveBeenCalledWith();
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should block close attempts (Cancel and Escape) while createSecret is still pending', async () => {
+    let resolveCreateSecret: (() => void) | undefined;
+    createSecretMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreateSecret = () => resolve({} as Awaited<ReturnType<typeof createSecretMock>>);
+      }),
+    );
+
+    render(
+      <AutoragConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+    });
+    await act(async () => {
+      screen.getByRole('button', { name: 'Add connection' }).click();
+    });
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).not.toHaveBeenCalled();
+
+    // Creation is still pending — a Cancel click must not close the modal or fire a cancel
+    // event, since the Secret may still be created out from under a closed modal.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutoragS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Escape must be blocked the same way, since it reaches the same close handler.
+    await act(async () => {
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
+    });
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutoragS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Once creation resolves, the normal flow proceeds and the modal is allowed to close.
+    await act(async () => {
+      resolveCreateSecret?.();
+    });
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
   });
 });

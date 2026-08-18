@@ -21,6 +21,7 @@ export const AUTORAG_EVENTS = {
   VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
   FLOW_EXITED: 'AutoRAG Flow Exited',
+  S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -284,4 +285,25 @@ export const fireAutoragFlowExited = (
     lastFunnelStep,
     exitDestination,
   });
+};
+
+export type S3ConnectionCreatedProperties = {
+  outcome: TrackingOutcome;
+  /** Omitted on `outcome: cancel` — no backend call is made when the modal is dismissed. */
+  success?: boolean;
+  error?: AutoragFailureCategory;
+};
+
+/**
+ * Fires from the "Add new connection" modal reached from the "Knowledge setup" S3 connection
+ * field on the configure step. `outcome: submit` fires as soon as the underlying Secret is
+ * created (success or failure) — independent of what the caller's `onSubmit` does with it
+ * afterward, so a later, unrelated failure there can't overwrite an already-successful creation.
+ * `outcome: cancel` fires when the modal is dismissed (Cancel, X, Escape, backdrop) before the
+ * Secret has been created; dismissal is blocked entirely while creation is in flight, and no
+ * cancel is fired once creation has already succeeded or failed, since that outcome was already
+ * reported.
+ */
+export const fireAutoragS3ConnectionCreated = (properties: S3ConnectionCreatedProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.S3_CONNECTION_CREATED, properties);
 };
