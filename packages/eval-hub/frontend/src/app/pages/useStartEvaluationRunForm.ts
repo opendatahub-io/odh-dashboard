@@ -166,7 +166,8 @@ export function useStartEvaluationRunForm({
       agentName,
     });
 
-  const requiresConnectionValidation = sourceMode === 'agent' || modelSelection === 'external';
+  const requiresConnectionValidation =
+    sourceMode === 'agent' || (sourceMode === 'model' && modelSelection === 'external');
 
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
