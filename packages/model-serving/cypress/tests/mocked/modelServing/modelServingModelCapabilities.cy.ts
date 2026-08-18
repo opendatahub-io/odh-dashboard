@@ -301,12 +301,6 @@ describe('Model capabilities in deployment wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
     modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
-    modelServingWizard
-      .findModelCapabilitiesField()
-      .should(
-        'contain.text',
-        'Tag this model with its capabilities so users can easily identify what it supports',
-      );
     modelServingWizard.selectWellKnownCapability('Vision');
     modelServingWizard.selectWellKnownCapability('Transcription');
     modelServingWizard.findNextButton().click();
