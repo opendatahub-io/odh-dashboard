@@ -1,0 +1,70 @@
+packages:
+  - backend
+  - frontend
+  - frontend/src
+  - packages/*
+  - packages/agent-ops/frontend
+  - packages/automl/frontend
+  - packages/autorag/frontend
+  - packages/autox-core/ui
+  - packages/data-registry/frontend
+  - packages/eval-hub/frontend
+  - packages/gen-ai/frontend
+  - packages/maas/frontend
+  - packages/mlflow/frontend
+  - packages/model-serving/cypress
+  - distributions/base
+  - distributions/core-bff
+  - distributions/core-bff/frontend
+  - distributions/rhaii
+  - distributions/maas-customer-portal
+
+# Transitional: flat node_modules like npm for webpack/MF. Remove in Epic 2 (RHOAIENG-83228).
+shamefullyHoist: true
+autoInstallPeers: true
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  core-js: true
+  core-js-pure: true
+  cypress: true
+  esbuild: true
+  protobufjs: true
+  unrs-resolver: true
+
+overrides:
+  '@openshift/dynamic-plugin-sdk-utils>react-redux': '^8.1.3'
+  '@openshift/dynamic-plugin-sdk-utils>react-router': '^7.18.2'
+  '@openshift/dynamic-plugin-sdk-utils>react-router-dom': '^7.18.2'
+  '@openshift/dynamic-plugin-sdk-utils>react': '^18.3.1'
+  '@openshift/dynamic-plugin-sdk-utils>react-dom': '^18.3.1'
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-core': '~6.5.1'
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-icons': '~6.5.1'
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-styles': '~6.5.1'
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-table': '~6.5.1'
+  '@openshift/dynamic-plugin-sdk-utils>@patternfly/react-virtualized-extension': '6.2.0'
+  '@patternfly/react-topology>react': '^18.3.1'
+  '@types/react': '^18.3.31'
+  csstype: '^3.2.3'
+  react-router: '^7.18.2'
+  react-router-dom: '^7.18.2'
+  ws: '^8.21.0'
+  '@types/ws': '^8.18.1'
+  dompurify: '^3.4.8'
+  '@types/tar': '^6.1.13'
+  jsonpath-plus: '^10.4.0'
+  tough-cookie: '^4.1.4'
+  redux: '^4.2.1'
+  form-data: '^4.0.5'
+  axios: '^1.17.0'
+  shell-quote: '>=1.8.4'
+  webpack: '5.104.1'
+  '@rspack/core': '2.1.10'
+  '@rspack/cli': '2.1.10'
+  serialize-javascript: '>=7.0.5'
+  fast-uri: '>=3.1.4 <4.0.0'
+  koa: '>=3.1.2'
+  adm-zip: '>=0.6.0'
+  '@cypress/code-coverage>js-yaml': '>=4.3.0'
+  'xmlbuilder2>js-yaml': '^3.14.2'

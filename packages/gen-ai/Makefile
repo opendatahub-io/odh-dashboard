@@ -25,7 +25,7 @@ help: ## Display this help message
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies: ## Install dependencies for frontend
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff-mock
 dev-bff-mock: ## Run BFF with all mocks enabled (K8s, LlamaStack, MCP, MLflow, BFF clients)
@@ -57,7 +57,7 @@ endif
 
 .PHONY: dev-frontend
 dev-frontend: ## Run only the frontend in development mode
-	cd frontend && npm run start:dev
+	cd frontend && pnpm run start:dev
 
 .PHONY: dev-mlflow-up
 dev-mlflow-up: ## Start local MLflow tracking server for development
@@ -165,9 +165,9 @@ dev-start-maas: dev-portforward ## Start MaaS BFF + gen-ai BFF + frontend + port
 
 clean: ## Clean build artifacts and node_modules
 	@echo "Cleaning root dist..."
-	npm run clean 2>/dev/null || true
+	pnpm run clean 2>/dev/null || true
 	@echo "Cleaning frontend dist..."
-	cd frontend && npm run clean 2>/dev/null || true
+	cd frontend && pnpm run clean 2>/dev/null || true
 	@echo "Cleaning bff..."
 	cd bff && make clean 2>/dev/null || true
 	@echo "Clean complete!"

@@ -35,11 +35,6 @@
       "outputs": ["contract-tests/contract-test-results/**"]
     },
 
-    // Prepares modules for testing by installing dependencies
-    "install:module": {
-      "cache": false
-    },
-
     "start:dev": {
       "cache": false,
       "persistent": true

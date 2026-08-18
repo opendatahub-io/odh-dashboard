@@ -38,10 +38,10 @@
     ]
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "@segment/analytics-next": "^1.84.1",
     "dompurify": "^3.4.13",
     "marked": "^15.0.12",
@@ -49,6 +49,6 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*"
+    "@odh-dashboard/eslint-config": "workspace:*"
   }
 }

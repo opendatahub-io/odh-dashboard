@@ -8,7 +8,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "dev": "npm run start:dev",
+    "dev": "pnpm run start:dev",
     "start:dev": "rspack dev --hot --config ./config/rspack.dev.js",
     "build": "rspack --config ./config/rspack.prod.js",
     "build:prod": "rspack --config ./config/rspack.prod.js",
@@ -18,12 +18,12 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@odh-dashboard/base-distribution": "*",
-    "@odh-dashboard/gen-ai": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/maas": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/base-distribution": "workspace:*",
+    "@odh-dashboard/gen-ai": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/maas": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "mod-arch-core": "^1.16.1",
     "mod-arch-shared": "^1.15.4",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
@@ -42,9 +42,9 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.1.10",
     "@rspack/dev-server": "^2.1.0",

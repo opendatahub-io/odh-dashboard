@@ -47,18 +47,18 @@
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-registry": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/model-registry": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "js-yaml": "^4.1.1",
     "mod-arch-core": "^1.15.4"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@types/js-yaml": "^4.0.9"
   },
   "peerDependencies": {

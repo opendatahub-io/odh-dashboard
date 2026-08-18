@@ -85,7 +85,7 @@ test: fmt vet envtest
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
@@ -94,7 +94,7 @@ dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -109,7 +109,7 @@ dev-start-kubeflow:
 
 .PHONY: dev-frontend-kubeflow
 dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
@@ -123,7 +123,7 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -147,7 +147,7 @@ dev-bff-federated-mock:
 
 .PHONY: dev-frontend-federated-mock
 dev-frontend-federated-mock:
-	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 npm run start:dev
+	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-start-mock-federated
 dev-start-mock-federated:
@@ -222,11 +222,11 @@ kubeflow-deployment:
 ############ Build ############
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=kubeflow pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:

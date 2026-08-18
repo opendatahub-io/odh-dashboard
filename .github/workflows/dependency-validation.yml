@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
-      - "**/package-lock.json"
+      - "pnpm-lock.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,31 +30,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect changed package directories
+      - name: Detect pnpm lockfile changes
         id: dirs
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          # --name-only is required: git diff -z without it emits a full patch
-          # with no NULs, so the read loop never iterates and dirs stays [].
-          git diff -z --name-only --diff-filter=ACMRT "$BASE_SHA"..HEAD -- \
-            ':(glob)**/package-lock.json' > /tmp/changed-locks
-
-          DIRS="[]"
-          while IFS= read -r -d '' file; do
-            dir=$(dirname "$file")
-            # Exclude upstream-synced packages
-            case "$dir" in
-              */upstream/*) continue ;;
-            esac
-            DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" 'if (. | index($d)) then . else . + [$d] end')
-          done < /tmp/changed-locks
-
-          if [ "$DIRS" = "[]" ]; then
-            echo "::warning::No package-lock.json dirs detected from git diff; npm audit will be skipped"
+          if git diff --name-only --diff-filter=ACMRT "$BASE_SHA"..HEAD -- pnpm-lock.yaml | grep -q .; then
+            DIRS='["."]'
+          else
+            DIRS='[]'
+            echo "::warning::pnpm-lock.yaml not changed in git diff; pnpm audit will be skipped"
           fi
 
-          echo "dirs=$(echo "$DIRS" | jq -c '.')" >> "$GITHUB_OUTPUT"
+          echo "dirs=$DIRS" >> "$GITHUB_OUTPUT"
           echo "Directories to audit: $DIRS"
 
   audit:
@@ -72,7 +60,12 @@ jobs:
       - name: Checkout PR head
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Run npm audit on head
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: "22"
+
+      - name: Run pnpm audit on head
         id: audit
         timeout-minutes: 5
         working-directory: ${{ matrix.dir }}
@@ -80,20 +73,20 @@ jobs:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
           set +e
-          npm audit --omit=dev --audit-level=high --package-lock-only --json > audit-head.json 2>audit-head.err
+          pnpm audit --prod --audit-level=high --json > audit-head.json 2>audit-head.err
           set -e
 
           if [ -s audit-head.err ]; then
-            echo "[info] npm audit stderr:" && cat audit-head.err
+            echo "[info] pnpm audit stderr:" && cat audit-head.err
           fi
 
           if ! jq empty audit-head.json 2>/dev/null; then
-            echo "::error::npm audit produced invalid JSON in ${AUDIT_DIR}"
+            echo "::error::pnpm audit produced invalid JSON in ${AUDIT_DIR}"
             [ -s audit-head.err ] && cat audit-head.err
             exit 1
           fi
 
-          jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-head.json | sort > head-ids.txt
+          jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-head.json | sort > head-ids.txt
 
           echo "Advisory IDs on head:"
           cat head-ids.txt
@@ -104,37 +97,38 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
-      - name: Run npm audit on base
+      - name: Run pnpm audit on base
         id: audit-base
         timeout-minutes: 5
         env:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
-          if [ ! -d "base/${AUDIT_DIR}" ]; then
-            echo "Directory base/${AUDIT_DIR} does not exist on the base branch (new package); treating as zero advisories"
-            mkdir -p "base/${AUDIT_DIR}"
-            touch "base/${AUDIT_DIR}/base-ids.txt"
+          if [ ! -f "base/pnpm-lock.yaml" ]; then
+            echo "pnpm-lock.yaml does not exist on the base branch (new lockfile); treating as zero advisories"
+            touch "base/base-ids.txt"
           else
-            cd "base/${AUDIT_DIR}"
+            cd base
+            PNPM_VERSION=$(jq -r '.packageManager | sub("^pnpm@"; "")' package.json)
+            npm install -g "pnpm@${PNPM_VERSION}"
             set +e
-            npm audit --omit=dev --audit-level=high --package-lock-only --json > audit-base.json 2>audit-base.err
+            pnpm audit --prod --audit-level=high --json > audit-base.json 2>audit-base.err
             set -e
 
             if [ -s audit-base.err ]; then
-              echo "[info] npm audit stderr (base):" && cat audit-base.err
+              echo "[info] pnpm audit stderr (base):" && cat audit-base.err
             fi
 
             if ! jq empty audit-base.json 2>/dev/null; then
-              echo "::warning::npm audit produced invalid JSON on base in ${AUDIT_DIR}; treating as zero advisories"
+              echo "::warning::pnpm audit produced invalid JSON on base; treating as zero advisories"
               [ -s audit-base.err ] && cat audit-base.err
               touch base-ids.txt
             else
-              jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
+              jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-base.json | sort > base-ids.txt
             fi
           fi
 
           echo "Advisory IDs on base:"
-          cat "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt"
+          cat "$GITHUB_WORKSPACE/base/base-ids.txt" 2>/dev/null || cat "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt" 2>/dev/null || true
 
       - name: Evaluate new advisories
         id: evaluate
@@ -142,7 +136,12 @@ jobs:
         env:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
-          NEW_ADVISORIES=$(comm -23 head-ids.txt "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt")
+          BASE_IDS="$GITHUB_WORKSPACE/base/base-ids.txt"
+          if [ ! -f "$BASE_IDS" ]; then
+            BASE_IDS="$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt"
+          fi
+
+          NEW_ADVISORIES=$(comm -23 head-ids.txt "$BASE_IDS")
 
           if [ -n "$NEW_ADVISORIES" ]; then
             COUNT=$(echo "$NEW_ADVISORIES" | wc -l | tr -d ' ')
