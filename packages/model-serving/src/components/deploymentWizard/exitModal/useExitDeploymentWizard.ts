@@ -1,9 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
 
 type UseExitWizardOptions = {
   returnRoute?: string;
   cancelReturnRoute?: string;
+  isEdit?: boolean;
 };
 
 type UseExitWizardReturn = {
@@ -17,6 +20,7 @@ type UseExitWizardReturn = {
 export const useExitDeploymentWizard = ({
   returnRoute,
   cancelReturnRoute,
+  isEdit,
 }: UseExitWizardOptions): UseExitWizardReturn => {
   const navigate = useNavigate();
 
@@ -39,9 +43,10 @@ export const useExitDeploymentWizard = ({
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {
+    fireModelDeployed({ outcome: TrackingOutcome.cancel }, isEdit);
     setIsExitModalOpen(false);
     exitWizardOnCancel();
-  }, [exitWizardOnCancel]);
+  }, [exitWizardOnCancel, isEdit]);
 
   return {
     isExitModalOpen,

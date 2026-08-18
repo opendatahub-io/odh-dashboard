@@ -51,6 +51,8 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   cannotCheck,
   registryName,
   selectorOnly,
+  isDisabled,
+  isFullWidth,
 }) => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const noProjects = projectsLoaded && projects.length === 0;
@@ -144,8 +146,9 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
       namespace={selectedNamespace}
       onSelection={onSelect}
       placeholder="Select a project"
-      isFullWidth={!selectorOnly}
+      isFullWidth={isFullWidth ?? !selectorOnly}
       isLoading={!projectsLoaded}
+      isDisabled={isDisabled}
     />
   );
 

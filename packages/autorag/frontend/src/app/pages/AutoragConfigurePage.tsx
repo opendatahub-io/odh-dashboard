@@ -27,6 +27,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
+import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
@@ -64,6 +65,7 @@ function AutoragConfigurePage({
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
+  const catchUIError = useCatchUIError();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -239,9 +241,11 @@ function AutoragConfigurePage({
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
                   navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                 } catch (error) {
-                  notification.error(
-                    'Failed to create pipeline run',
-                    error instanceof Error ? error.message : '',
+                  catchUIError(error, () =>
+                    notification.error(
+                      'Failed to create pipeline run',
+                      error instanceof Error ? error.message : '',
+                    ),
                   );
                 }
               },

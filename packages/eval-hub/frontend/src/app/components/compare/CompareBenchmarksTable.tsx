@@ -66,21 +66,40 @@ const CompareBenchmarksTable: React.FC<CompareBenchmarksTableProps> = ({
             />
           </Th>
           <Th modifier="nowrap" width={15}>
-            Evaluation run
+            Evaluation name
+          </Th>
+          <Th
+            modifier="nowrap"
+            width={15}
+            info={{
+              popover: 'The benchmark or benchmark suite used for this evaluation.',
+            }}
+          >
+            Evaluation
           </Th>
           <Th modifier="nowrap" width={10}>
             Type
           </Th>
-          <Th modifier="nowrap" width={15}>
-            Evaluation
-          </Th>
-          <Th modifier="nowrap" width={15}>
+          <Th
+            modifier="nowrap"
+            width={15}
+            info={{
+              popover: 'The model, agent, or dataset being evaluated.',
+            }}
+          >
             Evaluated
           </Th>
           <Th modifier="nowrap" width={15}>
             Date
           </Th>
-          <Th modifier="nowrap" width={10}>
+          <Th
+            modifier="nowrap"
+            width={10}
+            info={{
+              popover:
+                'The primary metric score for this evaluation run. For benchmark suites, this is the weighted average of all benchmark scores.',
+            }}
+          >
             Result
           </Th>
         </Tr>

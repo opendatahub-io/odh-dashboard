@@ -47,7 +47,7 @@
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:bff-mock\" \"cross-env PROXY_HOST=localhost PROXY_PORT=9001 npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 http://localhost:9001 && npm run cypress:run:mock\" -- "
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.13.1",
+    "@module-federation/enhanced": "^0.24.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.9.1",
     "@types/jest": "^29.5.14",
@@ -98,12 +98,13 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@patternfly/chatbot": "^6.5.0-prerelease.22",
-    "@patternfly/react-code-editor": "^6.3.1",
-    "@patternfly/react-core": "^6.3.1",
-    "@patternfly/react-icons": "^6.3.1",
-    "@patternfly/react-styles": "^6.3.1",
-    "@patternfly/react-templates": "^6.3.1",
+    "@patternfly/chatbot": "~6.5.0",
+    "@patternfly/react-code-editor": "~6.5.1",
+    "@patternfly/react-core": "~6.5.1",
+    "@patternfly/react-icons": "~6.5.1",
+    "@patternfly/react-styles": "~6.5.1",
+    "@patternfly/react-templates": "~6.5.1",
+    "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@tanstack/react-query": "^5.62.0",
     "immer": "^11.1.3",
     "mod-arch-core": "^1.15.4",

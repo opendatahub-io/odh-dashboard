@@ -1,3 +1,4 @@
+import type { BranchExpandOptions } from './branchExpand';
 import type { PipelineVisualizationData, TreeTopologyData } from './types';
 import { transformStageMapNodesToTree } from './transformStageMapNodesToTree';
 
@@ -8,7 +9,26 @@ export type TransformPipelineResult =
   | { status: 'empty'; topology: TreeTopologyData }
   | { status: 'error'; error: unknown };
 
-export const transformPipelineData = (data: PipelineVisualizationData): TransformPipelineResult => {
+export type TransformPipelineOptions = {
+  modelsExpanded?: boolean;
+  /** Succeeded run with a known best model. */
+  winnerResolved?: boolean;
+};
+
+export const buildBranchExpandOptions = (
+  data: PipelineVisualizationData,
+  options?: TransformPipelineOptions,
+): BranchExpandOptions => ({
+  modelsExpanded: options?.modelsExpanded ?? false,
+  winnerResolved: options?.winnerResolved === true && !!data.selectedModel,
+  winnerModelLabel: data.winnerModelLabel,
+  winnerModelKey: data.selectedModel,
+});
+
+export const transformPipelineData = (
+  data: PipelineVisualizationData,
+  options?: TransformPipelineOptions,
+): TransformPipelineResult => {
   const { stageMapNodes } = data;
 
   if (!stageMapNodes || stageMapNodes.length === 0) {
@@ -16,7 +36,13 @@ export const transformPipelineData = (data: PipelineVisualizationData): Transfor
   }
 
   try {
-    return { status: 'ok', topology: transformStageMapNodesToTree(stageMapNodes) };
+    return {
+      status: 'ok',
+      topology: transformStageMapNodesToTree(
+        stageMapNodes,
+        buildBranchExpandOptions(data, options),
+      ),
+    };
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to transform pipeline topology for tree view:', error);

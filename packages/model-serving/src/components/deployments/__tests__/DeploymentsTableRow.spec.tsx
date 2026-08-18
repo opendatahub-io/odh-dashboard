@@ -62,6 +62,15 @@ jest.mock('../row/DeploymentHardwareProfileCell', () => ({
   DeploymentHardwareProfileCell: () => <td>Hardware Profile</td>,
 }));
 
+// Mock useHardwareProfileBindingState (invoked directly in DeploymentsTableRow)
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
+  const actual = jest.requireActual('@odh-dashboard/hardware-profiles/shared');
+  return {
+    ...actual,
+    useHardwareProfileBindingState: () => [null, true, undefined],
+  };
+});
+
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
   model: {

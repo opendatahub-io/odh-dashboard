@@ -14,12 +14,14 @@ import {
   ModelCatalogTensorType,
 } from '~/concepts/modelCatalog/const';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import { useUserInteraction } from '~/concepts/userInteraction';
 import {
   CatalogFilterPanel,
   useCatalogFilterConfigs,
   type FilterPanelItem,
   type StringFilterPanelItem,
 } from '~/app/shared/components/catalog';
+import { MODEL_CATALOG_EVENTS, getToggledFilterValue } from '~/app/pages/modelCatalog/tracking';
 import ModelPerformanceViewToggleCard from './ModelPerformanceViewToggleCard';
 import SidebarSliderFilter from './SidebarSliderFilter';
 
@@ -51,6 +53,7 @@ const ModelCatalogFilters: React.FC = () => {
   const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
     React.useContext(ModelCatalogContext);
   const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
+  const { trackSimpleEvent } = useUserInteraction();
 
   React.useEffect(() => {
     if (
@@ -69,11 +72,27 @@ const ModelCatalogFilters: React.FC = () => {
   const onFilterChange = React.useCallback(
     (key: string, values: string[]) => {
       const match = BASIC_STRING_FILTER_KEYS.find((k) => k === key);
-      if (match) {
-        setFilters((prev) => ({ ...prev, [match]: values }));
+      if (!match) {
+        return;
+      }
+
+      const previousValues = filters[match];
+      const toggledValue = getToggledFilterValue(previousValues, values);
+      const isArgumentSelected = toggledValue ? values.includes(toggledValue) : false;
+
+      setFilters((prev) => ({ ...prev, [match]: values }));
+
+      // Sidebar checkbox toggle for validated arguments only (chip clear / reset are not tracked).
+      // argumentSelected: argument display name when checked, false when unchecked.
+      if (match === ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION && toggledValue) {
+        trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_FILTER_APPLIED, {
+          argumentSelected: isArgumentSelected
+            ? LABEL_MAPPINGS[match][toggledValue] || toggledValue
+            : false,
+        });
       }
     },
-    [setFilters],
+    [filters, setFilters, trackSimpleEvent],
   );
 
   const selectedStringFilters = React.useMemo(() => {

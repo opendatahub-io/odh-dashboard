@@ -29,19 +29,21 @@ import (
 )
 
 const (
-	Version                  = "1.0.0"
-	PathPrefix               = "/eval-hub"
-	ApiPathPrefix            = "/api/v1"
-	HealthCheckPath          = "/healthcheck"
-	HealthPath               = ApiPathPrefix + "/health"
-	UserPath                 = ApiPathPrefix + "/user"
-	NamespacePath            = ApiPathPrefix + "/namespaces"
-	EvaluationJobsPath       = ApiPathPrefix + "/evaluations/jobs"
-	EvaluationJobByIDPath    = ApiPathPrefix + "/evaluations/jobs/:id"
-	CollectionsPath          = ApiPathPrefix + "/evaluations/collections"
-	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
-	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
-	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
+	Version                        = "1.0.0"
+	PathPrefix                     = "/eval-hub"
+	ApiPathPrefix                  = "/api/v1"
+	HealthCheckPath                = "/healthcheck"
+	HealthPath                     = ApiPathPrefix + "/health"
+	UserPath                       = ApiPathPrefix + "/user"
+	NamespacePath                  = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath             = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
+	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
+	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
+	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
+	EvalHubCRStatusPath            = ApiPathPrefix + "/evalhub/status"
+	EvalHubServiceHealthPath       = ApiPathPrefix + "/evalhub/health"
 
 	// Inter-BFF: model-catalog security artifacts
 	CatalogSourceID                   = "source_id"
@@ -253,6 +255,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(EvaluationJobsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateEvaluationJobHandler))))
 	apiRouter.GET(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobHandler))))
 	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
+	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
+	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 

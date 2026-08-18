@@ -290,7 +290,6 @@ func (app *App) Routes() http.Handler {
 	attachExternalModelHandlers(apiRouter, app)
 	attachYamlHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithMaasApi(app, ListModelsHandler))
-	apiRouter.GET(constants.ModelsOverviewPath, handlerWithApp(app, ListModelsOverviewHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?

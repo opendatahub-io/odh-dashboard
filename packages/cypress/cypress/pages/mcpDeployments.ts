@@ -160,10 +160,6 @@ class McpDeployModal {
     return this.findModal().findByTestId('mcp-deploy-oci-image-input');
   }
 
-  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-project-selector');
-  }
-
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModal().findByTestId('modal-submit-button');
   }

@@ -680,12 +680,29 @@ export type GenAiTestData = {
 
 export type CustomEndpointTestData = {
   modelId: string;
+  modelType: string;
   displayName: string;
   endpointUrl: string;
   testMessage: string;
   lsdServiceName: string;
   lsdPodPrefix: string;
   lsdPodReadyTimeout: string;
+  prompt: {
+    name: string;
+    template: string;
+    commitMessage: string;
+    testMessageWithPrompt: string;
+  };
+  rag: {
+    fileName: string;
+    fixturePath: string;
+    testQuestion: string;
+    expectedContentFragment: string;
+  };
+  guardrails: {
+    safeMessage: string;
+    maliciousMessage: string;
+  };
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */

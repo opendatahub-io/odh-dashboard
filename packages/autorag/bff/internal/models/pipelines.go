@@ -65,3 +65,24 @@ type CreateAutoRAGRunRequest struct {
 	VectorIOProviderID         string   `json:"vector_io_provider_id,omitempty"`
 	OptimizationMaxRagPatterns *int     `json:"optimization_max_rag_patterns,omitempty"`
 }
+
+// CreateIndexingPipelineRunRequest is the BFF-level input for creating a documents-indexing-pipeline run.
+// Parameters come from pattern.indexing.pipeline_spec.parameters and are forwarded to KFP.
+type CreateIndexingPipelineRunRequest struct {
+	DisplayName string         `json:"display_name"`
+	Description string         `json:"description,omitempty"`
+	Parameters  map[string]any `json:"parameters"`
+}
+
+// ManagedPipeline represents a discovered managed pipeline exposed to the frontend.
+type ManagedPipeline struct {
+	PipelineType      string `json:"pipeline_type"`
+	PipelineID        string `json:"pipeline_id"`
+	PipelineVersionID string `json:"pipeline_version_id"`
+	DisplayName       string `json:"display_name"`
+}
+
+// ManagedPipelinesData contains the list of discovered managed pipelines.
+type ManagedPipelinesData struct {
+	Pipelines []ManagedPipeline `json:"pipelines"`
+}

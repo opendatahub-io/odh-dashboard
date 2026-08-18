@@ -102,8 +102,8 @@ const makeFormData = (overrides: Partial<FeatureStoreFormData> = {}): FeatureSto
   offlineStoreEnabled: false,
   offlinePersistenceType: PersistenceType.FILE,
   offlineStoreSecretName: '',
-  authzType: AuthzType.NONE,
-  authz: undefined,
+  authzType: AuthzType.KUBERNETES,
+  authz: { kubernetes: { roles: [] } },
   scalingEnabled: false,
   scalingMode: ScalingMode.STATIC,
   replicas: 1,
@@ -163,7 +163,7 @@ describe('RegistryStep', () => {
     expect(screen.getByTestId('feast-registry-rest-api')).toBeInTheDocument();
     expect(screen.getByTestId('feast-registry-grpc')).toBeInTheDocument();
     expect(screen.getByLabelText('File-based')).toBeInTheDocument();
-    expect(screen.getByLabelText('Database store')).toBeInTheDocument();
+    expect(screen.getByLabelText('Database')).toBeInTheDocument();
     expect(
       screen.getByTestId('server-config-Advanced registry server configuration'),
     ).toBeInTheDocument();
@@ -439,7 +439,7 @@ describe('RegistryStep', () => {
         },
       },
     });
-    fireEvent.click(screen.getByLabelText('Database store'));
+    fireEvent.click(screen.getByLabelText('Database'));
     expect(setData).toHaveBeenCalledWith('registrySecretName', '');
     expect(setData).toHaveBeenCalledWith(
       'services',
@@ -550,7 +550,7 @@ describe('RegistryStep', () => {
     ],
     [
       'FEAST_REF',
-      'FeatureStore reference',
+      'Feature store reference',
       RemoteRegistryType.FEAST_REF,
       { feastRef: { name: 'primary-fs', namespace: 'primary-ns' } },
     ],

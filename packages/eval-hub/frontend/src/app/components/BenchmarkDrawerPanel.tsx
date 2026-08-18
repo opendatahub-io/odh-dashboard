@@ -10,19 +10,13 @@ import {
   Flex,
   FlexItem,
   Label,
-  LabelGroup,
-  List,
-  ListItem,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
-import InlineTooltip from '~/app/components/InlineTooltip';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
+import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
 type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
@@ -36,14 +30,13 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   onRunBenchmark,
 }) => {
   if (!benchmark) {
-    return null;
+    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
+    return <DrawerPanelContent isResizable minSize="400px" />;
   }
 
   const color = getCategoryColor(benchmark.category);
-  const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
   const drawerHeadStyle: React.CSSProperties = {
-    // Tighten space before the scrollable body (PF default is --pf-t--global--spacer--sm)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
     ...({
       '--pf-v6-c-drawer__head--PaddingBlockEnd': 'var(--pf-t--global--spacer--xs)',
@@ -53,7 +46,6 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   const drawerScrollBodyStyle: React.CSSProperties = {
     flex: 1,
     overflowY: 'auto',
-    // Default panel body block-start padding is md; pull description up under the id line
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
     ...({
       '--pf-v6-c-drawer__panel__body--PaddingBlockStart': 'var(--pf-t--global--spacer--xs)',
@@ -80,33 +72,11 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
                   style={{
                     marginBlock: 0,
                     color: 'var(--pf-t--global--text--color--subtle)',
-                    fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
                   }}
                 >
-                  {safeBenchmarkUrl ? (
-                    <Button
-                      variant="link"
-                      isInline
-                      component="a"
-                      href={safeBenchmarkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      icon={<ExternalLinkAltIcon />}
-                      iconPosition="end"
-                      style={{ fontWeight: 'var(--pf-t--global--font--weight--heading--default)' }}
-                      onClick={() =>
-                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                          url: safeBenchmarkUrl,
-                          benchmarkId: benchmark.id,
-                          surface: 'benchmark_drawer',
-                        })
-                      }
-                    >
-                      {benchmark.id}
-                    </Button>
-                  ) : (
-                    benchmark.id
-                  )}
+                  {benchmark.providerName
+                    ? `${benchmark.id} · ${benchmark.providerName}`
+                    : benchmark.id}
                 </Content>
               </FlexItem>
             </Flex>
@@ -118,94 +88,19 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
       </DrawerHead>
 
       <DrawerPanelBody style={drawerScrollBodyStyle}>
-        <Stack hasGutter>
-          {benchmark.description && (
-            <StackItem>
-              <Content component="p" style={{ marginBlockStart: 0 }}>
-                {benchmark.description}
-              </Content>
-            </StackItem>
-          )}
-
-          {benchmark.metrics && benchmark.metrics.length > 0 && (
-            <StackItem>
-              <Stack hasGutter>
-                <StackItem>
-                  <Content component="p" className="pf-v6-u-font-weight-bold">
-                    Metrics evaluated
-                  </Content>
-                </StackItem>
-                <StackItem>
-                  <LabelGroup numLabels={benchmark.metrics.length} isCompact>
-                    {benchmark.metrics.map((metric) => (
-                      <Label key={metric} isCompact variant="outline">
-                        {metric}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                </StackItem>
-              </Stack>
-            </StackItem>
-          )}
-
-          {benchmark.primary_score && (
-            <StackItem>
-              <Content component="p" className="pf-v6-u-font-weight-bold">
-                Primary scorer metric
-              </Content>
-              <Content component="p">{benchmark.primary_score.metric}</Content>
-            </StackItem>
-          )}
-
-          {benchmark.pass_criteria && (
-            <StackItem>
-              <Content component="p" className="pf-v6-u-font-weight-bold">
-                Benchmark threshold
-              </Content>
-              <Content component="p">{benchmark.pass_criteria.threshold}</Content>
-            </StackItem>
-          )}
-
-          {benchmark.providerName && (
-            <StackItem>
-              <Content component="p" className="pf-v6-u-font-weight-bold">
-                Evaluation framework
-              </Content>
-              {Array.isArray(benchmark.providerAgent?.recommended_when) &&
-              benchmark.providerAgent.recommended_when.length > 0 ? (
-                <InlineTooltip
-                  text={benchmark.providerName}
-                  data-testid="benchmark-provider-tooltip"
-                  tooltip={
-                    <div className="evalhub-inline-tooltip__content">
-                      <div className="evalhub-inline-tooltip__header">
-                        <strong>Recommended when:</strong>
-                      </div>
-                      <List>
-                        {benchmark.providerAgent.recommended_when.map((item) => (
-                          <ListItem key={item}>{item}</ListItem>
-                        ))}
-                      </List>
-                    </div>
-                  }
-                />
-              ) : (
-                <Content component="p">{benchmark.providerName}</Content>
-              )}
-            </StackItem>
-          )}
-
-          {benchmark.providerAgent?.target_type && (
-            <StackItem>
-              <Content component="p" className="pf-v6-u-font-weight-bold">
-                Target type
-              </Content>
-              <Content component="p">
-                {capitalizeFirst(benchmark.providerAgent.target_type)}
-              </Content>
-            </StackItem>
-          )}
-        </Stack>
+        <BenchmarkDrawerTileContent
+          name={benchmark.name}
+          id={benchmark.id}
+          description={benchmark.description}
+          metrics={benchmark.metrics}
+          providerName={benchmark.providerName}
+          providerAgent={benchmark.providerAgent}
+          primaryScore={benchmark.primary_score}
+          passCriteria={benchmark.pass_criteria}
+          url={benchmark.url}
+          trackingSurface="benchmark_drawer"
+          showHeader={false}
+        />
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">

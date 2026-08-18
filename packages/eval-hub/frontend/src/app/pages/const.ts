@@ -4,16 +4,26 @@ export enum BenchmarkFilterOptions {
   metrics = 'Metrics',
 }
 
-export const benchmarkFilterConfig: Record<BenchmarkFilterOptions, string> = {
-  [BenchmarkFilterOptions.category]: 'Category',
-  [BenchmarkFilterOptions.name]: 'Name',
-  [BenchmarkFilterOptions.metrics]: 'Metrics',
+export type BenchmarkFilterDataType = {
+  [BenchmarkFilterOptions.category]: string[];
+  [BenchmarkFilterOptions.name]: string;
+  [BenchmarkFilterOptions.metrics]: string[];
 };
 
-export type BenchmarkFilterDataType = Record<BenchmarkFilterOptions, string | undefined>;
-
 export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
-  [BenchmarkFilterOptions.category]: '',
+  [BenchmarkFilterOptions.category]: [],
   [BenchmarkFilterOptions.name]: '',
-  [BenchmarkFilterOptions.metrics]: '',
+  [BenchmarkFilterOptions.metrics]: [],
+};
+
+export enum BenchmarkSortOption {
+  DEFAULT = 'default',
+  NAME = 'name',
+  CATEGORY = 'category',
+}
+
+export const benchmarkSortLabels: Record<BenchmarkSortOption, string> = {
+  [BenchmarkSortOption.DEFAULT]: 'Default',
+  [BenchmarkSortOption.NAME]: 'Alphabetical',
+  [BenchmarkSortOption.CATEGORY]: 'Category',
 };

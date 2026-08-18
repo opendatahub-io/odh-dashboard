@@ -18,7 +18,7 @@ import {
   mockSubscriptions,
   mockSubscriptionInfo,
   mockSubscriptionInfoMissingModelSummaries,
-  mockSubscriptionFormData,
+  interceptMaasGovernanceData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
@@ -40,9 +40,7 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
 };
 
 describe('Subscriptions Page', () => {
@@ -93,7 +91,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
@@ -130,13 +128,30 @@ describe('Subscriptions Page', () => {
     phaseModal.findCloseButton().click();
     phaseModal.shouldBeOpen(false);
 
+    const degradedRow = subscriptionsPage.getRow('degraded-sub');
+    degradedRow.findPhase().should('contain.text', 'Degraded');
+    degradedRow.findPhaseLabel().click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findAffectedModelsTable().should('exist');
+    phaseModal.findAffectedModelName('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelNamespace('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatus('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatusMessage('granite-3-8b-instruct').should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
+
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
 
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit').should('exist');
@@ -187,17 +202,17 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().type('Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.findFilterInput().type('enterprise');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.findFilterInput().type('general users');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
   });
 
   it('should disable the action buttons for a deleting subscription in the table and view page', () => {
@@ -238,7 +253,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 6);
+    subscriptionsPage.findRows().should('have.length', 7);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -321,13 +336,13 @@ describe('View Subscription Page', () => {
 
     subscriptionManagementPage.visit('subscriptions');
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     subscriptionsPage.findFilterInput().type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findRows().should('have.length', 8);
 
     subscriptionsPage.getRow('Premium Team Subscription').findTitleButton().click();
     viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
@@ -357,9 +372,6 @@ describe('View Subscription Page', () => {
 describe('Subscription Create Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh('POST /maas/api/v1/new-subscription', {
       data: mockCreateSubscriptionResponse(),
     }).as('createSubscription');
@@ -481,9 +493,6 @@ describe('Edit Subscription Page', () => {
 
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh(
       'GET /maas/api/v1/subscription-info/:name',
       { path: { name: subscriptionName } },

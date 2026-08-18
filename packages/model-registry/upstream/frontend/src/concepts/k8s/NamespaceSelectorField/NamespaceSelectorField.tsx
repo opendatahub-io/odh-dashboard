@@ -46,6 +46,8 @@ export type NamespaceSelectorFieldProps = {
   cannotCheck?: boolean;
   registryName?: string;
   selectorOnly?: boolean;
+  isDisabled?: boolean;
+  isFullWidth?: boolean;
 };
 
 const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
@@ -57,6 +59,8 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   cannotCheck,
   registryName,
   selectorOnly,
+  isDisabled,
+  isFullWidth,
 }) => {
   const labelHelpRef = useRef<HTMLSpanElement>(null);
   const [namespaces, namespacesLoaded, namespacesLoadError] = useNamespaces();
@@ -122,6 +126,7 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
       onBlur={handleTextInputBlur}
       placeholder="Enter a namespace name"
       aria-label="Namespace"
+      isDisabled={isDisabled}
     />
   ) : (
     <div data-testid="form-namespace-selector-trigger">
@@ -130,8 +135,8 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
         value={selectedNamespace}
         onChange={handleChange}
         placeholder="Select a namespace"
-        isDisabled={namespaces.length === 0}
-        isFullWidth={!selectorOnly}
+        isDisabled={namespaces.length === 0 || isDisabled}
+        isFullWidth={isFullWidth ?? !selectorOnly}
         isScrollable
         maxMenuHeight="300px"
         dataTestId="form-namespace-selector"
