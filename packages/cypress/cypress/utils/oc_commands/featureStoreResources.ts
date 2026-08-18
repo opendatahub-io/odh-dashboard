@@ -223,8 +223,6 @@ print("APPLIED_PERMISSION:${permissionName}")
 
   const permissionTempFile = `/tmp/cypress-feast-permission-${Date.now()}.py`;
   const applyTempFile = `/tmp/cypress-feast-registry-apply-${Date.now()}.py`;
-  const maxAttempts = 3;
-  const retryWaitSeconds = 30;
 
   cy.step(
     `Write ${featureRepoDir}/permission.py and registry-only apply (ns=${namespace}, instance=${feastInstanceName})`,
@@ -253,49 +251,35 @@ print("APPLIED_PERMISSION:${permissionName}")
               }
               cy.log(`Wrote permission.py into registry feature repo:\n${writeResult.stdout}`);
 
-              cy.log(
-                `Running registry-only apply with ${maxAttempts} attempts (${retryWaitSeconds}s between retries)`,
-              );
-
-              // Pipe apply script into the pod (skips DynamoDB TagResource via update_infra no-op)
+              // Pipe apply script into the pod (skips DynamoDB TagResource via update_infra no-op).
+              // Use `apply_rc` (not `status`) — zsh treats `status` as read-only.
               const pipedApplyCmd =
-                `attempt=1; ` +
-                `while [ $attempt -le ${maxAttempts} ]; do ` +
-                `  echo "REGISTRY_APPLY_ATTEMPT=$attempt/${maxAttempts}"; ` +
-                `  if cat ${applyTempFile} | oc exec -i -n ${namespace} deploy/${deployName} -c ${container} -- ` +
-                `    sh -c "cd ${featureRepoDir} && python -"; then ` +
-                `    echo "REGISTRY_APPLY_OK"; ` +
-                `    rm -f ${applyTempFile}; ` +
-                `    exit 0; ` +
-                `  fi; ` +
-                `  echo "REGISTRY_APPLY_FAILED attempt=$attempt"; ` +
-                `  if [ $attempt -lt ${maxAttempts} ]; then ` +
-                `    echo "Waiting ${retryWaitSeconds}s before retry..."; ` +
-                `    sleep ${retryWaitSeconds}; ` +
-                `  fi; ` +
-                `  attempt=$((attempt + 1)); ` +
-                `done; ` +
+                `cat ${applyTempFile} | oc exec -i -n ${namespace} deploy/${deployName} -c ${container} -- ` +
+                `sh -c "cd ${featureRepoDir} && python -"; apply_rc=$?; ` +
                 `rm -f ${applyTempFile}; ` +
-                `echo "REGISTRY_APPLY_EXHAUSTED"; ` +
-                `exit 1`;
+                `if [ "$apply_rc" -eq 0 ]; then echo "REGISTRY_APPLY_OK"; fi; ` +
+                `exit "$apply_rc"`;
 
               return cy
                 .exec(pipedApplyCmd, {
                   failOnNonZeroExit: false,
-                  timeout: 600000,
+                  timeout: 300000,
                 })
                 .then((applyResult) => {
                   const output = `${applyResult.stdout}\n${applyResult.stderr}`;
                   cy.log(output);
 
-                  if (applyResult.code === 0 && output.includes('REGISTRY_APPLY_OK')) {
+                  const applySucceeded =
+                    applyResult.code === 0 &&
+                    (output.includes('REGISTRY_APPLY_OK') ||
+                      output.includes('REGISTRY_ONLY_APPLY_OK'));
+
+                  if (applySucceeded) {
                     cy.log(`Registry-only apply succeeded for permission ${permissionName}`);
                     return cy.wrap(permissionName);
                   }
 
-                  throw new Error(
-                    `Registry-only apply failed after ${maxAttempts} attempts on deploy/${deployName}: ${output}`,
-                  );
+                  throw new Error(`Registry-only apply failed on deploy/${deployName}: ${output}`);
                 });
             });
         });

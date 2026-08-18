@@ -68,7 +68,6 @@ export const createSavedDataset = (
           /* eslint-enable camelcase */
         },
         failOnStatusCode: false,
-        strictSSL: false,
       })
       .then((response) => {
         if (response.status !== 200) {
@@ -148,7 +147,6 @@ export const applyFeastPermission = (
           },
         },
         failOnStatusCode: false,
-        strictSSL: false,
       })
       .then((response) => {
         if (response.status !== 200 && response.status !== 201) {
@@ -179,7 +177,7 @@ export const getEntityCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/entities?project=${project}&allow_cache=false&include_relationships=false`;
+  const apiUrl = `${routeUrl}/api/v1/entities?project=${project}&allow_cache=true&include_relationships=false`;
 
   return cy
     .request({
@@ -187,7 +185,6 @@ export const getEntityCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('entities' in response.body)) {
@@ -214,7 +211,7 @@ export const getFeatureCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/features?project=${project}&include_relationships=false&allow_cache=false`;
+  const apiUrl = `${routeUrl}/api/v1/features?project=${project}&include_relationships=false&allow_cache=true`;
 
   return cy
     .request({
@@ -222,7 +219,6 @@ export const getFeatureCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('features' in response.body)) {
@@ -249,7 +245,7 @@ export const getFeatureViewCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/feature_views?project=${project}&allow_cache=false&include_relationships=false`;
+  const apiUrl = `${routeUrl}/api/v1/feature_views?project=${project}&allow_cache=true&include_relationships=false`;
 
   return cy
     .request({
@@ -257,7 +253,6 @@ export const getFeatureViewCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('featureViews' in response.body)) {
@@ -284,7 +279,7 @@ export const getFeatureServicesCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/feature_services?project=${project}&include_relationships=false&allow_cache=false`;
+  const apiUrl = `${routeUrl}/api/v1/feature_services?project=${project}&include_relationships=false&allow_cache=true`;
 
   return cy
     .request({
@@ -292,7 +287,6 @@ export const getFeatureServicesCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('featureServices' in response.body)) {
@@ -321,7 +315,7 @@ export const getDataSourceCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/data_sources?project=${project}&include_relationships=false&allow_cache=false`;
+  const apiUrl = `${routeUrl}/api/v1/data_sources?project=${project}&include_relationships=false&allow_cache=true`;
 
   return cy
     .request({
@@ -329,7 +323,6 @@ export const getDataSourceCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('dataSources' in response.body)) {
@@ -356,7 +349,7 @@ export const getDatasetsCount = (
   project: string,
   token: string,
 ): Cypress.Chainable<number> => {
-  const apiUrl = `${routeUrl}/api/v1/saved_datasets?project=${project}&allow_cache=false&include_relationships=false`;
+  const apiUrl = `${routeUrl}/api/v1/saved_datasets?project=${project}&allow_cache=true&include_relationships=false`;
 
   return cy
     .request({
@@ -364,7 +357,6 @@ export const getDatasetsCount = (
       url: apiUrl,
       headers: authHeaders(token),
       failOnStatusCode: false,
-      strictSSL: false,
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('savedDatasets' in response.body)) {
@@ -400,7 +392,7 @@ const fetchFeatureCountWithRetry = (
       cy.log(
         `Feature count still 0 with ${featureViewCount} feature views; retry ${attempt}/${maxAttempts}`,
       );
-      // Retry without sleeping — allow_cache=false forces a fresh registry read.
+      // Retry without sleeping — allow_cache=true forces a fresh registry read.
       return fetchFeatureCountWithRetry(
         routeUrl,
         project,

@@ -70,12 +70,12 @@ describe('Feature Store Page Validation', () => {
           // and the dashboard login user (UI) admin on this project.
           return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
             const ocUser = whoami.stdout.trim();
-            const bindOcUser = ocUser
-              ? addUserToProject(projectName, ocUser, 'admin')
-              : cy.wrap(null);
-            return bindOcUser.then(() =>
-              addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin'),
-            );
+            if (ocUser) {
+              return addUserToProject(projectName, ocUser, 'admin').then(() =>
+                addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin'),
+              );
+            }
+            return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
           });
         })
         .then(() => {
