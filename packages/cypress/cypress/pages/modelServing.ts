@@ -800,6 +800,10 @@ class InferenceServiceRow extends ModelServingRow {
     return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
   }
 
+  findCapabilityOverflowLabel() {
+    return this.findCapabilitiesCell().findByTestId('capability-overflow-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
@@ -1397,6 +1401,10 @@ class ModelServingWizard extends Wizard {
     this.findCustomCapabilityInput().type(capability);
     this.findAddCustomCapabilityButton().click();
     return this;
+  }
+
+  findCustomCapabilityError() {
+    return cy.findByTestId('custom-capability-error');
   }
 
   removeCapability(capability: string) {

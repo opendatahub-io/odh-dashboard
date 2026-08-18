@@ -1,0 +1,33 @@
+# testModelCapabilities.cy.ts Test Data #
+projectResourceName: 'test-model-capabilities'
+projectDisplayName: 'Test Model Capabilities'
+modelName: 'test-capabilities-model'
+resourceType: 'InferenceService'
+
+# Model Capabilities Test Data
+wellKnownCapabilities:
+  - 'Vision'
+  - 'Transcription'
+  - 'CodeGen'
+  - 'Summarization'
+
+customCapabilities:
+  - 'MyCustomCap'
+  - 'ToRemove'
+  - 'Existing Custom'
+
+# Serving Runtime Configuration
+servingRuntime: 'vLLM NVIDIA'
+servingRuntimeType: 'generative'
+
+# Test Scenarios
+testScenarios:
+  basicDeployment:
+    capabilities: ['Vision', 'Transcription']
+  overflowScenario:
+    capabilities: ['Vision', 'Transcription', 'CodeGen', 'Summarization']
+  editDeployment:
+    initialCapabilities: ['Vision']
+    addedCapabilities: ['Transcription']
+  emptyCapabilities:
+    capabilities: []
