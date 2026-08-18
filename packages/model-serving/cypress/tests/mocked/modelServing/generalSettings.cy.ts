@@ -1,10 +1,25 @@
-import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
+import type { ClusterSettingsType } from '@odh-dashboard/internal/types';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
 import { generalSettingsPage } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/generalSettings';
+
+// Inlined here rather than imported from @odh-dashboard/internal/__mocks__ so this spec's
+// compilation stays within the package's tsconfig rootDir (frontend/src is outside it).
+const mockClusterSettings = (
+  overrides: Partial<ClusterSettingsType> = {},
+): ClusterSettingsType => ({
+  userTrackingEnabled: false,
+  cullerTimeout: 31536000, // 1 year (no culling)
+  pvcSize: 20,
+  modelServingPlatformEnabled: { kServe: true, LLMd: true },
+  isDistributedInferencingDefault: true,
+  defaultDeploymentStrategy: 'rolling',
+  globalMLflowNamespaces: [],
+  ...overrides,
+});
 
 const initIntercepts = () => {
   asProductAdminUser();
