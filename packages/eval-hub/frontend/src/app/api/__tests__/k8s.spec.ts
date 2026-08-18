@@ -198,6 +198,53 @@ describe('getCollection', () => {
     expect(result).toEqual(collection);
   });
 
+  it('should throw when data is null inside a valid envelope', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: expected an object',
+    );
+  });
+
+  it('should throw when data is missing required Collection fields', async () => {
+    mockRestGET.mockResolvedValue({ data: { category: 'General' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing or empty name',
+    );
+  });
+
+  it('should throw when data has name but no resource', async () => {
+    mockRestGET.mockResolvedValue({ data: { name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing resource',
+    );
+  });
+
+  it('should throw when resource is missing id', async () => {
+    mockRestGET.mockResolvedValue({ data: { name: 'Test', resource: {} } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: missing resource.id',
+    );
+  });
+
+  it('should throw when benchmarks is not an array', async () => {
+    mockRestGET.mockResolvedValue({
+      data: { name: 'Test', resource: { id: 'col-1' }, benchmarks: 'not-an-array' },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: benchmarks is not an array',
+    );
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);

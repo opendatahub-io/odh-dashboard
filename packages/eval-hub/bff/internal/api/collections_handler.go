@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
@@ -22,7 +23,7 @@ func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	id := ps.ByName("id")
+	id := strings.TrimPrefix(ps.ByName("id"), "/")
 	if id == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
 		return

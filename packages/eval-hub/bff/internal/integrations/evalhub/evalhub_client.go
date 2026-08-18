@@ -687,6 +687,8 @@ func tenantHeaders(namespace string) (map[string]string, error) {
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 // extraHeaders is an optional map of additional HTTP headers to include in the request.
+const maxGetResponseSize = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
@@ -706,9 +708,12 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > maxGetResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -2129,12 +2129,13 @@ components:
       in: query
       name: pageSize
       schema:
-        type: string
+        type: integer
+        format: int32
       required: false
       description: Number of entities in each page
       examples:
         pageSize:
-          value: '100'
+          value: 100
     nextPageToken:
       in: query
       name: nextPageToken
