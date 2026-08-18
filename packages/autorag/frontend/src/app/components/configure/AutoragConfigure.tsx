@@ -69,6 +69,7 @@ import AutoragConnectionModal from '~/app/components/common/AutoragConnectionMod
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -197,6 +198,7 @@ function AutoragConfigure({
 
   const notification = useNotification();
   const { showUIError } = useUIErrorHandler();
+  const { onKnowledgeSourceConfigured } = useRunTriggeredTracking();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -370,6 +372,7 @@ function AutoragConfigure({
           outcome: TrackingOutcome.submit,
           success: true,
         });
+        onKnowledgeSourceConfigured('upload');
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
           if (isUIError(err)) {
@@ -404,6 +407,7 @@ function AutoragConfigure({
       inputDataSecretName,
       namespace,
       notification,
+      onKnowledgeSourceConfigured,
       setValue,
       showUIError,
       uploadFileToS3,
@@ -1184,6 +1188,7 @@ function AutoragConfigure({
                 outcome: TrackingOutcome.submit,
                 success: true,
               });
+              onKnowledgeSourceConfigured('s3');
             }
             if (fileExplorerMode === 'test_data') {
               setValue('test_data_key', filePath, { shouldValidate: true });

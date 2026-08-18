@@ -3,6 +3,12 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_ANSWER_CORRECTNESS,
+  RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_OVERALL_SCORE,
+} from '~/app/utilities/const';
 
 export { TrackingOutcome };
 
@@ -13,6 +19,7 @@ export const AUTORAG_EVENTS = {
   EVALUATION_SOURCE_CONFIGURED: 'AutoRAG Evaluation Source Configured',
   MODELS_SELECTED: 'AutoRAG Models Selected',
   VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
+  RUN_TRIGGERED: 'AutoRAG Run Triggered',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -163,4 +170,66 @@ export const fireAutoragVectorStoreConfigured = (
   properties: VectorStoreConfiguredProperties,
 ): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.VECTOR_STORE_CONFIGURED, properties);
+};
+
+/** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
+export type RagOptimizationMetric =
+  | 'overallScore'
+  | 'answerFaithfulness'
+  | 'answerCorrectness'
+  | 'contextCorrectness';
+
+/* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
+const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
+  [RAG_METRIC_OVERALL_SCORE]: 'overallScore',
+  [RAG_METRIC_FAITHFULNESS]: 'answerFaithfulness',
+  [RAG_METRIC_ANSWER_CORRECTNESS]: 'answerCorrectness',
+  [RAG_METRIC_CONTEXT_CORRECTNESS]: 'contextCorrectness',
+};
+/* eslint-enable camelcase */
+
+/**
+ * Maps the schema's `optimization_metric` value (e.g. `"answer_correctness"`) to the camelCase
+ * {@link RagOptimizationMetric} taxonomy used in analytics. Returns `undefined` for any value
+ * outside the current allowlist (defensive only — the schema's zod enum already restricts the
+ * field to these four values).
+ */
+export const mapOptimizationMetric = (metric: string): RagOptimizationMetric | undefined =>
+  Object.prototype.hasOwnProperty.call(RAG_OPTIMIZATION_METRIC_MAP, metric)
+    ? RAG_OPTIMIZATION_METRIC_MAP[metric]
+    : undefined;
+
+export type RunTriggeredProperties = {
+  /**
+   * Only known when the corresponding source was actually (re)selected in this session — see
+   * {@link RunTriggeredTrackingContext}. `undefined` on a reconfigure run submitted without
+   * touching that field (the pre-filled value was never re-selected through the UI).
+   */
+  knowledgeSourceType?: KnowledgeSourceType;
+  /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
+  evaluationSourceType?: EvaluationSourceType;
+  optimizationMetric?: RagOptimizationMetric;
+  /** See {@link RunTriggeredProperties.knowledgeSourceType} — same caveat applies. */
+  vectorDatabase?: VectorStoreProviderType;
+  countOfModels: number;
+  countOfKnowledgeDocuments: number;
+  countOfEvaluationDocuments: number;
+  countOfFoundationModels: number;
+  countOfEmbeddingModels: number;
+  /** True when at least one of the knowledge/evaluation sources was configured via an S3 connection (as opposed to a direct upload). */
+  hasS3Connection: boolean;
+  outcome: TrackingOutcome;
+  success: boolean;
+  error?: AutoragFailureCategory;
+};
+
+/**
+ * Fires when the user submits the "Create run"/"Create new run" button on the configure step,
+ * covering both new-run and reconfigure submissions. There is no cancel path for this specific
+ * action (the Back button returns to the previous step rather than abandoning the run), so
+ * `outcome` is always `submit`; `success`/`error` distinguish a successful pipeline-run creation
+ * from a failed one.
+ */
+export const fireAutoragRunTriggered = (properties: RunTriggeredProperties): void => {
+  fireFormTrackingEvent(AUTORAG_EVENTS.RUN_TRIGGERED, properties);
 };

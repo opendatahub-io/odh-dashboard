@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
@@ -27,7 +27,20 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
-import { fireAutoragExperimentCreated, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragExperimentCreated,
+  fireAutoragRunTriggered,
+  mapOptimizationMetric,
+  TrackingOutcome,
+  type EvaluationSourceType,
+  type KnowledgeSourceType,
+  type VectorStoreProviderType,
+} from '~/app/utilities/tracking';
+import {
+  RunTriggeredTrackingContext,
+  type RunTriggeredTrackingContextProps,
+} from '~/app/context/RunTriggeredTrackingContext';
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
@@ -88,6 +101,30 @@ function AutoragConfigurePage({
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+
+  // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
+  // when the user actually (re)selects a source/provider in this session — see the context's
+  // doc comment for why this can't be safely derived from form data alone. Read at submit time
+  // to build the "AutoRAG Run Triggered" event; not reset between submits since a failed
+  // pipeline-run creation should still report the last known selection on retry.
+  const knowledgeSourceTypeRef = useRef<KnowledgeSourceType>();
+  const evaluationSourceTypeRef = useRef<EvaluationSourceType>();
+  const vectorDatabaseRef = useRef<VectorStoreProviderType>();
+
+  const runTriggeredTrackingContextValue = useMemo<RunTriggeredTrackingContextProps>(
+    () => ({
+      onKnowledgeSourceConfigured: (sourceType) => {
+        knowledgeSourceTypeRef.current = sourceType;
+      },
+      onEvaluationSourceConfigured: (sourceType) => {
+        evaluationSourceTypeRef.current = sourceType;
+      },
+      onVectorStoreConfigured: (providerType) => {
+        vectorDatabaseRef.current = providerType;
+      },
+    }),
+    [],
+  );
 
   const onCancel = useCallback(() => {
     if (step === 'create') {
@@ -232,73 +269,104 @@ function AutoragConfigurePage({
       loaded={namespacesLoaded}
     >
       <FormProvider {...form}>
-        <Stack
-          component="form"
-          className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
-          hasGutter
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
+        <RunTriggeredTrackingContext.Provider value={runTriggeredTrackingContextValue}>
+          <Stack
+            component="form"
+            className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
+            hasGutter
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
 
-            if (step === 'create') {
-              fireAutoragExperimentCreated({
-                outcome: TrackingOutcome.submit,
-                hasDescription: !!description,
-                success: true,
-              });
-              setStep('configure');
-              return;
-            }
+              if (step === 'create') {
+                fireAutoragExperimentCreated({
+                  outcome: TrackingOutcome.submit,
+                  hasDescription: !!description,
+                  success: true,
+                });
+                setStep('configure');
+                return;
+              }
 
-            form.handleSubmit(
-              async (data: ConfigureSchema) => {
-                try {
-                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                  navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
-                } catch (error) {
-                  catchUIError(error, () =>
-                    notification.error(
-                      'Failed to create pipeline run',
-                      error instanceof Error ? error.message : '',
-                    ),
-                  );
-                }
-              },
-              // this `onInvalid` case should be impossible to hit
-              // since we disable the button when the form is invalid
-              () => notification.error('Form is invalid'),
-            )();
-          }}
-        >
-          <StackItem className="pf-v6-u-h-0" isFilled>
-            <PageSection
-              className={classNames(
-                'pf-v6-c-form',
-                'pf-v6-u-py-0',
-                step === 'configure' && 'pf-v6-u-h-100',
-              )}
-              hasBodyWrapper={false}
-            >
-              {step === 'create' ? (
-                <AutoragCreate initialOgxSecret={initialOgxSecret} />
-              ) : (
-                <AutoragConfigure
-                  initialValues={initialValues}
-                  initialInputDataSecret={initialInputDataSecret}
-                />
-              )}
-            </PageSection>
-          </StackItem>
-          <StackItem>
-            <PageSection hasBodyWrapper={false} hasShadowTop>
-              <ActionList>
-                <ActionListGroup>
-                  {step === 'create' ? createActions : configureActions}
-                </ActionListGroup>
-              </ActionList>
-            </PageSection>
-          </StackItem>
-        </Stack>
+              form.handleSubmit(
+                async (data: ConfigureSchema) => {
+                  // Computed up front so it's available in both the success and failure branches
+                  // below — only the values that must come from `data` (not from the tracking
+                  // refs) live here, so a failed submission still reports accurate model/metric
+                  // counts even though the pipeline run itself never happened.
+                  const runTrackingProperties = {
+                    knowledgeSourceType: knowledgeSourceTypeRef.current,
+                    evaluationSourceType: evaluationSourceTypeRef.current,
+                    optimizationMetric: mapOptimizationMetric(data.optimization_metric),
+                    vectorDatabase: vectorDatabaseRef.current,
+                    countOfModels: data.generation_models.length + data.embedding_models.length,
+                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
+                    countOfFoundationModels: data.generation_models.length,
+                    countOfEmbeddingModels: data.embedding_models.length,
+                    hasS3Connection:
+                      knowledgeSourceTypeRef.current === 's3' ||
+                      evaluationSourceTypeRef.current === 's3',
+                  };
+                  try {
+                    const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                    fireAutoragRunTriggered({
+                      ...runTrackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                    });
+                    navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
+                  } catch (error) {
+                    fireAutoragRunTriggered({
+                      ...runTrackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: AUTORAG_FAILURE_CATEGORY,
+                    });
+                    catchUIError(error, () =>
+                      notification.error(
+                        'Failed to create pipeline run',
+                        error instanceof Error ? error.message : '',
+                      ),
+                    );
+                  }
+                },
+                // this `onInvalid` case should be impossible to hit
+                // since we disable the button when the form is invalid
+                () => notification.error('Form is invalid'),
+              )();
+            }}
+          >
+            <StackItem className="pf-v6-u-h-0" isFilled>
+              <PageSection
+                className={classNames(
+                  'pf-v6-c-form',
+                  'pf-v6-u-py-0',
+                  step === 'configure' && 'pf-v6-u-h-100',
+                )}
+                hasBodyWrapper={false}
+              >
+                {step === 'create' ? (
+                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
+                ) : (
+                  <AutoragConfigure
+                    initialValues={initialValues}
+                    initialInputDataSecret={initialInputDataSecret}
+                  />
+                )}
+              </PageSection>
+            </StackItem>
+            <StackItem>
+              <PageSection hasBodyWrapper={false} hasShadowTop>
+                <ActionList>
+                  <ActionListGroup>
+                    {step === 'create' ? createActions : configureActions}
+                  </ActionListGroup>
+                </ActionList>
+              </PageSection>
+            </StackItem>
+          </Stack>
+        </RunTriggeredTrackingContext.Provider>
       </FormProvider>
     </ApplicationsPage>
   );

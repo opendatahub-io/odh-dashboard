@@ -11,6 +11,7 @@ import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -79,17 +80,33 @@ const renderWithProviders = (
   options?: {
     onFormChange?: (values: unknown) => void;
     defaultValues?: Partial<typeof configureSchema.defaults>;
+    onVectorStoreConfigured?: (providerType: string) => void;
   },
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
       <FormWrapper onFormChange={options?.onFormChange} defaultValues={options?.defaultValues}>
         {component}
       </FormWrapper>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onVectorStoreConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: jest.fn(),
+          onEvaluationSourceConfigured: jest.fn(),
+          onVectorStoreConfigured: options.onVectorStoreConfigured,
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
@@ -421,6 +438,16 @@ describe('AutoragVectorStoreSelector', () => {
       );
 
       expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
+    });
+
+    it('should report the selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', () => {
+      const onVectorStoreConfigured = jest.fn();
+      renderWithProviders(<AutoragVectorStoreSelector />, { onVectorStoreConfigured });
+
+      fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
+      fireEvent.click(screen.getByText('pgvector (remote Pgvector)'));
+
+      expect(onVectorStoreConfigured).toHaveBeenCalledWith('pgvector');
     });
   });
 });

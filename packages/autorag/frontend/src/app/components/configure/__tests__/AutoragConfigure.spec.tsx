@@ -18,6 +18,7 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import {
   AUTORAG_EVENTS,
@@ -286,20 +287,38 @@ const createTestQueryClient = () =>
 const renderWithQueryClient = (
   component: React.ReactElement,
   defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => {
   const queryClient = createTestQueryClient();
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
       {/* UIError behavior is tested in UIErrorHandler's own spec */}
       <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
         <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
       </UIErrorHandler>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onKnowledgeSourceConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: options.onKnowledgeSourceConfigured,
+          onEvaluationSourceConfigured: jest.fn(),
+          onVectorStoreConfigured: jest.fn(),
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
-const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
-  renderWithQueryClient(<AutoragConfigure />, defaultValues);
+const renderComponent = (
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
+) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
 
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
@@ -860,6 +879,45 @@ describe('AutoragConfigure', () => {
 
       const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-secret-bucket');
+    });
+
+    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('s3');
+    });
+
+    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      expect(onKnowledgeSourceConfigured).not.toHaveBeenCalled();
+    });
+
+    it('should report a successful upload to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('upload');
+      });
     });
   });
 

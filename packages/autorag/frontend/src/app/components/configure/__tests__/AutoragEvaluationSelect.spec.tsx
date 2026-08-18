@@ -19,6 +19,7 @@ import {
   AUTORAG_FAILURE_CATEGORY,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -200,17 +201,33 @@ const renderWithProviders = (
   options?: {
     onFormChange?: (values: unknown) => void;
     defaultValues?: Partial<typeof configureSchema.defaults>;
+    onEvaluationSourceConfigured?: (sourceType: string) => void;
   },
 ) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
       <FormWrapper onFormChange={options?.onFormChange} defaultValues={options?.defaultValues}>
         {component}
       </FormWrapper>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onEvaluationSourceConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: jest.fn(),
+          onEvaluationSourceConfigured: options.onEvaluationSourceConfigured,
+          onVectorStoreConfigured: jest.fn(),
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
@@ -764,6 +781,30 @@ describe('AutoragEvaluationSelect', () => {
         AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
         expect.objectContaining({ outcome: TrackingOutcome.submit }),
       );
+    });
+
+    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
+      const user = userEvent.setup();
+      const onEvaluationSourceConfigured = jest.fn();
+
+      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-select-file'));
+
+      expect(onEvaluationSourceConfigured).toHaveBeenCalledWith('s3');
+    });
+
+    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', async () => {
+      const user = userEvent.setup();
+      const onEvaluationSourceConfigured = jest.fn();
+
+      renderWithProviders(<AutoragEvaluationSelect />, { onEvaluationSourceConfigured });
+
+      await user.click(screen.getByRole('button', { name: /s3/i }));
+      await user.click(screen.getByTestId('s3-close'));
+
+      expect(onEvaluationSourceConfigured).not.toHaveBeenCalled();
     });
   });
 });

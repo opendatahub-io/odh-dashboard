@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
@@ -42,6 +43,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
   const [isOpen, setIsOpen] = useState(false);
   const notification = useNotification();
+  const { onVectorStoreConfigured } = useRunTriggeredTracking();
 
   const {
     formState: { isSubmitting },
@@ -132,6 +134,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
               outcome: TrackingOutcome.submit,
               success: true,
             });
+            onVectorStoreConfigured(providerType);
           }
         }
       }}

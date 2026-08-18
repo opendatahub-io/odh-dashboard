@@ -11,7 +11,9 @@ import {
   fireAutoragKnowledgeSourceConfigured,
   fireAutoragModelsSelected,
   fireAutoragProjectDropdownOptionSelected,
+  fireAutoragRunTriggered,
   fireAutoragVectorStoreConfigured,
+  mapOptimizationMetric,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
 
@@ -265,6 +267,88 @@ describe('fireAutoragVectorStoreConfigured', () => {
       countOfCompatibleProviders: 2,
       outcome: TrackingOutcome.submit,
       success: true,
+    });
+  });
+});
+
+describe('mapOptimizationMetric', () => {
+  it('should map all four schema values to their camelCase taxonomy', () => {
+    expect(mapOptimizationMetric('overall_score')).toBe('overallScore');
+    expect(mapOptimizationMetric('faithfulness')).toBe('answerFaithfulness');
+    expect(mapOptimizationMetric('answer_correctness')).toBe('answerCorrectness');
+    expect(mapOptimizationMetric('context_correctness')).toBe('contextCorrectness');
+  });
+
+  it('should return undefined for an unrecognized metric', () => {
+    expect(mapOptimizationMetric('answer_relevance')).toBeUndefined();
+    expect(mapOptimizationMetric('')).toBeUndefined();
+  });
+});
+
+describe('fireAutoragRunTriggered', () => {
+  it('should fire with success: true and the full derived run configuration', () => {
+    fireAutoragRunTriggered({
+      knowledgeSourceType: 's3',
+      evaluationSourceType: 'upload',
+      optimizationMetric: 'overallScore',
+      vectorDatabase: 'milvus',
+      countOfModels: 3,
+      countOfKnowledgeDocuments: 1,
+      countOfEvaluationDocuments: 1,
+      countOfFoundationModels: 2,
+      countOfEmbeddingModels: 1,
+      hasS3Connection: true,
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
+      knowledgeSourceType: 's3',
+      evaluationSourceType: 'upload',
+      optimizationMetric: 'overallScore',
+      vectorDatabase: 'milvus',
+      countOfModels: 3,
+      countOfKnowledgeDocuments: 1,
+      countOfEvaluationDocuments: 1,
+      countOfFoundationModels: 2,
+      countOfEmbeddingModels: 1,
+      hasS3Connection: true,
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+  });
+
+  it('should pass through undefined source/vector properties and an allowlisted failure category on failure', () => {
+    fireAutoragRunTriggered({
+      knowledgeSourceType: undefined,
+      evaluationSourceType: undefined,
+      optimizationMetric: undefined,
+      vectorDatabase: undefined,
+      countOfModels: 0,
+      countOfKnowledgeDocuments: 0,
+      countOfEvaluationDocuments: 0,
+      countOfFoundationModels: 0,
+      countOfEmbeddingModels: 0,
+      hasS3Connection: false,
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
+    });
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
+      knowledgeSourceType: undefined,
+      evaluationSourceType: undefined,
+      optimizationMetric: undefined,
+      vectorDatabase: undefined,
+      countOfModels: 0,
+      countOfKnowledgeDocuments: 0,
+      countOfEvaluationDocuments: 0,
+      countOfFoundationModels: 0,
+      countOfEmbeddingModels: 0,
+      hasS3Connection: false,
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: AUTORAG_FAILURE_CATEGORY,
     });
   });
 });

@@ -929,6 +929,105 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
+  describe('AutoRAG Run Triggered tracking', () => {
+    it('should fire with success: true and derived properties on successful run creation', async () => {
+      const user = userEvent.setup();
+      mockMutateAsync.mockResolvedValue({ run_id: 'new-run-123' });
+
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      // Select AWS connection and a file via the S3 browser (real AutoragConfigure component
+      // path), so knowledgeSourceType is reported as 's3' via RunTriggeredTrackingContext.
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
+          knowledgeSourceType: 's3',
+          // AutoragEvaluationSelect and AutoragVectorStoreSelector are mocked in this file
+          // (they auto-set their form field directly, bypassing RunTriggeredTrackingContext),
+          // so these two remain undefined here — covered for real in their own component specs.
+          evaluationSourceType: undefined,
+          vectorDatabase: undefined,
+          optimizationMetric: 'overallScore',
+          countOfModels: 3,
+          countOfKnowledgeDocuments: 1,
+          countOfEvaluationDocuments: 1,
+          countOfFoundationModels: 2,
+          countOfEmbeddingModels: 1,
+          hasS3Connection: true,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
+      });
+    });
+
+    it('should fire with success: false and the allowlisted error category when run creation fails', async () => {
+      const user = userEvent.setup();
+      mockMutateAsync.mockRejectedValue(new Error('Pipeline creation failed'));
+
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      const runButton = await screen.findByRole('button', { name: 'Create run' });
+      await waitFor(() => {
+        expect(runButton).toBeEnabled();
+      });
+      fireFormTrackingEventMock.mockClear();
+      await user.click(runButton);
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RUN_TRIGGERED,
+          expect.objectContaining({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: 'actionFailed',
+          }),
+        );
+      });
+      // The raw error message must never reach analytics.
+      expect(JSON.stringify(fireFormTrackingEventMock.mock.calls)).not.toContain(
+        'Pipeline creation failed',
+      );
+    });
+  });
+
   describe('Invalid namespace handling', () => {
     const { useNamespaceSelector } = require('mod-arch-core');
 

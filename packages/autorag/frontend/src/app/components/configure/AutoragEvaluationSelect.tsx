@@ -9,6 +9,7 @@ import FileSelector from '~/app/components/common/FileSelector';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -30,6 +31,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
 
   const notification = useNotification();
+  const { onEvaluationSourceConfigured } = useRunTriggeredTracking();
 
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
@@ -116,6 +118,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
             outcome: TrackingOutcome.submit,
             success: true,
           });
+          onEvaluationSourceConfigured('upload');
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
@@ -199,6 +202,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
                 outcome: TrackingOutcome.submit,
                 success: true,
               });
+              onEvaluationSourceConfigured('s3');
             }
           }}
           allowFolderSelection={false}
