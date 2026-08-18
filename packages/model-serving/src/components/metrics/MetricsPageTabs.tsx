@@ -2,10 +2,7 @@ import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import {
-  useIsProjectNIMSupported,
-  useServingPlatformStatuses,
-} from '@odh-dashboard/plugin-core/host-api';
+import { useIsProjectNIMSupported } from '@odh-dashboard/plugin-core/host-api';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
@@ -20,6 +17,7 @@ import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConf
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import NIMTab from './nim/NimTab';
+import useServingPlatformStatuses from '../../hooks/useServingPlatformStatuses';
 
 type MetricsPageTabsProps = {
   model: InferenceServiceKind;
