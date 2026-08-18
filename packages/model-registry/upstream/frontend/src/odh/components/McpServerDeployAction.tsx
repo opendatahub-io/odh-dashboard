@@ -1,17 +1,23 @@
 import React from 'react';
 import { useParams } from 'react-router';
 import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
 import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
 
-const McpServerDeployAction: React.FC = () => {
+const McpServerDeployAction: React.FC<{
+  server: {
+    data: McpServer | null;
+  };
+}> = ({ server }) => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { available, loaded } = useMcpServerDeployAvailable();
   const [crData, crLoaded, crError] = useMcpServerConverter(serverId);
   const [openModal, setOpenModal] = React.useState(false);
+  const hasDeployableArtifact = !!server.data?.artifacts?.some((a) => a.uri);
 
   const prefillData: McpDeployModalData | undefined = React.useMemo(
     () =>
@@ -38,6 +44,10 @@ const McpServerDeployAction: React.FC = () => {
     }
     return { enabled: true, loading: false };
   }, [available, loaded]);
+
+  if (!hasDeployableArtifact) {
+    return null;
+  }
 
   const deployButton = (
     <Button
