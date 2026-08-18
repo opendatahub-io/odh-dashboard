@@ -14,11 +14,7 @@ export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
 const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
 
 export type ODHExtensions =
-  | NavExtension
-  | RouteExtension
-  | AreaExtension
-  | TaskItemExtension
-  | DetailTabExtension;
+  NavExtension | RouteExtension | AreaExtension | TaskItemExtension | DetailTabExtension;
 const ADMIN_USER = 'ADMIN_USER';
 const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 

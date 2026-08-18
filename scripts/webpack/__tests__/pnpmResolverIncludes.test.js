@@ -44,12 +44,13 @@ describe('pnpmResolverIncludes', () => {
     assert.equal(isFontOrPficonAsset(lodashPath), false);
   });
 
-  it('returns a local @tanstack/query-core alias when installed in a package', () => {
+  it('returns query-core paired with the package react-query install', () => {
     const { tanstackQueryCoreAlias } = require('../pnpmResolverIncludes');
     const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
     const alias = tanstackQueryCoreAlias(genAiDir);
     assert.ok(alias['@tanstack/query-core']);
-    assert.ok(alias['@tanstack/query-core'].endsWith('node_modules/@tanstack/query-core'));
+    const version = require(path.join(alias['@tanstack/query-core'], 'package.json')).version;
+    assert.match(version, /^5\./);
   });
 
   it('returns an empty alias object when query-core is not installed locally', () => {
