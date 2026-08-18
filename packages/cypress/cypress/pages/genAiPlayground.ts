@@ -403,6 +403,10 @@ class GenAiPlayground {
     return cy.findByTestId('agent-profiles-table');
   }
 
+  findAgentProfilesEmptyState() {
+    return cy.findByTestId('agent-profiles-empty-state');
+  }
+
   findAgentRowByName(agentName: string) {
     const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return cy

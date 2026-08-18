@@ -445,7 +445,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
 
       cy.step('Verify agent is no longer visible in the Agents table');
       genAiPlayground.findDeleteAgentModal().should('not.exist');
-      genAiPlayground.findAgentRowByName(testData.agent.name).should('not.exist');
+      genAiPlayground.findAgentProfilesEmptyState().should('be.visible');
     },
   );
 
