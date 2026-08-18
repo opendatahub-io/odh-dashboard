@@ -44,6 +44,17 @@ const ADMIN_USER = 'ADMIN_USER';
 const SERVING_RUNTIME_TEMPLATES_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates';
 
+// Base path of the former standalone serving runtimes page, and the legacy v2
+// bookmark base — kept only as redirect sources to the tab above (the standalone
+// page itself has been removed).
+const SERVING_RUNTIMES_STANDALONE_PATH = '/settings/model-resources-operations/serving-runtimes';
+const SERVING_RUNTIMES_V2_PATH = '/servingRuntimes';
+
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
+
 const kserveServingRuntimeFieldExtension: WizardFieldExtension<
   KServeServingRuntimeFieldType,
   KServeDeployment
@@ -330,11 +341,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -345,9 +352,8 @@ const extensions: (
       group: '2_serving-runtimes',
     },
   },
-  // Full-page breakout routes for the serving runtime add/edit/duplicate forms.
-  // These are placeholders until RHOAIENG-68986 migrates the real forms; gated
-  // identically to the tab so they only exist when the tab does.
+  // Full-page breakout routes for the serving runtime add/edit/duplicate forms,
+  // gated identically to the tab so they only exist when the tab does.
   ...(
     [
       `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
@@ -358,11 +364,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          SupportedArea.CUSTOM_RUNTIMES,
-          ADMIN_USER,
-        ],
+        required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
       },
       properties: {
         path,
@@ -371,6 +373,66 @@ const extensions: (
       },
     }),
   ),
+  // Redirect the former standalone serving runtimes URL and the legacy v2 bookmark
+  // URLs to the tab. The general wildcard redirects splice the tail onto the tab
+  // base path; the two specific v2 aliases need dedicated routes (more specific, so
+  // they win) because the old URL segment names (addServingRuntime /
+  // editServingRuntime) differ from the tab's (add / edit). The edit alias uses the
+  // /* wildcard form so buildV2RedirectElement preserves the captured runtime name;
+  // an absolute non-wildcard `to` would resolve to a fixed AbsoluteRedirect and drop
+  // the param.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_STANDALONE_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_STANDALONE_PATH}/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/addServingRuntime`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/addServingRuntime`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/editServingRuntime/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/editServingRuntime/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/edit/*`,
+      }),
+    },
+  },
 ];
 
 export default extensions;
