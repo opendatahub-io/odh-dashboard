@@ -5,18 +5,8 @@ import { HostApiContext } from '../../HostApiContext';
 import { useHostApi } from '../useHostApi';
 
 const mockServices: HostApiServices = {
-  dashboardNamespace: 'test-ns',
-  checkAccess: jest.fn(),
-  getSecretsByLabel: jest.fn(),
-  getDashboardPvcs: jest.fn(),
-  fetchDashboardConfig: jest.fn(),
   useTemplates: jest.fn(() => [[], false, undefined]),
   setProjectServingPlatform: jest.fn(),
-  createSecret: jest.fn(),
-  getSecret: jest.fn(),
-  deleteSecret: jest.fn(),
-  patchSecretWithOwnerReference: jest.fn(),
-  patchSecretWithProtocolAnnotation: jest.fn(),
   useWatchConnectionTypes: jest.fn(() => [[], false, undefined, jest.fn()]),
   useServingConnections: jest.fn(() => [[], false, undefined, jest.fn()]),
   getDashboardConfigTemplateOrder: jest.fn(),
@@ -29,8 +19,6 @@ const mockServices: HostApiServices = {
     refreshNIMAvailability: jest.fn(),
   })),
   isProjectNIMSupported: jest.fn(() => false),
-  trackEvent: jest.fn(),
-  createProject: jest.fn(),
   registeredModelDeploymentsRoute: jest.fn(() => ''),
 };
 
@@ -45,15 +33,8 @@ describe('useHostApi', () => {
 
   it('should throw when context is not provided and a service is called', () => {
     const { result } = renderHook(() => useHostApi());
-    expect(() =>
-      result.current.checkAccess({
-        group: '',
-        resource: '',
-        subresource: '',
-        verb: 'get',
-        name: '',
-        namespace: '',
-      }),
-    ).toThrow('HostApiContext not provided: checkAccess');
+    expect(() => result.current.useTemplates('test-ns')).toThrow(
+      'HostApiContext not provided: useTemplates',
+    );
   });
 });
