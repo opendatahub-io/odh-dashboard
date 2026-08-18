@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
@@ -30,9 +30,12 @@ import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilit
 import {
   AUTORAG_FAILURE_CATEGORY,
   fireAutoragExperimentCreated,
+  fireAutoragFlowExited,
   fireAutoragRunTriggered,
   mapOptimizationMetric,
   TrackingOutcome,
+  type AutoragExitDestination,
+  type AutoragFunnelStep,
   type EvaluationSourceType,
   type KnowledgeSourceType,
   type VectorStoreProviderType,
@@ -111,18 +114,94 @@ function AutoragConfigurePage({
   const evaluationSourceTypeRef = useRef<EvaluationSourceType>();
   const vectorDatabaseRef = useRef<VectorStoreProviderType>();
 
+  // How far the user has actually gotten in the configure flow, for "AutoRAG Flow Exited".
+  // Advances monotonically (never regresses) as knowledge/evaluation/models milestones complete
+  // — see `AutoragFunnelStep`'s doc comment for why these can complete in any order here, unlike
+  // automl's strictly-gated sections.
+  const funnelStepRef = useRef<AutoragFunnelStep>('defineDetails');
+  const completedMilestonesRef = useRef({ knowledge: false, evaluation: false, models: false });
+  const FUNNEL_STEP_RANK: Record<AutoragFunnelStep, number> = {
+    defineDetails: 0,
+    knowledge: 1,
+    evaluation: 2,
+    models: 3,
+    run: 4,
+  };
+  const advanceFunnelStep = (nextStep: AutoragFunnelStep) => {
+    if (FUNNEL_STEP_RANK[nextStep] > FUNNEL_STEP_RANK[funnelStepRef.current]) {
+      funnelStepRef.current = nextStep;
+    }
+  };
+  const markMilestoneComplete = (
+    milestone: 'knowledge' | 'evaluation' | 'models',
+    funnelStep: AutoragFunnelStep,
+  ) => {
+    completedMilestonesRef.current[milestone] = true;
+    advanceFunnelStep(funnelStep);
+    const { knowledge, evaluation, models } = completedMilestonesRef.current;
+    if (knowledge && evaluation && models) {
+      advanceFunnelStep('run');
+    }
+  };
+
+  // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
+  // (both results-page and runs-list origins), but `navigate(-1)` only lands back on the source
+  // run's results page (still part of this same package) when reconfigure was entered from
+  // there — from the runs list, Cancel returns to the experiments list. There's no dedicated
+  // "back to this package's own results page" bucket in the exitDestination taxonomy, so this
+  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list) — the same
+  // bucket used for the source-run breadcrumb link below.
+  const cancelExitDestination: AutoragExitDestination = fromResultsPage
+    ? 'otherGenAi'
+    : 'experimentsList';
+
+  // Reconfigure's configure screen is fully populated on mount, so there's no equivalent to the
+  // create flow's progressive knowledge → evaluation → models milestones to observe — the form
+  // starts ready to submit, so report the deepest funnel step immediately. For the create flow,
+  // reset on every (re-)entry to 'configure': `handleBackToCreate` clears the knowledge/
+  // evaluation/models field values, so without this reset, a Back → Next round-trip after
+  // completing a milestone would leave funnel progress reporting a selection that no longer
+  // exists in the form.
+  useEffect(() => {
+    if (step === 'configure') {
+      if (sourceRunId) {
+        funnelStepRef.current = 'run';
+      } else {
+        funnelStepRef.current = 'defineDetails';
+        completedMilestonesRef.current = { knowledge: false, evaluation: false, models: false };
+      }
+    }
+  }, [step, sourceRunId]);
+
+  // Catches a full page/tab close or refresh while the configure flow is in progress. Does not
+  // catch in-app navigation away (e.g. the host dashboard's global nav) — see
+  // `fireAutoragFlowExited`'s doc comment for why that isn't covered.
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      fireAutoragFlowExited('abandon', funnelStepRef.current, 'none');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const runTriggeredTrackingContextValue = useMemo<RunTriggeredTrackingContextProps>(
     () => ({
       onKnowledgeSourceConfigured: (sourceType) => {
         knowledgeSourceTypeRef.current = sourceType;
+        markMilestoneComplete('knowledge', 'knowledge');
       },
       onEvaluationSourceConfigured: (sourceType) => {
         evaluationSourceTypeRef.current = sourceType;
+        markMilestoneComplete('evaluation', 'evaluation');
       },
       onVectorStoreConfigured: (providerType) => {
         vectorDatabaseRef.current = providerType;
       },
+      onModelsConfigured: () => {
+        markMilestoneComplete('models', 'models');
+      },
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markMilestoneComplete/advanceFunnelStep only ever touch refs, so they're safe to omit; including them would recreate this context value (and downstream consumers) on every render.
     [],
   );
 
@@ -134,8 +213,9 @@ function AutoragConfigurePage({
         success: true,
       });
     }
+    fireAutoragFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
     navigate(-1);
-  }, [navigate, step, description]);
+  }, [navigate, step, description, cancelExitDestination]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -248,11 +328,23 @@ function AutoragConfigurePage({
         (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+              <Link
+                to={getRedirectPath(namespace!)}
+                onClick={() =>
+                  fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList')
+                }
+              >
+                AutoRAG: {namespace}
+              </Link>
             </BreadcrumbItem>
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
+                <Link
+                  to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
+                  }
+                >
                   <Truncate content={sourceRunName} />
                 </Link>
               </BreadcrumbItem>

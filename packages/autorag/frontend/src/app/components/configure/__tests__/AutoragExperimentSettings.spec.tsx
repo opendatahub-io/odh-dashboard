@@ -6,6 +6,7 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragExperimentSettings from '~/app/components/configure/AutoragExperimentSettings';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
@@ -65,12 +66,30 @@ const defaultProps = {
 const renderComponent = (
   props: Partial<typeof defaultProps> = {},
   formWrapperProps: Omit<FormWrapperProps, 'children'> = {},
-) =>
-  render(
+  options?: { onModelsConfigured?: () => void },
+) => {
+  const tree = (
     <FormWrapper {...formWrapperProps}>
       <AutoragExperimentSettings {...defaultProps} {...props} />
-    </FormWrapper>,
+    </FormWrapper>
   );
+  return render(
+    options?.onModelsConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: jest.fn(),
+          onEvaluationSourceConfigured: jest.fn(),
+          onVectorStoreConfigured: jest.fn(),
+          onModelsConfigured: options.onModelsConfigured,
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
+  );
+};
 
 describe('AutoragExperimentSettings', () => {
   beforeEach(() => {
@@ -192,6 +211,52 @@ describe('AutoragExperimentSettings', () => {
       );
       expect(defaultProps.revertChanges).toHaveBeenCalledTimes(1);
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    });
+    /* eslint-enable camelcase */
+  });
+
+  describe('RunTriggeredTrackingContext reporting', () => {
+    /* eslint-disable camelcase -- generation_models/embedding_models are schema field names */
+    it('should report to RunTriggeredTrackingContext when Save is clicked', async () => {
+      const user = userEvent.setup();
+      const onModelsConfigured = jest.fn();
+      renderComponent(
+        {},
+        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        { onModelsConfigured },
+      );
+
+      await user.click(screen.getByTestId('experiment-settings-save'));
+
+      expect(onModelsConfigured).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT report to RunTriggeredTrackingContext when Cancel is clicked', async () => {
+      const user = userEvent.setup();
+      const onModelsConfigured = jest.fn();
+      renderComponent(
+        {},
+        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        { onModelsConfigured },
+      );
+
+      await user.click(screen.getByTestId('experiment-settings-cancel'));
+
+      expect(onModelsConfigured).not.toHaveBeenCalled();
+    });
+
+    it('should NOT report to RunTriggeredTrackingContext when the modal is closed via the X button', async () => {
+      const user = userEvent.setup();
+      const onModelsConfigured = jest.fn();
+      renderComponent(
+        {},
+        { dirtyModels: { generation_models: ['gpt-4'], embedding_models: ['minilm-v2'] } },
+        { onModelsConfigured },
+      );
+
+      await user.click(screen.getByLabelText('Close'));
+
+      expect(onModelsConfigured).not.toHaveBeenCalled();
     });
     /* eslint-enable camelcase */
   });

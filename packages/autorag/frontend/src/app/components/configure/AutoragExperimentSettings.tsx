@@ -9,6 +9,7 @@ import {
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ConfigureSchema, EXPERIMENT_SETTINGS_FIELDS } from '~/app/schemas/configure.schema';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { fireAutoragModelsSelected, TrackingOutcome } from '~/app/utilities/tracking';
 import AutoragExperimentSettingsModelSelection from './AutoragExperimentSettingsModelSelection';
 
@@ -27,6 +28,7 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
     getValues,
     formState: { isDirty, errors },
   } = useFormContext<ConfigureSchema>();
+  const { onModelsConfigured } = useRunTriggeredTracking();
 
   const hasFieldErrors = EXPERIMENT_SETTINGS_FIELDS.some((field) => errors[field]);
 
@@ -38,6 +40,11 @@ const AutoragExperimentSettings: React.FC<AutoragExperimentSettingsProps> = ({
       outcome,
       success: true,
     });
+    // Only a completed (submit) selection counts toward "AutoRAG Flow Exited" funnel progress —
+    // a cancelled modal reverts to the prior selection, so it isn't a real milestone.
+    if (outcome === TrackingOutcome.submit) {
+      onModelsConfigured();
+    }
   };
 
   return (

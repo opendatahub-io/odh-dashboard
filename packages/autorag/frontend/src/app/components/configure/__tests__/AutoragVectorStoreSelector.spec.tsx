@@ -100,6 +100,7 @@ const renderWithProviders = (
           onKnowledgeSourceConfigured: jest.fn(),
           onEvaluationSourceConfigured: jest.fn(),
           onVectorStoreConfigured: options.onVectorStoreConfigured,
+          onModelsConfigured: jest.fn(),
         }}
       >
         {tree}

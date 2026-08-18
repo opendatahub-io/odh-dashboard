@@ -305,6 +305,7 @@ const renderWithQueryClient = (
           onKnowledgeSourceConfigured: options.onKnowledgeSourceConfigured,
           onEvaluationSourceConfigured: jest.fn(),
           onVectorStoreConfigured: jest.fn(),
+          onModelsConfigured: jest.fn(),
         }}
       >
         {tree}

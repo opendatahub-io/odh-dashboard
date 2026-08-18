@@ -20,6 +20,7 @@ export const AUTORAG_EVENTS = {
   MODELS_SELECTED: 'AutoRAG Models Selected',
   VECTOR_STORE_CONFIGURED: 'AutoRAG Vector Store Configured',
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
+  FLOW_EXITED: 'AutoRAG Flow Exited',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -232,4 +233,55 @@ export type RunTriggeredProperties = {
  */
 export const fireAutoragRunTriggered = (properties: RunTriggeredProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.RUN_TRIGGERED, properties);
+};
+
+/**
+ * Identifies where the user was in the configure flow when they exited without completing it.
+ * `'knowledge'`, `'evaluation'`, and `'models'` only apply to the create-run flow, where these
+ * milestones (see {@link fireAutoragKnowledgeSourceConfigured}, {@link
+ * fireAutoragEvaluationSourceConfigured}, {@link fireAutoragModelsSelected}) are reached
+ * progressively as the user actually completes each one — order-independent, since the configure
+ * screen doesn't gate these sections sequentially the way automl's did. `'run'` is reached once
+ * all three have been completed at least once this session. In the reconfigure flow the entire
+ * configure screen is already fully populated on mount, so there's no equivalent progression to
+ * observe — reconfigure reports `'run'` immediately upon reaching the configure screen, since the
+ * form starts ready to submit.
+ */
+export type AutoragFunnelStep = 'defineDetails' | 'knowledge' | 'evaluation' | 'models' | 'run';
+
+/**
+ * Where the user ended up after exiting the configure flow. `'none'` covers cases (e.g. tab
+ * close) where the destination can't be determined. `'home'` and `'projects'` are part of the
+ * taxonomy but are not currently fired by this package — see {@link fireAutoragFlowExited}.
+ */
+export type AutoragExitDestination =
+  | 'experimentsList'
+  | 'home'
+  | 'projects'
+  | 'otherGenAi'
+  | 'none';
+
+/**
+ * Fires when the user leaves the configure flow before creating a run — either via an explicit
+ * in-app action (Cancel, breadcrumb) or by abandoning the tab/browser entirely. Not fired on a
+ * successful run creation, nor when navigating between steps within the flow (e.g. Back).
+ *
+ * Only Cancel, the "AutoRAG: {namespace}" breadcrumb, the source-run breadcrumb (reconfigure from
+ * results), and a full page/tab close (`beforeunload`) are covered — these fire `exitDestination`
+ * values of `'experimentsList'`, `'otherGenAi'`, and `'none'` respectively. `'home'` and
+ * `'projects'` are not fired: detecting an in-app navigation to the host dashboard's global nav
+ * (Home, Projects, or another Gen AI Studio app) would require intercepting route changes, which
+ * isn't available here — this app uses a plain `<BrowserRouter>`, not a data router, so React
+ * Router's `useBlocker` can't be used.
+ */
+export const fireAutoragFlowExited = (
+  exitType: 'abandon' | 'navigate',
+  lastFunnelStep: AutoragFunnelStep,
+  exitDestination: AutoragExitDestination,
+): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.FLOW_EXITED, {
+    exitType,
+    lastFunnelStep,
+    exitDestination,
+  });
 };

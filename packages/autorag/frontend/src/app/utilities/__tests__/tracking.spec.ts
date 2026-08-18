@@ -8,6 +8,7 @@ import {
   AUTORAG_FAILURE_CATEGORY,
   fireAutoragEvaluationSourceConfigured,
   fireAutoragExperimentCreated,
+  fireAutoragFlowExited,
   fireAutoragKnowledgeSourceConfigured,
   fireAutoragModelsSelected,
   fireAutoragProjectDropdownOptionSelected,
@@ -349,6 +350,38 @@ describe('fireAutoragRunTriggered', () => {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTORAG_FAILURE_CATEGORY,
+    });
+  });
+});
+
+describe('fireAutoragFlowExited', () => {
+  it('should fire AutoRAG Flow Exited with exitType, lastFunnelStep, and exitDestination', () => {
+    fireAutoragFlowExited('navigate', 'defineDetails', 'experimentsList');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      exitType: 'navigate',
+      lastFunnelStep: 'defineDetails',
+      exitDestination: 'experimentsList',
+    });
+  });
+
+  it('should fire with exitType: abandon and exitDestination: none', () => {
+    fireAutoragFlowExited('abandon', 'knowledge', 'none');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      exitType: 'abandon',
+      lastFunnelStep: 'knowledge',
+      exitDestination: 'none',
+    });
+  });
+
+  it('should fire with lastFunnelStep: run and exitDestination: otherGenAi', () => {
+    fireAutoragFlowExited('navigate', 'run', 'otherGenAi');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      exitType: 'navigate',
+      lastFunnelStep: 'run',
+      exitDestination: 'otherGenAi',
     });
   });
 });
