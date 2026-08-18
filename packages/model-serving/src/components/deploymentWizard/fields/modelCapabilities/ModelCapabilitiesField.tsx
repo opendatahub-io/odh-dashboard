@@ -97,18 +97,20 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
       return;
     }
     setCustomInputError('');
+    const isSuggested = resolveWellKnownModelCapability(capability) != null;
     fireCapabilityAdded(trackEvent, {
-      capabilityName: capability,
-      isSuggested: resolveWellKnownModelCapability(capability) != null,
+      capabilityName: isSuggested ? capability : 'custom',
+      isSuggested,
     });
     onChange([...selectedCapabilities, capability]);
     setCustomInput('');
   };
 
   const handleRemove = (capability: string) => {
+    const isSuggested = resolveWellKnownModelCapability(capability) != null;
     fireCapabilityRemoved(trackEvent, {
-      capabilityName: capability,
-      isSuggested: resolveWellKnownModelCapability(capability) != null,
+      capabilityName: isSuggested ? capability : 'custom',
+      isSuggested,
     });
     onChange(selectedCapabilities.filter((c) => !isSameModelCapability(c, capability)));
   };
