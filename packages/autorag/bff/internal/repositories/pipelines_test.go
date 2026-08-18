@@ -328,7 +328,7 @@ func TestToAutoRAGRun(t *testing.T) {
 			PipelineSpec: json.RawMessage(`{"dag":{}}`),
 		}
 
-		run := toAutoRAGRun(coreRun)
+		run := toManagedRun(coreRun, constants.PipelineTypeAutoRAG)
 
 		if run.PipelineType != constants.PipelineTypeAutoRAG {
 			t.Errorf("PipelineType = %q, want %q", run.PipelineType, constants.PipelineTypeAutoRAG)
@@ -358,7 +358,7 @@ func TestToAutoRAGRun(t *testing.T) {
 	})
 
 	t.Run("nil optional fields", func(t *testing.T) {
-		run := toAutoRAGRun(&pipelines.PipelineRun{RunID: "r2"})
+		run := toManagedRun(&pipelines.PipelineRun{RunID: "r2"}, constants.PipelineTypeAutoRAG)
 		if run.PipelineType != constants.PipelineTypeAutoRAG {
 			t.Errorf("PipelineType = %q", run.PipelineType)
 		}
@@ -706,6 +706,198 @@ func TestCreateRun(t *testing.T) {
 	})
 }
 
+func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
+	valid := models.CreateIndexingPipelineRunRequest{
+		DisplayName: "index-run",
+		Parameters: map[string]any{
+			"embedding_model_id":     "embed-model",
+			"input_data_secret_name": "input-secret",
+			"input_data_bucket_name": "input-bucket",
+			"ogx_secret_name":        "ogx-secret",
+			"vector_io_provider_id":  "milvus",
+		},
+	}
+
+	t.Run("valid request", func(t *testing.T) {
+		if err := ValidateCreateIndexingPipelineRunRequest(valid); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("missing required fields", func(t *testing.T) {
+		err := ValidateCreateIndexingPipelineRunRequest(models.CreateIndexingPipelineRunRequest{
+			DisplayName: "incomplete",
+		})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("empty parameters", func(t *testing.T) {
+		err := ValidateCreateIndexingPipelineRunRequest(models.CreateIndexingPipelineRunRequest{
+			DisplayName: "incomplete",
+			Parameters:  map[string]any{},
+		})
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+	})
+
+	t.Run("display_name too long", func(t *testing.T) {
+		req := valid
+		req.DisplayName = strings.Repeat("x", 251)
+		err := ValidateCreateIndexingPipelineRunRequest(req)
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !strings.Contains(err.Error(), "display_name") {
+			t.Errorf("error should mention display_name: %v", err)
+		}
+	})
+
+	t.Run("description too long", func(t *testing.T) {
+		req := valid
+		req.Description = strings.Repeat("d", 256)
+		err := ValidateCreateIndexingPipelineRunRequest(req)
+		if err == nil {
+			t.Fatal("expected validation error")
+		}
+		if !strings.Contains(err.Error(), "description") {
+			t.Errorf("error should mention description: %v", err)
+		}
+	})
+}
+
+func TestCreateIndexingRun(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		var gotInput *pipelines.CreatePipelineRunInput
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {
+						PipelineID: "idx-pid", PipelineVersionID: "idx-vid", PipelineName: "documents-indexing-pipeline",
+					},
+				}, nil
+			},
+			createPipelineRunFn: func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				gotInput = input
+				return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		run, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters: map[string]any{
+				"embedding_model_id":     "embed-model",
+				"chunking_method":        "recursive",
+				"input_data_secret_name": "input-secret",
+				"vector_io_provider_id":  "milvus",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if run.PipelineType != constants.PipelineTypeIndexing {
+			t.Errorf("pipeline type = %q", run.PipelineType)
+		}
+		if gotInput == nil || gotInput.RuntimeConfig == nil {
+			t.Fatal("expected runtime config")
+		}
+		if gotInput.RuntimeConfig.Parameters["chunking_method"] != "recursive" {
+			t.Errorf("chunking_method = %v", gotInput.RuntimeConfig.Parameters["chunking_method"])
+		}
+		if gotInput.RuntimeConfig.Parameters["vector_io_provider_id"] != "milvus" {
+			t.Errorf("vector_io_provider_id = %v", gotInput.RuntimeConfig.Parameters["vector_io_provider_id"])
+		}
+	})
+
+	t.Run("indexing pipeline missing", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeAutoRAG: {PipelineID: "rag-pid", PipelineVersionID: "rag-vid"},
+				}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+		_, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters: map[string]any{
+				"embedding_model_id": "embed-model",
+			},
+		})
+		if !errors.Is(err, ErrManagedPipelinesNotFound) {
+			t.Fatalf("expected managed pipelines not found, got %v", err)
+		}
+	})
+}
+
+func TestListManagedPipelines(t *testing.T) {
+	t.Run("returns discovered pipelines sorted by pipeline_type", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {
+						PipelineID: "idx-pid", PipelineVersionID: "idx-vid", PipelineName: "documents-indexing-pipeline",
+					},
+					constants.PipelineTypeAutoRAG: {
+						PipelineID: "rag-pid", PipelineVersionID: "rag-vid", PipelineName: "documents-rag-optimization-pipeline",
+					},
+				}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			AutoRAGPipelineName:  "documents-rag-optimization-pipeline",
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		result, err := repo.ListManagedPipelines(context.Background(), "ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result.Pipelines) != 2 {
+			t.Fatalf("len = %d, want 2", len(result.Pipelines))
+		}
+		// Lexicographic: autorag before indexing
+		if result.Pipelines[0].PipelineType != constants.PipelineTypeAutoRAG {
+			t.Errorf("pipelines[0].PipelineType = %q, want %q", result.Pipelines[0].PipelineType, constants.PipelineTypeAutoRAG)
+		}
+		if result.Pipelines[1].PipelineType != constants.PipelineTypeIndexing {
+			t.Errorf("pipelines[1].PipelineType = %q, want %q", result.Pipelines[1].PipelineType, constants.PipelineTypeIndexing)
+		}
+	})
+
+	t.Run("omits soft-missing pipelines", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeAutoRAG:  nil,
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid", PipelineName: "documents-indexing-pipeline"},
+				}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		result, err := repo.ListManagedPipelines(context.Background(), "ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result.Pipelines) != 1 {
+			t.Fatalf("len = %d, want 1", len(result.Pipelines))
+		}
+		if result.Pipelines[0].PipelineType != constants.PipelineTypeIndexing {
+			t.Errorf("PipelineType = %q", result.Pipelines[0].PipelineType)
+		}
+	})
+}
+
 func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	var gotDefs map[string]string
 	var gotVersion string
@@ -718,6 +910,7 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	}
 	repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{
 		AutoRAGPipelineName:    "my-rag-pipe",
+		IndexingPipelineName:   "documents-indexing-pipeline",
 		DefaultPipelineVersion: "2.0",
 	})
 
@@ -728,8 +921,11 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	if gotDefs[constants.PipelineTypeAutoRAG] != "my-rag-pipe" {
 		t.Errorf("autorag definition = %q", gotDefs[constants.PipelineTypeAutoRAG])
 	}
-	if len(gotDefs) != 1 {
-		t.Errorf("expected exactly 1 definition, got %d", len(gotDefs))
+	if gotDefs[constants.PipelineTypeIndexing] != "documents-indexing-pipeline" {
+		t.Errorf("indexing definition = %q", gotDefs[constants.PipelineTypeIndexing])
+	}
+	if len(gotDefs) != 2 {
+		t.Errorf("expected exactly 2 definitions, got %d", len(gotDefs))
 	}
 	if gotVersion != "2.0" {
 		t.Errorf("version = %q", gotVersion)

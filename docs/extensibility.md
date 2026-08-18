@@ -332,13 +332,15 @@ Type guards can be parameterized for more fine-grained filtering. Use `React.use
 
 ```typescript
 // Filter by extension type AND category
-export const isDashboardWidget = (category?: string) => 
+export const isDashboardWidget =
+  (category?: string) =>
   (e: Extension): e is DashboardWidgetExtension => {
     if (e.type !== 'my-plugin.dashboard/widget') return false;
     return category ? e.properties.category === category : true;
   };
 
-// Usage with useCallback
+// Usage with useCallback (deps omitted in docs example)
+// eslint-disable-next-line react-hooks/exhaustive-deps -- illustrative
 const categoryFilter = React.useCallback(isDashboardWidget('charts'), []);
 const chartWidgets = useExtensions(categoryFilter);
 ```
@@ -351,6 +353,7 @@ const chartWidgets = useExtensions(categoryFilter);
 - **Descriptive Namespaces**: Use clear namespaces (`app.table/column` vs `table`)
 - **Minimal Interfaces**: Keep extension point interfaces focused and minimal
 - **Comprehensive Types**: Provide complete TypeScript types with JSDoc comments
+- **Stable IDs for overridable surfaces**: Give navigable extensions a stable `properties.id` so distributions can patch or suppress them — see [Extension Patch and Suppress Semantics](#extension-patch-and-suppress-semantics)
 
 **Example of Good Extension Design:**
 ```typescript
@@ -501,14 +504,12 @@ In this example, `./src/deploy` gets its own chunk (`kserve-deploy`) while `./sr
 
 ```typescript
 // Both imports land in a chunk named "kserve-hardware"
-extractHardwareProfileConfig: () =>
+const extractHardwareProfileConfig = () =>
   import(/* webpackChunkName: "kserve-hardware" */ './src/hardwareProfiles').then(
     (m) => m.extractHardwareProfileConfig,
-  ),
-extractReplicas: () =>
-  import(/* webpackChunkName: "kserve-hardware" */ './src/replicas').then(
-    (m) => m.extractReplicas,
-  ),
+  );
+const extractReplicas = () =>
+  import(/* webpackChunkName: "kserve-hardware" */ './src/replicas').then((m) => m.extractReplicas);
 ```
 
 ### Shared Modules
@@ -537,3 +538,137 @@ import(/* webpackChunkName: "kserve-deploy" */ './src/deploy')
 // Avoid: generic name may collide with other plugins
 import(/* webpackChunkName: "deploy" */ './src/deploy')
 ```
+
+## Extension Patch and Suppress Semantics
+
+The extension catalog is **additive**: registering the same `(type, properties.id)` more than once does not replace earlier entries. Nav chrome consumers (for example `getTopLevelExtensions`) may still dedupe sections by id when rendering.
+
+`PluginStore` resolves the catalog in this order:
+
+1. Extract `app.patch` payloads (side table); strip patch extensions from the catalog
+2. **Suppress** at construction (before feature flags) — always applies
+3. Feature-flag filtering
+4. **Patch** allowlisted property updates onto matching in-use extensions
+
+Prefer **`app.patch`** for rename / regroup / move / flatten / label when package `href`/`path` (and routes) should stay owned. Use **`app.suppress` then redefine** when you need a full override (for example a different `href`/`path`) or a different extension type. Use **suppress** alone to remove an extension with no replacement.
+
+### Full override (suppress + redefine)
+
+To replace a package-provided extension entirely, suppress its `(type, id)` and register the replacement **after** that suppress in the catalog (distribution/local extensions are registered after bundled packages).
+
+```typescript
+import type { SuppressExtension } from '@odh-dashboard/plugin-core/extension-points';
+
+// Package registers a nav item:
+const packageNav = {
+  type: 'app.navigation/href',
+  properties: { id: 'my-item', title: 'Original', href: '/old', path: '/old/*' },
+};
+
+// Distribution removes the package entry, then redefines (must own matching routes):
+const suppressNav = {
+  type: 'app.suppress',
+  properties: { targetType: 'app.navigation/href', targetId: 'my-item' },
+} satisfies SuppressExtension;
+
+const distributionNav = {
+  type: 'app.navigation/href',
+  properties: { id: 'my-item', title: 'Custom', href: '/new', path: '/new/*', group: '1_custom' },
+};
+```
+
+Only registrations that appear **before** the suppress for that `(type, id)` are removed. A later registration with the same key is the redefine. For chrome-only changes (title, group, section, label), prefer [`app.patch`](#patch-allowlisted-property-merge) instead.
+
+### Patch (Allowlisted Property Merge)
+
+To change only nav chrome (title, group, section, label, dataAttributes) without re-registering the full extension, use `app.patch`. Package `href`/`path` (and routes) stay owned by the original registration. In distribution shells, `label` renders as a compact PatternFly Label (same treatment as the host nav).
+
+```typescript
+import type { PatchExtension } from '@odh-dashboard/plugin-core/extension-points';
+
+const patchExtension = {
+  type: 'app.patch',
+  properties: {
+    targetType: 'app.navigation/href',
+    targetId: 'my-item',
+    patch: { section: null, group: '1_custom', label: 'Beta' }, // null clears section (flatten)
+  },
+} satisfies PatchExtension;
+```
+
+Patch notes:
+
+- Collected at construction and always applied (independent of the patch extension's own flags)
+- Applied **after** feature-flag filtering to every in-use extension matching `(type, id)`
+- Allowlist: `title`, `group`, `section` (`null` clears), `label` (`null` clears), `dataAttributes`
+- Non-allowlisted keys (e.g. `href`, `path`) are ignored with a dev-mode warning
+- Last whole `patch` object wins when multiple patches target the same `(type, id)`
+- Missing / suppressed targets are a no-op with a dev-mode warning
+- Patch extensions never appear in `getExtensions()`
+
+### Suppress (Remove Without Replacement)
+
+To remove an extension without providing a replacement, use the `app.suppress` extension type. The suppress `targetId` matches the target extension's `properties.id`:
+
+```typescript
+import type { SuppressExtension } from '@odh-dashboard/plugin-core/extension-points';
+
+const suppressExtension = {
+  type: 'app.suppress',
+  properties: { targetType: 'app.navigation/section', targetId: 'my-section' },
+} satisfies SuppressExtension;
+```
+
+Suppress extensions are never included in the visible extension set returned by `getExtensions()`. A suppress removes matching registrations that appear before it in the catalog; registrations after it with the same `(type, id)` are treated as a redefine.
+
+### Precedence Order
+
+In distributions, `GenerateDistributionExtensionsPlugin` builds the extension catalog in this order (lowest to highest precedence). `PluginStore` itself only sees that catalog order — it does not know about bundled/local/env tiers:
+
+1. **Bundled packages** — declared in `distribution.yaml` under `packages.bundled`
+2. **Distribution/local extensions** — declared in `distribution.yaml` under `packages.local`
+3. **Env-injected packages** — activated via environment variables at build time
+
+Put `app.suppress` (and any redefine) in a higher-precedence source than the extension you are removing so the suppress appears after the package registration in the catalog.
+
+### Collision Warnings
+
+In non-production builds (`NODE_ENV !== 'production'`), `PluginStore` emits a `console.warn` for each duplicate `(type, id)` registration at construction time (type, id, and both plugin names). Duplicates stay in the catalog — suppress before redefining, or use `app.patch` for chrome-only changes. Dev builds also warn for suppress/patch application and invalid suppress/patch extensions. In production builds, no warnings are emitted.
+
+### Changing Extension Type
+
+`type` is part of the suppress/patch target key. To change type (for example section → href), suppress the old `(type, id)` and register a new extension:
+
+```typescript
+// Suppress the old section
+const suppressSection = {
+  type: 'app.suppress',
+  properties: { targetType: 'app.navigation/section', targetId: 'my-id' },
+};
+
+// Register a new href with the same id
+const hrefReplacement = {
+  type: 'app.navigation/href',
+  properties: { id: 'my-id', title: 'Now a link', href: '/path' },
+};
+```
+
+### Resolution Ordering
+
+Pipeline details:
+
+1. Extract `app.patch` payloads (side table); strip patch extensions from the catalog
+2. **Suppress** during construction, before feature-flag filtering
+3. Feature-flag filtering
+4. **Patch** allowlisted fields onto matching in-use extensions
+
+Suppress:
+
+- Always applies regardless of the suppress extension's own flags
+- Removes matching `(type, id)` registrations that appear before the **last** matching suppress in catalog order. Two suppresses around a redefine therefore remove the redefine as well.
+- A later registration with the same key is a redefine (full override)
+
+Patch:
+
+- Always applied regardless of the patch extension's own flags
+- Targets every in-use extension matching `(type, id)`

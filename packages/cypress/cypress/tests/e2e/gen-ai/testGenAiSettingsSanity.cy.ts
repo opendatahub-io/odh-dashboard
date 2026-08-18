@@ -27,31 +27,54 @@ import { genAiPlayground } from '../../../pages/genAiPlayground';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
-describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
+describe('Verify settings in playground using custom endpoint', { testIsolation: false }, () => {
   let testData: CustomEndpointTestData;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
-    const apiKey = Cypress.env('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error(
-        'GEMINI_API_KEY is not set in test-variables.yml — cannot run custom endpoint tests',
-      );
-    }
-
-    cy.fixture('e2e/genAi/testCustomEndpoints.yaml', 'utf8').then((yamlContent: string) => {
+    cy.fixture('e2e/genAi/testGenAiSettingsSanity.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as CustomEndpointTestData;
+
+      const apiKey = Cypress.env('GEMINI_API_KEY');
+      if (!apiKey) {
+        throw new Error(
+          'GEMINI_API_KEY is not set in test-variables.yml — cannot run custom endpoint tests',
+        );
+      }
+
+      // Enable external providers first — includes a 30 s wait for the
+      // backend ResourceWatcher to propagate before any UI validation fires.
+      cy.step('Enable externalProviders in OdhDashboardConfig');
+      enableExternalProviders();
+
+      cy.step(`Create project ${projectName}`);
+      createCleanProject(projectName);
+      waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+
+      cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
+      enableMlflowBackend();
+
+      cy.step(
+        'Log into the application with custom endpoints, prompt management, and guardrails enabled',
+      );
+      cy.visitWithLogin(
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
+
+      cy.step('Force backend to refresh config from cluster');
+      forceDashboardConfigRefresh();
+
+      cy.step('Create prompt via Gen AI BFF API');
+      createGenAiPromptViaAPI(
+        projectName,
+        testData.prompt.name,
+        testData.prompt.template,
+        testData.prompt.commitMessage,
+      )
+        .its('status')
+        .should('be.oneOf', [200, 201]);
     });
-
-    cy.step('Enable externalProviders in OdhDashboardConfig');
-    enableExternalProviders();
-
-    cy.step(`Create project ${projectName}`);
-    createCleanProject(projectName);
-    waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
-
-    cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
-    enableMlflowBackend();
   });
 
   after(() => {
@@ -64,30 +87,20 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     cy.step('Clean up MLflow features');
     disablePromptManagementFeatures();
 
-    if (projectName) {
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
-    'Verify custom endpoint lifecycle with prompt creation and playground usage',
+    'Create custom endpoint in AI asset endpoints page',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
-      cy.step('Log into the application with custom endpoints and prompt management enabled');
-      cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false`,
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
-
-      // --- Create custom endpoint ---
-
-      cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
 
       cy.step('Click Create endpoint button from empty state');
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
@@ -124,17 +137,19 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Verify modal closes and model appears in AI Assets table');
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
       genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
+    },
+  );
 
-      // --- Add to playground and wait for infrastructure ---
-
-      cy.step('Click Add to playground for the custom endpoint model');
+  it(
+    'Add endpoint to playground and wait for OGX Server to be ready',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Add endpoint to playground');
       genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
-
-      cy.step('Verify configuration modal opens with model pre-selected');
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
-
-      cy.step('Click Create in the configuration modal');
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
       cy.step('Wait for OGX Server to be ready');
@@ -148,31 +163,79 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
+    },
+  );
 
-      // --- Create a prompt via API ---
+  it(
+    'Verify guardrails lifecycle — user input toggle blocks malicious message',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Navigate to playground with guardrails enabled');
+      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
 
-      cy.step('Create prompt via Gen AI BFF API');
-      createGenAiPromptViaAPI(
-        projectName,
-        testData.prompt.name,
-        testData.prompt.template,
-        testData.prompt.commitMessage,
-      )
-        .its('status')
-        .should('be.oneOf', [200, 201]);
+      cy.step('Open settings panel and navigate to Guardrails tab');
+      genAiPlayground.ensureSettingsPanelOpen();
+      genAiPlayground.findGuardrailsTab().should('be.visible').click();
 
-      // --- Navigate to playground and load the prompt ---
+      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
+      genAiPlayground.findGuardrailsSection().should('be.visible');
+      genAiPlayground.findGuardrailModelToggle().should('be.visible');
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
 
+      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
+      genAiPlayground.selectGuardrailModel(testData.displayName);
+      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
+
+      cy.step('Toggle user input guardrails ON');
+      genAiPlayground.toggleUserInputGuardrails(true);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
+
+      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
+      genAiPlayground
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.guardrails.safeMessage);
+
+      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
+
+      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should('exist')
+        .and('contain', testData.guardrails.maliciousMessage);
+
+      cy.step('Verify input guardrail violation alert is displayed');
+      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
+
+      cy.step('Toggle user input guardrails OFF and clear chat');
+      genAiPlayground.toggleUserInputGuardrails(false);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.clearChat();
+    },
+  );
+
+  it(
+    'Verify prompt management — load and use a saved prompt',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
+    },
+    () => {
       cy.step('Navigate to playground with prompt management enabled');
       genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
-
-      cy.step(`Verify ${testData.displayName} model is selected`);
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
-      cy.step('Ensure settings panel is open, navigate to Prompt tab, and click Load Prompt');
+      cy.step('Open settings panel, navigate to Prompt tab, and load prompt');
       genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findSettingsPromptTab().should('be.visible').click();
       genAiPlayground.findLoadPromptButton().should('be.visible').click();
@@ -180,8 +243,6 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Select the prompt from the table');
       genAiPlayground.findPromptManagementModal().should('exist');
       genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
-
-      cy.step('Click Load in Playground to apply the prompt');
       genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
 
       cy.step('Verify prompt is loaded in the settings panel');
@@ -190,9 +251,33 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         .should('be.visible')
         .and('contain', testData.prompt.name);
 
-      // --- Upload RAG document ---
+      cy.step('Send a test message using the loaded prompt context');
+      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
+      genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
 
-      cy.step('Navigate to Knowledge tab in settings panel');
+      cy.step('Verify user message appears in chat');
+      genAiPlayground
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.prompt.testMessageWithPrompt);
+
+      cy.step('Verify assistant response is received');
+      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
+      genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
+    },
+  );
+
+  it(
+    'Verify RAG — upload document and retrieve relevant content',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Navigate to playground with prompt management enabled');
+      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+
+      cy.step('Open settings panel and navigate to Knowledge tab');
+      genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findKnowledgeTab().should('be.visible').click();
 
       cy.step('Upload RAG document via the message bar attachment');
@@ -208,29 +293,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         .findUploadedFileName(testData.rag.fileName, { timeout: 120000 })
         .should('be.visible');
 
-      // --- Use the prompt in the playground ---
-
-      cy.step('Verify message input is ready');
-      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-
-      cy.step('Send a test message using the loaded prompt context');
-      genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
-
-      cy.step('Verify user message appears in chat');
-      genAiPlayground
-        .findUserMessage()
-        .should('exist')
-        .and('contain', testData.prompt.testMessageWithPrompt);
-
-      cy.step('Verify assistant response is received');
-      genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
-
-      // --- Send RAG-aware question and verify retrieval ---
-
-      cy.step('Wait for streaming to complete before sending RAG question');
-      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
-
       cy.step('Send a question about the uploaded RAG document');
+      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
       genAiPlayground.sendMessage(testData.rag.testQuestion);
 
       cy.step('Verify RAG question appears in chat');
@@ -252,9 +316,15 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
       cy.step('Verify file search results (RAG citations) are displayed');
       genAiPlayground.findFileSearchResults({ timeout: 10000 }).should('exist');
+    },
+  );
 
-      // --- Cleanup: delete the endpoint ---
-
+  it(
+    'Verify endpoint deletion and resource cleanup',
+    {
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+    },
+    () => {
       cy.step('Navigate back to AI Assets to delete the endpoint');
       genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
 
