@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'chaos/**'
+      - 'manifests/**'
       - 'dashboard-operator/internal/**'
       - 'dashboard-operator/api/**'
       - 'dashboard-operator/config/**'
@@ -14,7 +15,6 @@ permissions:
   contents: read
 
 env:
-  OPERATOR_CHAOS_VERSION: "v0.0.0-20260521100204-4dab974d613c"
   KNOWLEDGE_FILE: "chaos/knowledge/dashboard.yaml"
 
 jobs:
@@ -37,8 +37,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          version=$(grep '^OPERATOR_CHAOS_VERSION' dashboard-operator/Makefile | head -1 | sed 's/.*?= *//')
           mkdir -p "${RUNNER_TEMP}/bin"
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/opendatahub-io/operator-chaos/cmd/operator-chaos@${OPERATOR_CHAOS_VERSION}"
+          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/opendatahub-io/operator-chaos/cmd/operator-chaos@${version}"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
       - name: Validate knowledge model
@@ -46,12 +47,6 @@ jobs:
         run: |
           set -euo pipefail
           operator-chaos validate --knowledge "${KNOWLEDGE_FILE}"
-
-      - name: Local preflight
-        shell: bash
-        run: |
-          set -euo pipefail
-          operator-chaos preflight --knowledge "${KNOWLEDGE_FILE}" --local
 
       - name: Validate all experiments
         shell: bash
@@ -65,6 +60,12 @@ jobs:
             fi
           done
           exit "$status"
+
+      - name: Local preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          operator-chaos preflight --knowledge "${KNOWLEDGE_FILE}" --local
 
       - name: Checkout base branch assets
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

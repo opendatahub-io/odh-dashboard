@@ -38,8 +38,8 @@ components:
         kind: ConfigMap
         name: kube-rbac-proxy-config
         namespace: opendatahub
-      - apiVersion: route.openshift.io/v1
-        kind: Route
+      - apiVersion: gateway.networking.k8s.io/v1
+        kind: HTTPRoute
         name: odh-dashboard
         namespace: opendatahub
     steadyState:
