@@ -249,7 +249,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
           </HelperTextItem>
         </HelperText>
       )}
-      {existingOptionNotFound && (
+      {existingOptionNotFound && !externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
             The existing NIM image was not found. The deployment may not work as expected.
