@@ -340,6 +340,23 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+export type AcceleratorTestData = DataScienceProjectData & {
+  unsupportedAcceleratorConfigFixturePath: string;
+  acceleratorConfigName: string;
+  version: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
+export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
+  servingRuntimeId: string;
+  servingRuntimeDisplayName: string;
+  unsupportedServingRuntimeYamlFixturePath: string;
+  apiProtocol: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
