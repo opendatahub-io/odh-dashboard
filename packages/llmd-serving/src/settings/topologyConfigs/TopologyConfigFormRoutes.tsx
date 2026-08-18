@@ -25,10 +25,7 @@ const TopologyConfigFormRoutes: React.FC = () => {
   return (
     <LlmInferenceServiceConfigAccessGate>
       <TopologyConfigContextProvider>
-        <TopologyConfigurationCreateEdit
-          listPath={TOPOLOGY_CONFIGS_TAB_PATH}
-          isDuplicate={isDuplicate}
-        />
+        <TopologyConfigurationCreateEdit isDuplicate={isDuplicate} />
       </TopologyConfigContextProvider>
     </LlmInferenceServiceConfigAccessGate>
   );

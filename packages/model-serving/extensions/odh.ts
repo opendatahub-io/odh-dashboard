@@ -17,6 +17,10 @@ import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWiz
 
 const ADMIN_USER = 'ADMIN_USER';
 
+// Base path of the Model deployment settings tabbed page.
+const MODEL_DEPLOYMENT_SETTINGS_PATH =
+  '/settings/model-resources-operations/model-deployment-settings';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -180,13 +184,13 @@ const extensions: (
   {
     type: 'app.tab-route/page',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       id: 'model-deployment-settings',
       title: 'Model deployment settings',
-      href: '/settings/model-resources-operations/model-deployment-settings',
-      path: '/settings/model-resources-operations/model-deployment-settings/*',
+      href: MODEL_DEPLOYMENT_SETTINGS_PATH,
+      path: `${MODEL_DEPLOYMENT_SETTINGS_PATH}/*`,
       section: 'settings-model-resources-and-operations',
       group: '1_model-resources',
     },
@@ -195,7 +199,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [SupportedArea.MODEL_SERVING, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -203,41 +207,6 @@ const extensions: (
       title: 'General settings',
       component: () => import('../src/components/settings/GeneralSettingsTab'),
       group: '1_general',
-    },
-  },
-  // Redirect old serving runtimes URL to the new model deployment settings page
-  {
-    type: 'app.route',
-    properties: {
-      path: '/settings/model-resources-operations/serving-runtimes/*',
-      component: createRedirectComponent({
-        from: '/settings/model-resources-operations/serving-runtimes/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
-      }),
-    },
-    flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/servingRuntimes/*',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
-      }),
-    },
-    flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
     },
   },
 ];
