@@ -24,7 +24,8 @@ const colors = {
 
 function getWorkspacePackages() {
   try {
-    const stdout = execSync('npm query .workspace --json', { encoding: 'utf8' });
+    const { WORKSPACE_QUERY_SCRIPT } = require('./workspace-query-path');
+    const stdout = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, { encoding: 'utf8' });
     return JSON.parse(stdout);
   } catch (error) {
     console.error(`${colors.red}Error querying workspaces:${colors.reset}`, error.message);

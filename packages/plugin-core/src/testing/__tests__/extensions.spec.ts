@@ -1,10 +1,13 @@
 import { execSync } from 'child_process';
+import path from 'path';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { expectExtensionsToBeValid } from '../utils';
 
 describe('workspace extensions', () => {
   it('should be valid', () => {
-    const stdout = execSync('npm query .workspace --json', { encoding: 'utf-8' });
+    const repoRoot = path.resolve(__dirname, '../../../../..');
+    const scriptPath = path.join(repoRoot, 'scripts/query-workspace-packages.js');
+    const stdout = execSync(`node "${scriptPath}"`, { encoding: 'utf-8', cwd: repoRoot });
     const packages: { name: string; exports?: { [key: string]: string } }[] = JSON.parse(stdout);
 
     const extensionPackages = packages.filter((pkg) => pkg.exports?.['./extensions']);

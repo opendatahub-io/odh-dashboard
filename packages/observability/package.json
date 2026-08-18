@@ -41,10 +41,10 @@
     "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^3.9.1",
     "@mui/material": "^6.5.0",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "@perses-dev/components": "^0.54.0-beta.10",
     "@perses-dev/core": "^0.54.0-beta.2",
     "@perses-dev/dashboards": "^0.54.0-beta.10",
@@ -56,10 +56,10 @@
     "@perses-dev/table-plugin": "v0.13.0-rc.1"
   },
   "devDependencies": {
-    "@odh-dashboard/cypress": "*",
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/cypress": "workspace:*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk-utils": "^5",

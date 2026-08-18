@@ -34,9 +34,9 @@
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.24.1",
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/core": "2.1.10",
     "@types/node": "^22.0.0",
     "webpack": "^5.104.1"
