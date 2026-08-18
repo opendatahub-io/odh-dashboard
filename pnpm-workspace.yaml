@@ -73,3 +73,4 @@ overrides:
   '@types/minimatch': '5.1.2'
   '@mui/material@>=7>@mui/utils': '^7.3.11'
   '@mui/material@>=7>@mui/system': '^7.3.11'
+  '@tanstack/react-query@>=5>@tanstack/query-core': '5.101.4'
