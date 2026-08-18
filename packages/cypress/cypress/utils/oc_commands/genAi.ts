@@ -284,6 +284,7 @@ export const createExternalModelViaAPI = (
 /**
  * Ensure an MCP server entry exists in the gen-ai MCP servers ConfigMap.
  * Creates the ConfigMap if it doesn't exist, or patches an existing one.
+ * Uses file-based patching to avoid shell injection from user-controlled values.
  */
 export const ensureMCPServerConfigMapEntry = (
   configMapName: string,
@@ -292,32 +293,45 @@ export const ensureMCPServerConfigMapEntry = (
 ): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const valueJson = JSON.stringify(serverData);
-  const escapedValue = valueJson.replace(/"/g, '\\"');
+  const patchJson = JSON.stringify({ data: { [serverKey]: valueJson } });
+  const patchFile = `/tmp/mcp-cm-patch-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
 
   cy.exec(`oc get configmap ${configMapName} -n ${namespace} -o name`, {
     failOnNonZeroExit: false,
   }).then((result) => {
     if (result.exitCode === 0) {
       cy.exec(
-        `oc patch configmap ${configMapName} -n ${namespace} --type=merge -p '{"data":{"${serverKey}":"${escapedValue}"}}'`,
+        `oc patch configmap ${configMapName} -n ${namespace} --type=merge --patch-file ${patchFile}`,
       );
     } else {
-      cy.exec(
-        `oc create configmap ${configMapName} -n ${namespace} --from-literal='${serverKey}=${valueJson}'`,
-      );
+      const cmJson = JSON.stringify({
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: { name: configMapName, namespace },
+        data: { [serverKey]: valueJson },
+      });
+      const cmFile = `/tmp/mcp-cm-create-${Date.now()}.json`;
+      cy.writeFile(cmFile, cmJson);
+      cy.exec(`oc apply -f ${cmFile}`);
     }
   });
 };
 
 /**
  * Remove an MCP server entry from the gen-ai MCP servers ConfigMap.
- * Uses JSON patch to delete a single key without affecting other entries.
+ * Uses file-based JSON patch to avoid shell injection from key values.
  */
 export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: string): void => {
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const escapedKey = serverKey.replace(/~/g, '~0').replace(/\//g, '~1');
+  const patchJson = JSON.stringify([{ op: 'remove', path: `/data/${escapedKey}` }]);
+  const patchFile = `/tmp/mcp-cm-remove-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
   cy.exec(
-    `oc patch configmap ${configMapName} -n ${namespace} --type=json -p '[{"op":"remove","path":"/data/${escapedKey}"}]'`,
+    `oc patch configmap ${configMapName} -n ${namespace} --type=json --patch-file ${patchFile}`,
     { failOnNonZeroExit: false },
   );
 };
@@ -348,18 +362,12 @@ export const deployMCPServer = (
     configMapName: name,
   });
 
-  cy.exec(`oc get deployment ${name} -n ${mcpNamespace} -o name`, {
-    failOnNonZeroExit: false,
-  }).then((r) => {
-    if (r.exitCode !== 0) {
-      cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
-        const rendered = replacePlaceholdersInYaml(yamlContent, {
-          NAMESPACE: mcpNamespace,
-          IMAGE: image,
-        });
-        applyOpenShiftYaml(rendered);
-      });
-    }
+  cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
+    const rendered = replacePlaceholdersInYaml(yamlContent, {
+      NAMESPACE: mcpNamespace,
+      IMAGE: image,
+    });
+    applyOpenShiftYaml(rendered);
   });
 
   cy.exec(`oc rollout status deployment/${name} -n ${mcpNamespace} --timeout=120s`, {

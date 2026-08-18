@@ -180,8 +180,8 @@ class GenAiPlayground {
     return cy.findByTestId('create-external-model-submit-button');
   }
 
-  findAiModelsTable() {
-    return cy.findByTestId('ai-models-table');
+  findAiModelsTable(options?: { timeout?: number }) {
+    return cy.findByTestId('ai-models-table', options);
   }
 
   findModelActionsKebab(modelName: string) {
@@ -508,13 +508,14 @@ class GenAiPlayground {
   }
 
   findMCPServerCheckbox(serverName: string) {
+    // Prefix selector is safe — scoped to a single <tr> via findMCPServerRow
     return this.findMCPServerRow(serverName)
       .find('[data-testid^="mcp-server-checkbox-"]')
       .find('input[type="checkbox"]');
   }
 
   selectMCPServer(serverName: string) {
-    this.findMCPServerCheckbox(serverName).then(($checkbox) => {
+    return this.findMCPServerCheckbox(serverName).then(($checkbox) => {
       if (!$checkbox.is(':checked')) {
         cy.wrap($checkbox).check({ force: true });
       }

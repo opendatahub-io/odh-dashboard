@@ -461,6 +461,9 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
       cy.step('Navigate back to AI Assets to delete the endpoint');
       genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
 
+      cy.step('Wait for AI models table to load');
+      genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
+
       cy.step('Open kebab menu for the custom endpoint model');
       genAiPlayground.findModelActionsKebab(testData.displayName).click();
 
