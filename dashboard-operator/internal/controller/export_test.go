@@ -39,3 +39,17 @@ func (r *DashboardReconciler) MonitoringNamespace() string {
 }
 
 const ObservabilityRetryInterval = observabilityRetryInterval
+
+var DashboardSAName = dashboardSAName
+
+func (r *DashboardReconciler) ReconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	return r.reconcileNamespacedRBAC(ctx, dashboard)
+}
+
+func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
+	return r.cleanupNamespacedRBAC(ctx)
+}
+
+func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
+	return r.gcStaleNamespacedRBAC(ctx, desired)
+}

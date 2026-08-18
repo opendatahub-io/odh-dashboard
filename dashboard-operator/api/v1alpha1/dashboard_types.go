@@ -176,6 +176,25 @@ type DashboardSpec struct {
 	// +kubebuilder:default=Sidecar
 	// +optional
 	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
+
+	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
+	// When set, the dashboard-operator creates a Role and RoleBinding in this
+	// namespace granting the dashboard SA access to notebook-related resources.
+	// Absent means notebooks RBAC is skipped (component not enabled or standalone
+	// deployment where notebooks are not used).
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
+	NotebooksNamespace string `json:"notebooksNamespace,omitempty"`
+
+	// ModelRegistryNamespace is the namespace where the Model Registry runs.
+	// When set, the dashboard-operator creates a Role and RoleBinding in this
+	// namespace granting the dashboard SA access to model registry resources.
+	// Absent means model registry RBAC is skipped.
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
+	ModelRegistryNamespace string `json:"modelRegistryNamespace,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
