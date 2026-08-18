@@ -1,0 +1,12 @@
+.odh-resource-tree__all,
+.odh-resource-tree__category {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+.odh-resource-tree__category {
+  padding-inline-start: var(--pf-t--global--spacer--lg);
+}
+
+.odh-resource-tree__resource {
+  padding-inline-start: calc(var(--pf-t--global--spacer--lg) * 2);
+}
