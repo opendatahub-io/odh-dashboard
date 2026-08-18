@@ -175,8 +175,6 @@ export function useStartEvaluationRunForm({
       sourceMode,
       endpointUrl,
       apiKeySecretRef,
-      datasetUrl,
-      accessToken,
       modelName,
       agentName,
     });
