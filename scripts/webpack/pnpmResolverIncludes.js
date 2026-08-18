@@ -3,6 +3,7 @@
  * npm-era absolute path prefixes miss .pnpm store paths and nested workspace deps.
  */
 const path = require('path');
+const fs = require('fs');
 
 const PNPM_NODE_MODULES = /node_modules[/\\](?:\.pnpm[/\\][^/\\]+[/\\]node_modules[/\\])?/;
 
@@ -92,10 +93,23 @@ const patternFlyFontIncludes = (relativeDirname, rootNodeModules) => [
   isFontOrPficonAsset,
 ];
 
+/**
+ * Pin @tanstack/query-core to the package-local install so webpack does not resolve
+ * the hoisted v4 copy from the dashboard shell when building react-query v5 modules.
+ */
+const tanstackQueryCoreAlias = (relativeDirname) => {
+  const localQueryCore = path.resolve(relativeDirname, 'node_modules/@tanstack/query-core');
+  if (fs.existsSync(path.join(localQueryCore, 'package.json'))) {
+    return { '@tanstack/query-core': localQueryCore };
+  }
+  return {};
+};
+
 module.exports = {
   isFontOrPficonAsset,
   isPatternFlyCss,
   isVendorCss,
   patternFlyCssIncludes,
   patternFlyFontIncludes,
+  tanstackQueryCoreAlias,
 };
