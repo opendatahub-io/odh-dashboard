@@ -724,6 +724,27 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });
 
+  it('should not show validate connection button for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
+
+    selectSourceMode('Pre-recorded responses');
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
   it('should allow submit when external fields are filled without requiring validation', () => {
     navigateToBenchmarkStart();
 

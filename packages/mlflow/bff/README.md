@@ -1,6 +1,6 @@
-# MLflow BFF (Minimal)
+# MLflow BFF
 
-Minimal backend-for-frontend providing only core endpoints required by the MLflow UI.
+Backend-for-frontend for the MLflow UI: tracking, prompts, MCP registry, and an inter-BFF catalog proxy to model-registry.
 
 ## Dependencies
 
@@ -11,9 +11,15 @@ Minimal backend-for-frontend providing only core endpoints required by the MLflo
 This service exposes:
 
 - GET `/healthcheck` – liveness probe
-- GET `/api/v1/user` – returns the authenticated user
-- GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
-- GET `/api/v1/experiments?workspace=<ns>` – list MLflow experiments for a workspace
+- GET `/api/v1/user` – authenticated user
+- GET `/api/v1/namespaces` – list namespaces (dev/mock k8s only)
+- GET `/api/v1/status` – MLflow availability
+- GET `/api/v1/experiments?workspace=<ns>` – list experiments
+- `/api/v1/prompts...` – Prompt Registry against the tracking server
+- `/api/v1/mcp-registry/...` – MCP Registry against the tracking server (including `POST /mcp-registry/register`)
+- GET `/api/v1/mcp-catalog/servers/:id/tools` and `.../mcpserver` – proxy to model-registry BFF
+
+`/mcp-registry` is MLflow tracking. `/mcp-catalog` is an MR catalog proxy; the inter-BFF `Call` still uses `/mcp_catalog/mcp_servers/...`. Full request/response shapes live in `../api/openapi/mlflow.yaml`.
 
 ## Development
 
@@ -59,6 +65,11 @@ make run LOG_LEVEL=DEBUG
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read bearer token from (default `Authorization`) |
 | `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default `"Bearer "`, note trailing space) |
 | `-mlflow-url` | `MLFLOW_URL` | MLflow tracking server URL |
+| `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock inter-BFF clients (model-registry catalog proxy) |
+| `-bff-model-registry-dev-url` | `BFF_MODEL_REGISTRY_DEV_URL` | Dev override URL for model-registry BFF (e.g. `http://localhost:8043/api/v1`) |
+| `-bff-model-registry-service-name` | `BFF_MODEL_REGISTRY_SERVICE_NAME` | Kubernetes service name for model-registry BFF (default `odh-dashboard-model-registry-ui`) |
+| `-bff-model-registry-service-port` | `BFF_MODEL_REGISTRY_SERVICE_PORT` | Model-registry BFF port (default 8043) |
+| `-bff-model-registry-tls-enabled` | `BFF_MODEL_REGISTRY_TLS_ENABLED` | Enable TLS for model-registry BFF calls (default false) |
 | `-cert-file` | | TLS certificate path (enables TLS when paired with key) |
 | `-key-file` | | TLS key path |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
@@ -100,7 +111,13 @@ JSON endpoints plus static asset serving (index.html fallback):
 GET /healthcheck
 GET /api/v1/user
 GET /api/v1/namespaces                    (dev / mock mode only)
+GET /api/v1/status
 GET /api/v1/experiments?workspace=<ns>
+GET|POST /api/v1/prompts?workspace=<ns>
+GET /api/v1/mcp-registry/servers?workspace=<ns>
+POST /api/v1/mcp-registry/register?workspace=<ns>
+GET /api/v1/mcp-catalog/servers/:id/tools?namespace=<ns>
+GET /api/v1/mcp-catalog/servers/:id/mcpserver?namespace=<ns>
 ```
 
 ### Sample local calls

@@ -1,11 +1,9 @@
 import * as React from 'react';
 import {
   Alert,
-  Bullseye,
   Button,
   Checkbox,
   EmptyStateVariant,
-  Spinner,
   MenuToggle,
   MenuToggleElement,
   Pagination,
@@ -50,8 +48,6 @@ import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/
 import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
-
-const EvaluationStatusModal = React.lazy(() => import('./EvaluationStatusModal'));
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 
@@ -126,6 +122,7 @@ type EvaluationsTableProps = {
   collectionNameMap: CollectionNameMap;
   collectionsLoaded: boolean;
   onRefresh: () => void;
+  onShowStatus: (job: EvaluationJob) => void;
 };
 
 const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
@@ -135,17 +132,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   collectionNameMap,
   collectionsLoaded,
   onRefresh,
+  onShowStatus,
 }) => {
-  const [selectedJobId, setSelectedJobId] = React.useState<string | undefined>();
-  // Derive from live evaluations so the modal stays current as the list polls
-  const selectedJob = React.useMemo(
-    () => evaluations.find((job) => job.resource.id === selectedJobId),
-    [evaluations, selectedJobId],
-  );
-  // Clear selected job when the namespace changes so the modal doesn't persist across projects
-  React.useEffect(() => {
-    setSelectedJobId(undefined);
-  }, [namespace]);
   const navigate = useNavigate();
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
@@ -602,7 +590,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
-                onShowStatus={(selectedEvalJob) => setSelectedJobId(selectedEvalJob.resource.id)}
+                onShowStatus={onShowStatus}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />
@@ -610,22 +598,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           </Tbody>
         </Table>
       )}
-      {selectedJob ? (
-        <React.Suspense
-          fallback={
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          }
-        >
-          <EvaluationStatusModal
-            job={selectedJob}
-            polledJobData={polledJobDataMap.get(selectedJob.resource.id)}
-            namespace={namespace ?? ''}
-            onClose={() => setSelectedJobId(undefined)}
-          />
-        </React.Suspense>
-      ) : null}
     </>
   );
 };

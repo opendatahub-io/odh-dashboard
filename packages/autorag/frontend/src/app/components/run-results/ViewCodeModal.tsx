@@ -20,6 +20,7 @@ import type { OgxCredentials } from '~/app/types';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
+import { fireAutoragCodeSnippetsExported } from '~/app/utilities/tracking';
 import { formatPatternName } from '~/app/utilities/utils';
 import {
   generateCurlSnippet,
@@ -121,6 +122,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
       () => {
         setCopiedTab(tabIndex);
         setTimeout(() => setCopiedTab(null), 2000);
+        fireAutoragCodeSnippetsExported('copied');
       },
       () => {
         // clipboard access denied
