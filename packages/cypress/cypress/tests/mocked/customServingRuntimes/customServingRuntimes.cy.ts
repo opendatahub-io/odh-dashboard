@@ -179,6 +179,10 @@ describe('Custom serving runtimes', () => {
     // tab on the Model deployment settings page — so the visible title is the tabbed
     // page shell's, not a standalone "Serving runtimes" page title.
     cy.findByTestId('app-tab-page-title').should('contain', 'Model deployment settings');
+    // Wait for the templates list itself to finish mounting after the navigation before
+    // pushing the websocket ADDED event — otherwise the event can fire before the list
+    // has subscribed and the new row is missed.
+    servingRuntimes.getRowById('template-1').find().should('exist');
 
     cy.wsK8s(
       'ADDED',

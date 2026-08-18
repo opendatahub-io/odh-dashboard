@@ -80,7 +80,15 @@ class ServingRuntimes {
 
   navigate() {
     this.findNavItem().click();
+    // The nav item opens the Model deployment settings page on its default (General
+    // settings) tab; select the serving-runtime-templates tab before waiting for its
+    // list controls.
+    this.findTab().click();
     this.wait();
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'Serving runtime templates' });
   }
 
   private wait() {
