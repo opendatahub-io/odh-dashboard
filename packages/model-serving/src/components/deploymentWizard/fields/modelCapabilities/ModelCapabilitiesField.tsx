@@ -109,7 +109,9 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
       >
         <FormHelperText className="pf-v6-u-mb-md">
           <HelperText>
-            Tag this model with its capabilities so users can easily identify what it supports
+            <HelperTextItem>
+              Tag this model with its capabilities so users can easily identify what it supports.
+            </HelperTextItem>
           </HelperText>
         </FormHelperText>
         <Flex
