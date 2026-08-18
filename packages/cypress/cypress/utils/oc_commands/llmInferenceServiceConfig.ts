@@ -1,5 +1,6 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createCustomResource } from './customResources';
+import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -10,28 +11,24 @@ if (!applicationNamespace) {
 }
 
 /**
- * Searches for an LLMInferenceServiceConfig in the applications namespace whose name
- * contains the provided substring. If found, deletes it.
+ * Deletes an LLMInferenceServiceConfig in the applications namespace by exact name.
  *
- * @param configName - The `metadata.name` substring to search for.
+ * @param configName - The exact `metadata.name` of the config to delete.
  * @returns A Cypress.Chainable that resolves to the CommandLineResult.
  */
 export const cleanupLLMInferenceServiceConfig = (
   configName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const sanitizedName = configName.replace(/[^a-zA-Z0-9_-]/g, '');
-  const ocCommand = `oc get llminferenceserviceconfig -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${sanitizedName}")) | .metadata.name' | tr -d '"'`;
-  cy.log(`Executing delete LLMInferenceServiceConfig command: ${ocCommand}`);
-
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    const name = result.stdout.trim();
-
-    if (name) {
-      cy.log(`LLMInferenceServiceConfig found: ${name}. Proceeding to delete.`);
-      const deleteCommand = `oc delete llminferenceserviceconfig ${name} -n ${applicationNamespace}`;
-      return cy.exec(deleteCommand, { failOnNonZeroExit: false });
+  cy.log(`Deleting LLMInferenceServiceConfig: ${configName}`);
+  const deleteCommand = `oc delete llminferenceserviceconfig ${configName} -n ${applicationNamespace} --ignore-not-found`;
+  return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to delete LLMInferenceServiceConfig ${configName} in ${applicationNamespace}: ${
+          result.stderr || result.stdout
+        }`,
+      );
     }
-    cy.log('No matching LLMInferenceServiceConfig found, proceeding with the test.');
     return cy.wrap(result);
   });
 };
@@ -132,6 +129,7 @@ export const checkLLMInferenceServiceBaseRefs = (
 /**
  * Verifies that an LLMInferenceServiceConfig exists in the given namespace
  * and contains the expected metadata and spec fields.
+ * Retries to handle Kubernetes propagation delay after create/duplicate/edit.
  *
  * @param configName - The `metadata.name` of the config to check.
  * @param namespace - The namespace to look for the config in (e.g. the project namespace where it is copied on deploy).
@@ -147,27 +145,39 @@ export const checkLLMInferenceServiceConfigState = (
   const ocCommand = `oc get LLMInferenceServiceConfig ${sanitizedName} -n ${sanitizedNamespace} -o json`;
   cy.log(`Checking LLMInferenceServiceConfig exists: ${configName} in namespace ${namespace}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let config;
-    try {
-      config = JSON.parse(result.stdout);
-    } catch (e) {
-      throw new Error(
-        `Failed to parse LLMInferenceServiceConfig JSON for ${configName}: ${result.stdout}`,
-      );
-    }
+  const readyCheckCommand =
+    `${ocCommand} | jq -e ` +
+    `--arg name "${configName}" ` +
+    `'(.kind == "LLMInferenceServiceConfig") and (.metadata.name == $name)'` +
+    ` >/dev/null`;
 
-    expect(config.kind).to.equal('LLMInferenceServiceConfig');
-    expect(config.metadata.name).to.equal(configName);
-    cy.log(`✅ LLMInferenceServiceConfig ${configName} exists`);
+  return pollUntilSuccess(
+    readyCheckCommand,
+    `LLMInferenceServiceConfig/${configName} in ${namespace}`,
+    { maxAttempts: 12, pollIntervalMs: 5000 },
+  ).then(() =>
+    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      let config;
+      try {
+        config = JSON.parse(result.stdout);
+      } catch (e) {
+        throw new Error(
+          `Failed to parse LLMInferenceServiceConfig JSON for ${configName}: ${result.stdout}`,
+        );
+      }
 
-    if (expectedFields?.containerImage) {
-      const containers = config.spec?.template?.containers || [];
-      const images = containers.map((c: { image?: string }) => c.image);
-      expect(images).to.include(expectedFields.containerImage);
-      cy.log(`✅ Container image verified: ${expectedFields.containerImage}`);
-    }
+      expect(config.kind).to.equal('LLMInferenceServiceConfig');
+      expect(config.metadata.name).to.equal(configName);
+      cy.log(`✅ LLMInferenceServiceConfig ${configName} exists`);
 
-    return cy.wrap(result);
-  });
+      if (expectedFields?.containerImage) {
+        const containers = config.spec?.template?.containers || [];
+        const images = containers.map((c: { image?: string }) => c.image);
+        expect(images).to.include(expectedFields.containerImage);
+        cy.log(`✅ Container image verified: ${expectedFields.containerImage}`);
+      }
+
+      return cy.wrap(result);
+    }),
+  );
 };

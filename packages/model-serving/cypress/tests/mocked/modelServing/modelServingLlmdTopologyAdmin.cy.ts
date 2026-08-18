@@ -33,10 +33,8 @@ const allConfigs = [mockPreInstalledConfig, mockUserConfig, mockDisabledConfig];
 
 const initIntercepts = ({
   configs = allConfigs,
-  modelDeploymentSettings = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  modelDeploymentSettings?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -53,7 +51,6 @@ const initIntercepts = ({
     disableKServe: false,
     disableLLMd: false,
     llmdTemplates: true,
-    modelDeploymentSettings,
   });
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
@@ -212,48 +209,6 @@ describe('LLMD Topology Admin Settings', () => {
       // beneath the tabbed page title and tab bar, which would give it two headings.
       llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
       llmdTopologySettingsPage.findTab().should('not.exist');
-    });
-  });
-
-  // Flag-off standalone coverage — removed with the standalone page in
-  // RHOAIENG-80077 (https://issues.redhat.com/browse/RHOAIENG-80077).
-  describe('standalone page (modelDeploymentSettings off)', () => {
-    beforeEach(() => {
-      initIntercepts({ modelDeploymentSettings: false });
-      llmdTopologySettingsPage.visitStandalone();
-    });
-
-    it('should render the standalone page with its title and no tab chrome', () => {
-      // The standalone View renders its own app-page-title (noTitle is false there)
-      // and there is no tabbed page shell.
-      llmdTopologySettingsPage
-        .findAppTitle()
-        .should('contain.text', 'llm-d topology configurations');
-      llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
-      llmdTopologySettingsPage.findTab().should('not.exist');
-      llmdTopologySettingsPage.findTable().should('exist');
-    });
-
-    it('should navigate to add/edit/duplicate under the standalone base', () => {
-      llmdTopologySettingsPage.findAddButton().click();
-      cy.url().should(
-        'include',
-        '/settings/model-resources-operations/llmd-topology-configurations/add/',
-      );
-
-      llmdTopologySettingsPage.visitStandalone();
-      llmdTopologySettingsPage.getRow('user-multi-node').findKebabAction('Edit').click();
-      cy.url().should(
-        'include',
-        '/settings/model-resources-operations/llmd-topology-configurations/edit/user-multi-node',
-      );
-
-      llmdTopologySettingsPage.visitStandalone();
-      llmdTopologySettingsPage.getRow('user-multi-node').findKebabAction('Duplicate').click();
-      cy.url().should(
-        'include',
-        '/settings/model-resources-operations/llmd-topology-configurations/duplicate/user-multi-node',
-      );
     });
   });
 });

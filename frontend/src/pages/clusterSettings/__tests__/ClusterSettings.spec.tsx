@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import ClusterSettings from '#~/pages/clusterSettings/ClusterSettings';
 import { useAppContext } from '#~/app/AppContext';
@@ -30,16 +30,6 @@ jest.mock('#~/services/clusterSettingsService', () => ({
 
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
-}));
-
-jest.mock('#~/pages/clusterSettings/ModelServingPlatformSettings', () => ({
-  __esModule: true,
-  default: () => <div data-testid="model-serving-platform-settings">Platform Settings</div>,
-}));
-
-jest.mock('#~/pages/clusterSettings/ModelDeploymentSettings', () => ({
-  __esModule: true,
-  default: () => <div data-testid="model-deployment-settings">Deployment Settings</div>,
 }));
 
 jest.mock('#~/pages/clusterSettings/GlobalProjectSettings', () => ({
@@ -244,48 +234,5 @@ describe('ClusterSettings', () => {
         },
       );
     });
-  });
-
-  it('should show model deployments section when MODEL_SERVING is on and MODEL_DEPLOYMENT_SETTINGS is off', async () => {
-    mockUseIsAreaAvailable.mockImplementation(
-      (area: string) =>
-        ({
-          status: area === SupportedArea.MODEL_SERVING,
-          featureFlags: {},
-          devFlags: {},
-          reliantAreas: {},
-          requiredComponents: {},
-          requiredCapabilities: {},
-          customCondition: jest.fn(),
-        } as ReturnType<typeof useIsAreaAvailable>),
-    );
-
-    await renderAndWaitForLoad();
-
-    expect(screen.getByText('Model deployments')).toBeInTheDocument();
-    expect(screen.getByTestId('model-serving-platform-settings')).toBeInTheDocument();
-    expect(screen.getByTestId('model-deployment-settings')).toBeInTheDocument();
-  });
-
-  it('should hide model deployments section when MODEL_DEPLOYMENT_SETTINGS flag is on', async () => {
-    mockUseIsAreaAvailable.mockImplementation((area: string) => {
-      const isOn =
-        area === SupportedArea.MODEL_SERVING || area === SupportedArea.MODEL_DEPLOYMENT_SETTINGS;
-      return {
-        status: isOn,
-        featureFlags: {},
-        devFlags: {},
-        reliantAreas: {},
-        requiredComponents: {},
-        requiredCapabilities: {},
-        customCondition: jest.fn(),
-      } as ReturnType<typeof useIsAreaAvailable>;
-    });
-
-    await renderAndWaitForLoad();
-
-    expect(screen.queryByText('Model deployments')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('model-serving-platform-settings')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('model-deployment-settings')).not.toBeInTheDocument();
   });
 });

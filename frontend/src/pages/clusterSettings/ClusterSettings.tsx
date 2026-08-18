@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAppContext } from '#~/app/AppContext';
@@ -13,11 +12,8 @@ import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
-import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
-import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
 import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import SettingSection from '#~/components/SettingSection';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
@@ -51,10 +47,6 @@ const ClusterSettings: React.FC = () => {
   const [globalMLflowNamespace, setGlobalMLflowNamespace] = React.useState('');
   const { dashboardConfig } = useAppContext();
   const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;
-  const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
-  const modelDeploymentSettingsEnabled = useIsAreaAvailable(
-    SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-  ).status;
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
@@ -215,27 +207,6 @@ const ClusterSettings: React.FC = () => {
       provideChildrenPadding
     >
       <Stack hasGutter>
-        {modelServingEnabled && !modelDeploymentSettingsEnabled && (
-          <SettingSection title="Model deployments">
-            <Stack hasGutter>
-              <StackItem>
-                <ModelServingPlatformSettings
-                  initialValue={clusterSettings.modelServingPlatformEnabled}
-                  enabledPlatforms={modelServingEnabledPlatforms}
-                  setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  isDistributedInferencingDefault={isDistributedInferencingDefault}
-                  setisDistributedInferencingDefault={setisDistributedInferencingDefault}
-                />
-              </StackItem>
-              <StackItem>
-                <ModelDeploymentSettings
-                  defaultDeploymentStrategy={defaultDeploymentStrategy}
-                  setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
-                />
-              </StackItem>
-            </Stack>
-          </SettingSection>
-        )}
         <StackItem>
           <PVCSizeSettings
             initialValue={clusterSettings.pvcSize}

@@ -6,6 +6,7 @@ import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-se
 import { type LLMInferenceServiceConfigKind, TopologyType } from '../../../types';
 import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
+import { TOPOLOGY_CONFIGS_TAB_PATH } from '../paths';
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
@@ -42,12 +43,14 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
 
 const renderAtDuplicate = (config: LLMInferenceServiceConfigKind) =>
   render(
-    <MemoryRouter initialEntries={[`/list/duplicate/${config.metadata.name}`]}>
+    <MemoryRouter
+      initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/${config.metadata.name}`]}
+    >
       <TopologyConfigContext.Provider value={{ configs: [config] }}>
         <Routes>
           <Route
-            path="/list/duplicate/:configName"
-            element={<TopologyConfigurationCreateEdit listPath="/list" isDuplicate />}
+            path={`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/:configName`}
+            element={<TopologyConfigurationCreateEdit isDuplicate />}
           />
         </Routes>
       </TopologyConfigContext.Provider>
@@ -58,14 +61,14 @@ const renderAtDuplicate = (config: LLMInferenceServiceConfigKind) =>
 // route so a redirect away from the form lands somewhere assertable.
 const renderAtAdd = (topologyType: string) =>
   render(
-    <MemoryRouter initialEntries={[`/list/add/${topologyType}`]}>
+    <MemoryRouter initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/add/${topologyType}`]}>
       <TopologyConfigContext.Provider value={{ configs: [] }}>
         <Routes>
           <Route
-            path="/list/add/:topologyType"
-            element={<TopologyConfigurationCreateEdit listPath="/list" />}
+            path={`${TOPOLOGY_CONFIGS_TAB_PATH}/add/:topologyType`}
+            element={<TopologyConfigurationCreateEdit />}
           />
-          <Route path="/list" element={<div data-testid="list-landing" />} />
+          <Route path={TOPOLOGY_CONFIGS_TAB_PATH} element={<div data-testid="list-landing" />} />
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
@@ -75,14 +78,14 @@ const renderAtAdd = (topologyType: string) =>
 // context, plus a sentinel list route.
 const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
   render(
-    <MemoryRouter initialEntries={[`/list/edit/${configName}`]}>
+    <MemoryRouter initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/edit/${configName}`]}>
       <TopologyConfigContext.Provider value={{ configs }}>
         <Routes>
           <Route
-            path="/list/edit/:configName"
-            element={<TopologyConfigurationCreateEdit listPath="/list" />}
+            path={`${TOPOLOGY_CONFIGS_TAB_PATH}/edit/:configName`}
+            element={<TopologyConfigurationCreateEdit />}
           />
-          <Route path="/list" element={<div data-testid="list-landing" />} />
+          <Route path={TOPOLOGY_CONFIGS_TAB_PATH} element={<div data-testid="list-landing" />} />
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
@@ -92,14 +95,14 @@ const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind
 // in context, plus a sentinel list route.
 const renderAtDuplicateByName = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
   render(
-    <MemoryRouter initialEntries={[`/list/duplicate/${configName}`]}>
+    <MemoryRouter initialEntries={[`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/${configName}`]}>
       <TopologyConfigContext.Provider value={{ configs }}>
         <Routes>
           <Route
-            path="/list/duplicate/:configName"
-            element={<TopologyConfigurationCreateEdit listPath="/list" isDuplicate />}
+            path={`${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/:configName`}
+            element={<TopologyConfigurationCreateEdit isDuplicate />}
           />
-          <Route path="/list" element={<div data-testid="list-landing" />} />
+          <Route path={TOPOLOGY_CONFIGS_TAB_PATH} element={<div data-testid="list-landing" />} />
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,

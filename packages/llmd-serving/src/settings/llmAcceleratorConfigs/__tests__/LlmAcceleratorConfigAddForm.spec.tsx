@@ -12,6 +12,7 @@ import {
   updateLLMInferenceServiceConfig,
 } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
+import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../paths';
 
 jest.mock('react-router-dom', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -46,9 +47,8 @@ const mockUseParams = jest.mocked(useParams);
 const mockCreateLLMInferenceServiceConfig = jest.mocked(createLLMInferenceServiceConfig);
 const mockUpdateLLMInferenceServiceConfig = jest.mocked(updateLLMInferenceServiceConfig);
 
-// Deliberately not one of the real list paths, so these tests fail if the form
-// ever navigates to a hardcoded path instead of the listPath prop.
-const LIST_PATH = '/test-configs-list';
+// The component now derives listPath internally from the shared tab path constant.
+const LIST_PATH = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
 
 describe('LlmAcceleratorConfigAddForm', () => {
   const navigateMock = jest.fn();
@@ -61,7 +61,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
   describe('Add mode', () => {
     it('should render with "Add" title and empty fields', () => {
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       expect(screen.getByTestId('app-page-title')).toHaveTextContent(
         'Add LLM accelerator configuration',
@@ -73,14 +73,14 @@ describe('LlmAcceleratorConfigAddForm', () => {
     });
 
     it('should disable Create button when name is empty', () => {
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       const submitButton = screen.getByTestId('submit-button');
       expect(submitButton).toBeDisabled();
     });
 
     it('should enable Create button when name and YAML are filled', () => {
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       const nameInput = screen.getByTestId('llm-accelerator-config-name');
       fireEvent.change(nameInput, { target: { value: 'Test Config' } });
@@ -95,7 +95,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
     it('should call createLLMInferenceServiceConfig on submit', async () => {
       mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
         target: { value: 'New Config' },
@@ -119,7 +119,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
     it('should navigate back on successful create', async () => {
       mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
         target: { value: 'New Config' },
@@ -136,7 +136,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
     });
 
     it('should navigate back when Cancel is clicked', () => {
-      render(<LlmAcceleratorConfigAddForm mode="add" listPath={LIST_PATH} />);
+      render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       const cancelButton = screen.getByTestId('cancel-button');
       fireEvent.click(cancelButton);
@@ -152,13 +152,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
         displayName: 'Source Config',
       });
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="duplicate"
-          sourceConfig={sourceConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
 
       expect(screen.getByTestId('app-page-title')).toHaveTextContent(
         'Duplicate LLM accelerator configuration',
@@ -178,13 +172,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
         name: 'source-config',
       });
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="duplicate"
-          sourceConfig={sourceConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
 
       fireEvent.click(screen.getByTestId('submit-button'));
 
@@ -202,13 +190,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
         displayName: 'Source Config',
       });
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="duplicate"
-          sourceConfig={sourceConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
 
       const nameInput = screen.getByTestId('llm-accelerator-config-name');
       fireEvent.change(nameInput, { target: { value: 'My Custom Name' } });
@@ -224,13 +206,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
         displayName: 'Existing Config',
       });
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="edit"
-          sourceConfig={existingConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="edit" sourceConfig={existingConfig} />);
 
       expect(screen.getByTestId('app-page-title')).toHaveTextContent('Edit Existing Config');
       expect(screen.getByTestId('app-page-description')).toHaveTextContent(
@@ -244,13 +220,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
     it('should enable Update button when form is valid', () => {
       const existingConfig = mockLLMInferenceServiceConfigK8sResource({});
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="edit"
-          sourceConfig={existingConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="edit" sourceConfig={existingConfig} />);
 
       const submitButton = screen.getByTestId('submit-button');
       expect(submitButton).not.toBeDisabled();
@@ -263,13 +233,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
         name: 'existing-config',
       });
 
-      render(
-        <LlmAcceleratorConfigAddForm
-          mode="edit"
-          sourceConfig={existingConfig}
-          listPath={LIST_PATH}
-        />,
-      );
+      render(<LlmAcceleratorConfigAddForm mode="edit" sourceConfig={existingConfig} />);
 
       fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
         target: { value: 'Updated Config' },
@@ -306,7 +270,7 @@ describe('LlmAcceleratorConfigFormByName', () => {
           configs: [existingConfig],
         }}
       >
-        <LlmAcceleratorConfigFormByName mode="edit" listPath={LIST_PATH} />
+        <LlmAcceleratorConfigFormByName mode="edit" />
       </LlmAcceleratorConfigContext.Provider>,
     );
 
@@ -322,7 +286,7 @@ describe('LlmAcceleratorConfigFormByName', () => {
           configs: [],
         }}
       >
-        <LlmAcceleratorConfigFormByName mode="edit" listPath={LIST_PATH} />
+        <LlmAcceleratorConfigFormByName mode="edit" />
       </LlmAcceleratorConfigContext.Provider>,
     );
 
@@ -345,7 +309,7 @@ describe('LlmAcceleratorConfigFormByName', () => {
           configs: [],
         }}
       >
-        <LlmAcceleratorConfigFormByName mode="duplicate" listPath={LIST_PATH} />
+        <LlmAcceleratorConfigFormByName mode="duplicate" />
       </LlmAcceleratorConfigContext.Provider>,
     );
 
