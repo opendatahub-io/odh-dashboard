@@ -72,7 +72,8 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
   const customEntries = React.useMemo(
     () =>
       selectedApiGroups.filter(
-        (g) => g !== ALL_API_GROUPS_WILDCARD && !renderedApiGroupNames.has(g),
+        (g) =>
+          g !== ALL_API_GROUPS_WILDCARD && g !== CORE_GROUP_ID && !renderedApiGroupNames.has(g),
       ),
     [selectedApiGroups, renderedApiGroupNames],
   );

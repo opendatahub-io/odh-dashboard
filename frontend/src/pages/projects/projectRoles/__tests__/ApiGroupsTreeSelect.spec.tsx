@@ -417,4 +417,30 @@ describe('ApiGroupsTreeSelect', () => {
     expect(result).toContain('__core__');
     expect(result).not.toContain('');
   });
+
+  it('should not create a duplicate option when selectedApiGroups contains CORE_GROUP_ID sentinel', async () => {
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={['__builtin_core_group__', 'apps']}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    await openDropdown();
+
+    // The sentinel value should be silently excluded from custom entries (not a valid K8s name)
+    // so only the built-in core option exists with that ID — no duplicate
+    const coreOptions = screen.getAllByTestId('select-multi-typeahead-core');
+    expect(coreOptions).toHaveLength(1);
+
+    // Deselecting 'apps' should not emit the sentinel as a raw value
+    const appsMenuItem = screen.getByTestId('select-multi-typeahead-apps');
+    await act(async () => {
+      fireEvent.click(within(appsMenuItem).getByText('apps'));
+    });
+
+    const result = mockOnChange.mock.calls[0][0] as string[];
+    expect(result).not.toContain('__builtin_core_group__');
+  });
 });
