@@ -27,23 +27,22 @@ At this time, all known modules must exist in the monorepo. The system automatic
 
 Shared module policy is centralized in `@odh-dashboard/app-config` and enforced by bundler plugins:
 
-- **`OdhHostFederationPlugin`** — host (`frontend/`); import from `@odh-dashboard/app-config/rspack`
-- **`OdhRemoteFederationPlugin`** — federated remotes; import from `@odh-dashboard/app-config/webpack`
+- **`OdhFederationPlugin`** — host and remotes. Import from `@odh-dashboard/app-config/rspack` (dashboard host) or `@odh-dashboard/app-config/webpack` (package remotes). Pass `isHost: true` for the dashboard and for standalone remotes; pass `isHost: false` when the package is a federated remote.
 
-These plugins configure shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not maintain shared dependency lists manually. Entries from the default PatternFly / React / SDK map are shared only when they appear in that package's `package.json` `dependencies`. ODH packages are shared from workspace discovery (see table below), not gated on each remote's `dependencies`.
+The plugin configures shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not maintain shared dependency lists manually. Entries from the default PatternFly / React / SDK map are shared only when they appear in `dependencies` of the `package.json` in webpack `compiler.context`. ODH packages are shared from workspace discovery (see table below), not gated on each remote's `dependencies`.
 
 #### What is automatically shared
 
 | Category | Modules | Notes |
 |----------|---------|-------|
-| React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager on host; remotes use `import: false` |
-| OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager on host; remotes use `import: false` |
-| PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager on host; remotes use `import: false` for those two; other listed packages allow remote fallback |
-| ODH packages | Discovered via `npm query .workspace` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
+| React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager when `isHost`; federated remotes use `import: false` |
+| OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager when `isHost`; federated remotes use `import: false` |
+| PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager when `isHost`; federated remotes use `import: false` for those two; other listed packages allow remote fallback |
+| ODH packages | Discovered via `npm query .workspace` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): federated remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
 
 #### Remotes and `import: false`
 
-In federated mode, remotes set `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. Standalone mode (`DEPLOYMENT_MODE=standalone`) skips `import: false`.
+When `isHost` is false (federated remote), the plugin sets `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. When `isHost` is true (dashboard host, or a remote with `DEPLOYMENT_MODE=standalone`), the plugin enables eager sharing for must-share modules and leaves `import` at the Module Federation default (`true`) so the build can bundle its own copy.
 
 #### Additional shared modules
 
@@ -55,7 +54,7 @@ Each federated module must include a `module-federation` property in its `packag
 
 ### Configuration Properties
 
-- **name** (string): The unique identifier for the federated module (camelCase). Must match the `name` passed to `OdhRemoteFederationPlugin`
+- **name** (string): The unique identifier for the federated module (camelCase). Must match the `name` passed to `OdhFederationPlugin`
 - **remoteEntry** (string): The path to the remote entry file (typically `/remoteEntry.js`)
 - **authorize** (boolean, optional): Whether requests to this module require authorization (defaults to false)
 - **tls** (boolean, optional): Whether to use TLS for connections (defaults to true)
@@ -217,13 +216,13 @@ Your module's webpack configuration must expose extensions:
 
 ```javascript
 // webpack config (packages/my-module/frontend/config/moduleFederation.js)
-const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/webpack');
 
 module.exports = {
   moduleFederationPlugins: [
-    new OdhRemoteFederationPlugin({
+    new OdhFederationPlugin({
       name: 'myModule',
-      packageJson: require('../package.json'),
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
       exposes: {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',
@@ -288,17 +287,17 @@ In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a 
 
 ### Remote Configuration
 
-Remote modules use `OdhRemoteFederationPlugin`, which handles shared module configuration automatically:
+Remote modules use `OdhFederationPlugin` with `isHost` derived from `DEPLOYMENT_MODE`. Shared module configuration is handled automatically:
 
 ```javascript
 // packages/my-module/frontend/config/moduleFederation.js
-const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/webpack');
 
 module.exports = {
   moduleFederationPlugins: [
-    new OdhRemoteFederationPlugin({
+    new OdhFederationPlugin({
       name: 'myModule',           // Must match package.json module-federation.name
-      packageJson: require('../package.json'),
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
       exposes: {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',
@@ -312,14 +311,14 @@ module.exports = {
 
 ### Host Configuration
 
-The host uses the rspack variant of `OdhHostFederationPlugin`. The snippet below is
+The host uses the rspack variant of `OdhFederationPlugin` with `name: 'host'` and `isHost: true`. The snippet below is
 abridged: discovery of `mfConfig` from workspace `module-federation` fields (or
 `MODULE_FEDERATION_CONFIG`) lives in `frontend/config/moduleFederation.js` and is
 omitted here.
 
 ```javascript
 // frontend/config/moduleFederation.js (abridged — not a complete runnable script)
-const { OdhHostFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 // const mfConfig = getModuleFederationConfig(); // workspace / ENV discovery
@@ -338,8 +337,9 @@ const remotes = updateTypes
 
 module.exports = {
   moduleFederationPlugins: [
-    new OdhHostFederationPlugin({
-      packageJson: require('../package.json'),
+    new OdhFederationPlugin({
+      name: 'host',
+      isHost: true,
       remotes,
       dts: updateTypes,
     }),
@@ -354,7 +354,7 @@ module.exports = {
 1. Add camelCase `module-federation` configuration to the parent `package.json`
 2. Add `@module-federation/enhanced` to the frontend `package.json` `devDependencies`
 3. Add `@odh-dashboard/app-config` to the parent `package.json` `devDependencies` (requires Node.js 22.18.0+; no separate app-config build)
-4. Create a `moduleFederation.js` using `OdhRemoteFederationPlugin` from `@odh-dashboard/app-config/webpack`
+4. Create a `moduleFederation.js` using `OdhFederationPlugin` from `@odh-dashboard/app-config/webpack` (`isHost: process.env.DEPLOYMENT_MODE === 'standalone'`)
 5. Create extensions and extension-points files under `src/odh/`
 6. Build and serve your module locally
 
@@ -395,7 +395,7 @@ When creating a new `@odh-dashboard/*` library package that will be consumed by 
 
 ### Common Issues
 
-1. **Module not loading**: Verify the camelCase module name matches between `package.json` `module-federation.name` and `OdhRemoteFederationPlugin`
+1. **Module not loading**: Verify the camelCase module name matches between `package.json` `module-federation.name` and `OdhFederationPlugin`
 2. **Shared dependency conflicts**: Confirm the module is listed in that package's `dependencies` (plugins only share packages present there) and that `@odh-dashboard/app-config` is installed as a parent `devDependency`
 3. **Proxy issues**: Check that the backend service is running and accessible
 4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your webpack configuration

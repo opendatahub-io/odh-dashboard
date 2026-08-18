@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/opendatahub-io/mlflow/bff/internal/integrations/bffclient"
+	"github.com/opendatahub-io/mlflow/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes/k8mocks"
 	mlflowpkg "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
@@ -40,6 +42,7 @@ const (
 	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
 	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
 	MCPServersPath     = APIPathPrefix + "/mcp-registry/servers"
+	MCPRegisterPath    = APIPathPrefix + "/mcp-registry/register"
 	// MCPServerCatchAllPath matches every request under /mcp-registry/servers/
 	// with a single httprouter catch-all param ("rest") instead of a plain
 	// ":name" segment. MCP server names follow the upstream
@@ -50,7 +53,9 @@ const (
 	// first two "/"-separated segments) and any trailing sub-resource path
 	// ("/versions", "/versions/:version", "/versions/:version/tags[/:key]",
 	// "/tags[/:key]", "/aliases[/:alias]", "/endpoints[/:endpointId]").
-	MCPServerCatchAllPath = APIPathPrefix + "/mcp-registry/servers/*rest"
+	MCPServerCatchAllPath  = APIPathPrefix + "/mcp-registry/servers/*rest"
+	McpServerToolsPath     = APIPathPrefix + "/mcp-catalog/servers/:id/tools"
+	McpServerConverterPath = APIPathPrefix + "/mcp-catalog/servers/:id/mcpserver"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -98,6 +103,7 @@ type App struct {
 	globalNamespaces      []string
 	globalNsWatcherDone   chan struct{}
 	globalNsWatcherWg     sync.WaitGroup
+	bffClientFactory      bffclient.BFFClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -120,6 +126,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 
+	bffFactory := initBFFClientFactory(cfg, logger, rootCAs)
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -131,6 +139,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		mlflowState:             mlflowState,
+		bffClientFactory:        bffFactory,
 	}
 
 	if app.shouldWatchMLflow() {
@@ -188,6 +197,38 @@ func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
 		return nil
 	}
 	return pool
+}
+
+func initBFFClientFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) bffclient.BFFClientFactory {
+	bffConfig := bffclient.NewDefaultBFFClientConfig()
+	bffConfig.MockBFFClients = cfg.MockBFFClients
+	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+
+	if mrConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetModelRegistry); mrConfig != nil {
+		if cfg.BFFModelRegistryServiceName != "" {
+			mrConfig.ServiceName = cfg.BFFModelRegistryServiceName
+		}
+		if cfg.BFFModelRegistryServicePort > 0 {
+			mrConfig.Port = cfg.BFFModelRegistryServicePort
+		}
+		mrConfig.TLSEnabled = cfg.BFFModelRegistryTLSEnabled
+		mrConfig.DevOverrideURL = cfg.BFFModelRegistryDevURL
+	}
+
+	if cfg.MockBFFClients {
+		logger.Info("Using mock BFF client factory")
+		return bffmocks.NewMockClientFactory(logger)
+	}
+
+	if mrConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetModelRegistry); mrConfig != nil {
+		logger.Info("Using real BFF client factory",
+			"modelRegistryServiceName", mrConfig.ServiceName,
+			"modelRegistryServicePort", mrConfig.Port,
+			"modelRegistryDevURL", mrConfig.DevOverrideURL)
+	} else {
+		logger.Info("Using real BFF client factory")
+	}
+	return bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 }
 
 func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, *envtest.Environment, error) {
@@ -266,10 +307,19 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(PromptVersionPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 	apiRouter.GET(MCPServersPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowSearchMCPServersHandler))))
 	apiRouter.POST(MCPServersPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowCreateMCPServerHandler))))
+	apiRouter.POST(MCPRegisterPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowRegisterMCPServerHandler))))
 	apiRouter.GET(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllGetHandler))))
 	apiRouter.POST(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPostHandler))))
 	apiRouter.PATCH(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPatchHandler))))
 	apiRouter.DELETE(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllDeleteHandler))))
+
+	// Inter-BFF: proxy MCP catalog tools + converter from model-registry
+	apiRouter.GET(McpServerToolsPath, app.RequireValidIdentity(
+		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelRegistry)(
+			app.GetMcpServerToolsHandler)))
+	apiRouter.GET(McpServerConverterPath, app.RequireValidIdentity(
+		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelRegistry)(
+			app.GetMcpServerConverterHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

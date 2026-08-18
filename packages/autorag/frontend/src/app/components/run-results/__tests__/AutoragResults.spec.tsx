@@ -1,10 +1,12 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import {
   AutoragResultsContext,
   type AutoragResultsContextProps,
@@ -91,6 +93,21 @@ jest.mock('~/app/hooks/mutations', () => ({
     mutateAsync: jest.fn(),
     isPending: false,
     reset: jest.fn(),
+  }),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+
+jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
+  usePatternEvaluationResults: jest.fn().mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isError: false,
   }),
 }));
 
@@ -208,6 +225,7 @@ describe('AutoragResults', () => {
     patterns: Record<string, AutoragPattern> = {},
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
+    props?: React.ComponentProps<typeof AutoragResults>,
   ) =>
     render(
       <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
@@ -224,7 +242,7 @@ describe('AutoragResults', () => {
                   ...contextOverrides,
                 }}
               >
-                <AutoragResults />
+                <AutoragResults {...props} />
               </AutoragResultsContext.Provider>
             }
           />
@@ -477,6 +495,9 @@ describe('AutoragResults', () => {
       });
 
       expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'indexing',
+      });
     });
 
     it('should successfully download inference notebook when all data is valid', async () => {
@@ -507,6 +528,36 @@ describe('AutoragResults', () => {
           'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
         );
       });
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+        notebookType: 'inference',
+      });
+    });
+
+    it('should not fire AutoRAG Notebook Downloaded when the download fails', async () => {
+      const testPattern = createMockPattern('Pattern1');
+      const patterns = { Pattern1: testPattern };
+
+      fetchS3FileMock.mockRejectedValueOnce(new Error('boom'));
+
+      renderWithContext(mockPipelineRun, patterns);
+
+      const leaderboard = screen.getByTestId('leaderboard-table');
+      const firstRow = within(leaderboard).getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+
+      await userEvent.click(kebabButton);
+
+      const saveNotebookAction = screen.getByText('Save as indexing notebook');
+      await userEvent.click(saveNotebookAction);
+
+      await waitFor(() => {
+        expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
     });
   });
 
@@ -765,6 +816,185 @@ describe('AutoragResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+    });
+  });
+
+  describe('onTryPattern source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should call onTryPattern with source: resultsTable from the leaderboard action', () => {
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('Try this pattern'));
+
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should call onTryPattern with source: patternDetails from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onTryPattern = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+      const tryPatternAction = await screen.findByText('Try this pattern');
+      await user.click(tryPatternAction);
+
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+    });
+  });
+
+  describe('onViewCode source', () => {
+    const patternWithTemplate: AutoragPattern = {
+      ...createMockPattern('Pattern1'),
+      inference: {
+        responses_template: {
+          model: 'vllm/llama-3',
+          stream: false,
+          store: true,
+          input: [
+            {
+              type: 'message',
+              role: 'user',
+              content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+            },
+          ],
+          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          instructions: 'Answer from file_search results.',
+          tools: [
+            {
+              type: 'file_search',
+              vector_store_ids: ['vs-1'],
+              max_num_results: 5,
+              ranking_options: {
+                search_mode: 'hybrid',
+                ranker_strategy: 'rrf',
+                ranker_k: 60,
+                ranker_alpha: 0.5,
+              },
+            },
+          ],
+          tool_choice: { type: 'file_search' },
+          include: ['file_search_call.results'],
+        },
+      },
+    };
+    const patterns = { Pattern1: patternWithTemplate };
+
+    it('should call onViewCode with source: resultsTable from the leaderboard action', () => {
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View code'));
+
+      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should call onViewCode with source: patternDetails from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onViewCode = jest.fn();
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
+      await user.click(actionsToggle);
+      const viewCodeAction = await screen.findByText('View code');
+      await user.click(viewCodeAction);
+
+      expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
+    });
+  });
+
+  describe('AutoRAG Pattern Details Viewed tracking', () => {
+    const patterns = {
+      Pattern1: createMockPattern('Pattern1'),
+      Pattern2: createMockPattern('Pattern2'),
+    };
+
+    it('should fire with source: resultsTable when opening via the pattern name link', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should fire with source: resultsTable when opening via the row kebab "View details" action', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should not fire again when switching patterns via the in-modal pattern selector', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      fireMiscTrackingEventMock.mockClear();
+
+      fireEvent.change(screen.getByTestId('pattern-selector-dropdown'), {
+        target: { value: '1' },
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        expect.anything(),
+      );
     });
   });
 });
