@@ -884,4 +884,51 @@ describe('AutoragResults', () => {
       expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
     });
   });
+
+  describe('AutoRAG Pattern Details Viewed tracking', () => {
+    const patterns = {
+      Pattern1: createMockPattern('Pattern1'),
+      Pattern2: createMockPattern('Pattern2'),
+    };
+
+    it('should fire with source: resultsTable when opening via the pattern name link', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should fire with source: resultsTable when opening via the row kebab "View details" action', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+      fireEvent.click(screen.getByText('View details'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source: 'resultsTable' },
+      );
+    });
+
+    it('should not fire again when switching patterns via the in-modal pattern selector', () => {
+      renderWithContext(mockPipelineRun, patterns);
+
+      fireEvent.click(screen.getByTestId('pattern-link-1'));
+      fireMiscTrackingEventMock.mockClear();
+
+      fireEvent.change(screen.getByTestId('pattern-selector-dropdown'), {
+        target: { value: '1' },
+      });
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        expect.anything(),
+      );
+    });
+  });
 });

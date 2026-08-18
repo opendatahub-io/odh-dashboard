@@ -16,6 +16,7 @@ import {
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragExperimentDeleted,
   fireAutoragNotebookDownloaded,
+  fireAutoragPatternDetailsViewed,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsColumnToggled,
   fireAutoragResultsViewed,
@@ -747,6 +748,20 @@ describe('fireAutoragResultsColumnToggled', () => {
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
         { columnName, isVisible },
+      );
+    },
+  );
+});
+
+describe('fireAutoragPatternDetailsViewed', () => {
+  it.each(['resultsTable', 'pipelineVis', 'other'] as const)(
+    'should fire AutoRAG Pattern Details Viewed with source: %s',
+    (source) => {
+      fireAutoragPatternDetailsViewed(source);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED,
+        { source },
       );
     },
   );

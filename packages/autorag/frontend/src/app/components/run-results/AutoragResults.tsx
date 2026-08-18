@@ -22,6 +22,7 @@ import {
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import {
   fireAutoragNotebookDownloaded,
+  fireAutoragPatternDetailsViewed,
   type PlaygroundOpenedSource,
 } from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
@@ -209,6 +210,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   const handleViewDetails = React.useCallback((patternName: string) => {
     setSelectedPatternName(patternName);
+    fireAutoragPatternDetailsViewed('resultsTable');
   }, []);
 
   const handleOpenRunIndexing = React.useCallback(

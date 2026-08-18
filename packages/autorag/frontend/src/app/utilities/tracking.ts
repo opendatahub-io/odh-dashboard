@@ -31,6 +31,7 @@ export const AUTORAG_EVENTS = {
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
   RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
+  PATTERN_DETAILS_VIEWED: 'AutoRAG Pattern Details Viewed',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -552,4 +553,22 @@ export const fireAutoragResultsColumnToggled = (
   isVisible: boolean,
 ): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, { columnName, isVisible });
+};
+
+/**
+ * Where the user drilled into a pattern's details modal from. `'pipelineVis'` is part of the
+ * taxonomy but is not currently fired — the pipeline topology view's step details drawer doesn't
+ * yet offer a way to open the pattern details modal. `'other'` is a defensive catch-all for any
+ * future entry point added before this taxonomy is updated.
+ */
+export type PatternDetailsEntrySource = 'resultsTable' | 'pipelineVis' | 'other';
+
+/**
+ * Fires when the pattern details modal is opened — from the results table/leaderboard's pattern
+ * name link or "View details" row action (`source: 'resultsTable'`). Does not fire when
+ * navigating between patterns (prev/next arrows or "Compare patterns") within an already-open
+ * modal — that's in-session navigation, not a new "drill into details".
+ */
+export const fireAutoragPatternDetailsViewed = (source: PatternDetailsEntrySource): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_VIEWED, { source });
 };
