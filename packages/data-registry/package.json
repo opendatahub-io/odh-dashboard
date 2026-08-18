@@ -23,7 +23,9 @@
       "port": 9043
     }
   },
-  "exports": {},
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
   "bffConfig": {
     "enabled": true,
     "port": 8080,

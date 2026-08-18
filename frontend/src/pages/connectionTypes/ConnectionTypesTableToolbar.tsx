@@ -2,20 +2,17 @@ import { Button, SearchInput, ToolbarItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import { ConnectionTypesOptions, FilterDataType, options } from '#~/pages/connectionTypes/const';
+import { ConnectionTypesOptions, options } from '#~/pages/connectionTypes/const';
 
 type Props = {
   filterData: Record<ConnectionTypesOptions, string | undefined>;
-  setFilterData: React.Dispatch<React.SetStateAction<FilterDataType>>;
+  onFilterUpdate: (
+    key: ConnectionTypesOptions,
+    value: string | { label: string; value: string } | undefined,
+  ) => void;
 };
 
-const ConnectionTypesTableToolbar: React.FC<Props> = ({ setFilterData, filterData }) => {
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
-    [setFilterData],
-  );
-
+const ConnectionTypesTableToolbar: React.FC<Props> = ({ onFilterUpdate, filterData }) => {
   return (
     <FilterToolbar<keyof typeof options>
       data-testid="connection-types-table-toolbar"
