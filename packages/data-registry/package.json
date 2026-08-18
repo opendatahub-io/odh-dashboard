@@ -42,11 +42,7 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
-  },
-  "peerDependencies": {
-    "@openshift/dynamic-plugin-sdk": "^5"
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "*",
