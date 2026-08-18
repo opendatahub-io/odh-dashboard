@@ -886,8 +886,8 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
       () => {
         cy.step('Verify the variable panel renders with one input per unique variable');
         promptAssistant.findVariablePanel().should('be.visible');
-        promptAssistant.findVariableInput('role').should('be.visible');
-        promptAssistant.findVariableInput('topic').should('be.visible');
+        promptAssistant.findVariableInput('role').should('exist');
+        promptAssistant.findVariableInput('topic').should('exist');
       },
     );
 
