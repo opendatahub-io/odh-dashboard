@@ -47,6 +47,12 @@ function parseWorkspacePatterns(root) {
 }
 
 function expandPattern(root, pattern) {
+  if (pattern.includes('**')) {
+    throw new Error(
+      `Unsupported workspace glob "${pattern}": ** patterns are not supported by query-workspace-packages.js`,
+    );
+  }
+
   if (!pattern.includes('*')) {
     return [path.join(root, pattern)];
   }
@@ -84,7 +90,11 @@ function listWorkspacePackagesFromManifest(root) {
   });
 }
 
-const root = findRepoRoot(path.dirname(__filename));
-const packages = listWorkspacePackagesFromManifest(root);
+module.exports = { expandPattern, listWorkspacePackagesFromManifest, parseWorkspacePatterns };
 
-process.stdout.write(JSON.stringify(packages));
+if (require.main === module) {
+  const root = findRepoRoot(path.dirname(__filename));
+  const packages = listWorkspacePackagesFromManifest(root);
+
+  process.stdout.write(JSON.stringify(packages));
+}

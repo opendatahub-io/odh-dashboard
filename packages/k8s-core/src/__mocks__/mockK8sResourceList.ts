@@ -6,7 +6,7 @@ export const mockK8sResourceList = <TResource extends K8sResourceCommon>(
     namespace?: string;
   },
 ): K8sResourceListResult<TResource> => ({
-  apiVersion: resources.length > 0 ? resources[0].apiVersion : 'v1',
+  apiVersion: resources.length > 0 ? resources[0].apiVersion ?? 'v1' : 'v1',
   metadata: {
     continue: '',
     resourceVersion: '1462210',

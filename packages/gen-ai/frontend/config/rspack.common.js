@@ -1,5 +1,6 @@
 const path = require('path');
-const { rspack } = require('@rspack/core');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
 
@@ -24,20 +25,18 @@ module.exports = (env) => ({
         test: /\.(tsx|ts|jsx)?$/,
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              detectSyntax: 'auto',
-              jsc: {
-                transform: {
-                  react: {
-                    runtime: 'classic',
-                    refresh: env === 'development',
+          env === 'development'
+            ? { loader: 'swc-loader' }
+            : {
+                loader: 'ts-loader',
+                options: {
+                  transpileOnly: true,
+                  experimentalWatchApi: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
                   },
                 },
               },
-            },
-          },
         ],
       },
       {
@@ -61,14 +60,17 @@ module.exports = (env) => ({
       },
       {
         test: /\.svg$/,
+        type: 'asset/inline',
         include: (input) => input.indexOf('background-filter.svg') > 1,
-        type: 'asset',
-        parser: {
-          dataUrlCondition: { maxSize: 5000 },
-        },
-        generator: {
-          filename: 'svgs/[name][ext]',
-        },
+        use: [
+          {
+            options: {
+              limit: 5000,
+              outputPath: 'svgs',
+              name: '[name].[ext]',
+            },
+          },
+        ],
       },
       {
         test: /\.svg$/,
@@ -117,19 +119,25 @@ module.exports = (env) => ({
             'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
           ),
         ],
-        type: 'asset',
-        parser: {
-          dataUrlCondition: { maxSize: 5000 },
-        },
-        generator: {
-          filename: 'images/[name][ext]',
-        },
+        type: 'asset/inline',
+        use: [
+          {
+            options: {
+              limit: 5000,
+              outputPath: 'images',
+              name: '[name].[ext]',
+            },
+          },
+        ],
       },
       {
         test: /\.s[ac]ss$/i,
         use: [
-          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
+          // Creates `style` nodes from JS strings
+          'style-loader',
+          // Translates CSS into CommonJS
           'css-loader',
+          // Compiles Sass to CSS
           'sass-loader',
         ],
       },
@@ -147,7 +155,7 @@ module.exports = (env) => ({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
-    new rspack.HtmlRspackPlugin({
+    new HtmlWebpackPlugin({
       template: path.resolve(SRC_DIR, 'index.html'),
       chunks: ['app'],
     }),
@@ -155,7 +163,7 @@ module.exports = (env) => ({
       systemvars: true,
       silent: true,
     }),
-    new rspack.CopyRspackPlugin({
+    new CopyPlugin({
       patterns: [{ from: './src/favicon.png', to: 'images' }],
     }),
   ],
