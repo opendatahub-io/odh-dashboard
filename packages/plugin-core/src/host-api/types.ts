@@ -149,9 +149,6 @@ export type HostApiServices = {
   /** Check whether a project has NIM support enabled. */
   isProjectNIMSupported: (currentProject: ProjectKind) => boolean;
 
-  /** Build the route path to registered model deployments. */
-  registeredModelDeploymentsRoute: (rmId?: string, preferredModelRegistry?: string) => string;
-
   /** Create a new OpenShift project (username injected by host). */
   createProject: (displayName: string, description: string, k8sName?: string) => Promise<string>;
 

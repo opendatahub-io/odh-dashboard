@@ -19,7 +19,6 @@ const mockServices: HostApiServices = {
     refreshNIMAvailability: jest.fn(),
   })),
   isProjectNIMSupported: jest.fn(() => false),
-  registeredModelDeploymentsRoute: jest.fn(() => ''),
   createProject: jest.fn(),
   ConnectionTypeFormFields: jest.fn(),
   contexts: {

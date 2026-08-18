@@ -40,7 +40,7 @@ describe('NewProjectButton', () => {
   it('should open the modal when clicking Create project', () => {
     render(<NewProjectButton />);
     fireEvent.click(screen.getByTestId('create-project'));
-    expect(screen.getByText('Create project')).toBeInTheDocument();
+    expect(screen.getByTestId('generic-modal-header')).toHaveTextContent('Create project');
     expect(screen.getByTestId('create-project-name')).toBeInTheDocument();
   });
 

@@ -32,7 +32,6 @@ import { useModelServingMetrics } from '#~/api/prometheus/serving';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { registeredModelDeploymentsRoute } from '#~/routes/modelRegistry/registeredModels';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ModelServingContextProvider, {
   ModelServingContext,
@@ -84,7 +83,6 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
         useModelServingMetrics as unknown as HostApiServices['useModelServingMetrics'],
       useServingPlatformStatuses,
       isProjectNIMSupported,
-      registeredModelDeploymentsRoute,
       createProject: (displayName: string, description: string, k8sName?: string) =>
         createProject(username, displayName, description, k8sName),
       ConnectionTypeFormFields,

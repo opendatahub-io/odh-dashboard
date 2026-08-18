@@ -26,7 +26,6 @@ export const HostApiContext = React.createContext<HostApiServices>({
   useModelServingMetrics: notProvided('useModelServingMetrics'),
   useServingPlatformStatuses: notProvided('useServingPlatformStatuses'),
   isProjectNIMSupported: notProvided('isProjectNIMSupported'),
-  registeredModelDeploymentsRoute: notProvided('registeredModelDeploymentsRoute'),
   createProject: notProvided('createProject'),
   ConnectionTypeFormFields: notProvided('ConnectionTypeFormFields'),
   contexts: {
