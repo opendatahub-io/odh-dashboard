@@ -13,6 +13,15 @@ export type RawEvaluationResult = {
   answer_contexts: { text: string; document_id: string }[]; // eslint-disable-line camelcase
 } & ({ metrics: AutoRAGEvaluationMetricResult[] } | { scores: Record<string, number> });
 
+function isRawEvaluationResult(item: unknown): item is RawEvaluationResult {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    Array.isArray(Object.getOwnPropertyDescriptor(item, 'correct_answers')?.value) &&
+    Array.isArray(Object.getOwnPropertyDescriptor(item, 'answer_contexts')?.value)
+  );
+}
+
 export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
   const metrics: AutoRAGEvaluationMetricResult[] =
     'metrics' in raw && Array.isArray(raw.metrics)
@@ -80,12 +89,11 @@ export function usePatternEvaluationResults(
         );
       }
 
-      if (!Array.isArray(parsed)) {
-        throw new Error(`Invalid evaluation results: expected array, got ${typeof parsed}`);
+      if (!Array.isArray(parsed) || !parsed.every(isRawEvaluationResult)) {
+        throw new Error(`Invalid evaluation results in S3 key "${key}"`);
       }
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return (parsed as RawEvaluationResult[]).map(normalizeEvaluationResult);
+      return parsed.map(normalizeEvaluationResult);
     },
     enabled: enabled && Boolean(namespace && key),
     retry: false,

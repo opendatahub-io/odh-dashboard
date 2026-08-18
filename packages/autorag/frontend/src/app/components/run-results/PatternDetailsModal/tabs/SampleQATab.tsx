@@ -157,9 +157,10 @@ const SampleQATab: React.FC<TabContentProps> = ({
     return <Skeleton screenreaderText="Loading evaluation results" />;
   }
 
-  if (primaryPattern.isEvaluationError) {
+  if (primaryPattern.isEvaluationError || comparisonPattern?.isEvaluationError) {
     return (
       <EmptyState
+        status="danger"
         headingLevel="h4"
         icon={ExclamationCircleIcon}
         titleText="Could not load evaluation results"

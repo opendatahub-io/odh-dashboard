@@ -537,11 +537,10 @@ describe('PatternDetailsModal', () => {
       });
 
       const user = userEvent.setup();
-      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} />);
+      render(<PatternDetailsModal {...twoPatternProps} />);
 
       // Navigate to Sample Q&A tab (stays visible because isEvaluationError keeps it shown)
       await user.click(screen.getByTestId('tab-sample_qa'));
-      rerender(<PatternDetailsModal {...twoPatternProps} />);
 
       expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
     });
@@ -557,13 +556,15 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
 
-    it('should enable compare toggle when evaluation results load successfully', () => {
+    it('should enable compare toggle when evaluation results load successfully', async () => {
       mockUsePatternEvaluationResults.mockReturnValue({
         data: mockEvaluationResults,
         isLoading: false,
         isError: false,
       });
+      const user = userEvent.setup();
       render(<PatternDetailsModal {...twoPatternProps} />);
+      await user.click(screen.getByTestId('tab-sample_qa'));
       expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
     });
   });

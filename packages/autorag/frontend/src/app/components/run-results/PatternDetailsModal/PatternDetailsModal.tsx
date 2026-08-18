@@ -319,7 +319,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                           label="Compare patterns"
                           isChecked={comparisonEnabled}
                           onChange={handleToggleComparison}
-                          isDisabled={activeTabKey === SAMPLE_QA_KEY && primaryEvaluationError}
+                          isDisabled={
+                            activeTabKey === SAMPLE_QA_KEY &&
+                            (primaryEvaluationError || comparisonEvaluationError)
+                          }
                           data-testid="compare-patterns-toggle"
                         />
                       </FlexItem>
