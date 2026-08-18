@@ -3,7 +3,6 @@
  * npm-era absolute path prefixes miss .pnpm store paths and nested workspace deps.
  */
 const path = require('path');
-const fs = require('fs');
 
 const PNPM_NODE_MODULES = /node_modules[/\\](?:\.pnpm[/\\][^/\\]+[/\\]node_modules[/\\])?/;
 
@@ -94,15 +93,28 @@ const patternFlyFontIncludes = (relativeDirname, rootNodeModules) => [
 ];
 
 /**
- * Pin @tanstack/query-core to the package-local install so webpack does not resolve
- * the hoisted v4 copy from the dashboard shell when building react-query v5 modules.
+ * Pin @tanstack/query-core to the version paired with this package's react-query install.
+ * Hoisted v4 query-core at the repo root breaks react-query v5 module webpack builds in CI.
  */
 const tanstackQueryCoreAlias = (relativeDirname) => {
-  const localQueryCore = path.resolve(relativeDirname, 'node_modules/@tanstack/query-core');
-  if (fs.existsSync(path.join(localQueryCore, 'package.json'))) {
-    return { '@tanstack/query-core': localQueryCore };
+  try {
+    const reactQueryPkg = require.resolve('@tanstack/react-query/package.json', {
+      paths: [relativeDirname],
+    });
+    const queryCorePkg = require.resolve('@tanstack/query-core/package.json', {
+      paths: [path.dirname(reactQueryPkg)],
+    });
+    return { '@tanstack/query-core': path.dirname(queryCorePkg) };
+  } catch {
+    try {
+      const queryCorePkg = require.resolve('@tanstack/query-core/package.json', {
+        paths: [relativeDirname],
+      });
+      return { '@tanstack/query-core': path.dirname(queryCorePkg) };
+    } catch {
+      return {};
+    }
   }
-  return {};
 };
 
 module.exports = {
