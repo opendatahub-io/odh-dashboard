@@ -427,11 +427,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: Discover Cypress packages
         id: discover-packages
@@ -499,7 +498,7 @@ jobs:
           echo "  📌 Comparing $BASE_SHA...$HEAD_SHA"
 
           # Get changed packages from turbo (uses dependency graph)
-          CHANGED_PACKAGES=$(npx turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
+          CHANGED_PACKAGES=$(pnpm exec turbo run lint --dry=json --filter="...[$BASE_SHA...$HEAD_SHA]" 2>/dev/null \
             | jq -r '.packages[]' 2>/dev/null || echo "")
 
           if [[ -n "$CHANGED_PACKAGES" ]]; then
@@ -740,15 +739,10 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Build and upload ${{ matrix.package.name }}
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -1077,13 +1071,8 @@ jobs:
             echo "✅ Fetched mask script from ${{ github.event.repository.default_branch }}"
           fi
 
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -1239,7 +1228,7 @@ jobs:
           go-version: '1.26.x'
 
       - name: Prepare E2E dependencies
-        run: npm run prepare:e2e
+        run: pnpm run prepare:e2e
 
       - name: Run E2E Tests
         env:
@@ -1288,7 +1277,7 @@ jobs:
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
-          npm run test:cypress:e2e
+          pnpm run test:cypress:e2e
 
       - name: Upload test results
         if: always()

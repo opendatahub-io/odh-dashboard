@@ -4,16 +4,15 @@
   "description": "AutoX shared library package - provides shared BFF and Frontend utilities for AutoML, AutoRAG, and related packages.",
   "version": "0.0.0",
   "scripts": {
-    "install:module": "npm install --prefix ui",
-    "lint": "cd ui && npm run lint",
-    "lint:fix": "cd ui && npm run lint:fix"
+    "lint": "cd ui && pnpm run lint",
+    "lint:fix": "cd ui && pnpm run lint:fix"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

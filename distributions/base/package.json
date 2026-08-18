@@ -12,7 +12,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "dev": "npm run start:dev",
+    "dev": "pnpm run start:dev",
     "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"rspack dev --hot --config ./config/rspack.dev.js\"",
     "build": "rspack --config ./config/rspack.prod.js",
     "type-check": "tsc --noEmit",
@@ -21,8 +21,8 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@patternfly/patternfly": "~6.5.2",
     "@patternfly/react-core": "~6.5.1",
@@ -33,8 +33,8 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.1.10",
     "@rspack/dev-server": "^2.1.0",

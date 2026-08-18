@@ -15,21 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Validate all package-lock.json files
-        run: ./scripts/check-package-lock.sh --all
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-          force-install: 'true'
 
       - name: Validate module federation ports
-        run: npm run validate:ports
+        run: pnpm run validate:ports
 
       - name: Check for uncommitted changes
         run: git diff --exit-code
@@ -43,15 +35,10 @@ jobs:
         check: [lint, type-check]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -63,9 +50,9 @@ jobs:
       - name: Run ${{ matrix.check }}
         run: |
           if [ "${{ matrix.check }}" = "lint" ]; then
-            NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint
           else
-            npm run type-check
+            pnpm run type-check
           fi
 
   Unit-Tests:
@@ -76,12 +63,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
@@ -116,7 +99,7 @@ jobs:
             core.info(`Quality gates: ${status.join(', ')}`);
       - name: Unit tests with coverage
         run: |
-          npm run test-unit-coverage
+          pnpm run test-unit-coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -131,12 +114,8 @@ jobs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
@@ -162,8 +141,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Setup Go
@@ -177,10 +156,6 @@ jobs:
             distributions/core-bff/bff/go.sum
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
@@ -207,7 +182,7 @@ jobs:
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
           export CI="true"
-          npm run test:contract
+          pnpm run test:contract
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           CI: true
@@ -260,15 +235,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Build and upload ${{ matrix.package.name }}
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -291,15 +261,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Restore Cypress builds
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -332,7 +297,7 @@ jobs:
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
+          pnpm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() }}
@@ -356,16 +321,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
-      - name: Install dependencies
-        run: npm install nyc --no-save
+      - name: Install nyc for coverage merge
+        run: pnpm add -D nyc
 
       - name: Prepare unit coverage
         run: |
@@ -393,7 +358,7 @@ jobs:
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
-          npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
+          pnpm exec nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
@@ -410,13 +375,13 @@ jobs:
           mkdir -p ./coverage
           cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
           cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
-          npx nyc merge ./coverage ./coverage/merged-coverage.json
+          pnpm exec nyc merge ./coverage ./coverage/merged-coverage.json
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
           mkdir -p ./coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          pnpm exec nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
