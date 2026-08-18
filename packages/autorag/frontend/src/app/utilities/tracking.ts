@@ -22,6 +22,7 @@ export const AUTORAG_EVENTS = {
   RUN_TRIGGERED: 'AutoRAG Run Triggered',
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
+  EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -306,4 +307,16 @@ export type S3ConnectionCreatedProperties = {
  */
 export const fireAutoragS3ConnectionCreated = (properties: S3ConnectionCreatedProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.S3_CONNECTION_CREATED, properties);
+};
+
+/**
+ * Fires when the user clicks "Download template" in the Evaluation data template modal. The
+ * download itself is a synchronous, client-side Blob creation with no network call or possible
+ * rejection, so this fires immediately after the download is triggered — there is no separate
+ * "completed" signal to wait for.
+ */
+export const fireAutoragEvaluationTemplateDownloaded = (): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED, {
+    downloadType: 'evaluationTemplate',
+  });
 };

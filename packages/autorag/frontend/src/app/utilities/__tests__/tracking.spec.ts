@@ -11,6 +11,7 @@ import {
   fireAutoragFlowExited,
   fireAutoragKnowledgeSourceConfigured,
   fireAutoragModelsSelected,
+  fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
@@ -417,5 +418,16 @@ describe('fireAutoragS3ConnectionCreated', () => {
     expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.S3_CONNECTION_CREATED, {
       outcome: TrackingOutcome.cancel,
     });
+  });
+});
+
+describe('fireAutoragEvaluationTemplateDownloaded', () => {
+  it('should fire with downloadType: evaluationTemplate', () => {
+    fireAutoragEvaluationTemplateDownloaded();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+      AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED,
+      { downloadType: 'evaluationTemplate' },
+    );
   });
 });
