@@ -507,7 +507,9 @@ function AutoragConfigurePage({
                         success: true,
                       });
                     }
-                    navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
+                    navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
+                      state: { entrySource: 'direct' },
+                    });
                   } catch (error) {
                     fireAutoragRunTriggered({
                       ...runTrackingProperties,

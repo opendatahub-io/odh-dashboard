@@ -791,6 +791,7 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
           '/gen-ai-studio/autorag/results/test-namespace/new-run-123',
+          { state: { entrySource: 'direct' } },
         );
       });
     });

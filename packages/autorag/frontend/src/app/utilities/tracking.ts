@@ -27,6 +27,7 @@ export const AUTORAG_EVENTS = {
   FLOW_EXITED: 'AutoRAG Flow Exited',
   S3_CONNECTION_CREATED: 'AutoRAG S3 Connection Created',
   EVALUATION_TEMPLATE_DOWNLOADED: 'AutoRAG Evaluation Template Downloaded',
+  RESULTS_VIEWED: 'AutoRAG Results Viewed',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -363,6 +364,38 @@ export const fireAutoragRunRetried = (properties: RunOutcomeTrackingProperties):
  */
 export const fireAutoragExperimentDeleted = (properties: RunOutcomeTrackingProperties): void => {
   fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, properties);
+};
+
+/** Where the user came from when navigating to the results page. */
+export type AutoragResultsEntrySource = 'experimentsList' | 'notification' | 'direct' | 'other';
+
+/** Router `location.state` shape set by links/navigations that lead to the results page. */
+export type AutoragResultsNavigationState = {
+  entrySource: AutoragResultsEntrySource;
+};
+
+export const isAutoragResultsNavigationState = (
+  state: unknown,
+): state is AutoragResultsNavigationState => {
+  if (!state || typeof state !== 'object' || !('entrySource' in state)) {
+    return false;
+  }
+  const { entrySource } = state;
+  return (
+    entrySource === 'experimentsList' ||
+    entrySource === 'notification' ||
+    entrySource === 'direct' ||
+    entrySource === 'other'
+  );
+};
+
+/**
+ * Fires once per run when the results page finishes loading a run. `entrySource` is read from
+ * router state set by the link/navigation that brought the user here, falling back to `'other'`
+ * when the page was reached without that state (e.g. a bookmarked/pasted URL or a page refresh).
+ */
+export const fireAutoragResultsViewed = (entrySource: AutoragResultsEntrySource): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.RESULTS_VIEWED, { entrySource });
 };
 
 /**

@@ -15,12 +15,14 @@ import {
   fireAutoragEvaluationTemplateDownloaded,
   fireAutoragProjectDropdownOptionSelected,
   fireAutoragExperimentDeleted,
+  fireAutoragResultsViewed,
   fireAutoragRunReconfigured,
   fireAutoragRunRetried,
   fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
   fireAutoragVectorStoreConfigured,
+  isAutoragResultsNavigationState,
   mapOptimizationMetric,
   toVectorStoreProviderType,
 } from '~/app/utilities/tracking';
@@ -663,5 +665,38 @@ describe('fireAutoragEvaluationTemplateDownloaded', () => {
       AUTORAG_EVENTS.EVALUATION_TEMPLATE_DOWNLOADED,
       { downloadType: 'evaluationTemplate' },
     );
+  });
+});
+
+describe('fireAutoragResultsViewed', () => {
+  it('should fire AutoRAG Results Viewed with the given entrySource', () => {
+    fireAutoragResultsViewed('experimentsList');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+      entrySource: 'experimentsList',
+    });
+  });
+});
+
+describe('isAutoragResultsNavigationState', () => {
+  it.each(['experimentsList', 'notification', 'direct', 'other'] as const)(
+    'should accept entrySource: %s',
+    (entrySource) => {
+      expect(isAutoragResultsNavigationState({ entrySource })).toBe(true);
+    },
+  );
+
+  it('should reject an unknown entrySource', () => {
+    expect(isAutoragResultsNavigationState({ entrySource: 'somethingElse' })).toBe(false);
+  });
+
+  it('should reject state missing entrySource', () => {
+    expect(isAutoragResultsNavigationState({})).toBe(false);
+  });
+
+  it('should reject null/undefined/non-object state', () => {
+    expect(isAutoragResultsNavigationState(null)).toBe(false);
+    expect(isAutoragResultsNavigationState(undefined)).toBe(false);
+    expect(isAutoragResultsNavigationState('experimentsList')).toBe(false);
   });
 });

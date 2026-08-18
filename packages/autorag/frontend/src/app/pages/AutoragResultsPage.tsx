@@ -40,6 +40,10 @@ import {
 } from '~/app/utilities/utils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import {
+  fireAutoragResultsViewed,
+  isAutoragResultsNavigationState,
+} from '~/app/utilities/tracking';
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -107,6 +111,17 @@ function AutoragResultsPage(): React.JSX.Element {
     isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
+
+  const resultsViewedTrackedRunId = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (!pipelineRun?.run_id || resultsViewedTrackedRunId.current === pipelineRun.run_id) {
+      return;
+    }
+    resultsViewedTrackedRunId.current = pipelineRun.run_id;
+
+    const navState = isAutoragResultsNavigationState(location.state) ? location.state : undefined;
+    fireAutoragResultsViewed(navState?.entrySource ?? 'other');
+  }, [pipelineRun?.run_id, location.state]);
 
   // Fetch and process AutoRAG results using custom hook
   const {

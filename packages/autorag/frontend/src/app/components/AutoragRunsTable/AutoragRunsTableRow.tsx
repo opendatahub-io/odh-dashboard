@@ -150,6 +150,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         <Td dataLabel={autoragRunsColumns[0].label}>
           <Link
             to={`${autoragResultsPathname}/${namespace}/${run.run_id}`}
+            state={{ entrySource: 'experimentsList' }}
             data-testid={`run-name-${run.run_id}`}
           >
             {run.display_name}
