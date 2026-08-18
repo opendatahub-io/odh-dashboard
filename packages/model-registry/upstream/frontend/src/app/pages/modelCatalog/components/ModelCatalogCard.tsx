@@ -27,6 +27,8 @@ import {
   CATALOG_VALUE_LABEL_KEYS,
 } from '~/concepts/modelCatalog/const';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 
@@ -43,6 +45,13 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
   const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
+  const { trackSimpleEvent } = useUserInteraction();
+
+  const handleValidatedLabelClicked = React.useCallback(() => {
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_LABEL_CLICKED, {
+      modelName: getModelName(model.name),
+    });
+  }, [model.name, trackSimpleEvent]);
 
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
@@ -68,6 +77,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                       isClickable
                       status="success"
                       icon={<CheckCircleIcon />}
+                      onClick={handleValidatedLabelClicked}
                     >
                       Validated
                     </Label>
