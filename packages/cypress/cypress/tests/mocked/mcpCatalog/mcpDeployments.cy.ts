@@ -63,10 +63,8 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
     ]),
   );
 
-  // Default: no catalog match. Tests needing a resolved catalog name override this.
-  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers?*`, {
-    body: { data: { items: [], size: 0, pageSize: 5, nextPageToken: '' } },
-  }).as('getMcpCatalogServers');
+  // Catalog intercept is no longer needed for deployments since serverName
+  // now stores the display name directly (no async catalog lookup).
 };
 
 const initIntercepts = ({
@@ -371,35 +369,17 @@ describe('MCP Deployments server and registered version columns', () => {
       );
   });
 
-  it('should show the catalog display name (no link) once resolved by name from the catalog', () => {
+  it('should show the catalog display name stored in serverName directly', () => {
     initIntercepts({
-      deployments: [mockRunningDeployment({ serverName: 'kubernetes-mcp-server' })],
+      deployments: [mockRunningDeployment({ serverName: 'Kubernetes MCP' })],
     });
-    cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers?*`, {
-      body: {
-        data: {
-          items: [
-            {
-              id: 'catalog-id-1',
-              name: 'kubernetes-mcp-server',
-              displayName: 'Kubernetes MCP',
-              version: '2.0.0',
-              toolCount: 3,
-            },
-          ],
-          size: 1,
-          pageSize: 5,
-          nextPageToken: '',
-        },
-      },
-    }).as('getMcpCatalogServers');
     visitDeployments();
 
     const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
     row.findServerCatalog().should('have.text', 'Kubernetes MCP');
   });
 
-  it('should show the raw catalog server name when it cannot be resolved', () => {
+  it('should show the serverName as-is even if it looks like an internal name', () => {
     initIntercepts({
       deployments: [mockRunningDeployment({ serverName: 'deleted-from-catalog' })],
     });
