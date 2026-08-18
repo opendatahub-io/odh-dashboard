@@ -2,7 +2,13 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { getAuthPolicyCreateUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  EventTrackingFilterAttribute,
+  EventTrackingResourceType,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import {
   AuthPoliciesFilterDataType,
   AuthPoliciesFilterOptions,
@@ -35,6 +41,14 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
           onChange={(_event, value) => onChange(value)}
           data-testid="auth-policies-filter-name-input"
           style={{ minWidth: '350px' }}
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.KEYWORD,
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+              });
+            },
+          }}
         />
       ),
     }}

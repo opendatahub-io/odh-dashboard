@@ -376,7 +376,7 @@ export const getInferenceServiceStoppedStatus = (
 export const getServingRuntimeVersionStatus = (
   servingRuntimeVersion: string | undefined,
   templateVersion: string | undefined,
-): string | undefined => {
+): ServingRuntimeVersionStatusLabel | undefined => {
   if (!servingRuntimeVersion || !templateVersion) {
     return undefined;
   }

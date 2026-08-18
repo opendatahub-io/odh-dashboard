@@ -27,10 +27,20 @@ export const isValidRuntimeArgs = (value: unknown): value is RuntimeArgsFieldDat
   return runtimeArgsFieldSchema.safeParse(value).success;
 };
 
+/**
+ * Drops blank lines and `#` comment headers before writing args onto a container.
+ * Comment lines are useful in the wizard textarea but are not valid container argv.
+ */
+export const filterRuntimeArgsForContainer = (args: string[]): string[] =>
+  args.filter((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !trimmed.startsWith('#');
+  });
+
 // Hook
 export type RuntimeArgsFieldHook = {
   data: RuntimeArgsFieldData | undefined;
-  setData: (data: RuntimeArgsFieldData) => void;
+  setData: React.Dispatch<React.SetStateAction<RuntimeArgsFieldData | undefined>>;
 };
 
 export const useRuntimeArgsField = (existingData?: RuntimeArgsFieldData): RuntimeArgsFieldHook => {

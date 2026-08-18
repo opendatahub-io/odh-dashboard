@@ -10,7 +10,10 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/model-serving/shared';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import {
+  filterRuntimeArgsForContainer,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
   ModelLocationData,
   ModelLocationType,
@@ -127,7 +130,10 @@ export const applyModelEnvVarsAndArgs = (
     envHolder.push(...modelEnvVars.variables);
   }
   if (modelArgs?.enabled) {
-    envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') });
+    const containerArgs = filterRuntimeArgsForContainer(modelArgs.args);
+    if (containerArgs.length > 0) {
+      envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: containerArgs.join(' ') });
+    }
   }
   mainContainer.env = envHolder;
   return result;

@@ -12,7 +12,6 @@ metadata:
       event == "pull_request"
       && target_branch == "main"
       && ( "packages/automl/**".pathChanged()
-            || "packages/autox-core/**".pathChanged()
             || ".tekton/odh-mod-arch-automl-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
@@ -35,6 +34,8 @@ spec:
     value: .
   - name: pipeline-type
     value: pull-request
+  - name: enable-early-gate-testing
+    value: "false"
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'

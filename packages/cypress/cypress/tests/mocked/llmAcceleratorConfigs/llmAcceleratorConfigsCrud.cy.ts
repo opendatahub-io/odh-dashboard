@@ -75,7 +75,7 @@ describe('LLM accelerator configurations CRUD operations', () => {
       llmAcceleratorConfigs.findAddButton().click();
       llmAcceleratorConfigs.findNameInput().type('New Config');
       llmAcceleratorConfigs.findVersionInput().type('v1.0.0');
-      llmAcceleratorConfigs.setYamlEditorContent('metadata:\n  name: placeholder');
+      llmAcceleratorConfigs.findYAMLCodeEditor().setValue('metadata:\n  name: placeholder');
 
       llmAcceleratorConfigs.findSubmitButton().click();
 

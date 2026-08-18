@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { NIMWizardFields } from './modelServing/NIMWizardFields';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
@@ -787,6 +788,18 @@ class InferenceServiceRow extends ModelServingRow {
     return this.find().findByTestId('model-status-text').should('include.text', label);
   }
 
+  findCapabilitiesCell() {
+    return this.find().find('[data-label="Capabilities"]');
+  }
+
+  findCapabilitiesGroup() {
+    return this.findCapabilitiesCell().findByTestId('deployment-capabilities');
+  }
+
+  findCapabilityLabels() {
+    return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
@@ -923,6 +936,8 @@ class ModelServingSection {
 }
 
 class ModelServingWizard extends Wizard {
+  nim = new NIMWizardFields();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }

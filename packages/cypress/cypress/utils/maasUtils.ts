@@ -109,6 +109,29 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
   creationTimestamp: '2025-04-01T12:00:00Z',
 });
 
+export const mockDegradedSubscription = (): MaaSSubscription => ({
+  name: 'degraded-sub',
+  namespace: 'maas-system',
+  phase: 'Degraded',
+  reason: 'ModelRefsNotReady',
+  status: 'False',
+  conditionType: 'Ready',
+  statusMessage: 'some model references are invalid or missing',
+  lastTransitionTime: '2025-04-01T12:30:00Z',
+  priority: 99,
+  owner: {
+    groups: [{ name: 'system:authenticated' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models123',
+      tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-01T12:00:00Z',
+});
+
 export const mockPendingSubscription = (): MaaSSubscription => ({
   name: 'pending-sub',
   namespace: 'maas-system',
@@ -269,6 +292,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   mockFailedSubscription(),
   mockPendingSubscription(),
   mockDeletingSubscription(),
+  mockDegradedSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -367,16 +391,26 @@ export const mockSubscriptionInfoMissingModelSummaries = (): SubscriptionInfoRes
 
 export const mockSubscriptionInfo = (name = 'premium-team-sub'): SubscriptionInfoResponse => {
   const subscription = mockSubscriptions().find((s) => s.name === name) ?? mockSubscriptions()[0];
+  const catalog = mockModelRefSummaries();
+  // Only include MaaSModelRefs that actually exist — missing refs (e.g. wrong namespace on
+  // degraded subscriptions) stay out of the catalog so the UI can show "Model not found".
+  const modelRefs = subscription.modelRefs.flatMap((ref) => {
+    const match = catalog.find((c) => c.name === ref.name && c.namespace === ref.namespace);
+    if (!match) {
+      return [];
+    }
+    return [
+      {
+        ...match,
+        displayName: `${ref.name} Display`,
+        description: ref.description ?? match.description,
+      },
+    ];
+  });
+
   return {
     subscription,
-    modelRefs: subscription.modelRefs.map((ref) => ({
-      name: ref.name,
-      namespace: ref.namespace,
-      displayName: `${ref.name} Display`,
-      modelRef: { kind: 'LLMInferenceService', name: ref.name },
-      phase: 'Ready',
-      endpoint: `https://${ref.name}.example.com`,
-    })),
+    modelRefs,
     authPolicies: [
       {
         name: `${name}-policy`,
@@ -786,6 +820,19 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   subjects: { groups: [{ name: 'system:authenticated' }] },
 });
 
+export const mockDegradedAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'degraded-policy',
+  namespace: 'maas-system',
+  phase: 'Degraded',
+  reason: 'ModelRefsNotReady',
+  status: 'False',
+  conditionType: 'Ready',
+  statusMessage: 'some model references are invalid or missing',
+  lastTransitionTime: '2025-04-01T12:30:00Z',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models123' }],
+  subjects: { groups: [{ name: 'system:authenticated' }] },
+});
+
 export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   name: 'pending-policy',
   namespace: 'maas-system',
@@ -883,6 +930,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     },
   },
   mockFailedAuthPolicy(),
+  mockDegradedAuthPolicy(),
   mockPendingAuthPolicy(),
   mockDeletingAuthPolicy(),
 ];
@@ -890,22 +938,31 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
   const policy = mockAuthPolicies().find((p) => p.name === name) ?? mockAuthPolicies()[0];
   const resolvedName = policy.name;
+  const catalog = mockModelRefSummaries();
+  // Only include MaaSModelRefs that actually exist — missing refs (e.g. wrong namespace on
+  // degraded policies) stay out of the catalog so the UI can show "Model not found".
+  const modelRefs = policy.modelRefs.flatMap((ref) => {
+    const match = catalog.find((c) => c.name === ref.name && c.namespace === ref.namespace);
+    if (!match) {
+      return [];
+    }
+    return [
+      {
+        ...match,
+        displayName: `${ref.name} Display`,
+        description: ref.description ?? match.description ?? `Description for ${ref.name}`,
+      },
+    ];
+  });
+
   return {
     policy: {
       ...policy,
       displayName: policy.displayName ?? `${resolvedName} Display`,
       description: `Description for ${resolvedName}`,
-      creationTimestamp: '2025-03-01T10:00:00Z',
+      creationTimestamp: policy.creationTimestamp ?? '2025-03-01T10:00:00Z',
     },
-    modelRefs: policy.modelRefs.map((ref) => ({
-      name: ref.name,
-      namespace: ref.namespace,
-      displayName: `${ref.name} Display`,
-      description: `Description for ${ref.name}`,
-      modelRef: { kind: 'LLMInferenceService', name: ref.name },
-      phase: 'Ready' as const,
-      endpoint: `https://${ref.name}.example.com`,
-    })),
+    modelRefs,
   };
 };
 

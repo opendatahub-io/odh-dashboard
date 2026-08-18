@@ -34,6 +34,7 @@ import {
   WorkloadOwnerType,
 } from '#~/k8sTypes';
 import { WorkloadWithUsage } from '#~/api';
+import { isInadmissibleQuotaCondition } from '#~/concepts/kueue/messageUtils';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',
@@ -127,10 +128,7 @@ export const getStatusInfo = (wl: WorkloadKind): WorkloadStatusInfo => {
         /success|succeeded/.test(`${message} ${reason}`.toLowerCase()),
     ),
     Evicted: conditions?.find(({ type, status }) => type === 'Evicted' && status === 'True'),
-    Inadmissible: conditions?.find(
-      ({ type, status, reason }) =>
-        type === 'QuotaReserved' && status === 'False' && reason === 'Inadmissible',
-    ),
+    Inadmissible: conditions?.find(isInadmissibleQuotaCondition),
     Pending: conditions?.find(({ type, status }) => type === 'QuotaReserved' && status === 'False'),
     Running: conditions?.find(({ type, status }) => type === 'PodsReady' && status === 'True'),
     Admitted: conditions?.find(({ type, status }) => type === 'Admitted' && status === 'True'),

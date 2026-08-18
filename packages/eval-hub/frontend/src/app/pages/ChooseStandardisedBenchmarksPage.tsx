@@ -11,20 +11,27 @@ import {
   EmptyStateBody,
   EmptyStateVariant,
   Gallery,
+  MenuToggle,
   Pagination,
   PageSection,
   SearchInput,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
   Stack,
   StackItem,
   Title,
   Toolbar,
   ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
   ToolbarItem,
+  ToolbarToggleGroup,
 } from '@patternfly/react-core';
+import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
@@ -32,12 +39,21 @@ import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } fro
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
+import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
+import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
-  benchmarkFilterConfig,
+  BenchmarkSortOption,
+  benchmarkSortLabels,
   initialBenchmarkFilterData,
 } from './const';
+
+const PAGE_SIZES = [12, 24, 36];
+
+const BENCHMARK_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
+const isBenchmarkSortOption = (value: unknown): value is BenchmarkSortOption =>
+  typeof value === 'string' && BENCHMARK_SORT_VALUES.includes(value);
 
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -81,42 +97,45 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   );
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(10);
+  const [perPage, setPerPage] = React.useState(PAGE_SIZES[1]);
 
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<FlatBenchmark | undefined>(
     undefined,
   );
 
-  const onFilterUpdate = React.useCallback(
-    (key: string, value: string | { label: string; value: string } | undefined) =>
-      setFilterData((prev) => ({ ...prev, [key]: value })),
-    [],
+  const [sortOption, setSortOption] = React.useState(BenchmarkSortOption.DEFAULT);
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
+
+  const availableCategories = React.useMemo<string[]>(
+    () =>
+      [
+        ...new Set(allBenchmarks.map((b) => b.category).filter((c): c is string => Boolean(c))),
+      ].toSorted(),
+    [allBenchmarks],
+  );
+
+  const availableMetrics = React.useMemo<string[]>(
+    () => [...new Set(allBenchmarks.flatMap((b) => b.metrics ?? []).filter(Boolean))].toSorted(),
+    [allBenchmarks],
   );
 
   const onClearFilters = React.useCallback(() => setFilterData(initialBenchmarkFilterData), []);
 
   const filteredBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
-    const rawName = filterData[BenchmarkFilterOptions.name];
-    const rawCategory = filterData[BenchmarkFilterOptions.category];
-    const rawMetrics = filterData[BenchmarkFilterOptions.metrics];
-
-    const nameFilter =
-      typeof rawName === 'string' ? rawName.toLowerCase().trim() || undefined : undefined;
-    const categoryFilter =
-      typeof rawCategory === 'string' ? rawCategory.toLowerCase().trim() || undefined : undefined;
-    const metricsFilter =
-      typeof rawMetrics === 'string' ? rawMetrics.toLowerCase().trim() || undefined : undefined;
+    const nameFilter = filterData[BenchmarkFilterOptions.name].toLowerCase().trim() || undefined;
+    const categoryFilters = filterData[BenchmarkFilterOptions.category];
+    const metricsFilters = filterData[BenchmarkFilterOptions.metrics];
 
     return allBenchmarks.filter((b) => {
       if (nameFilter && !b.name.toLowerCase().includes(nameFilter)) {
         return false;
       }
-      if (categoryFilter && !(b.category?.toLowerCase().includes(categoryFilter) ?? false)) {
+      if (categoryFilters.length > 0 && !categoryFilters.includes(b.category ?? '')) {
         return false;
       }
       if (
-        metricsFilter &&
-        !(b.metrics?.some((m) => m.toLowerCase().includes(metricsFilter)) ?? false)
+        metricsFilters.length > 0 &&
+        !(b.metrics?.some((m) => metricsFilters.includes(m)) ?? false)
       ) {
         return false;
       }
@@ -124,21 +143,38 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     });
   }, [allBenchmarks, filterData]);
 
+  const sortedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
+    switch (sortOption) {
+      case BenchmarkSortOption.NAME:
+        return filteredBenchmarks.toSorted((a, b) => a.name.localeCompare(b.name));
+      case BenchmarkSortOption.CATEGORY:
+        return filteredBenchmarks.toSorted((a, b) => {
+          const catCmp = (a.category ?? '').localeCompare(b.category ?? '');
+          return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
+        });
+      default:
+        return filteredBenchmarks;
+    }
+  }, [filteredBenchmarks, sortOption]);
+
   React.useEffect(() => {
     setPage(1);
-  }, [filterData]);
+  }, [filterData, sortOption, namespace]);
 
   const paginatedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
     const start = (page - 1) * perPage;
-    return filteredBenchmarks.slice(start, start + perPage);
-  }, [filteredBenchmarks, page, perPage]);
+    return sortedBenchmarks.slice(start, start + perPage);
+  }, [sortedBenchmarks, page, perPage]);
 
   const handleSelectBenchmark = (benchmark: FlatBenchmark) => {
     setSelectedBenchmark((prev) =>
       prev?.id === benchmark.id && prev.providerId === benchmark.providerId ? undefined : benchmark,
     );
   };
-  const hasActiveFilters = Object.values(filterData).some((v) => v && String(v).trim());
+  const hasActiveFilters =
+    filterData[BenchmarkFilterOptions.name].trim() !== '' ||
+    filterData[BenchmarkFilterOptions.category].length > 0 ||
+    filterData[BenchmarkFilterOptions.metrics].length > 0;
 
   return (
     <Drawer isExpanded={!!selectedBenchmark}>
@@ -154,7 +190,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark"
-            description="Select a benchmark to run on your model, agent or pre-recorded responses."
+            description="Select a benchmark to run on your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -182,65 +218,158 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                   <StackItem>
                     <Toolbar clearAllFilters={onClearFilters}>
                       <ToolbarContent>
-                        <FilterToolbar<keyof typeof benchmarkFilterConfig>
-                          data-testid="benchmarks-filter-toolbar"
-                          filterOptions={benchmarkFilterConfig}
-                          filterOptionRenders={{
-                            [BenchmarkFilterOptions.category]: ({ onChange, ...props }) => (
+                        <ToolbarItem>
+                          <Select
+                            isOpen={isSortOpen}
+                            selected={sortOption}
+                            onSelect={(_event, value) => {
+                              if (isBenchmarkSortOption(value)) {
+                                setSortOption(value);
+                              }
+                              setIsSortOpen(false);
+                            }}
+                            onOpenChange={setIsSortOpen}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsSortOpen((prev) => !prev)}
+                                isExpanded={isSortOpen}
+                                icon={<SortAmountDownIcon />}
+                                data-testid="benchmarks-sort-toggle"
+                              >
+                                {benchmarkSortLabels[sortOption]}
+                              </MenuToggle>
+                            )}
+                            data-testid="benchmarks-sort-select"
+                          >
+                            <SelectList>
+                              {Object.values(BenchmarkSortOption).map((opt) => (
+                                <SelectOption
+                                  key={opt}
+                                  value={opt}
+                                  isSelected={sortOption === opt}
+                                  data-testid={`benchmarks-sort-option-${opt}`}
+                                >
+                                  {benchmarkSortLabels[opt]}
+                                </SelectOption>
+                              ))}
+                            </SelectList>
+                          </Select>
+                        </ToolbarItem>
+                        <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+                          <ToolbarGroup
+                            variant="filter-group"
+                            data-testid="benchmarks-filter-toolbar"
+                          >
+                            <ToolbarFilter
+                              labels={
+                                filterData[BenchmarkFilterOptions.name]
+                                  ? [filterData[BenchmarkFilterOptions.name]]
+                                  : []
+                              }
+                              deleteLabel={() =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.name]: '',
+                                }))
+                              }
+                              categoryName="Name"
+                            >
                               <SearchInput
-                                {...props}
-                                aria-label="Filter by category"
-                                placeholder="Filter by category"
-                                onChange={(_event, value) => onChange(value)}
-                              />
-                            ),
-                            [BenchmarkFilterOptions.name]: ({ onChange, ...props }) => (
-                              <SearchInput
-                                {...props}
-                                data-testid="benchmarks-name-filter"
                                 aria-label="Filter by name"
                                 placeholder="Filter by name"
-                                onChange={(_event, value) => onChange(value)}
+                                value={filterData[BenchmarkFilterOptions.name]}
+                                onChange={(_event, value) =>
+                                  setFilterData((prev) => ({
+                                    ...prev,
+                                    [BenchmarkFilterOptions.name]: value,
+                                  }))
+                                }
+                                onClear={() =>
+                                  setFilterData((prev) => ({
+                                    ...prev,
+                                    [BenchmarkFilterOptions.name]: '',
+                                  }))
+                                }
+                                data-testid="benchmarks-name-filter"
                               />
-                            ),
-                            [BenchmarkFilterOptions.metrics]: ({ onChange, ...props }) => (
-                              <SearchInput
-                                {...props}
-                                aria-label="Filter by metrics"
-                                placeholder="Filter by metrics"
-                                onChange={(_event, value) => onChange(value)}
-                              />
-                            ),
-                          }}
-                          filterData={filterData}
-                          onFilterUpdate={onFilterUpdate}
-                        >
-                          <ToolbarItem
-                            variant="pagination"
-                            align={{ default: 'alignEnd' }}
-                            className="pf-v6-u-pr-lg"
-                          >
-                            <Pagination
-                              itemCount={filteredBenchmarks.length}
-                              page={page}
-                              perPage={perPage}
-                              onSetPage={(_evt, p) => setPage(p)}
-                              onPerPageSelect={(_evt, pp) => {
-                                setPerPage(pp);
-                                setPage(1);
-                              }}
-                              perPageOptions={[
-                                { title: '10', value: 10 },
-                                { title: '20', value: 20 },
-                                { title: '30', value: 30 },
-                              ]}
-                              variant="top"
-                              widgetId="benchmarks-pagination"
-                              menuAppendTo="inline"
-                              titles={{ paginationAriaLabel: 'top pagination' }}
+                            </ToolbarFilter>
+                            <SearchableMultiSelectFilter
+                              categoryName="Category"
+                              options={availableCategories}
+                              selected={filterData[BenchmarkFilterOptions.category]}
+                              formatLabel={formatCategory}
+                              onToggleOption={(value) =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.category]: prev[
+                                    BenchmarkFilterOptions.category
+                                  ].includes(value)
+                                    ? prev[BenchmarkFilterOptions.category].filter(
+                                        (c) => c !== value,
+                                      )
+                                    : [...prev[BenchmarkFilterOptions.category], value],
+                                }))
+                              }
+                              onClearAll={() =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.category]: [],
+                                }))
+                              }
+                              testIdPrefix="benchmarks-category"
                             />
-                          </ToolbarItem>
-                        </FilterToolbar>
+                            <SearchableMultiSelectFilter
+                              categoryName="Metrics"
+                              options={availableMetrics}
+                              selected={filterData[BenchmarkFilterOptions.metrics]}
+                              formatLabel={getMetricDisplayName}
+                              onToggleOption={(value) =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.metrics]: prev[
+                                    BenchmarkFilterOptions.metrics
+                                  ].includes(value)
+                                    ? prev[BenchmarkFilterOptions.metrics].filter(
+                                        (m) => m !== value,
+                                      )
+                                    : [...prev[BenchmarkFilterOptions.metrics], value],
+                                }))
+                              }
+                              onClearAll={() =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.metrics]: [],
+                                }))
+                              }
+                              testIdPrefix="benchmarks-metrics"
+                            />
+                          </ToolbarGroup>
+                        </ToolbarToggleGroup>
+                        <ToolbarItem
+                          variant="pagination"
+                          align={{ default: 'alignEnd' }}
+                          className="pf-v6-u-pr-lg"
+                        >
+                          <Pagination
+                            itemCount={sortedBenchmarks.length}
+                            page={page}
+                            perPage={perPage}
+                            onSetPage={(_evt, p) => setPage(p)}
+                            onPerPageSelect={(_evt, pp) => {
+                              setPerPage(pp);
+                              setPage(1);
+                            }}
+                            perPageOptions={PAGE_SIZES.map((size) => ({
+                              title: String(size),
+                              value: size,
+                            }))}
+                            variant="top"
+                            widgetId="benchmarks-pagination"
+                            menuAppendTo="inline"
+                            titles={{ paginationAriaLabel: 'top pagination' }}
+                          />
+                        </ToolbarItem>
                       </ToolbarContent>
                     </Toolbar>
                   </StackItem>
@@ -292,6 +421,28 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                       </Gallery>
                     )}
                   </StackItem>
+                  {paginatedBenchmarks.length > 0 && (
+                    <StackItem>
+                      <Pagination
+                        itemCount={sortedBenchmarks.length}
+                        page={page}
+                        perPage={perPage}
+                        onSetPage={(_evt, p) => setPage(p)}
+                        onPerPageSelect={(_evt, pp) => {
+                          setPerPage(pp);
+                          setPage(1);
+                        }}
+                        perPageOptions={PAGE_SIZES.map((size) => ({
+                          title: String(size),
+                          value: size,
+                        }))}
+                        variant="bottom"
+                        widgetId="benchmarks-pagination-bottom"
+                        menuAppendTo="inline"
+                        titles={{ paginationAriaLabel: 'bottom pagination' }}
+                      />
+                    </StackItem>
+                  )}
                 </Stack>
               )}
             </PageSection>

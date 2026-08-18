@@ -3,6 +3,10 @@ const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
+const GEN_AI_GUARDRAILS_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -33,6 +37,13 @@ class GenAiPlayground {
 
   navigateToAssetsWithPromptManagement(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithGuardrailsAndPromptManagement(projectName: string) {
+    cy.visit(
+      `/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG}`,
+    );
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
@@ -99,6 +110,7 @@ class GenAiPlayground {
 
   waitForStreamingComplete(options?: { timeout?: number }) {
     const timeout = options?.timeout ?? 60000;
+    cy.findByTestId('chatbot-stop-button', { timeout }).should('exist');
     cy.findByTestId('chatbot-stop-button', { timeout }).should('not.exist');
   }
 
@@ -308,6 +320,65 @@ class GenAiPlayground {
 
   findFileSearchResultsToggle() {
     return cy.findByTestId('file-search-results-toggle');
+  }
+
+  // Guardrails methods
+  navigateToPlaygroundWithGuardrails(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_GUARDRAILS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  findGuardrailsTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-guardrails');
+  }
+
+  findGuardrailsSection() {
+    return cy.findByTestId('guardrails-section-title').parent();
+  }
+
+  findGuardrailModelToggle() {
+    return cy.findByTestId('guardrail-model-toggle');
+  }
+
+  selectGuardrailModel(displayName: string) {
+    this.findGuardrailModelToggle().click();
+    cy.get('[role="menuitem"]').contains(displayName).click();
+  }
+
+  findUserInputGuardrailsSwitch() {
+    return cy.findByTestId('user-input-guardrails-switch');
+  }
+
+  findModelOutputGuardrailsSwitch() {
+    return cy.findByTestId('model-output-guardrails-switch');
+  }
+
+  toggleUserInputGuardrails(enable: boolean) {
+    this.findUserInputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findUserInputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  toggleModelOutputGuardrails(enable: boolean) {
+    this.findModelOutputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findModelOutputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  findGuardrailViolationAlert(options?: { timeout?: number }) {
+    return cy.findByTestId('guardrail-violation-alert', options);
+  }
+
+  clearChat() {
+    cy.findByTestId('new-chat-button').should('be.visible').click();
+    cy.findByTestId('confirm-button').should('be.visible').click();
   }
 }
 

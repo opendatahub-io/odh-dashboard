@@ -13,3 +13,7 @@ export const normalizeVersion = (tag: string): string => {
 
 export const getImageRepository = (modelNamespace: string, modelName: string): string =>
   `${NIM_IMAGE_REGISTRY}/${modelNamespace}/${modelName}`;
+
+/** `nvcr.io/nim/meta/llama-3-8b-instruct` -> `llama-3-8b-instruct` */
+export const getModelNameFromRepository = (repository: string): string =>
+  repository.split('/').pop() || repository;
