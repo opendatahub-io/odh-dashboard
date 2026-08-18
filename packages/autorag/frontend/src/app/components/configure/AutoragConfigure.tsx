@@ -232,28 +232,42 @@ function AutoragConfigure({
 
   // When the secret changes, mark models as needing re-initialization and
   // immediately clear stale selections so the UI reflects the transition.
-  useEffect(() => {
+  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
+  // already populated on mount during reconfigure; a plain useEffect would
+  // wipe the pre-populated model selections before they could be restored.
+  useReconfigureSafeEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
     setValue('embedding_models', []);
   }, [ogxSecretName, setValue]);
 
   useEffect(() => {
-    // Initialize available generation and embedding models into the form data
+    // Initialize available generation and embedding models into the form data.
+    // Preserve existing selections (reconfigure flow) when they are already
+    // populated; only default to all models on a fresh create.
     if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
+
+      const currentValues = getValues();
+      const currentGenModels = currentValues.generation_models;
+      const currentEmbModels = currentValues.embedding_models;
+
+      const allLlmModels = allModelsData.models
+        .filter((model) => model.type === 'llm')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      const allEmbeddingModels = allModelsData.models
+        .filter((model) => model.type === 'embedding')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
       reset({
-        ...getValues(),
+        ...currentValues,
         // eslint-disable-next-line camelcase
-        generation_models: allModelsData.models
-          .filter((model) => model.type === 'llm')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        generation_models: currentGenModels.length > 0 ? currentGenModels : allLlmModels,
         // eslint-disable-next-line camelcase
-        embedding_models: allModelsData.models
-          .filter((model) => model.type === 'embedding')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        embedding_models: currentEmbModels.length > 0 ? currentEmbModels : allEmbeddingModels,
       });
     }
   }, [allModelsData, isModelsError, getValues, reset]);

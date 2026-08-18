@@ -1161,6 +1161,70 @@ describe('AutoragConfigure', () => {
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
       expect(input).toHaveValue(12);
     });
+
+    it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
+      // Query returns more models than were previously selected, so a reset-to-all
+      // regression is distinguishable from correctly retaining the prior selection.
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+            {
+              id: 'embed-model-2',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-2', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1'],
+          embedding_models: ['embed-model-1'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1'],
+          embedding_models: ['embed-model-1'],
+        },
+      );
+
+      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
   });
 
   describe('invalid secret selection', () => {
