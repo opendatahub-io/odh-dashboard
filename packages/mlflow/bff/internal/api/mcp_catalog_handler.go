@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/mlflow/bff/internal/integrations/bffclient"
@@ -30,13 +29,13 @@ func (app *App) modelRegistryClientOrUnavailable(w http.ResponseWriter, r *http.
 func (app *App) requireCatalogServerIDAndNamespace(w http.ResponseWriter, r *http.Request, ps httprouter.Params) (string, string, bool) {
 	serverID := ps.ByName("id")
 	if serverID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("server id is required"))
+		app.catalogBadRequest(w, r, fmt.Errorf("server id is required"))
 		return "", "", false
 	}
 
 	namespace := r.URL.Query().Get("namespace")
 	if namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("namespace query parameter is required"))
+		app.catalogBadRequest(w, r, fmt.Errorf("namespace query parameter is required"))
 		return "", "", false
 	}
 
@@ -105,11 +104,22 @@ func (app *App) GetMcpServerConverterHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (app *App) catalogBadRequest(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Error: ErrorPayload{
+			Code:    apiErrorCodeForStatus(http.StatusBadRequest),
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) modelRegistryBFFUnavailableResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusServiceUnavailable,
 		Error: ErrorPayload{
-			Code:    strconv.Itoa(http.StatusServiceUnavailable),
+			Code:    apiErrorCodeForStatus(http.StatusServiceUnavailable),
 			Message: "Model Registry BFF is not available",
 		},
 	}
@@ -125,19 +135,20 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 		}
 
 		message := bffErr.Message
-		code := bffErr.Code
 		if statusCode >= 500 {
 			app.logger.Error("BFF client error (5xx)", "status", statusCode, "code", bffErr.Code)
 			message = http.StatusText(statusCode)
 			if message == "" {
 				message = "internal server error"
 			}
-			code = "internal_error"
 		}
 
 		httpError := &HTTPError{
 			StatusCode: statusCode,
-			Error:      ErrorPayload{Code: code, Message: message},
+			Error: ErrorPayload{
+				Code:    apiErrorCodeForStatus(statusCode),
+				Message: message,
+			},
 		}
 		app.errorResponse(w, r, httpError)
 		return

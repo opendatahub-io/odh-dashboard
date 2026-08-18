@@ -113,6 +113,7 @@ func TestGetMcpServerToolsHandlerMissingServerID(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusBadRequest), httpErr.Error.Code)
 	assert.Equal(t, "server id is required", httpErr.Error.Message)
 }
 
@@ -125,6 +126,7 @@ func TestGetMcpServerToolsHandlerMissingNamespace(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusBadRequest), httpErr.Error.Code)
 	assert.Equal(t, "namespace query parameter is required", httpErr.Error.Message)
 }
 
@@ -137,7 +139,7 @@ func TestGetMcpServerToolsHandlerUnavailableClient(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
-	assert.Equal(t, "503", httpErr.Error.Code)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusServiceUnavailable), httpErr.Error.Code)
 	assert.Equal(t, "Model Registry BFF is not available", httpErr.Error.Message)
 }
 
@@ -153,15 +155,36 @@ func TestGetMcpServerToolsHandlerClientError(t *testing.T) {
 			name:        "not found",
 			err:         bffclient.NewNotFoundError(bffclient.BFFTargetModelRegistry, "server not found"),
 			wantStatus:  http.StatusNotFound,
-			wantCode:    bffclient.ErrCodeNotFound,
+			wantCode:    apiErrorCodeForStatus(http.StatusNotFound),
 			wantMessage: "server not found",
+		},
+		{
+			name:        "forbidden ignores bff client code",
+			err:         bffclient.NewForbiddenError(bffclient.BFFTargetModelRegistry, "access denied"),
+			wantStatus:  http.StatusForbidden,
+			wantCode:    apiErrorCodeForStatus(http.StatusForbidden),
+			wantMessage: "access denied",
 		},
 		{
 			name:        "upstream 5xx sanitized",
 			err:         bffclient.NewServerUnavailableError(bffclient.BFFTargetModelRegistry),
 			wantStatus:  http.StatusServiceUnavailable,
-			wantCode:    "internal_error",
+			wantCode:    apiErrorCodeForStatus(http.StatusServiceUnavailable),
 			wantMessage: http.StatusText(http.StatusServiceUnavailable),
+		},
+		{
+			name:        "bad gateway sanitized",
+			err:         bffclient.NewInvalidResponseError(bffclient.BFFTargetModelRegistry, "internal details"),
+			wantStatus:  http.StatusBadGateway,
+			wantCode:    apiErrorCodeForStatus(http.StatusBadGateway),
+			wantMessage: http.StatusText(http.StatusBadGateway),
+		},
+		{
+			name:        "invalid status remapped to bad gateway",
+			err:         bffclient.NewBFFClientError(bffclient.ErrCodeInternalError, "boom", 0),
+			wantStatus:  http.StatusBadGateway,
+			wantCode:    apiErrorCodeForStatus(http.StatusBadGateway),
+			wantMessage: http.StatusText(http.StatusBadGateway),
 		},
 		{
 			name:        "non-bff error",
@@ -228,6 +251,7 @@ func TestGetMcpServerConverterHandlerMissingServerID(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusBadRequest), httpErr.Error.Code)
 	assert.Equal(t, "server id is required", httpErr.Error.Message)
 }
 
@@ -240,6 +264,7 @@ func TestGetMcpServerConverterHandlerMissingNamespace(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusBadRequest), httpErr.Error.Code)
 	assert.Equal(t, "namespace query parameter is required", httpErr.Error.Message)
 }
 
@@ -252,7 +277,7 @@ func TestGetMcpServerConverterHandlerUnavailableClient(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
-	assert.Equal(t, "503", httpErr.Error.Code)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusServiceUnavailable), httpErr.Error.Code)
 	assert.Equal(t, "Model Registry BFF is not available", httpErr.Error.Message)
 }
 
@@ -271,6 +296,6 @@ func TestGetMcpServerConverterHandlerClientError(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 	httpErr := decodeHTTPError(t, rr)
-	assert.Equal(t, bffclient.ErrCodeNotFound, httpErr.Error.Code)
+	assert.Equal(t, apiErrorCodeForStatus(http.StatusNotFound), httpErr.Error.Code)
 	assert.Equal(t, "server not found", httpErr.Error.Message)
 }
