@@ -3,11 +3,20 @@ import '@testing-library/jest-dom';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragLeaderboard from '~/app/components/run-results/AutoragLeaderboard';
 import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock empty state component
 jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
@@ -1492,6 +1501,110 @@ describe('AutoragLeaderboard component', () => {
       fireEvent.click(screen.getByText('Save'));
 
       expect(screen.queryByTestId('metric-header-faithfulness')).not.toBeInTheDocument();
+    });
+
+    describe('AutoRAG Results Column Toggled tracking', () => {
+      it('should fire with the mapped metric name when hiding a non-optimized metric column', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+        showAllColumns();
+        fireMiscTrackingEventMock.mockClear();
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          { columnName: 'answerCorrectness', isVisible: false },
+        );
+      });
+
+      it('should fire with the settings column id when hiding a settings column', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+        showAllColumns();
+        fireMiscTrackingEventMock.mockClear();
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-chunkingMethod'));
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          { columnName: 'chunkingMethod', isVisible: false },
+        );
+      });
+
+      it('should fire with the mapped metric name when hiding the sticky optimized metric column', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          { columnName: 'answerFaithfulness', isVisible: false },
+        );
+      });
+
+      it('should fire with isVisible: true when showing a hidden column', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          { columnName: 'answerCorrectness', isVisible: true },
+        );
+      });
+
+      it('should not fire when the modal is cancelled', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
+        fireEvent.click(screen.getByText('Cancel'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when a column is toggled back to its originally applied state before saving', () => {
+        renderWithContext({
+          patterns: mockStandardPatterns,
+          pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        });
+
+        fireEvent.click(screen.getByTestId('manage-columns-button'));
+        const checkbox = screen.getByTestId('column-check-optimized-metric');
+        fireEvent.click(checkbox);
+        fireEvent.click(checkbox);
+        fireEvent.click(screen.getByText('Save'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+          expect.anything(),
+        );
+      });
     });
 
     it('should display column count in toolbar', () => {

@@ -17,6 +17,7 @@ import {
   fireAutoragExperimentDeleted,
   fireAutoragNotebookDownloaded,
   fireAutoragPlaygroundOpened,
+  fireAutoragResultsColumnToggled,
   fireAutoragResultsViewed,
   fireAutoragRunReconfigured,
   fireAutoragRunRetried,
@@ -725,6 +726,28 @@ describe('fireAutoragNotebookDownloaded', () => {
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
         notebookType,
       });
+    },
+  );
+});
+
+describe('fireAutoragResultsColumnToggled', () => {
+  it.each([
+    ['rank', true],
+    ['patternName', false],
+    ['modelNames', true],
+    ['answerFaithfulness', false],
+    ['otherMetric', true],
+    ['chunkingMethod', false],
+    ['other', true],
+  ] as const)(
+    'should fire AutoRAG Results Column Toggled with columnName: %s, isVisible: %s',
+    (columnName, isVisible) => {
+      fireAutoragResultsColumnToggled(columnName, isVisible);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
+        { columnName, isVisible },
+      );
     },
   );
 });

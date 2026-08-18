@@ -30,6 +30,7 @@ export const AUTORAG_EVENTS = {
   RESULTS_VIEWED: 'AutoRAG Results Viewed',
   PLAYGROUND_OPENED: 'AutoRAG Playground Opened',
   NOTEBOOK_DOWNLOADED: 'AutoRAG Notebook Downloaded',
+  RESULTS_COLUMN_TOGGLED: 'AutoRAG Results Column Toggled',
 } as const;
 
 export const fireAutoragProjectDropdownOptionSelected = (selectedProject: string): void => {
@@ -517,4 +518,38 @@ export type NotebookDownloadedType = 'indexing' | 'inference' | 'other';
  */
 export const fireAutoragNotebookDownloaded = (notebookType: NotebookDownloadedType): void => {
   fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, { notebookType });
+};
+
+/**
+ * Discrete, bounded identity for a results table column, independent of its (possibly dynamic
+ * or API-driven) display label. Metric columns reuse the {@link RagOptimizationMetric} taxonomy
+ * where possible; `'otherMetric'` covers metric columns outside that allowlist (e.g. a metric
+ * the API returns that isn't one of the four known optimization metrics), and `'other'` is a
+ * defensive catch-all for any future/unrecognized column — neither should leak a raw API value.
+ */
+export type ResultsColumnName =
+  | 'rank'
+  | 'patternName'
+  | 'modelNames'
+  | RagOptimizationMetric
+  | 'otherMetric'
+  | 'chunkingMethod'
+  | 'chunkingChunkSize'
+  | 'chunkingChunkOverlap'
+  | 'retrievalMethod'
+  | 'retrievalSearchMode'
+  | 'retrievalRankerStrategy'
+  | 'retrievalNumberOfChunks'
+  | 'other';
+
+/**
+ * Fires once per column whose visibility actually changed when the user saves the "Manage
+ * columns" modal — not on every checkbox click while the modal is open, so discarded edits
+ * (Cancel) don't get counted. Reordering-only saves fire nothing, since no `isShown` changed.
+ */
+export const fireAutoragResultsColumnToggled = (
+  columnName: ResultsColumnName,
+  isVisible: boolean,
+): void => {
+  fireMiscTrackingEvent(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, { columnName, isVisible });
 };
