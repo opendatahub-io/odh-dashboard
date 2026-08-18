@@ -110,13 +110,10 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       labelHelp={
         labelHelpPopover ? (
           <FieldGroupHelpLabelIcon
-            content={
-              <>
-                {labelHelpPopover.title ? <b>{labelHelpPopover.title}</b> : null}
-                {labelHelpPopover.title ? <br /> : null}
-                {labelHelpPopover.content}
-              </>
-            }
+            buttonTestId="gateway-select-help-button"
+            popoverBodyTestId="gateway-select-help-popover"
+            title={labelHelpPopover.title}
+            content={labelHelpPopover.content}
           />
         ) : undefined
       }
