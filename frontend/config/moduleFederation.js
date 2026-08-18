@@ -1,5 +1,6 @@
 const { execSync } = require('child_process');
 const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+const { WORKSPACE_QUERY_SCRIPT } = require('../../scripts/workspace-query-path');
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
@@ -62,17 +63,17 @@ const normalizeConfig = (config) =>
   isOldConfig(config) ? convertModuleFederationConfig(config) : config;
 
 /**
- * Get all workspace packages using npm query
+ * Get all workspace packages from the pnpm workspace
  * @returns {Array} Array of workspace package objects
  */
 const getWorkspacePackages = () => {
   try {
-    const stdout = execSync('npm query .workspace --json', {
+    const stdout = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, {
       encoding: 'utf8',
     });
     return JSON.parse(stdout);
   } catch (error) {
-    console.warn('Error querying workspaces with npm query:', error.message);
+    console.warn('Error querying workspace packages:', error.message);
     return [];
   }
 };

@@ -61,10 +61,10 @@ describe('getPluginPackageDetails', () => {
     expect(getPluginPackageDetails()).toEqual([]);
   });
 
-  it('should return empty array when npm query fails', () => {
+  it('should return empty array when workspace query fails', () => {
     jest.doMock('child_process', () => ({
       execSync: jest.fn().mockImplementation(() => {
-        throw new Error('npm query failed');
+        throw new Error('workspace query failed');
       }),
     }));
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -73,8 +73,8 @@ describe('getPluginPackageDetails', () => {
     expect(getPluginPackageDetails()).toEqual([]);
 
     expect(warnSpy).toHaveBeenCalledWith(
-      'Error querying workspaces with npm query:',
-      'npm query failed',
+      'Error querying workspace packages:',
+      'workspace query failed',
     );
   });
 
@@ -136,7 +136,7 @@ describe('getPluginPackageDetails', () => {
 
   it('should cache the failure so subsequent calls do not re-run execSync', () => {
     const mockExecSync = jest.fn().mockImplementation(() => {
-      throw new Error('npm query failed');
+      throw new Error('workspace query failed');
     });
     jest.doMock('child_process', () => ({ execSync: mockExecSync }));
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -152,7 +152,7 @@ describe('getPluginPackageDetails', () => {
     expect(mockExecSync).toHaveBeenCalledTimes(1);
   });
 
-  it('should memoize the npm query call across multiple invocations', () => {
+  it('should memoize the workspace query call across multiple invocations', () => {
     const mockExecSync = jest.fn().mockReturnValue(JSON.stringify(mockWorkspacePackages));
     jest.doMock('child_process', () => ({ execSync: mockExecSync }));
 
