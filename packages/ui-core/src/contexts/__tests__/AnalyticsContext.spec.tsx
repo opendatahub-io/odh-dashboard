@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import {
   AnalyticsContext,
   useAnalytics,
+  noopAnalytics,
   type AnalyticsAPI,
   type FormTrackingEventProperties,
   type MiscTrackingEventProperties,
@@ -11,14 +12,7 @@ import {
   TrackingOutcome,
 } from '../AnalyticsContext';
 
-const ANALYTICS_API_KEYS: (keyof AnalyticsAPI)[] = [
-  'fireFormTrackingEvent',
-  'fireMiscTrackingEvent',
-  'fireLinkTrackingEvent',
-  'fireSimpleTrackingEvent',
-  'firePageEvent',
-  'fireIdentifyEvent',
-];
+const ANALYTICS_API_KEYS = Object.keys(noopAnalytics) as (keyof AnalyticsAPI)[];
 
 const TestConsumer: React.FC = () => {
   const analytics = useAnalytics();

@@ -3,7 +3,12 @@ export type { UpdateObjectAtPropAndValue } from './types';
 export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
 export type { ThemeContextProps } from './contexts/ThemeContext';
 
-export { AnalyticsContext, useAnalytics, TrackingOutcome } from './contexts/AnalyticsContext';
+export {
+  AnalyticsContext,
+  useAnalytics,
+  noopAnalytics,
+  TrackingOutcome,
+} from './contexts/AnalyticsContext';
 export type {
   FormTrackingEventProperties,
   MiscTrackingEventProperties,

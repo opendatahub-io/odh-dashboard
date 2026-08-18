@@ -41,7 +41,7 @@ export type AnalyticsAPI = {
   fireIdentifyEvent: (properties: IdentifyEventProperties) => void;
 };
 
-const noopAnalytics: AnalyticsAPI = {
+export const noopAnalytics: AnalyticsAPI = {
   fireFormTrackingEvent: () => undefined,
   fireMiscTrackingEvent: () => undefined,
   fireLinkTrackingEvent: () => undefined,
