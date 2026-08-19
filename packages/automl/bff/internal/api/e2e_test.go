@@ -326,6 +326,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 	})
 
 	t.Run("terminate to reach a retryable FAILED state", func(t *testing.T) {
+		if runID == "" {
+			t.Fatal("previous subtest did not produce a run ID")
+		}
+
 		terminateResp := e2eRequest(t, http.MethodPost, baseURL+"/api/v1/pipeline-runs/"+runID+"/terminate?namespace="+e2eNamespace, map[string]any{})
 		if terminateResp.status != http.StatusOK {
 			t.Fatalf("expected 200 from terminate, got %d: %s", terminateResp.status, terminateResp.body)
@@ -337,6 +341,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 	})
 
 	t.Run("retry resets the run and it progresses to SUCCEEDED", func(t *testing.T) {
+		if runID == "" {
+			t.Fatal("previous subtest did not produce a run ID")
+		}
+
 		retryResp := e2eRequest(t, http.MethodPost, baseURL+"/api/v1/pipeline-runs/"+runID+"/retry?namespace="+e2eNamespace, map[string]any{})
 		if retryResp.status != http.StatusOK {
 			t.Fatalf("expected 200 from retry, got %d: %s", retryResp.status, retryResp.body)
@@ -362,6 +370,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 	})
 
 	t.Run("run_details reflects completed tasks after success", func(t *testing.T) {
+		if runID == "" {
+			t.Fatal("previous subtest did not produce a run ID")
+		}
+
 		resp := e2eRequest(t, http.MethodGet, baseURL+"/api/v1/pipeline-runs/"+runID+"?namespace="+e2eNamespace, nil)
 		if resp.status != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %s", resp.status, resp.body)
@@ -380,6 +392,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 	})
 
 	t.Run("delete the succeeded run", func(t *testing.T) {
+		if runID == "" {
+			t.Fatal("previous subtest did not produce a run ID")
+		}
+
 		resp := e2eRequest(t, http.MethodDelete, baseURL+"/api/v1/pipeline-runs/"+runID+"?namespace="+e2eNamespace, nil)
 		if resp.status != http.StatusOK {
 			t.Fatalf("expected 200 from delete, got %d: %s", resp.status, resp.body)
@@ -387,6 +403,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 	})
 
 	t.Run("get after delete returns 404", func(t *testing.T) {
+		if runID == "" {
+			t.Fatal("previous subtest did not produce a run ID")
+		}
+
 		resp := e2eRequest(t, http.MethodGet, baseURL+"/api/v1/pipeline-runs/"+runID+"?namespace="+e2eNamespace, nil)
 		if resp.status != http.StatusNotFound {
 			t.Fatalf("expected 404 after delete, got %d: %s", resp.status, resp.body)
