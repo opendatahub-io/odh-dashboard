@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/kubeflow/hub/ui/bff/internal/api"
 	"github.com/kubeflow/hub/ui/bff/internal/integrations/bffclient"
@@ -27,30 +28,52 @@ type mlflowMCPServerEnvelope struct {
 // every deployment created from the MCP Registry (RegistryServer set). It's best-effort:
 // lookup failures are logged and left empty rather than failing the whole list/get request,
 // since the frontend can fall back to displaying the raw RegistryServer name.
+//
+// Unique registry servers are resolved concurrently so that N distinct servers
+// cost max(RTT) instead of N*RTT. The context already carries the request
+// timeout, bounding runaway goroutines.
 func enrichMcpDeploymentsWithRegistryDisplayNames(ctx context.Context, app *api.App, deployments []models.McpDeployment) {
 	client := bffclient.ClientForRequest(ctx, app.BFFClientFactory(), bffclient.BFFTargetMLflow)
 	if client == nil {
 		return
 	}
 
-	// Multiple deployments commonly point at the same registry server; avoid
-	// making the same inter-BFF call more than once per request. Keyed on
-	// namespace+RegistryServer (not RegistryServer alone): the lookup is scoped to
-	// deployment.Namespace via ?workspace=, so two deployments sharing a
-	// RegistryServer name across different namespaces must not share a cache entry.
-	cache := make(map[string]string)
+	type lookupKey struct{ namespace, server string }
+	unique := make(map[string]lookupKey)
 	for i := range deployments {
-		deployment := &deployments[i]
-		if deployment.RegistryServer == "" {
+		if deployments[i].RegistryServer == "" {
 			continue
 		}
-		cacheKey := deployment.Namespace + "|" + deployment.RegistryServer
-		displayName, ok := cache[cacheKey]
-		if !ok {
-			displayName = resolveMcpRegistryServerDisplayName(ctx, app.Logger(), client, deployment.Namespace, deployment.RegistryServer)
-			cache[cacheKey] = displayName
+		key := deployments[i].Namespace + "|" + deployments[i].RegistryServer
+		if _, ok := unique[key]; !ok {
+			unique[key] = lookupKey{deployments[i].Namespace, deployments[i].RegistryServer}
 		}
-		deployment.RegistryServerDisplayName = displayName
+	}
+
+	if len(unique) == 0 {
+		return
+	}
+
+	cache := make(map[string]string, len(unique))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	for key, lk := range unique {
+		wg.Add(1)
+		go func(k string, ns, server string) {
+			defer wg.Done()
+			name := resolveMcpRegistryServerDisplayName(ctx, app.Logger(), client, ns, server)
+			mu.Lock()
+			cache[k] = name
+			mu.Unlock()
+		}(key, lk.namespace, lk.server)
+	}
+	wg.Wait()
+
+	for i := range deployments {
+		if deployments[i].RegistryServer == "" {
+			continue
+		}
+		deployments[i].RegistryServerDisplayName = cache[deployments[i].Namespace+"|"+deployments[i].RegistryServer]
 	}
 }
 
