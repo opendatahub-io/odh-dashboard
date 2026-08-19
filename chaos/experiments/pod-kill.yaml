@@ -20,7 +20,7 @@ spec:
   injection:
     type: PodKill
     parameters:
-      labelSelector: app=odh-dashboard
+      labelSelector: deployment=odh-dashboard
     count: 1
     ttl: "300s"
   hypothesis:

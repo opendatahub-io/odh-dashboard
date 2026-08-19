@@ -21,7 +21,7 @@ spec:
     type: PDBBlock
     dangerLevel: high
     parameters:
-      labelSelector: app=odh-dashboard
+      labelSelector: deployment=odh-dashboard
     ttl: "10s"
   hypothesis:
     description: >-

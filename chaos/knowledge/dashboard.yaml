@@ -38,6 +38,10 @@ components:
         kind: ConfigMap
         name: kube-rbac-proxy-config
         namespace: opendatahub
+      - apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        name: odh-dashboard
+        namespace: opendatahub
       - apiVersion: gateway.networking.k8s.io/v1
         kind: HTTPRoute
         name: odh-dashboard

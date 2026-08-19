@@ -20,7 +20,7 @@ spec:
   injection:
     type: NetworkPartition
     parameters:
-      labelSelector: app=odh-dashboard
+      labelSelector: deployment=odh-dashboard
     ttl: "300s"
   hypothesis:
     description: >-
