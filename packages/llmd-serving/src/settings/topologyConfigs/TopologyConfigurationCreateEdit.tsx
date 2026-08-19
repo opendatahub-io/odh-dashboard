@@ -291,14 +291,12 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         fireTopologyConfigUpdated({
           outcome: TrackingOutcome.submit,
           success: false,
-          error: err.message,
           topologyType: resolvedTopologyType,
         });
       } else {
         fireTopologyConfigCreated({
           outcome: TrackingOutcome.submit,
           success: false,
-          error: err.message,
           mode: isDuplicate ? 'duplicate' : 'create',
           configSource,
           topologyType: resolvedTopologyType,

@@ -87,7 +87,6 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
           fireServingRuntimeTemplateEnablementChanged({
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e instanceof Error ? e.message : 'unknown',
             // The patch failed, so the state reverts — report the actual state, not the intended one.
             enabled: !checked,
           });

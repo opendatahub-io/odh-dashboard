@@ -349,14 +349,12 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         fireRoutingConfigUpdated({
           outcome: TrackingOutcome.submit,
           success: false,
-          error: err.message,
           topologyType: selectedTopology,
         });
       } else {
         fireRoutingConfigCreated({
           outcome: TrackingOutcome.submit,
           success: false,
-          error: err.message,
           mode: isDuplicate ? 'duplicate' : 'create',
           configSource,
           topologyType: selectedTopology,

@@ -39,7 +39,6 @@ const DeleteLlmAcceleratorConfigModal: React.FC<DeleteLlmAcceleratorConfigModalP
             fireLlmAcceleratorConfigDeleted({
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e instanceof Error ? e.message : 'unknown',
             });
             setError(e);
             setIsDeleting(false);

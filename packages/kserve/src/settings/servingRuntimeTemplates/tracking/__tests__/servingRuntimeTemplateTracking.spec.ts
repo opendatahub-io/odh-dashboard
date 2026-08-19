@@ -56,17 +56,16 @@ describe('fireServingRuntimeTemplateCreated', () => {
     );
   });
 
-  it('should fire the Created event with success false and error on failure', () => {
+  it('should fire the Created event with success false on failure (no free-form error/PII)', () => {
     fireServingRuntimeTemplateCreated({
       outcome: TrackingOutcome.submit,
       success: false,
-      error: 'boom',
       mode: 'create',
     });
 
     expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
       ServingRuntimeTemplateTrackingEvent.CREATED,
-      expect.objectContaining({ success: false, error: 'boom' }),
+      { outcome: TrackingOutcome.submit, success: false, mode: 'create' },
     );
   });
 

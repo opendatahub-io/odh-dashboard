@@ -107,7 +107,6 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
       fireRoutingConfigDeleted({
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof Error ? e.message : 'unknown',
       });
     } finally {
       setIsDeleting(false);

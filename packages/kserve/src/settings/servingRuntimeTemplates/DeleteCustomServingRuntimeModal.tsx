@@ -77,7 +77,6 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
             fireServingRuntimeTemplateDeleted({
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e instanceof Error ? e.message : 'unknown',
             });
             setError(e);
             setIsDeleting(false);

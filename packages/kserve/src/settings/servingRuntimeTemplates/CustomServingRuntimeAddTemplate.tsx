@@ -226,6 +226,22 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                     if (e instanceof Error) {
                       setError(e);
                     }
+                    if (isEdit) {
+                      fireServingRuntimeTemplateUpdated({
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        apiProtocol: selectedAPIProtocol,
+                        modelTypes: selectedModelTypes.join(','),
+                      });
+                    } else {
+                      fireServingRuntimeTemplateCreated({
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        mode: isDuplicate ? 'duplicate' : 'create',
+                        apiProtocol: selectedAPIProtocol,
+                        modelTypes: selectedModelTypes.join(','),
+                      });
+                    }
                     return;
                   }
                   setIsLoading(true);
@@ -272,7 +288,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                         fireServingRuntimeTemplateUpdated({
                           outcome: TrackingOutcome.submit,
                           success: false,
-                          error: err instanceof Error ? err.message : 'unknown',
                           apiProtocol: selectedAPIProtocol,
                           modelTypes: selectedModelTypesStr,
                         });
@@ -280,7 +295,6 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                         fireServingRuntimeTemplateCreated({
                           outcome: TrackingOutcome.submit,
                           success: false,
-                          error: err instanceof Error ? err.message : 'unknown',
                           mode: isDuplicate ? 'duplicate' : 'create',
                           apiProtocol: selectedAPIProtocol,
                           modelTypes: selectedModelTypesStr,

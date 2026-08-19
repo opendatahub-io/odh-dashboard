@@ -142,10 +142,28 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       parsed = YAML.parse(yamlCode);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
+      if (isEdit) {
+        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+      } else {
+        fireLlmAcceleratorConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+        });
+      }
       return;
     }
     if (!isConfigObject(parsed)) {
       setError(new Error('YAML must represent a valid kubernetes resource object'));
+      if (isEdit) {
+        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+      } else {
+        fireLlmAcceleratorConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+        });
+      }
       return;
     }
     const config = overrideLlmConfigFields(parsed, {
@@ -178,13 +196,11 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
           fireLlmAcceleratorConfigUpdated({
             outcome: TrackingOutcome.submit,
             success: false,
-            error: err instanceof Error ? err.message : 'unknown',
           });
         } else {
           fireLlmAcceleratorConfigCreated({
             outcome: TrackingOutcome.submit,
             success: false,
-            error: err instanceof Error ? err.message : 'unknown',
             mode: isDuplicate ? 'duplicate' : 'create',
           });
         }
