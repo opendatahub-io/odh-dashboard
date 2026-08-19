@@ -100,10 +100,10 @@ jobs:
         shell: bash
         run: |
           git checkout -b '${{ github.event.inputs.RELEASE_VERSION }}-PR'
-      - name: Replace odh/params.env version
+      - name: Replace odh/standalone/params.env version
         shell: bash
         run: |
-          sed -i "s/:main/@${{ env.DIGEST }}/g" manifests/odh/params.env
+          sed -i "s/:main/@${{ env.DIGEST }}/g" manifests/odh/standalone/params.env
       - name: Replace version in frontend .env
         shell: bash
         run: |
@@ -113,7 +113,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git add manifests/odh/params.env frontend/.env
+          git add manifests/odh/standalone/params.env frontend/.env
           git commit -m "Edit version info for ${{ github.event.inputs.RELEASE_VERSION }}"
           git push origin ${{ github.event.inputs.RELEASE_VERSION }}-PR
           gh pr create --base ${{ github.event.inputs.RELEASE_VERSION }}-odh-release --head ${{ github.event.inputs.RELEASE_VERSION }}-PR \
