@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import type { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
-import McpRegistryServerDeployAction from '../McpRegistryServerDeployAction';
+import McpRegistryServerDeployAction from '~/odh/components/McpRegistryServerDeployAction';
 
 jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
   __esModule: true,

@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -273,5 +275,67 @@ func TestMcpRegistryServerNamePathSegmentRejectsEmptySegments(t *testing.T) {
 				t.Fatalf("mcpRegistryServerNamePathSegment(%q) expected an error for an empty path segment, got none", input)
 			}
 		})
+	}
+}
+
+func TestMcpDeploymentListResolvesDistinctServersConcurrently(t *testing.T) {
+	app := newRedHatTestAppWithMockBFFClients(t)
+
+	var inflight atomic.Int32
+	var maxInflight atomic.Int32
+
+	mockFactory := app.BFFClientFactory().(*bffmocks.MockClientFactory)
+	client := mockFactory.CreateClient(bffclient.BFFTargetMLflow, "").(*bffmocks.MockBFFClient)
+	client.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+		cur := inflight.Add(1)
+		for {
+			prev := maxInflight.Load()
+			if cur <= prev || maxInflight.CompareAndSwap(prev, cur) {
+				break
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+		inflight.Add(-1)
+
+		env, ok := response.(*mlflowMCPServerEnvelope)
+		if ok {
+			env.Data.DisplayName = "resolved"
+		}
+		return nil
+	}
+
+	repo := &mockMcpDeploymentRepo{
+		listFn: func(_ context.Context, _ k8s.KubernetesClientInterface, namespace string) (models.McpDeploymentList, error) {
+			return models.McpDeploymentList{
+				Items: []models.McpDeployment{
+					{Name: "a", Namespace: namespace, RegistryServer: "server-1"},
+					{Name: "b", Namespace: namespace, RegistryServer: "server-2"},
+					{Name: "c", Namespace: namespace, RegistryServer: "server-3"},
+				},
+				Size: 3,
+			}, nil
+		},
+	}
+	withMcpDeploymentRepo(t, repo)
+
+	handler := overrideMcpDeploymentList(app, failDefault(t))
+	req := httptest.NewRequest(http.MethodGet, api.McpDeploymentListPath+"?namespace=test-ns", nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	if peak := maxInflight.Load(); peak < 2 {
+		t.Fatalf("expected at least 2 concurrent lookups for 3 distinct servers, peak was %d", peak)
+	}
+
+	var resp McpDeploymentListEnvelope
+	decodeResponse(t, rr, &resp)
+	for _, item := range resp.Data.Items {
+		if item.RegistryServerDisplayName != "resolved" {
+			t.Fatalf("expected display name 'resolved', got %q", item.RegistryServerDisplayName)
+		}
 	}
 }
