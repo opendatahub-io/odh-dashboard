@@ -52,10 +52,11 @@ npm run clean
 # Generate a webpack bundle profile
 npm run build:bundle-profile
 
-# Starts the bff for cypress tests
+# Build a production bundle and serve it from the mock BFF
+npm run cypress:server:build
 npm run cypress:server
 
-# Runs cypress end-to-end tests in CI mode
+# Build, serve via mock BFF, and run Cypress mock tests (CI)
 npm run test:cypress-ci
 ```
 
