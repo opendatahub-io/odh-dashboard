@@ -1,47 +1,6 @@
 import { getOdhDashboardConfigGroupsConfig } from './oc_commands/project';
 import type { CommandLineResult, DashboardConfig, NotebookControllerCullerConfig } from '../types';
 import { pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
-// TODO: validateModelServingPlatforms still checks the model-serving switch that used
-// to live on the Cluster Settings page; those controls moved to the General settings
-// tab, so this validation (and its e2e caller) needs to be repointed to that tab.
-// Tracked as a follow-up.
-import { generalSettingsPage } from '../pages/modelDeploymentSettings/generalSettings';
-
-/**
- * Validates the visibility and state of Model Serving Platform checkboxes
- * in the Cluster Settings based on the provided dashboard configuration.
- *
- * This function checks whether the Model Serving feature is enabled or disabled,
- * and subsequently verifies the state of the Single-Platform checkbox.
- *
- * - If Model Serving is disabled, the checkbox should not be visible.
- * - If Model Serving is enabled:
- *   - The Single-Platform Checkbox will be checked if KServe is enabled;
- *     otherwise, it will not be checked.
- *
- * @param dashboardConfig The Model Serving Platform configuration object containing
- *                        settings related to model serving and KServe.
- */
-export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig): void => {
-  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-  const isModelServingEnabled = dashboardConfig.dashboardConfig?.disableModelServing;
-  const isKServeEnabled = dashboardConfig.dashboardConfig?.disableKServe;
-  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
-
-  cy.log(`Value of isModelServingEnabled: ${String(isModelServingEnabled)}`);
-  cy.log(`Value of isKServeEnabled: ${String(isKServeEnabled)}`);
-
-  if (isModelServingEnabled) {
-    generalSettingsPage.findSinglePlatformSwitch().should('not.exist');
-    cy.log('Model Serving is disabled, checkboxes should not be visible');
-  } else if (isKServeEnabled) {
-    generalSettingsPage.findSinglePlatformSwitch().should('not.be.checked');
-    cy.log('Single-Platform Checkbox is disabled, it should not be checked');
-  } else {
-    generalSettingsPage.findSinglePlatformSwitch().should('be.checked');
-    cy.log('Single-Platform Checkbox is enabled, it should be checked');
-  }
-};
 
 /**
  * Validates the PVC Size displays in the Cluster Settings.
