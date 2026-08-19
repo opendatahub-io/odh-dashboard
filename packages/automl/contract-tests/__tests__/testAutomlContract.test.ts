@@ -30,6 +30,35 @@ describe('AutoML API Contract Tests', () => {
   const KNOWN_REGISTRY = '6fb09186-eb11-4b68-8e3a-8017fb3bf18f';
   const UNKNOWN_REGISTRY = '00000000-0000-0000-0000-000000000000';
 
+  // Polls GET /pipeline-runs/:id until the run reaches wantState or the
+  // timeout elapses, returning the last observed state. Mirrors
+  // pollForState in the Go integration tests: the fake transitions
+  // CANCELING -> FAILED asynchronously (~2s after terminate), so polling for
+  // the actual state avoids the flakiness of a fixed delay under CI load.
+  const pollForRunState = async (
+    runId: string,
+    wantState: string,
+    timeoutMs = 5000,
+    intervalMs = 250,
+  ): Promise<string> => {
+    type RunEnvelope = { data: { state: string } };
+    const deadline = Date.now() + timeoutMs;
+    let lastState = '';
+    while (Date.now() < deadline) {
+      const result = await apiClient.get(`/api/v1/pipeline-runs/${runId}?namespace=${NS}`);
+      if (result.success) {
+        lastState = (result.response.data as RunEnvelope).data.state;
+        if (lastState === wantState) {
+          return lastState;
+        }
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, intervalMs);
+      });
+    }
+    return lastState;
+  };
+
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -642,11 +671,8 @@ describe('AutoML API Contract Tests', () => {
         );
         expect(terminateResult.success).toBe(true);
 
-        // The fake transitions CANCELING -> FAILED asynchronously ~2s after
-        // terminate; wait for that before attempting the retry.
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 3000);
-        });
+        const state = await pollForRunState(failedRunId, 'FAILED');
+        expect(state).toBe('FAILED');
 
         const result = await apiClient.post(
           `/api/v1/pipeline-runs/${failedRunId}/retry?namespace=${NS}`,
