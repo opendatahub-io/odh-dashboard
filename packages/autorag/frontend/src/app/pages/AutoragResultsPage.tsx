@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -15,6 +14,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
@@ -77,6 +77,10 @@ function AutoragResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -416,14 +420,24 @@ function AutoragResultsPage(): React.JSX.Element {
                 </Split>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace ?? '')}>AutoRAG: {namespace}</Link>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>
-                    <Truncate content={pipelineRun?.display_name || ''} />
-                  </BreadcrumbItem>
-                </Breadcrumb>
+                namespace ? (
+                  <ExperimentContextBreadcrumb
+                    pageName="AutoRAG"
+                    namespace={namespace}
+                    projectDisplayName={projectDisplayName}
+                    homePath={getRedirectPath(namespace)}
+                  >
+                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                      <Link
+                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
+                        Experiment configurations
+                      </Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
+                  </ExperimentContextBreadcrumb>
+                ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
