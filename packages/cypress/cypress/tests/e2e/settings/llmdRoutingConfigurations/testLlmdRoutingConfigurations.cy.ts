@@ -44,14 +44,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
   it(
     'Admin can create, validate, edit, duplicate, delete routing configs and verify wizard visibility',
     {
-      tags: [
-        '@Featureflagged',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
+      tags: ['@Featureflagged', '@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
     },
     () => {
       cy.step('Log in as admin');

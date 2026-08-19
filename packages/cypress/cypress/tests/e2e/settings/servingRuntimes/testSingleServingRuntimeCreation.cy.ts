@@ -2,31 +2,35 @@ import { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared/t
 import { servingRuntimeTemplates } from '../../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { getSingleModelPath } from '../../../../utils/fileImportUtils';
-import { getSingleModelServingRuntimeInfo } from '../../../../utils/fileParserUtil';
-import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import {
+  cleanupTemplates,
+  renderYamlFileWithReplacements,
+} from '../../../../utils/oc_commands/templates';
 import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
-let modelServingSingleName: string;
-let metadataSingleDisplayName: string;
+const uuid = generateTestUUID();
+// Unique per-run names so the test is safe to run concurrently.
+const modelServingSingleName = `single-cypress-vllm-runtime-${uuid}`;
+const metadataSingleDisplayName = `Cypress Single ServingRuntime for KServe ${uuid}`;
+// Rendered copy of the runtime YAML, written to a temp path outside the repo so the
+// test still exercises the real "pick a file from disk" upload path (selectFile with a
+// file path) without leaving stray files in the fixtures tree.
+const renderedRuntimeYamlPath = `/tmp/kserve_singleservingruntime-${uuid}.yaml`;
 
 retryableBefore(() => {
-  cy.wrap(null)
-    .then(() => getSingleModelServingRuntimeInfo())
-    .then((info) => {
-      // Load Single-Model serving runtime info before tests run
-      modelServingSingleName = info.singleModelServingName;
-      metadataSingleDisplayName = info.displayName;
-      cy.log(`Loaded Single-Model Name: ${modelServingSingleName}`);
-      cy.log(`Loaded Single-Model Metadata Name: ${metadataSingleDisplayName}`);
+  // Render the templatized runtime YAML with unique names and write it to disk.
+  renderYamlFileWithReplacements(getSingleModelPath(), {
+    SERVING_RUNTIME_NAME: modelServingSingleName,
+    SERVING_RUNTIME_DISPLAY_NAME: metadataSingleDisplayName,
+  }).then((renderedYaml) => cy.writeFile(renderedRuntimeYamlPath, renderedYaml));
 
-      // Clean up by nested ServingRuntime name (Template row id)
-      return cleanupTemplates(modelServingSingleName);
-    });
+  // Clean up by nested ServingRuntime name (Template row id).
+  cleanupTemplates(modelServingSingleName);
 });
 after(() => {
-  if (modelServingSingleName) {
-    cleanupTemplates(modelServingSingleName);
-  }
+  cleanupTemplates(modelServingSingleName);
+  cy.task('deleteFile', renderedRuntimeYamlPath);
 });
 
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
@@ -38,7 +42,6 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
         '@SmokeSet2',
         '@ODS-2276',
         '@Dashboard',
-        '@NonConcurrent',
         '@ModelServing',
         '@SettingsCI',
         '@KServeCI',
@@ -70,8 +73,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
       servingRuntimeTemplates.findPredictiveModelOption().click();
 
       cy.step('Upload a Single-Model Serving runtime yaml file');
-      const singleModelYaml = getSingleModelPath();
-      servingRuntimeTemplates.uploadYaml(singleModelYaml);
+      servingRuntimeTemplates.uploadYaml(renderedRuntimeYamlPath);
 
       cy.step('Click to save and verify that creation was successful');
       servingRuntimeTemplates

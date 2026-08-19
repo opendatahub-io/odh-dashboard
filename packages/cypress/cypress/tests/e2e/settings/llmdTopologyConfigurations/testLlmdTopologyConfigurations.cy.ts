@@ -1,15 +1,15 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { topologyConfigurations } from '../../../../pages/modelDeploymentSettings/topologyConfigurations';
-import {
-  createCleanLLMInferenceServiceConfig,
-  cleanupLLMInferenceServiceConfig,
-} from '../../../../utils/oc_commands/llmInferenceServiceConfig';
+import { cleanupLLMInferenceServiceConfig } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
+import { renderYamlFileWithReplacements } from '../../../../utils/oc_commands/templates';
+import { getFixturePath } from '../../../../utils/fileImportUtils';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import type { DataScienceProjectData } from '../../../../types';
@@ -22,6 +22,9 @@ type TopologyTestData = DataScienceProjectData & {
 let testData: TopologyTestData;
 const uuid = generateTestUUID();
 let projectName: string;
+// Unique per-run config name so the test is safe to run concurrently.
+let topologyConfigName: string;
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('LLMD Topology Configurations - Admin Settings', () => {
   retryableBefore(() => {
@@ -30,30 +33,24 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
     ).then((fixtureData: DataScienceProjectData) => {
       testData = fixtureData as TopologyTestData;
       projectName = `${testData.projectResourceName}-${uuid}`;
-      createCleanLLMInferenceServiceConfig(
-        testData.topologyConfigName,
-        testData.topologyConfigFixture,
-      );
+      topologyConfigName = `${testData.topologyConfigName}-${uuid}`;
+      // Seed a uniquely-named topology config so concurrent runs don't collide.
+      renderYamlFileWithReplacements(getFixturePath(testData.topologyConfigFixture), {
+        TOPOLOGY_CONFIG_NAME: topologyConfigName,
+      }).then((renderedYaml) => applyOpenShiftYaml(renderedYaml, applicationNamespace));
       createCleanProject(projectName);
     });
   });
 
   after(() => {
-    cleanupLLMInferenceServiceConfig(testData.topologyConfigName);
+    cleanupLLMInferenceServiceConfig(topologyConfigName);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
     'Admin can manage topology configurations and verify wizard visibility',
     {
-      tags: [
-        '@Smoke',
-        '@Dashboard',
-        '@NonConcurrent',
-        '@ModelServing',
-        '@LLMDServingCI',
-        '@ModelServingCI',
-      ],
+      tags: ['@Smoke', '@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
     },
     () => {
       cy.step('Log in with topology configs feature flag');
@@ -64,7 +61,7 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
       topologyConfigurations.findTable().should('exist');
 
       cy.step('Verify the test topology config is listed');
-      topologyConfigurations.getRow(testData.topologyConfigName).find().should('exist');
+      topologyConfigurations.getRow(topologyConfigName).find().should('exist');
 
       cy.step('Navigate to project and open deploy wizard');
       projectListPage.navigate();
