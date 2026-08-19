@@ -68,6 +68,7 @@ import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
@@ -107,6 +108,10 @@ import {
   INPUT_DATA_FILE_ACCEPT,
   INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
   isAllowedInputDataUploadFile,
+  SUPPORTED_FORMAT_EXTENSIONS,
+  SUPPORTED_FORMAT_HINT,
+  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
+  INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
@@ -344,10 +349,7 @@ function AutoragConfigure({
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
-        notification.error(
-          'Invalid file type',
-          'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
-        );
+        notification.error('Invalid file type', INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION);
         return;
       }
       const uploadRequestId = ++inputDataUploadSeqRef.current;
@@ -660,7 +662,15 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={
+                                    <>
+                                      <InlineTooltip
+                                        text="Accepted file types"
+                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
+                                      />
+                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
+                                    </>
+                                  }
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -1199,8 +1209,8 @@ function AutoragConfigure({
             }
           }
         }}
-        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
-        unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
+        unselectableReason={SUPPORTED_FORMAT_HINT}
         disabledPaths={[
           '/autogluon-tabular-training-pipeline',
           '/autogluon-timeseries-training-pipeline',
