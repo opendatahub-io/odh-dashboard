@@ -10,6 +10,9 @@ import type { RuleEntry } from './types';
 import { normalizeVerbs } from './ruleModalUtils';
 import { ALL_RESOURCES_WILDCARD, RESOURCE_CATEGORIES } from './resourceCategories';
 import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
+import type { ApiResourcesData } from './useApiResources';
+
+const EMPTY_API_RESOURCES_DATA: ApiResourcesData = { apiGroups: [], resources: [] };
 
 type AddRuleModalProps = {
   existingRule?: RuleEntry;
@@ -36,9 +39,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     () => existingRule?.verbs ?? [],
   );
 
-  const resolvedApiResourcesData = apiResourcesLoaded
-    ? apiResourcesData
-    : { apiGroups: [], resources: [] };
+  const resolvedApiResourcesData = apiResourcesLoaded ? apiResourcesData : EMPTY_API_RESOURCES_DATA;
 
   const resourceToApiGroupMap = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -97,6 +98,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
         return;
       }
 
+      const allGroupsWereSelected = selectedApiGroups.includes(ALL_API_GROUPS_WILDCARD);
       const allowedGroups = new Set(newApiGroups);
       const orphanedResources = selectedResources.filter((r) => {
         const group = resourceToApiGroupMap.get(r);
@@ -104,7 +106,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
           return false;
         }
         if (newApiGroups.length === 0) {
-          return removedGroups.includes(group);
+          return allGroupsWereSelected || removedGroups.includes(group);
         }
         return !allowedGroups.has(group);
       });

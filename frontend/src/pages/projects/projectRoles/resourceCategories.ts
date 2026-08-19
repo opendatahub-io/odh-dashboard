@@ -97,7 +97,6 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
         apiGroup: 'authorization.k8s.io',
       },
       { name: 'tokenreviews', label: 'Token reviews', apiGroup: 'authentication.k8s.io' },
-      { name: 'tokenrequests', label: 'Token requests', apiGroup: 'authentication.k8s.io' },
     ],
   },
 ];

@@ -250,6 +250,23 @@ describe('AddRuleModal orchestration', () => {
       expect(capturedResourcesProps.selectedResources).not.toContain('statefulsets');
       expect(capturedResourcesProps.selectedResources).toContain('networkpolicies');
     });
+
+    it('should cascade all resources when wildcard API group is cleared', () => {
+      renderModal({
+        id: 'r1',
+        apiGroups: ['*'],
+        resources: ['deployments', 'pods', 'mycustomresource'],
+        verbs: ['get'],
+      });
+
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange([]);
+      });
+
+      expect(capturedResourcesProps.selectedResources).not.toContain('deployments');
+      expect(capturedResourcesProps.selectedResources).not.toContain('pods');
+      expect(capturedResourcesProps.selectedResources).toContain('mycustomresource');
+    });
   });
 
   describe('edit mode', () => {
