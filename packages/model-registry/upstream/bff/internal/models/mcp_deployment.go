@@ -19,12 +19,17 @@ type McpDeployment struct {
 	DisplayName string `json:"displayName,omitempty"`
 	ServerName  string `json:"serverName,omitempty"`
 	// RegistryServer and RegistryVersion trace deployments from MCP Registry; ServerName traces catalog.
-	RegistryServer    string `json:"registryServer,omitempty"`
-	RegistryVersion   string `json:"registryVersion,omitempty"`
-	Namespace         string `json:"namespace"`
-	UID               string `json:"uid"`
-	CreationTimestamp string `json:"creationTimestamp"`
-	Image             string `json:"image"`
+	RegistryServer  string `json:"registryServer,omitempty"`
+	RegistryVersion string `json:"registryVersion,omitempty"`
+	// RegistryServerDisplayName is resolved via an inter-BFF call to the MLflow BFF
+	// (see docs/inter-bff-communication.md) when RegistryServer is set. It's best-effort:
+	// left empty if the MLflow BFF is unreachable, not configured, or the server
+	// can no longer be found, so consumers should fall back to RegistryServer.
+	RegistryServerDisplayName string `json:"registryServerDisplayName,omitempty"`
+	Namespace                 string `json:"namespace"`
+	UID                       string `json:"uid"`
+	CreationTimestamp         string `json:"creationTimestamp"`
+	Image                     string `json:"image"`
 	// Port and Path are from spec.config; consumers can build an access endpoint
 	// URL without guessing the deployed container's listen address.
 	Port       int32                    `json:"port"`

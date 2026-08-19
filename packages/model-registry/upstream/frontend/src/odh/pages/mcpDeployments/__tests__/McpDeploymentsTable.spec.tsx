@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeploymentsTable from '~/odh/pages/mcpDeployments/McpDeploymentsTable';
 import {
@@ -11,6 +12,29 @@ import {
   createInitializingConditions,
   createFailedConditions,
 } from './mcpDeploymentTestUtils';
+
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useExtensions: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/extension-points', () => ({
+  isTabRouteTabExtension: (ext: { type: string }) => ext.type === 'app.tab-route/tab',
+}));
+
+const mockUseExtensions = jest.mocked(useExtensions);
+
+const registryTabExtension = {
+  type: 'app.tab-route/tab',
+  uid: 'mcp-registry-tab',
+  pluginName: 'mlflow-embedded',
+  properties: {
+    pageId: 'mcp-servers-tab-page',
+    id: 'registry',
+    title: 'Registry',
+    component: jest.fn(),
+  },
+  flags: {},
+};
 
 const mockDeployments: McpDeployment[] = [
   createMockDeployment({
@@ -45,6 +69,7 @@ describe('McpDeploymentsTable', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseExtensions.mockReturnValue([registryTabExtension] as never);
   });
 
   it('should call onDeleteClick when Delete is selected from the kebab menu', async () => {
@@ -81,6 +106,38 @@ describe('McpDeploymentsTable', () => {
     expect(screen.getByTestId('mcp-deployment-row-kubernetes-mcp')).toBeInTheDocument();
     expect(screen.getByTestId('mcp-deployment-row-slack-mcp')).toBeInTheDocument();
     expect(screen.getByTestId('mcp-deployment-row-jira-mcp')).toBeInTheDocument();
+  });
+
+  it('should show the Registered version column when the MCP Registry tab extension is loaded', () => {
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Registered version' })).toBeInTheDocument();
+  });
+
+  it('should omit the Registered version column when the MCP Registry tab extension is not loaded', () => {
+    mockUseExtensions.mockReturnValue([]);
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(
+      screen.queryByRole('columnheader', { name: 'Registered version' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deployment-registered-version')).not.toBeInTheDocument();
   });
 
   it('should show empty table view when deployments list is empty', () => {

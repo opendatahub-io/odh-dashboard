@@ -2,17 +2,30 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
-import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core/contexts/NotificationContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { MCP_REGISTRY_BASENAME, mcpRegistryBaseRoute, mcpServerDetailRoute } from './const';
+import type { APIOptions } from 'mod-arch-core';
+import {
+  MCP_REGISTRY_BASENAME,
+  mcpRegistryBaseRoute,
+  mcpServerDetailRoute,
+  DEFAULT_MCP_PATH,
+} from './const';
 import useHostRouteSync from './useHostRouteSync';
-import McpRegistryDeployAction from './McpRegistryDeployAction';
+import { createMcpAccessEndpoint } from './api';
+import { buildMcpAccessEndpointUrl } from './buildMcpAccessEndpointUrl';
+import { registryVersionToDeployData } from './registryVersionToDeployData';
 import { MCPServer, MCPServerVersion } from './types';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
+
+const MCP_REGISTRY_SERVER_DEPLOY_GROUP = 'mcp-registry.server-deploy';
 
 /**
  * Full-screen breakout for a single MCP server's detail page.
@@ -31,6 +44,16 @@ const MlflowMcpRegistryDetailPage: React.FC = () => {
   const storedProject = getStoredPreferredProject(projects);
   const syncHostRoute = useHostRouteSync();
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([]);
+  const actionExtensions = useExtensions(isActionExtension);
+  const notification = useNotification();
+  const abortControllerRef = React.useRef<AbortController>();
+
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const handleBreadcrumbChange = useCallback(
     (segments: BreadcrumbEntry[]) => {
@@ -41,10 +64,80 @@ const MlflowMcpRegistryDetailPage: React.FC = () => {
   );
 
   const renderDetailActions = useCallback(
-    (server: MCPServer, version?: MCPServerVersion) => (
-      <McpRegistryDeployAction server={server} version={version} namespace={workspace} />
-    ),
-    [workspace],
+    (server: MCPServer, version?: MCPServerVersion) => {
+      const isVersionDeployable = version?.status === 'active';
+
+      let disabledReason: string | undefined;
+      if (!version) {
+        disabledReason = 'Select a server version to deploy';
+      } else if (!isVersionDeployable) {
+        disabledReason = 'Change this version to Active before deploying';
+      } else if (!workspace) {
+        disabledReason = 'Select a project to deploy to';
+      }
+
+      const registryData =
+        !disabledReason && version
+          ? { ...registryVersionToDeployData(server, version), namespace: workspace }
+          : undefined;
+
+      const deployData = registryData
+        ? {
+            registryServer: registryData.registryServer,
+            registryVersion: registryData.registryVersion,
+            displayName: registryData.displayName,
+            namespace: registryData.namespace,
+            image: registryData.image,
+            yaml: registryData.yaml,
+          }
+        : undefined;
+
+      /* eslint-disable camelcase */
+      const onDeployed = registryData
+        ? async (deployment: { name: string; namespace: string; port: number; path?: string }) => {
+            abortControllerRef.current?.abort();
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+            const opts: APIOptions = { signal: controller.signal };
+
+            try {
+              await createMcpAccessEndpoint(registryData.registryServer, deployment.namespace)(
+                opts,
+                {
+                  endpoint_url: buildMcpAccessEndpointUrl(
+                    deployment.name,
+                    deployment.namespace,
+                    deployment.port,
+                    deployment.path || DEFAULT_MCP_PATH,
+                  ),
+                  transport_type: registryData.transportType,
+                  server_version: registryData.registryVersion,
+                },
+              );
+              notification.success('Deployment submitted');
+            } catch (endpointError) {
+              if (controller.signal.aborted) {
+                return;
+              }
+              notification.warning(
+                'Deployment submitted, but endpoint registration failed',
+                (endpointError instanceof Error && endpointError.message) ||
+                  'Failed to register the MCP access endpoint.',
+              );
+            }
+          }
+        : undefined;
+      /* eslint-enable camelcase */
+
+      return (
+        <ExtensibleActions
+          actions={actionExtensions}
+          group={MCP_REGISTRY_SERVER_DEPLOY_GROUP}
+          componentProps={{ deployData, disabledReason, onDeployed }}
+        />
+      );
+    },
+    [workspace, actionExtensions, notification],
   );
 
   const loadWrapper = useMemo(

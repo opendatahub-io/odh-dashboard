@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router';
 import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
@@ -23,7 +24,7 @@ const McpServerDeployAction: React.FC<{
     () =>
       crData
         ? {
-            serverName: crData.metadata.name,
+            serverName: getDisplayNameFromK8sResource(crData),
             image: crData.spec.source.containerImage?.ref ?? '',
             yaml: mcpServerCRToYaml(crData),
           }
