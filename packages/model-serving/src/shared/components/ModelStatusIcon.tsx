@@ -8,6 +8,11 @@ import {
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import type { ToggleState } from '@odh-dashboard/ui-core';
+import { getKueueStatusInfo } from '@odh-dashboard/internal/concepts/kueue/index';
+import {
+  KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/internal/concepts/kueue/types';
 import { ModelDeploymentState } from '../types';
 
 type ModelStatusIconProps = {
@@ -18,6 +23,10 @@ type ModelStatusIconProps = {
   onClick?: LabelProps['onClick'];
   stoppedStates?: ToggleState;
   hideLabel?: boolean;
+  /** Kueue scheduling status. When present and "interesting" (queued/failed/etc.), overrides the normal state. */
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
+  /** PatternFly Label variant. "filled" renders a taller, higher-contrast label than the default "outline". */
+  variant?: LabelProps['variant'];
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -28,6 +37,8 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   onClick,
   stoppedStates,
   hideLabel,
+  kueueStatus,
+  variant,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -55,6 +66,21 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           'Waiting for the deployment to stop. You can still delete or restart the deployment.',
       };
     }
+
+    if (
+      kueueStatus?.status &&
+      KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(kueueStatus.status)
+    ) {
+      const info = getKueueStatusInfo(kueueStatus.status);
+      return {
+        label: info.label,
+        color: info.color,
+        status: info.status,
+        icon: <info.IconComponent className={info.iconClassName} />,
+        message: kueueStatus.message,
+      };
+    }
+
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
       stoppedStates?.isStarting ||
@@ -98,7 +124,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           icon: <OutlinedQuestionCircleIcon />,
         };
     }
-  }, [state, defaultHeaderContent, stoppedStates]);
+  }, [state, defaultHeaderContent, stoppedStates, kueueStatus]);
 
   const content = hideLabel ? (
     <Icon
@@ -113,6 +139,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   ) : (
     <Label
       isCompact={isCompact}
+      variant={variant}
       color={statusSettings.color}
       status={statusSettings.status}
       icon={statusSettings.icon}

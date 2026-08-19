@@ -5,19 +5,26 @@ import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext'
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import ProjectSelectorField from '../ProjectSelectorField';
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => {
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () => {
   function MockProjectSelector(props: {
     namespace: string;
     onSelection: (projectName: string) => void;
     isLoading?: boolean;
+    isDisabled?: boolean;
+    isFullWidth?: boolean;
   }) {
     return (
-      <div data-testid="project-selector">
+      <div
+        data-testid="project-selector"
+        data-disabled={props.isDisabled ?? false}
+        data-full-width={props.isFullWidth ?? false}
+      >
         <span data-testid="selected-namespace">{props.namespace}</span>
         {props.isLoading && <span data-testid="selector-loading">Loading</span>}
         <button
           type="button"
           data-testid="select-project-btn"
+          disabled={props.isDisabled}
           onClick={() => props.onSelection('new-project')}
         >
           select
@@ -151,5 +158,37 @@ describe('ProjectSelectorField', () => {
     renderComponent({ onSelect });
     screen.getByTestId('select-project-btn').click();
     expect(onSelect).toHaveBeenCalledWith('new-project');
+  });
+
+  it('should disable the project selector when isDisabled is true', () => {
+    renderComponent({ isDisabled: true });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-disabled', 'true');
+    expect(screen.getByTestId('select-project-btn')).toBeDisabled();
+  });
+
+  it('should not disable the project selector by default', () => {
+    renderComponent();
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-disabled', 'false');
+    expect(screen.getByTestId('select-project-btn')).toBeEnabled();
+  });
+
+  it('should forward an explicit isFullWidth to the underlying selector', () => {
+    renderComponent({ isFullWidth: true, selectorOnly: false });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'true');
+  });
+
+  it('should default isFullWidth to the inverse of selectorOnly when not explicitly set', () => {
+    renderComponent({ selectorOnly: true });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'false');
+  });
+
+  it('should preserve an explicit false isFullWidth value', () => {
+    renderComponent({ isFullWidth: false, selectorOnly: false });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'false');
+  });
+
+  it('should default isFullWidth to true when selectorOnly is false', () => {
+    renderComponent({ selectorOnly: false });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'true');
   });
 });

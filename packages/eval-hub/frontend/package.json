@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "private": true,
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "packageManager": "npm@11.8.0",
   "overrides": {
@@ -29,6 +29,7 @@
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest",
     "test:unit": "npm run test:jest -- --silent",
+    "test-unit-coverage": "jest --silent --coverage",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix && prettier --write ./*.js ./*.cjs ./*.md ../*.md",
     "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js",
     "lint:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix",
@@ -43,7 +44,7 @@
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.21.4",
+    "@module-federation/enhanced": "^0.24.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
     "@mui/types": "^7.4.7",
@@ -102,12 +103,13 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@module-federation/runtime": "^0.21.4",
-    "@patternfly/patternfly": "^6.3.1",
-    "@patternfly/react-core": "^6.3.1",
-    "@patternfly/react-icons": "^6.3.1",
-    "@patternfly/react-styles": "^6.3.1",
-    "@patternfly/react-table": "^6.3.1",
-    "@patternfly/react-templates": "^6.3.1",
+    "@patternfly/patternfly": "~6.5.1",
+    "@patternfly/react-core": "~6.5.1",
+    "@patternfly/react-icons": "~6.5.1",
+    "@patternfly/react-styles": "~6.5.1",
+    "@patternfly/react-table": "~6.5.1",
+    "@patternfly/react-templates": "~6.5.1",
+    "@tanstack/react-query": "^5.90.20",
     "classnames": "^2.2.6",
     "dompurify": "^3.2.4",
     "lodash-es": "^4.17.15",

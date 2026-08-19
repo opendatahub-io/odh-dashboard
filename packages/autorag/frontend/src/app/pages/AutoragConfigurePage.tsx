@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
@@ -27,12 +27,41 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  buildRunReconfiguredChangedFields,
+  fireAutoragExperimentCreated,
+  fireAutoragFlowExited,
+  fireAutoragRunReconfigured,
+  fireAutoragRunTriggered,
+  mapOptimizationMetric,
+  TrackingOutcome,
+  type AutoragExitDestination,
+  type AutoragFunnelStep,
+  type EvaluationSourceType,
+  type KnowledgeSourceType,
+  type VectorStoreProviderType,
+} from '~/app/utilities/tracking';
+import {
+  RunTriggeredTrackingContext,
+  type RunTriggeredTrackingContextProps,
+} from '~/app/context/RunTriggeredTrackingContext';
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
+
+/** Order-independent equality, used to diff model selections for "AutoRAG Run Reconfigured" without treating a same-set reordering as a change. */
+const arraysEqualUnordered = (a: string[], b: string[]): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const sortedA = a.toSorted();
+  const sortedB = b.toSorted();
+  return sortedA.every((value, index) => value === sortedB[index]);
+};
 
 type AutoragConfigurePageProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -75,10 +104,20 @@ function AutoragConfigurePage({
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
+  // The actual baseline the form starts from — not just `initialValues`, which the reconfigure
+  // loader may leave partially populated (e.g. a field it couldn't parse from the source run's
+  // pipeline parameters). Diffing "AutoRAG Run Reconfigured"'s `changedFields` against raw
+  // `initialValues` would treat every such omitted field as "changed" the instant the schema
+  // default resolves to anything other than `undefined`, even with no user action at all.
+  const initialFormValues = useMemo(
+    () => ({ ...configureSchema.defaults, ...initialValues }),
+    [initialValues],
+  );
+
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...initialValues },
+    defaultValues: initialFormValues,
   });
 
   const [displayName, description, ogxSecretName] = useWatch({
@@ -88,7 +127,186 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
-  const onCancel = useCallback(() => navigate(-1), [navigate]);
+  // Populated by the Knowledge/Evaluation/Vector-store selectors via RunTriggeredTrackingContext
+  // when the user actually (re)selects a source/provider in this session — see the context's
+  // doc comment for why this can't be safely derived from form data alone. Read at submit time
+  // to build the "AutoRAG Run Triggered" event; not reset between submits since a failed
+  // pipeline-run creation should still report the last known selection on retry.
+  const knowledgeSourceTypeRef = useRef<KnowledgeSourceType>();
+  const evaluationSourceTypeRef = useRef<EvaluationSourceType>();
+  const vectorDatabaseRef = useRef<VectorStoreProviderType>();
+
+  // Builds the shared config summary + `changedFields` diff for "AutoRAG Run Reconfigured",
+  // from either `form.handleSubmit`'s `data` (submit) or `form.getValues()` (cancel) — both are
+  // the same `ConfigureSchema` shape. `knowledgeSourceType`/`evaluationSourceType`/
+  // `vectorDatabase` are flagged as changed the same way their value is populated at all: the
+  // user actually (re)selected that source/provider this session (see the refs' doc comment
+  // above for why this can't be a value comparison). `optimizationMetric` and `models` are
+  // diffed directly against `initialFormValues`.
+  const computeReconfigureTracking = useCallback(
+    (
+      values: Pick<
+        ConfigureSchema,
+        'optimization_metric' | 'generation_models' | 'embedding_models'
+      >,
+    ) => {
+      const runConfigSummary = {
+        knowledgeSourceType: knowledgeSourceTypeRef.current,
+        evaluationSourceType: evaluationSourceTypeRef.current,
+        optimizationMetric: mapOptimizationMetric(values.optimization_metric),
+        vectorDatabase: vectorDatabaseRef.current,
+        countOfFoundationModels: values.generation_models.length,
+        countOfEmbeddingModels: values.embedding_models.length,
+      };
+      const changedFields = buildRunReconfiguredChangedFields({
+        knowledgeSourceTypeChanged: knowledgeSourceTypeRef.current !== undefined,
+        evaluationSourceTypeChanged: evaluationSourceTypeRef.current !== undefined,
+        optimizationMetricChanged:
+          values.optimization_metric !== initialFormValues.optimization_metric,
+        vectorDatabaseChanged: vectorDatabaseRef.current !== undefined,
+        modelsChanged:
+          !arraysEqualUnordered(values.generation_models, initialFormValues.generation_models) ||
+          !arraysEqualUnordered(values.embedding_models, initialFormValues.embedding_models),
+      });
+      return { runConfigSummary, changedFields };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- knowledgeSourceTypeRef/evaluationSourceTypeRef/vectorDatabaseRef only ever touch refs, so they're safe to omit.
+    [initialFormValues],
+  );
+
+  // How far the user has actually gotten in the configure flow, for "AutoRAG Flow Exited".
+  // Advances monotonically (never regresses) as knowledge/evaluation/models milestones complete
+  // — see `AutoragFunnelStep`'s doc comment for why these can complete in any order here, unlike
+  // automl's strictly-gated sections.
+  const funnelStepRef = useRef<AutoragFunnelStep>('defineDetails');
+  const completedMilestonesRef = useRef({ knowledge: false, evaluation: false, models: false });
+  const FUNNEL_STEP_RANK: Record<AutoragFunnelStep, number> = {
+    defineDetails: 0,
+    knowledge: 1,
+    evaluation: 2,
+    models: 3,
+    run: 4,
+  };
+  const advanceFunnelStep = (nextStep: AutoragFunnelStep) => {
+    if (FUNNEL_STEP_RANK[nextStep] > FUNNEL_STEP_RANK[funnelStepRef.current]) {
+      funnelStepRef.current = nextStep;
+    }
+  };
+  const markMilestoneComplete = (
+    milestone: 'knowledge' | 'evaluation' | 'models',
+    funnelStep: AutoragFunnelStep,
+  ) => {
+    completedMilestonesRef.current[milestone] = true;
+    advanceFunnelStep(funnelStep);
+    const { knowledge, evaluation, models } = completedMilestonesRef.current;
+    if (knowledge && evaluation && models) {
+      advanceFunnelStep('run');
+    }
+  };
+
+  // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
+  // (both results-page and runs-list origins), but `navigate(-1)` only lands back on the source
+  // run's results page (still part of this same package) when reconfigure was entered from
+  // there — from the runs list, Cancel returns to the experiments list. There's no dedicated
+  // "back to this package's own results page" bucket in the exitDestination taxonomy, so this
+  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list) — the same
+  // bucket used for the source-run breadcrumb link below.
+  const cancelExitDestination: AutoragExitDestination = fromResultsPage
+    ? 'otherGenAi'
+    : 'experimentsList';
+
+  // Reconfigure's configure screen is fully populated on mount, so there's no equivalent to the
+  // create flow's progressive knowledge → evaluation → models milestones to observe — the form
+  // starts ready to submit, so report the deepest funnel step immediately. For the create flow,
+  // reset on every (re-)entry to 'configure': `handleBackToCreate` clears the knowledge/
+  // evaluation/models field values, so without this reset, a Back → Next round-trip after
+  // completing a milestone would leave funnel progress reporting a selection that no longer
+  // exists in the form.
+  useEffect(() => {
+    if (step === 'configure') {
+      if (sourceRunId) {
+        funnelStepRef.current = 'run';
+      } else {
+        funnelStepRef.current = 'defineDetails';
+        completedMilestonesRef.current = { knowledge: false, evaluation: false, models: false };
+      }
+    }
+  }, [step, sourceRunId]);
+
+  // Catches a full page/tab close or refresh while the configure flow is in progress. Does not
+  // catch in-app navigation away (e.g. the host dashboard's global nav) — see
+  // `fireAutoragFlowExited`'s doc comment for why that isn't covered. Skipped while a run
+  // submission is in flight or has already succeeded: the backend may have already accepted the
+  // run by the time the page unloads, so reporting 'abandon' here would be inaccurate.
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (form.formState.isSubmitting || form.formState.isSubmitSuccessful) {
+        return;
+      }
+      fireAutoragFlowExited('abandon', funnelStepRef.current, 'none');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
+
+  const runTriggeredTrackingContextValue = useMemo<RunTriggeredTrackingContextProps>(
+    () => ({
+      onKnowledgeSourceConfigured: (sourceType) => {
+        knowledgeSourceTypeRef.current = sourceType;
+        markMilestoneComplete('knowledge', 'knowledge');
+      },
+      onEvaluationSourceConfigured: (sourceType) => {
+        evaluationSourceTypeRef.current = sourceType;
+        markMilestoneComplete('evaluation', 'evaluation');
+      },
+      onVectorStoreConfigured: (providerType) => {
+        vectorDatabaseRef.current = providerType;
+      },
+      onModelsConfigured: () => {
+        markMilestoneComplete('models', 'models');
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markMilestoneComplete/advanceFunnelStep only ever touch refs, so they're safe to omit; including them would recreate this context value (and downstream consumers) on every render.
+    [],
+  );
+
+  const onCancel = useCallback(() => {
+    if (step === 'create') {
+      fireAutoragExperimentCreated({
+        outcome: TrackingOutcome.cancel,
+        hasDescription: !!description,
+        success: true,
+      });
+      // Cancel is only rendered on step 'create', so this is the only place a reconfigure
+      // attempt can be abandoned before ever submitting — no backend call has been made yet,
+      // hence no `success` on this outcome (see fireAutoragRunReconfigured's doc comment).
+      if (sourceRunId) {
+        // `getValues()`'s inferred type is loosened by `zodResolver`'s post-transform output
+        // type (a TS inference limitation, not a runtime gap — every field is always populated
+        // by `configureSchema.defaults`); the same widening is why `handleSubmit`'s callback
+        // below is explicitly annotated `(data: ConfigureSchema) => ...` rather than left
+        // inferred.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        const currentValues = form.getValues() as ConfigureSchema;
+        const { runConfigSummary, changedFields } = computeReconfigureTracking(currentValues);
+        fireAutoragRunReconfigured({
+          ...runConfigSummary,
+          changedFields,
+          outcome: TrackingOutcome.cancel,
+        });
+      }
+    }
+    fireAutoragFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
+    navigate(-1);
+  }, [
+    navigate,
+    step,
+    description,
+    cancelExitDestination,
+    sourceRunId,
+    form,
+    computeReconfigureTracking,
+  ]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -201,11 +419,23 @@ function AutoragConfigurePage({
         (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+              <Link
+                to={getRedirectPath(namespace!)}
+                onClick={() =>
+                  fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList')
+                }
+              >
+                AutoRAG: {namespace}
+              </Link>
             </BreadcrumbItem>
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
+                <Link
+                  to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
+                  }
+                >
                   <Truncate content={sourceRunName} />
                 </Link>
               </BreadcrumbItem>
@@ -222,68 +452,129 @@ function AutoragConfigurePage({
       loaded={namespacesLoaded}
     >
       <FormProvider {...form}>
-        <Stack
-          component="form"
-          className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
-          hasGutter
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
+        <RunTriggeredTrackingContext.Provider value={runTriggeredTrackingContextValue}>
+          <Stack
+            component="form"
+            className={classNames('pf-v6-u-h-0', 'pf-v6-u-flex-fill')}
+            hasGutter
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
 
-            if (step === 'create') {
-              setStep('configure');
-              return;
-            }
+              if (step === 'create') {
+                fireAutoragExperimentCreated({
+                  outcome: TrackingOutcome.submit,
+                  hasDescription: !!description,
+                  success: true,
+                });
+                setStep('configure');
+                return;
+              }
 
-            form.handleSubmit(
-              async (data: ConfigureSchema) => {
-                try {
-                  const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                  navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`);
-                } catch (error) {
-                  catchUIError(error, () =>
-                    notification.error(
-                      'Failed to create pipeline run',
-                      error instanceof Error ? error.message : '',
-                    ),
-                  );
-                }
-              },
-              // this `onInvalid` case should be impossible to hit
-              // since we disable the button when the form is invalid
-              () => notification.error('Form is invalid'),
-            )();
-          }}
-        >
-          <StackItem className="pf-v6-u-h-0" isFilled>
-            <PageSection
-              className={classNames(
-                'pf-v6-c-form',
-                'pf-v6-u-py-0',
-                step === 'configure' && 'pf-v6-u-h-100',
-              )}
-              hasBodyWrapper={false}
-            >
-              {step === 'create' ? (
-                <AutoragCreate initialOgxSecret={initialOgxSecret} />
-              ) : (
-                <AutoragConfigure
-                  initialValues={initialValues}
-                  initialInputDataSecret={initialInputDataSecret}
-                />
-              )}
-            </PageSection>
-          </StackItem>
-          <StackItem>
-            <PageSection hasBodyWrapper={false} hasShadowTop>
-              <ActionList>
-                <ActionListGroup>
-                  {step === 'create' ? createActions : configureActions}
-                </ActionListGroup>
-              </ActionList>
-            </PageSection>
-          </StackItem>
-        </Stack>
+              form.handleSubmit(
+                async (data: ConfigureSchema) => {
+                  // Computed up front so it's available in both the success and failure branches
+                  // below — only the values that must come from `data` (not from the tracking
+                  // refs) live here, so a failed submission still reports accurate model/metric
+                  // counts even though the pipeline run itself never happened.
+                  const runTrackingProperties = {
+                    knowledgeSourceType: knowledgeSourceTypeRef.current,
+                    evaluationSourceType: evaluationSourceTypeRef.current,
+                    optimizationMetric: mapOptimizationMetric(data.optimization_metric),
+                    vectorDatabase: vectorDatabaseRef.current,
+                    countOfModels: data.generation_models.length + data.embedding_models.length,
+                    countOfKnowledgeDocuments: data.input_data_key ? 1 : 0,
+                    countOfEvaluationDocuments: data.test_data_key ? 1 : 0,
+                    countOfFoundationModels: data.generation_models.length,
+                    countOfEmbeddingModels: data.embedding_models.length,
+                    hasS3Connection:
+                      knowledgeSourceTypeRef.current === 's3' ||
+                      evaluationSourceTypeRef.current === 's3',
+                  };
+                  // Also computed up front, before the mutation, so a failed reconfigure
+                  // submission still reports what the user actually changed relative to the
+                  // source run, rather than an empty diff.
+                  const reconfigureTracking = sourceRunId
+                    ? computeReconfigureTracking(data)
+                    : undefined;
+                  try {
+                    const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                    fireAutoragRunTriggered({
+                      ...runTrackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                    });
+                    if (reconfigureTracking) {
+                      fireAutoragRunReconfigured({
+                        ...reconfigureTracking.runConfigSummary,
+                        changedFields: reconfigureTracking.changedFields,
+                        outcome: TrackingOutcome.submit,
+                        success: true,
+                      });
+                    }
+                    navigate(`${autoragResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
+                      state: { entrySource: 'direct' },
+                    });
+                  } catch (error) {
+                    fireAutoragRunTriggered({
+                      ...runTrackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: AUTORAG_FAILURE_CATEGORY,
+                    });
+                    if (reconfigureTracking) {
+                      fireAutoragRunReconfigured({
+                        ...reconfigureTracking.runConfigSummary,
+                        changedFields: reconfigureTracking.changedFields,
+                        outcome: TrackingOutcome.submit,
+                        success: false,
+                        error: AUTORAG_FAILURE_CATEGORY,
+                      });
+                    }
+                    catchUIError(error, () =>
+                      notification.error(
+                        'Failed to create pipeline run',
+                        error instanceof Error ? error.message : '',
+                      ),
+                    );
+                  }
+                },
+                // this `onInvalid` case should be impossible to hit
+                // since we disable the button when the form is invalid
+                () => notification.error('Form is invalid'),
+              )();
+            }}
+          >
+            <StackItem className="pf-v6-u-h-0" isFilled>
+              <PageSection
+                className={classNames(
+                  'pf-v6-c-form',
+                  'pf-v6-u-py-0',
+                  step === 'configure' && 'pf-v6-u-h-100',
+                )}
+                hasBodyWrapper={false}
+              >
+                {step === 'create' ? (
+                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
+                ) : (
+                  <AutoragConfigure
+                    initialValues={initialValues}
+                    initialInputDataSecret={initialInputDataSecret}
+                  />
+                )}
+              </PageSection>
+            </StackItem>
+            <StackItem>
+              <PageSection hasBodyWrapper={false} hasShadowTop>
+                <ActionList>
+                  <ActionListGroup>
+                    {step === 'create' ? createActions : configureActions}
+                  </ActionListGroup>
+                </ActionList>
+              </PageSection>
+            </StackItem>
+          </Stack>
+        </RunTriggeredTrackingContext.Provider>
       </FormProvider>
     </ApplicationsPage>
   );

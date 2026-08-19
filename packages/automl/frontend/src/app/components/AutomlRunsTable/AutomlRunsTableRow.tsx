@@ -71,7 +71,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [stopInitiated, setStopInitiated] = React.useState(false);
   const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
-    useAutomlRunActions(namespace, run.run_id, onActionComplete);
+    useAutomlRunActions(namespace, run.run_id, 'runsList', onActionComplete);
 
   const baseRunTerminatable = isRunTerminatable(run.state);
   const runTerminatable = baseRunTerminatable && !stopInitiated;
@@ -107,6 +107,17 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
     }
   }, [handleDelete]);
 
+  const ReconfigureLink = React.useCallback(
+    (props: React.ComponentProps<typeof Link>) => (
+      <Link
+        {...props}
+        to={`${automlReconfigurePathname}/${namespace}/${run.run_id}`}
+        state={{ from: 'runsList' }}
+      />
+    ),
+    [namespace, run.run_id],
+  );
+
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
@@ -128,8 +139,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
 
     items.push({
       title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
-      component: Link,
-      to: `${automlReconfigurePathname}/${namespace}/${run.run_id}`,
+      component: ReconfigureLink,
     });
 
     if (runDeletable) {
@@ -153,8 +163,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
     isTerminating,
     isStopModalOpen,
     isDeleting,
-    namespace,
-    run.run_id,
+    ReconfigureLink,
   ]);
 
   return (
@@ -163,6 +172,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         <Td dataLabel={automlRunsColumns[0].label}>
           <Link
             to={`${automlResultsPathname}/${namespace}/${run.run_id}`}
+            state={{ entrySource: 'experimentsList' }}
             data-testid={`run-name-${run.run_id}`}
           >
             {run.display_name}
@@ -190,6 +200,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={run.display_name}
+        source="runsList"
       />
       <DeleteRunModal
         isOpen={isDeleteModalOpen}

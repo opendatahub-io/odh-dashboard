@@ -225,9 +225,9 @@ export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
 
 /**
  * Builds the `validatedConfigurations` entries to prefill into the deployment wizard for a
- * catalog model. Each supported validated configuration (currently just tool calling) is
- * responsible for its own gating here — the wizard itself renders whatever it receives, with
- * no knowledge of individual feature flags or model fields.
+ * catalog model. Catalog UI (labels, filters, details card) is always on. Wizard prefill is
+ * gated here — currently tool calling is included only when the `toolCalling` flag is on and
+ * the model has validated tool-calling args. The wizard renders whatever it receives.
  *
  * Returns both the available configurations and a pre-selection record so that validated
  * options are checked by default when the wizard opens.

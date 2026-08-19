@@ -295,8 +295,20 @@ const extensions: (
     properties: {
       id: 'deploy-mcp-server',
       label: 'Deploy MCP server',
-      group: 'mcp-catalog.server-deploy',
+      group: 'mcp-catalog.server-actions',
       component: () => import('./components/McpServerDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'deploy-mcp-registry-server',
+      label: 'Deploy',
+      group: 'mcp-registry.server-deploy',
+      component: () => import('./components/McpRegistryServerDeployAction'),
     },
   },
   {

@@ -10,8 +10,11 @@ import (
 	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -37,6 +40,57 @@ const (
 	dataScienceGatewayNamespace   = "openshift-ingress"
 	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
 )
+
+const (
+	persesServiceName              = "data-science-perses"
+	persesServicePort        int32 = 8080
+	rhoaiMonitoringNamespace       = "redhat-ods-monitoring"
+)
+
+func (r *DashboardReconciler) monitoringNamespace() string {
+	switch r.Platform {
+	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+		return rhoaiMonitoringNamespace
+	default:
+		return r.ApplicationsNamespace
+	}
+}
+
+// autoDetectObservability populates spec.observability in-memory when the Perses
+// service exists but the CR has no explicit observability config. This bridges
+// 3.5GA until the ODH Operator projects the config via BuildModuleCR (3.6ea1).
+func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	if dashboard.Spec.Observability != nil {
+		return nil
+	}
+
+	logger := log.FromContext(ctx)
+	monitoringNS := r.monitoringNamespace()
+
+	svc := &corev1.Service{}
+	key := types.NamespacedName{Name: persesServiceName, Namespace: monitoringNS}
+	if err := r.Get(ctx, key, svc); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+
+		return fmt.Errorf("looking up Perses service %s/%s: %w", monitoringNS, persesServiceName, err)
+	}
+
+	logger.Info("Auto-detected Perses service, enabling observability",
+		"service", persesServiceName, "namespace", monitoringNS)
+
+	dashboard.Spec.Observability = &v1alpha1.ObservabilitySpec{
+		Enabled: true,
+		PersesService: &v1alpha1.ServiceTarget{
+			Name:      persesServiceName,
+			Namespace: monitoringNS,
+			Port:      persesServicePort,
+		},
+	}
+
+	return nil
+}
 
 // remapRayDashboardGatewayRBAC moves the named Gateway Role/RoleBinding into
 // openshift-ingress so authenticated users can get data-science-gateway there.

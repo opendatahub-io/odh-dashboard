@@ -50,7 +50,12 @@ const createWrapper = (projects: ProjectKind[], loaded = true) => {
 
 describe('useExistingFeatureStores', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('should load feature stores from all project namespaces', async () => {
@@ -199,6 +204,28 @@ describe('useExistingFeatureStores', () => {
 
     expect(result.current.loaded).toBe(false);
     expect(listFeatureStoresMock).not.toHaveBeenCalled();
+  });
+
+  it('should poll for updates at regular intervals', async () => {
+    listFeatureStoresMock.mockResolvedValue([makeStore('store-1', 'ns-1', 'proj-1')]);
+
+    const { result } = renderHook(() => useExistingFeatureStores(), {
+      wrapper: createWrapper([makeProject('ns-1')]),
+    });
+
+    await waitFor(() => {
+      expect(result.current.loaded).toBe(true);
+    });
+
+    expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(30000);
+    });
+
+    await waitFor(() => {
+      expect(listFeatureStoresMock).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('should support manual refresh', async () => {

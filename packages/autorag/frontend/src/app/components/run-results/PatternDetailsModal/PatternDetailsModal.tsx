@@ -27,6 +27,10 @@ import {
   getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
+import {
+  fireAutoragPatternsCompared,
+  fireAutoragPatternDetailsDownloadInitiated,
+} from '~/app/utilities/tracking';
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
@@ -50,6 +54,7 @@ export type PatternDetailsModalProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
+  onRunIndexingPipeline?: (patternName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -76,6 +81,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onSaveNotebook,
   onTryPattern,
   onViewCode,
+  onRunIndexingPipeline,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
   const [isPrinting, setIsPrinting] = React.useState(false);
@@ -205,7 +211,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             rank={rank}
             optimizedMetric={optimizedMetric}
             onPatternChange={onPatternChange}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireAutoragPatternDetailsDownloadInitiated();
+              setIsPrinting(true);
+            }}
             onSaveNotebook={onSaveNotebook}
             onTryPattern={
               onTryPattern
@@ -220,6 +229,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 ? (patternName) => {
                     onClose();
                     onViewCode(patternName);
+                  }
+                : undefined
+            }
+            onRunIndexingPipeline={
+              onRunIndexingPipeline
+                ? (patternName) => {
+                    onClose();
+                    onRunIndexingPipeline(patternName);
                   }
                 : undefined
             }
@@ -342,6 +359,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         excludePatternIndex={selectedIndex}
         optimizedMetric={optimizedMetric ?? ''}
         onSelectPattern={(index) => {
+          const comparisonPattern = patterns[index];
+          const primaryRank = rankMap[data.name] ?? rank;
+          const comparisonRank = rankMap[comparisonPattern.name] ?? 0;
+          fireAutoragPatternsCompared(
+            comparisonEnabled ? 'changed' : 'initial',
+            comparisonRank - primaryRank,
+            getOptimizedScore(comparisonPattern) - getOptimizedScore(data),
+          );
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
         }}

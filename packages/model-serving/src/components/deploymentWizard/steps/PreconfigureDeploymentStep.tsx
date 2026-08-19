@@ -60,6 +60,7 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
         <ValidatedArgumentsSection
           configurations={validatedConfigurations}
           selection={wizardState.state.validatedConfigurationSelection}
+          runtimeArgs={wizardState.state.runtimeArgs}
         />
       )}
     </Form>

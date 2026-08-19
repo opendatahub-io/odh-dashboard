@@ -19,6 +19,11 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
+import {
+  fireAutomlModelDetailsDownloadInitiated,
+  fireAutomlModelDetailsTabViewed,
+  type ModelActionSource,
+} from '~/app/utilities/tracking';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -28,9 +33,11 @@ type AutomlModelDetailsModalProps = {
   onClose: () => void;
   modelName: string;
   rank: number;
-  onClickSaveNotebook?: (modelName: string) => void;
-  onRegisterModel?: (modelName: string) => void;
+  onClickSaveNotebook?: (modelName: string, source: ModelActionSource) => void;
+  onRegisterModel?: (modelName: string, source: ModelActionSource) => void;
 };
+
+const MODEL_ACTION_SOURCE: ModelActionSource = 'modelDetailsModal';
 
 /** Group tabs by their section for sidebar rendering. */
 function groupTabsBySection(tabs: TabDefinition[]): Map<string, TabDefinition[]> {
@@ -103,7 +110,13 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isPrinting) {
       return;
     }
-    const handleAfterPrint = () => setIsPrinting(false);
+    // `afterprint` fires whether the user prints, saves as PDF, or cancels the dialog — it
+    // cannot distinguish those outcomes, so it must not be used to report a completed
+    // download. Only reset the printing state here; the tracking event fires at click time
+    // in onDownload, when the user's intent is the only thing we can actually verify.
+    const handleAfterPrint = () => {
+      setIsPrinting(false);
+    };
     window.addEventListener('afterprint', handleAfterPrint);
     window.print();
     return () => {
@@ -113,6 +126,18 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
+
+  React.useEffect(() => {
+    if (!isOpen || !activeTab) {
+      return;
+    }
+    fireAutomlModelDetailsTabViewed(activeTab.key, taskType);
+    // Fire once per tab/model selection change, not on every render. taskType is included
+    // because it's derived from async context data (parameters) and can resolve or change
+    // after the tab is already active — omitting it would let the event report a stale or
+    // default predictionType.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeTabKey, selectedModelName, taskType]);
 
   const handleBacktestMetricsChange = React.useCallback((metrics: string[]) => {
     backtestMetricsRef.current = metrics;
@@ -156,11 +181,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             rankMap={rankMap}
             evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireAutomlModelDetailsDownloadInitiated();
+              setIsPrinting(true);
+            }}
             onSaveNotebook={
               onClickSaveNotebook
                 ? () => {
-                    onClickSaveNotebook(selectedModelName);
+                    onClickSaveNotebook(selectedModelName, MODEL_ACTION_SOURCE);
                   }
                 : undefined
             }
@@ -168,7 +196,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               onRegisterModel
                 ? () => {
                     onClose();
-                    onRegisterModel(selectedModelName);
+                    onRegisterModel(selectedModelName, MODEL_ACTION_SOURCE);
                   }
                 : undefined
             }
