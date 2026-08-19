@@ -243,31 +243,68 @@ function AutoragConfigure({
 
   // When the secret changes, mark models as needing re-initialization and
   // immediately clear stale selections so the UI reflects the transition.
-  useEffect(() => {
+  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
+  // already populated on mount during reconfigure; a plain useEffect would
+  // wipe the pre-populated model selections before they could be restored.
+  useReconfigureSafeEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
     setValue('embedding_models', []);
   }, [ogxSecretName, setValue]);
 
   useEffect(() => {
-    // Initialize available generation and embedding models into the form data
+    // Initialize available generation and embedding models into the form data.
+    // Preserve existing selections (reconfigure flow) when they are already
+    // populated; only default to all models on a fresh create.
     if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
+
+      const currentValues = getValues();
+      const currentGenModels = currentValues.generation_models;
+      const currentEmbModels = currentValues.embedding_models;
+
+      const allLlmModels = allModelsData.models
+        .filter((model) => model.type === 'llm')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      const allEmbeddingModels = allModelsData.models
+        .filter((model) => model.type === 'embedding')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      // Restored selections (e.g. from reconfigure) may reference models that are
+      // no longer returned for this secret (removed/deprecated upstream). Drop
+      // any IDs that aren't currently available before deciding whether to keep
+      // the restored selection or fall back to "all models".
+      const retainedGenerationModels = currentGenModels.filter((modelId) =>
+        allLlmModels.includes(modelId),
+      );
+      const retainedEmbeddingModels = currentEmbModels.filter((modelId) =>
+        allEmbeddingModels.includes(modelId),
+      );
+
+      if (
+        retainedGenerationModels.length < currentGenModels.length ||
+        retainedEmbeddingModels.length < currentEmbModels.length
+      ) {
+        notification.warning(
+          'Some previously selected models are unavailable',
+          'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+        );
+      }
+
       reset({
-        ...getValues(),
+        ...currentValues,
         // eslint-disable-next-line camelcase
-        generation_models: allModelsData.models
-          .filter((model) => model.type === 'llm')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        generation_models:
+          retainedGenerationModels.length > 0 ? retainedGenerationModels : allLlmModels,
         // eslint-disable-next-line camelcase
-        embedding_models: allModelsData.models
-          .filter((model) => model.type === 'embedding')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        embedding_models:
+          retainedEmbeddingModels.length > 0 ? retainedEmbeddingModels : allEmbeddingModels,
       });
     }
-  }, [allModelsData, isModelsError, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
