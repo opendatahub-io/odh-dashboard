@@ -37,14 +37,19 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : undefined);
 
+  const providerBenchmark = provider?.benchmarks?.find((b) => b.id === benchmarkId);
+
   if (!primaryMetricName) {
     return null;
   }
 
-  const lowerIsBetter = benchmarkConfig?.primary_score?.lower_is_better ?? false;
+  // Prefer the job's own primary_score, fall back to the provider catalog — the same source
+  // that drives result_interpretation, keeping the direction label consistent with the body text.
+  const lowerIsBetter =
+    benchmarkConfig?.primary_score?.lower_is_better ??
+    providerBenchmark?.primary_score?.lower_is_better ??
+    false;
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
-
-  const providerBenchmark = provider?.benchmarks?.find((b) => b.id === benchmarkId);
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
   const providerInterpretation = provider?.agent?.result_interpretation;
 
