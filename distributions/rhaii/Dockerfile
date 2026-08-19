@@ -36,6 +36,9 @@ COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/
 
+# Copy build scripts required by rspack/webpack configs
+COPY scripts/ ./scripts/
+
 # Copy the base distribution (shell components + shared rspack config)
 COPY distributions/base/ ./distributions/base/
 

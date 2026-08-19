@@ -42,6 +42,8 @@ COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profil
 COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
+# Copy build scripts required by webpack/jest configs
+COPY --chown=default:root scripts/ ./scripts/
 
 # Copy the specific module source code
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
