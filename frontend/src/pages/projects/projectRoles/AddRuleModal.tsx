@@ -5,12 +5,11 @@ import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGrou
 import VerbsTreeSelect from './VerbsTreeSelect';
 import ResourcesTreeSelect from './ResourcesTreeSelect';
 import ApiGroupsTreeSelect from './ApiGroupsTreeSelect';
-import useApiResources from './useApiResources';
+import useApiResources, { type ApiResourcesData } from './useApiResources';
 import type { RuleEntry } from './types';
 import { normalizeVerbs } from './ruleModalUtils';
 import { ALL_RESOURCES_WILDCARD, RESOURCE_CATEGORIES } from './resourceCategories';
 import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
-import type { ApiResourcesData } from './useApiResources';
 
 const EMPTY_API_RESOURCES_DATA: ApiResourcesData = { apiGroups: [], resources: [] };
 
