@@ -1,34 +1,43 @@
-import { pollUntilSuccess } from './baseCommands';
-
 /**
- * Verifies that an InferenceService has a specific annotation with the expected value
- * @param namespace - Project/namespace name
- * @param inferenceServiceName - Name of the InferenceService
- * @param annotationKey - Annotation key to check
- * @param expectedValue - Expected annotation value
- * @returns Cypress chainable boolean (true if annotation matches, false otherwise)
+ * Verifies that an InferenceService has a specific annotation with the expected value.
+ * Polls until both the command succeeds AND the annotation matches the expected value.
  */
 export const verifyInferenceServiceAnnotation = (
   namespace: string,
   inferenceServiceName: string,
   annotationKey: string,
   expectedValue: string,
+  { maxAttempts = 30, pollIntervalMs = 2000 } = {},
 ): Cypress.Chainable<boolean> => {
   const command = `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.metadata.annotations.${annotationKey}}'`;
 
-  // Poll until the InferenceService has the annotation (it may not exist immediately after submit)
-  return pollUntilSuccess(
-    command,
-    `InferenceService ${inferenceServiceName} annotation ${annotationKey}`,
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  ).then((result) => {
-    cy.log(`Checking InferenceService annotation: ${annotationKey} in namespace '${namespace}'`);
-    if (result.exitCode === 0) {
+  const check = (attempt = 1): Cypress.Chainable<boolean> =>
+    cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
       const actualValue = result.stdout.trim();
-      cy.log(`Annotation value: ${actualValue}`);
-      return actualValue === expectedValue;
-    }
-    cy.log(`Failed to get InferenceService annotation: ${result.stderr}`);
-    return false;
-  });
+
+      if (result.exitCode === 0 && actualValue === expectedValue) {
+        cy.log(
+          `Checking InferenceService annotation: ${annotationKey} in namespace '${namespace}'`,
+        );
+        cy.log(`Annotation value: ${actualValue}`);
+        return cy.wrap(true);
+      }
+
+      if (attempt >= maxAttempts) {
+        cy.log(
+          `Annotation ${annotationKey} not matched after ${maxAttempts} attempts (got: "${actualValue}", expected: "${expectedValue}")`,
+        );
+        return cy.wrap(false);
+      }
+
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+    });
+
+  cy.log(
+    `Polling for annotation ${annotationKey}=${expectedValue} (max ${
+      (maxAttempts * pollIntervalMs) / 1000
+    }s)`,
+  );
+  return check();
 };

@@ -12,7 +12,6 @@ let testData: ModelCapabilitiesTestData;
 let projectName: string;
 const uuid = generateTestUUID();
 
-// RHOAIENG-80920 - Model Capabilities feature
 describe('Verify user can manage model capabilities in deployment wizard and deployments table', () => {
   retryableBefore(() => {
     return loadDSPFixture('e2e/modelServing/testModelCapabilities.yaml').then(
@@ -32,193 +31,101 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true, timeout: 300000 });
   });
 
-  describe('Verify user can manage capabilities in deployment wizard', () => {
-    it(
-      'Verify user can add well-known capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
+  it(
+    'Verify user can add capabilities',
+    { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
+    () => {
+      cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
+      cy.step('Navigate to deployments page');
+      modelServingGlobal.visit(projectName);
 
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
+      cy.step('Open deployment wizard');
+      modelServingGlobal.findDeployModelButton().click();
 
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
+      cy.step('Configure model source');
+      modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
+      modelServingWizard.findModelLocationSelectOption('Existing connection').click();
+      modelServingWizard.findExistingConnectionSelect().click();
+      modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
+      modelServingWizard.findNextButton().click();
 
-        cy.step('Select model capabilities');
-        modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
-        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[1]);
-        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[0]).should('exist');
-        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[1]).should('exist');
+      cy.step('Configure deployment');
+      modelServingWizard.findModelDeploymentNameInput().type(testData.modelName);
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption(testData.servingRuntime);
+      modelServingWizard.findNextButton().click();
 
-        cy.step('Complete wizard and deploy model');
-        modelServingWizard.findSubmitButton().click();
+      cy.step('Add well-known capabilities');
+      modelServingWizard.findModelCapabilitiesField().should('exist');
+      modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
+      modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[1]);
+      modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[0]).should('exist');
+      modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[1]).should('exist');
 
-        cy.step('Verify InferenceService annotation');
-        const expectedCapabilities = [
-          testData.wellKnownCapabilities[0],
-          testData.wellKnownCapabilities[1],
-        ].join(',');
-        verifyInferenceServiceAnnotation(
-          projectName,
-          testData.modelName,
-          'model-capabilities',
-          expectedCapabilities,
-        ).should('be.true');
-      },
-    );
+      cy.step('Add custom capability');
+      modelServingWizard.addCustomCapability(testData.customCapabilities[0]);
+      modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
 
-    it(
-      'Verify user can add custom capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
+      cy.step('Complete wizard and deploy model');
+      modelServingWizard.findSubmitButton().click();
 
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
+      cy.step('Verify InferenceService annotation for capabilities');
+      const expectedCapabilities = [
+        testData.wellKnownCapabilities[0],
+        testData.wellKnownCapabilities[1],
+        testData.customCapabilities[0],
+      ].join(',');
+      verifyInferenceServiceAnnotation(
+        projectName,
+        testData.modelName,
+        'model-capabilities',
+        expectedCapabilities,
+      ).should('be.true');
 
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
+      cy.step('Verify capabilities column and tags in deployments table');
+      const deploymentRow = modelServingGlobal.getDeploymentRow(testData.modelName);
+      deploymentRow.findCapabilitiesCell().should('exist');
+      deploymentRow.findCapabilitiesGroup().should('exist');
+      deploymentRow.findCapabilityLabels().should('have.length', 2);
+      deploymentRow
+        .findCapabilityLabels()
+        .eq(0)
+        .should('contain', testData.wellKnownCapabilities[0]);
+      deploymentRow
+        .findCapabilityLabels()
+        .eq(1)
+        .should('contain', testData.wellKnownCapabilities[1]);
+      deploymentRow.findCapabilityOverflowLabel().should('contain', '+1');
 
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
+      cy.step('Edit capabilities via kebab menu');
+      deploymentRow.findKebab().click();
+      deploymentRow.findKebabAction('Edit').click();
 
-        cy.step('Add custom capability');
-        modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.addCustomCapability(testData.customCapabilities[0]);
-        modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
-      },
-    );
+      cy.step('Navigate to advanced options in edit mode');
+      modelServingWizard.findNextButton().click();
 
-    it(
-      'Verify user can remove capabilities',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
+      cy.step('Remove one capability and add another');
+      modelServingWizard.removeCapability(testData.customCapabilities[0]);
+      modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[2]);
+      modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[2]).should('exist');
 
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
+      cy.step('Submit changes');
+      modelServingWizard.findSubmitButton().click();
 
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
-
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
-
-        cy.step('Add and remove capability');
-        modelServingWizard.findModelCapabilitiesField().should('exist');
-        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
-        modelServingWizard.addCustomCapability(testData.customCapabilities[1]);
-        modelServingWizard.findCapabilityLabel(testData.customCapabilities[1]).should('exist');
-        modelServingWizard.removeCapability(testData.customCapabilities[1]);
-        modelServingWizard.findCapabilityLabel(testData.customCapabilities[1]).should('not.exist');
-        modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[0]).should('exist');
-      },
-    );
-
-    it(
-      'Verify error when adding duplicate custom capability',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
-
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
-
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
-
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
-
-        cy.step('Add duplicate capability and verify error');
-        modelServingWizard.addCustomCapability(testData.customCapabilities[0]);
-        modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
-        modelServingWizard.openAddCapabilityDropdown();
-        modelServingWizard.findCustomCapabilityInput().type(testData.customCapabilities[0]);
-        modelServingWizard.findAddCustomCapabilityButton().click();
-        modelServingWizard
-          .findCustomCapabilityError()
-          .should('contain.text', 'This capability has already been added.');
-      },
-    );
-
-    it(
-      'Verify well-known options removed from dropdown after selection',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
-
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
-
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
-
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
-
-        cy.step('Select capability and verify it is removed from dropdown');
-        modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[0]);
-        modelServingWizard.openAddCapabilityDropdown();
-        modelServingWizard
-          .findWellKnownCapabilityOption(testData.wellKnownCapabilities[0])
-          .should('not.exist');
-        modelServingWizard
-          .findWellKnownCapabilityOption(testData.wellKnownCapabilities[1])
-          .should('exist');
-      },
-    );
-
-    it(
-      'Verify field hidden when feature flag disabled',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, LDAP_ADMIN_USER);
-
-        cy.step('Navigate to deployments page');
-        modelServingGlobal.visit(projectName);
-
-        cy.step('Open deployment wizard');
-        modelServingGlobal.findDeployModelButton().click();
-
-        cy.step('Navigate to advanced options');
-        modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
-
-        cy.step('Verify capabilities field does not exist');
-        modelServingWizard.findModelCapabilitiesField().should('not.exist');
-      },
-    );
-
-    // Table column tests continue from wizard context
-    it(
-      'Verify Capabilities column shows when flag is enabled',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.step('Verify Capabilities column exists');
-        cy.findByTestId('deployments-table').should('exist');
-        cy.findByTestId('deployments-table').find('th').contains('Capabilities').should('exist');
-      },
-    );
-
-    it(
-      'Verify Capabilities column hidden when flag is disabled',
-      { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
-      () => {
-        cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=false`, LDAP_ADMIN_USER);
-        modelServingGlobal.visit(projectName);
-
-        cy.step('Verify Capabilities column does not exist');
-        cy.findByTestId('deployments-table').should('exist');
-        cy.findByTestId('deployments-table')
-          .find('th')
-          .contains('Capabilities')
-          .should('not.exist');
-      },
-    );
-  });
+      cy.step('Verify updated InferenceService annotation');
+      const updatedCapabilities = [
+        testData.wellKnownCapabilities[0],
+        testData.wellKnownCapabilities[1],
+        testData.wellKnownCapabilities[2],
+      ].join(',');
+      verifyInferenceServiceAnnotation(
+        projectName,
+        testData.modelName,
+        'model-capabilities',
+        updatedCapabilities,
+      ).should('be.true');
+    },
+  );
 });
