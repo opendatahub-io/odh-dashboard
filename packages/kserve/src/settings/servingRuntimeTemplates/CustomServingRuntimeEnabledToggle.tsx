@@ -88,7 +88,8 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
             outcome: TrackingOutcome.submit,
             success: false,
             error: e instanceof Error ? e.message : 'unknown',
-            enabled: checked,
+            // The patch failed, so the state reverts — report the actual state, not the intended one.
+            enabled: !checked,
           });
           setEnabled(!checked);
         })

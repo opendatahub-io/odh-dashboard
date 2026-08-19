@@ -69,12 +69,13 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
   );
 
   const handleToggle = React.useCallback(async () => {
+    // The actual resulting state: the intended state on success, unchanged (reverted) on failure.
     if (effectiveEnabled) {
       const success = await patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'true' });
       fireLlmAcceleratorConfigEnablementChanged({
         outcome: TrackingOutcome.submit,
         success,
-        enabled: false,
+        enabled: success ? false : effectiveEnabled,
       });
     } else if (unsupportedUnaccepted) {
       setShowAcceptanceModal(true);
@@ -83,7 +84,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
       fireLlmAcceleratorConfigEnablementChanged({
         outcome: TrackingOutcome.submit,
         success,
-        enabled: true,
+        enabled: success ? true : effectiveEnabled,
       });
     }
   }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations]);
@@ -97,7 +98,8 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     fireLlmAcceleratorConfigEnablementChanged({
       outcome: TrackingOutcome.submit,
       success,
-      enabled: true,
+      // Accept enables from a disabled state; on failure it stays disabled.
+      enabled: success,
     });
     if (success) {
       fireRiskAccepted(fireMiscTrackingEvent, {

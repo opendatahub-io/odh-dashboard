@@ -46,7 +46,7 @@ export type LlmAcceleratorConfigCreatedProperties = FormTrackingEventProperties 
 };
 
 export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventProperties & {
-  /** The new enabled state after the toggle is applied. */
+  /** The actual enabled state after the toggle attempt (reverts to the prior state on failure). */
   enabled: boolean;
 };
 

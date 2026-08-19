@@ -26,7 +26,7 @@ export type ServingRuntimeTemplateUpdatedProperties = FormTrackingEventPropertie
 export type ServingRuntimeTemplateDeletedProperties = FormTrackingEventProperties;
 
 export type ServingRuntimeTemplateEnablementChangedProperties = FormTrackingEventProperties & {
-  /** The new enabled state after the toggle is applied. */
+  /** The actual enabled state after the toggle attempt (reverts to the prior state on failure). */
   enabled: boolean;
 };
 
