@@ -1311,9 +1311,12 @@ components:
 
     CollectionResource:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
+          minLength: 1
           example: 'collection-001'
         tenant:
           type: string
@@ -1377,11 +1380,15 @@ components:
 
     Collection:
       type: object
+      required:
+        - resource
+        - name
       properties:
         resource:
           $ref: '#/components/schemas/CollectionResource'
         name:
           type: string
+          minLength: 1
           example: 'Open LLM Leaderboard v2'
         category:
           type: string

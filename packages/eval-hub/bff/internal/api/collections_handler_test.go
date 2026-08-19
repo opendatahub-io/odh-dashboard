@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/assert"
@@ -26,20 +27,26 @@ func TestGetCollectionHandler(t *testing.T) {
 	assert.Equal(t, "Open LLM Leaderboard v2", result.Data.Name)
 }
 
-// Verify that a percent-encoded slash (%2F) in the ID is decoded and passed
-// through as a literal slash, which won't match any mock collection → 404.
+// Verify that a percent-encoded slash (%2F) in the ID is decoded and the
+// handler calls GetCollection with the literal "col/special" ID.
 func TestGetCollectionHandlerEncodedSlashID(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollection("col/special", &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "col/special"},
+		Name:     "Slash Collection",
+	})
 
-	_, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
 		http.MethodGet,
 		ApiPathPrefix+"/evaluations/collections/col%2Fspecial?namespace=test-ns",
 		nil, nil, identity, mockClient,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusNotFound, response.StatusCode)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "col/special", result.Data.Resource.ID)
+	assert.Equal(t, "Slash Collection", result.Data.Name)
 }
 
 func TestGetCollectionHandlerServerError(t *testing.T) {

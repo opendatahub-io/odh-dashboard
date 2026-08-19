@@ -9,10 +9,19 @@ import (
 )
 
 // MockEvalHubClient provides canned responses for development and testing.
-type MockEvalHubClient struct{}
+type MockEvalHubClient struct {
+	collectionOverrides map[string]*evalhub.Collection
+}
 
 func NewMockEvalHubClient() *MockEvalHubClient {
 	return &MockEvalHubClient{}
+}
+
+func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
+	if m.collectionOverrides == nil {
+		m.collectionOverrides = make(map[string]*evalhub.Collection)
+	}
+	m.collectionOverrides[id] = c
 }
 
 func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
@@ -346,6 +355,9 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	if c, ok := m.collectionOverrides[id]; ok {
+		return c, nil
+	}
 	collections := mockCollections()
 	for i := range collections {
 		if collections[i].Resource.ID == id {

@@ -253,8 +253,11 @@ export const deleteEvaluationJob =
 
 export const getCollection =
   (hostPath: string, namespace: string, collectionId: string) =>
-  (opts: APIOptions): Promise<Collection> =>
-    handleRestFailures(
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
       restGET(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
@@ -268,6 +271,7 @@ export const getCollection =
       }
       throw new Error('Invalid response format');
     });
+  };
 
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>

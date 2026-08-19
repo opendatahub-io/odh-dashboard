@@ -41,6 +41,11 @@ func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
 	envelope := CollectionEnvelope{Data: *collection}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)

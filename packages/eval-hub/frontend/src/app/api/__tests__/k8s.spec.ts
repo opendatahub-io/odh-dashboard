@@ -245,6 +245,14 @@ describe('getCollection', () => {
     );
   });
 
+  it('should reject with an error when collectionId is empty', async () => {
+    await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
+      'collectionId must not be empty',
+    );
+
+    expect(mockRestGET).not.toHaveBeenCalled();
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);
