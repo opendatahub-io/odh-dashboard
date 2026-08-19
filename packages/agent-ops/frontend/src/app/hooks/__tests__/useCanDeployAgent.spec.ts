@@ -1,8 +1,8 @@
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useCanDeployAgent } from '~/app/hooks/useCanDeployAgent';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 
-jest.mock('@odh-dashboard/internal/api/index', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 

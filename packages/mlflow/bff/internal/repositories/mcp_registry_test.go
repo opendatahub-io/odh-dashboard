@@ -693,12 +693,13 @@ func TestListServerVersionsClientError(t *testing.T) {
 func TestCreateServerVersionSuccess(t *testing.T) {
 	mockClient := &mlflowpkg.MockClient{}
 	now := time.Now()
-	serverJSON := map[string]any{"name": "my-server"}
+	serverJSON := models.MCPServerJSON{Name: "my-server"}
+	serverJSONMap := serverJSON.AsMap()
 
-	mockClient.On("CreateMCPServerVersion", tmock.Anything, "my-server", serverJSON, tmock.MatchedBy(func(opts []mcpregistry.CreateMCPServerVersionOption) bool {
+	mockClient.On("CreateMCPServerVersion", tmock.Anything, "my-server", serverJSONMap, tmock.MatchedBy(func(opts []mcpregistry.CreateMCPServerVersionOption) bool {
 		return len(opts) == 1 // status only; there is no version-level display_name
 	})).Return(&mcpregistry.MCPServerVersion{
-		Name: "my-server", Version: "1.0.0", ServerJSON: serverJSON,
+		Name: "my-server", Version: "1.0.0", ServerJSON: serverJSONMap,
 		CreationTimestamp: now, LastUpdatedTimestamp: now,
 	}, nil)
 
@@ -717,9 +718,9 @@ func TestCreateServerVersionSuccess(t *testing.T) {
 
 func TestCreateServerVersionClientError(t *testing.T) {
 	mockClient := &mlflowpkg.MockClient{}
-	serverJSON := map[string]any{"name": "my-server"}
+	serverJSON := models.MCPServerJSON{Name: "my-server"}
 
-	mockClient.On("CreateMCPServerVersion", tmock.Anything, "my-server", serverJSON, tmock.Anything).
+	mockClient.On("CreateMCPServerVersion", tmock.Anything, "my-server", serverJSON.AsMap(), tmock.Anything).
 		Return(nil, fmt.Errorf("invalid server.json"))
 
 	repo := NewMCPRegistryRepository()

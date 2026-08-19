@@ -38,7 +38,8 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
 
   cy.interceptOdh(
     'GET /api/config',
-    mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: false }),
+    // mcpRegistry: gates the "Registered version" column (SupportedArea.MCP_REGISTRY).
+    mockDashboardConfig({ mcpCatalog: true, mcpRegistry: true, disableModelRegistry: false }),
   );
 
   cy.interceptOdh('GET /api/dsc/status', dscStatus);
@@ -61,6 +62,9 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
       mockProjectK8sResource({ k8sName: 'test-project', displayName: 'Test Project' }),
     ]),
   );
+
+  // Catalog intercept is no longer needed for deployments since serverName
+  // now stores the display name directly (no async catalog lookup).
 };
 
 const initIntercepts = ({
@@ -301,6 +305,111 @@ describe('MCP Deployments', () => {
     mcpDeployModal.findSubmitButton().click();
     cy.wait('@updateDeployment');
     mcpDeployModal.shouldNotExist();
+  });
+});
+
+describe('MCP Deployments server and registered version columns', () => {
+  it('should show the BFF-resolved registry display name (no link) in the MCP server column', () => {
+    initIntercepts({
+      deployments: [
+        mockRunningDeployment({
+          serverName: undefined,
+          registryServer: 'io.github.example/kubernetes-mcp',
+          registryVersion: '1.0.0',
+          registryServerDisplayName: 'Kubernetes MCP',
+        }),
+      ],
+    });
+    visitDeployments();
+
+    const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
+    row.findServerRegistry().should('have.text', 'Kubernetes MCP');
+  });
+
+  it('should show the raw registry server name when no display name was resolved', () => {
+    initIntercepts({
+      deployments: [
+        mockRunningDeployment({
+          serverName: undefined,
+          registryServer: 'io.github.example/kubernetes-mcp',
+          registryVersion: '1.0.0',
+          registryServerDisplayName: undefined,
+        }),
+      ],
+    });
+    visitDeployments();
+
+    mcpDeploymentsPage
+      .getRow('kubernetes-mcp')
+      .findServerRegistry()
+      .should('have.text', 'io.github.example/kubernetes-mcp');
+  });
+
+  it('should link to the exact registry version in the registered version column', () => {
+    initIntercepts({
+      deployments: [
+        mockRunningDeployment({
+          serverName: undefined,
+          registryServer: 'io.github.example/kubernetes-mcp',
+          registryVersion: '1.0.0',
+          registryServerDisplayName: 'Kubernetes MCP',
+        }),
+      ],
+    });
+    visitDeployments();
+
+    const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
+    row.findRegisteredVersionLink().should('have.text', '1.0.0');
+    row
+      .findRegisteredVersionLink()
+      .should(
+        'have.attr',
+        'href',
+        '/ai-hub/mcp-servers/registry/io.github.example%2Fkubernetes-mcp?workspace=test-project&version=1.0.0',
+      );
+  });
+
+  it('should show the catalog display name stored in serverName directly', () => {
+    initIntercepts({
+      deployments: [mockRunningDeployment({ serverName: 'Kubernetes MCP' })],
+    });
+    visitDeployments();
+
+    const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
+    row.findServerCatalog().should('have.text', 'Kubernetes MCP');
+  });
+
+  it('should show the serverName as-is even if it looks like an internal name', () => {
+    initIntercepts({
+      deployments: [mockRunningDeployment({ serverName: 'deleted-from-catalog' })],
+    });
+    visitDeployments();
+
+    const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
+    row.findServerCatalog().should('have.text', 'deleted-from-catalog');
+  });
+
+  it("should show '-' in both columns when the deployment has neither a registry nor catalog server", () => {
+    initIntercepts({
+      deployments: [mockRunningDeployment({ serverName: undefined, registryServer: undefined })],
+    });
+    visitDeployments();
+
+    const row = mcpDeploymentsPage.getRow('kubernetes-mcp');
+    row.findServerNone().should('have.text', '-');
+    row.findRegisteredVersionNone().should('have.text', '-');
+  });
+
+  it("should show '-' in the registered version column for a catalog-sourced deployment", () => {
+    initIntercepts({
+      deployments: [mockRunningDeployment({ serverName: 'kubernetes-mcp-server' })],
+    });
+    visitDeployments();
+
+    mcpDeploymentsPage
+      .getRow('kubernetes-mcp')
+      .findRegisteredVersionNone()
+      .should('have.text', '-');
   });
 });
 

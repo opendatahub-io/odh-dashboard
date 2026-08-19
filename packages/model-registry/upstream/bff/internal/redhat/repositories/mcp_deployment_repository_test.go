@@ -594,6 +594,52 @@ func TestConvertUnstructuredToMcpDeployment_NoAnnotations(t *testing.T) {
 	if deployment.ServerName != "" {
 		t.Fatalf("expected empty serverName, got %q", deployment.ServerName)
 	}
+	if deployment.RegistryServer != "" {
+		t.Fatalf("expected empty registryServer, got %q", deployment.RegistryServer)
+	}
+	if deployment.RegistryVersion != "" {
+		t.Fatalf("expected empty registryVersion, got %q", deployment.RegistryVersion)
+	}
+}
+
+// A resource with an explicit but empty "annotations: {}" map (as opposed to the field
+// being absent entirely, covered above) must resolve identically -- both are common
+// shapes for a CR applied directly (e.g. `oc apply`) without going through this BFF's
+// create/update paths, which are the only paths that ever set these annotations.
+func TestConvertUnstructuredToMcpDeployment_EmptyAnnotationsMap(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "empty-annotations",
+				"namespace":         "default",
+				"uid":               "uid-789",
+				"creationTimestamp": "2026-03-30T12:00:00Z",
+				"annotations":       map[string]interface{}{},
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/test:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(8080),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.ServerName != "" || deployment.RegistryServer != "" || deployment.RegistryVersion != "" {
+		t.Fatalf("expected all registry/catalog fields empty, got %+v", deployment)
+	}
 }
 
 // extractMcpServerConditions

@@ -91,8 +91,20 @@ class GlobalProjectSettingsPage extends ClusterSettings {
     cy.findByTestId('project-selector-menuList').contains(name).click();
   }
 
-  selectNone() {
-    this.selectProject('None');
+  selectClearSelection() {
+    this.selectProject('Clear selection');
+  }
+
+  findWarningModal() {
+    return cy.findByTestId('global-project-warning-modal');
+  }
+
+  findWarningConfirmButton() {
+    return cy.findByTestId('global-project-warning-confirm');
+  }
+
+  findWarningCancelButton() {
+    return cy.findByTestId('global-project-warning-cancel');
   }
 }
 

@@ -1,5 +1,5 @@
 const { execSync } = require('child_process');
-const { OdhHostFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
@@ -140,8 +140,9 @@ module.exports = {
   moduleFederationPlugins:
     mfConfig.length > 0
       ? [
-          new OdhHostFederationPlugin({
-            packageJson: require('../package.json'),
+          new OdhFederationPlugin({
+            name: 'host',
+            isHost: true,
             remotes,
             dts: updateTypes,
           }),
