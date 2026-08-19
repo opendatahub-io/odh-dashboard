@@ -1,10 +1,10 @@
 import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import {
-  llmdRoutingSettingsPage,
+  routingConfigurations,
   llmdRoutingCreatePage,
   deleteRouteModal,
-} from '../../../../pages/llmdRoutingSettings';
+} from '../../../../pages/modelDeploymentSettings/routingConfigurations';
 import { cleanupLLMInferenceServiceConfig } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
@@ -44,17 +44,24 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
   it(
     'Admin can create, validate, edit, duplicate, delete routing configs and verify wizard visibility',
     {
-      tags: ['@Featureflagged', '@Dashboard', '@ModelServing', '@NonConcurrent', '@LLMDServingCI'],
+      tags: [
+        '@Featureflagged',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log in as admin');
       cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', LDAP_ADMIN_USER);
 
       cy.step('Navigate to routing configurations settings');
-      llmdRoutingSettingsPage.navigate();
+      routingConfigurations.navigate();
 
       cy.step('Create routing config from UI');
-      llmdRoutingSettingsPage.findAddButton().click();
+      routingConfigurations.findAddButton().click();
       llmdRoutingCreatePage.findDisplayNameInput().clear().type(routingConfigName);
       llmdRoutingCreatePage.selectTopologyType(testData.topologyTypeTestId);
       llmdRoutingCreatePage.selectConfigSource(testData.configSourceEditorKey);
@@ -69,8 +76,8 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Validate routing row: exists, enabled, topology type');
-      llmdRoutingSettingsPage.findTable().should('exist');
-      const row = llmdRoutingSettingsPage.getRow(routingConfigName);
+      routingConfigurations.findTable().should('exist');
+      const row = routingConfigurations.getRow(routingConfigName);
       row.find().should('exist');
       row.findEnabledSwitch().should('exist');
       row.find().should('contain.text', testData.topologyTypeLabel);
@@ -79,20 +86,20 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       row.findKebabAction('Edit').click();
       llmdRoutingCreatePage.findTopologyTypeSelect().should('not.be.disabled');
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
-      llmdRoutingSettingsPage.findTable().should('exist');
-      llmdRoutingSettingsPage.getRow(routingConfigName).find().should('exist');
+      routingConfigurations.findTable().should('exist');
+      routingConfigurations.getRow(routingConfigName).find().should('exist');
 
       cy.step('Duplicate the routing config');
-      llmdRoutingSettingsPage.getRow(routingConfigName).findKebabAction('Duplicate').click();
+      routingConfigurations.getRow(routingConfigName).findKebabAction('Duplicate').click();
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
-      llmdRoutingSettingsPage.findTable().should('exist');
-      llmdRoutingSettingsPage.getRow(`${routingConfigName}-copy`).find().should('exist');
+      routingConfigurations.findTable().should('exist');
+      routingConfigurations.getRow(`${routingConfigName}-copy`).find().should('exist');
 
       cy.step('Delete the original routing config');
-      llmdRoutingSettingsPage.getRow(routingConfigName).findKebabAction('Delete').click();
+      routingConfigurations.getRow(routingConfigName).findKebabAction('Delete').click();
       deleteRouteModal.findSubmitButton().should('be.enabled').click();
-      llmdRoutingSettingsPage.getRow(routingConfigName).find().should('not.exist');
-      llmdRoutingSettingsPage.getRow(`${routingConfigName}-copy`).find().should('exist');
+      routingConfigurations.getRow(routingConfigName).find().should('not.exist');
+      routingConfigurations.getRow(`${routingConfigName}-copy`).find().should('exist');
 
       cy.step('Navigate to project and open deploy wizard');
       projectListPage.navigate();

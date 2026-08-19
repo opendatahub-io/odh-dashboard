@@ -9,7 +9,7 @@ import { storageClassesPage } from '../../../../pages/storageClasses';
 import { notebookImageSettings } from '../../../../pages/notebookImageSettings';
 import { hardwareProfile } from '../../../../pages/hardwareProfile';
 import { connectionTypesPage } from '../../../../pages/connectionTypes';
-import { servingRuntimes } from '../../../../pages/servingRuntimes';
+import { servingRuntimeTemplates } from '../../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { modelRegistrySettings } from '../../../../pages/modelRegistrySettings';
 import type {
   CommandLineResult,
@@ -222,7 +222,18 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
   it(
     'Cluster Admin user can access all Settings pages',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1688', '@Dashboard', '@SettingsCI'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-1688',
+        '@Dashboard',
+        '@ModelServing',
+        '@SettingsCI',
+        '@KServeCI',
+        '@ModelServingCI',
+      ],
+    },
     function testClusterAdminSettingsAccess() {
       // Skip on BYOIDC clusters - User Management page requires groups API which returns 404 on BYOIDC
       skipIfBYOIDC(
@@ -257,8 +268,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
       connectionTypesPage.findPageTitle().should('exist');
 
       cy.step('Access Settings -> Model resources and operations -> Serving runtimes');
-      servingRuntimes.visit();
-      servingRuntimes.findAppTitle().should('exist');
+      servingRuntimeTemplates.visit();
+      servingRuntimeTemplates.findTabPageTitle().should('exist');
 
       cy.step('Access Settings -> Model resources and operations -> Model registry settings');
       modelRegistrySettings.visit();

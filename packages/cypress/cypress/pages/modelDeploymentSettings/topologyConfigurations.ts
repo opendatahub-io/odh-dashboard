@@ -1,5 +1,5 @@
-import { appChrome } from './appChrome';
-import { TableRow } from './components/table';
+import { appChrome } from '../appChrome';
+import { TableRow } from '../components/table';
 
 class TopologyConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -18,7 +18,7 @@ class TopologyConfigRow extends TableRow {
   }
 }
 
-class LlmdTopologySettingsPage {
+class TopologyConfigurations {
   visit(wait = true) {
     cy.visitWithLogin(
       '/settings/model-resources-operations/model-deployment-settings/topology-configurations',
@@ -118,4 +118,4 @@ class LlmdTopologySettingsPage {
   }
 }
 
-export const llmdTopologySettingsPage = new LlmdTopologySettingsPage();
+export const topologyConfigurations = new TopologyConfigurations();

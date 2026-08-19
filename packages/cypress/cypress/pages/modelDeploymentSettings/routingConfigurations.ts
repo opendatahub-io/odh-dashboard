@@ -1,6 +1,6 @@
-import { appChrome } from './appChrome';
-import { TableRow } from './components/table';
-import { DeleteModal } from './components/DeleteModal';
+import { appChrome } from '../appChrome';
+import { TableRow } from '../components/table';
+import { DeleteModal } from '../components/DeleteModal';
 
 class RoutingConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -19,7 +19,7 @@ class RoutingConfigRow extends TableRow {
   }
 }
 
-class LlmdRoutingSettingsPage {
+class RoutingConfigurations {
   visit(wait = true) {
     cy.visitWithLogin(
       '/settings/model-resources-operations/model-deployment-settings/routing-configurations',
@@ -136,6 +136,6 @@ class DeleteRouteModal extends DeleteModal {
   }
 }
 
-export const llmdRoutingSettingsPage = new LlmdRoutingSettingsPage();
+export const routingConfigurations = new RoutingConfigurations();
 export const llmdRoutingCreatePage = new LlmdRoutingCreatePage();
 export const deleteRouteModal = new DeleteRouteModal();

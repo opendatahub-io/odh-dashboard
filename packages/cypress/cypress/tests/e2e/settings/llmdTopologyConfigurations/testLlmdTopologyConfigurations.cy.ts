@@ -1,6 +1,6 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-import { llmdTopologySettingsPage } from '../../../../pages/llmdTopologySettings';
+import { topologyConfigurations } from '../../../../pages/modelDeploymentSettings/topologyConfigurations';
 import {
   createCleanLLMInferenceServiceConfig,
   cleanupLLMInferenceServiceConfig,
@@ -45,17 +45,26 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
 
   it(
     'Admin can manage topology configurations and verify wizard visibility',
-    { tags: ['@Smoke', '@Dashboard', '@NonConcurrent', '@LLMDServingCI'] },
+    {
+      tags: [
+        '@Smoke',
+        '@Dashboard',
+        '@NonConcurrent',
+        '@ModelServing',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
+    },
     () => {
       cy.step('Log in with topology configs feature flag');
       cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to topology configurations settings');
-      llmdTopologySettingsPage.navigate();
-      llmdTopologySettingsPage.findTable().should('exist');
+      topologyConfigurations.navigate();
+      topologyConfigurations.findTable().should('exist');
 
       cy.step('Verify the test topology config is listed');
-      llmdTopologySettingsPage.getRow(testData.topologyConfigName).find().should('exist');
+      topologyConfigurations.getRow(testData.topologyConfigName).find().should('exist');
 
       cy.step('Navigate to project and open deploy wizard');
       projectListPage.navigate();

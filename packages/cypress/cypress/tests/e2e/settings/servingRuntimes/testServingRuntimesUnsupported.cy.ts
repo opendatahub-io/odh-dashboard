@@ -1,6 +1,6 @@
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
-import { servingRuntimes } from '../../../../pages/servingRuntimes';
+import { servingRuntimeTemplates } from '../../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
@@ -18,7 +18,7 @@ import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import type { DataScienceProjectData, ServingRuntimeSettingsTestData } from '../../../../types';
-import { unsupportedStatusAcceptanceModal } from '../../../../pages/llmAcceleratorConfigs';
+import { unsupportedStatusAcceptanceModal } from '../../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
@@ -83,34 +83,38 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
 
   it(
     'Admin can import/enable/disable/delete a serving runtime and verify wizard options',
-    { tags: ['@Dashboard', '@Smoke', '@SmokeSet3', '@ModelServing', '@ModelServingCI'] },
+    {
+      tags: ['@Dashboard', '@Smoke', '@SmokeSet3', '@ModelServing', '@ModelServingCI', '@KServeCI'],
+    },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to Serving runtimes and import a custom runtime YAML');
-      cy.wrap(servingRuntimes.navigate());
-      servingRuntimes.findAddButton().should('exist').and('be.visible').click();
+      cy.wrap(servingRuntimeTemplates.navigate());
+      servingRuntimeTemplates.findAddButton().should('exist').and('be.visible').click();
 
       cy.step('Select API protocol and model type');
-      servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol(testData.apiProtocol);
-      servingRuntimes.findSelectModelTypes().click();
-      servingRuntimes.findGenerativeAIModelOption().click();
+      servingRuntimeTemplates.findSelectAPIProtocolButton().click();
+      servingRuntimeTemplates.selectAPIProtocol(testData.apiProtocol);
+      servingRuntimeTemplates.findSelectModelTypes().click();
+      servingRuntimeTemplates.findGenerativeAIModelOption().click();
 
       cy.step('Upload YAML and create serving runtime');
       const yamlPath = getFixturePath(testData.unsupportedServingRuntimeYamlFixturePath);
       renderYamlFileWithReplacements(yamlPath, {
         SERVING_RUNTIME_NAME: servingRuntimeId,
         SERVING_RUNTIME_DISPLAY_NAME: servingRuntimeDisplayName,
-      }).then((renderedYaml) => servingRuntimes.getDashboardCodeEditor().setValue(renderedYaml));
+      }).then((renderedYaml) =>
+        servingRuntimeTemplates.getDashboardCodeEditor().setValue(renderedYaml),
+      );
 
       cy.step('Submit the serving runtime');
-      servingRuntimes.findSubmitButton().should('be.enabled').click();
+      servingRuntimeTemplates.findSubmitButton().should('be.enabled').click();
       waitForTemplateByServingRuntimeName(servingRuntimeId);
 
       cy.step('Verify the serving runtime is created');
-      const runtimeRow = servingRuntimes.getRowById(servingRuntimeId);
+      const runtimeRow = servingRuntimeTemplates.getRowById(servingRuntimeId);
       runtimeRow.find().should('exist');
       runtimeRow.shouldHaveUnsupportedLabel(true);
       runtimeRow.shouldBeEnabled(false);
@@ -118,15 +122,17 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       cy.step('Duplicate the serving runtime and verify the duplicate');
       runtimeRow.findKebabToggle().click();
       runtimeRow.findDuplicateAction().click();
-      servingRuntimes.findSelectAPIProtocolButton().should('have.text', testData.apiProtocol);
-      servingRuntimes.findSelectModelTypes().click();
-      servingRuntimes.findGenerativeAIModelOption().should('be.checked');
-      servingRuntimes.getDashboardCodeEditor().containsText(testData.resourceType);
-      servingRuntimes.findSubmitButton().should('be.enabled').click();
+      servingRuntimeTemplates
+        .findSelectAPIProtocolButton()
+        .should('have.text', testData.apiProtocol);
+      servingRuntimeTemplates.findSelectModelTypes().click();
+      servingRuntimeTemplates.findGenerativeAIModelOption().should('be.checked');
+      servingRuntimeTemplates.getDashboardCodeEditor().containsText(testData.resourceType);
+      servingRuntimeTemplates.findSubmitButton().should('be.enabled').click();
       waitForTemplateByServingRuntimeName(duplicateservingRuntimeId);
 
       cy.step('Verify the duplicate serving runtime is created');
-      const duplicateRuntimeRow = servingRuntimes.getRowById(duplicateservingRuntimeId);
+      const duplicateRuntimeRow = servingRuntimeTemplates.getRowById(duplicateservingRuntimeId);
       duplicateRuntimeRow.find().should('exist');
       duplicateRuntimeRow.shouldHaveUnsupportedLabel(true);
       duplicateRuntimeRow.shouldBeEnabled(false);
@@ -135,10 +141,10 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       duplicateRuntimeRow.findKebabToggle().click();
       duplicateRuntimeRow.findEditButton().click();
       // update the unsupported serving runtime to supported
-      servingRuntimes
+      servingRuntimeTemplates
         .getDashboardCodeEditor()
         .replaceInEditor(testData.replaceSourceString, testData.replaceTargetString);
-      servingRuntimes.findSubmitButton().should('be.enabled').click();
+      servingRuntimeTemplates.findSubmitButton().should('be.enabled').click();
       waitForTemplateByServingRuntimeName(duplicateservingRuntimeId);
       duplicateRuntimeRow.shouldHaveUnsupportedLabel(false);
       duplicateRuntimeRow.shouldBeEnabled(true);
@@ -162,8 +168,8 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
         .should('not.exist');
 
       cy.step('Enable the serving runtime and verify it is visible in the wizard');
-      servingRuntimes.visit();
-      const runtimeRowAfterVisit = servingRuntimes.getRowById(servingRuntimeId);
+      servingRuntimeTemplates.visit();
+      const runtimeRowAfterVisit = servingRuntimeTemplates.getRowById(servingRuntimeId);
       runtimeRowAfterVisit.find().should('exist');
       runtimeRowAfterVisit.findEnabledToggle().click();
       unsupportedStatusAcceptanceModal.shouldBeOpen();
