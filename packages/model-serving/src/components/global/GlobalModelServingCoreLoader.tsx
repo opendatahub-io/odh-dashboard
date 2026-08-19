@@ -4,7 +4,7 @@ import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
-import ModelServingContextProvider from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import ModelServingNoProjects from '@odh-dashboard/internal/pages/modelServing/screens/global/ModelServingNoProjects';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -21,6 +21,9 @@ type ApplicationPageRenderState = Pick<ApplicationPageProps, EmptyStateProps>;
 const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> = ({
   getInvalidRedirectPath,
 }) => {
+  const {
+    contexts: { ModelServingContextProvider },
+  } = useHostApi();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);

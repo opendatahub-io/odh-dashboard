@@ -67,6 +67,17 @@ func main() {
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
 
+	// Inter-BFF configuration (see docs/inter-bff-communication.md) - used to resolve
+	// MCP Registry server details from the MLflow BFF.
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFMLflowServiceName, "bff-mlflow-service-name", getEnvAsString("BFF_MLFLOW_SERVICE_NAME", "odh-dashboard-mlflow-ui"), "Kubernetes service name for the MLflow BFF")
+	flag.IntVar(&cfg.BFFMLflowServicePort, "bff-mlflow-service-port", getEnvAsInt("BFF_MLFLOW_SERVICE_PORT", 8343), "Port for the MLflow BFF service")
+	flag.BoolVar(&cfg.BFFMLflowTLSEnabled, "bff-mlflow-tls-enabled", getEnvAsBool("BFF_MLFLOW_TLS_ENABLED", true), "Enable TLS for MLflow BFF communication")
+	flag.StringVar(&cfg.BFFMLflowDevURL, "bff-mlflow-dev-url", getEnvAsString("BFF_MLFLOW_DEV_URL", ""), "Developer override URL for the MLflow BFF (e.g., http://localhost:8443/api/v1)")
+	flag.StringVar(&cfg.BFFMLflowAuthMethod, "bff-mlflow-auth-method", getEnvAsString("BFF_MLFLOW_AUTH_METHOD", "user_token"), "Auth method for the MLflow BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenHeader, "bff-mlflow-auth-token-header", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send the auth token to the MLflow BFF")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenPrefix, "bff-mlflow-auth-token-prefix", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_PREFIX", ""), "Prefix for the auth token header (e.g., 'Bearer ')")
+
 	flag.Parse()
 
 	// Handle backward compatibility: if old flags are used, override deployment mode

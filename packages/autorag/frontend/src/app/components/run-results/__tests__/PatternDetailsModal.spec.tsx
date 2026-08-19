@@ -425,6 +425,12 @@ describe('PatternDetailsModal', () => {
   });
 
   describe('onClose callback', () => {
+    it('should render Close as a link-style footer button', () => {
+      render(<PatternDetailsModal {...defaultProps} />);
+      const closeButton = screen.getByTestId('pattern-details-close');
+      expect(closeButton).toHaveClass('pf-m-link');
+    });
+
     it('should call onClose when the modal close button is clicked', async () => {
       const user = userEvent.setup();
       const onClose = jest.fn();

@@ -181,6 +181,8 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                       <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
                         <Card isCompact>
                           <CardBody>
+                            {/* Collection benchmarks can override provider defaults for
+                               primary_score, pass_criteria, and url. */}
                             <BenchmarkDrawerTileContent
                               name={details?.name ?? b.id}
                               id={b.id}
@@ -188,9 +190,9 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                               metrics={details?.metrics}
                               providerName={details?.providerName ?? b.provider_id}
                               providerAgent={details?.providerAgent}
-                              primaryScore={details?.primary_score}
-                              passCriteria={details?.pass_criteria}
-                              url={details?.url ?? b.url}
+                              primaryScore={b.primary_score ?? details?.primary_score}
+                              passCriteria={b.pass_criteria ?? details?.pass_criteria}
+                              url={b.url ?? details?.url}
                               trackingSurface="collection_drawer"
                               isCompact
                               isCollapsible

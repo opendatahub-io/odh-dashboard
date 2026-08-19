@@ -38,7 +38,7 @@ The host never exposes modules (`exposes: {}`). Remotes expose `./extensions` an
 See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and webpack template. In brief:
 
 1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service) and `"exports": { "./extensions": "..." }`
-2. **`moduleFederation.js`** — configure `ModuleFederationPlugin` with `name`, `exposes`, `shared` singletons, `runtime: false`
+2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons are applied by the plugin.
 3. **`src/odh/extensions.ts`** — export a default array of `Extension` objects
 4. **Static bundling** — `discoverPluginPackages.js` finds `./extensions` exports and generates `plugin-extensions.ts` at build time
 
@@ -48,7 +48,7 @@ All remotes **must** share as singletons: `react`, `react-dom`, `react-router`, 
 
 Include if used: `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils`, `@odh-dashboard/plugin-core`.
 
-All use `singleton: true` and `requiredVersion: deps['<package>']` from the local `package.json`.
+All use `singleton: true` and `requiredVersion` from the `package.json` in webpack `compiler.context`.
 
 ## Runtime Loading Flow
 
@@ -71,12 +71,12 @@ import('./bootstrap');
 
 ## Conventions
 
-- **MF name** is camelCase matching `module-federation.name` in `package.json` and `name` in `ModuleFederationPlugin`
+- **MF name** is camelCase matching `module-federation.name` in `package.json` and `name` in `OdhFederationPlugin` (the dashboard host uses `'host'`)
 - **Remote entry** is always `/remoteEntry.js`
 - **Exposes** use `./extensions` and `./extension-points` — not arbitrary module paths
 - **Proxy paths** follow `/package-name/api` → `/api` rewrite pattern
 - **Local dev ports** are unique per package (9100+)
-- Set `runtime: false` on all remotes
+- Pass `isHost: true` for the dashboard and for standalone remotes (`DEPLOYMENT_MODE=standalone`); federated remotes pass `isHost: false`
 - Set `output.publicPath = 'auto'` in webpack
 - Lazy-load components in extensions via `component: () => import('./MyComponent')` (CodeRef pattern)
 - Use `@mf/*` TypeScript path alias for typed imports of remote modules (types in `frontend/@mf-types/`)
