@@ -6,6 +6,14 @@ import {
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragExperimentDeleted,
+  fireAutoragRunRetried,
+  fireAutoragRunStopped,
+  TrackingOutcome,
+  type RunActionSource,
+} from '~/app/utilities/tracking';
 
 type AutoragRunActions = {
   handleRetry: () => Promise<void>;
@@ -23,6 +31,7 @@ type AutoragRunActions = {
 export const useAutoragRunActions = (
   namespace: string,
   runId: string,
+  source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutoragRunActions => {
   const queryClient = useQueryClient();
@@ -41,11 +50,18 @@ export const useAutoragRunActions = (
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      fireAutoragRunRetried({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      fireAutoragRunRetried({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -53,7 +69,7 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful retry.
     }
-  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [retryMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   const handleConfirmStop = React.useCallback(async () => {
     try {
@@ -65,6 +81,7 @@ export const useAutoragRunActions = (
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
+      fireAutoragRunStopped({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       // Check if the error is because the run is already in a terminal state (case-insensitive, whole words only)
@@ -79,6 +96,12 @@ export const useAutoragRunActions = (
       } else {
         notification.error('Failed to stop run', errorMessage);
       }
+      fireAutoragRunStopped({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source,
+      });
       // Refresh the state to update the UI (don't let refresh failure mask the original error)
       try {
         await queryClient.invalidateQueries({
@@ -94,7 +117,7 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful stop.
     }
-  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   const handleDelete = React.useCallback(async () => {
     try {
@@ -106,11 +129,18 @@ export const useAutoragRunActions = (
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
+      fireAutoragExperimentDeleted({ outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       notification.error(
         'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
+      fireAutoragExperimentDeleted({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: AUTORAG_FAILURE_CATEGORY,
+        source,
+      });
       throw error;
     }
     try {
@@ -118,7 +148,7 @@ export const useAutoragRunActions = (
     } catch {
       // Caller refresh failure should not mask a successful delete.
     }
-  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification]);
+  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification, source]);
 
   return {
     handleRetry,

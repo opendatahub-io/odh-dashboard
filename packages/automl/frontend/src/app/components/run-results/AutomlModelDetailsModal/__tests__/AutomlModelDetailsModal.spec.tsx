@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import {
   mockTabularContext,
@@ -10,6 +11,7 @@ import {
   mockTabularFeatureImportances,
   mockTabularConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import AutomlModelDetailsModal from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal';
 
 // Mock react-router
@@ -17,6 +19,13 @@ jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock query hooks
 jest.mock('~/app/hooks/queries', () => ({
@@ -285,7 +294,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByTestId('model-details-actions-toggle'));
     await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
-    expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL', 'modelDetailsModal');
     expect(onClickSaveNotebook).toHaveBeenCalledTimes(1);
   });
 
@@ -309,7 +318,10 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     // Should be called with the newly selected model
-    expect(onClickSaveNotebook).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+    expect(onClickSaveNotebook).toHaveBeenCalledWith(
+      'RandomForest_BAG_L1_FULL',
+      'modelDetailsModal',
+    );
   });
 
   it('should call onRegisterModel and onClose when "Register model" is clicked', async () => {
@@ -331,7 +343,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL', 'modelDetailsModal');
     expect(onRegisterModel).toHaveBeenCalledTimes(1);
   });
 
@@ -360,7 +372,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL', 'modelDetailsModal');
   });
 
   it('should render print portal with all visible tabs when download is clicked', async () => {
@@ -407,6 +419,82 @@ describe('AutomlModelDetailsModal', () => {
     } finally {
       printSpy.mockRestore();
     }
+  });
+
+  it('should fire the download-initiated event on click, not on afterprint completion', async () => {
+    const user = userEvent.setup();
+    const printSpy = jest.spyOn(window, 'print').mockReturnValue(undefined);
+
+    try {
+      render(
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal {...defaultProps} />
+        </AutomlResultsContext.Provider>,
+      );
+
+      const downloadInitiatedCalls = () =>
+        fireMiscTrackingEventMock.mock.calls.filter(
+          ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+        );
+
+      const downloadButton = screen.getByTestId('model-details-download');
+      await user.click(downloadButton);
+
+      // Fired once, at click time — reflects user intent, not a verified completed download.
+      expect(downloadInitiatedCalls()).toHaveLength(1);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+        { downloadType: 'modelDetails' },
+      );
+
+      // Simulate the print dialog closing (whether printed, saved, or cancelled) — this
+      // must not fire a second (or "completed") event.
+      window.dispatchEvent(new Event('afterprint'));
+      expect(downloadInitiatedCalls()).toHaveLength(1);
+    } finally {
+      printSpy.mockRestore();
+    }
+  });
+
+  it('should re-fire the tab-viewed event with the correct predictionType once taskType resolves', () => {
+    // Simulates the modal opening before `parameters` (and thus taskType) has loaded from
+    // the async pipelineRun context — taskType falls back to the timeseries default.
+    const loadingContext = { ...mockTabularContext, parameters: {} };
+    // mockTabularContext resolves to task_type: 'multiclass'. The default tab
+    // ('model-information') is visible for every task type, so activeTabKey and
+    // selectedModelName stay the same across this transition — only taskType changes.
+    const loadedContext = mockTabularContext;
+
+    const { rerender } = render(
+      <AutomlResultsContext.Provider value={loadingContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const tabViewedCalls = () =>
+      fireMiscTrackingEventMock.mock.calls.filter(
+        ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED,
+      );
+
+    expect(tabViewedCalls()).toHaveLength(1);
+    expect(tabViewedCalls()[0][1]).toMatchObject({
+      tabName: 'modelInformation',
+      predictionType: 'timeSeriesForecasting',
+    });
+
+    rerender(
+      <AutomlResultsContext.Provider value={loadedContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    // Without taskType in the effect's dependencies, this second call would never fire and
+    // the event would permanently retain the stale "timeSeriesForecasting" predictionType.
+    expect(tabViewedCalls()).toHaveLength(2);
+    expect(tabViewedCalls()[1][1]).toMatchObject({
+      tabName: 'modelInformation',
+      predictionType: 'multiclassClassification',
+    });
   });
 
   it('should use recomputed rank for the opened model when bestModelKey changes', () => {

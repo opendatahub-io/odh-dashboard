@@ -13,7 +13,6 @@ export const deleteMcpDeployment =
     handleRestFailures(
       restDELETE(hostPath, `/mcp_deployments/${name}`, {}, queryParams, {
         ...opts,
-        // BFF returns 204 No Content with an empty body; JSON.parse("") throws without this.
         parseJSON: false,
       }),
     ).then(() => undefined);

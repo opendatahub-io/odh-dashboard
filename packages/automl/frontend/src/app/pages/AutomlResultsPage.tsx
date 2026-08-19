@@ -13,7 +13,7 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -30,9 +30,11 @@ import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { fireAutomlResultsViewed, isAutomlResultsNavigationState } from '~/app/utilities/tracking';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
+  const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
@@ -42,6 +44,7 @@ function AutomlResultsPage(): React.JSX.Element {
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
+    'resultsPage',
   );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
@@ -80,6 +83,17 @@ function AutomlResultsPage(): React.JSX.Element {
     isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
+
+  const resultsViewedTrackedRunId = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (!pipelineRun?.run_id || resultsViewedTrackedRunId.current === pipelineRun.run_id) {
+      return;
+    }
+    resultsViewedTrackedRunId.current = pipelineRun.run_id;
+
+    const navState = isAutomlResultsNavigationState(location.state) ? location.state : undefined;
+    fireAutomlResultsViewed(navState?.entrySource ?? 'other');
+  }, [pipelineRun?.run_id, location.state]);
 
   // Fetch and process AutoML results using custom hook
   const {
@@ -295,6 +309,7 @@ function AutomlResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
+        source="resultsPage"
       />
     </AutomlResultsContext.Provider>
   );

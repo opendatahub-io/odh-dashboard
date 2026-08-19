@@ -348,6 +348,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		namespace      string
 		body           string
 		repoResult     *models.PipelineRun
 		repoErr        error
@@ -355,8 +356,9 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		wantBodySubstr string
 	}{
 		{
-			name: "success",
-			body: validBody,
+			name:      "success",
+			namespace: ns,
+			body:      validBody,
 			repoResult: &models.PipelineRun{
 				RunID:       "new-run-id",
 				DisplayName: "new-run",
@@ -367,31 +369,53 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: `"run_id": "new-run-id"`,
 		},
 		{
+			name:           "missing namespace",
+			namespace:      "",
+			body:           validBody,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "missing_namespace",
+		},
+		{
 			name:           "invalid JSON body",
+			namespace:      ns,
 			body:           `{invalid json`,
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "empty body",
+			namespace:      ns,
 			body:           "",
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: `"code": "400"`,
+			wantBodySubstr: "invalid_request_body",
 		},
 		{
 			name:           "unknown field in body",
+			namespace:      ns,
 			body:           `{"display_name":"x","unknown_field":"y"}`,
 			repoResult:     nil,
 			repoErr:        nil,
 			wantStatusCode: http.StatusBadRequest,
-			wantBodySubstr: "invalid request body",
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
+			name:           "oversized body",
+			namespace:      ns,
+			body:           `{"display_name":"` + strings.Repeat("x", 10<<20) + `"}`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusRequestEntityTooLarge,
+			wantBodySubstr: "request_body_too_large",
 		},
 		{
 			name:           "multiple JSON objects in body",
+			namespace:      ns,
 			body:           validBody + `{"extra": true}`,
 			repoResult:     nil,
 			repoErr:        nil,
@@ -399,7 +423,17 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantBodySubstr: "single JSON object",
 		},
 		{
+			name:           "malformed trailing JSON in body",
+			namespace:      ns,
+			body:           validBody + `{`,
+			repoResult:     nil,
+			repoErr:        nil,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "invalid_request_body",
+		},
+		{
 			name:           "repo validation error",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        fmt.Errorf("missing field: %w", repositories.ErrValidation),
@@ -408,6 +442,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		},
 		{
 			name:           "repo server error",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        errors.New("pipeline creation failed"),
@@ -416,6 +451,7 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 		},
 		{
 			name:           "repo no DSPA found",
+			namespace:      ns,
 			body:           validBody,
 			repoResult:     nil,
 			repoErr:        pipelines.ErrNoDSPAFound,
@@ -429,12 +465,12 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			h, repo := newTestPipelinesHandler()
 
 			// Only set up repo expectation for cases where we expect the handler to call CreateRun
-			if tt.body == validBody {
-				repo.On("CreateRun", mock.Anything, ns, mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
+			if tt.namespace != "" && tt.body == validBody {
+				repo.On("CreateRun", mock.Anything, tt.namespace, mock.AnythingOfType("models.CreateAutoRAGRunRequest")).
 					Return(tt.repoResult, tt.repoErr)
 			}
 
-			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", ns, tt.body)
+			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/pipeline-runs", tt.namespace, tt.body)
 			rr := httptest.NewRecorder()
 
 			h.CreatePipelineRunHandler(rr, req, httprouter.Params{})

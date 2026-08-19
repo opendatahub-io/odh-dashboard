@@ -30,10 +30,6 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.visit();
   });
 
-  it('should display platform labels', () => {
-    servingRuntimes.shouldBeSingleModel(true);
-  });
-
   it('should display serving runtime version label', () => {
     servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
     servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
@@ -44,11 +40,6 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').should('exist');
     servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').should('exist');
     servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').should('exist');
-  });
-
-  it('should display platform labels in table rows', () => {
-    servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
-    servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
   });
 
   it('should display api protocol in table row', () => {
@@ -147,7 +138,7 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
     servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
-    cy.url().should('include', '/serving-runtimes/add');
+    cy.url().should('include', '/serving-runtime-templates/duplicate/template-1');
 
     servingRuntimes.shouldDisplayAPIProtocolValues([
       ServingRuntimeAPIProtocol.REST,
@@ -184,7 +175,14 @@ describe('Custom serving runtimes', () => {
       });
     });
 
-    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+    // After submitting, we return to the serving-runtime-templates list, which is now a
+    // tab on the Model deployment settings page — so the visible title is the tabbed
+    // page shell's, not a standalone "Serving runtimes" page title.
+    cy.findByTestId('app-tab-page-title').should('contain', 'Model deployment settings');
+    // Wait for the templates list itself to finish mounting after the navigation before
+    // pushing the websocket ADDED event — otherwise the event can fire before the list
+    // has subscribed and the new row is missed.
+    servingRuntimes.getRowById('template-1').find().should('exist');
 
     cy.wsK8s(
       'ADDED',
@@ -217,7 +215,7 @@ describe('Custom serving runtimes', () => {
 
     servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
     servingRuntimes.findAppTitle().should('contain', 'Edit Caikit');
-    cy.url().should('include', '/serving-runtimes/edit/template-1');
+    cy.url().should('include', '/serving-runtime-templates/edit/template-1');
     servingRuntimes.findSubmitButton().should('be.disabled');
     servingRuntimes.uploadYaml(editfilePath);
     servingRuntimes.findSubmitButton().click();
@@ -283,17 +281,43 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.getRowById('template-1').find().should('not.exist');
   });
 
-  describe('redirect from v2 to v3 route', () => {
-    it('root', () => {
+  describe('redirect from old standalone routes to the tab', () => {
+    // Both `/servingRuntimes/*` and the removed standalone
+    // `/settings/model-resources-operations/serving-runtimes/*` now redirect straight
+    // to the serving-runtime-templates tab on the Model deployment settings page. The
+    // redirect lands on the tabbed page shell, so the visible title is the shell's
+    // ("Model deployment settings"), not a tab-specific title.
+    it('root (legacy /servingRuntimes URL)', () => {
       cy.visitWithLogin('/servingRuntimes');
-      cy.findByTestId('app-page-title').contains('Serving runtimes');
-      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes');
+      cy.findByTestId('app-tab-page-title').contains('Model deployment settings');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+      );
     });
 
+    it('root (removed standalone URL)', () => {
+      cy.visitWithLogin('/settings/model-resources-operations/serving-runtimes');
+      cy.findByTestId('app-tab-page-title').contains('Model deployment settings');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+      );
+    });
+
+    // The pre-migration standalone routes (`CustomServingRuntimeRoutes.tsx` +
+    // `v2Redirects.ts`, both since removed) used to translate these two
+    // legacy sub-path aliases via a nested router before landing on the add/edit form.
+    // That mapping is now restored as two dedicated `app.route` redirects in
+    // `packages/model-serving/extensions/odh.ts`, registered more specifically than
+    // the general `/servingRuntimes/*` redirect above so they win.
     it('add', () => {
       cy.visitWithLogin('/servingRuntimes/addServingRuntime');
       cy.findByTestId('app-page-title').contains('Add serving runtime');
-      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes/add');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/add',
+      );
     });
 
     it('edit', () => {
@@ -301,7 +325,7 @@ describe('Custom serving runtimes', () => {
       cy.findByTestId('app-page-title').contains('Edit Caikit');
       cy.url().should(
         'include',
-        '/settings/model-resources-operations/serving-runtimes/edit/template-1',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/edit/template-1',
       );
     });
   });

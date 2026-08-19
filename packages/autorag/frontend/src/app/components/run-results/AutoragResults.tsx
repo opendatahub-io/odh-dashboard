@@ -20,6 +20,12 @@ import {
   sanitizeFilename,
 } from '~/app/utilities/utils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
+import {
+  fireAutoragNotebookDownloaded,
+  fireAutoragPatternDetailsViewed,
+  type PlaygroundOpenedSource,
+  type ViewCodeEntrySource,
+} from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
@@ -29,8 +35,8 @@ import './AutoragResults.scss';
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 type AutoragResultsProps = {
-  onTryPattern?: (patternName: string) => void;
-  onViewCode?: (patternName: string) => void;
+  onTryPattern?: (patternName: string, source: PlaygroundOpenedSource) => void;
+  onViewCode?: (patternName: string, source: ViewCodeEntrySource) => void;
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
@@ -205,6 +211,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   const handleViewDetails = React.useCallback((patternName: string) => {
     setSelectedPatternName(patternName);
+    fireAutoragPatternDetailsViewed('resultsTable');
   }, []);
 
   const handleOpenRunIndexing = React.useCallback(
@@ -292,6 +299,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         const safePatternName = sanitizeFilename(patternName);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
+        fireAutoragNotebookDownloaded(notebookType);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
@@ -336,8 +344,12 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
-            onViewCode={onViewCode}
+            onTryPattern={
+              onTryPattern ? (patternName) => onTryPattern(patternName, 'resultsTable') : undefined
+            }
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'resultsTable') : undefined
+            }
             onRunIndexingPipeline={runIndexingHandler}
           />
         </StackItem>
@@ -355,8 +367,14 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
-            onTryPattern={onTryPattern}
-            onViewCode={onViewCode}
+            onTryPattern={
+              onTryPattern
+                ? (patternName) => onTryPattern(patternName, 'patternDetails')
+                : undefined
+            }
+            onViewCode={
+              onViewCode ? (patternName) => onViewCode(patternName, 'patternDetails') : undefined
+            }
             onRunIndexingPipeline={runIndexingHandler}
           />
         </React.Suspense>

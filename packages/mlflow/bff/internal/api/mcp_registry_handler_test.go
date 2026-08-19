@@ -536,7 +536,7 @@ func TestSetMCPServerTagSuccess(t *testing.T) {
 
 	app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam("/"+testMCPServerName+"/tags"))
 
-	assert.Equal(t, http.StatusNoContent, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
 	mockClient.AssertExpectations(t)
 }
 
@@ -551,6 +551,196 @@ func TestSetMCPServerTagMissingKey(t *testing.T) {
 	app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam("/"+testMCPServerName+"/tags"))
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestRegisterMCPServerSuccess(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+	mockClient := &mlflowpkg.MockClient{}
+
+	now := time.Now()
+	serverJSON := map[string]any{"name": testMCPServerName, "version": "1.0.0"}
+	mockClient.On("CreateMCPServerVersion", tmock.Anything, testMCPServerName, tmock.Anything, tmock.Anything).
+		Return(&mcpregistry.MCPServerVersion{
+			Name: testMCPServerName, Version: "1.0.0", ServerJSON: serverJSON,
+			CreationTimestamp: now, LastUpdatedTimestamp: now,
+		}, nil)
+	mockClient.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
+		Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+	mockClient.On("SetMCPServerTag", tmock.Anything, testMCPServerName, "team", "platform").Return(nil)
+
+	body := `{
+		"name":"` + testMCPServerName + `",
+		"server_json":{"name":"` + testMCPServerName + `","version":"1.0.0"},
+		"status":"draft",
+		"display_name":"My Server",
+		"icons":[{"src":"https://example.com/icon.svg","theme":"light"},{"src":"http://insecure.example/x.svg"}],
+		"tags":[{"key":"team","value":"platform"},{"key":"","value":"skip"},{"key":"team","value":"platform"}]
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register?workspace=my-ns", strings.NewReader(body))
+	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+	assert.Equal(t, mcpServerVersionLocation(testMCPServerName, "1.0.0", "my-ns"), rr.Header().Get("Location"))
+	var envelope MCPRegisterEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	assert.Equal(t, "1.0.0", envelope.Data.Version.Version)
+	assert.Empty(t, envelope.Data.MetadataError)
+	assert.Empty(t, envelope.Data.FailedTagKeys)
+	mockClient.AssertExpectations(t)
+}
+
+func TestRegisterMCPServerSoftFailures(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+	mockClient := &mlflowpkg.MockClient{}
+
+	now := time.Now()
+	serverJSON := map[string]any{"name": testMCPServerName, "version": "1.0.0"}
+	mockClient.On("CreateMCPServerVersion", tmock.Anything, testMCPServerName, tmock.Anything, tmock.Anything).
+		Return(&mcpregistry.MCPServerVersion{
+			Name: testMCPServerName, Version: "1.0.0", ServerJSON: serverJSON,
+			CreationTimestamp: now, LastUpdatedTimestamp: now,
+		}, nil)
+	mockClient.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
+		Return((*mcpregistry.MCPServer)(nil), fmt.Errorf("metadata boom"))
+	mockClient.On("SetMCPServerTag", tmock.Anything, testMCPServerName, "team", "platform").
+		Return(fmt.Errorf("tag boom"))
+
+	body := `{
+		"name":"` + testMCPServerName + `",
+		"server_json":{"name":"` + testMCPServerName + `","version":"1.0.0"},
+		"display_name":"My Server",
+		"tags":[{"key":"team","value":"platform"}]
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register?workspace=my-ns", strings.NewReader(body))
+	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+	var envelope MCPRegisterEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	assert.Equal(t, mcpRegisterMetadataError, envelope.Data.MetadataError)
+	assert.Equal(t, []string{"team"}, envelope.Data.FailedTagKeys)
+	mockClient.AssertExpectations(t)
+}
+
+func TestRegisterMCPServerValidation(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+
+	tests := []struct {
+		name    string
+		body    string
+		wantMsg string
+	}{
+		{
+			name:    "missing server_json",
+			body:    `{"name":"` + testMCPServerName + `"}`,
+			wantMsg: "server_json is required",
+		},
+		{
+			name:    "mismatched server_json name",
+			body:    `{"name":"` + testMCPServerName + `","server_json":{"name":"ct.example/other-server","version":"1.0.0"}}`,
+			wantMsg: "must match server name",
+		},
+		{
+			name:    "missing server_json version",
+			body:    `{"name":"` + testMCPServerName + `","server_json":{"name":"` + testMCPServerName + `"}}`,
+			wantMsg: `server_json "version" is required`,
+		},
+		{
+			name:    "invalid server name",
+			body:    `{"name":"not-a-namespaced-name","server_json":{"name":"not-a-namespaced-name","version":"1.0.0"}}`,
+			wantMsg: `must be in "<namespace>/<slug>" format`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mlflowpkg.MockClient{}
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register?workspace=my-ns", strings.NewReader(tt.body))
+			req = requestWithMLflowClient(req, mockClient)
+			req = withWorkspace(req, "my-ns")
+			rr := httptest.NewRecorder()
+
+			app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			var httpErr HTTPError
+			require.NoError(t, json.NewDecoder(rr.Body).Decode(&httpErr))
+			assert.Contains(t, httpErr.Error.Message, tt.wantMsg)
+			mockClient.AssertNumberOfCalls(t, "CreateMCPServerVersion", 0)
+		})
+	}
+}
+
+func TestRegisterMCPServerMissingWorkspace(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+	mockClient := &mlflowpkg.MockClient{}
+
+	body := fmt.Sprintf(`{"name":%q,"server_json":{"name":%q,"version":"1.0.0"}}`, testMCPServerName, testMCPServerName)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register", strings.NewReader(body))
+	req = requestWithMLflowClient(req, mockClient)
+	rr := httptest.NewRecorder()
+
+	app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var httpErr HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&httpErr))
+	assert.Equal(t, "workspace query parameter is required", httpErr.Error.Message)
+	mockClient.AssertNumberOfCalls(t, "CreateMCPServerVersion", 0)
+}
+
+func TestRegisterMCPServerInvalidBody(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+	mockClient := &mlflowpkg.MockClient{}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register?workspace=my-ns", strings.NewReader("not json"))
+	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var httpErr HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&httpErr))
+	assert.Contains(t, httpErr.Error.Message, "badly-formed JSON")
+	mockClient.AssertNumberOfCalls(t, "CreateMCPServerVersion", 0)
+}
+
+func TestRegisterMCPServerClientError(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("CreateMCPServerVersion", tmock.Anything, testMCPServerName, tmock.Anything, tmock.Anything).
+		Return((*mcpregistry.MCPServerVersion)(nil), fmt.Errorf("connection refused"))
+
+	body := fmt.Sprintf(`{"name":%q,"server_json":{"name":%q,"version":"1.0.0"}}`, testMCPServerName, testMCPServerName)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/register?workspace=my-ns", strings.NewReader(body))
+	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
+	rr := httptest.NewRecorder()
+
+	app.MLflowRegisterMCPServerHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	var httpErr HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&httpErr))
+	assert.Equal(t, "the server encountered a problem and could not process your request", httpErr.Error.Message)
+	mockClient.AssertExpectations(t)
 }
 
 func TestDeleteMCPServerTagSuccess(t *testing.T) {
@@ -873,7 +1063,7 @@ func TestSetMCPServerVersionTagSuccess(t *testing.T) {
 
 	app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam("/"+testMCPServerName+"/versions/1.0.0/tags"))
 
-	assert.Equal(t, http.StatusNoContent, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
 	mockClient.AssertExpectations(t)
 }
 
@@ -1214,6 +1404,32 @@ func TestMCPRegistryHandlerPermissions(t *testing.T) {
 			},
 		},
 		{
+			name:            "RegisterMCPServer forbidden without permission",
+			handler:         "register",
+			verb:            "create",
+			canWrite:        false,
+			method:          http.MethodPost,
+			path:            "/api/v1/mcp-registry/register?workspace=my-ns",
+			body:            fmt.Sprintf(`{"name":%q,"server_json":{"name":%q,"version":"1.0.0"}}`, testMCPServerName, testMCPServerName),
+			wantStatus:      http.StatusForbidden,
+			assertNotCalled: "CreateMCPServerVersion",
+		},
+		{
+			name:       "RegisterMCPServer success with permission",
+			handler:    "register",
+			verb:       "create",
+			canWrite:   true,
+			method:     http.MethodPost,
+			path:       "/api/v1/mcp-registry/register?workspace=my-ns",
+			body:       fmt.Sprintf(`{"name":%q,"server_json":{"name":%q,"version":"1.0.0"}}`, testMCPServerName, testMCPServerName),
+			wantStatus: http.StatusCreated,
+			setupMock: func(m *mlflowpkg.MockClient) {
+				now := time.Now()
+				m.On("CreateMCPServerVersion", tmock.Anything, testMCPServerName, tmock.Anything, tmock.Anything).
+					Return(&mcpregistry.MCPServerVersion{Name: testMCPServerName, Version: "1.0.0", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+			},
+		},
+		{
 			name:     "CreateMCPAccessEndpoint forbidden without permission",
 			handler:  "createEndpoint",
 			verb:     "create",
@@ -1342,7 +1558,7 @@ func TestMCPRegistryHandlerPermissions(t *testing.T) {
 			path:       "/api/v1/mcp-registry/servers/" + testMCPServerName + "/tags?workspace=my-ns",
 			body:       `{"key":"category","value":"weather"}`,
 			rest:       "/" + testMCPServerName + "/tags",
-			wantStatus: http.StatusNoContent,
+			wantStatus: http.StatusOK,
 			setupMock: func(m *mlflowpkg.MockClient) {
 				m.On("SetMCPServerTag", tmock.Anything, testMCPServerName, "category", "weather").Return(nil)
 			},
@@ -1357,6 +1573,17 @@ func TestMCPRegistryHandlerPermissions(t *testing.T) {
 			body:            fmt.Sprintf(`{"name":%q}`, testMCPServerName),
 			wantStatus:      http.StatusInternalServerError,
 			assertNotCalled: "CreateMCPServer",
+		},
+		{
+			name:            "RegisterMCPServer permission check error",
+			handler:         "register",
+			verb:            "create",
+			permissionError: true,
+			method:          http.MethodPost,
+			path:            "/api/v1/mcp-registry/register?workspace=my-ns",
+			body:            fmt.Sprintf(`{"name":%q,"server_json":{"name":%q,"version":"1.0.0"}}`, testMCPServerName, testMCPServerName),
+			wantStatus:      http.StatusInternalServerError,
+			assertNotCalled: "CreateMCPServerVersion",
 		},
 		{
 			name:            "DeleteMCPAccessEndpoint permission check error",
@@ -1417,6 +1644,8 @@ func TestMCPRegistryHandlerPermissions(t *testing.T) {
 			switch tt.handler {
 			case "createServer":
 				app.MLflowCreateMCPServerHandler(rr, req, nil)
+			case "register":
+				app.MLflowRegisterMCPServerHandler(rr, req, nil)
 			case "createVersion":
 				app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam(tt.rest))
 			case "createEndpoint":

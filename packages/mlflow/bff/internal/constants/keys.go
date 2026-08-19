@@ -16,3 +16,9 @@ const (
 	TraceIDKey     contextKey = "TraceIDKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 )
+
+type BFFTarget string
+
+func BFFClientKey(target BFFTarget) contextKey {
+	return contextKey("BFFClientKey_" + string(target))
+}

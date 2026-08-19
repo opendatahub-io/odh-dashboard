@@ -1,10 +1,10 @@
-const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/webpack');
 
 module.exports = {
   moduleFederationPlugins: [
-    new OdhRemoteFederationPlugin({
+    new OdhFederationPlugin({
       name: 'agentOps',
-      packageJson: require('../package.json'),
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
       exposes: {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',

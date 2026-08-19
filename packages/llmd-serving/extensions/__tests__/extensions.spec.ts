@@ -1,16 +1,7 @@
 import extensions from '../extensions';
-import {
-  LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH,
-  LLM_ACCELERATOR_CONFIGS_TAB_PATH,
-} from '../../src/settings/llmAcceleratorConfigs/paths';
-import {
-  TOPOLOGY_CONFIGS_STANDALONE_PATH,
-  TOPOLOGY_CONFIGS_TAB_PATH,
-} from '../../src/settings/topologyConfigs/paths';
-import {
-  ROUTING_CONFIGS_STANDALONE_PATH,
-  ROUTING_CONFIGS_TAB_PATH,
-} from '../../src/settings/routingConfigs/paths';
+import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../src/settings/llmAcceleratorConfigs/paths';
+import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
+import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
@@ -39,6 +30,12 @@ describe('LLM accelerator configuration extensions', () => {
     );
   });
 
+  it('should gate the accelerator tab on its own feature areas only', () => {
+    expect(acceleratorTab?.flags).toEqual({
+      required: ['llmd-serving', 'ADMIN_USER', 'vllm-on-maas'],
+    });
+  });
+
   // The forms must not be tab content: TabRoutePage renders tab content beneath the
   // page title and tab bar, which would leave the form with two page headings.
   it('should register the form routes as standalone breakout routes outside the tab', () => {
@@ -60,27 +57,17 @@ describe('LLM accelerator configuration extensions', () => {
     });
   });
 
-  // Guards the constants duplicated into extensions.ts, which cannot import runtime
-  // values from src. A refactor that changes paths.ts alone should fail here.
-  it('should build standalone routes from the shared standalone path constant', () => {
-    const paths = routeExtensions.map((extension) => extension.properties.path);
-
-    expect(paths).toContain(`${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`);
-  });
-
-  it('should redirect the standalone path to the tab path', () => {
-    const navItem = extensions.find(
+  it('should redirect the old standalone accelerator URL to the tab', () => {
+    const redirectRoute = routeExtensions.find(
       (extension) =>
-        extension.type === 'app.navigation/href' &&
-        extension.properties.id === 'settings-llm-accelerator-configs',
+        extension.properties.path ===
+        '/settings/model-resources-operations/llm-accelerator-configs/*',
     );
 
-    expect(navItem?.properties).toEqual(
-      expect.objectContaining({
-        href: LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH,
-        path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
-      }),
-    );
+    expect(redirectRoute).toBeDefined();
+    expect(redirectRoute?.flags).toEqual({
+      required: ['llmd-serving', 'ADMIN_USER', 'vllm-on-maas'],
+    });
   });
 });
 
@@ -109,6 +96,12 @@ describe('llm-d topology configuration extensions', () => {
     );
   });
 
+  it('should gate the topology tab on its own feature areas only', () => {
+    expect(topologyTab?.flags).toEqual({
+      required: ['llmd-topology-configs', 'ADMIN_USER'],
+    });
+  });
+
   // The forms must not be tab content: TabRoutePage renders tab content beneath the
   // page title and tab bar, which would leave the form with two page headings.
   it('should register the form routes as standalone breakout routes outside the tab', () => {
@@ -130,27 +123,17 @@ describe('llm-d topology configuration extensions', () => {
     });
   });
 
-  // Guards the constants duplicated into extensions.ts, which cannot import runtime
-  // values from src. A refactor that changes paths.ts alone should fail here.
-  it('should build standalone routes from the shared standalone path constant', () => {
-    const paths = routeExtensions.map((extension) => extension.properties.path);
-
-    expect(paths).toContain(`${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`);
-  });
-
-  it('should point the standalone nav item at the standalone path', () => {
-    const navItem = extensions.find(
+  it('should redirect the old standalone topology URL to the tab', () => {
+    const redirectRoute = routeExtensions.find(
       (extension) =>
-        extension.type === 'app.navigation/href' &&
-        extension.properties.id === 'settings-llmd-topology-configurations',
+        extension.properties.path ===
+        '/settings/model-resources-operations/llmd-topology-configurations/*',
     );
 
-    expect(navItem?.properties).toEqual(
-      expect.objectContaining({
-        href: TOPOLOGY_CONFIGS_STANDALONE_PATH,
-        path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
-      }),
-    );
+    expect(redirectRoute).toBeDefined();
+    expect(redirectRoute?.flags).toEqual({
+      required: ['llmd-topology-configs', 'ADMIN_USER'],
+    });
   });
 });
 
@@ -179,6 +162,12 @@ describe('llm-d routing configuration extensions', () => {
     );
   });
 
+  it('should gate the routing tab on its own feature areas only', () => {
+    expect(routingTab?.flags).toEqual({
+      required: ['llmd-topology-configs', 'ADMIN_USER'],
+    });
+  });
+
   // The forms must not be tab content: TabRoutePage renders tab content beneath the
   // page title and tab bar, which would leave the form with two page headings.
   it('should register the form routes as standalone breakout routes outside the tab', () => {
@@ -200,26 +189,16 @@ describe('llm-d routing configuration extensions', () => {
     });
   });
 
-  // Guards the constants duplicated into extensions.ts, which cannot import runtime
-  // values from src. A refactor that changes paths.ts alone should fail here.
-  it('should build standalone routes from the shared standalone path constant', () => {
-    const paths = routeExtensions.map((extension) => extension.properties.path);
-
-    expect(paths).toContain(`${ROUTING_CONFIGS_STANDALONE_PATH}/*`);
-  });
-
-  it('should point the standalone nav item at the standalone path', () => {
-    const navItem = extensions.find(
+  it('should redirect the old standalone routing URL to the tab', () => {
+    const redirectRoute = routeExtensions.find(
       (extension) =>
-        extension.type === 'app.navigation/href' &&
-        extension.properties.id === 'settings-llmd-routing-configurations',
+        extension.properties.path ===
+        '/settings/model-resources-operations/llmd-routing-configurations/*',
     );
 
-    expect(navItem?.properties).toEqual(
-      expect.objectContaining({
-        href: ROUTING_CONFIGS_STANDALONE_PATH,
-        path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
-      }),
-    );
+    expect(redirectRoute).toBeDefined();
+    expect(redirectRoute?.flags).toEqual({
+      required: ['llmd-topology-configs', 'ADMIN_USER'],
+    });
   });
 });

@@ -29,18 +29,6 @@ class LlmdRoutingSettingsPage {
     }
   }
 
-  /**
-   * Visits the standalone (flag-off) llm-d routing configurations page.
-   * Temporary — removed along with the standalone page by RHOAIENG-80077.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  visitStandalone(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/llmd-routing-configurations');
-    if (wait) {
-      this.wait();
-    }
-  }
-
   navigate() {
     this.findNavItem().click();
     // The nav item targets the tabbed page's parent route, which resolves to the
