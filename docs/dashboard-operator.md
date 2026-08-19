@@ -466,6 +466,9 @@ cd dashboard-operator
 # Full test suite (fmt, vet, race detector, coverage)
 make test
 
+# Integration tests (envtest — real kube-apiserver + etcd)
+make test-integration
+
 # Lint
 make lint
 
@@ -475,6 +478,8 @@ make chart-validate
 # After modifying api/ types
 make generate && make manifests
 ```
+
+For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md).
 
 ## Cluster Deployment
 
