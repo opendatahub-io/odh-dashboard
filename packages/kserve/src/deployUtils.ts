@@ -1,20 +1,14 @@
 import {
   KnownLabels,
   MetadataAnnotation,
-  SecretKind,
   SupportedModelFormats,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-  K8sAPIOptions,
 } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
-import {
-  setUpTokenAuth as setUpTokenAuthShared,
-  type TokenAuthResourceType,
-} from '@odh-dashboard/model-serving/concepts/auth';
 import { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   type ModelTypeFieldData,
@@ -29,7 +23,6 @@ import {
   filterRuntimeArgsForContainer,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
-import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './types';
 
 export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
@@ -45,28 +38,6 @@ export enum KServeDeploymentMode {
   RawDeployment = 'RawDeployment',
   Standard = 'Standard',
 }
-
-export const KSERVE_RESOURCE_TYPE: TokenAuthResourceType = 'inferenceservices';
-
-export const setUpTokenAuth = async (
-  fillData: CreatingInferenceServiceObject,
-  deployedModelName: string,
-  namespace: string,
-  createTokenAuth: boolean,
-  owner: InferenceServiceKind,
-  existingSecrets?: SecretKind[],
-  opts?: K8sAPIOptions,
-): Promise<void> =>
-  setUpTokenAuthShared(
-    fillData.tokenAuth,
-    deployedModelName,
-    namespace,
-    createTokenAuth,
-    owner,
-    KSERVE_RESOURCE_TYPE,
-    existingSecrets,
-    opts,
-  );
 
 export const applyAuth = (
   inferenceService: InferenceServiceKind,
