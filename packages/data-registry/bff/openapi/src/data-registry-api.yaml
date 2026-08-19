@@ -5,7 +5,7 @@
 openapi: 3.1.0
 info:
   title: RHOAI Data Registry API
-  version: 0.7.1
+  version: 0.7.4
   description: |
     The RHOAI Data Registry exposes an **Iceberg REST Catalog-compatible API** for
     registering, discovering, and managing data assets across OpenShift AI projects.
@@ -75,6 +75,14 @@ tags:
     x-rhoai-extension: true
   - name: search
     description: Full-text search with relevance scoring (RHOAI extension)
+    x-rhoai-extension: true
+  - name: labels
+    description: |
+      Asset label management (RHOAI extension). Labels are simple string
+      identifiers for grouping and filtering assets. Unlike collections
+      (which provide structural/RBAC boundaries), labels support many-to-many
+      relationships — an asset can have multiple labels. Labels are managed
+      at the project level (create/delete) and assigned per asset (add/remove).
     x-rhoai-extension: true
 
 security:
@@ -552,6 +560,11 @@ paths:
       parameters:
         - $ref: '#/components/parameters/project'
         - $ref: '#/components/parameters/collection'
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter results to assets that have this label
       responses:
         '200':
           description: List of table assets across all formats
@@ -655,6 +668,80 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ===========================================================================
+  # Labels (RHOAI Extension)
+  # ===========================================================================
+
+  /v1/{project}/labels:
+    get:
+      operationId: listLabels
+      summary: List all labels in a project
+      description: |
+        Returns a sorted list of all labels available in the project.
+        Includes both explicitly created labels and labels discovered
+        from assets.
+      tags: [labels]
+      x-rhoai-extension: true
+      parameters:
+        - $ref: '#/components/parameters/project'
+      responses:
+        '200':
+          description: List of label names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelListResponse'
+
+    post:
+      operationId: createLabel
+      summary: Create a label
+      description: |
+        Creates a new label in the project. The label becomes available
+        for assignment to assets. Creating a label that already exists
+        returns 409.
+      tags: [labels]
+      x-rhoai-extension: true
+      parameters:
+        - $ref: '#/components/parameters/project'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLabelRequest'
+      responses:
+        '201':
+          description: Label created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /v1/{project}/labels/{label}:
+    delete:
+      operationId: deleteLabel
+      summary: Delete a label
+      description: |
+        Removes a label from the project. Assets that currently have this
+        label will have it removed automatically.
+      tags: [labels]
+      x-rhoai-extension: true
+      parameters:
+        - $ref: '#/components/parameters/project'
+        - name: label
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Label name to delete
+      responses:
+        '204':
+          description: Label deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
   # Search (RHOAI Extension)
   # ===========================================================================
 
@@ -715,6 +802,11 @@ paths:
           style: form
           explode: true
           description: Property filters as `key:value` pairs (all must match)
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter results to assets that have this label
         - name: sort_by
           in: query
           schema:
@@ -1252,6 +1344,11 @@ components:
           type: string
         description:
           type: string
+        labels:
+          type: array
+          items:
+            type: string
+          description: Labels to assign to this asset
         properties:
           type: object
           additionalProperties:
@@ -1279,6 +1376,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VolumeInfo'
+
+    # ----- Schema -----
+
+    SchemaField:
+      type: object
+      required: [name, type]
+      description: A column definition in a table schema.
+      properties:
+        name:
+          type: string
+          description: Column name
+        type:
+          type: string
+          description: "Data type (e.g. string, integer, long, float, double, decimal, boolean, date, timestamp, binary)"
+        description:
+          type: string
+          description: Human-readable column description
+        nullable:
+          type: boolean
+          default: true
+          description: Whether the column accepts NULL values
 
     # ----- Generic Tables (Extended) -----
 
@@ -1317,15 +1435,16 @@ components:
         owner:
           type: string
           description: Owner of the asset (team or individual responsible for this data)
+        labels:
+          type: array
+          items:
+            type: string
+          description: Labels to assign to this asset
         schema_fields:
           type: array
           items:
-            type: object
-            additionalProperties: true
-          description: |
-            Column definitions as untyped dicts. Common keys: `name` (string),
-            `type` (string), `nullable` (boolean), `description` (string),
-            `min`, `max`.
+            $ref: '#/components/schemas/SchemaField'
+          description: Column definitions for the table schema.
         properties:
           type: object
           additionalProperties:
@@ -1358,6 +1477,16 @@ components:
         owner:
           type: string
           description: Owner of the asset (team or individual responsible for this data)
+        add_labels:
+          type: array
+          items:
+            type: string
+          description: Labels to add to this asset. Existing labels are preserved.
+        remove_labels:
+          type: array
+          items:
+            type: string
+          description: Labels to remove from this asset.
         schema_fields:
           type: array
           items:
@@ -1396,9 +1525,8 @@ components:
         columns:
           type: ['array', 'null']
           items:
-            type: object
-            additionalProperties: true
-          description: Column definitions (untyped dicts with name, type, nullable, description, min, max)
+            $ref: '#/components/schemas/SchemaField'
+          description: Column definitions for the table schema
         collection:
           type: ['string', 'null']
         connection_ref:
@@ -1410,6 +1538,11 @@ components:
           description: Owner of the asset (team or individual responsible for this data)
         description:
           type: ['string', 'null']
+        labels:
+          type: ['array', 'null']
+          items:
+            type: string
+          description: Labels assigned to this asset for grouping and filtering
         properties:
           type: ['object', 'null']
           additionalProperties:
@@ -1435,6 +1568,33 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AssetResponse'
+
+    # ----- Labels -----
+
+    LabelListResponse:
+      type: object
+      required: [labels]
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+          description: Sorted list of label names available in the project
+
+    CreateLabelRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Label name (must be unique within the project)
+
+    LabelResponse:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
 
     # ----- Search -----
 
