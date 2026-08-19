@@ -426,3 +426,30 @@ func TestModuleNames(t *testing.T) {
 		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
 }
+
+func TestProxyPathsFor(t *testing.T) {
+	standardModules := []string{"modelRegistry", "genAi", "maas", "evalHub", "automl", "autorag", "notebooks"}
+	for _, name := range standardModules {
+		t.Run(name+"_default", func(t *testing.T) {
+			mod := moduleRegistry[name]
+			paths := proxyPathsFor(mod)
+			require.Len(t, paths, 1)
+			assert.Equal(t, "/"+mod.ManifestSlug+"/api", paths[0].Path)
+			assert.Equal(t, "/api", paths[0].PathRewrite)
+		})
+	}
+
+	t.Run("mlflow_custom", func(t *testing.T) {
+		paths := proxyPathsFor(moduleRegistry["mlflow"])
+		require.Len(t, paths, 1)
+		assert.Equal(t, "/_bff/mlflow/api", paths[0].Path)
+		assert.Equal(t, "/api", paths[0].PathRewrite)
+	})
+
+	t.Run("agentOps_custom", func(t *testing.T) {
+		paths := proxyPathsFor(moduleRegistry["agentOps"])
+		require.Len(t, paths, 2)
+		assert.Equal(t, "/agent-ops/api", paths[0].Path)
+		assert.Equal(t, "/agent-ops/healthcheck", paths[1].Path)
+	})
+}

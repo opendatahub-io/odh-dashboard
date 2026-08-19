@@ -145,7 +145,7 @@ Create the following subtasks under the new epic.
 | 4 | `<name>: Track & Verify ODH Konflux Onboarding` | Major | Track ODH Konflux component onboarding (Quay repo, build pipeline, release config). Automated by DevOps CI. |
 | 5 | `<name>: Set up module for OpenShift CI builds` | Major | Configure OpenShift CI in `openshift/release` repo (ci-operator config + prowgen jobs). Partially automated by `/konflux-onboarding` Phase 5. |
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
-| 7 | `<name>: Onboard Module in Operator` | Major | Two operator changes needed: (1) **dashboard-operator** (this repo) — register the module in `dashboard-operator/internal/controller/modules.go` (slug, container name, port, image env var, DSC component gate, inter-module dependencies), add proxy paths in `module_deploy.go`, add image mapping in `support.go`, update test assertions in `modules_test.go`. Automated by `/module-onboarding` Phase 7. (2) **opendatahub-operator** (separate repo: `opendatahub-io/opendatahub-operator`) — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `internal/controller/modules/dashboard/support.go`. Requires Platform team coordination. |
+| 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` (Name, Port, DSC component gate, inter-module dependencies) and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. ContainerName, ImageEnvVar, ManifestSlug, proxy paths, and imagesMap entries are auto-derived. The **opendatahub-operator** discovers `RELATED_IMAGE_ODH_MOD_ARCH_*` env vars dynamically — no code change needed there for new modules. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
 
 For each subtask:
@@ -500,7 +500,7 @@ Skip if: Type B, or module is already registered in `dashboard-operator/internal
 
 ### Step 2: Module registry — `dashboard-operator/internal/controller/modules.go`
 
-Read the file and find the `moduleRegistry` map. Add a new entry matching the existing pattern:
+Read the file and find the `moduleRegistry` map. Add a new entry with all required fields:
 
 ```go
 "<camelCase>": {
@@ -508,33 +508,21 @@ Read the file and find the `moduleRegistry` map. Add a new entry matching the ex
     ContainerName:           "<name>-ui",
     Port:                    <production-service-port>,
     ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
+    ManifestSlug:            "<name>",
     RequiredDSCComponents:   []string{<dsc-components>},
     InterModuleDependencies: []string{<dependencies>},
-    ManifestSlug:            "<name>",
 },
 ```
 
-The production service port is in `packages/<name>/package.json` at `module-federation.service.port`. If `RequiredDSCComponents` or `InterModuleDependencies` are empty, use `nil` instead of `[]string{}`.
+The production service port is in `packages/<name>/package.json` at `module-federation.service.port`. If `RequiredDSCComponents` or `InterModuleDependencies` are empty, omit them entirely.
 
-### Step 3: Proxy paths — `dashboard-operator/internal/controller/module_deploy.go`
+Optional fields (only needed for non-standard modules):
+- `ProxyPaths`: set if the module uses a non-standard proxy path (not `/<ManifestSlug>/api` → `/api`)
+- `InterBFFDeps`: set if this module's BFF needs to call another module's BFF service
 
-Read the file and find the `moduleProxyPaths` map. Add an entry:
+**No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition`) or `support.go` (image map auto-generated from registry).
 
-```go
-"<camelCase>": {{Path: "/<name>/api", PathRewrite: "/api"}},
-```
-
-If the module has inter-BFF dependencies (calls other BFF services), also add to `interBFFDependencies` in the same file.
-
-### Step 4: Image map — `dashboard-operator/internal/controller/support.go`
-
-Read the file and find the `imagesMap` variable. Add an entry:
-
-```go
-"<name>-ui-image": "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
-```
-
-### Step 5: Update tests — `dashboard-operator/internal/controller/modules_test.go`
+### Step 3: Update tests — `dashboard-operator/internal/controller/modules_test.go`
 
 Read the file and update:
 
@@ -542,7 +530,7 @@ Read the file and update:
 2. `TestModuleNames` — add `"<camelCase>"` to the expected sorted name list in the correct alphabetical position
 3. `TestResolveModuleStatuses` — update `wantLen` values: increment the standard case by 1 and the unknown-module case by 1
 
-### Step 6: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
+### Step 4: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
 
 Read the file and find the `relatedImages:` section. Add an entry for the new module's image env var:
 
@@ -552,13 +540,13 @@ RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
 
 Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries.
 
-### Step 7: Verify operator changes
+### Step 5: Verify operator changes
 
 ```bash
 cd dashboard-operator && go build ./... && go test ./internal/controller/... -count=1
 ```
 
-This confirms the registry entry compiles, proxy paths are valid, and test assertions match the updated module count.
+This confirms the registry entry compiles, derived fields are correct, and test assertions match the updated module count.
 
 ## Phase 6: DevOps Onboarding
 

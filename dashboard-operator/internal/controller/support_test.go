@@ -192,6 +192,36 @@ func TestParamsPreservation(t *testing.T) {
 	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
 }
 
+func TestImagesMapContainsAllModules(t *testing.T) {
+	for name, mod := range moduleRegistry {
+		paramKey := mod.ManifestSlug + "-ui-image"
+		envVar, ok := imagesMap[paramKey]
+		assert.True(t, ok, "imagesMap missing entry for module %q (expected key %q)", name, paramKey)
+		assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch for module %q", name)
+	}
+}
+
+func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
+	require.NoError(t, err)
+
+	content := string(data)
+	for name, mod := range moduleRegistry {
+		assert.Contains(t, content, mod.ImageEnvVar,
+			"values.yaml must contain RELATED_IMAGE env var for module %q", name)
+	}
+
+	coreEnvVars := []string{
+		"RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
+		"RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
+		"RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
+	}
+	for _, env := range coreEnvVars {
+		assert.Contains(t, content, env,
+			"values.yaml must contain core RELATED_IMAGE env var %q", env)
+	}
+}
+
 func TestNamespaceInjection(t *testing.T) {
 	dir := t.TempDir()
 
