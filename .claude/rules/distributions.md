@@ -15,7 +15,7 @@ Distributions live in `distributions/` — three are independently-deployable da
 | Directory | Type | Has BFF? | Build |
 |-----------|------|----------|-------|
 | `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `npm run build` |
-| `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | `make build` |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | `make build` |
 | `rhaii/` | RHAII-specific distribution | No | `npm run build` |
 | `maas-customer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | `npm run build` |
 

@@ -21,10 +21,10 @@ func TestDefaultManifestInfo(t *testing.T) {
 		platform   cluster.Platform
 		wantSource string
 	}{
-		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, wantSource: "/rhoai"},
+		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, wantSource: "/rhoai/standalone"},
 		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, wantSource: "/not-supported"},
-		{name: "OpenDataHub", platform: cluster.OpenDataHub, wantSource: "/odh"},
-		{name: "unknown platform falls back to ODH", platform: cluster.XKS, wantSource: "/odh"},
+		{name: "OpenDataHub", platform: cluster.OpenDataHub, wantSource: "/odh/standalone"},
+		{name: "unknown platform falls back to ODH", platform: cluster.XKS, wantSource: "/odh/standalone"},
 	}
 
 	for _, tt := range tests {

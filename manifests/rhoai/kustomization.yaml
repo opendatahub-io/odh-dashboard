@@ -9,7 +9,6 @@ commonLabels:
   app.opendatahub.io/rhods-dashboard: "true"
 resources:
   - ./apps
-  - ./base
   - ./consolelink
   - ./odhdashboardconfig
 configMapGenerator:
@@ -98,6 +97,3 @@ replacements:
           name: rhods-dashboard
         fieldPaths:
           - spec.template.spec.containers.[name=rhods-dashboard].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=model-registry-ui].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=maas-ui].env.[name=GATEWAY_DOMAIN].value

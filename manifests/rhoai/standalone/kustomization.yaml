@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Standalone mode: 3-container pod (rhods-dashboard, kube-rbac-proxy, core-bff).
+# 3-container pod (rhods-dashboard, kube-rbac-proxy, core-bff).
 # BFF modules are deployed as separate pods by the operator.
-# Core RHOAI renames applied; sidecar container-index patches are NOT included.
+# Core RHOAI renames applied.
 commonLabels:
   app: rhods-dashboard
   app.kubernetes.io/part-of: rhods-dashboard
@@ -21,7 +21,7 @@ configMapGenerator:
 generatorOptions:
   disableNameSuffixHash: true
 patchesJson6902:
-  # Core RHOAI renames only — NO sidecar container-index patches
+  # Core RHOAI renames
   - path: deployment.yaml
     target:
       group: apps
@@ -80,8 +80,7 @@ patchesJson6902:
       version: v1
       kind: HTTPRoute
       name: odh-dashboard
-  # NetworkPolicy only exists in manifests/sidecar/ — not present in ../../base.
-  # No NetworkPolicy patch needed in standalone mode.
+  # No NetworkPolicy patch needed (each module has its own NetworkPolicy).
   - path: pdb.yaml
     target:
       group: policy
