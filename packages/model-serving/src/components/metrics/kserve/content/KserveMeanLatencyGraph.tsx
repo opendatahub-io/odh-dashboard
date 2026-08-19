@@ -1,8 +1,8 @@
 import React from 'react';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { useFetchKserveMeanLatencyData } from '@odh-dashboard/model-serving/api/prometheus/kservePerformanceMetrics';
 import { KserveMetricGraphDefinition } from '../types';
 import MetricsChart from '../../MetricsChart';
-import { useFetchKserveMeanLatencyData } from '../../../../api/prometheus/kservePerformanceMetrics';
 import { convertPrometheusNaNToZero } from '../../utils';
 
 type KserveMeanLatencyGraphProps = {
