@@ -1,7 +1,7 @@
 import React from 'react';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { useFetchNimTimeToFirstTokenData } from '@odh-dashboard/model-serving/api/prometheus/kservePerformanceMetrics';
 import { NimMetricGraphDefinition } from '../types';
-import { useFetchNimTimeToFirstTokenData } from '../../../../api/prometheus/kservePerformanceMetrics';
 import MetricsChart from '../../MetricsChart';
 import { convertPrometheusNaNToZero } from '../../utils';
 

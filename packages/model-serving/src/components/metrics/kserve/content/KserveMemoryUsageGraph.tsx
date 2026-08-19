@@ -1,8 +1,8 @@
 import React from 'react';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { useFetchKserveMemoryUsageData } from '@odh-dashboard/model-serving/api/prometheus/kservePerformanceMetrics';
 import { KserveMetricGraphDefinition } from '../types';
 
-import { useFetchKserveMemoryUsageData } from '../../../../api/prometheus/kservePerformanceMetrics';
 import MetricsChart from '../../MetricsChart';
 import { toPercentage } from '../../utils';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { useFetchKserveRequestCountData } from '@odh-dashboard/model-serving/api/prometheus/kservePerformanceMetrics';
 import { KserveMetricGraphDefinition } from '../types';
-import { useFetchKserveRequestCountData } from '../../../../api/prometheus/kservePerformanceMetrics';
 import MetricsChart from '../../MetricsChart';
 
 type KserveRequestCountGraphProps = {
