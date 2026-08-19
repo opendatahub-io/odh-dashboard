@@ -11,6 +11,8 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 type DeleteRunModalProps = {
   isOpen: boolean;
@@ -32,9 +34,19 @@ const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
   const isDisabled = !confirmMessage || confirmInputValue.trim() !== confirmMessage || isDeleting;
 
   const handleClose = React.useCallback(() => {
+    // Deletion is already in flight (e.g. triggered via Escape/backdrop, which PatternFly's
+    // Modal invokes regardless of the disabled Cancel button) — don't record a "cancel"
+    // outcome here, since handleDelete will record the real submit success/failure outcome.
+    if (isDeleting) {
+      return;
+    }
     setConfirmInputValue('');
+    fireFormTrackingEvent(AUTOML_EVENTS.RUN_DELETED, {
+      outcome: TrackingOutcome.cancel,
+      source: 'runsList',
+    });
     onClose();
-  }, [onClose]);
+  }, [isDeleting, onClose]);
 
   return (
     <Modal variant="small" isOpen={isOpen} onClose={handleClose} data-testid="delete-run-modal">

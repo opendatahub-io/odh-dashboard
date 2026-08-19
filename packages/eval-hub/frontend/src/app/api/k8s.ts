@@ -10,6 +10,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
+  CollectionBenchmark,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
@@ -22,6 +23,7 @@ import {
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
+  ProviderBenchmark,
   ProvidersResponse,
   VerifyConnectionRequest,
   VerifyConnectionResponse,
@@ -43,6 +45,60 @@ const validateEvaluationJob = (data: unknown): void => {
     throw new Error('Invalid evaluation job: results.benchmarks is not an array');
   }
 };
+
+const isString = (v: unknown): v is string => typeof v === 'string';
+
+const isValidProviderItem = (p: unknown): p is Provider =>
+  p != null &&
+  typeof p === 'object' &&
+  'resource' in p &&
+  p.resource != null &&
+  typeof p.resource === 'object' &&
+  'id' in p.resource &&
+  typeof p.resource.id === 'string' &&
+  'name' in p &&
+  typeof p.name === 'string';
+
+const isValidProviderBenchmark = (b: unknown): b is ProviderBenchmark =>
+  b != null &&
+  typeof b === 'object' &&
+  'id' in b &&
+  typeof b.id === 'string' &&
+  'name' in b &&
+  typeof b.name === 'string';
+
+const isValidCollectionItem = (c: unknown): c is Collection =>
+  c != null &&
+  typeof c === 'object' &&
+  'resource' in c &&
+  c.resource != null &&
+  typeof c.resource === 'object' &&
+  'id' in c.resource &&
+  typeof c.resource.id === 'string' &&
+  'name' in c &&
+  typeof c.name === 'string';
+
+const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
+  b != null && typeof b === 'object' && 'id' in b && typeof b.id === 'string';
+
+const sanitizeProviders = (items: unknown[]): Provider[] =>
+  items.filter(isValidProviderItem).map((p) => ({
+    ...p,
+    benchmarks: Array.isArray(p.benchmarks)
+      ? p.benchmarks.filter(isValidProviderBenchmark).map((b) => ({
+          ...b,
+          metrics: Array.isArray(b.metrics) ? b.metrics.filter(isString) : undefined,
+        }))
+      : undefined,
+  }));
+
+const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
+  items.filter(isValidCollectionItem).map((c) => ({
+    ...c,
+    benchmarks: Array.isArray(c.benchmarks)
+      ? c.benchmarks.filter(isValidCollectionBenchmark)
+      : undefined,
+  }));
 
 export const getUser =
   (hostPath: string) =>
@@ -222,10 +278,10 @@ export const getCollections =
           return { items: [] };
         }
         if (Array.isArray(data)) {
-          return { items: data };
+          return { items: sanitizeCollectionItems(data) };
         }
         return {
-          items: data.items ?? [],
+          items: sanitizeCollectionItems(data.items ?? []),
           // eslint-disable-next-line camelcase
           total_count: data.total_count,
           limit: data.limit,
@@ -248,7 +304,7 @@ export const getProviders =
     ).then((response) => {
       if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
         const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        return sanitizeProviders(Array.isArray(data) ? data : data.items);
       }
       throw new Error('Invalid response format');
     });

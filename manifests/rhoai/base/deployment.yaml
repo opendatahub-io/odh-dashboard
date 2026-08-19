@@ -18,6 +18,12 @@
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
 # core-bff is now container index 2; gen-ai-ui is index 4 (was 3), eval-hub-ui is index 7 (was 6)
+# model-registry-ui (index 3) calls the MLflow BFF via BFF_MLFLOW_SERVICE_NAME, which
+# defaults to the shared "odh-dashboard" Service name in sidecar mode -- override to match
+# the renamed "rhods-dashboard" Service, same as the other inter-BFF overrides below.
+- op: replace
+  path: /spec/template/spec/containers/3/env/1/value
+  value: "rhods-dashboard"
 - op: replace
   path: /spec/template/spec/containers/4/env/3/value
   value: "rhods-dashboard"

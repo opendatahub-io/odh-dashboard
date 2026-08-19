@@ -35,6 +35,8 @@ jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useWatchConnectionTypes: jest.fn(() => [[], true]),
   useServingConnections: jest.fn(() => [[], true]),
   useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 
 // Mock PatternFly wizard hooks

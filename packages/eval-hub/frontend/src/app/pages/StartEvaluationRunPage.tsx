@@ -53,6 +53,7 @@ import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
+import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import {
   useStartEvaluationRunForm,
@@ -68,11 +69,27 @@ const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'prerecorded', label: 'Pre-recorded responses' },
 ];
 
-const StartEvaluationRunPage: React.FC = () => {
-  const { namespace } = useParams<{ namespace: string }>();
+type StartEvaluationRunPageProps = {
+  initialValues?: ReconfigureFormData;
+  sourceJobId?: string;
+};
 
-  const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
-    useEvaluationSelection(namespace);
+const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
+  initialValues,
+  sourceJobId,
+}) => {
+  const { namespace } = useParams<{ namespace: string }>();
+  const isReconfigure = !!sourceJobId;
+
+  const selectionResult = useEvaluationSelection(namespace, isReconfigure);
+
+  const benchmark = isReconfigure ? initialValues?.benchmark : selectionResult.benchmark;
+  const collection = isReconfigure ? initialValues?.collection : selectionResult.collection;
+  const isCollectionFlow = isReconfigure
+    ? (initialValues?.isCollectionFlow ?? false)
+    : selectionResult.isCollectionFlow;
+  const dataLoaded = isReconfigure ? true : selectionResult.dataLoaded;
+  const loadError = isReconfigure ? undefined : selectionResult.loadError;
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -92,6 +109,7 @@ const StartEvaluationRunPage: React.FC = () => {
     isCollectionFlow,
     experiments,
     experimentsLoaded,
+    initialValues,
   });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
@@ -175,23 +193,31 @@ const StartEvaluationRunPage: React.FC = () => {
           <BreadcrumbItem
             render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
           />
-          <BreadcrumbItem
-            render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
-          />
-          <BreadcrumbItem
-            render={() => (
-              <Link
-                to={
-                  isCollectionFlow
-                    ? evaluationCollectionsRoute(namespace)
-                    : evaluationBenchmarksRoute(namespace)
-                }
-              >
-                {breadcrumbFlowLabel}
-              </Link>
-            )}
-          />
-          <BreadcrumbItem isActive>Start evaluation run</BreadcrumbItem>
+          {isReconfigure ? (
+            <BreadcrumbItem isActive>Reconfigure evaluation</BreadcrumbItem>
+          ) : (
+            <>
+              <BreadcrumbItem
+                render={() => (
+                  <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
+                )}
+              />
+              <BreadcrumbItem
+                render={() => (
+                  <Link
+                    to={
+                      isCollectionFlow
+                        ? evaluationCollectionsRoute(namespace)
+                        : evaluationBenchmarksRoute(namespace)
+                    }
+                  >
+                    {breadcrumbFlowLabel}
+                  </Link>
+                )}
+              />
+              <BreadcrumbItem isActive>Start evaluation run</BreadcrumbItem>
+            </>
+          )}
         </Breadcrumb>
       }
       loaded
@@ -203,7 +229,7 @@ const StartEvaluationRunPage: React.FC = () => {
           data-testid="app-page-title"
           style={{ marginBlockStart: 0, marginBlockEnd: 0 }}
         >
-          Start evaluation run
+          {isReconfigure ? 'Reconfigure evaluation' : 'Start evaluation run'}
         </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
           {/* ── Evaluation name ─────────────────────────────────── */}
@@ -481,9 +507,6 @@ const StartEvaluationRunPage: React.FC = () => {
               datasetUrlError={form.datasetUrlError}
               touched={form.touched}
               markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
             />
           )}
 

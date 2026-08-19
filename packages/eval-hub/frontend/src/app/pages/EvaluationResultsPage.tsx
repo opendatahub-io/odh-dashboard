@@ -9,10 +9,13 @@ import {
   FlexItem,
   Gallery,
   Label,
+  Modal,
+  ModalBody,
+  ModalHeader,
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { CalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
+import { CalendarAltIcon, ListIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -40,6 +43,8 @@ import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
+const EvaluationEventLog = React.lazy(() => import('~/app/components/EvaluationEventLog'));
+
 interface MlflowRunTabsProps {
   experimentId: string;
   runUuid: string;
@@ -53,8 +58,6 @@ const MlflowRunTabs = React.lazy(() =>
     .then((mod) => mod ?? { default: () => null })
     .catch(() => ({ default: () => null })),
 );
-
-const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
@@ -187,6 +190,17 @@ const EvaluationResultsPage: React.FC = () => {
           </Content>
         </FlexItem>
       )}
+      <FlexItem>
+        <Button
+          variant="link"
+          isInline
+          icon={<ListIcon />}
+          onClick={() => setShowStatusModal(true)}
+          data-testid="view-log-button"
+        >
+          View log
+        </Button>
+      </FlexItem>
     </Flex>
   ) : undefined;
 
@@ -294,16 +308,6 @@ const EvaluationResultsPage: React.FC = () => {
               />
             )}
 
-            <Button
-              variant="link"
-              isInline
-              className="pf-v6-u-mt-md"
-              onClick={() => setShowStatusModal(true)}
-              data-testid="view-log-button"
-            >
-              View evaluation status
-            </Button>
-
             {/* MLflow run tabs for the selected benchmark */}
             {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
               <div className="pf-v6-u-mt-lg" data-testid="mlflow-run-tabs-section">
@@ -326,20 +330,50 @@ const EvaluationResultsPage: React.FC = () => {
           </div>
         )}
       </ApplicationsPage>
-      {showStatusModal && (
-        <React.Suspense
-          fallback={
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          }
+      {showStatusModal && job && namespace && (
+        <Modal
+          isOpen
+          onClose={() => setShowStatusModal(false)}
+          variant="medium"
+          aria-label="Event log"
+          data-testid="evaluation-event-log-modal"
         >
-          <EvaluationStatusModal
-            job={job ?? undefined}
-            namespace={namespace ?? ''}
-            onClose={() => setShowStatusModal(false)}
-          />
-        </React.Suspense>
+          <ModalHeader title="Event log" />
+          <ModalBody>
+            <React.Suspense
+              fallback={
+                <Bullseye>
+                  <Spinner />
+                </Bullseye>
+              }
+            >
+              <EvaluationEventLog
+                namespace={namespace}
+                jobId={job.resource.id}
+                evaluationName={evaluationName}
+                benchmarks={(job.status.benchmarks ?? [])
+                  .toSorted((a, b) => {
+                    if (a.benchmark_index != null && b.benchmark_index != null) {
+                      return a.benchmark_index - b.benchmark_index;
+                    }
+                    return a.id.localeCompare(b.id);
+                  })
+                  .map((bm, i) => ({
+                    key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
+                    id: bm.id,
+                    // eslint-disable-next-line camelcase
+                    benchmark_index: bm.benchmark_index,
+                  }))}
+                isInProgress={
+                  job.status.state === 'running' ||
+                  job.status.state === 'pending' ||
+                  job.status.state === 'stopping'
+                }
+                state={job.status.state}
+              />
+            </React.Suspense>
+          </ModalBody>
+        </Modal>
       )}
     </>
   );

@@ -28,18 +28,6 @@ class LlmdTopologySettingsPage {
     }
   }
 
-  /**
-   * Visits the standalone page, used when the `modelDeploymentSettings` flag is
-   * off. Removed with the standalone page in RHOAIENG-80077.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  visitStandalone(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/llmd-topology-configurations');
-    if (wait) {
-      this.wait();
-    }
-  }
-
   navigate() {
     this.findNavItem().click();
     // The nav item targets the tabbed page's parent route, which resolves to the

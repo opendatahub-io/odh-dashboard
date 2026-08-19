@@ -57,7 +57,6 @@ import {
   MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
   ValidatedConfiguration,
 } from '~/concepts/modelCatalog/const';
-import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
@@ -80,9 +79,8 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
     ? getValueLabels(model.customProperties, CATALOG_VALUE_LABEL_KEYS)
     : [];
   const isValidated = isModelValidated(model);
-  const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const { trackSimpleEvent } = useUserInteraction();
-  const isToolCallingValidated = isToolCallingEnabled && hasValidatedToolCalling(model);
+  const isToolCallingValidated = hasValidatedToolCalling(model);
 
   const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
   const validatedDeploymentResources = getValidatedDeploymentResources(model.customProperties);
@@ -273,7 +271,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       <DescriptionListDescription>
                         <ModelCatalogLabels
                           tasks={model.tasks ?? []}
-                          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
+                          validatedTasks={model.validatedTasks}
                           labels={[
                             ...allLabels.filter((label) => label !== 'validated'),
                             ...valueLabels,

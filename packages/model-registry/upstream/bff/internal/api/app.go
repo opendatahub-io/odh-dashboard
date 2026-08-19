@@ -9,7 +9,10 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/bffclient"
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
@@ -149,6 +152,14 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Model Registry/Catalog
 	rootCAs *x509.CertPool
+	// bffClientFactory creates inter-BFF clients (see docs/inter-bff-communication.md),
+	// used to resolve MCP Registry server details from the MLflow BFF. Built lazily by
+	// BFFClientFactory() in bff_client_factory.go, so NewApp doesn't carry its setup.
+	bffClientFactory     bffclient.BFFClientFactory
+	bffClientFactoryOnce sync.Once
+	// backgroundWg tracks work started via TrackBackgroundWork, so Shutdown can give it a
+	// bounded chance to finish instead of the process exiting out from under it.
+	backgroundWg sync.WaitGroup
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -259,8 +270,27 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	return app, nil
 }
 
+// backgroundWorkDrainTimeout bounds how long Shutdown waits for in-flight background work
+// (see TrackBackgroundWork) to finish. Kept comfortably above the longest known caller
+// timeout (e.g. the MCP registry access endpoint cascade's 5s) with margin to spare, while
+// still bounded so a misbehaving background task can never hang shutdown indefinitely.
+const backgroundWorkDrainTimeout = 10 * time.Second
+
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+
+	done := make(chan struct{})
+	go func() {
+		app.backgroundWg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(backgroundWorkDrainTimeout):
+		app.logger.Warn("timed out waiting for background work to finish during shutdown",
+			slog.Duration("timeout", backgroundWorkDrainTimeout))
+	}
+
 	if app.testEnv == nil {
 		return nil
 	}

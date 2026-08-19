@@ -67,11 +67,11 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--serving-runtimes"
         isOpen={resourcesOpen}
         title="Serving runtimes"
-        href="/settings/model-resources-operations/serving-runtimes"
+        href="/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates"
         onClick={() =>
           trackLinkClick(
             'serving-runtimes',
-            '/settings/model-resources-operations/serving-runtimes',
+            '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
           )
         }
         resourceType={ProjectObjectType.servingRuntime}

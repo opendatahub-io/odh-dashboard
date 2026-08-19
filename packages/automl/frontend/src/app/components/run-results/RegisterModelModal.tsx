@@ -28,13 +28,33 @@ import { registerModel } from '~/app/api/modelRegistry';
 import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlModelRegistered,
+  TrackingOutcome,
+  type ModelActionSource,
+} from '~/app/utilities/tracking';
 
 type RegisterModelModalProps = {
   onClose: () => void;
   modelName: string;
+  source: ModelActionSource;
 };
 
-const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName }) => {
+// Registration failures can originate from the model registry, the BFF's proxying layer, or the
+// underlying provider, and their raw messages may embed backend/proxy/tenant/credential details
+// (CWE-209: Generation of Error Message Containing Sensitive Information). Never render
+// error.message directly in the UI — show only this fixed, user-safe message.
+export const REGISTRATION_FAILURE_MESSAGE =
+  'Model registration failed. Try again or contact an administrator.';
+
+// Same CWE-209 concern as above: a failure to list model registries can originate from the
+// same backend/proxying layer and may embed the same kind of sensitive operational detail in
+// its error message. Never render error.message directly in the UI here either.
+export const REGISTRIES_LOAD_FAILURE_MESSAGE =
+  'Unable to load model registries. Try again or contact an administrator.';
+
+const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName, source }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, pipelineRun } = useAutomlResultsContext();
   const notification = useNotification();
@@ -43,13 +63,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     data: registriesData,
     isLoading: registriesLoading,
     isError: registriesError,
-    error: registriesQueryError,
   } = useModelRegistriesQuery();
-
-  const registriesErrorMessage =
-    registriesQueryError instanceof Error
-      ? registriesQueryError.message
-      : 'Failed to load model registries';
 
   const registries = registriesData?.model_registries ?? [];
   const readyRegistries = registries.filter((r) => r.is_ready);
@@ -118,13 +132,22 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
           onClick: () => window.open(modelDetailsUrl, '_blank', 'noopener,noreferrer'),
         },
       ]);
+      fireAutomlModelRegistered({
+        outcome: TrackingOutcome.submit,
+        success: true,
+        source,
+        registryTarget: variables.registryName,
+      });
       onClose();
     },
-    onError: (error: unknown) => {
-      notification.error(
-        'Failed to register model',
-        error instanceof Error ? error.message : 'An unexpected error occurred',
-      );
+    onError: () => {
+      notification.error('Failed to register model', REGISTRATION_FAILURE_MESSAGE);
+      fireAutomlModelRegistered({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        source,
+        error: AUTOML_FAILURE_CATEGORY,
+      });
     },
   });
 
@@ -164,8 +187,19 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
 
   const isSubmitting = registerMutation.isPending;
 
+  // Route every user-initiated dismissal (Escape, the close control, and the Cancel button)
+  // through a single guarded handler, so none of them can bypass cancellation tracking or
+  // close the modal while a registration request is still in flight.
+  const handleCancel = React.useCallback(() => {
+    if (isSubmitting) {
+      return;
+    }
+    fireAutomlModelRegistered({ outcome: TrackingOutcome.cancel, source });
+    onClose();
+  }, [isSubmitting, onClose, source]);
+
   return (
-    <Modal isOpen onClose={onClose} variant="medium" data-testid="register-model-modal">
+    <Modal isOpen onClose={handleCancel} variant="medium" data-testid="register-model-modal">
       <ModalHeader
         title="Register model"
         description={`Register ${displayName} to a model registry`}
@@ -179,9 +213,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               isInline
               data-testid="register-model-error"
             >
-              {registerMutation.error instanceof Error
-                ? registerMutation.error.message
-                : 'An unknown error occurred'}
+              {REGISTRATION_FAILURE_MESSAGE}
             </Alert>
           )}
 
@@ -192,7 +224,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem variant="error" data-testid="registries-error">
-                    {registriesErrorMessage}
+                    {REGISTRIES_LOAD_FAILURE_MESSAGE}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
@@ -330,7 +362,7 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
         </Button>
         <Button
           variant="link"
-          onClick={onClose}
+          onClick={handleCancel}
           isDisabled={isSubmitting}
           data-testid="register-model-cancel"
         >

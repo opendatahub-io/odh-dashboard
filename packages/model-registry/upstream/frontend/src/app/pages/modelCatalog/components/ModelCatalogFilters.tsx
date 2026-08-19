@@ -13,7 +13,6 @@ import {
   MODEL_CATALOG_MIDDLE_EASTERN_AND_OTHER_LANGUAGES_DETAILS,
   ModelCatalogTensorType,
 } from '~/concepts/modelCatalog/const';
-import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import {
   CatalogFilterPanel,
@@ -52,22 +51,7 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 const ModelCatalogFilters: React.FC = () => {
   const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
     React.useContext(ModelCatalogContext);
-  const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
   const { trackSimpleEvent } = useUserInteraction();
-
-  React.useEffect(() => {
-    if (
-      !toolCallingFeatureAvailable &&
-      filters[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
-    ) {
-      setFilters((prev) => ({
-        ...prev,
-        [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
-      }));
-    }
-    // Only react to flag changes — including filters would cause an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolCallingFeatureAvailable]);
 
   const onFilterChange = React.useCallback(
     (key: string, values: string[]) => {
@@ -125,7 +109,6 @@ const ModelCatalogFilters: React.FC = () => {
         const hasSelection = item.selectedValues.length > 0;
         return {
           ...itemWithTestIds,
-          visible: toolCallingFeatureAvailable,
           footer:
             hasMultiple && hasSelection ? (
               <Content component={ContentVariants.small} className="pf-v6-u-mt-sm">
@@ -168,7 +151,7 @@ const ModelCatalogFilters: React.FC = () => {
 
     items.splice(insertIndex, 0, ...sliderItems);
     return items;
-  }, [baseFilterItems, toolCallingFeatureAvailable]);
+  }, [baseFilterItems]);
 
   return (
     <CatalogFilterPanel

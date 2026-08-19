@@ -4,6 +4,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import {
   AutomlResultsContext,
@@ -18,6 +19,18 @@ import * as transformPipelineDataModule from '~/app/topology/tree-view/transform
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+jest.mock('~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal', () => ({
+  __esModule: true,
+  default: ({ isOpen, modelName }: { isOpen: boolean; modelName: string }) =>
+    isOpen ? <div data-testid="automl-model-details-modal">{modelName}</div> : null,
+}));
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedModel: undefined, stageMapNodes: [] }),
@@ -92,6 +105,7 @@ const createMockModel = (modelName: string): AutomlModel => ({
   },
 });
 
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 const fetchS3FileMock = jest.mocked(queries.fetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
@@ -648,6 +662,40 @@ describe('AutomlResults', () => {
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
+    });
+  });
+
+  describe('AutoML Model Details Viewed tracking', () => {
+    it('should fire with entrySource: resultsTable when the model name link is clicked', async () => {
+      const testModel = createMockModel('Test Model');
+      const models = { 'Test Model': testModel };
+
+      renderWithContext(mockPipelineRun, models);
+
+      await userEvent.click(screen.getByTestId('model-link-1'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+        entrySource: 'resultsTable',
+      });
+      expect(screen.getByTestId('automl-model-details-modal')).toBeInTheDocument();
+    });
+
+    it('should fire with entrySource: resultsTable when the row action "View details" is clicked', async () => {
+      const testModel = createMockModel('Test Model');
+      const models = { 'Test Model': testModel };
+
+      renderWithContext(mockPipelineRun, models);
+
+      const leaderboard = screen.getByTestId('leaderboard-table');
+      const firstRow = within(leaderboard).getByTestId('leaderboard-row-1');
+      const kebabButton = within(firstRow).getByRole('button', { name: 'Kebab toggle' });
+
+      await userEvent.click(kebabButton);
+      await userEvent.click(screen.getByText('View details'));
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+        entrySource: 'resultsTable',
+      });
     });
   });
 });
