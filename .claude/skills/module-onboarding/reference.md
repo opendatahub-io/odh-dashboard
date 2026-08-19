@@ -251,11 +251,12 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 15 | `npm run validate:ports` passes | Phase 5 |
 | 16 | `npm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
+| 18 | Deployment manifests in `manifests/modules/<name>/` | Phase 6 |
+| 19 | Module registered in operator module registry | Phase 7 |
+| 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
-| — | Standalone manifests in `manifests/modules/<name>/` | `/konflux-onboarding` |
-| — | Module registered in operator module registry | `/konflux-onboarding` |
 | — | RELATED_IMAGE entry in Helm chart `values.yaml` | `/konflux-onboarding` |
 
 ## Troubleshooting
