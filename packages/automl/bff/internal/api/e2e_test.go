@@ -352,7 +352,10 @@ func TestPipelineRunRetryToSuccess(t *testing.T) {
 			t.Fatalf("state immediately after retry = %q, want PENDING", afterRetry.Data.State)
 		}
 
-		state := pollForState(t, baseURL, runID, "SUCCEEDED", 20*time.Second)
+		// The fake needs ~15s to progress PENDING -> RUNNING -> SUCCEEDED. Allow
+		// generous slack for loaded CI runners; pollForState returns as soon as
+		// the state matches, so a large timeout costs nothing on a healthy run.
+		state := pollForState(t, baseURL, runID, "SUCCEEDED", 45*time.Second)
 		if state != "SUCCEEDED" {
 			t.Fatalf("run did not reach SUCCEEDED state after retry, last observed state: %q", state)
 		}
