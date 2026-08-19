@@ -1,8 +1,9 @@
 import React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import type { IdentifyEventProperties } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { computeAnonymousUserId } from '@odh-dashboard/analytics';
 import { useUser } from '#~/redux/selectors';
-import { IdentifyEventProperties } from '#~/concepts/analyticsTracking/trackingProperties';
 
 export const useTrackUser = (username?: string): [IdentifyEventProperties, boolean] => {
   const { isAdmin, userID } = useUser();
@@ -16,18 +17,8 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
   const [allowCreate, acLoaded] = useAccessReview(createReviewResource);
 
   React.useEffect(() => {
-    const computeAnonymousUserId = async () => {
-      const anonymousIDBuffer = await crypto.subtle.digest(
-        'SHA-1',
-        new TextEncoder().encode(username),
-      );
-      const anonymousIDArray = Array.from(new Uint8Array(anonymousIDBuffer));
-      const aId = anonymousIDArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-      return aId;
-    };
-
-    if (!userID) {
-      computeAnonymousUserId().then((val) => {
+    if (!userID && username) {
+      computeAnonymousUserId(username).then((val) => {
         setUserID(val);
       });
     }
