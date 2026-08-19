@@ -140,7 +140,7 @@ class ModelDetailsPage {
   }
 
   findToolCallingCard() {
-    return cy.findByTestId('tool-calling-card', { timeout: 20000 });
+    return cy.findByTestId('tool-calling-card');
   }
 
   findToolCallingToggle() {
