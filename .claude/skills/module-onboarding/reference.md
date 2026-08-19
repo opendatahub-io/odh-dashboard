@@ -292,11 +292,22 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Fix**: Run `cd packages/<name>/bff && go mod tidy` to resolve dependencies. Ensure `go.mod` has the correct module path.
 
-## Standalone Deployment Manifests
+## Deployment Manifests
 
-> Standalone manifests and operator registration are created by `/konflux-onboarding`, not this skill. They are deferred because the operator deploys the module image, which must be buildable first (via OpenShift CI) — otherwise the pod enters ImagePullBackOff.
+The module-onboarding skill creates deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
 
-See the `/konflux-onboarding` skill for the full standalone manifest and operator registration steps.
+### Required files
+
+| File | Purpose |
+|------|---------|
+| `deployment.yaml` | Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount |
+| `service.yaml` | Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`) |
+| `networkpolicy.yaml` | NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication) |
+| `service-account.yaml` | Dedicated ServiceAccount for SA isolation |
+| `cluster-role.yaml` | Module-specific ClusterRole |
+| `cluster-role-binding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
+| `kustomization.yaml` | Kustomize entry referencing all resources |
+| `params.env` | Kustomize parameter defaults (image reference) |
 
 ### Reference existing modules
 

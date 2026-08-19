@@ -19,16 +19,13 @@ var sectionTitle = map[cluster.Platform]string{
 	cluster.OpenDataHub:      "OpenShift Open Data Hub",
 }
 
-var overlaysSourcePaths = map[cluster.Platform]string{
+var platformPaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai",
 	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh",
 }
 
-// standaloneOverlaysSourcePaths returns the manifest paths for standalone mode.
-// Standalone mode renders the 3-container core pod (odh-dashboard, kube-rbac-proxy, core-bff)
-// without BFF module sidecar containers. BFF modules are deployed as separate pods.
-var standaloneOverlaysSourcePaths = map[cluster.Platform]string{
+var overlaysSourcePaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai/standalone",
 	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh/standalone",
@@ -65,26 +62,10 @@ func defaultManifestInfo(basePath string, platform cluster.Platform) render.Mani
 	}
 }
 
-// standaloneManifestInfo returns the manifest path for standalone deployment mode.
-// In standalone mode, the core dashboard pod has only 3 containers (odh-dashboard,
-// kube-rbac-proxy, core-bff). BFF module pods are deployed separately from manifests/modules/.
-func standaloneManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := standaloneOverlaysSourcePaths[platform]
-	if !ok {
-		sourcePath = standaloneOverlaysSourcePaths[cluster.OpenDataHub]
-	}
-
-	return render.ManifestInfo{
-		Path:       basePath,
-		ContextDir: "",
-		SourcePath: sourcePath,
-	}
-}
-
 func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := overlaysSourcePaths[platform]
+	sourcePath, ok := platformPaths[platform]
 	if !ok {
-		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+		sourcePath = platformPaths[cluster.OpenDataHub]
 	}
 
 	return render.ManifestInfo{
