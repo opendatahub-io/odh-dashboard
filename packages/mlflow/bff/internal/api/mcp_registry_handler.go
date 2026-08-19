@@ -302,6 +302,8 @@ type MCPServerVersionsEnvelope = Envelope[models.MCPServerVersionsResponse, None
 type MCPServerVersionEnvelope = Envelope[models.MCPServerVersion, None]
 type MCPAccessEndpointsEnvelope = Envelope[models.MCPAccessEndpointsResponse, None]
 type MCPAccessEndpointEnvelope = Envelope[models.MCPAccessEndpoint, None]
+type MCPTagEnvelope = Envelope[models.SetMCPTagRequest, None]
+type MCPRegisterEnvelope = Envelope[models.RegisterMCPServerResult, None]
 
 // enforceMCPWritePermission checks if the user has write permissions for the
 // MCP Registry in the namespace. Mirrors enforceWritePermission (prompts_handler.go)
@@ -642,7 +644,10 @@ func (app *App) mlflowSetMCPServerTag(w http.ResponseWriter, r *http.Request, na
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response := MCPTagEnvelope{Data: req}
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 // mlflowDeleteMCPServerTag handles DELETE /api/v1/mcp-registry/servers/:name/tags/:key
@@ -813,21 +818,8 @@ func (app *App) mlflowCreateMCPServerVersion(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if len(req.ServerJSON) == 0 {
-		app.badRequestResponse(w, r, errors.New("server_json is required"))
-		return
-	}
-	serverJSONName, ok := req.ServerJSON["name"].(string)
-	if !ok || serverJSONName == "" {
-		app.badRequestResponse(w, r, errors.New(`server_json "name" is required`))
-		return
-	}
-	if serverJSONName != name {
-		app.badRequestResponse(w, r, fmt.Errorf("server_json name %q must match server name %q", serverJSONName, name))
-		return
-	}
-	if serverJSONVersion, ok := req.ServerJSON["version"].(string); !ok || serverJSONVersion == "" {
-		app.badRequestResponse(w, r, errors.New(`server_json "version" is required`))
+	if err := validateMCPServerJSON(req.ServerJSON, name); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -856,7 +848,7 @@ func (app *App) mlflowCreateMCPServerVersion(w http.ResponseWriter, r *http.Requ
 
 	response := MCPServerVersionEnvelope{Data: *result}
 	headers := http.Header{
-		"Location": {fmt.Sprintf("%s/%s/versions/%s?workspace=%s", MCPServersPath, mcpServerNamePathSegment(name), url.PathEscape(result.Version), url.QueryEscape(workspace))},
+		"Location": {mcpServerVersionLocation(name, result.Version, workspace)},
 	}
 	if err := app.WriteJSON(w, http.StatusCreated, response, headers); err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -995,7 +987,10 @@ func (app *App) mlflowSetMCPServerVersionTag(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response := MCPTagEnvelope{Data: req}
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 // mlflowDeleteMCPServerVersionTag handles DELETE /api/v1/mcp-registry/servers/:name/versions/:version/tags/:key

@@ -73,7 +73,6 @@ const initIntercepts = ({
     disableKServe: false,
     disableLLMd: false,
     llmdTemplates: true,
-    modelDeploymentSettings: true,
   });
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);

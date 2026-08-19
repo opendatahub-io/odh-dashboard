@@ -49,6 +49,13 @@ func main() {
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
 
+	// Inter-BFF: model-registry catalog proxy
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFModelRegistryDevURL, "bff-model-registry-dev-url", getEnvAsString("BFF_MODEL_REGISTRY_DEV_URL", ""), "Developer override URL for model-registry BFF (e.g., http://localhost:8043/api/v1)")
+	flag.StringVar(&cfg.BFFModelRegistryServiceName, "bff-model-registry-service-name", getEnvAsString("BFF_MODEL_REGISTRY_SERVICE_NAME", "odh-dashboard-model-registry-ui"), "Kubernetes service name for model-registry BFF")
+	flag.IntVar(&cfg.BFFModelRegistryServicePort, "bff-model-registry-service-port", getEnvAsInt("BFF_MODEL_REGISTRY_SERVICE_PORT", 8043), "Port for model-registry BFF service")
+	flag.BoolVar(&cfg.BFFModelRegistryTLSEnabled, "bff-model-registry-tls-enabled", getEnvAsBool("BFF_MODEL_REGISTRY_TLS_ENABLED", false), "Enable TLS for model-registry BFF communication")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")

@@ -1,10 +1,10 @@
-const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/rspack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 module.exports = {
   moduleFederationPlugins: [
-    new OdhRemoteFederationPlugin({
+    new OdhFederationPlugin({
       name: 'coreBff',
-      packageJson: require('../package.json'),
+      isHost: process.env.DEPLOYMENT_MODE === 'standalone',
       exposes: {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',

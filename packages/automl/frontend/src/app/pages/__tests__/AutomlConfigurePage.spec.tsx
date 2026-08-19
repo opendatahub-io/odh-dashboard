@@ -5,7 +5,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
+import { AUTOML_EVENTS, AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
@@ -18,8 +26,18 @@ jest.mock('react-router', () => ({
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
   useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
   ),
 }));
 
@@ -67,6 +85,11 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     error: mockNotificationError,
   })),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('mod-arch-shared', () => ({
@@ -301,6 +324,42 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
     });
+
+    it('should fire AutoML Run Details Defined with outcome:submit and hasDescription:false when no description is entered', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => expect(nextButton).toBeEnabled());
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'submit',
+        hasDescription: false,
+      });
+    });
+
+    it('should fire AutoML Run Details Defined with hasDescription:true when a description is entered', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+      const descriptionInput = await screen.findByLabelText(/Description/i);
+      await user.type(descriptionInput, 'Some description');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => expect(nextButton).toBeEnabled());
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'submit',
+        hasDescription: true,
+      });
+    });
   });
 
   describe('Create step - Cancel button', () => {
@@ -310,6 +369,30 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
       expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should fire AutoML Run Details Defined with outcome:cancel when Cancel is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'cancel',
+        hasDescription: false,
+      });
+    });
+
+    it('should fire AutoML Flow Exited with defineDetails and experimentsList', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'experimentsList',
+      });
     });
   });
 
@@ -351,6 +434,44 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('AutoML: test-namespace')).toBeInTheDocument();
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
       expect(breadcrumbName).toHaveTextContent('My Experiment');
+    });
+
+    it('should fire AutoML Flow Exited with trainingData and experimentsList when the breadcrumb is clicked', async () => {
+      const user = userEvent.setup();
+      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+      await user.click(breadcrumbLink);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'trainingData',
+        exitDestination: 'experimentsList',
+      });
+    });
+
+    it('should report predictionType (not trainingData) once a target column has been selected', async () => {
+      const user = userEvent.setup();
+
+      // Progress past training data: select an AWS connection and browse to a file.
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+      const selectFilesButton = await screen.findByRole('button', { name: 'Browse bucket' });
+      await user.click(selectFilesButton);
+      const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
+      await user.click(fileSelectButton);
+
+      // Select a target column — this is what should surface progress past 'trainingData'.
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+      await user.click(breadcrumbLink);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'predictionType',
+        exitDestination: 'experimentsList',
+      });
     });
 
     it('should render "Create run" button', async () => {
@@ -577,6 +698,7 @@ describe('AutomlConfigurePage', () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
           '/develop-train/automl/results/test-namespace/new-run-123',
+          { state: { entrySource: 'direct' } },
         );
       });
     });
@@ -637,6 +759,16 @@ describe('AutomlConfigurePage', () => {
           'Pipeline creation failed',
         );
       });
+
+      // The in-product notification may keep the detailed message, but analytics must only
+      // ever see the fixed, allowlisted failure category — never the raw Error.message, which
+      // may originate from the backend/proxy and embed sensitive details.
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTOML_EVENTS.RUN_CREATED,
+        expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
+      );
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('Pipeline creation failed');
     });
 
     it('should show generic error when error is not an Error instance', async () => {
@@ -786,6 +918,52 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
       expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should report otherAutoml on Cancel when reconfigure was entered from the results page', async () => {
+      const user = userEvent.setup();
+      mockLocationState = { from: 'results' };
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'otherAutoml',
+        changedFields: '',
+      });
+    });
+
+    it('should report experimentsList (not otherAutoml) on Cancel when reconfigure was entered from the runs list', async () => {
+      // sourceRunId is set for every reconfigure flow, including from the runs list — only the
+      // `from: 'results'` location state indicates navigate(-1) returns to another AutoML run.
+      const user = userEvent.setup();
+      mockLocationState = { from: 'runsList' };
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'experimentsList',
+        changedFields: '',
+      });
     });
 
     it('should display breadcrumb with source run link when navigating from results page', async () => {
@@ -1075,6 +1253,232 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
         expect(screen.getByText('train.csv')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+      });
+    });
+
+    describe('AutoML Run Reconfigured tracking - changedFields', () => {
+      const tabularInitialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        train_data_secret_name: 'Test AWS Secret',
+        train_data_bucket_name: 'test-bucket',
+        train_data_file_key: 'my-data/train.csv',
+        task_type: 'binary' as const,
+        target_column: 'column1',
+        // Real AutomlReconfigureLoader always resolves and pre-fills eval_metric — mirror that
+        // here so the assertions aren't polluted by a spurious optimizationMetric diff.
+        eval_metric: 'accuracy' as const,
+        top_n: 7,
+      };
+      const tabularInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      it('should NOT include targetColumn in changedFields when the target column is unchanged', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockResolvedValue({ run_id: 'reconfigured-run-1' });
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({ changedFields: '' }),
+        );
+      });
+
+      it('should include targetColumn in changedFields when the target column is changed', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockResolvedValue({ run_id: 'reconfigured-run-2' });
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Change the target column to a different column
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        // Re-select the prediction type, since changing the target column resets it
+        const regressionCard = await screen.findByTestId('task-type-card-regression');
+        await user.click(regressionCard);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+        // Switching prediction type also recomputes the default optimization metric for the
+        // new task type, so that legitimately shows up as changed too.
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            changedFields: 'predictionType,optimizationMetric,targetColumn',
+          }),
+        );
+      });
+
+      it('should still report changedFields when the reconfigure mutation fails', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockRejectedValue(new Error('Pipeline creation failed'));
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Change the target column to a different column
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        // Re-select the prediction type, since changing the target column resets it
+        const regressionCard = await screen.findByTestId('task-type-card-regression');
+        await user.click(regressionCard);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+
+        // The diff must be computed regardless of mutation outcome — a failed reconfiguration
+        // still changed these fields, and reporting an empty diff would make failure analysis
+        // on this event unusable.
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            changedFields: 'predictionType,optimizationMetric,targetColumn',
+            outcome: 'submit',
+            success: false,
+            // Analytics must only ever see the fixed, allowlisted failure category — never
+            // the raw Error.message, which may embed backend/proxy-originated sensitive details.
+            error: AUTOML_FAILURE_CATEGORY,
+          }),
+        );
+        const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+        expect(allTrackingCalls).not.toContain('Pipeline creation failed');
+      });
+    });
+
+    describe('AutoML Flow Exited tracking - reconfigure funnel step and changedFields', () => {
+      const initialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        train_data_secret_name: 'Test AWS Secret',
+        train_data_bucket_name: 'test-bucket',
+        train_data_file_key: 'my-data/train.csv',
+        task_type: 'binary' as const,
+        target_column: 'column1',
+        eval_metric: 'accuracy' as const,
+        top_n: 7,
+      };
+      const initialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      it('should report configure (not trainingData/predictionType) with an empty changedFields when nothing was changed', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={initialValues}
+            initialInputDataSecret={initialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // The configure screen is fully populated on mount — reconfigure has no equivalent to
+        // the create flow's progressive trainingData → predictionType unlocking to report.
+        await screen.findByTestId('target_column-select');
+
+        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+        await user.click(breadcrumbLink);
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+          exitType: 'navigate',
+          lastFunnelStep: 'configure',
+          exitDestination: 'experimentsList',
+          changedFields: '',
+        });
+      });
+
+      it('should report the changed fields when the user modifies the target column before leaving', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={initialValues}
+            initialInputDataSecret={initialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Selecting a different column also changes its inferred task type, and therefore the
+        // task-type-default optimization metric — same three-field diff as the equivalent
+        // submit-time changedFields test above, for the same fixture and interaction.
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+        await user.click(breadcrumbLink);
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+          exitType: 'navigate',
+          lastFunnelStep: 'configure',
+          exitDestination: 'experimentsList',
+          changedFields: 'predictionType,optimizationMetric,targetColumn',
+        });
       });
     });
   });

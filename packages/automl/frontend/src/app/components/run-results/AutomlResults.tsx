@@ -14,6 +14,12 @@ import {
   isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
+import {
+  fireAutomlModelDetailsViewed,
+  fireAutomlNotebookDownloaded,
+  type ModelActionSource,
+  type ModelDetailsEntrySource,
+} from '~/app/utilities/tracking';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
@@ -24,6 +30,11 @@ import './AutomlResults.scss';
 type ModalState = {
   modelName: string;
   rank: number;
+};
+
+type RegisterModelState = {
+  modelName: string;
+  source: ModelActionSource;
 };
 
 type NotebookDownloadError = {
@@ -143,15 +154,21 @@ function AutomlResults(): React.JSX.Element {
     runId,
   ]);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
-  const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
+  const [registerModelState, setRegisterModelState] = React.useState<RegisterModelState | null>(
+    null,
+  );
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
 
-  const handleViewDetails = React.useCallback((modelName: string, rank: number) => {
-    setModalState({ modelName, rank });
-  }, []);
+  const handleViewDetails = React.useCallback(
+    (modelName: string, rank: number, entrySource: ModelDetailsEntrySource = 'resultsTable') => {
+      setModalState({ modelName, rank });
+      fireAutomlModelDetailsViewed(entrySource);
+    },
+    [],
+  );
 
-  const handleRegisterModel = React.useCallback((modelName: string) => {
-    setRegisterModelName(modelName);
+  const handleRegisterModel = React.useCallback((modelName: string, source: ModelActionSource) => {
+    setRegisterModelState({ modelName, source });
   }, []);
 
   const sanitizeFilename = (str: string): string =>
@@ -165,7 +182,7 @@ function AutomlResults(): React.JSX.Element {
       .trim() || 'unknown';
 
   const handleSaveNotebook = React.useCallback(
-    async (modelName: string) => {
+    async (modelName: string, source: ModelActionSource) => {
       // Clear any previous errors
       setDownloadError(null);
 
@@ -202,6 +219,7 @@ function AutomlResults(): React.JSX.Element {
         const safeModelName = sanitizeFilename(modelName);
         const notebookFilename = `${displayName}_${safeModelName}_notebook.ipynb`;
         downloadBlob(notebook, notebookFilename);
+        fireAutomlNotebookDownloaded(source);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
@@ -258,10 +276,11 @@ function AutomlResults(): React.JSX.Element {
           onRegisterModel={handleRegisterModel}
         />
       )}
-      {registerModelName && (
+      {registerModelState && (
         <RegisterModelModal
-          onClose={() => setRegisterModelName(null)}
-          modelName={registerModelName}
+          onClose={() => setRegisterModelState(null)}
+          modelName={registerModelState.modelName}
+          source={registerModelState.source}
         />
       )}
     </>
