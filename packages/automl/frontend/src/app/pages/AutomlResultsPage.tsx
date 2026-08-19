@@ -157,7 +157,11 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link {...props} to={`${automlReconfigurePathname}/${namespace}/${runId}`} />
+      <Link
+        {...props}
+        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
     ),
     [namespace, runId],
   );
@@ -284,7 +288,10 @@ function AutomlResultsPage(): React.JSX.Element {
                     homePath={getRedirectPath(namespace)}
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link to={`${automlReconfigurePathname}/${namespace}/${runId}`}>
+                      <Link
+                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
                         Experiment configurations
                       </Link>
                     </BreadcrumbItem>

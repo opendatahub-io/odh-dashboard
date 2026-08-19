@@ -55,6 +55,23 @@ jest.mock('react-router', () => ({
   ),
 }));
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
+  ),
+}));
+
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({
     namespaces: [{ name: 'test-namespace' }, { name: 'other-namespace' }],
@@ -1371,8 +1388,8 @@ describe('AutoragConfigurePage', () => {
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1400,8 +1417,8 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1447,8 +1464,8 @@ describe('AutoragConfigurePage', () => {
       });
       await user.click(nextButtonAgain);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1579,34 +1596,15 @@ describe('AutoragConfigurePage', () => {
         });
         await user.click(nextButton);
 
-        const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
           lastFunnelStep: 'run',
           exitDestination: 'experimentsList',
-        });
-      });
-
-      it('should fire with exitDestination: otherGenAi when the source-run breadcrumb is clicked', async () => {
-        const user = userEvent.setup();
-        mockLocationState = { from: 'results' };
-        renderWithProviders(
-          <AutoragConfigurePage
-            initialValues={{ display_name: 'Original Run - 1' }}
-            sourceRunId="prev-run-456"
-            sourceRunName="Original Run"
-          />,
-        );
-
-        const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
-        await user.click(sourceRunBreadcrumb.querySelector('a')!);
-
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
-          exitType: 'navigate',
-          lastFunnelStep: 'defineDetails',
-          exitDestination: 'otherGenAi',
         });
       });
 

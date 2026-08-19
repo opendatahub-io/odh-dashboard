@@ -186,7 +186,11 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link {...props} to={`${autoragReconfigurePathname}/${namespace}/${runId}`} />
+      <Link
+        {...props}
+        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
     ),
     [namespace, runId],
   );
@@ -424,7 +428,10 @@ function AutoragResultsPage(): React.JSX.Element {
                     homePath={getRedirectPath(namespace)}
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link to={`${autoragReconfigurePathname}/${namespace}/${runId}`}>
+                      <Link
+                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
                         Experiment configurations
                       </Link>
                     </BreadcrumbItem>

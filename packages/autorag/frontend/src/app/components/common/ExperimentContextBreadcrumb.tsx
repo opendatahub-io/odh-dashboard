@@ -18,6 +18,7 @@ type ExperimentContextBreadcrumbProps = {
   namespace: string;
   projectDisplayName: string;
   homePath: string;
+  onHomeNavigate?: () => void;
   children?: React.ReactNode;
 };
 
@@ -26,12 +27,13 @@ const ExperimentContextBreadcrumb: React.FC<ExperimentContextBreadcrumbProps> = 
   namespace,
   projectDisplayName,
   homePath,
+  onHomeNavigate,
   children,
 }) => (
   <Flex alignItems={{ default: 'alignItemsCenter' }}>
     <Breadcrumb>
       <BreadcrumbItem data-testid="experiment-breadcrumb-home">
-        <Link to={homePath} className="autorag-breadcrumb-link-with-icon">
+        <Link to={homePath} className="autorag-breadcrumb-link-with-icon" onClick={onHomeNavigate}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsXs' }}

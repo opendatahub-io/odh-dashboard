@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useMemo, useState } from 'react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { useLocation, useNavigate, useParams } from 'react-router';
@@ -204,6 +203,15 @@ function AutomlConfigurePage({
     navigate(-1);
   }, [navigate, description, cancelExitDestination]);
 
+  const handleHomeNavigate = useCallback(() => {
+    fireAutomlFlowExited(
+      'navigate',
+      funnelStepRef.current,
+      'experimentsList',
+      changedFieldsOnExitRef.current,
+    );
+  }, []);
+
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
     // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
@@ -311,6 +319,7 @@ function AutomlConfigurePage({
             namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            onHomeNavigate={handleHomeNavigate}
           >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               Experiment configurations

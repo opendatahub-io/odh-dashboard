@@ -32,9 +32,14 @@ jest.mock('react-router', () => ({
   Link: ({
     to,
     children,
+    state,
     ...rest
-  }: { to: string; children: React.ReactNode } & Record<string, unknown>) => (
-    <a href={to} {...rest}>
+  }: {
+    to: string;
+    children: React.ReactNode;
+    state?: { from?: string };
+  } & Record<string, unknown>) => (
+    <a href={to} data-from={state?.from} {...rest}>
       {children}
     </a>
   ),
@@ -719,6 +724,7 @@ describe('AutoragResultsPage', () => {
         'href',
         '/gen-ai-studio/autorag/reconfigure/test-ns/run-123',
       );
+      expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
       expect(screen.getByText('Run results')).toBeInTheDocument();
       expect(
         screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
@@ -1177,6 +1183,7 @@ describe('AutoragResultsPage', () => {
       const reconfigureButton = screen.getByTestId('reconfigure-run-button');
       const link = reconfigureButton.closest('a');
       expect(link).toHaveAttribute('href', '/gen-ai-studio/autorag/reconfigure/test-ns/run-123');
+      expect(link).toHaveAttribute('data-from', 'results');
     });
 
     it('should show Reconfigure button alongside Stop button for active runs', () => {

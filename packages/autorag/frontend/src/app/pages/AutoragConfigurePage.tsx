@@ -86,7 +86,9 @@ function AutoragConfigurePage({
   const notification = useNotification();
   const location = useLocation();
   const fromResultsPage =
-    location.state != null && typeof location.state === 'object' && location.state.from === 'results';
+    location.state != null &&
+    typeof location.state === 'object' &&
+    location.state.from === 'results';
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -210,8 +212,7 @@ function AutoragConfigurePage({
   // run's results page (still part of this same package) when reconfigure was entered from
   // there — from the runs list, Cancel returns to the experiments list. There's no dedicated
   // "back to this package's own results page" bucket in the exitDestination taxonomy, so this
-  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list) — the same
-  // bucket used for the source-run breadcrumb link below.
+  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list).
   const cancelExitDestination: AutoragExitDestination = fromResultsPage
     ? 'otherGenAi'
     : 'experimentsList';
@@ -308,6 +309,10 @@ function AutoragConfigurePage({
     form,
     computeReconfigureTracking,
   ]);
+
+  const handleHomeNavigate = useCallback(() => {
+    fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList');
+  }, []);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -424,6 +429,7 @@ function AutoragConfigurePage({
             namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            onHomeNavigate={handleHomeNavigate}
           >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               Experiment configurations

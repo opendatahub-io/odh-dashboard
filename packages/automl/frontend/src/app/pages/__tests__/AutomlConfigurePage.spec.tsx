@@ -40,6 +40,23 @@ jest.mock('react-router', () => ({
   ),
 }));
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
+  ),
+}));
+
 // Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
 jest.mock('@patternfly/react-core', () => ({
   ...jest.requireActual('@patternfly/react-core'),
@@ -445,8 +462,8 @@ describe('AutomlConfigurePage', () => {
 
     it('should fire AutoML Flow Exited with trainingData and experimentsList when the breadcrumb is clicked', async () => {
       const user = userEvent.setup();
-      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'trainingData',
@@ -471,8 +488,8 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1443,8 +1460,10 @@ describe('AutomlConfigurePage', () => {
         // the create flow's progressive trainingData → predictionType unlocking to report.
         await screen.findByTestId('target_column-select');
 
-        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
@@ -1476,8 +1495,10 @@ describe('AutomlConfigurePage', () => {
         const columnOption = await screen.findByRole('option', { name: /column2/i });
         await user.click(columnOption);
 
-        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
