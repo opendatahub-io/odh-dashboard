@@ -51,7 +51,14 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
       return [];
     }
     const mappedNames = new Set(RESOURCE_CATEGORIES.flatMap((c) => c.resources.map((r) => r.name)));
-    return apiResourcesData.resources.filter((r) => !mappedNames.has(r.name));
+    const seen = new Set<string>();
+    return apiResourcesData.resources.filter((r) => {
+      if (mappedNames.has(r.name) || seen.has(r.name)) {
+        return false;
+      }
+      seen.add(r.name);
+      return true;
+    });
   }, [apiResourcesData.resources, discoveredResourceNames.size]);
 
   const allCategories = React.useMemo(() => {

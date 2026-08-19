@@ -78,6 +78,16 @@ export const API_GROUP_CATEGORIES: ApiGroupCategory[] = [
         label: 'rbac.authorization.k8s.io',
         description: 'Roles, role bindings, cluster roles',
       },
+      {
+        name: 'authorization.k8s.io',
+        label: 'authorization.k8s.io',
+        description: 'Subject access reviews',
+      },
+      {
+        name: 'authentication.k8s.io',
+        label: 'authentication.k8s.io',
+        description: 'Token reviews',
+      },
     ],
   },
 ];

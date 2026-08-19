@@ -187,7 +187,7 @@ describe('AddRuleModal orchestration', () => {
       expect(capturedResourcesProps.selectedResources).toContain('deployments');
     });
 
-    it('should not cascade when API groups become empty', () => {
+    it('should cascade resources when API groups become empty', () => {
       renderModal({
         id: 'r1',
         apiGroups: ['apps'],
@@ -199,7 +199,7 @@ describe('AddRuleModal orchestration', () => {
         capturedApiGroupsProps.onSelectedApiGroupsChange([]);
       });
 
-      expect(capturedResourcesProps.selectedResources).toContain('deployments');
+      expect(capturedResourcesProps.selectedResources).not.toContain('deployments');
     });
 
     it('should not cascade when resources wildcard is selected', () => {

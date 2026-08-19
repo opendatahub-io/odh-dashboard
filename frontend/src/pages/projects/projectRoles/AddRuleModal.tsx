@@ -84,7 +84,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     (newApiGroups: string[]) => {
       setSelectedApiGroups(newApiGroups);
 
-      if (newApiGroups.length === 0 || newApiGroups.includes(ALL_API_GROUPS_WILDCARD)) {
+      if (newApiGroups.includes(ALL_API_GROUPS_WILDCARD)) {
         return;
       }
 
@@ -100,7 +100,13 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
       const allowedGroups = new Set(newApiGroups);
       const orphanedResources = selectedResources.filter((r) => {
         const group = resourceToApiGroupMap.get(r);
-        return group !== undefined && !allowedGroups.has(group);
+        if (group === undefined) {
+          return false;
+        }
+        if (newApiGroups.length === 0) {
+          return removedGroups.includes(group);
+        }
+        return !allowedGroups.has(group);
       });
 
       if (orphanedResources.length > 0) {

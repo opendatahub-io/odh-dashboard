@@ -18,6 +18,9 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
       { name: 'pods', label: 'Pods', apiGroup: '' },
       { name: 'services', label: 'Services', apiGroup: '' },
       { name: 'configmaps', label: 'ConfigMaps', apiGroup: '' },
+      { name: 'secrets', label: 'Secrets', apiGroup: '' },
+      { name: 'serviceaccounts', label: 'Service accounts', apiGroup: '' },
+      { name: 'nodes', label: 'Nodes', apiGroup: '' },
       { name: 'namespaces', label: 'Projects (namespaces)', apiGroup: '' },
       { name: 'events', label: 'Events', apiGroup: '' },
     ],
@@ -73,6 +76,28 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
         label: 'Cluster role bindings',
         apiGroup: 'rbac.authorization.k8s.io',
       },
+      {
+        name: 'subjectaccessreviews',
+        label: 'Subject access reviews',
+        apiGroup: 'authorization.k8s.io',
+      },
+      {
+        name: 'localsubjectaccessreviews',
+        label: 'Local subject access reviews',
+        apiGroup: 'authorization.k8s.io',
+      },
+      {
+        name: 'selfsubjectaccessreviews',
+        label: 'Self subject access reviews',
+        apiGroup: 'authorization.k8s.io',
+      },
+      {
+        name: 'selfsubjectrulesreviews',
+        label: 'Self subject rules reviews',
+        apiGroup: 'authorization.k8s.io',
+      },
+      { name: 'tokenreviews', label: 'Token reviews', apiGroup: 'authentication.k8s.io' },
+      { name: 'tokenrequests', label: 'Token requests', apiGroup: 'authentication.k8s.io' },
     ],
   },
 ];
