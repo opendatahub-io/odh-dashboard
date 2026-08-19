@@ -313,22 +313,24 @@ Operator registration is handled by `/konflux-onboarding` after CI/CD is set up.
 
 | File | Change |
 |------|--------|
-| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map |
-| `dashboard-operator/internal/controller/module_deploy.go` | Add entry to `moduleProxyPaths` map (and optionally `interBFFDependencies`) |
-| `dashboard-operator/internal/controller/support.go` | Add entry to `imagesMap` |
+| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map with all fields |
 | `dashboard-operator/internal/controller/modules_test.go` | Update module count and name list assertions |
 | `dashboard-operator/charts/dashboard/values.yaml` | Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` section |
 
+**No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition.ProxyPaths`, default generated from `ManifestSlug`) or `support.go` (image map entries are auto-generated from the module registry at init time).
+
 ### Naming conventions
+
+`ModuleDefinition` is the single source of truth — all fields are set explicitly in the registry entry. Teams have full control over naming.
 
 | Item | Pattern | Example |
 |------|---------|---------|
 | Registry key | `<camelCase>` | `myModule` |
-| Container name | `<kebab>-ui` | `my-module-ui` |
+| Container name | `<kebab>-ui` (convention) | `my-module-ui` |
 | Image env var | `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` | `RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE` |
 | Manifest slug | `<kebab>` | `my-module` |
-| Proxy path | `/<kebab>/api` → `/api` | `/my-module/api` → `/api` |
-| Image map key | `<kebab>-ui-image` | `my-module-ui-image` |
+| Proxy path | `/<ManifestSlug>/api` → `/api` (default when `ProxyPaths` is nil) | `/my-module/api` → `/api` |
+| Image map key | `<ManifestSlug>-ui-image` (auto-generated from registry) | `my-module-ui-image` |
 
 ### DSC component gates
 
@@ -343,9 +345,6 @@ Each module can declare required DataScienceCluster components. If the component
 
 ### External: opendatahub-operator
 
-After completing the dashboard-operator registration, a corresponding `RELATED_IMAGE` entry must be added to the opendatahub-operator (separate repo: `opendatahub-io/opendatahub-operator`):
+The opendatahub-operator dynamically discovers `RELATED_IMAGE_ODH_MOD_ARCH_*` environment variables at runtime via `os.Environ()` prefix matching in `internal/controller/modules/dashboard/support.go`. **No code changes are needed in the opendatahub-operator when onboarding a new module** — the new module's env var is automatically forwarded as long as Konflux injects it into the operator's deployment.
 
-- File: `internal/controller/modules/dashboard/support.go`
-- Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to the `relatedImages()` function
-
-This requires coordination with the Platform team and cannot be automated from this repo.
+The only coordination needed with the Platform team is ensuring the Konflux nudge pipeline includes the new module's image digest in the operator deployment.

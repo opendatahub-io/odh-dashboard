@@ -11,6 +11,10 @@ import (
 )
 
 // ModuleDefinition describes a module's static properties.
+// It is the single source of truth for module configuration — all module-specific
+// data (proxy paths, image map entries, inter-BFF deps) is consolidated here
+// instead of being scattered across multiple maps in different files.
+// ProxyPaths nil means use the default proxy path (/<ManifestSlug>/api → /api).
 type ModuleDefinition struct {
 	Name                    string
 	ContainerName           string
@@ -19,54 +23,82 @@ type ModuleDefinition struct {
 	RequiredDSCComponents   []string
 	InterModuleDependencies []string
 	ManifestSlug            string
+	ProxyPaths              []proxyRoute
+	InterBFFDeps            []interBFFDependency
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
 	"modelRegistry": {
-		Name: "modelRegistry", ContainerName: "model-registry-ui", Port: 8043,
+		Name:                  "modelRegistry",
+		ContainerName:         "model-registry-ui",
+		Port:                  8043,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
-		RequiredDSCComponents: []string{"modelregistry"},
 		ManifestSlug:          "model-registry",
+		RequiredDSCComponents: []string{"modelregistry"},
 	},
 	"genAi": {
-		Name: "genAi", ContainerName: "gen-ai-ui", Port: 8143,
-		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
-		ManifestSlug: "gen-ai",
+		Name:          "genAi",
+		ContainerName: "gen-ai-ui",
+		Port:          8143,
+		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+		ManifestSlug:  "gen-ai",
+		InterBFFDeps: []interBFFDependency{{
+			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
+			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
+			TargetModule:   "maas",
+		}},
 	},
 	"mlflow": {
-		Name: "mlflow", ContainerName: "mlflow-ui", Port: 8343,
+		Name:                  "mlflow",
+		ContainerName:         "mlflow-ui",
+		Port:                  8343,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
-		RequiredDSCComponents: []string{"mlflowoperator"},
 		ManifestSlug:          "mlflow",
+		RequiredDSCComponents: []string{"mlflowoperator"},
+		ProxyPaths:            []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}},
 	},
 	"maas": {
-		Name: "maas", ContainerName: "maas-ui", Port: 8243,
-		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
-		ManifestSlug: "maas",
+		Name:          "maas",
+		ContainerName: "maas-ui",
+		Port:          8243,
+		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+		ManifestSlug:  "maas",
 	},
 	"evalHub": {
-		Name: "evalHub", ContainerName: "eval-hub-ui", Port: 8543,
+		Name:                  "evalHub",
+		ContainerName:         "eval-hub-ui",
+		Port:                  8543,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
-		RequiredDSCComponents: []string{"trustyai"},
 		ManifestSlug:          "eval-hub",
+		RequiredDSCComponents: []string{"trustyai"},
 	},
 	"automl": {
-		Name: "automl", ContainerName: "automl-ui", Port: 8643,
+		Name:                  "automl",
+		ContainerName:         "automl-ui",
+		Port:                  8643,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
-		RequiredDSCComponents: []string{"aipipelines"},
 		ManifestSlug:          "automl",
+		RequiredDSCComponents: []string{"aipipelines"},
 	},
 	"autorag": {
-		Name: "autorag", ContainerName: "autorag-ui", Port: 8743,
+		Name:                    "autorag",
+		ContainerName:           "autorag-ui",
+		Port:                    8743,
 		ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
+		ManifestSlug:            "autorag",
 		RequiredDSCComponents:   []string{"aipipelines"},
 		InterModuleDependencies: []string{"genAi"},
-		ManifestSlug:            "autorag",
 	},
 	"agentOps": {
-		Name: "agentOps", ContainerName: "agent-ops-ui", Port: 8843,
-		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
-		ManifestSlug: "agent-ops",
+		Name:          "agentOps",
+		ContainerName: "agent-ops-ui",
+		Port:          8843,
+		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
+		ManifestSlug:  "agent-ops",
+		ProxyPaths: []proxyRoute{
+			{Path: "/agent-ops/api", PathRewrite: "/api"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+		},
 	},
 }
 
