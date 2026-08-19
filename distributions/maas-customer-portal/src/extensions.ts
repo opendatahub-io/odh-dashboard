@@ -17,8 +17,8 @@ const extensions: Extension[] = [
     },
   } satisfies RouteExtension,
 
-  // /maas redirect — the package's portalExtensions.ts does not register
-  // this route, so the distribution owns it directly
+  // /maas redirect — overrides the package's MaaSRedirect with the
+  // portal's own root redirect
   {
     type: 'app.route',
     properties: {
