@@ -3,10 +3,10 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
-const { tanstackQueryCoreAlias } = require('../../../../scripts/webpack/pnpmResolverIncludes');
+const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
+const { pnpmWebpackResolveAliases } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
-const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
 const { name } = require('../package.json');
 
@@ -172,7 +172,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
-      ...tanstackQueryCoreAlias(RELATIVE_DIRNAME),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,
