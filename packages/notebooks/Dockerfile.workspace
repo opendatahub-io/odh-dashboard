@@ -55,7 +55,10 @@ RUN pnpm install --frozen-lockfile
 # Upstream frontend is a git-subtree npm island (not a pnpm workspace member).
 # Install its webpack toolchain from package-lock.json, then build with npm.
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional
+# pnpm hoists a newer esbuild binary to the workspace root; defer lifecycle scripts so
+# npm ci installs the lockfile-pinned esbuild before running install.js locally.
+RUN npm ci --omit=optional --ignore-scripts \
+    && npm rebuild esbuild --foreground-scripts
 RUN npm run build:prod
 
 # BFF build stage
