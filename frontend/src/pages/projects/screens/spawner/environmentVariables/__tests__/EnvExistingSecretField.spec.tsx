@@ -68,7 +68,7 @@ describe('EnvExistingSecretField', () => {
       );
 
       expect(screen.getByTestId('env-existing-secret-search')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Search secrets')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Select secrets')).toBeInTheDocument();
     });
 
     it('should show secret options when dropdown is opened', async () => {
