@@ -1,4 +1,5 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { createPvc } from '@odh-dashboard/internal/api';
 import {
@@ -17,10 +18,10 @@ import {
 export const nimPVCPreDeploy = async (
   fieldData: NIMPVCFieldValue,
   wizardState: WizardFormData['state'],
-  deployment: KServeDeployment,
+  deployment: DeploymentHookPayloadFor<KServeDeployment>,
   _existingDeployment?: KServeDeployment,
   dryRun?: boolean,
-): Promise<KServeDeployment> => {
+): Promise<DeploymentHookPayloadFor<KServeDeployment>> => {
   const { projectName } = wizardState.project;
   if (!projectName) {
     throw new Error('Project is required to create PVC storage');

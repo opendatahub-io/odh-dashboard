@@ -4,7 +4,7 @@ import type {
   useHardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { Deployment, ExtractionResult } from './index';
+import type { Deployment, DeploymentHookPayloadFor, ExtractionResult } from './index';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -257,10 +257,10 @@ export type WizardFieldDeploymentFunctionsExtension<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
-        deployment: D,
+        deployment: DeploymentHookPayloadFor<D>,
         existingDeployment?: D,
         dryRun?: boolean,
-      ) => Promise<D>
+      ) => Promise<DeploymentHookPayloadFor<D>>
     >;
     /**
      * Async function that runs after the deployment is saved.
@@ -276,7 +276,12 @@ export type WizardFieldDeploymentFunctionsExtension<
      * @param dryRun - True for the validation pass, falsy for the real pass
      */
     postDeploy: null | CodeRef<
-      (fieldData: T, deployedModel: D, existingDeployment?: D, dryRun?: boolean) => Promise<void>
+      (
+        fieldData: T,
+        deployedModel: DeploymentHookPayloadFor<D>,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<void>
     >;
   }
 >;

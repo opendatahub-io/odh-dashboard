@@ -30,7 +30,11 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import type {
+  Deployment,
+  DeploymentEndpoint,
+  DeploymentHookPayload,
+} from '../../../extension-points';
 import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
@@ -72,12 +76,11 @@ export const getTokenAuthenticationFromDeployment = (
 // a pre-assembled model resource, so `model` may be undefined here. The
 // preDeploy/postDeploy hooks still need to run — they create side-effect
 // resources (PVCs, secrets, etc.) that don't depend on the model resource.
-const toDeployment = (
+const toDeploymentHookPayload = (
   platform: string,
   model?: Deployment['model'],
   server?: Deployment['server'],
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-): Deployment => ({ modelServingPlatformId: platform, model, server } as Deployment);
+): DeploymentHookPayload => ({ modelServingPlatformId: platform, model, server });
 
 export const deployModel = async (
   wizardState: WizardFormData['state'],
@@ -132,7 +135,7 @@ export const deployModel = async (
   if (runPreDeploy) {
     dryRuns.push(
       runPreDeploy(
-        toDeployment(deployMethod.platform, dryRunModelResource, serverResource),
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -160,7 +163,7 @@ export const deployModel = async (
   if (runPostDeploy) {
     dryRuns.push(
       runPostDeploy(
-        toDeployment(deployMethod.platform, dryRunModelResource, serverResource),
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -192,7 +195,7 @@ export const deployModel = async (
   }
   if (runPreDeploy) {
     await runPreDeploy(
-      toDeployment(deployMethod.platform, modelResourceWithConnection, serverResource),
+      toDeploymentHookPayload(deployMethod.platform, modelResourceWithConnection, serverResource),
       existingDeployment,
     );
   }
