@@ -17,14 +17,6 @@ class ServingRuntimeRow {
     return this;
   }
 
-  shouldBeSingleModel(enabled = true) {
-    this.find()
-      .findByTestId('serving-runtime-platform-label')
-      .findByTestId('single-model')
-      .should(enabled ? 'exist' : 'not.exist');
-    return this;
-  }
-
   shouldHaveAPIProtocol(apiProtocol: ServingRuntimeAPIProtocol) {
     this.find().find('[data-label="API protocol"]').should('include.text', apiProtocol);
     return this;
@@ -58,11 +50,29 @@ class ServingRuntimeRow {
     this.findEnabledToggleInput().should(enabled ? 'be.checked' : 'not.be.checked');
     return this;
   }
+
+  findKebabToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findDuplicateAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Duplicate');
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Edit');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Delete');
+  }
 }
 
 class ServingRuntimes {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/serving-runtimes');
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+    );
     if (wait) {
       this.wait();
     }
@@ -70,7 +80,15 @@ class ServingRuntimes {
 
   navigate() {
     this.findNavItem().click();
+    // The nav item opens the Model deployment settings page on its default (General
+    // settings) tab; select the serving-runtime-templates tab before waiting for its
+    // list controls.
+    this.findTab().click();
     this.wait();
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'Serving runtime templates' });
   }
 
   private wait() {
@@ -80,7 +98,7 @@ class ServingRuntimes {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'Serving runtimes',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -88,11 +106,6 @@ class ServingRuntimes {
 
   findAppTitle() {
     return cy.findByTestId('app-page-title');
-  }
-
-  shouldBeSingleModel(enabled = true) {
-    cy.findByTestId('single-model-serving-enabled').should(enabled ? 'exist' : 'not.exist');
-    return this;
   }
 
   findAddButton() {

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import { useNotification } from '~/app/hooks/useNotification';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import {
   SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
@@ -11,6 +12,11 @@ import {
 } from '~/app/schemas/configure.schema';
 import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { OgxVectorStoreProvider } from '~/app/types';
+import {
+  fireAutoragVectorStoreConfigured,
+  toVectorStoreProviderType,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 /**
  * Formats a provider for display.
@@ -37,6 +43,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const { namespace = '' } = useParams();
   const [isOpen, setIsOpen] = useState(false);
   const notification = useNotification();
+  const { onVectorStoreConfigured } = useRunTriggeredTracking();
 
   const {
     formState: { isSubmitting },
@@ -118,6 +125,18 @@ const AutoragVectorStoreSelector: React.FC = () => {
         const provider = providers.find((p) => p.provider_id === selectedProviderId);
         fieldOnChange(provider ? provider.provider_id : '');
         setIsOpen(false);
+        if (provider) {
+          const providerType = toVectorStoreProviderType(provider.provider_type);
+          if (providerType) {
+            fireAutoragVectorStoreConfigured({
+              providerType,
+              countOfCompatibleProviders: providers.length,
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+            onVectorStoreConfigured(providerType);
+          }
+        }
       }}
       selected={fieldValue}
       toggle={(toggleRef) => (

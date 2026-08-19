@@ -1,29 +1,29 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+} from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import type { SecretKind, TrustyAIKind } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   type ServingRuntimeKind,
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared';
-import { mockPrometheusServing } from '@odh-dashboard/internal/__mocks__/mockPrometheusServing';
-import { mockPrometheusBias } from '@odh-dashboard/internal/__mocks__/mockPrometheusBias';
-import { mockMetricsRequest } from '@odh-dashboard/internal/__mocks__/mockMetricsRequests';
-import { mockTrustyAIServiceForDbK8sResource } from '@odh-dashboard/internal/__mocks__/mockTrustyAIServiceK8sResource';
-import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
-import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockPrometheusServing } from '@odh-dashboard/model-serving/__mocks__/mockPrometheusServing';
+import { mockPrometheusBias } from '@odh-dashboard/model-serving/__mocks__/mockPrometheusBias';
+import { mockMetricsRequest } from '@odh-dashboard/model-serving/__mocks__/mockMetricsRequests';
+import { mockTrustyAIServiceForDbK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockTrustyAIServiceK8sResource';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mock403Error, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mock403Error, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   MOCK_KSERVE_METRICS_CONFIG_2,
   MOCK_KSERVE_METRICS_CONFIG_3,
@@ -34,8 +34,8 @@ import {
   MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3,
   mockKserveMetricsConfigMap,
   mockNimMetricsConfigMap,
-} from '@odh-dashboard/internal/__mocks__/mockKserveMetricsConfigMap';
-import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
+} from '@odh-dashboard/k8s-core/__mocks__/mockKserveMetricsConfigMap';
+import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ConfigMapModel,

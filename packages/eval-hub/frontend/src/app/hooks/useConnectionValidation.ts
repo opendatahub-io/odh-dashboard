@@ -13,8 +13,6 @@ type UseConnectionValidationParams = {
   sourceMode: SourceMode;
   endpointUrl: string;
   apiKeySecretRef: string;
-  datasetUrl: string;
-  accessToken: string;
   modelName: string;
   agentName: string;
 };
@@ -30,8 +28,6 @@ export const useConnectionValidation = ({
   sourceMode,
   endpointUrl,
   apiKeySecretRef,
-  datasetUrl,
-  accessToken,
   modelName,
   agentName,
 }: UseConnectionValidationParams): UseConnectionValidationResult => {
@@ -42,7 +38,7 @@ export const useConnectionValidation = ({
 
   React.useEffect(() => {
     setConnectionValidation({ status: 'idle' });
-  }, [endpointUrl, apiKeySecretRef, datasetUrl, accessToken, modelName, agentName]);
+  }, [endpointUrl, apiKeySecretRef, modelName, agentName]);
 
   const handleVerifyConnection = React.useCallback(async () => {
     if (!namespace) {
@@ -55,23 +51,16 @@ export const useConnectionValidation = ({
 
     setConnectionValidation({ status: 'validating' });
 
-    const baseUrl = sourceMode === 'prerecorded' ? datasetUrl.trim() : endpointUrl.trim();
+    const baseUrl = endpointUrl.trim();
     const modelId =
       sourceMode === 'model' ? modelName.trim() : sourceMode === 'agent' ? agentName.trim() : '';
 
     try {
       /* eslint-disable camelcase */
       const secretFields: Pick<VerifyConnectionRequest, 'secret_name' | 'secret_value'> = {};
-      if (sourceMode === 'prerecorded') {
-        const token = accessToken.trim();
-        if (token) {
-          secretFields.secret_value = token;
-        }
-      } else {
-        const name = apiKeySecretRef.trim();
-        if (name) {
-          secretFields.secret_name = name;
-        }
+      const name = apiKeySecretRef.trim();
+      if (name) {
+        secretFields.secret_name = name;
       }
 
       const request: VerifyConnectionRequest = {
@@ -120,16 +109,7 @@ export const useConnectionValidation = ({
       };
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, errorProps);
     }
-  }, [
-    namespace,
-    sourceMode,
-    endpointUrl,
-    apiKeySecretRef,
-    datasetUrl,
-    accessToken,
-    modelName,
-    agentName,
-  ]);
+  }, [namespace, sourceMode, endpointUrl, apiKeySecretRef, modelName, agentName]);
 
   React.useEffect(
     () => () => {

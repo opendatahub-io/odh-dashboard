@@ -1,3 +1,5 @@
+export { SOURCE_NAME_CHARACTER_LIMIT } from '~/app/shared/catalogSettings/const';
+
 export const MCP_FORM_LABELS = {
   NAME: 'Name',
   YAML_CONTENT: 'Upload a YAML file',
@@ -15,8 +17,6 @@ export const MCP_BUTTON_LABELS = {
   PREVIEW: 'Preview',
   CANCEL: 'Cancel',
 } as const;
-
-export const MCP_SOURCE_NAME_CHARACTER_LIMIT = 238;
 
 export const MCP_VALIDATION_MESSAGES = {
   NAME_REQUIRED: 'Name is required',

@@ -10,7 +10,7 @@ import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogMo
 import {
   decodeParams,
   getModelArtifactUri,
-  servingConfigToValidatedConfigurations,
+  getValidatedConfigurationsForModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { getDeployButtonState } from '~/odh/utils';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
@@ -53,11 +53,9 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
-      validatedConfigurations: isToolCallingEnabled
-        ? servingConfigToValidatedConfigurations(model)
-        : undefined,
+      ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
     }),
-    [uri, cancelReturnRoute, isToolCallingEnabled, model],
+    [model, uri, cancelReturnRoute, isToolCallingEnabled],
   );
 
   const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(

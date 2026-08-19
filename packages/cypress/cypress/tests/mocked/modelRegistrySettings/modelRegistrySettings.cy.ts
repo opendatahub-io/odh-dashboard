@@ -1,10 +1,8 @@
-import {
-  mockConfigMapsSecrets,
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockConfigMapsSecrets } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
 import type { ConfigSecretItem, RoleBindingSubject } from '@odh-dashboard/k8s-core';

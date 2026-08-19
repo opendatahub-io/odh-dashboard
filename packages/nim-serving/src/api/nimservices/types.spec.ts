@@ -1,4 +1,4 @@
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { isNIMDeployment, isNIMOwned } from './utils';
 import { NIM_SERVICE_ID } from '../../constants';

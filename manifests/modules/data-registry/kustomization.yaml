@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+configMapGenerator:
+  - name: data-registry-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+replacements:
+  - source:
+      kind: ConfigMap
+      name: data-registry-params
+      fieldPath: data.data-registry-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: data-registry-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=data-registry-ui].image

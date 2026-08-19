@@ -1,3 +1,4 @@
+import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/model-serving/concepts/useStopModalPreference';
 import type { DataScienceProjectData } from '../../../../types';
 import {
   ModelLocationSelectOption,
@@ -23,9 +24,6 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-
-// Local copy of the key used by the stop modal preference (avoid restricted import from internal)
-const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
 
 let testData: DataScienceProjectData;
 let projectName: string;

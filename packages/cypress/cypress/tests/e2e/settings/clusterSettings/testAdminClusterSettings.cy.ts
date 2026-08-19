@@ -18,7 +18,6 @@ import type {
   NotebookControllerCullerConfig,
 } from '../../../../types';
 import {
-  validateModelServingPlatforms,
   validatePVCSize,
   validateStopIdleNotebooks,
   checkUserNotInRHODSUserGroups,
@@ -181,10 +180,6 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Navigate to Cluster Settings');
       clusterSettings.visit();
-
-      // Validate model serving displays based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
-      cy.step('Validate Model Serving Platforms display and are checked');
-      validateModelServingPlatforms(dashboardConfig);
 
       // Validate pvc size based on OpenShift command to 'get OdhDashboardConfig' to validate configuration
       cy.step('Validate PVC Size displays and default displays');

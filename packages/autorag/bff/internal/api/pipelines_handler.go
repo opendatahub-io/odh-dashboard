@@ -22,9 +22,11 @@ type pipelinesRepository interface {
 	GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, page int64) (*models.PipelineRunsData, error)
 	GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error)
 	CreateRun(ctx context.Context, namespace string, req models.CreateAutoRAGRunRequest) (*models.PipelineRun, error)
+	CreateIndexingRun(ctx context.Context, namespace string, req models.CreateIndexingPipelineRunRequest) (*models.PipelineRun, error)
 	TerminateRun(ctx context.Context, namespace, runID string) error
 	RetryRun(ctx context.Context, namespace, runID string) error
 	DeleteRun(ctx context.Context, namespace, runID string) error
+	ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error)
 	EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error)
 }
 
@@ -38,6 +40,7 @@ const maxRequestBodyBytes = 10 << 20
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
+type ManagedPipelinesEnvelope Envelope[*models.ManagedPipelinesData, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 func (h *PipelinesHandler) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -108,12 +111,94 @@ func (h *PipelinesHandler) PipelineRunHandler(w http.ResponseWriter, r *http.Req
 func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		NewUIError(http.StatusBadRequest, "missing_namespace", "missing namespace in context - ensure AttachNamespace middleware is used first").
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req models.CreateAutoRAGRunRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
+		NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+			WithDetail("error", err.Error()).
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
+		return
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			NewUIError(http.StatusRequestEntityTooLarge, "request_body_too_large", "request body exceeds maximum size").
+				WithDetail("maxBytes", maxRequestBodyBytes).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
+		if err != nil {
+			NewUIError(http.StatusBadRequest, "invalid_request_body", "invalid request body").
+				WithDetail("error", err.Error()).
+				WithLogger(h.logger).
+				WithTracing(r).
+				WriteTo(w)
+			return
+		}
+		errorReason := "request body must contain only a single JSON object"
+		NewUIError(http.StatusBadRequest, "unsupported_multiple_json_request", errorReason).
+			WithDetail("reason", errorReason).
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
+		return
+	}
+
+	run, err := h.repo.CreateRun(r.Context(), namespace, req)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	js, err := json.MarshalIndent(CreatePipelineRunEnvelope{Data: run}, "", "\t")
+	if err != nil {
+		h.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.Path)
+		NewUIError(http.StatusInternalServerError, "response_serialization_failed", "the server encountered a problem and could not process your request").
+			WithLogger(h.logger).
+			WithTracing(r).
+			WriteTo(w)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(append(js, '\n')); err != nil {
+		h.logger.Error("failed to write response body", "method", r.Method, "uri", r.URL.Path, "error", err.Error())
+	}
+}
+
+// CreateIndexingPipelineRunHandler handles POST /api/v1/indexing-pipeline-runs
+func (h *PipelinesHandler) CreateIndexingPipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+	var req models.CreateIndexingPipelineRunRequest
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
@@ -131,7 +216,7 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	run, err := h.repo.CreateRun(r.Context(), namespace, req)
+	run, err := h.repo.CreateIndexingRun(r.Context(), namespace, req)
 	if err != nil {
 		h.mapPipelineError(w, r, err)
 		return
@@ -241,6 +326,25 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)
+}
+
+// ListManagedPipelinesHandler handles GET /api/v1/managed-pipelines
+func (h *PipelinesHandler) ListManagedPipelinesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
+
+	result, err := h.repo.ListManagedPipelines(r.Context(), namespace)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, ManagedPipelinesEnvelope{Data: result}, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
+	}
 }
 
 // EnableManagedPipelinesHandler handles POST /api/v1/managed-pipelines/enable

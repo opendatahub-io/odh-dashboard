@@ -27,7 +27,7 @@ const mockInferenceServices = (
     url?: string;
     ready: boolean;
     model_format_name?: string;
-    api_protocol?: string;
+    api_protocol?: 'REST' | 'gRPC';
   }[] = [],
 ) => {
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
@@ -257,15 +257,15 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'accuracy');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'f1');
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
   it('should include pass_criteria in submission when threshold is set from metadata', () => {
@@ -341,7 +341,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -556,8 +556,6 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
     startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnection');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
@@ -693,6 +691,27 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
+
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectExternalEndpoint();
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findValidateConnectionButton().should('exist');
+
+    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });

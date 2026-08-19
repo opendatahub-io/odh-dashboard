@@ -1031,7 +1031,7 @@ describe('AutomlLeaderboard component', () => {
       fireEvent.click(saveNotebookAction);
 
       // XGBoost is rank 1 — callback receives the map key
-      expect(mockOnClickSaveNotebook).toHaveBeenCalledWith('model-3');
+      expect(mockOnClickSaveNotebook).toHaveBeenCalledWith('model-3', 'leaderboard');
       expect(mockOnClickSaveNotebook).toHaveBeenCalledTimes(1);
     });
 

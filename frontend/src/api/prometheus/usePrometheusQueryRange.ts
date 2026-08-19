@@ -1,22 +1,28 @@
-import * as React from 'react';
-import useFetchState, {
-  FetchOptions,
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import type { FetchOptions, FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import type {
   PrometheusQueryRangeResponse,
-  PrometheusQueryRangeResponseData,
-  PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/ui-core/types/metrics';
+import baseUsePrometheusQueryRange, {
+  type PrometheusPostFn,
+  type ResponsePredicate,
+} from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
 import axios from '#~/utilities/axios';
 
-export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
-  data: PrometheusQueryRangeResponseData,
-) => T[];
+export type { ResponsePredicate } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
+export {
+  defaultResponsePredicate,
+  prometheusQueryRangeResponsePredicate,
+} from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
 
+const axiosPost: PrometheusPostFn = (url, body) =>
+  axios
+    .post<{ response: PrometheusQueryRangeResponse }>(url, body)
+    .then((response) => response.data);
+
+/**
+ * Frontend-specific wrapper that binds the dashboard's axios instance.
+ */
 const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   active: boolean,
   apiPath: string,
@@ -27,46 +33,18 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   responsePredicate: ResponsePredicate<T>,
   namespace: string,
   fetchOptions?: Partial<FetchOptions>,
-): [...FetchState<T[]>, boolean] => {
-  const pendingRef = React.useRef(active);
-  const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {
-    const endInS = endInMs / 1000;
-    const start = endInS - span;
-
-    if (!active) {
-      return Promise.reject(new NotReadyError('Prometheus query is not active'));
-    }
-
-    return axios
-      .post<{ response: PrometheusQueryRangeResponse }>(apiPath, {
-        query: new URLSearchParams({
-          namespace,
-          query: queryLang,
-          start: start.toString(),
-          end: endInS.toString(),
-          step: step.toString(),
-        }).toString(),
-      })
-      .then((response) => responsePredicate(response.data.response.data))
-      .finally(() => {
-        pendingRef.current = false;
-      });
-  }, [endInMs, span, active, apiPath, namespace, queryLang, step, responsePredicate]);
-
-  // The query is pending if fetchData changes because it will trigger useFetchState to re-fetch
-  React.useMemo(() => {
-    pendingRef.current = active;
-    // We do not reference fetchData but need to react to it changing
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, fetchData]);
-
-  return [...useFetchState<T[]>(fetchData, [], fetchOptions), pendingRef.current];
-};
-
-export const defaultResponsePredicate: ResponsePredicate = (data) => data.result?.[0]?.values || [];
-
-export const prometheusQueryRangeResponsePredicate: ResponsePredicate<
-  PrometheusQueryRangeResponseDataResult
-> = (data) => data.result || [];
+): [...FetchState<T[]>, boolean] =>
+  baseUsePrometheusQueryRange<T>(
+    active,
+    apiPath,
+    queryLang,
+    span,
+    endInMs,
+    step,
+    responsePredicate,
+    namespace,
+    fetchOptions,
+    axiosPost,
+  );
 
 export default usePrometheusQueryRange;

@@ -175,41 +175,44 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                                        | Description                                          |
-| ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
-| GET    | `/healthcheck`                                                | Liveness probe                                         |
-| GET    | `/api/v1/status`                                              | MLflow availability status                             |
-| GET    | `/api/v1/user`                                                | Returns authenticated user info                        |
-| GET    | `/api/v1/namespaces`                                          | List namespaces (dev/mock mode only)                   |
-| GET    | `/api/v1/experiments?workspace=<ns>`                          | List MLflow experiments                                |
-| GET    | `/api/v1/prompts?workspace=<ns>`                              | List Prompt Registry prompts (project + global scopes) |
-| POST   | `/api/v1/prompts?workspace=<ns>`                              | Register a new prompt / prompt version                 |
-| GET    | `/api/v1/prompts/:name?workspace=<ns>`                        | Load a prompt (optionally by version)                  |
-| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                        | Delete an entire prompt                                |
-| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`               | List versions of a prompt                              |
-| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`      | Delete a specific prompt version                        |
-| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Search MCP Registry servers (optional tag filter)       |
-| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Register a new MCP server                               |
-| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Get an MCP server by name                                |
-| PATCH  | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Partially update an MCP server                           |
-| DELETE | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Delete an MCP server (and its versions/tags/aliases/endpoints) |
-| POST   | `/api/v1/mcp-registry/servers/:name/tags?workspace=<ns>`      | Set a tag on an MCP server                               |
-| DELETE | `/api/v1/mcp-registry/servers/:name/tags/:key?workspace=<ns>` | Delete a tag from an MCP server                          |
-| POST   | `/api/v1/mcp-registry/servers/:name/aliases?workspace=<ns>`   | Set an alias on an MCP server                            |
-| GET    | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>` | Resolve an alias to the MCP server version it points at |
-| DELETE | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>` | Delete an alias from an MCP server                  |
-| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | List versions of an MCP server                          |
-| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | Create a new MCP server version from a server.json      |
-| GET    | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Get a specific version of an MCP server          |
-| PATCH  | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Partially update a specific MCP server version   |
-| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Delete a specific MCP server version             |
-| POST   | `/api/v1/mcp-registry/servers/:name/versions/:version/tags?workspace=<ns>` | Set a tag on a specific MCP server version  |
-| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version/tags/:key?workspace=<ns>` | Delete a tag from a specific MCP server version |
-| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Search access endpoints for an MCP server                |
-| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Create an access endpoint for an MCP server              |
-| GET    | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Get an access endpoint by ID                 |
-| PATCH  | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Partially update an access endpoint          |
-| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Delete an access endpoint from an MCP server |
+| Method | Path                                                                            | Description                                                         |
+| ------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| GET    | `/healthcheck`                                                                  | Liveness probe                                                      |
+| GET    | `/api/v1/status`                                                                | MLflow availability status                                          |
+| GET    | `/api/v1/user`                                                                  | Returns authenticated user info                                     |
+| GET    | `/api/v1/namespaces`                                                            | List namespaces (dev/mock mode only)                                |
+| GET    | `/api/v1/experiments?workspace=<ns>`                                            | List MLflow experiments                                             |
+| GET    | `/api/v1/prompts?workspace=<ns>`                                                | List Prompt Registry prompts (project + global scopes)              |
+| POST   | `/api/v1/prompts?workspace=<ns>`                                                | Register a new prompt / prompt version                              |
+| GET    | `/api/v1/prompts/:name?workspace=<ns>`                                          | Load a prompt (optionally by version)                               |
+| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                                          | Delete an entire prompt                                             |
+| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`                                 | List versions of a prompt                                           |
+| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`                        | Delete a specific prompt version                                    |
+| GET    | `/api/v1/mcp-catalog/servers/:id/tools?namespace=<ns>`                          | Proxy MCP catalog tools from model-registry BFF                     |
+| GET    | `/api/v1/mcp-catalog/servers/:id/mcpserver?namespace=<ns>`                      | Proxy MCP catalog→MCPServer CR converter from model-registry BFF    |
+| POST   | `/api/v1/mcp-registry/register?workspace=<ns>`                                  | Composite register: create version, then best-effort metadata/tags  |
+| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Search MCP Registry servers (optional tag filter)                   |
+| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Register a new MCP server                                           |
+| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Get an MCP server by name                                           |
+| PATCH  | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Partially update an MCP server                                      |
+| DELETE | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Delete an MCP server (and its versions/tags/aliases/endpoints)      |
+| POST   | `/api/v1/mcp-registry/servers/:name/tags?workspace=<ns>`                        | Set a tag on an MCP server                                          |
+| DELETE | `/api/v1/mcp-registry/servers/:name/tags/:key?workspace=<ns>`                   | Delete a tag from an MCP server                                     |
+| POST   | `/api/v1/mcp-registry/servers/:name/aliases?workspace=<ns>`                     | Set an alias on an MCP server                                       |
+| GET    | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Resolve an alias to the MCP server version it points at             |
+| DELETE | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Delete an alias from an MCP server                                  |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | List versions of an MCP server                                      |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | Create a new MCP server version from a server.json                  |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Get a specific version of an MCP server                             |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Partially update a specific MCP server version                      |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Delete a specific MCP server version                                |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions/:version/tags?workspace=<ns>`      | Set a tag on a specific MCP server version                          |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version/tags/:key?workspace=<ns>` | Delete a tag from a specific MCP server version                     |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Search access endpoints for an MCP server                           |
+| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Create an access endpoint for an MCP server                         |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Get an access endpoint by ID                                        |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Partially update an access endpoint                                 |
+| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Delete an access endpoint from an MCP server                        |
 
 **MCP Registry notes:**
 
@@ -270,6 +273,11 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from    | Authorization |
 | `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected value prefix               | Bearer        |
 | `-mlflow-url`           | `MLFLOW_URL`           | MLflow tracking server URL          | ""            |
+| `-mock-bff-clients`     | `MOCK_BFF_CLIENTS`     | Mock inter-BFF clients              | false         |
+| `-bff-model-registry-dev-url` | `BFF_MODEL_REGISTRY_DEV_URL` | Model-registry BFF dev override URL | ""     |
+| `-bff-model-registry-service-name` | `BFF_MODEL_REGISTRY_SERVICE_NAME` | Model-registry K8s service name | odh-dashboard-model-registry-ui |
+| `-bff-model-registry-service-port` | `BFF_MODEL_REGISTRY_SERVICE_PORT` | Model-registry BFF port | 8043     |
+| `-bff-model-registry-tls-enabled` | `BFF_MODEL_REGISTRY_TLS_ENABLED` | TLS for model-registry BFF calls | false  |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) | false         |
 
 ---

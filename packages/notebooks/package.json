@@ -41,6 +41,7 @@
     }
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }

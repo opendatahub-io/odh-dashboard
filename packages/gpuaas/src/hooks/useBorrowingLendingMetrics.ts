@@ -9,6 +9,7 @@ import type {
 import {
   ACCELERATOR_RESOURCE_PREFIXES,
   ACCELERATOR_RESOURCE_REGEX,
+  PROMETHEUS_CLUSTER_QUERY_RANGE_PATH,
   SEVEN_DAYS_MS,
   TREND_REFRESH_INTERVAL,
 } from '../const';
@@ -17,7 +18,7 @@ import parseK8sQuantity from '../utils/parseK8sQuantity';
 
 const SEVEN_DAYS_IN_SECONDS = SEVEN_DAYS_MS / 1000;
 const HOURLY_STEP = 3600;
-const PROMETHEUS_API_PATH = '/api/prometheus/queryRange';
+const PROMETHEUS_API_PATH = PROMETHEUS_CLUSTER_QUERY_RANGE_PATH;
 
 const isAcceleratorResource = (resourceName: string): boolean =>
   ACCELERATOR_RESOURCE_PREFIXES.some((prefix) => resourceName.startsWith(prefix));

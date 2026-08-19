@@ -516,6 +516,53 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('List Managed Pipelines Endpoint', () => {
+    it('should return discovered managed pipelines', async () => {
+      const result = await apiClient.get(`/api/v1/managed-pipelines?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ManagedPipelinesResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/managed-pipelines');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
+  describe('Create Indexing Pipeline Run Endpoint', () => {
+    it('should create an indexing pipeline run with required fields', async () => {
+      const result = await apiClient.post(`/api/v1/indexing-pipeline-runs?namespace=${NS}`, {
+        display_name: 'contract-indexing-run',
+        parameters: {
+          embedding_model_id: 'vllm-embedding/ibm-granite/granite-embedding-english-r2',
+          input_data_secret_name: SECRET,
+          input_data_bucket_name: BUCKET,
+          input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
+          ogx_secret_name: OGX_SECRET,
+          vector_io_provider_id: 'milvus',
+          chunk_size: 512,
+          chunk_overlap: 50,
+          chunking_method: 'recursive',
+        },
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 for missing required fields', async () => {
+      const result = await apiClient.post(`/api/v1/indexing-pipeline-runs?namespace=${NS}`, {
+        display_name: 'incomplete-indexing-run',
+      });
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
   describe('S3 File Upload Endpoint', () => {
     const buildFormDataWithFile = (): FormData => {
       const form = new FormData();

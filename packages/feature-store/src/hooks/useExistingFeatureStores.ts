@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { FeatureStoreKind } from '../k8sTypes';
 import { listFeatureStores } from '../api/featureStores';
 import {
@@ -82,8 +83,10 @@ const useExistingFeatureStores = (): UseExistingFeatureStoresReturn => {
     };
 
     fetchAll();
+    const interval = setInterval(() => setRefreshKey((k) => k + 1), POLL_INTERVAL);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [projects, projectsLoaded, refreshKey]);
 

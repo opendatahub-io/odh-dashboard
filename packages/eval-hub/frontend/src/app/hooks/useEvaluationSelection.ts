@@ -19,6 +19,7 @@ type UseEvaluationSelectionResult = {
 
 export const useEvaluationSelection = (
   namespace: string | undefined,
+  skipRedirect = false,
 ): UseEvaluationSelectionResult => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -36,10 +37,10 @@ export const useEvaluationSelection = (
     isCollectionFlow && hasCollection(location.state) ? location.state.collection : undefined;
 
   React.useEffect(() => {
-    if (!isBenchmarkFlow && !isCollectionFlow) {
+    if (!skipRedirect && !isBenchmarkFlow && !isCollectionFlow) {
       navigate(evaluationCreateRoute(namespace), { replace: true });
     }
-  }, [isBenchmarkFlow, isCollectionFlow, navigate, namespace]);
+  }, [skipRedirect, isBenchmarkFlow, isCollectionFlow, navigate, namespace]);
 
   return {
     benchmark,

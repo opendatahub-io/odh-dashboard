@@ -1,9 +1,9 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig.js';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus.js';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '@odh-dashboard/internal/api/models/index';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {

@@ -8,8 +8,13 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import PhaseLabel from '~/app/shared/PhaseLabel';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import {
+  convertStringToPopoverViewedStatus,
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+} from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -24,6 +29,13 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>
@@ -47,13 +59,6 @@ const NoSubscriptionsWarning: React.FC = () => (
       variant="plain"
       data-testid="no-subscriptions-warning"
       aria-label="No subscriptions warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-subscriptions',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -62,6 +67,13 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>
@@ -88,13 +100,6 @@ const NoPoliciesWarning: React.FC = () => (
       variant="plain"
       data-testid="no-policies-warning"
       aria-label="No authorization policies warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-policies',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -110,7 +115,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Tbody isExpanded={isExpanded} data-testid="overview-model-row">
+    <Tbody isExpanded={isExpanded} data-testid={`overview-model-row-${row.id}-${row.namespace}`}>
       <Tr style={isExpanded ? { borderBottom: 'none' } : undefined}>
         <Td
           data-testid="expand-model"
@@ -132,7 +137,8 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={overviewColumns[2].label}>
+        <Td dataLabel={overviewColumns[2].label}>{row.namespace}</Td>
+        <Td dataLabel={overviewColumns[3].label}>
           <PhaseLabel
             phase={row.modelDetails.phase}
             statusMessage={row.modelDetails.statusMessage}
@@ -144,14 +150,14 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             resourceName={row.modelDetails.displayName ?? row.id}
             onClick={() => {
               fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                popoverType: 'status',
-                status: row.modelDetails.phase,
+                popoverType: EventTrackingPopoverType.STATUS,
+                status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
                 location: PhaseLabelLocation.OVERVIEW,
-              });
+              } satisfies SubscriptionManagementStatusPopoverViewedProperties);
             }}
           />
         </Td>
-        <Td dataLabel={overviewColumns[3].label}>
+        <Td dataLabel={overviewColumns[4].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.subscriptions.length}</FlexItem>
             {row.subscriptions.length === 0 && (
@@ -161,7 +167,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             )}
           </Flex>
         </Td>
-        <Td dataLabel={overviewColumns[4].label}>
+        <Td dataLabel={overviewColumns[5].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.authPolicies.length}</FlexItem>
             {row.authPolicies.length === 0 && (

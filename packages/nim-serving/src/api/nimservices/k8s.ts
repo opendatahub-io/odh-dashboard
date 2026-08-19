@@ -11,6 +11,7 @@ import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { filterRuntimeArgsForContainer } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
@@ -187,7 +188,12 @@ export const assembleNIMService = (
   }
 
   if (runtimeArgs?.enabled && runtimeArgs.args.length > 0) {
-    nimService.spec.args = runtimeArgs.args;
+    const containerArgs = filterRuntimeArgsForContainer(runtimeArgs.args);
+    if (containerArgs.length > 0) {
+      nimService.spec.args = containerArgs;
+    } else {
+      delete nimService.spec.args;
+    }
   } else {
     delete nimService.spec.args;
   }

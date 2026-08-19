@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import ClusterSettings from '#~/pages/clusterSettings/ClusterSettings';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { DEFAULT_CONFIG } from '#~/pages/clusterSettings/const';
 
 jest.mock('#~/app/AppContext', () => ({
@@ -32,8 +32,6 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
 
-// Simplify GlobalProjectSettings to two buttons that either select a new namespace
-// or clear the current one, avoiding the need to stand up ProjectsContext/ProjectSelector.
 jest.mock('#~/pages/clusterSettings/GlobalProjectSettings', () => ({
   __esModule: true,
   default: ({ setSelectedNamespace }: { setSelectedNamespace: (ns: string) => void }) => (

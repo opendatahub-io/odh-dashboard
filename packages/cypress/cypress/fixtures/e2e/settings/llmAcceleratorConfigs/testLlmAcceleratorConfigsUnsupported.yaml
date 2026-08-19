@@ -1,0 +1,17 @@
+# testLlmAcceleratorConfigsUnsupported.cy.ts Test Data #
+# resource kind
+resourceType: 'kind: LLMInferenceServiceConfig'
+resourceApiVersion: 'apiVersion: serving.kserve.io/v1alpha2'
+
+# Model serving
+projectResourceName: 'test-accelerator-project'
+deploymentMethod: 'llm-inference-service-simple-vllm'
+singleModelAdminName: 'test-accelerator-model'
+modelLocationURI: 'hf://facebook/opt-125m'
+
+# Accelerator configs
+unsupportedAcceleratorConfigFixturePath : 'resources/modelServing/unsupported-accelerator-config.yaml'
+replaceSourceString: "opendatahub.io/support-status: unsupported"
+replaceTargetString: "opendatahub.io/support-status: supported"
+acceleratorConfigName: 'e2e-accelerator-config'
+version: 'v1.10.2'

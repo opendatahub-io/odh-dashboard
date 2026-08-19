@@ -1,13 +1,22 @@
 import * as React from 'react';
-import { useQueryParamNamespaces } from 'mod-arch-core';
 import useModelCatalogSettingsAPIState, {
   ModelCatalogSettingsAPIState,
 } from '~/app/hooks/modelCatalogSettings/useModelCatalogSettingsAPIState';
 import { useCatalogSourceConfigs } from '~/app/hooks/modelCatalogSettings/useCatalogSourceConfigs';
-import { CatalogSourceConfigList, CatalogSourceList } from '~/app/modelCatalogTypes';
+import type { CatalogSourceList } from '~/app/shared/types/catalogTypes';
+import type { CatalogSourceConfigList } from '~/app/modelCatalogTypes';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import useModelCatalogAPIState from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
-import { useCatalogSourcesWithPolling } from '~/app/hooks/modelCatalogSettings/useCatalogSourcesWithPolling';
+import { createCatalogSettingsContext } from '~/app/shared/catalogSettings/createCatalogSettingsContext';
+
+const { useCatalogSettingsValue } = createCatalogSettingsContext<
+  ModelCatalogSettingsAPIState,
+  CatalogSourceConfigList
+>({
+  settingsHostPath: `${URL_PREFIX}/api/${BFF_API_VERSION}/settings/model_catalog`,
+  catalogHostPath: `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`,
+  useSettingsAPIState: useModelCatalogSettingsAPIState,
+  useSourceConfigsList: useCatalogSourceConfigs,
+});
 
 export type ModelCatalogSettingsContextType = {
   apiState: ModelCatalogSettingsAPIState;
@@ -43,21 +52,18 @@ export const ModelCatalogSettingsContext = React.createContext<ModelCatalogSetti
 export const ModelCatalogSettingsContextProvider: React.FC<
   ModelCatalogSettingsContextProviderProps
 > = ({ children }) => {
-  const hostPath = `${URL_PREFIX}/api/${BFF_API_VERSION}/settings/model_catalog`;
-  const catalogHostPath = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
-  const queryParams = useQueryParamNamespaces();
-  const [apiState, refreshAPIState] = useModelCatalogSettingsAPIState(hostPath, queryParams);
-  const [catalogAPIState] = useModelCatalogAPIState(catalogHostPath, queryParams);
-  const [
-    catalogSourceConfigs,
-    catalogSourceConfigsLoaded,
-    catalogSourceConfigsLoadError,
-    refreshCatalogSourceConfigs,
-  ] = useCatalogSourceConfigs(apiState);
-
-  // Fetch catalog sources with polling for status updates
-  const [catalogSources, catalogSourcesLoaded, catalogSourcesLoadError, refreshCatalogSources] =
-    useCatalogSourcesWithPolling(catalogAPIState);
+  const {
+    apiState,
+    refreshAPIState,
+    sourceConfigs: catalogSourceConfigs,
+    sourceConfigsLoaded: catalogSourceConfigsLoaded,
+    sourceConfigsLoadError: catalogSourceConfigsLoadError,
+    refreshSourceConfigs: refreshCatalogSourceConfigs,
+    catalogSources,
+    catalogSourcesLoaded,
+    catalogSourcesLoadError,
+    refreshCatalogSources,
+  } = useCatalogSettingsValue();
 
   const contextValue = React.useMemo(
     () => ({
