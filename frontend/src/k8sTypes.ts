@@ -105,6 +105,7 @@ export type ModelRegistry = {
   displayName: string;
   description: string;
   serverAddress?: string;
+  isAvailable?: boolean;
 };
 
 export type AccessModeSettings = Partial<Record<AccessMode, boolean>>;
@@ -295,21 +296,6 @@ export type ClusterRoleKind = K8sResourceCommon & {
     name: string;
   };
   rules?: ResourceRule[];
-};
-
-export type RouteKind = K8sResourceCommon & {
-  spec: {
-    host: string;
-    path: string;
-    port: {
-      targetPort: string;
-    };
-    to?: {
-      kind: string;
-      name: string;
-      weight: number;
-    };
-  };
 };
 
 export type AWSSecretKind = SecretKind & {

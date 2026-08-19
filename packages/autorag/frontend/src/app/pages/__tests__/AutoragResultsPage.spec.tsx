@@ -5,26 +5,41 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // ============================================================================
 // Mocks
 // ============================================================================
 
 const mockUseParams = jest.fn();
+const mockUseLocation = jest.fn<{ state: unknown }, []>(() => ({ state: null }));
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
-  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
+  useLocation: () => mockUseLocation(),
   Link: ({
     to,
     children,
+    state,
     ...rest
-  }: { to: string; children: React.ReactNode } & Record<string, unknown>) => (
-    <a href={to} {...rest}>
+  }: {
+    to: string;
+    children: React.ReactNode;
+    state?: { from?: string };
+  } & Record<string, unknown>) => (
+    <a href={to} data-from={state?.from} {...rest}>
       {children}
     </a>
   ),
@@ -289,6 +304,7 @@ describe('AutoragResultsPage', () => {
     jest.clearAllMocks();
     capturedContext = null;
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
+    mockUseLocation.mockReturnValue({ state: null });
 
     // Reset useNamespaceSelector mock to default state
     const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
@@ -682,7 +698,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('breadcrumbs', () => {
-    it('should render breadcrumb with namespace and run name', () => {
+    it('should render experiment context breadcrumb with Run results', () => {
       const mockPipelineRun = createMockPipelineRun({
         display_name: 'My Test Run',
       });
@@ -697,10 +713,22 @@ describe('AutoragResultsPage', () => {
 
       renderPage();
 
-      // Breadcrumb should show namespace
-      expect(screen.getByText(/test-ns/)).toBeInTheDocument();
-      // Breadcrumb should show run display name
-      expect(screen.getByText('My Test Run')).toBeInTheDocument();
+      expect(screen.getByTestId('experiment-breadcrumb-home')).toHaveTextContent(/AutoRAG in/);
+      expect(screen.getByTestId('experiment-breadcrumb-home')).toHaveTextContent('test-ns');
+      expect(screen.getByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(/Go to/);
+      const experimentConfigLink = screen.getByTestId(
+        'results-breadcrumb-experiment-configurations',
+      );
+      expect(experimentConfigLink).toHaveTextContent('Experiment configurations');
+      expect(experimentConfigLink.querySelector('a')).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/reconfigure/test-ns/run-123',
+      );
+      expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
+      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
+      ).toHaveAttribute('href', '/projects/test-ns');
     });
   });
 
@@ -1155,6 +1183,7 @@ describe('AutoragResultsPage', () => {
       const reconfigureButton = screen.getByTestId('reconfigure-run-button');
       const link = reconfigureButton.closest('a');
       expect(link).toHaveAttribute('href', '/gen-ai-studio/autorag/reconfigure/test-ns/run-123');
+      expect(link).toHaveAttribute('data-from', 'results');
     });
 
     it('should show Reconfigure button alongside Stop button for active runs', () => {
@@ -1189,6 +1218,77 @@ describe('AutoragResultsPage', () => {
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
       expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+  });
+
+  describe('AutoRAG Results Viewed tracking', () => {
+    it('should fire with entrySource from location state when navigated from the experiments list', () => {
+      mockUseLocation.mockReturnValue({ state: { entrySource: 'experimentsList' } });
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+        entrySource: 'experimentsList',
+      });
+    });
+
+    it('should fall back to entrySource: other when location state is missing/invalid', () => {
+      mockUseLocation.mockReturnValue({ state: null });
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+        entrySource: 'other',
+      });
+    });
+
+    it('should not fire again on re-renders for the same run', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      const { rerender } = renderPage();
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not fire while the pipeline run has not yet loaded', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalled();
     });
   });
 });

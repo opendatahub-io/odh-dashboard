@@ -230,6 +230,11 @@ export const mockDeploymentWizardState = (
           isVisible: true,
         },
         canCreateRoleBindings: true,
+        validatedConfigurationSelection: {
+          selectedValidatedConfigurations: {},
+          toggleOption: jest.fn(),
+          isOptionSelected: jest.fn().mockReturnValue(false),
+        },
       },
       loaded: {
         modelSourceLoaded: true,

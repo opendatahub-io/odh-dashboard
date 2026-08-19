@@ -11,5 +11,5 @@ spec:
     Build a retrieval-augmented generation agent that autonomously decides
     when to query a Milvus vector store. Uses a three-node LangGraph
     workflow for intelligent document retrieval and context-aware generation.
-  url: 'https://red.ht/4fjmoSd'
+  url: 'https://red.ht/4xy6kC2'
   appName: agentic-starter-kits

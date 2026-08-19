@@ -180,6 +180,35 @@ paths:
       summary: List Collections
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/collections/{id}:
+    summary: Get a single benchmark collection
+    description: >-
+      Retrieves a single benchmark collection by its resource ID from the
+      EvalHub control plane. Returns the collection with its benchmarks,
+      tags, and metadata.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollection
+      summary: Get Collection by ID
+      description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -326,6 +355,90 @@ paths:
       description: >-
         Cancels a running evaluation job (soft cancel) or permanently
         deletes it (hard delete) depending on the hard_delete parameter.
+
+  /eval-hub/api/v1/evaluations/jobs/{id}/logs:
+    summary: Get evaluation job logs
+    description: >-
+      Retrieves execution logs for an evaluation job as plain text from the
+      EvalHub Server. Supports server-side truncation via tail_lines and
+      time-based filtering via since_seconds.
+    get:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/tailLines'
+        - $ref: '#/components/parameters/timestamps'
+        - $ref: '#/components/parameters/sinceSeconds'
+      responses:
+        '200':
+          description: Plain text execution logs
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                === Logs for job eval-job-001 ===
+                [2026-03-01T09:00:00Z] Starting evaluation...
+                [2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getEvaluationJobLogs
+      summary: Get Evaluation Job Logs
+      description: >-
+        Retrieves execution logs for an evaluation job. Returns plain text
+        with optional per-benchmark section headers.
+
+  /eval-hub/api/v1/evaluations/jobs/{id}/benchmarks/{benchmark_index}/logs:
+    summary: Get evaluation job benchmark logs
+    description: >-
+      Retrieves execution logs for a specific benchmark within an evaluation
+      job as plain text from the EvalHub Server.
+    get:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/benchmarkIndex'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/tailLines'
+        - $ref: '#/components/parameters/timestamps'
+        - $ref: '#/components/parameters/sinceSeconds'
+      responses:
+        '200':
+          description: Plain text execution logs for the specified benchmark
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                === Benchmark 0 Logs ===
+                [2026-03-01T09:01:00Z] Running benchmark...
+                [2026-03-01T09:05:00Z] Benchmark completed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getEvaluationJobBenchmarkLogs
+      summary: Get Evaluation Job Benchmark Logs
+      description: >-
+        Retrieves execution logs for a specific benchmark within an
+        evaluation job. Returns plain text log output.
 
   # =============================================================================
   # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
@@ -596,6 +709,10 @@ components:
           type: string
         message_code:
           type: string
+        message_origin:
+          type: string
+          description: Origin of the error (server, runtime, adapter, sdk)
+          enum: [server, runtime, adapter, sdk]
 
     JobResource:
       type: object
@@ -655,12 +772,20 @@ components:
           type: string
         provider_id:
           type: string
+        benchmark_index:
+          type: integer
+          minimum: 0
         status:
           type: string
+        started_at:
+          type: string
+          format: date-time
         completed_at:
           type: string
           format: date-time
         error_message:
+          $ref: '#/components/schemas/JobMessage'
+        warning_message:
           $ref: '#/components/schemas/JobMessage'
 
     BenchmarkResult:
@@ -1186,9 +1311,12 @@ components:
 
     CollectionResource:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
+          minLength: 1
           example: 'collection-001'
         tenant:
           type: string
@@ -1252,11 +1380,15 @@ components:
 
     Collection:
       type: object
+      required:
+        - resource
+        - name
       properties:
         resource:
           $ref: '#/components/schemas/CollectionResource'
         name:
           type: string
+          minLength: 1
           example: 'Open LLM Leaderboard v2'
         category:
           type: string
@@ -1382,6 +1514,37 @@ components:
           $ref: '#/components/schemas/ProviderBenchmarkPrimaryScore'
         pass_criteria:
           $ref: '#/components/schemas/ProviderBenchmarkPassCriteria'
+        agent:
+          $ref: '#/components/schemas/BenchmarkAgentMetadata'
+
+    BenchmarkAgentMetadata:
+      type: object
+      properties:
+        result_interpretation:
+          type: string
+          nullable: true
+        score_ranges:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreRange'
+          nullable: true
+
+    ScoreRange:
+      type: object
+      required:
+        - min
+        - max
+        - label
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+        label:
+          type: string
+        description:
+          type: string
+          nullable: true
 
     ProviderEnvVar:
       type: object
@@ -1472,6 +1635,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProviderBenchmark'
+          nullable: true
+        agent:
+          $ref: '#/components/schemas/ProviderAgentMetadata'
+
+    ProviderAgentMetadata:
+      type: object
+      properties:
+        evaluates:
+          type: array
+          items:
+            type: string
+          nullable: true
+        recommended_when:
+          type: array
+          items:
+            type: string
+          nullable: true
+        target_type:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        complements:
+          type: array
+          items:
+            type: string
+          nullable: true
+        hints:
+          type: array
+          items:
+            type: string
+          nullable: true
+        result_interpretation:
+          type: array
+          items:
+            type: string
           nullable: true
 
     ProvidersData:
@@ -1649,6 +1849,32 @@ components:
                     - id: 'arc_challenge'
                       provider_id: 'lm_evaluation_harness'
                       weight: 1
+
+    CollectionResponse:
+      description: A single benchmark collection from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Collection'
+          example:
+            data:
+              resource:
+                id: 'collection-001'
+              name: 'Open LLM Leaderboard v2'
+              category: 'General'
+              description: 'Comprehensive evaluation suite for general-purpose language models.'
+              tags:
+                - 'Comprehensive'
+                - 'Industry Standard'
+              benchmarks:
+                - id: 'arc_challenge'
+                  provider_id: 'lm_evaluation_harness'
+                  weight: 1
 
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues
@@ -1846,6 +2072,14 @@ components:
         type: string
       required: false
       description: Tags to search for
+    collectionId:
+      in: path
+      name: id
+      schema:
+        type: string
+      required: true
+      description: Unique identifier for the benchmark collection
+      example: 'collection-001'
     evaluationJobId:
       in: path
       name: id
@@ -1854,6 +2088,40 @@ components:
       required: true
       description: Unique identifier for the evaluation job
       example: 'eval-job-001'
+    benchmarkIndex:
+      in: path
+      name: benchmark_index
+      schema:
+        type: integer
+        minimum: 0
+      required: true
+      description: Zero-based index of the benchmark within the evaluation job
+      example: 0
+    tailLines:
+      in: query
+      name: tail_lines
+      schema:
+        type: integer
+        minimum: 0
+      required: false
+      description: Number of lines from the end of the log to return
+      example: 500
+    timestamps:
+      in: query
+      name: timestamps
+      schema:
+        type: boolean
+      required: false
+      description: Whether to include timestamps in log lines
+    sinceSeconds:
+      in: query
+      name: since_seconds
+      schema:
+        type: integer
+        minimum: 0
+      required: false
+      description: Only return log lines newer than this many seconds
+      example: 3600
     hardDelete:
       in: query
       name: hard_delete
@@ -1868,12 +2136,13 @@ components:
       in: query
       name: pageSize
       schema:
-        type: string
+        type: integer
+        format: int32
       required: false
       description: Number of entities in each page
       examples:
         pageSize:
-          value: '100'
+          value: 100
     nextPageToken:
       in: query
       name: nextPageToken

@@ -1,14 +1,12 @@
-import {
-  mock200Status,
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
 import { projectDetails } from '../../../../pages/projects';
 import { ProjectModel, SecretModel } from '../../../../utils/models';

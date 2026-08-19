@@ -3,7 +3,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import EmptyStatePage from './EmptyStatePage';
 import SubscriptionsTab from './SubscriptionsTab';
 import AuthPoliciesTab from './AuthPoliciesTab';
@@ -15,7 +15,10 @@ const AUTH_POLICIES_TAB = 'auth-policies';
 const VALID_TABS = [OVERVIEW_TAB, SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
 
 const SubscriptionManagementPage: React.FC = () => {
-  const [formData, formDataLoaded] = useSubscriptionPolicyFormData();
+  // Page-level empty only when models+subs+policies are all loaded and empty.
+  // ApplicationsPage then replaces children (hides tabs) with emptyStatePage.
+  // Per-tab empties still apply when some resources exist but one list is empty.
+  const { isEmpty, overviewLoaded, overviewError } = useMaaSGovernanceContext();
 
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
@@ -29,26 +32,13 @@ const SubscriptionManagementPage: React.FC = () => {
     [navigate],
   );
 
-  const empty = React.useMemo(
-    () =>
-      formDataLoaded &&
-      formData.policies.length === 0 &&
-      formData.subscriptions.length === 0 &&
-      formData.modelRefs.length === 0,
-    [
-      formDataLoaded,
-      formData.policies.length,
-      formData.subscriptions.length,
-      formData.modelRefs.length,
-    ],
-  );
-
   return (
     <ApplicationsPage
       title="MaaS governance"
       description="Manage subscriptions and authorization policies that control access to models through the Models-as-a-Service (MaaS) gateway."
-      loaded={formDataLoaded}
-      empty={empty}
+      loaded={overviewLoaded || !!overviewError}
+      empty={isEmpty}
+      loadError={overviewError}
       emptyStatePage={
         <EmptyStatePage
           returnTo={`${URL_PREFIX}/maas-governance`}
@@ -66,6 +56,8 @@ const SubscriptionManagementPage: React.FC = () => {
         onSelect={onSelectTab}
         aria-label="Subscription management tabs"
         inset={{ default: 'insetNone' }}
+        mountOnEnter
+        unmountOnExit
       >
         <Tab
           eventKey={OVERVIEW_TAB}
@@ -73,7 +65,7 @@ const SubscriptionManagementPage: React.FC = () => {
           aria-label="Overview tab"
           data-testid="overview-tab"
         >
-          <OverviewTab />
+          {activeTab === OVERVIEW_TAB && <OverviewTab />}
         </Tab>
         <Tab
           eventKey={SUBSCRIPTIONS_TAB}

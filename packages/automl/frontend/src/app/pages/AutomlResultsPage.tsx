@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -13,8 +12,9 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
@@ -30,9 +30,11 @@ import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { fireAutomlResultsViewed, isAutomlResultsNavigationState } from '~/app/utilities/tracking';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
+  const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
@@ -42,6 +44,7 @@ function AutomlResultsPage(): React.JSX.Element {
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
+    'resultsPage',
   );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
@@ -49,6 +52,10 @@ function AutomlResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -80,6 +87,17 @@ function AutomlResultsPage(): React.JSX.Element {
     isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
+
+  const resultsViewedTrackedRunId = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (!pipelineRun?.run_id || resultsViewedTrackedRunId.current === pipelineRun.run_id) {
+      return;
+    }
+    resultsViewedTrackedRunId.current = pipelineRun.run_id;
+
+    const navState = isAutomlResultsNavigationState(location.state) ? location.state : undefined;
+    fireAutomlResultsViewed(navState?.entrySource ?? 'other');
+  }, [pipelineRun?.run_id, location.state]);
 
   // Fetch and process AutoML results using custom hook
   const {
@@ -262,14 +280,24 @@ function AutomlResultsPage(): React.JSX.Element {
                 </Split>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>
-                    <Truncate content={pipelineRun?.display_name || ''} />
-                  </BreadcrumbItem>
-                </Breadcrumb>
+                namespace ? (
+                  <ExperimentContextBreadcrumb
+                    pageName="AutoML"
+                    namespace={namespace}
+                    projectDisplayName={projectDisplayName}
+                    homePath={getRedirectPath(namespace)}
+                  >
+                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                      <Link
+                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
+                        Experiment configurations
+                      </Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
+                  </ExperimentContextBreadcrumb>
+                ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
@@ -295,6 +323,7 @@ function AutomlResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
+        source="resultsPage"
       />
     </AutomlResultsContext.Provider>
   );

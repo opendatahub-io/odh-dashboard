@@ -1,7 +1,7 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
 import { mockResourceFlavorK8sResource } from '@odh-dashboard/internal/__mocks__/mockResourceFlavorK8sResource';
@@ -150,7 +150,7 @@ const initIntercepts = ({
     mockK8sResourceList(resourceFlavors.map((opts) => mockResourceFlavorK8sResource(opts))),
   );
 
-  cy.interceptOdh('POST /api/prometheus/query', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/query', (req) => {
     const { query } = req.body;
 
     // DCGM per-model queries must come before the generic 'modelName' check because
@@ -218,7 +218,7 @@ const initIntercepts = ({
     }
   });
 
-  cy.interceptOdh('POST /api/prometheus/queryRange', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/queryRange', (req) => {
     if (req.body.query && req.body.query.includes('kueue_cluster_queue_resource_usage')) {
       req.reply(
         makePrometheusRangeResponse(

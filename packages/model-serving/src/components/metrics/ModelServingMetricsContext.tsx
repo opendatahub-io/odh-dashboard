@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
-import { useModelServingMetrics } from '@odh-dashboard/internal/api';
+import { useModelServingMetrics } from '@odh-dashboard/plugin-core/host-api';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';
 import type {
   PrometheusQueryRangeResponseDataResult,
@@ -66,7 +66,12 @@ export const ModelServingMetricsProvider: React.FC<ModelServingMetricsProviderPr
   );
 
   const contextValue = React.useMemo(
-    () => ({ data, refresh, namespace }),
+    () => ({
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- bridge returns generic Record; runtime keys match ModelMetricType
+      data: data as unknown as ModelServingMetricsContextType['data'],
+      refresh,
+      namespace,
+    }),
     [data, refresh, namespace],
   );
 

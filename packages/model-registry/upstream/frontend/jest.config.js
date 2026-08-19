@@ -20,6 +20,10 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
     '~/(.*)': '<rootDir>/src/$1',
+    // ODH-only: @odh-dashboard/ui-core (a monorepo-only workspace symlink, not present in
+    // the standalone upstream repo) otherwise resolves a second React copy, breaking hooks.
+    '^react$': require.resolve('react'),
+    '^react-dom$': require.resolve('react-dom'),
   },
 
   transform: {
@@ -49,4 +53,3 @@ module.exports = {
     '!**/*.spec.{ts,tsx}',
   ],
 };
-

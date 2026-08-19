@@ -2,7 +2,8 @@
  * Tests for the permission rules section of the Create Custom Role form:
  * editing rules, removing rules, Add Rule modal validation, and rules toolbar filter/search.
  */
-import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,
@@ -15,15 +16,25 @@ import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
-const addRule = (apiGroup: string, resource: string, verb: string) => {
-  projectRoles.findAddRuleButton().click();
-  projectRoles.findAddRuleModal().should('exist');
+const selectApiGroup = (apiGroup: string) => {
   projectRoles.findRuleApiGroupsToggle().click();
   projectRoles.findRuleApiGroupsToggle().parent().find('input').type(apiGroup);
-  cy.contains(`Use custom API group "${apiGroup}"`).click();
+  cy.findByTestId(`select-multi-typeahead-${apiGroup}`).click();
+  cy.press(Cypress.Keyboard.Keys.TAB);
+};
+
+const selectResource = (resource: string, label: string) => {
   projectRoles.findRuleResourceTypesToggle().click();
   projectRoles.findRuleResourceTypesToggle().parent().find('input').type(resource);
-  cy.contains(`Use custom resource type "${resource}"`).click();
+  cy.findByTestId(`select-multi-typeahead-${label}`).click();
+  cy.press(Cypress.Keyboard.Keys.TAB);
+};
+
+const addRule = (apiGroup: string, resource: string, resourceLabel: string, verb: string) => {
+  projectRoles.findAddRuleButton().click();
+  projectRoles.findAddRuleModal().should('exist');
+  selectApiGroup(apiGroup);
+  selectResource(resource, resourceLabel);
   projectRoles.findVerbCheckbox(verb).click();
   projectRoles.findRuleSaveButton().click();
 };
@@ -48,7 +59,7 @@ describe('Edit rule', () => {
   });
 
   it('should open edit modal with pre-populated fields', () => {
-    addRule('apps', 'deployments', 'get');
+    addRule('apps', 'deployments', 'Deployments', 'get');
 
     projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
     projectRoles.findRuleEditButton(0).click();
@@ -56,12 +67,12 @@ describe('Edit rule', () => {
     projectRoles.findAddRuleModal().should('exist');
     projectRoles.findAddRuleModal().contains('Edit rule').should('exist');
     projectRoles.findRuleApiGroupsToggle().should('contain.text', 'apps');
-    projectRoles.findRuleResourceTypesToggle().should('contain.text', 'deployments');
+    projectRoles.findRuleResourceTypesToggle().should('contain.text', 'Deployments');
     projectRoles.findVerbCheckbox('get').should('be.checked');
   });
 
   it('should update rule in table after editing', () => {
-    addRule('apps', 'deployments', 'get');
+    addRule('apps', 'deployments', 'Deployments', 'get');
 
     projectRoles.findRuleEditButton(0).click();
     projectRoles.findAddRuleModal().should('exist');
@@ -86,8 +97,8 @@ describe('Remove rule', () => {
   });
 
   it('should remove a rule from the table', () => {
-    addRule('apps', 'deployments', 'get');
-    addRule('batch', 'jobs', 'create');
+    addRule('apps', 'deployments', 'Deployments', 'get');
+    addRule('batch', 'jobs', 'Jobs', 'create');
 
     projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 2);
     projectRoles.findRuleRemoveButton(0).click();
@@ -95,7 +106,7 @@ describe('Remove rule', () => {
   });
 
   it('should show empty state when last rule is removed', () => {
-    addRule('apps', 'deployments', 'get');
+    addRule('apps', 'deployments', 'Deployments', 'get');
 
     projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
     projectRoles.findRuleRemoveButton(0).click();
@@ -118,14 +129,10 @@ describe('Add Rule modal validation', () => {
 
     projectRoles.findRuleSaveButton().should('be.disabled');
 
-    projectRoles.findRuleApiGroupsToggle().click();
-    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
-    cy.contains('Use custom API group "apps"').click();
+    selectApiGroup('apps');
     projectRoles.findRuleSaveButton().should('be.disabled');
 
-    projectRoles.findRuleResourceTypesToggle().click();
-    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
-    cy.contains('Use custom resource type "deployments"').click();
+    selectResource('deployments', 'Deployments');
     projectRoles.findRuleSaveButton().should('be.disabled');
   });
 
@@ -133,14 +140,8 @@ describe('Add Rule modal validation', () => {
     projectRoles.findAddRuleButton().click();
     projectRoles.findAddRuleModal().should('exist');
 
-    projectRoles.findRuleApiGroupsToggle().click();
-    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
-    cy.contains('Use custom API group "apps"').click();
-
-    projectRoles.findRuleResourceTypesToggle().click();
-    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
-    cy.contains('Use custom resource type "deployments"').click();
-
+    selectApiGroup('apps');
+    selectResource('deployments', 'Deployments');
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleSaveButton().should('be.enabled');
   });
@@ -149,14 +150,8 @@ describe('Add Rule modal validation', () => {
     projectRoles.findAddRuleButton().click();
     projectRoles.findAddRuleModal().should('exist');
 
-    projectRoles.findRuleApiGroupsToggle().click();
-    projectRoles.findRuleApiGroupsToggle().parent().find('input').type('apps');
-    cy.contains('Use custom API group "apps"').click();
-
-    projectRoles.findRuleResourceTypesToggle().click();
-    projectRoles.findRuleResourceTypesToggle().parent().find('input').type('deployments');
-    cy.contains('Use custom resource type "deployments"').click();
-
+    selectApiGroup('apps');
+    selectResource('deployments', 'Deployments');
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleCancelButton().click();
 

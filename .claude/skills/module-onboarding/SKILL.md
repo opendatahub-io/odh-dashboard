@@ -1,6 +1,6 @@
 ---
 name: module-onboarding
-description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, verifies the build (type-check, port validation, container image). Pass the module name in kebab-case as the argument.
+description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, and verifies the build. Standalone manifests and operator registration are deferred to /konflux-onboarding (after CI/CD is set up and images are available). Pass the module name in kebab-case as the argument.
 ---
 
 # Module Onboarding
@@ -84,7 +84,10 @@ After the installer completes, verify the following files exist and are correct.
 - `module-federation.local.port` matches the allocated frontend port from Phase 1
 - `module-federation.proxy[0].path` is `/<name>/api`
 - `module-federation.service.name` is `odh-dashboard-<slug>-ui` (the standalone service name for this module)
-- `module-federation.service.port` matches the module's BFF port (e.g., 8043 for model-registry, 8143 for gen-ai — allocate a unique port in the 8000-8199 range)
+- `module-federation.service.port` matches the module's production service port. Allocate by scanning `dashboard-operator/internal/controller/modules.go` for existing ports (current range: 8043–8943, increments of ~100). Find the next available port:
+  ```bash
+  grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
+  ```
 - Note: The `service` config is used by the operator when generating the federation-config ConfigMap
 - If BFF included, add `bffConfig` section:
 
@@ -101,8 +104,8 @@ After the installer completes, verify the following files exist and are correct.
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
 
 **`packages/<name>/frontend/config/moduleFederation.js`**:
-- `name` matches `<camelCase>`
-- `shared` includes all required singletons (see reference.md § Shared Singletons)
+- Uses `OdhFederationPlugin` with `name` matching `<camelCase>`
+- `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`
 - `exposes` includes `'./extensions': './src/odh/extensions'`
 
 **`packages/<name>/frontend/src/odh/extensions.ts`**:
@@ -255,7 +258,7 @@ Summarize the completed onboarding:
 
 1. **Files created** — list all new files under `packages/<name>/`
 2. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
-3. **Port assignments** — frontend port, BFF port (if applicable)
+3. **Port assignments** — frontend port, BFF port (if applicable), production service port
 4. **Build results** — pass/fail for each verification step
 5. **Next steps** for the team:
    - Write feature code in `packages/<name>/frontend/src/app/`
@@ -264,6 +267,4 @@ Summarize the completed onboarding:
    - Add contract tests in `packages/<name>/contract-tests/` (if BFF)
    - Start the dev server: `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
-   - Create standalone deployment manifests in `manifests/modules/<name>/` (reference `/konflux-onboarding` Phase 4 or existing modules like `gen-ai/`, `model-registry/`)
-   - Register the module in the operator's module registry (`dashboard-operator/internal/controller/modules.go`) with: slug, container name, port, image env var, DSC component gate, and inter-module dependencies
-   - Run `/konflux-onboarding` for CI/CD pipeline setup (Dockerfiles, Konflux component registration, OpenShift CI)
+   - **Run `/konflux-onboarding`** for CI/CD pipeline setup — this handles Dockerfiles, Konflux component registration, OpenShift CI, standalone deployment manifests, and operator registration. Operator registration is intentionally deferred to Konflux onboarding because the operator deploys the module image, which must be buildable first (otherwise the pod enters ImagePullBackOff).

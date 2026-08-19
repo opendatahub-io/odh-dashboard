@@ -63,7 +63,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
                 });
               }}
               externalData={externalData?.[field.id] ?? undefined}
-              dependencies={getFieldDependencies(field, wizardState.state)}
+              dependencies={getFieldDependencies(field, wizardState.state, wizardState.initialData)}
               isEditing={isEditing}
               isDisabled={isDisabled || hasDisabledOverride(wizardState.state[getStateKey(field)])}
             />

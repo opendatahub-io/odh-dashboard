@@ -1,10 +1,10 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { mock404Error, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { groupVersionKind, useGroups } from '#~/api';
 import { GroupModel } from '#~/api/models';
 import { mockGroup } from '#~/__mocks__/mockGroup';
-import { mock404Error, mock500Error } from '#~/__mocks__/mockK8sStatus';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 import { GroupKind } from '#~/k8sTypes';
 

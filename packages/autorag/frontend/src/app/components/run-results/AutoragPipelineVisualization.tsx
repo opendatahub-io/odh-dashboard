@@ -12,6 +12,8 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { canShowPatternsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import { PatternsExpandProvider } from '~/app/topology/tree-view/PatternsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
   getTreeTopologyFromResult,
@@ -57,10 +59,33 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
+  const [patternsExpanded, setPatternsExpanded] = React.useState(false);
+
+  const showPatternsToggle = React.useMemo(
+    () => canShowPatternsExpandToggle(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
+
+  const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedPattern;
 
   const pipelineTopology = React.useMemo(
-    () => getTreeTopologyFromResult(transformPipelineData(treeViewData)),
-    [treeViewData],
+    () =>
+      getTreeTopologyFromResult(
+        transformPipelineData(treeViewData, {
+          patternsExpanded,
+          winnerResolved,
+        }),
+      ),
+    [treeViewData, patternsExpanded, winnerResolved],
+  );
+
+  const patternsExpandValue = React.useMemo(
+    () => ({
+      patternsExpanded,
+      showToggle: showPatternsToggle,
+      onToggle: () => setPatternsExpanded((prev) => !prev),
+    }),
+    [patternsExpanded, showPatternsToggle],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;
@@ -95,6 +120,12 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
       setSelectedIds([]);
     }
   }, [showTreeLoadingState]);
+
+  React.useEffect(() => {
+    if (!showPatternsToggle && patternsExpanded) {
+      setPatternsExpanded(false);
+    }
+  }, [showPatternsToggle, patternsExpanded]);
 
   return (
     <div className="autorag-pipeline-visualization" data-testid="autorag-pipeline-visualization">
@@ -164,13 +195,16 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
             }
           >
             <DrawerContentBody className="autorag-pipeline-visualization__drawer-content">
-              <TreeTopology
-                className="autorag-tree-topology-container"
-                topology={pipelineTopology}
-                loadingMode={treeLoadingMode}
-                selectedIds={selectedIds}
-                onSelectionChange={handleSelectionChange}
-              />
+              <PatternsExpandProvider value={patternsExpandValue}>
+                <TreeTopology
+                  className="autorag-tree-topology-container"
+                  topology={pipelineTopology}
+                  loadingMode={treeLoadingMode}
+                  selectedIds={selectedIds}
+                  onSelectionChange={handleSelectionChange}
+                  layoutResetKey={patternsExpanded}
+                />
+              </PatternsExpandProvider>
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>

@@ -8,6 +8,7 @@ import {
   StorageStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   buildMockRunKF,
   buildMockPipeline,
@@ -15,7 +16,6 @@ import {
   buildMockPipelineVersions,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
-  mockDashboardConfig,
   mockArgoWorkflowPipelineVersion,
 } from '@odh-dashboard/internal/__mocks__';
 import { getCorePipelineSpec } from '@odh-dashboard/internal/concepts/pipelines/getCorePipelineSpec';

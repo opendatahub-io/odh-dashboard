@@ -10,6 +10,7 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   prepare_data: 'Prepare data',
   load_data: 'Load data',
   model_selection: 'Select models',
+  refit_and_evaluate: 'Refit and evaluate',
   refit_full: 'Refit and evaluate',
   evaluate_models: 'Evaluate models',
   build_leaderboard: 'Build leaderboard',
