@@ -107,11 +107,11 @@ describe('NIM Models Deployments', () => {
     row
       .findDescriptionListItem('Model server size')
       .next('dd')
-      .should('contain.text', '8 CPUs, 32GiB Memory requested');
+      .should('contain.text', '2 CPUs, 6GiB Memory requested');
     row
       .findDescriptionListItem('Model server size')
       .next('dd')
-      .should('contain.text', '16 CPUs, 64GiB Memory limit');
+      .should('contain.text', '4 CPUs, 8GiB Memory limit');
     row
       .findDescriptionListItem('Hardware profile')
       .next('dd')
@@ -374,6 +374,10 @@ describe('NIM Models Deployments', () => {
           hardwareProfileName: 'default-profile',
           hardwareProfileNamespace: 'opendatahub',
           hardwareProfileResourceVersion: '1309350',
+          hasExternalRoute: true,
+          // Advanced settings prefill from the deployment on edit
+          args: ['--verbose', '--log-level=debug'],
+          env: [{ name: 'CUSTOM_VAR', value: 'custom-value' }],
         }),
       ]),
     );
@@ -394,6 +398,24 @@ describe('NIM Models Deployments', () => {
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
       mockK8sResourceList([mockPVCK8sResource({ name: 'my-nim-wizard-pvc' })]),
+    );
+    // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
+    // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
+    // and prefills the existing service account name from the secret's display name.
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          name: 'my-existing-sa-test-name-sa',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'my-existing-sa',
+            'kubernetes.io/service-account.name': 'test-name-sa',
+          },
+          type: 'kubernetes.io/service-account-token',
+          data: { token: btoa('test-token') },
+        }),
+      ]),
     );
 
     modelServingGlobal.visit('test-project');
@@ -431,5 +453,22 @@ describe('NIM Models Deployments', () => {
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
+
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced settings - external route, token auth, the existing service account, runtime
+    // args, and custom env variables all prefill from the deployment on edit
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizardEdit.findServiceAccountNameInput().should('have.value', 'my-existing-sa');
+    modelServingWizardEdit.findRuntimeArgsCheckbox().should('be.checked');
+    modelServingWizardEdit
+      .findRuntimeArgsTextBox()
+      .should('have.value', '--verbose\n--log-level=debug');
+    modelServingWizardEdit.findEnvVariablesCheckbox().should('be.checked');
+    modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
+    modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });

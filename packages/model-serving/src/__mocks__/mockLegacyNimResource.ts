@@ -60,18 +60,24 @@ type NimInferenceService = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
   hardwareProfileResourceVersion?: string;
+  hasExternalRoute?: boolean;
+  args?: string[];
+  env?: Array<{ name: string; value?: string }>;
 };
 
 export const mockNimInferenceService = ({
   displayName = 'Test Name',
   namespace = 'test-project',
   resources = {
-    limits: { cpu: '16', memory: '64Gi' },
-    requests: { cpu: '8', memory: '32Gi' },
+    limits: { cpu: '4', memory: '8Gi' },
+    requests: { cpu: '2', memory: '6Gi' },
   },
   hardwareProfileName,
   hardwareProfileNamespace,
   hardwareProfileResourceVersion,
+  hasExternalRoute,
+  args,
+  env,
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
@@ -82,6 +88,9 @@ export const mockNimInferenceService = ({
     hardwareProfileName,
     hardwareProfileNamespace,
     hardwareProfileResourceVersion,
+    hasExternalRoute,
+    args,
+    env,
   });
 
   delete inferenceService.metadata.labels?.name;
