@@ -2,6 +2,7 @@ import {
   mockNimInferenceService,
   mockNimServingRuntime,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   initInterceptsToDeployNimInWizard,
@@ -91,7 +92,7 @@ describe('NIM Models Deployments', () => {
     modelServingWizard.findNumReplicasInputField().should('have.value', '2');
 
     // PVC caching storage
-    modelServingWizard.nim.findPVCNameInput().type('nim-pvc');
+    modelServingWizard.nim.findPVCNameInput().type('pr pvc test');
     modelServingWizard.nim.findSubPathInput().type('arctic-embed-l');
     modelServingWizard.nim
       .findStorageClassSelect()
@@ -122,7 +123,7 @@ describe('NIM Models Deployments', () => {
           'opendatahub.io/managed': 'true',
         },
       });
-      expect(interception.request.body.metadata.name).to.match(/^nim-pvc/);
+      expect(interception.request.body.metadata.name).to.equal('pr-pvc-test');
       expect(interception.request.body.spec).to.containSubset({
         accessModes: ['ReadWriteOnce'],
         resources: { requests: { storage: '75Gi' } },
@@ -200,12 +201,13 @@ describe('NIM Models Deployments', () => {
         // NIM mounts a shared memory volume and the PVC cache volume
         volumes: [{ name: 'shm', emptyDir: { medium: 'Memory', sizeLimit: '2Gi' } }],
       });
-      // Verify PVC volume is present on the ServingRuntime
-      const pvcVolume = interception.request.body.spec.volumes.find(
-        (v: { persistentVolumeClaim?: { claimName: string } }) => v.persistentVolumeClaim,
+      // Verify the selected PVC replaced the template placeholder (no leftover nim-pvc)
+      const pvcVolumes = interception.request.body.spec.volumes.filter(
+        (v: Volume) => v.persistentVolumeClaim,
       );
-      expect(pvcVolume).to.not.equal(undefined);
-      expect(pvcVolume.persistentVolumeClaim.claimName).to.match(/^nim-pvc/);
+      expect(pvcVolumes).to.have.length(1);
+      expect(pvcVolumes[0].name).to.equal('pr-pvc-test');
+      expect(pvcVolumes[0].persistentVolumeClaim.claimName).to.equal('pr-pvc-test');
 
       const kserveContainer = interception.request.body.spec.containers.find(
         (container: { name: string }) => container.name === 'kserve-container',
@@ -219,6 +221,7 @@ describe('NIM Models Deployments', () => {
         (vm: { mountPath: string }) => vm.mountPath === '/mnt/models/cache',
       );
       expect(cacheMount).to.not.equal(undefined);
+      expect(cacheMount.name).to.equal('pr-pvc-test');
       expect(cacheMount.subPath).to.equal('arctic-embed-l');
       const cachePath = kserveContainer.env.find(
         (e: { name: string }) => e.name === 'NIM_CACHE_PATH',

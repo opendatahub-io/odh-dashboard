@@ -1,6 +1,6 @@
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
-import type { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
+import { translateDisplayNameForK8s, type Volume, type VolumeMount } from '@odh-dashboard/k8s-core';
 import {
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
@@ -9,6 +9,7 @@ import {
   KSERVE_CONTAINER_NAME,
   NIM_CACHE_MOUNT_PATH,
   NIM_CACHE_PATH_ENV,
+  NIM_TEMPLATE_PVC_NAME,
   DEFAULT_STORAGE_SIZE_GI,
 } from '../../constants';
 
@@ -16,6 +17,11 @@ const normalizeSubPath = (subPath: string): string | undefined => {
   const stripped = subPath.replace(/^\/+/, '');
   return stripped || undefined;
 };
+
+const isTemplateOrCachePvcVolume = (volume: Volume, cacheVolumeNames: Set<string>): boolean =>
+  cacheVolumeNames.has(volume.name) ||
+  volume.name === NIM_TEMPLATE_PVC_NAME ||
+  volume.persistentVolumeClaim?.claimName === NIM_TEMPLATE_PVC_NAME;
 
 const addPVCVolumeToRuntime = (
   deployment: KServeDeployment,
@@ -26,19 +32,31 @@ const addPVCVolumeToRuntime = (
     return deployment;
   }
 
+  const k8sPvcName = translateDisplayNameForK8s(pvcName);
   const server = structuredClone(deployment.server);
+  const cacheVolumeNames = new Set(
+    server.spec.containers.flatMap((c) =>
+      (c.volumeMounts ?? [])
+        .filter((vm) => vm.mountPath === NIM_CACHE_MOUNT_PATH)
+        .map((vm) => vm.name),
+    ),
+  );
   const volume: Volume = {
-    name: pvcName,
-    persistentVolumeClaim: { claimName: pvcName },
+    name: k8sPvcName,
+    persistentVolumeClaim: { claimName: k8sPvcName },
   };
   const volumeMount: VolumeMount = {
-    name: pvcName,
+    name: k8sPvcName,
     mountPath: NIM_CACHE_MOUNT_PATH,
     subPath: normalizeSubPath(subPath),
   };
 
   server.spec.volumes = [
-    ...(server.spec.volumes ?? []).filter((v) => v.persistentVolumeClaim?.claimName !== pvcName),
+    ...(server.spec.volumes ?? []).filter(
+      (v) =>
+        !isTemplateOrCachePvcVolume(v, cacheVolumeNames) &&
+        v.persistentVolumeClaim?.claimName !== k8sPvcName,
+    ),
     volume,
   ];
 

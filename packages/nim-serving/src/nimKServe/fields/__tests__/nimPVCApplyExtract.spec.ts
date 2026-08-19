@@ -5,7 +5,12 @@ import {
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../../pages/deploymentWizard/fields/NIMPVCField';
-import { DEFAULT_STORAGE_SIZE_GI } from '../../../constants';
+import {
+  DEFAULT_STORAGE_SIZE_GI,
+  KSERVE_CONTAINER_NAME,
+  NIM_CACHE_MOUNT_PATH,
+  NIM_TEMPLATE_PVC_NAME,
+} from '../../../constants';
 import { applyNIMPVCFieldData, extractNIMPVCFieldData } from '../nimPVCApplyExtract';
 
 const makeServingRuntime = (
@@ -107,6 +112,24 @@ describe('applyNIMPVCFieldData', () => {
     expect(mount?.subPath).toBeUndefined();
   });
 
+  it('should translate display names with spaces into valid k8s names', () => {
+    const result = applyNIMPVCFieldData(
+      makeDeployment(makeServingRuntime()),
+      makeFieldValue({ pvcName: 'pr pvc test' }),
+    );
+    expect(result.server?.spec.volumes).toContainEqual({
+      name: 'pr-pvc-test',
+      persistentVolumeClaim: { claimName: 'pr-pvc-test' },
+    });
+    const container = result.server?.spec.containers.find((c) => c.name === 'kserve-container');
+    expect(container?.volumeMounts).toContainEqual(
+      expect.objectContaining({
+        name: 'pr-pvc-test',
+        mountPath: '/mnt/models/cache',
+      }),
+    );
+  });
+
   it('should preserve existing volumes', () => {
     const runtime = makeServingRuntime({
       volumes: [{ name: 'shm', emptyDir: {} }],
@@ -117,6 +140,36 @@ describe('applyNIMPVCFieldData', () => {
     );
     expect(result.server?.spec.volumes).toHaveLength(2);
     expect(result.server?.spec.volumes?.[0]).toEqual({ name: 'shm', emptyDir: {} });
+  });
+
+  it('should replace the template placeholder nim-pvc volume', () => {
+    const runtime = makeServingRuntime({
+      containers: [
+        {
+          name: KSERVE_CONTAINER_NAME,
+          volumeMounts: [{ name: NIM_TEMPLATE_PVC_NAME, mountPath: NIM_CACHE_MOUNT_PATH }],
+        },
+      ],
+      volumes: [
+        {
+          name: NIM_TEMPLATE_PVC_NAME,
+          persistentVolumeClaim: { claimName: NIM_TEMPLATE_PVC_NAME },
+        },
+        { name: 'shm', emptyDir: {} },
+      ],
+    });
+    const result = applyNIMPVCFieldData(
+      makeDeployment(runtime),
+      makeFieldValue({ pvcName: 'pr pvc test' }),
+    );
+    expect(result.server?.spec.volumes).toEqual([
+      { name: 'shm', emptyDir: {} },
+      { name: 'pr-pvc-test', persistentVolumeClaim: { claimName: 'pr-pvc-test' } },
+    ]);
+    const container = result.server?.spec.containers.find((c) => c.name === KSERVE_CONTAINER_NAME);
+    expect(container?.volumeMounts).toEqual([
+      { name: 'pr-pvc-test', mountPath: NIM_CACHE_MOUNT_PATH },
+    ]);
   });
 
   it('should replace an existing volume with the same PVC claim', () => {
