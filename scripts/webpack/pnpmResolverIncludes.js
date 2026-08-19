@@ -2,6 +2,7 @@
  * pnpm-safe include matchers for webpack/rspack asset and CSS rules.
  * npm-era absolute path prefixes miss .pnpm store paths and nested workspace deps.
  */
+/* eslint-disable n/no-extraneous-require */
 const path = require('path');
 
 const PNPM_NODE_MODULES = /node_modules[/\\](?:\.pnpm[/\\][^/\\]+[/\\]node_modules[/\\])?/;
@@ -117,11 +118,50 @@ const tanstackQueryCoreAlias = (relativeDirname) => {
   }
 };
 
+/**
+ * Pin @mui/utils and @mui/system to the versions paired with this tree's @mui/material install.
+ * Hoisted @mui/material@7 at the repo root breaks webpack subpath imports when @mui/utils is
+ * missing or resolved to an incompatible hoisted version (common on CI fresh pnpm installs).
+ */
+const muiMaterialPeerAliases = (relativeDirname) => {
+  const alias = {};
+
+  for (const pkg of ['@mui/utils', '@mui/system']) {
+    try {
+      const materialPkg = require.resolve('@mui/material/package.json', {
+        paths: [relativeDirname],
+      });
+      const peerPkg = require.resolve(`${pkg}/package.json`, {
+        paths: [path.dirname(materialPkg)],
+      });
+      alias[pkg] = path.dirname(peerPkg);
+    } catch {
+      try {
+        const peerPkg = require.resolve(`${pkg}/package.json`, {
+          paths: [relativeDirname],
+        });
+        alias[pkg] = path.dirname(peerPkg);
+      } catch {
+        // Package not used in this frontend — skip.
+      }
+    }
+  }
+
+  return alias;
+};
+
+const pnpmWebpackResolveAliases = (relativeDirname) => ({
+  ...tanstackQueryCoreAlias(relativeDirname),
+  ...muiMaterialPeerAliases(relativeDirname),
+});
+
 module.exports = {
   isFontOrPficonAsset,
   isPatternFlyCss,
   isVendorCss,
   patternFlyCssIncludes,
   patternFlyFontIncludes,
+  muiMaterialPeerAliases,
+  pnpmWebpackResolveAliases,
   tanstackQueryCoreAlias,
 };
