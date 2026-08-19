@@ -14,7 +14,6 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from './k8sTypes';
 
@@ -39,24 +38,6 @@ export type PrometheusQueryResponse<TResultExtraProps extends object = object> =
   };
   status: string;
 };
-
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
-export type PrometheusQueryRangeResponseData = {
-  result?: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
-export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
-  status: string;
-};
-
-export type PrometheusQueryRangeResultValue = [number, string];
 
 export type NotebookControllerUserState = {
   user: string;
@@ -109,77 +90,6 @@ export type ConfigMap = {
 export enum EnvVarResourceType {
   Secret = 'Secret',
   ConfigMap = 'ConfigMap',
-}
-
-export type OdhApplication = {
-  metadata: {
-    name: string;
-    annotations?: { [key: string]: string };
-  };
-  spec: {
-    displayName: string;
-    provider: string;
-    description: string;
-    route?: string | null;
-    routeNamespace?: string | null;
-    routeSuffix?: string | null;
-    serviceName?: string | null;
-    endpoint?: string | null;
-    link?: string | null;
-    img: string;
-    docsLink: string;
-    hidden?: boolean | null;
-    getStartedLink: string;
-    getStartedMarkDown: string;
-    category?: OdhApplicationCategory | string; // unbound by the CRD today -- should be the enum;
-    support?: string;
-    quickStart: string | null;
-    comingSoon?: boolean | null;
-    beta?: boolean | null;
-    betaTitle?: string | null;
-    betaText?: string | null;
-    shownOnEnabledPage: boolean | null;
-    isEnabled: boolean | null;
-    csvName?: string;
-    enable?: {
-      title: string;
-      actionLabel: string;
-      description?: string;
-      linkPreface?: string;
-      link?: string;
-      variables?: { [key: string]: string };
-      variableDisplayText?: { [key: string]: string };
-      variableHelpText?: { [key: string]: string };
-      validationSecret: string;
-      validationJob: string;
-      validationConfigMap?: string;
-      inProgressText?: string;
-      warningValidation?: {
-        field: string;
-        validationRegex?: string;
-        message: string;
-      };
-    };
-    featureFlag?: string;
-    internalRoute?: string;
-    error?: string;
-  };
-};
-
-/**
- * An OdhApplication that uses integration api to determine status.
- * @see isIntegrationApp
- */
-export type OdhIntegrationApplication = OdhApplication & {
-  spec: {
-    internalRoute: string; // starts with `/api/`
-  };
-};
-
-export enum OdhApplicationCategory {
-  RedHatManaged = 'Red Hat managed',
-  PartnerManaged = 'Partner managed',
-  SelfManaged = 'Self-managed',
 }
 
 export enum OdhDocumentType {
@@ -257,7 +167,7 @@ declare global {
     WS_HOSTNAME?: string;
   }
 
-  // Webpack injected global variables
+  // Injected global variables
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const __COMMIT_HASH__: string | undefined;
 }
@@ -617,10 +527,6 @@ export type ListWithNonDashboardPresence<T> = {
   hasNonDashboardItems: boolean;
 };
 
-export type BreadcrumbItemType = {
-  label: string;
-} & EitherNotBoth<{ link: string }, { isActive: boolean }>;
-
 export type DetectedAccelerators = {
   configured: boolean;
   available: { [key: string]: number };
@@ -631,21 +537,6 @@ export type DetectedAccelerators = {
 export type KeyValuePair = {
   key: string;
   value: string;
-};
-
-export enum VariablesValidationStatus {
-  UNKNOWN = 'Unknown',
-  FAILED = 'False',
-  SUCCESS = 'True',
-}
-
-export type IntegrationAppStatus = {
-  isInstalled: boolean;
-  isEnabled: boolean;
-  canInstall: boolean;
-  variablesValidationStatus?: VariablesValidationStatus;
-  variablesValidationTimestamp?: string;
-  error: string;
 };
 
 export enum OdhPlatformType {

@@ -1,8 +1,16 @@
 import * as React from 'react';
-import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  PageSection,
+  Spinner,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
@@ -24,7 +32,12 @@ type SubscriptionsTabProps = {
 };
 
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
-  const [subscriptions, loaded, error, refresh] = useListSubscriptions();
+  const {
+    subscriptions,
+    subscriptionsLoaded: loaded,
+    subscriptionsError: error,
+    refresh,
+  } = useMaaSGovernanceContext();
   const [filterData, setFilterData] = React.useState<SubscriptionsFilterDataType>(
     initialSubscriptionsFilterData,
   );
@@ -66,9 +79,15 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   if (error) {
     return (
       <PageSection isFilled>
-        <Alert variant="danger" isInline title="Error loading subscriptions">
-          {error.message}
-        </Alert>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Error loading subscriptions"
+          variant={EmptyStateVariant.lg}
+          data-testid="error-empty-state"
+        >
+          <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
+        </EmptyState>
       </PageSection>
     );
   }

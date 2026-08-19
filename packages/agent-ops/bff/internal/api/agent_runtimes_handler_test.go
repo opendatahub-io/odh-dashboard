@@ -11,7 +11,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
-	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mocks"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

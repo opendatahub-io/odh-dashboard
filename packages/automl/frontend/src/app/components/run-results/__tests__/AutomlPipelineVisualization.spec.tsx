@@ -28,8 +28,13 @@ jest.mock('~/app/topology/tree-view/TreeTopology', () => ({
 
 jest.mock('~/app/components/run-results/StepDetailsPanel', () => ({
   __esModule: true,
-  default: ({ selectedNodeId }: { selectedNodeId?: string }) => (
-    <div data-testid="step-details-panel">{selectedNodeId ?? 'none'}</div>
+  default: ({ selectedNodeId, onClose }: { selectedNodeId?: string; onClose?: () => void }) => (
+    <div data-testid="step-details-panel">
+      <span>{selectedNodeId ?? 'none'}</span>
+      <button type="button" data-testid="close-details" onClick={onClose}>
+        Close
+      </button>
+    </div>
   ),
 }));
 
@@ -67,6 +72,41 @@ const treeViewData: PipelineVisualizationData = {
 };
 
 describe('AutomlPipelineVisualization', () => {
+  it('should toggle details with a single show/hide button', async () => {
+    const user = userEvent.setup();
+    render(
+      <AutomlPipelineVisualization
+        runTitle="AutoML pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+      />,
+    );
+
+    expect(screen.getByTestId('hide-details')).toHaveTextContent('Hide details');
+    expect(screen.getByTestId('hide-details')).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(screen.getByTestId('hide-details'));
+    expect(screen.getByTestId('show-details')).toHaveTextContent('Show details');
+    expect(screen.getByTestId('show-details')).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(screen.getByTestId('show-details'));
+    expect(screen.getByTestId('hide-details')).toHaveTextContent('Hide details');
+  });
+
+  it('should close details via the panel onClose callback', async () => {
+    const user = userEvent.setup();
+    render(
+      <AutomlPipelineVisualization
+        runTitle="AutoML pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+      />,
+    );
+
+    await user.click(screen.getByTestId('close-details'));
+    expect(screen.getByTestId('show-details')).toBeInTheDocument();
+  });
+
   it('should open the details drawer when selecting a different node while closed', async () => {
     const user = userEvent.setup();
     render(

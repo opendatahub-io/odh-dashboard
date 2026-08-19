@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
 import { findMetricValue, formatMetricName, getMetricDescription } from '~/app/utilities/utils';
+import { fireAutomlBacktestWindowMetricViewed } from '~/app/utilities/tracking';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import {
   BACKTEST_CHART_PADDING,
@@ -59,7 +60,9 @@ function buildWindowData(
   metric: string,
 ): ChartDataPoint[] {
   return perWindowMetrics.map((w, idx) => {
-    const value = w.metrics[metric] ?? 0;
+    // Use findMetricValue to handle both snake_case and acronym metric keys
+    const entry = findMetricValue(w.metrics, metric);
+    const value = entry?.value ?? 0;
     return {
       x: idx,
       y: value,
@@ -330,14 +333,27 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   initialSelectedMetrics,
   onSelectedMetricsChange,
 }) => {
-  const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>(
-    initialSelectedMetrics?.length ? initialSelectedMetrics : [evalMetric],
-  );
   const [isOpen, setIsOpen] = React.useState(false);
+  // Tracks which metrics have already fired AutoML Backtest Window Metric Viewed this mount,
+  // so toggling a metric off and back on doesn't re-fire it for the same modal session.
+  const trackedMetricsRef = React.useRef<Set<string>>(new Set());
 
   const metricKeys = React.useMemo(
     () => (perWindowMetrics.length > 0 ? Object.keys(perWindowMetrics[0].metrics) : []),
     [perWindowMetrics],
+  );
+
+  // Normalize evalMetric to match the actual keys in the data (handles snake_case → acronym)
+  const normalizedEvalMetric = React.useMemo(() => {
+    if (metricKeys.length === 0) {
+      return evalMetric;
+    }
+    const entry = findMetricValue(Object.fromEntries(metricKeys.map((k) => [k, 1])), evalMetric);
+    return entry?.key ?? metricKeys[0];
+  }, [metricKeys, evalMetric]);
+
+  const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>(
+    initialSelectedMetrics?.length ? initialSelectedMetrics : [normalizedEvalMetric],
   );
 
   React.useEffect(() => {
@@ -346,11 +362,11 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     }
     setSelectedMetrics((prev) => {
       const valid = prev.filter((m) => metricKeys.includes(m));
-      const next = valid.length > 0 ? valid : [evalMetric];
+      const next = valid.length > 0 ? valid : [normalizedEvalMetric];
       onSelectedMetricsChange?.(next);
       return next;
     });
-  }, [metricKeys, evalMetric, onSelectedMetricsChange]);
+  }, [metricKeys, normalizedEvalMetric, onSelectedMetricsChange]);
 
   const isAllSelected = selectedMetrics.length === metricKeys.length && metricKeys.length > 0;
   const isSingleMetric = selectedMetrics.length === 1;
@@ -363,25 +379,53 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     [onSelectedMetricsChange],
   );
 
+  // Fires one "viewed" event per metric that becomes newly visible, skipping any metric
+  // already recorded in trackedMetricsRef so toggling a metric off and back on (or
+  // selecting "Show all" more than once) doesn't re-fire it in the same modal session.
+  const trackNewlyAddedMetrics = React.useCallback((addedMetrics: string[]) => {
+    addedMetrics.forEach((metric) => {
+      if (!trackedMetricsRef.current.has(metric)) {
+        trackedMetricsRef.current.add(metric);
+        fireAutomlBacktestWindowMetricViewed(metric);
+      }
+    });
+  }, []);
+
   const onSelect = React.useCallback(
     (_e: React.MouseEvent | undefined, value: string | number | undefined) => {
       const strValue = String(value);
       if (strValue === SHOW_ALL) {
-        updateMetrics(isAllSelected ? [evalMetric] : [...metricKeys]);
+        if (isAllSelected) {
+          updateMetrics([normalizedEvalMetric]);
+        } else {
+          updateMetrics([...metricKeys]);
+          trackNewlyAddedMetrics(metricKeys.filter((m) => !selectedMetrics.includes(m)));
+        }
       } else {
-        const next = selectedMetrics.includes(strValue)
-          ? selectedMetrics.filter((m) => m !== strValue)
-          : [...selectedMetrics, strValue];
-        updateMetrics(next.length === 0 ? [evalMetric] : next);
+        const isAdding = !selectedMetrics.includes(strValue);
+        const next = isAdding
+          ? [...selectedMetrics, strValue]
+          : selectedMetrics.filter((m) => m !== strValue);
+        updateMetrics(next.length === 0 ? [normalizedEvalMetric] : next);
+        if (isAdding) {
+          trackNewlyAddedMetrics([strValue]);
+        }
       }
     },
-    [isAllSelected, evalMetric, metricKeys, selectedMetrics, updateMetrics],
+    [
+      isAllSelected,
+      normalizedEvalMetric,
+      metricKeys,
+      selectedMetrics,
+      updateMetrics,
+      trackNewlyAddedMetrics,
+    ],
   );
 
   const toggleLabel = isAllSelected
     ? 'Show all'
     : selectedMetrics.length === 1
-      ? selectedMetrics[0]
+      ? formatMetricName(selectedMetrics[0])
       : `${selectedMetrics.length} metrics`;
 
   return (
@@ -455,7 +499,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
                   value={key}
                   isSelected={selectedMetrics.includes(key)}
                 >
-                  {key}
+                  {formatMetricName(key)}
                 </SelectOption>
               ))}
             </SelectList>

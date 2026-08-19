@@ -57,6 +57,14 @@ describe('useAutomlTaskTopology', () => {
     expect(renderResult.result.current).toEqual([]);
   });
 
+  it('should return empty array when root dag is missing', () => {
+    const missingDagSpec = {
+      root: {},
+    } as PipelineSpecVariable;
+    const renderResult = testHook(useAutomlTaskTopology)(missingDagSpec, undefined);
+    expect(renderResult.result.current).toEqual([]);
+  });
+
   it('should create task nodes in topological order', () => {
     const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
@@ -365,7 +373,7 @@ describe('useAutomlTaskTopology', () => {
     expect(nodes[2].data?.runStatus).toBeUndefined();
   });
 
-  it('should map title-cased API display name to Model selection via normalized lookup', () => {
+  it('should map title-cased API display name to Select models via normalized lookup', () => {
     const spec: PipelineSpecVariable = {
       root: {
         dag: {
@@ -385,10 +393,10 @@ describe('useAutomlTaskTopology', () => {
       },
     };
     const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
-    expect(renderResult.result.current[1].label).toBe('Model selection');
+    expect(renderResult.result.current[1].label).toBe('Select models');
   });
 
-  it('should map autogluon-timeseries-models-selection task id to Model selection label', () => {
+  it('should map autogluon-timeseries-models-selection task id to Select models label', () => {
     const spec: PipelineSpecVariable = {
       root: {
         dag: {
@@ -410,7 +418,7 @@ describe('useAutomlTaskTopology', () => {
     const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
     const nodes = renderResult.result.current;
 
-    expect(nodes[1].label).toBe('Model selection');
+    expect(nodes[1].label).toBe('Select models');
   });
 
   it('should ignore inherited prototype names listed as dependentTasks', () => {

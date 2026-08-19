@@ -1,6 +1,14 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
+const GEN_AI_GUARDRAILS_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
+const GEN_AI_ALL_FLAGS =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -26,7 +34,30 @@ class GenAiPlayground {
   navigateToPlaygroundWithRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
     cy.visit(playgroundUrl);
-    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+    cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToAssetsWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithGuardrailsAndPromptManagement(projectName: string) {
+    cy.visit(
+      `/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG}`,
+    );
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
   findEmptyState() {
@@ -50,7 +81,7 @@ class GenAiPlayground {
   }
 
   findModelToggleButton() {
-    return cy.findByTestId('chatbot-model-selector-toggle');
+    return cy.findByTestId('settings-model-selector-toggle');
   }
 
   findMessageInput() {
@@ -61,14 +92,28 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-message-user');
   }
 
+  findAllUserMessages() {
+    return cy.findAllByTestId('chatbot-message-user');
+  }
+
   findAssistantMessage(options?: { timeout?: number }) {
     return cy.findByTestId('chatbot-message-bot', options);
+  }
+
+  findAllAssistantMessages(options?: { timeout?: number }) {
+    return cy.findAllByTestId('chatbot-message-bot', options);
   }
 
   sendMessage(message: string) {
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
     this.findMessageInput().type('{enter}');
     this.findMessageInput().should('have.value', '');
+  }
+
+  waitForStreamingComplete(options?: { timeout?: number }) {
+    const timeout = options?.timeout ?? 60000;
+    cy.findByTestId('chatbot-stop-button', { timeout }).should('exist');
+    cy.findByTestId('chatbot-stop-button', { timeout }).should('not.exist');
   }
 
   ensureModelCheckboxIsChecked(modelName: string) {
@@ -161,6 +206,292 @@ class GenAiPlayground {
 
   findTryInPlaygroundButton() {
     return cy.findByTestId('try-playground-button');
+  }
+
+  // Settings panel methods
+  findSettingsButton() {
+    return cy.findByTestId('settings-button');
+  }
+
+  findSettingsPanelHeader(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-settings-panel-header', options);
+  }
+
+  ensureSettingsPanelOpen() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
+        this.findSettingsButton().should('be.visible').click();
+      }
+    });
+    this.findSettingsPanelHeader({ timeout: 10000 }).should('be.visible');
+  }
+
+  findSettingsPromptTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-prompt');
+  }
+
+  // Prompt management methods (within the playground settings panel)
+  findSystemInstructionsInput() {
+    return cy.findByTestId('system-instructions-input');
+  }
+
+  findPromptSaveToRegistryButton() {
+    return cy.findByTestId('prompt-save-to-registry-button');
+  }
+
+  findPromptNameInput() {
+    return cy.findByTestId('prompt-name-input');
+  }
+
+  findPromptTemplateInput() {
+    return cy.findByTestId('prompt-template-input');
+  }
+
+  findPromptCommitMessageInput() {
+    return cy.findByTestId('prompt-commit-message-input');
+  }
+
+  findPromptSaveButton() {
+    return cy.findByTestId('prompt-save-button');
+  }
+
+  findPromptCreateModal() {
+    return cy.findByTestId('prompt-create-modal');
+  }
+
+  findPromptManagementModal() {
+    return cy.findByTestId('prompt-management-modal');
+  }
+
+  findLoadPromptButton() {
+    return cy.findByTestId('load-prompt-button');
+  }
+
+  findPromptTableRow(promptName: string) {
+    return cy.findByTestId(`prompt-table-row-${promptName}`);
+  }
+
+  findPromptLoadConfirmButton() {
+    return cy.findByTestId('prompt-load-button');
+  }
+
+  findPromptNameTitle() {
+    return cy.findByTestId('prompt-name-title');
+  }
+
+  // RAG / Knowledge upload methods
+  findKnowledgeTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-knowledge');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
+  }
+
+  uploadDocumentViaAttachMenu(fixturePath: string) {
+    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  }
+
+  findSourceSettingsModal() {
+    return cy.findByTestId('source-settings-modal');
+  }
+
+  findSourceSettingsUploadButton() {
+    return cy.findByTestId('source-settings-upload-button');
+  }
+
+  findSourceUploadSuccessAlert(options?: { timeout?: number }) {
+    return cy.findByTestId('source-upload-success-alert', options);
+  }
+
+  findRagToggle() {
+    return cy.findByTestId('rag-toggle-switch');
+  }
+
+  findUploadedFilesCard(options?: { timeout?: number }) {
+    return cy.findByTestId('uploaded-files-card', options);
+  }
+
+  findUploadedFileName(fileName: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`uploaded-file-name-${fileName}`, options);
+  }
+
+  findFileSearchResults(options?: { timeout?: number }) {
+    return cy.findByTestId('file-search-results', options);
+  }
+
+  findFileSearchResultsToggle() {
+    return cy.findByTestId('file-search-results-toggle');
+  }
+
+  // Guardrails methods
+  navigateToPlaygroundWithGuardrails(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_GUARDRAILS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  findGuardrailsTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-guardrails');
+  }
+
+  findGuardrailsSection() {
+    return cy.findByTestId('guardrails-section-title').parent();
+  }
+
+  findGuardrailModelToggle() {
+    return cy.findByTestId('guardrail-model-toggle');
+  }
+
+  selectGuardrailModel(displayName: string) {
+    this.findGuardrailModelToggle().click();
+    cy.get('[role="menuitem"]').contains(displayName).click();
+  }
+
+  findUserInputGuardrailsSwitch() {
+    return cy.findByTestId('user-input-guardrails-switch');
+  }
+
+  findModelOutputGuardrailsSwitch() {
+    return cy.findByTestId('model-output-guardrails-switch');
+  }
+
+  toggleUserInputGuardrails(enable: boolean) {
+    this.findUserInputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findUserInputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  toggleModelOutputGuardrails(enable: boolean) {
+    this.findModelOutputGuardrailsSwitch().then(($toggle) => {
+      const isChecked = $toggle.is(':checked');
+      if ((enable && !isChecked) || (!enable && isChecked)) {
+        this.findModelOutputGuardrailsSwitch().click({ force: true });
+      }
+    });
+  }
+
+  findGuardrailViolationAlert(options?: { timeout?: number }) {
+    return cy.findByTestId('guardrail-violation-alert', options);
+  }
+
+  clearChat() {
+    cy.findByTestId('new-chat-button').should('be.visible').click();
+    cy.findByTestId('confirm-button').should('be.visible').click();
+  }
+
+  // Agent configuration management navigation
+  navigateToPlaygroundWithAgentManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_ALL_FLAGS}`);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToAssetsWithAgentManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_ALL_FLAGS}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  // AI Assets — Agents tab
+  findAgentsTab() {
+    return cy.findByTestId('ai-assets-tab-agentprofile');
+  }
+
+  findAgentProfilesTable() {
+    return cy.findByTestId('agent-profiles-table');
+  }
+
+  findAgentProfilesEmptyState() {
+    return cy.findByTestId('agent-profiles-empty-state');
+  }
+
+  findAgentRowByName(agentName: string) {
+    const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return cy
+      .contains('[data-testid^="agent-profile-row-"] td', new RegExp(`^\\s*${escaped}\\s*$`))
+      .closest('[data-testid^="agent-profile-row-"]');
+  }
+
+  findAgentKebabByName(agentName: string) {
+    return this.findAgentRowByName(agentName).find('[data-testid^="agent-profile-kebab-"]');
+  }
+
+  findDeleteAgentDropdownItem() {
+    return cy
+      .get('[data-testid^="delete-agent-profile-"]')
+      .not(
+        '[data-testid="delete-agent-profile-modal"],[data-testid="delete-agent-profile-confirm-button"]',
+      );
+  }
+
+  findDeleteAgentModal() {
+    return cy.findByTestId('delete-agent-profile-modal');
+  }
+
+  findDeleteAgentConfirmButton() {
+    return cy.findByTestId('delete-agent-profile-confirm-button');
+  }
+
+  findTryInPlaygroundByName(agentName: string) {
+    return this.findAgentRowByName(agentName).find('[data-testid^="try-in-playground-"]');
+  }
+
+  // Settings panel — agent save / load buttons
+  findSettingsPanelSaveAsButton() {
+    return cy.findByTestId('settings-panel-save-as-button');
+  }
+
+  findSettingsPanelSaveButton() {
+    return cy.findByTestId('settings-panel-save-button');
+  }
+
+  findSettingsPanelLoadButton() {
+    return cy.findByTestId('settings-panel-load-button');
+  }
+
+  // Save agent modal
+  findSaveAgentProfileModal() {
+    return cy.findByTestId('save-agent-profile-modal');
+  }
+
+  findSaveAgentNameInput() {
+    return cy.findByTestId('save-agent-profile-name-input');
+  }
+
+  findSaveAgentSubmitButton() {
+    return cy.findByTestId('save-agent-profile-submit-button');
+  }
+
+  // Load agent modal
+  findLoadAgentProfileModal() {
+    return cy.findByTestId('load-agent-profile-modal');
+  }
+
+  findLoadAgentSearchInput() {
+    return cy.findByTestId('load-agent-profile-search');
+  }
+
+  findLoadAgentEmptyState() {
+    return cy.findByTestId('load-agent-profile-empty-state');
+  }
+
+  loadAgentByName(agentName: string) {
+    this.findSettingsPanelLoadButton().should('be.visible').click();
+    this.findLoadAgentProfileModal().should('be.visible');
+    this.findLoadAgentSearchInput().clear().type(agentName);
+    cy.get('[data-testid^="load-agent-profile-button-"]').should('have.length', 1).first().click();
+    this.findLoadAgentProfileModal().should('not.exist');
+  }
+
+  // Agent loaded indicator in playground header
+  findAgentNameTitle(options?: { timeout?: number }) {
+    return cy.findByTestId('agent-name-title', options);
+  }
+
+  findAgentUnsavedIndicator() {
+    return cy.findByTestId('agent-unsaved-indicator');
   }
 }
 

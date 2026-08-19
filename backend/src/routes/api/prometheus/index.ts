@@ -6,7 +6,7 @@ import {
   PrometheusQueryResponse,
   QueryType,
 } from '../../../types';
-import { callPrometheusThanos } from '../../../utils/prometheusUtils';
+import { callPrometheusThanos, callPrometheusThanosCluster } from '../../../utils/prometheusUtils';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
@@ -26,7 +26,7 @@ const handleError = (e?: createError.HttpError) => {
  * Acts on the user who made the call -- does not need route security; k8s provides that.
  */
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.post(
     '/query',
     async (
@@ -52,6 +52,39 @@ module.exports = async (fastify: KubeFastifyInstance) => {
       logRequestDetails(fastify, request);
       const { query } = request.body;
       return callPrometheusThanos<PrometheusQueryRangeResponse>(
+        fastify,
+        request,
+        query,
+        QueryType.QUERY_RANGE,
+      ).catch(handleError);
+    },
+  );
+
+  fastify.post(
+    '/cluster/query',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanosCluster<PrometheusQueryResponse>(fastify, request, query).catch(
+        handleError,
+      );
+    },
+  );
+
+  fastify.post(
+    '/cluster/queryRange',
+    async (
+      request: OauthFastifyRequest<{
+        Body: { query: string };
+      }>,
+    ): Promise<{ code: number; response: PrometheusQueryRangeResponse }> => {
+      logRequestDetails(fastify, request);
+      const { query } = request.body;
+      return callPrometheusThanosCluster<PrometheusQueryRangeResponse>(
         fastify,
         request,
         query,

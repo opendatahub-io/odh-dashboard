@@ -1,11 +1,14 @@
 import { testHook, standardUseFetchStateObject } from '@odh-dashboard/jest-config/hooks';
-import { fetchDashboardConfig } from '@odh-dashboard/internal/services/dashboardConfigService';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useModelServingClusterSettings } from '../useModelServingClusterSettings';
 
-jest.mock('@odh-dashboard/internal/services/dashboardConfigService');
+jest.mock('@odh-dashboard/plugin-core/host-api');
 
-const fetchDashboardConfigMock = jest.mocked(fetchDashboardConfig);
+const mockFetchDashboardConfig = jest.fn();
+jest.mocked(useHostApiCore).mockReturnValue({
+  fetchDashboardConfig: mockFetchDashboardConfig,
+} as unknown as ReturnType<typeof useHostApiCore>);
 
 describe('useModelServingClusterSettings', () => {
   beforeEach(() => {
@@ -13,7 +16,7 @@ describe('useModelServingClusterSettings', () => {
   });
 
   it('should return loaded when config.spec.modelServing is undefined', async () => {
-    fetchDashboardConfigMock.mockResolvedValue({
+    mockFetchDashboardConfig.mockResolvedValue({
       spec: {},
     } as DashboardConfigKind);
 
@@ -28,6 +31,6 @@ describe('useModelServingClusterSettings', () => {
       standardUseFetchStateObject({ data: null, loaded: true }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
-    expect(fetchDashboardConfigMock).toHaveBeenCalledTimes(1);
+    expect(mockFetchDashboardConfig).toHaveBeenCalledTimes(1);
   });
 });

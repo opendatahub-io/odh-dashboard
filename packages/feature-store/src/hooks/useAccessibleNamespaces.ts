@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { checkAccess } from '@odh-dashboard/internal/api/useAccessReview';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -21,6 +21,7 @@ type UseAccessibleNamespacesReturn = {
 
 const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const { checkAccess } = useHostApiCore();
 
   const fetchAccessibleNamespaces = React.useCallback<
     FetchStateCallbackPromise<NamespaceInfo[]>
@@ -32,16 +33,20 @@ const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
       projects.map(async (project: ProjectKind) => {
         const ns = project.metadata.name;
         const displayName = project.metadata.annotations?.['openshift.io/display-name'] || ns;
+        const accessRequest = {
+          group: FeatureStoreModel.apiGroup ?? '',
+          resource: FeatureStoreModel.plural,
+          name: '',
+          namespace: ns,
+          subresource: '' as const,
+        };
         let allowed: boolean;
         try {
-          allowed = await checkAccess({
-            group: FeatureStoreModel.apiGroup ?? '',
-            resource: FeatureStoreModel.plural,
-            verb: 'create',
-            name: '',
-            namespace: ns,
-            subresource: '',
-          });
+          const [canCreate, canGet] = await Promise.all([
+            checkAccess({ ...accessRequest, verb: 'create' }),
+            checkAccess({ ...accessRequest, verb: 'get' }),
+          ]);
+          allowed = canCreate && canGet;
         } catch {
           allowed = false;
         }
@@ -50,7 +55,7 @@ const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
     ).then((results) =>
       results.filter((r) => r.allowed).map((r) => ({ name: r.name, displayName: r.displayName })),
     );
-  }, [projects, projectsLoaded]);
+  }, [projects, projectsLoaded, checkAccess]);
 
   const { data: namespaces, loaded, error } = useFetch(fetchAccessibleNamespaces, []);
 

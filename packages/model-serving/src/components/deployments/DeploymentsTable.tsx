@@ -1,7 +1,6 @@
 import React from 'react';
-import { SortableData, Table } from '@odh-dashboard/ui-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { SortableData, Table, useAnalytics, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { DeploymentRow } from './row/DeploymentsTableRow';
 import {
   isDataHook,
@@ -19,6 +18,12 @@ import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 const expandedInfoColumn: SortableData<Deployment> = {
   field: 'expand',
   label: '',
+  sortable: false,
+};
+
+const capabilitiesColumn: SortableData<Deployment> = {
+  label: 'Capabilities',
+  field: 'capabilities',
   sortable: false,
 };
 
@@ -83,15 +88,19 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   alertContent,
   ...tableProps
 }) => {
+  const { fireFormTrackingEvent } = useAnalytics();
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
+  const isCapabilitiesEnabled = useIsAreaAvailable(SupportedArea.MODEL_CAPABILITIES).status;
   const allColumns: SortableData<Deployment>[] = React.useMemo(
     () => [
       ...(showExpandedToggleColumn ? [expandedInfoColumn] : []),
       genericColumns[0],
       ...(platformColumns ?? []),
-      ...genericColumns.slice(1),
+      ...genericColumns.slice(1, -3),
+      ...(isCapabilitiesEnabled ? [capabilitiesColumn] : []),
+      ...genericColumns.slice(-3),
     ],
-    [platformColumns, showExpandedToggleColumn],
+    [platformColumns, showExpandedToggleColumn, isCapabilitiesEnabled],
   );
   const lastDeployedColumnIndex = React.useMemo(() => {
     return allColumns.findIndex((column) => column.field === 'lastDeployed');
@@ -127,6 +136,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
             showExpandedToggle={showExpandedToggleColumn}
+            showCapabilities={isCapabilitiesEnabled}
             servingDetailsEntry={extensionDataMap[row.modelServingPlatformId]}
           />
         )}

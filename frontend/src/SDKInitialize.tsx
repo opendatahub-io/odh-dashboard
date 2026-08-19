@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppInitSDK, isUtilsConfigSet, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { isK8sStatus, K8sStatusError } from './api';
+import { isK8sStatus, K8sStatusError } from '@odh-dashboard/k8s-core';
 import { WS_HOSTNAME } from './utilities/const';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {

@@ -1,14 +1,14 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelFormatField, useModelFormatField } from '../ModelFormatField';
 import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 // Mock dependencies
 jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates');
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 jest.mock('@odh-dashboard/model-serving/shared', () => ({

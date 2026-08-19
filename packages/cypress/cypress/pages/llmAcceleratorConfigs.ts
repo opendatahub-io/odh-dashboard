@@ -1,10 +1,27 @@
 import { appChrome } from './appChrome';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 
 class LlmAcceleratorConfigRow {
   constructor(public readonly name: string) {}
 
   find() {
     return cy.findByTestId(`llm-accelerator-config ${this.name}`);
+  }
+
+  findKebabToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findDuplicateAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Duplicate');
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Edit');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Delete');
   }
 
   shouldHavePreInstalledLabel(enabled = true) {
@@ -65,7 +82,9 @@ class UnsupportedStatusAcceptanceModal {
 
 class LlmAcceleratorConfigs {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/llm-accelerator-configs');
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
+    );
     if (wait) {
       this.wait();
     }
@@ -76,9 +95,15 @@ class LlmAcceleratorConfigs {
     cy.testA11y();
   }
 
+  navigate() {
+    this.findNavItem().click();
+    this.findTab().should('exist').click();
+    this.wait();
+  }
+
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'LLM accelerator configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -86,6 +111,19 @@ class LlmAcceleratorConfigs {
 
   findAppTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  /** Title of the tabbed "Model deployment settings" page that hosts the tab. */
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
+  }
+
+  findTab() {
+    return cy.findByTestId('tab-llm-accelerator-configurations');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('llm-accelerator-configs-empty-state');
   }
 
   findAddButton() {
@@ -104,25 +142,20 @@ class LlmAcceleratorConfigs {
     return cy.findByTestId('llm-accelerator-config-name');
   }
 
+  findEditResourceNameLink() {
+    return cy.findByTestId('llm-accelerator-config-editResourceLink');
+  }
+
+  findResourceNameInput() {
+    return cy.findByTestId('llm-accelerator-config-resourceName');
+  }
+
   findVersionInput() {
     return cy.findByTestId('llm-accelerator-config-version');
   }
 
-  findYamlEditor() {
-    return cy.findByTestId('config-yaml-editor');
-  }
-
-  setYamlEditorContent(value: string) {
-    this.findYamlEditor()
-      .find('input[type="file"]')
-      .selectFile(
-        {
-          contents: Cypress.Buffer.from(value),
-          fileName: 'editor-content.yaml',
-          mimeType: 'text/yaml',
-        },
-        { force: true },
-      );
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('config-yaml-editor'));
   }
 
   getRowByName(name: string) {

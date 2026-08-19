@@ -2,10 +2,12 @@ import * as React from 'react';
 import { Checkbox } from '@patternfly/react-core';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 
+export type UnsupportedStatusDismissAction = 'cancel' | 'close';
+
 type UnsupportedStatusAcceptanceModalProps = {
   resourceTypeLabel: string;
   onAccept: () => void;
-  onClose: () => void;
+  onClose: (dismissAction: UnsupportedStatusDismissAction) => void;
 };
 
 const UnsupportedStatusAcceptanceModal: React.FC<UnsupportedStatusAcceptanceModalProps> = ({
@@ -19,7 +21,7 @@ const UnsupportedStatusAcceptanceModal: React.FC<UnsupportedStatusAcceptanceModa
     <ContentModal
       title={`Enable limited-support ${resourceTypeLabel}?`}
       variant="small"
-      onClose={onClose}
+      onClose={() => onClose('close')}
       dataTestId="unsupported-status-acceptance-modal"
       contents={
         <>
@@ -44,7 +46,7 @@ const UnsupportedStatusAcceptanceModal: React.FC<UnsupportedStatusAcceptanceModa
         },
         {
           label: 'Cancel',
-          onClick: onClose,
+          onClick: () => onClose('cancel'),
           variant: 'link',
           dataTestId: 'unsupported-status-cancel-button',
         },

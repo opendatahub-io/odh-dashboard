@@ -1,9 +1,10 @@
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { isNIMDeployActive, deployNIMDeployment } from '../deploy';
 import { createNIMService, updateNIMService, patchNIMService } from '../../nimservices/k8s';
 import { getNIMAccount } from '../../accounts/k8s';
 import type { NIMServiceKind } from '../../nimservices/types';
+import { NIM_SERVICE_ID } from '../../../constants';
 
 jest.mock('../../nimservices/k8s', () => ({
   ...jest.requireActual('../../nimservices/k8s'),
@@ -64,7 +65,7 @@ describe('deployNIMDeployment', () => {
   const wizardState = {} as WizardFormData['state'];
 
   it('should throw when modelResource is missing', async () => {
-    await expect(deployNIMDeployment(wizardState, 'test-ns')).rejects.toThrow(
+    await expect(deployNIMDeployment(wizardState, {}, 'test-ns')).rejects.toThrow(
       'NIMService resource is required',
     );
   });
@@ -83,6 +84,7 @@ describe('deployNIMDeployment', () => {
 
     const result = await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       undefined,
       mockNIMServiceResource,
@@ -100,7 +102,7 @@ describe('deployNIMDeployment', () => {
       }),
       { dryRun: undefined },
     );
-    expect(result.modelServingPlatformId).toBe('nvidia-nim');
+    expect(result.modelServingPlatformId).toBe(NIM_SERVICE_ID);
     expect(result.model).toBe(mockNIMServiceResource);
   });
 
@@ -115,7 +117,13 @@ describe('deployNIMDeployment', () => {
       model: mockNIMServiceResource,
     };
 
-    await deployNIMDeployment(wizardState, 'test-ns', existingDeployment, mockNIMServiceResource);
+    await deployNIMDeployment(
+      wizardState,
+      {},
+      'test-ns',
+      existingDeployment,
+      mockNIMServiceResource,
+    );
 
     expect(mockUpdate).toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
@@ -134,6 +142,7 @@ describe('deployNIMDeployment', () => {
 
     await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       existingDeployment,
       mockNIMServiceResource,
@@ -153,7 +162,7 @@ describe('deployNIMDeployment', () => {
     mockGetNIMAccount.mockResolvedValue(undefined);
 
     await expect(
-      deployNIMDeployment(wizardState, 'test-ns', undefined, mockNIMServiceResource),
+      deployNIMDeployment(wizardState, {}, 'test-ns', undefined, mockNIMServiceResource),
     ).rejects.toThrow('NIM Account not found');
     expect(mockCreate).not.toHaveBeenCalled();
   });
@@ -168,6 +177,7 @@ describe('deployNIMDeployment', () => {
 
     await deployNIMDeployment(
       wizardState,
+      {},
       'test-ns',
       undefined,
       mockNIMServiceResource,

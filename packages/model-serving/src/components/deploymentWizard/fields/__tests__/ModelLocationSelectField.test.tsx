@@ -9,10 +9,10 @@ import type {
   ConnectionTypeConfigMapObj,
   Connection,
 } from '@odh-dashboard/k8s-core';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { ModelLocationData, ModelLocationType } from '../../types';
+import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
@@ -211,8 +211,12 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
     },
   },
 ];
-jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
+  useServingConnections: jest.fn(() => [mockConnections, true]),
+  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -237,14 +241,6 @@ jest.mock('@odh-dashboard/internal/pages/modelServing/usePvcs', () => ({
   __esModule: true,
   default: jest.fn(() => ({ data: mockPvcs, loaded: true, error: undefined })),
 }));
-
-jest.mock(
-  '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections',
-  () => ({
-    __esModule: true,
-    default: jest.fn(() => [mockConnections, true]),
-  }),
-);
 
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {

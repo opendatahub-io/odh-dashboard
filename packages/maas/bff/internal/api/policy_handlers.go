@@ -17,7 +17,6 @@ import (
 func attachPolicyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.PolicyListPath, handlerWithApp(app, ListPoliciesHandler))
 	apiRouter.GET(constants.PolicyViewPath, handlerWithApp(app, GetPolicyInfoHandler))
-	apiRouter.GET(constants.SubscriptionPolicyFormDataPath, handlerWithApp(app, GetSubscriptionPolicyFormDataHandler))
 	apiRouter.POST(constants.PolicyCreatePath, handlerWithApp(app, CreatePolicyHandler))
 	apiRouter.PUT(constants.PolicyUpdatePath, handlerWithApp(app, UpdatePolicyHandler))
 	apiRouter.DELETE(constants.PolicyDeletePath, handlerWithApp(app, DeletePolicyHandler))

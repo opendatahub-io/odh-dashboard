@@ -9,9 +9,13 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -44,9 +48,9 @@ func TestApplyKustomizeParams(t *testing.T) {
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("existing-key=existing-value\n"), 0644))
 
-	modArch := filepath.Join(dir, "modular-architecture")
-	require.NoError(t, os.MkdirAll(modArch, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"),
+	sidecar := filepath.Join(dir, "sidecar")
+	require.NoError(t, os.MkdirAll(sidecar, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"),
 		[]byte("model-registry-ui-image=quay.io/default:main\ngen-ai-ui-image=quay.io/default:main\n"), 0644))
 
 	t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:prod")
@@ -68,15 +72,15 @@ func TestApplyKustomizeParams(t *testing.T) {
 	assert.Contains(t, overlayContent, "section-title=OpenShift Self Managed Services")
 	assert.Contains(t, overlayContent, "existing-key=existing-value")
 
-	modArchData, err := os.ReadFile(filepath.Join(modArch, "params.env"))
+	sidecarData, err := os.ReadFile(filepath.Join(sidecar, "params.env"))
 	require.NoError(t, err)
-	modArchContent := string(modArchData)
-	assert.Contains(t, modArchContent, "model-registry-ui-image=quay.io/mr:prod",
-		"RELATED_IMAGE env var should override default in modular-architecture params.env")
-	assert.Contains(t, modArchContent, "gen-ai-ui-image=quay.io/default:main",
+	sidecarContent := string(sidecarData)
+	assert.Contains(t, sidecarContent, "model-registry-ui-image=quay.io/mr:prod",
+		"RELATED_IMAGE env var should override default in sidecar params.env")
+	assert.Contains(t, sidecarContent, "gen-ai-ui-image=quay.io/default:main",
 		"unset RELATED_IMAGE should preserve existing default")
-	assert.Contains(t, modArchContent, "gateway-domain=rh-ai.apps.test.com",
-		"computed params should also be written to modular-architecture")
+	assert.Contains(t, sidecarContent, "gateway-domain=rh-ai.apps.test.com",
+		"computed params should also be written to sidecar")
 }
 
 func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
@@ -86,9 +90,9 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"),
 		[]byte("odh-dashboard-image=quay.io/opendatahub/odh-dashboard@sha256:abc123\nkube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456\n"), 0644))
 
-	modArch := filepath.Join(dir, "modular-architecture")
-	require.NoError(t, os.MkdirAll(modArch, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"),
+	sidecar := filepath.Join(dir, "sidecar")
+	require.NoError(t, os.MkdirAll(sidecar, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"),
 		[]byte("model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789\n"), 0644))
 
 	for _, envVar := range imagesMap {
@@ -107,11 +111,26 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 	assert.Contains(t, overlayContent, "kube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456",
 		"digest-pinned default from params.env must survive when no env var override is provided")
 
-	modArchData, err := os.ReadFile(filepath.Join(modArch, "params.env"))
+	sidecarData, err := os.ReadFile(filepath.Join(sidecar, "params.env"))
 	require.NoError(t, err)
-	modArchContent := string(modArchData)
-	assert.Contains(t, modArchContent, "model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789",
-		"digest-pinned default in modular-architecture params.env must survive when no env var override is provided")
+	sidecarContent := string(sidecarData)
+	assert.Contains(t, sidecarContent, "model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789",
+		"digest-pinned default in sidecar params.env must survive when no env var override is provided")
+}
+
+// TestApplyKustomizeParamsStandaloneNoSidecar verifies that applyKustomizeParams
+// returns nil without error when the sidecar/ directory is absent (standalone mode).
+func TestApplyKustomizeParamsStandaloneNoSidecar(t *testing.T) {
+	dir := t.TempDir()
+	overlay := filepath.Join(dir, "odh", "standalone")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	// No sidecar/ directory created — simulates standalone mode manifest layout.
+	dashboard := &v1alpha1.Dashboard{}
+	manifests := standaloneManifestSets(dir, cluster.OpenDataHub)
+	err := applyKustomizeParams(dashboard, manifests, cluster.OpenDataHub)
+	require.NoError(t, err, "applyKustomizeParams must not error when sidecar/ is absent")
 }
 
 func TestExtractDashboardURL(t *testing.T) {
@@ -260,4 +279,241 @@ func TestExtractDashboardURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRemapRayDashboardGatewayRBAC(t *testing.T) {
+	resources := []unstructured.Unstructured{
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "Role",
+				"metadata": map[string]interface{}{
+					"name":      rayDataScienceGatewayRBACName,
+					"namespace": "opendatahub",
+				},
+			},
+		},
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "RoleBinding",
+				"metadata": map[string]interface{}{
+					"name":      rayDataScienceGatewayRBACName,
+					"namespace": "opendatahub",
+				},
+			},
+		},
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "Role",
+				"metadata": map[string]interface{}{
+					"name":      "fetch-ray-httproutes-role",
+					"namespace": "opendatahub",
+				},
+			},
+		},
+	}
+
+	remapRayDashboardGatewayRBAC(resources)
+
+	assert.Equal(t, dataScienceGatewayNamespace, resources[0].GetNamespace())
+	assert.Equal(t, dataScienceGatewayNamespace, resources[1].GetNamespace())
+	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
+}
+
+func TestMonitoringNamespace(t *testing.T) {
+	tests := []struct {
+		name                  string
+		platform              cluster.Platform
+		applicationsNamespace string
+		want                  string
+	}{
+		{
+			name:                  "SelfManagedRhoai returns hardcoded monitoring namespace",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			want:                  "redhat-ods-monitoring",
+		},
+		{
+			name:                  "ManagedRhoai returns hardcoded monitoring namespace",
+			platform:              cluster.ManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			want:                  "redhat-ods-monitoring",
+		},
+		{
+			name:                  "OpenDataHub returns applications namespace",
+			platform:              cluster.OpenDataHub,
+			applicationsNamespace: "opendatahub",
+			want:                  "opendatahub",
+		},
+		{
+			name:                  "XKS returns applications namespace",
+			platform:              cluster.XKS,
+			applicationsNamespace: "my-namespace",
+			want:                  "my-namespace",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &DashboardReconciler{
+				Platform:              tt.platform,
+				ApplicationsNamespace: tt.applicationsNamespace,
+			}
+			assert.Equal(t, tt.want, r.monitoringNamespace())
+		})
+	}
+}
+
+func TestAutoDetectObservability(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	persesService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      persesServiceName,
+			Namespace: "redhat-ods-monitoring",
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{{Port: 8080}},
+		},
+	}
+
+	persesServiceODH := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      persesServiceName,
+			Namespace: "opendatahub",
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{{Port: 8080}},
+		},
+	}
+
+	tests := []struct {
+		name                  string
+		platform              cluster.Platform
+		applicationsNamespace string
+		existingObs           *v1alpha1.ObservabilitySpec
+		objects               []runtime.Object
+		wantObs               *v1alpha1.ObservabilitySpec
+		wantErr               bool
+	}{
+		{
+			name:                  "explicit config present — no change",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			existingObs: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "custom-perses",
+					Namespace: "custom-ns",
+					Port:      9090,
+				},
+			},
+			objects: []runtime.Object{persesService},
+			wantObs: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "custom-perses",
+					Namespace: "custom-ns",
+					Port:      9090,
+				},
+			},
+		},
+		{
+			name:                  "service found RHOAI — populates observability",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			objects:               []runtime.Object{persesService},
+			wantObs: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      persesServiceName,
+					Namespace: "redhat-ods-monitoring",
+					Port:      persesServicePort,
+				},
+			},
+		},
+		{
+			name:                  "service found ODH — populates with applications namespace",
+			platform:              cluster.OpenDataHub,
+			applicationsNamespace: "opendatahub",
+			objects:               []runtime.Object{persesServiceODH},
+			wantObs: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      persesServiceName,
+					Namespace: "opendatahub",
+					Port:      persesServicePort,
+				},
+			},
+		},
+		{
+			name:                  "service not found — observability remains nil",
+			platform:              cluster.SelfManagedRhoai,
+			applicationsNamespace: "redhat-ods-applications",
+			objects:               nil,
+			wantObs:               nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithRuntimeObjects(tt.objects...).
+				Build()
+
+			r := &DashboardReconciler{
+				Client:                cli,
+				Platform:              tt.platform,
+				ApplicationsNamespace: tt.applicationsNamespace,
+			}
+
+			dashboard := &v1alpha1.Dashboard{
+				Spec: v1alpha1.DashboardSpec{
+					Observability: tt.existingObs,
+				},
+			}
+
+			err := r.autoDetectObservability(context.Background(), dashboard)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.wantObs, dashboard.Spec.Observability)
+		})
+	}
+}
+
+func TestAutoDetectObservability_NonNotFoundError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	injectedErr := assert.AnError
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				return injectedErr
+			},
+		}).
+		Build()
+
+	r := &DashboardReconciler{
+		Client:                cli,
+		Platform:              cluster.SelfManagedRhoai,
+		ApplicationsNamespace: "redhat-ods-applications",
+	}
+
+	dashboard := &v1alpha1.Dashboard{}
+	err := r.autoDetectObservability(context.Background(), dashboard)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, injectedErr)
+	assert.Nil(t, dashboard.Spec.Observability)
 }

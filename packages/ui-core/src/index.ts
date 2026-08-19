@@ -1,5 +1,39 @@
 export type { UpdateObjectAtPropAndValue } from './types';
 
+export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
+export type { ThemeContextProps } from './contexts/ThemeContext';
+
+export {
+  AnalyticsContext,
+  useAnalytics,
+  noopAnalytics,
+  TrackingOutcome,
+} from './contexts/AnalyticsContext';
+export type {
+  FormTrackingEventProperties,
+  MiscTrackingEventProperties,
+  LinkTrackingEventProperties,
+  IdentifyEventProperties,
+  AnalyticsAPI,
+} from './contexts/AnalyticsContext';
+
+export { NotificationContext, useNotification } from './contexts/NotificationContext';
+export type { NotificationAction, NotificationAPI } from './contexts/NotificationContext';
+
+export {
+  NotificationWatcherContext,
+  NotificationWatcherContextProvider,
+  NotificationResponseStatus,
+} from './contexts/NotificationWatcherContext';
+export type {
+  NotificationWatcherContextType,
+  NotificationWatcherItem,
+  NotificationWatcherCallback,
+  NotificationWatcherResponse,
+  FinalNotificationWatcherResponse,
+  RepollNotificationWatcherResponse,
+} from './contexts/NotificationWatcherContext';
+
 export * from './table/types';
 export * from './table/const';
 
@@ -54,8 +88,15 @@ export { default as CPUField, CPUFieldWithCheckbox } from './components/CPUField
 
 export { default as MemoryField, MemoryFieldWithCheckbox } from './components/MemoryField';
 
+export { default as ApplicationsPage } from './components/ApplicationsPage';
+export type { ApplicationsPageProps } from './components/ApplicationsPage';
+
 export { default as ContentModal } from './components/ContentModal';
 export type { ButtonAction } from './components/ContentModal';
+
+export { default as DeleteModal } from './components/DeleteModal';
+
+export { default as ConfirmStopModal } from './components/ConfirmStopModal';
 
 export { default as K8sNameDescriptionField } from './components/K8sNameDescriptionField/K8sNameDescriptionField';
 export { useK8sNameDescriptionFieldData } from './components/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -71,3 +112,26 @@ export type { FieldValidationProps } from './hooks/useZodFormValidation';
 
 export { default as useGenericObjectState } from './utilities/useGenericObjectState';
 export type { GenericObjectState } from './utilities/useGenericObjectState';
+
+export { default as DashboardModalFooter } from './components/DashboardModalFooter';
+export { default as DashboardSearchField, SearchType } from './components/DashboardSearchField';
+export { default as DashboardExpandableSection } from './components/DashboardExpandableSection';
+
+export { default as EmptyStateErrorMessage } from './components/EmptyStateErrorMessage';
+export type { EmptyStateErrorMessageProps } from './components/EmptyStateErrorMessage';
+
+export { default as NotFound } from './components/NotFound';
+
+export { default as UnauthorizedError } from './components/UnauthorizedError';
+export type { UnauthorizedErrorProps } from './components/UnauthorizedError';
+
+export { default as UnknownError } from './components/UnknownError';
+export type { UnknownErrorProps } from './components/UnknownError';
+
+export { default as InvalidProject } from './components/InvalidProject';
+export type { InvalidProjectProps } from './components/InvalidProject';
+
+export { default as ProjectsRoutes } from './components/ProjectsRoutes';
+
+export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
+export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';

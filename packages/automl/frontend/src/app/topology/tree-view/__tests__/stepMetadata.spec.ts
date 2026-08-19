@@ -135,7 +135,9 @@ describe('getStepMetadata', () => {
       componentStageMap,
     });
 
-    expect(metadata.description).toBe('Validating inputs from the stage map.');
+    expect(metadata.description).toBe(
+      'Validating pipeline inputs and configuration before processing begins.',
+    );
     expect(metadata.details[0]).toEqual({ label: 'Duration', value: '4 m 50 s' });
   });
 
@@ -181,7 +183,7 @@ describe('getStepMetadata', () => {
       componentStageMap,
     });
 
-    expect(metadata.description).toBe('Prepare data from the stage map.');
+    expect(metadata.description).toBe('Validating and preprocessing input data for training.');
     expect(metadata.details).toEqual(
       expect.arrayContaining([
         { label: 'Duration', value: '1 m 32 s' },
@@ -306,5 +308,154 @@ describe('getStepMetadata', () => {
       { label: 'Duration', value: '1 m 42 s' },
       { label: 'Error', value: 'Component failed before stage map entry existed' },
     ]);
+  });
+
+  it('prefers curated descriptions over stage map copy', () => {
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Data loader',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Stage map prepare data.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+            {
+              id: 'split_and_export',
+              description: 'Stage map split.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:20Z',
+            },
+          ],
+        },
+        {
+          id: 'training',
+          description: 'Training',
+          stages: [
+            {
+              id: 'load_data',
+              description: 'Stage map load data.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:30Z',
+            },
+            {
+              id: 'model_selection',
+              description: 'Stage map model selection.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:40Z',
+              steps: ['feature_engineering', 'model_training', 'stacking', 'evaluation'],
+            },
+            {
+              id: 'refit_full',
+              description: 'Stage map refit.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:01:00Z',
+            },
+            {
+              id: 'build_leaderboard',
+              description: 'Stage map leaderboard.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:01:10Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      getStepMetadata('automl_data_loader__prepare_data', 'Prepare data', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Validating and preprocessing input data for training.');
+    expect(
+      getStepMetadata('automl_data_loader__split_and_export', 'Split data', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Splitting data into training and test sets for model evaluation.');
+    expect(
+      getStepMetadata('training__load_data', 'Load data', 'completed', { componentStageMap })
+        .description,
+    ).toBe('Loading prepared data into the training workspace.');
+    expect(
+      getStepMetadata('training__model_selection', 'Select models', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Selecting candidate model architectures to train and evaluate.');
+    expect(
+      getStepMetadata(
+        'training__step__feature_engineering__branch-0',
+        'Engineer features',
+        'completed',
+        { componentStageMap },
+      ).description,
+    ).toBe('Transforming raw data into features for model training.');
+    expect(
+      getStepMetadata('training__step__model_training__branch-0', 'Train model', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Training the model using the prepared training data.');
+    expect(
+      getStepMetadata('training__step__stacking__branch-0', 'Stack predictions', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Combining predictions from multiple models to improve accuracy.');
+    expect(
+      getStepMetadata('training__step__evaluation__branch-0', 'Evaluate results', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Evaluating model performance against the test set.');
+    expect(
+      getStepMetadata('training__model__branch-0', 'XGBoost', 'completed', { componentStageMap })
+        .description,
+    ).toBe('The trained model candidate and its configuration.');
+    expect(
+      getStepMetadata('training__refit_full', 'Refit and evaluate', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Retraining top models using the complete dataset and evaluating final performance.');
+    expect(
+      getStepMetadata('training__build_leaderboard', 'Build leaderboard', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Ranking models by performance and generating the results leaderboard.');
+  });
+
+  it('falls back to stage map description when no curated mapping exists', () => {
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'custom_component',
+          description: 'Custom',
+          stages: [
+            {
+              id: 'custom_unmapped_stage',
+              description: 'Custom stage map description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      getStepMetadata(
+        'custom_component__custom_unmapped_stage',
+        'Custom unmapped stage',
+        'completed',
+        { componentStageMap },
+      ).description,
+    ).toBe('Custom stage map description.');
   });
 });

@@ -34,7 +34,7 @@ const AgentsCatalogCoreLoader: React.FC = () => {
         empty
         emptyStatePage={
           <Bullseye>
-            <Alert title="Agents catalog source load error" variant="danger" isInline>
+            <Alert title="Unable to load agent catalog" variant="danger" isInline>
               {catalogSourcesLoadError.message}
             </Alert>
           </Bullseye>
@@ -82,7 +82,7 @@ const AgentsCatalogCoreLoader: React.FC = () => {
             description={
               isMUITheme
                 ? 'To discover agents, follow the instructions in the docs below.'
-                : 'There are no agent sources to display. Request that your administrator configure agent sources for the catalog.'
+                : 'Request that your administrator configure agent template sources for this catalog.'
             }
             headerIcon={() => (
               <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />

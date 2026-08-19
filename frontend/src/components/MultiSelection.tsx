@@ -33,6 +33,8 @@ export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
   name: string;
   selected?: boolean;
+  hideChip?: boolean;
+  chipOnly?: boolean;
 };
 
 export type GroupSelectionOptions = {
@@ -108,6 +110,7 @@ const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
     id={createOptionElementId(instanceId, option.id)}
     {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
     isFocused={isFocused}
+    className={option.className}
     data-testid={getOptionTestId(option.name)}
     value={option.id}
     isSelected={option.selected}
@@ -172,7 +175,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       groupedValues
         .map((g) => ({
           ...g,
-          values: filterFunction(inputValue, g.values),
+          values: filterFunction(inputValue, g.values).filter((v) => !v.chipOnly),
         }))
         .filter((g) => g.values.length),
     [filterFunction, groupedValues, inputValue],
@@ -184,7 +187,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   );
 
   const selectOptions = React.useMemo(
-    () => filterFunction(inputValue, value),
+    () => filterFunction(inputValue, value).filter((v) => !v.chipOnly),
     [filterFunction, inputValue, value],
   );
 
@@ -238,7 +241,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
-  const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
+  const visibleChips = React.useMemo(
+    () => allOptions.filter((v) => v.selected && !v.hideChip),
+    [allOptions],
+  );
+
+  const hasSelections = React.useMemo(() => allOptions.some((v) => v.selected), [allOptions]);
 
   const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
 
@@ -410,7 +418,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     textInputRef.current?.focus();
   };
 
-  const showSelectionError = selectionRequired && selected.length === 0;
+  const showSelectionError = selectionRequired && !hasSelections;
 
   const renderSelectOption = (
     option: SelectionOptions,
@@ -437,7 +445,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       id={toggleId}
       data-testid={toggleTestId}
       variant="typeahead"
-      status={selectionRequired && selected.length === 0 ? 'danger' : undefined}
+      status={selectionRequired && !hasSelections ? 'danger' : undefined}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -473,7 +481,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
-            {selected.map((selection) => (
+            {visibleChips.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
                 key={normalizeOptionId(selection.id)}
@@ -494,7 +502,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
-          {selected.length > 0 ? (
+          {visibleChips.length > 0 ? (
             <Button
               icon={<TimesIcon aria-hidden />}
               variant="plain"
@@ -528,7 +536,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         isScrollable={isScrollable}
         id={id}
         isOpen={isOpen}
-        selected={selected}
+        selected={visibleChips}
         onSelect={(ev, selection) => {
           const selectedOption = allOptions.find(
             (option) => normalizeOptionId(option.id) === normalizeOptionId(selection),

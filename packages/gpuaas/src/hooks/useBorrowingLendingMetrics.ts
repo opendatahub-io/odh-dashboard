@@ -1,14 +1,15 @@
 import * as React from 'react';
 import usePrometheusQueryRange from '@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange';
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import type {
   PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/ui-core/types/metrics';
 import {
   ACCELERATOR_RESOURCE_PREFIXES,
   ACCELERATOR_RESOURCE_REGEX,
+  PROMETHEUS_CLUSTER_QUERY_RANGE_PATH,
   SEVEN_DAYS_MS,
   TREND_REFRESH_INTERVAL,
 } from '../const';
@@ -17,7 +18,7 @@ import parseK8sQuantity from '../utils/parseK8sQuantity';
 
 const SEVEN_DAYS_IN_SECONDS = SEVEN_DAYS_MS / 1000;
 const HOURLY_STEP = 3600;
-const PROMETHEUS_API_PATH = '/api/prometheus/queryRange';
+const PROMETHEUS_API_PATH = PROMETHEUS_CLUSTER_QUERY_RANGE_PATH;
 
 const isAcceleratorResource = (resourceName: string): boolean =>
   ACCELERATOR_RESOURCE_PREFIXES.some((prefix) => resourceName.startsWith(prefix));
@@ -45,7 +46,7 @@ export type CQMetricSeries = {
   cohortName: string;
   /** Nominal GPU quota declared for this cluster queue (in GPU units). */
   nominalQuota: number;
-  data: { x: number; y: number }[];
+  data: { x: number; y: number; gpuUsage: number }[];
 };
 
 type CQInfo = {
@@ -139,8 +140,8 @@ const buildSeries = (
         return null;
       }
       const info = cqInfoMap.get(cqName);
-      // Only include CQs that are members of a cohort — borrowing and lending
-      // are cohort-level concepts. Standalone CQs cannot borrow or lend.
+      // Only include CQs that are members of a cohort — borrowing is a
+      // cohort-level concept. Standalone CQs cannot borrow.
       if (!info) {
         return null;
       }
@@ -148,10 +149,19 @@ const buildSeries = (
         cqName,
         cohortName: info.cohortName,
         nominalQuota: info.nominalQuota,
-        data: result.values.map(([timestamp, valueStr]) => ({
-          x: timestamp * 1000,
-          y: parseFloat(valueStr) - info.nominalQuota,
-        })),
+        data: result.values.flatMap(([timestamp, valueStr]) => {
+          const gpuUsage = Number(valueStr);
+          if (valueStr.trim() === '' || !Number.isFinite(gpuUsage)) {
+            return [];
+          }
+          return [
+            {
+              x: timestamp * 1000,
+              y: Math.max(0, gpuUsage - info.nominalQuota),
+              gpuUsage,
+            },
+          ];
+        }),
       };
     })
     .filter((s): s is CQMetricSeries => s !== null);

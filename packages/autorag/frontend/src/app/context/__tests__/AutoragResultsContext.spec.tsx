@@ -9,6 +9,7 @@ import {
 } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 
 // ============================================================================
 // Mock Data
@@ -152,7 +153,7 @@ describe('getAutoragContext', () => {
           vector_io_provider_id: '',
           generation_models: [],
           embedding_models: [],
-          optimization_metric: 'faithfulness',
+          optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
           optimization_max_rag_patterns: 8,
           preset: 'speed',
         },
@@ -263,7 +264,7 @@ describe('getAutoragContext', () => {
         vector_io_provider_id: '',
         generation_models: [],
         embedding_models: [],
-        optimization_metric: 'faithfulness',
+        optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
         optimization_max_rag_patterns: 8,
         preset: 'speed',
       });
@@ -289,7 +290,7 @@ describe('getAutoragContext', () => {
         vector_io_provider_id: '',
         generation_models: [],
         embedding_models: [],
-        optimization_metric: 'faithfulness',
+        optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
         optimization_max_rag_patterns: 8,
         preset: 'speed',
       });
@@ -314,7 +315,7 @@ describe('getAutoragContext', () => {
       });
       const context = getAutoragContext({ pipelineRun });
 
-      expect(context.parameters?.optimization_metric).toBe('faithfulness');
+      expect(context.parameters?.optimization_metric).toBe(DEFAULT_OPTIMIZATION_METRIC);
     });
   });
 

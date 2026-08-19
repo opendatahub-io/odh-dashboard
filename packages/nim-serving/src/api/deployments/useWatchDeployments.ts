@@ -1,13 +1,12 @@
 import React from 'react';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
 import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
 import { getNIMDeploymentStatus } from './status';
 import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
 import { isNIMOwned } from '../nimservices/utils';
 import { useWatchNIMServices } from '../nimservices/watch';
-import { NIM_ID } from '../../../extensions';
+import { NIM_SERVICE_ID } from '../../constants';
 
 export type { NIMDeployment };
 
@@ -49,7 +48,7 @@ export const useWatchDeployments = (
         );
 
         return {
-          modelServingPlatformId: NIM_ID,
+          modelServingPlatformId: NIM_SERVICE_ID,
           model: nimService,
           server: associatedIS,
           status: getNIMDeploymentStatus(associatedIS, deploymentPods, nimService.metadata.name),

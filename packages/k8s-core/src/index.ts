@@ -33,6 +33,9 @@ export {
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
+  MODELS_AS_A_SERVICE_READY,
+  DSPAMlflowIntegrationMode,
+  WorkloadOwnerType,
 } from './k8sTypes';
 export type {
   K8sAPIOptions,
@@ -61,7 +64,34 @@ export type {
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
   DataScienceClusterInitializationKindStatus,
+  ConfigMapKind,
+  EventKind,
+  StorageClassKind,
+  NotebookAnnotations,
+  NotebookKind,
+  RoleBindingSubject,
+  RoleBindingRoleRef,
+  ResourceRule,
+  RoleKind,
+  RoleBindingKind,
+  TrustyAIKind,
+  ClusterQueueKind,
+  LocalQueueKind,
+  WorkloadPodSet,
+  WorkloadKind,
+  WorkloadConditionType,
+  WorkloadCondition,
+  CohortKind,
+  ResourceFlavorKind,
+  ServiceKind,
+  NIMAccountKind,
+  ConfigSecretItem,
+  K8sWatchResult,
+  RouteKind,
+  OdhApplication,
+  OdhIntegrationApplication,
 } from './k8sTypes';
+export { OdhApplicationCategory } from './k8sTypes';
 
 export {
   isK8sDSGResource,
@@ -74,6 +104,8 @@ export {
   getConditionForType,
   isConditionInStatus,
   kindApiVersion,
+  getPvcAccessMode,
+  hasProtocolAnnotation,
 } from './k8sResourceUtils';
 export type {
   AdditionalCriteriaForTranslation,
@@ -84,11 +116,14 @@ export {
   LimitNameResourceType,
   INFERENCE_SERVICE_NAME_REGEX,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  ROUTE_BASED_RESOURCE_TYPES,
+  ROUTE_NAME_TOO_LONG_MESSAGE,
   resourceTypeLimits,
   isK8sNameDescriptionType,
   setupDefaults,
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
+  isRouteNameTooLong,
   extractK8sNameDescriptionFieldData,
 } from './k8sNameDescriptionFieldUtils';
 
@@ -136,9 +171,24 @@ export type {
   Connection,
   ConnectionTypeFormData,
   AWSDataEntry,
+  FieldMode,
 } from './connectionTypes';
 
-export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+export {
+  NamespaceApplicationCase,
+  byName,
+  namespaceToProjectDisplayName,
+  isAvailableProject,
+  isAiProject,
+  getProjectOwner,
+  getProjectCreationTime,
+  projectDisplayNameToNamespace,
+} from './projectUtils';
+export type { GetByName } from './projectUtils';
+export { isK8sStatus, K8sStatusError } from './errorUtils';
+
+export { uriToModelLocation } from './modelLocationUtils';
+export type { ObjectStorageFields, ModelLocation } from './modelLocationUtils';
 
 export {
   isSecretKind,

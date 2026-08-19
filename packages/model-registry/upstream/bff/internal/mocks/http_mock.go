@@ -3,6 +3,7 @@ package mocks
 import (
 	"io"
 
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -17,6 +18,11 @@ func (c *MockHTTPClient) GetModelRegistryID() string {
 func (m *MockHTTPClient) GET(url string) ([]byte, error) {
 	args := m.Called(url)
 	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockHTTPClient) GETRaw(url string) (*httpclient.RawResponse, error) {
+	args := m.Called(url)
+	return args.Get(0).(*httpclient.RawResponse), args.Error(1)
 }
 
 func (m *MockHTTPClient) POST(url string, body io.Reader) ([]byte, error) {

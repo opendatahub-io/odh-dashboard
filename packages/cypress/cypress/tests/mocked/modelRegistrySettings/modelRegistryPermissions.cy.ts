@@ -1,11 +1,9 @@
-import {
-  mockDscStatus,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
 import { mockGroup } from '@odh-dashboard/internal/__mocks__/mockGroup';
 import { be } from '../../../utils/should';

@@ -7,18 +7,25 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getSubscriptionEditUrl,
+  getSubscriptionViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import { useSubscriptionAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
 import {
   EventTrackingExpandedSection,
+  EventTrackingPopoverType,
   EventTrackingResourceType,
   EventTrackingSource,
+  convertStringToPopoverViewedStatus,
   MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
 
@@ -38,9 +45,9 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const { affectedModels, overviewLoaded } = useSubscriptionAffectedModels(subscription);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -52,10 +59,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: subscription.phase ?? '',
     });
-    navigate(`${base}/view/${subscriptionName}`, navState);
+    navigate(getSubscriptionViewUrl(subscriptionName), navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
-    navigate(`${base}/edit/${subscriptionName}`, navState);
+    navigate(getSubscriptionEditUrl(subscriptionName), navState);
   };
 
   const subscriptionResource: K8sResourceCommon = {
@@ -87,7 +94,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
               <Link
-                to={`${base}/view/${subscription.name}`}
+                to={getSubscriptionViewUrl(subscription.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
                   fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
@@ -113,8 +120,23 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <PhaseLabel
         phase={subscription.phase}
         statusMessage={subscription.statusMessage}
+        reason={subscription.reason}
+        status={subscription.status}
+        conditionType={subscription.conditionType}
+        lastTransitionTime={subscription.lastTransitionTime}
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.SUBSCRIPTIONS_TAB}
+        resourceName={subscription.displayName ?? subscription.name}
+        affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
+        resourceUrl={getSubscriptionViewUrl(subscription.name)}
+        returnTo={returnTo}
+        onClick={() => {
+          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(subscription.phase),
+            location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+        }}
       />
     </Td>
   );

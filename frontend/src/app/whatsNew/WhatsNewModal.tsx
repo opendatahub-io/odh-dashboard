@@ -15,6 +15,8 @@ import {
   Popover,
   Divider,
   Backdrop,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -46,6 +48,7 @@ type TourStep = {
   navSelector: string;
   docUrl?: string;
   sectionAvailable: boolean;
+  sectionFlagName?: string;
   newFeatures: NewIn35Feature[];
 };
 
@@ -54,7 +57,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const config = dashboardConfig.spec.dashboardConfig;
 
   const genAiAvailable = config.genAiStudio ?? false;
-  const genAiTracingAvailable = config.genAiTracing ?? false;
   const automlAvailable = config.automl ?? false;
   const autoragAvailable = (config.autorag ?? false) && genAiAvailable;
   const guardrailsAvailable = config.guardrails ?? false;
@@ -62,10 +64,29 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const toolCallingAvailable = config.toolCalling ?? false;
   const observabilityAvailable = config.observabilityDashboard ?? false;
   const gpuaasAvailable = config.gpuaas ?? false;
-  const maasRedesignAvailable = config.maasSettingsIaRedesign ?? false;
   const mcpCatalogAvailable = config.mcpCatalog ?? false;
   const agentsCatalogAvailable = config.agentsCatalog ?? false;
   const agentOpsAvailable = config.agentOps ?? false;
+  const roleManagementAvailable = config.roleManagement ?? false;
+  const lmEvalAvailable = !config.disableLMEval;
+  const genAiTracingAvailable = config.genAiTracing ?? false;
+  const promptManagementAvailable = config.promptManagement ?? false;
+  const globalProjectPromptsAvailable = config.globalProjectPrompts ?? false;
+  const connectionTestAvailable = config.connectionTest ?? false;
+  const mcpRegistryAvailable = config.mcpRegistry ?? false;
+  const externalModelsAvailable = config.externalModels ?? false;
+  const llmdTemplatesAvailable = config.llmdTemplates ?? false;
+  const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
+  const modelCatalogAvailable = !config.disableModelCatalog;
+  const modelRegistryAvailable = !config.disableModelRegistry;
+  const modelServingAvailable = !config.disableModelServing;
+  const aiHubAvailable =
+    modelCatalogAvailable ||
+    modelRegistryAvailable ||
+    modelServingAvailable ||
+    mcpCatalogAvailable ||
+    agentsCatalogAvailable ||
+    agentOpsAvailable;
 
   return React.useMemo<TourStep[]>(
     () => [
@@ -73,65 +94,24 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'projects',
         title: 'Projects',
         description:
-          'Organize your AI work into projects. Each project groups workbenches, pipelines, model servers, and cluster storage so your team can collaborate in one place.',
+          'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
-        docUrl: DEFAULT_DOC_URL,
-        sectionAvailable: true,
-        newFeatures: [],
-      },
-      {
-        id: 'gen-ai-studio',
-        title: 'Gen AI studio',
-        description:
-          'Build and experiment with generative AI applications. Test models and prompts in the Playground, manage API keys, build retrieval-augmented generation (RAG) pipelines, and adjust model parameters.',
-        navSelector: 'button[id="gen-ai-studio"]',
         docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
-        sectionAvailable: genAiAvailable,
-        newFeatures: [
-          {
-            title: 'AutoRAG',
-            description: 'Build and optimize RAG pipelines with automated strategy evaluation.',
-            flagName: 'autorag',
-            available: autoragAvailable,
-          },
-          {
-            title: 'Guardrails',
-            description:
-              'Configure user-input and model-output guardrails in the Chat Playground using NeMo Guardrails.',
-            flagName: 'guardrails',
-            available: guardrailsAvailable,
-          },
-          {
-            title: 'Agent configuration management',
-            description:
-              'Create, edit, and deploy agent profiles with custom tools, system prompts, and model bindings.',
-            flagName: 'agentConfigManagement',
-            available: agentConfigAvailable,
-          },
-          {
-            title: 'Playground tracing',
-            description:
-              'View token counts, latency metrics, and execution traces in the Playground.',
-            flagName: 'genAiTracing',
-            available: genAiTracingAvailable,
-          },
-        ],
-      },
-      {
-        id: 'develop-and-train',
-        title: 'Develop & train',
-        description:
-          'Build and train models using workbenches, pipelines, and distributed training jobs. Launch Jupyter notebooks, submit Ray jobs, or run automated experiments.',
-        navSelector: 'button[id="develop-and-train"]',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'AutoML',
+            title: 'Roles',
             description:
-              'Configure a dataset and target, then let the platform evaluate multiple algorithms to find the best model.',
-            flagName: 'automl',
-            available: automlAvailable,
+              'Define what users can do within a project by creating and assigning roles.',
+            flagName: 'roleManagement',
+            available: roleManagementAvailable,
+          },
+          {
+            title: 'Connection test',
+            description: 'Test S3, URI, and OCI connections before saving.',
+            flagName: 'connectionTest',
+            available: connectionTestAvailable,
           },
         ],
       },
@@ -139,54 +119,144 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'ai-hub',
         title: 'AI hub',
         description:
-          'Discover pre-built models, MCP servers, and agents from a central catalog. Browse, filter, and deploy assets directly to your project.',
+          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
         navSelector: 'button[id="ai-hub"]',
         docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
-        sectionAvailable: true,
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
+        sectionAvailable: aiHubAvailable,
         newFeatures: [
           {
             title: 'Tool calling',
-            description:
-              'Define and attach tools that models can invoke during inference, enabling agentic workflows with function-calling capabilities.',
+            description: 'Enable tool-calling capability when deploying supported models.',
             flagName: 'toolCalling',
             available: toolCallingAvailable,
           },
           {
-            title: 'MCP catalog (Technology Preview → GA)',
-            description:
-              'Browse and deploy Model Context Protocol servers from the catalog — now generally available.',
+            title: 'MCP servers',
+            description: 'Find and deploy MCP servers for your organization.',
             flagName: 'mcpCatalog',
             available: mcpCatalogAvailable,
           },
           {
             title: 'Agents catalog',
-            description: 'Discover, browse, and deploy pre-built agents from a central catalog.',
+            description: 'Browse agent templates for your projects.',
             flagName: 'agentsCatalog',
             available: agentsCatalogAvailable,
           },
           {
-            title: 'Agent deployments',
-            description: 'Deploy, manage, and monitor agent runtimes from the AI hub.',
+            title: 'Deploy agents',
+            description: 'Deploy agents for your projects from the OpenShift Console.',
             flagName: 'agentOps',
             available: agentOpsAvailable,
+          },
+          {
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'externalModels',
+            available: externalModelsAvailable,
+          },
+          {
+            title: 'Safety and security insights',
+            description: 'Review safety and security scan results before deploying catalog models.',
+            flagName: 'disableLMEval',
+            available: lmEvalAvailable,
+          },
+          {
+            title: 'MCP registry',
+            description: 'Register and manage MCP servers from a centralized registry.',
+            flagName: 'mcpRegistry',
+            available: mcpRegistryAvailable,
+          },
+        ],
+      },
+      {
+        id: 'gen-ai-studio',
+        title: 'Gen AI studio',
+        description:
+          'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
+        navSelector: 'button[id="gen-ai-studio"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/experimenting_with_models_in_the_gen_ai_playground/index',
+        sectionAvailable: genAiAvailable,
+        sectionFlagName: 'genAiStudio',
+        newFeatures: [
+          {
+            title: 'AutoRAG',
+            description: 'Build RAG pipelines and let the system find the best retrieval strategy.',
+            flagName: 'autorag',
+            available: autoragAvailable,
+          },
+          {
+            title: 'Guardrails',
+            description: 'Apply safety filters to model inputs and outputs in the Playground.',
+            flagName: 'guardrails',
+            available: guardrailsAvailable,
+          },
+          {
+            title: 'Agent configuration management',
+            description:
+              'Save and reuse configurations so you can compare setups without rebuilding.',
+            flagName: 'agentConfigManagement',
+            available: agentConfigAvailable,
+          },
+          {
+            title: 'Gen AI tracing',
+            description: 'See token counts, latency, and execution traces as you test.',
+            flagName: 'genAiTracing',
+            available: genAiTracingAvailable,
+          },
+          {
+            title: 'Load prompts',
+            description: 'Use versioned prompt templates when testing models.',
+            flagName: 'promptManagement',
+            available: promptManagementAvailable,
+          },
+          {
+            title: 'Global project prompts',
+            description: 'Load starter prompts from the shared registry in the Playground.',
+            flagName: 'globalProjectPrompts',
+            available: globalProjectPromptsAvailable,
+          },
+        ],
+      },
+      {
+        id: 'develop-and-train',
+        title: 'Develop & train',
+        description:
+          'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
+        navSelector: 'button[id="develop-and-train"]',
+        docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Develop',
+        sectionAvailable: true,
+        newFeatures: [
+          {
+            title: 'AutoML',
+            description:
+              'Train machine learning models using automated model selection, parameter optimization, and feature engineering.',
+            flagName: 'automl',
+            available: automlAvailable,
           },
         ],
       },
       {
         id: 'observe-and-monitor',
         title: 'Observe & monitor',
-        description:
-          'Track workload metrics and resource utilization across your projects. Monitor GPU usage, queue wait times, and distributed workload performance.',
+        description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/#Monitor',
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Observability dashboard (Technology Preview → GA)',
-            description:
-              'View unified observability dashboards — now generally available and enabled by default.',
+            title: 'Dashboard',
+            description: 'View model serving metrics, costs, and workload status.',
             flagName: 'observabilityDashboard',
             available: observabilityAvailable,
+          },
+          {
+            title: 'GPUaaS',
+            description: 'View GPU capacity, utilization, and usage by cohort.',
+            flagName: 'gpuaas',
+            available: gpuaasAvailable,
           },
         ],
       },
@@ -196,30 +266,47 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               id: 'settings',
               title: 'Settings',
               description:
-                'Configure cluster-wide settings including storage classes, hardware profiles, serving runtimes, connection types, and user access management.',
+                'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
+              docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Administer',
               sectionAvailable: true,
               newFeatures: [
                 {
-                  title: 'GPUaaS infrastructure',
-                  description:
-                    'Manage GPU-as-a-Service infrastructure settings for shared GPU compute.',
-                  flagName: 'gpuaas',
-                  available: gpuaasAvailable,
+                  title: 'MaaS settings',
+                  description: 'Manage model access policies and token subscriptions in one place.',
+                  flagName: 'maasSettingsIARedesign',
+                  available: true,
                 },
                 {
-                  title: 'MaaS settings redesign',
-                  description:
-                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
-                  flagName: 'maasSettingsIaRedesign',
-                  available: maasRedesignAvailable,
-                },
-                {
-                  title: 'MCP catalog settings',
-                  description:
-                    'Configure and manage MCP catalog sources and server settings from the Settings page.',
+                  title: 'MCP catalog sources',
+                  description: 'Add and manage sources for MCP servers in your organization.',
                   flagName: 'mcpCatalog',
                   available: mcpCatalogAvailable,
+                },
+                {
+                  title: 'llm-d routing configurations',
+                  description: 'Control how requests are routed to llm-d deployments.',
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
+                },
+                {
+                  title: 'llm-d topology configurations',
+                  description: 'Configure how llm-d services are arranged and scaled.',
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
+                },
+                {
+                  title: 'LLM accelerator configurations',
+                  description: 'Set default accelerators for LLM serving.',
+                  flagName: 'vLLMDeploymentOnMaaS',
+                  available: vllmDeploymentOnMaaSAvailable,
+                },
+                {
+                  title: 'Global project prompts',
+                  description:
+                    'Configure an organization-wide prompt registry so teams can load starter prompts in Gen AI studio.',
+                  flagName: 'globalProjectPrompts',
+                  available: globalProjectPromptsAvailable,
                 },
               ],
             },
@@ -228,7 +315,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     ],
     [
       genAiAvailable,
-      genAiTracingAvailable,
       autoragAvailable,
       guardrailsAvailable,
       agentConfigAvailable,
@@ -239,7 +325,17 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       agentOpsAvailable,
       observabilityAvailable,
       gpuaasAvailable,
-      maasRedesignAvailable,
+      roleManagementAvailable,
+      lmEvalAvailable,
+      genAiTracingAvailable,
+      promptManagementAvailable,
+      globalProjectPromptsAvailable,
+      connectionTestAvailable,
+      mcpRegistryAvailable,
+      externalModelsAvailable,
+      llmdTemplatesAvailable,
+      vllmDeploymentOnMaaSAvailable,
+      aiHubAvailable,
       isAdmin,
     ],
   );
@@ -265,6 +361,26 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
     return el;
   }
   return findNavSectionButton(step.title);
+};
+
+const getNavToggle = (): HTMLElement | null => document.getElementById('page-nav-toggle');
+
+/** Opens the managed sidebar when collapsed so tour popovers can anchor to nav items. */
+const ensureNavSidebarOpen = (): boolean => {
+  const toggle = getNavToggle();
+  if (toggle?.getAttribute('aria-expanded') === 'false') {
+    toggle.click();
+    return true;
+  }
+  return false;
+};
+
+/** Closes the managed sidebar when expanded (used to restore pre-tour collapsed state). */
+const ensureNavSidebarClosed = (): void => {
+  const toggle = getNavToggle();
+  if (toggle?.getAttribute('aria-expanded') === 'true') {
+    toggle.click();
+  }
 };
 
 const WhatsNewModal: React.FC = () => {
@@ -295,6 +411,8 @@ const WhatsNewModal: React.FC = () => {
   }, [tourPath, tourSteps]);
 
   const autoLaunchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True when this tour session expanded a previously collapsed sidebar. */
+  const tourOpenedSidebarRef = React.useRef(false);
 
   const cancelAutoLaunch = React.useCallback(() => {
     if (autoLaunchTimerRef.current !== null) {
@@ -308,6 +426,7 @@ const WhatsNewModal: React.FC = () => {
       // Manual opens (masthead / task assistant) must cancel a pending auto-launch
       // so we don't reset the session and emit a duplicate Started event.
       cancelAutoLaunch();
+      tourOpenedSidebarRef.current = false;
       beginSession(entryPoint, isReturningUser);
       setShowWelcome(true);
       setStepIndex(0);
@@ -344,6 +463,10 @@ const WhatsNewModal: React.FC = () => {
   );
 
   const closeUi = React.useCallback(() => {
+    if (tourOpenedSidebarRef.current) {
+      ensureNavSidebarClosed();
+      tourOpenedSidebarRef.current = false;
+    }
     setIsOpen(false);
     setSeen(true);
     setShowWelcome(true);
@@ -417,16 +540,27 @@ const WhatsNewModal: React.FC = () => {
 
     setTargetReady(false);
 
-    const timer = setTimeout(() => {
-      const el = findNavElement(currentStep);
-      if (el) {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        setTargetEl(el);
-      } else {
-        setTargetEl(null);
-      }
-      setTargetReady(true);
-    }, 150);
+    // Collapsed nav still keeps anchors in the DOM, so the popover can mount off-screen
+    // with only the backdrop visible. Open the sidebar first when a step needs a nav target.
+    const openedSidebar = ensureNavSidebarOpen();
+    if (openedSidebar) {
+      tourOpenedSidebarRef.current = true;
+    }
+
+    const timer = setTimeout(
+      () => {
+        const el = findNavElement(currentStep);
+        if (el) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          setTargetEl(el);
+        } else {
+          setTargetEl(null);
+        }
+        setTargetReady(true);
+      },
+      // Give the sidebar expand animation a moment before measuring the anchor.
+      openedSidebar ? 300 : 150,
+    );
 
     return () => clearTimeout(timer);
   }, [isOpen, showWelcome, stepIndex, currentStep]);
@@ -449,22 +583,17 @@ const WhatsNewModal: React.FC = () => {
         aria-labelledby="whats-new-modal-title"
         onClose={() => handleDismiss('modal_close')}
       >
-        <ModalHeader
-          title="Welcome to the new OpenShift AI 3.5 experience!"
-          labelId="whats-new-modal-title"
-        />
+        <ModalHeader title="Welcome to OpenShift AI 3.5!" labelId="whats-new-modal-title" />
         <ModalBody>
           <Content component={ContentVariants.p}>
-            This release improves navigation and adds tools for generative AI development and
-            observability. Take a guided tour to explore the updated interface and new features in
-            each area.
+            Take a guided tour to explore key areas and discover new features.
           </Content>
         </ModalBody>
         <ModalFooter>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Button data-testid="whats-new-start-tour" variant="primary" onClick={startTour}>
-                Start tour
+                Start full tour
               </Button>
             </FlexItem>
             <FlexItem>
@@ -473,7 +602,7 @@ const WhatsNewModal: React.FC = () => {
                 variant="secondary"
                 onClick={startWhatsNew}
               >
-                What&apos;s new in 3.5
+                Tour what&apos;s new
               </Button>
             </FlexItem>
             <FlexItem>
@@ -482,7 +611,7 @@ const WhatsNewModal: React.FC = () => {
                 variant="link"
                 onClick={() => handleDismiss('skip_button')}
               >
-                Skip tour
+                Close
               </Button>
             </FlexItem>
           </Flex>
@@ -506,7 +635,7 @@ const WhatsNewModal: React.FC = () => {
         <ModalHeader title="You're ready to go!" labelId="whats-new-done-title" />
         <ModalBody>
           <Content component={ContentVariants.p}>
-            Stay up-to-date with everything OpenShift AI in our{' '}
+            Learn more in the{' '}
             <Button
               variant="link"
               isInline
@@ -553,7 +682,7 @@ const WhatsNewModal: React.FC = () => {
   const total = tourSteps.length;
   const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
-  const sectionUnavailable = !currentStep.sectionAvailable;
+  const sectionUnavailable = !currentStep.sectionAvailable || !targetEl;
   const presentationType = targetEl ? 'popover' : 'modal';
 
   const stepBody = (
@@ -562,7 +691,14 @@ const WhatsNewModal: React.FC = () => {
         {sectionUnavailable && (
           <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-mb-sm">
             <FlexItem>
-              <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+              <Label
+                variant="outline"
+                color="orange"
+                isCompact
+                icon={
+                  <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                }
+              >
                 Unavailable in the cluster
               </Label>
             </FlexItem>
@@ -592,35 +728,68 @@ const WhatsNewModal: React.FC = () => {
               <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
-              <Content key={feature.title} component={ContentVariants.p}>
-                <strong>{feature.title}</strong>
-                <br />
-                {feature.description}
-              </Content>
+              <div key={feature.title} className="pf-v6-u-mb-md">
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  display={{ default: 'inlineFlex' }}
+                >
+                  <FlexItem>
+                    <strong>{feature.title}</strong>
+                  </FlexItem>
+                  {!feature.available && (
+                    <FlexItem>
+                      <Label
+                        variant="outline"
+                        color="orange"
+                        isCompact
+                        icon={
+                          <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                        }
+                      >
+                        Unavailable in the cluster
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
+                <Content component={ContentVariants.p}>{feature.description}</Content>
+              </div>
             ))}
-            {unavailableFeatures.length > 0 && (
-              <Content component={ContentVariants.small}>
+            {(unavailableFeatures.length > 0 ||
+              (!currentStep.sectionAvailable && currentStep.sectionFlagName)) && (
+              <div>
                 <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
                 {isAdmin ? (
-                  <>
-                    Enable{' '}
-                    {unavailableFeatures
-                      .map((f) => <code key={f.flagName}>{f.flagName}</code>)
-                      .reduce<React.ReactNode[]>(
-                        (acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]),
-                        [],
-                      )}{' '}
-                    feature flag{unavailableFeatures.length > 1 ? 's' : ''} in{' '}
-                    <code>OdhDashboardConfig</code> to use{' '}
-                    {unavailableFeatures.length > 1 ? 'these features' : 'this feature'}.
-                  </>
+                  <strong>
+                    To enable unavailable features in your cluster, enable the following feature
+                    flags in OdhDashboardConfig:
+                  </strong>
                 ) : (
-                  <>
-                    Contact your administrator to enable the unavailable feature
-                    {unavailableFeatures.length > 1 ? 's' : ''}.
-                  </>
+                  <strong>
+                    Contact your administrator to request access to unavailable features.
+                  </strong>
                 )}
-              </Content>
+                {isAdmin && (
+                  <List>
+                    {!currentStep.sectionAvailable && currentStep.sectionFlagName && (
+                      <ListItem key={currentStep.sectionFlagName}>
+                        <code>{currentStep.sectionFlagName}</code> (section)
+                      </ListItem>
+                    )}
+                    {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                      <ListItem key={flagName}>
+                        {flagName.startsWith('disable') ? (
+                          <>
+                            Set <code>{flagName}</code> to <code>false</code>
+                          </>
+                        ) : (
+                          <code>{flagName}</code>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </div>
             )}
           </FlexItem>
         </>
@@ -642,19 +811,15 @@ const WhatsNewModal: React.FC = () => {
           <Button
             data-testid="tour-step-back"
             variant="secondary"
-            onClick={() => setStepIndex((i) => i - 1)}
-            isDisabled={stepIndex === 0}
+            onClick={() => {
+              if (stepIndex === 0) {
+                setShowWelcome(true);
+              } else {
+                setStepIndex((i) => i - 1);
+              }
+            }}
           >
             Back
-          </Button>
-        </FlexItem>
-        <FlexItem>
-          <Button
-            data-testid="tour-step-skip"
-            variant="link"
-            onClick={() => handleDismiss('skip_button')}
-          >
-            Skip tour
           </Button>
         </FlexItem>
         <FlexItem>
@@ -680,10 +845,15 @@ const WhatsNewModal: React.FC = () => {
           data-testid="nav-tour-popover"
           isVisible
           shouldClose={() => handleDismiss('popover_close')}
-          position="right"
+          position="right-start"
+          flipBehavior={['right-start', 'right-end', 'right']}
           triggerRef={() => targetEl}
           headerContent={currentStep.title}
-          bodyContent={stepBody}
+          bodyContent={
+            <div style={{ maxHeight: '50vh', overflowY: 'auto', overflowX: 'hidden' }}>
+              {stepBody}
+            </div>
+          }
           footerContent={stepFooter}
           hasAutoWidth
           maxWidth="28rem"

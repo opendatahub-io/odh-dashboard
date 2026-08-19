@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { checkAccess } from '@odh-dashboard/internal/api/useAccessReview';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import useAccessibleNamespaces from '../useAccessibleNamespaces';
 
-jest.mock('@odh-dashboard/internal/api/useAccessReview', () => ({
-  checkAccess: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useHostApiCore: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
@@ -14,7 +14,8 @@ jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
   return actual;
 });
 
-const checkAccessMock = jest.mocked(checkAccess);
+const mockUseHostApiCore = jest.mocked(useHostApiCore);
+const checkAccessMock = jest.fn();
 
 const makeProject = (name: string, displayName?: string): ProjectKind =>
   ({
@@ -41,9 +42,12 @@ const createWrapper = (projects: ProjectKind[], loaded = true) => {
 describe('useAccessibleNamespaces', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseHostApiCore.mockReturnValue({ checkAccess: checkAccessMock } as unknown as ReturnType<
+      typeof useHostApiCore
+    >);
   });
 
-  it('should return namespaces where user has create access', async () => {
+  it('should return namespaces where user has both create and get access', async () => {
     checkAccessMock.mockImplementation(async ({ namespace }) => namespace === 'allowed-ns');
 
     const projects = [makeProject('allowed-ns', 'Allowed'), makeProject('denied-ns', 'Denied')];
@@ -57,6 +61,31 @@ describe('useAccessibleNamespaces', () => {
 
     expect(result.current.namespaces).toEqual([{ name: 'allowed-ns', displayName: 'Allowed' }]);
     expect(result.current.error).toBeUndefined();
+  });
+
+  it('should exclude namespaces where user has create but not get access', async () => {
+    checkAccessMock.mockImplementation(async ({ namespace, verb }) => {
+      if (namespace === 'create-only-ns') {
+        return verb === 'create';
+      }
+      return true;
+    });
+
+    const projects = [
+      makeProject('create-only-ns', 'Create Only'),
+      makeProject('full-access-ns', 'Full Access'),
+    ];
+    const { result } = renderHook(() => useAccessibleNamespaces(), {
+      wrapper: createWrapper(projects),
+    });
+
+    await waitFor(() => {
+      expect(result.current.loaded).toBe(true);
+    });
+
+    expect(result.current.namespaces).toEqual([
+      { name: 'full-access-ns', displayName: 'Full Access' },
+    ]);
   });
 
   it('should use namespace name as displayName when annotation is missing', async () => {

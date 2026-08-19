@@ -1,19 +1,29 @@
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import {
+  getBackUrl,
+  getSubscriptionViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const EditSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
-  const { state, pathname } = useLocation();
-  const base = getBackUrl(pathname, state, 'subscriptions');
+  const { state } = useLocation();
+  const base = getBackUrl(state, 'subscriptions');
   const returnTo = base;
   const [subscriptionInfo, infoLoaded, infoError] = useGetSubscriptionInfo(subscriptionName);
-  const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    loaded: formLoaded,
+    error: formError,
+  } = useMaaSGovernanceContext();
 
   const loaded = infoLoaded && formLoaded;
   const error = infoError || formError;
@@ -36,7 +46,7 @@ const EditSubscriptionPage: React.FC = () => {
           <BreadcrumbItem
             render={() => (
               <Link
-                to={`${base}/view/${subscriptionName}`}
+                to={getSubscriptionViewUrl(subscriptionName)}
                 state={returnTo ? { returnTo } : undefined}
               >
                 {displayName || subscriptionName}
@@ -53,7 +63,10 @@ const EditSubscriptionPage: React.FC = () => {
     >
       {subscriptionInfo && (
         <CreateSubscriptionForm
-          formData={formData}
+          groups={groups}
+          modelRefs={modelRefs}
+          subscriptions={subscriptions}
+          policies={policies}
           subscriptionInfo={subscriptionInfo}
           returnTo={returnTo}
         />

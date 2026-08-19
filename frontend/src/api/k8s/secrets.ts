@@ -248,7 +248,3 @@ export const patchSecretWithProtocolAnnotation = (
       },
     ],
   });
-
-export const hasProtocolAnnotation = (resource: SecretKind): boolean => {
-  return !!resource.metadata.annotations?.['opendatahub.io/connection-type-protocol'];
-};

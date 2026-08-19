@@ -1,6 +1,6 @@
 // TODO: remove this file once we have connection types support upstream
 // and update the reference to this file to the one in the model-serving upstream package
-import { RegisteredModelLocation } from '~/app/utils';
+import { uriToModelLocation } from '@odh-dashboard/k8s-core';
 import { DEPLOY_BUTTON_TOOLTIP } from '~/odh/const';
 
 export enum ModelServingCompatibleTypes {
@@ -18,39 +18,6 @@ export const S3ConnectionTypeKeys = [
   'AWS_S3_ENDPOINT',
   'AWS_S3_BUCKET',
 ];
-
-export const uriToModelLocation = (uri?: string): RegisteredModelLocation => {
-  if (!uri) {
-    return null;
-  }
-  try {
-    const urlObj = new URL(uri);
-    if (urlObj.toString().startsWith('s3:')) {
-      // Some environments include the first token after the protocol (our bucket) in the pathname and some have it as the hostname
-      const [bucket, ...pathSplit] = [urlObj.hostname, ...urlObj.pathname.split('/')].filter(
-        Boolean,
-      );
-      const path = pathSplit.join('/');
-      const searchParams = new URLSearchParams(urlObj.search);
-      const endpoint = searchParams.get('endpoint');
-      const region = searchParams.get('defaultRegion');
-      if (endpoint && bucket && path) {
-        return {
-          s3Fields: { endpoint, bucket, region: region || undefined, path },
-          uri: null,
-          ociUri: null,
-        };
-      }
-      return null;
-    }
-    if (uri.startsWith('oci:')) {
-      return { s3Fields: null, uri: null, ociUri: uri };
-    }
-    return { s3Fields: null, uri, ociUri: null };
-  } catch {
-    return null;
-  }
-};
 
 const modelServingCompatibleTypesMetadata: Record<
   ModelServingCompatibleTypes,

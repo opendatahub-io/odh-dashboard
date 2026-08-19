@@ -128,6 +128,13 @@ export type KueueWorkbenchTestData = {
   notebookImage: string;
 };
 
+export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
+  updatedCpuQuota: number;
+  updatedMemoryQuota: number;
+  waitingForQuotaMessage: string;
+  queuePositionMarker: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -322,6 +329,34 @@ export type DataScienceProjectData = {
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
+export type RoutingTestData = DataScienceProjectData & {
+  routingConfigName: string;
+  routingConfigFixture: string;
+  topologyTypeTestId: string;
+  topologyTypeLabel: string;
+  configSourceEditorKey: string;
+  modelLocationURI: string;
+  deploymentMethod: string;
+  defaultRoutingLabel: string;
+};
+
+export type AcceleratorTestData = DataScienceProjectData & {
+  unsupportedAcceleratorConfigFixturePath: string;
+  acceleratorConfigName: string;
+  version: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
+export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
+  servingRuntimeId: string;
+  servingRuntimeDisplayName: string;
+  unsupportedServingRuntimeYamlFixturePath: string;
+  apiProtocol: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -491,12 +526,15 @@ export type ModelRegistryTestData = {
   uriPrimary: string;
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeS390x: string;
+  servingRuntimeX86: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  deploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;
@@ -516,6 +554,7 @@ export type ModelRegistryTestData = {
   defaultMysqlPort: string;
   defaultPostgresPort: string;
   defaultDatabaseName: string;
+  defaultPostgresDatabaseName: string;
   statusAvailable: string;
 
   // Database configuration testing
@@ -568,6 +607,10 @@ export type ModelRegistryTestData = {
   // Hardware profile configuration
   hardwareProfileName: string;
   hardwareProfileYamlPath: string;
+
+  // Advanced settings — serving runtime args and environment variables
+  servingRuntimeArgs: string;
+  envVars: Array<{ name: string; value: string }>;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -654,12 +697,38 @@ export type GenAiTestData = {
 
 export type CustomEndpointTestData = {
   modelId: string;
+  modelType: string;
   displayName: string;
   endpointUrl: string;
   testMessage: string;
   lsdServiceName: string;
   lsdPodPrefix: string;
   lsdPodReadyTimeout: string;
+  prompt: {
+    name: string;
+    template: string;
+    commitMessage: string;
+    testMessageWithPrompt: string;
+  };
+  prompt2: {
+    name: string;
+    template: string;
+    commitMessage: string;
+  };
+  rag: {
+    fileName: string;
+    fixturePath: string;
+    testQuestion: string;
+    expectedContentFragment: string;
+  };
+  guardrails: {
+    safeMessage: string;
+    maliciousMessage: string;
+  };
+  agent: {
+    name: string;
+    description: string;
+  };
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
@@ -869,4 +938,13 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };

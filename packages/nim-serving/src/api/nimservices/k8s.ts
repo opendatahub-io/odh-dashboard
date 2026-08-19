@@ -1,5 +1,5 @@
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   k8sCreateResource,
   k8sPatchResource,
@@ -10,7 +10,8 @@ import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import { filterRuntimeArgsForContainer } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
@@ -187,7 +188,12 @@ export const assembleNIMService = (
   }
 
   if (runtimeArgs?.enabled && runtimeArgs.args.length > 0) {
-    nimService.spec.args = runtimeArgs.args;
+    const containerArgs = filterRuntimeArgsForContainer(runtimeArgs.args);
+    if (containerArgs.length > 0) {
+      nimService.spec.args = containerArgs;
+    } else {
+      delete nimService.spec.args;
+    }
   } else {
     delete nimService.spec.args;
   }

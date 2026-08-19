@@ -18,7 +18,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPTool } from '~/app/types';
@@ -276,10 +276,20 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       </ModalBody>
       {toolsLoaded && !isLoading && !toolsLoadError && tools.length > 0 && (
         <ModalFooter>
-          <Button key="save" variant="primary" onClick={handleSave}>
+          <Button
+            key="save"
+            variant="primary"
+            onClick={handleSave}
+            data-testid="mcp-tools-save-button"
+          >
             Save
           </Button>
-          <Button key="cancel" variant="link" onClick={handleCancel}>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={handleCancel}
+            data-testid="mcp-tools-cancel-button"
+          >
             Cancel
           </Button>
         </ModalFooter>

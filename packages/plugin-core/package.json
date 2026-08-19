@@ -15,7 +15,12 @@
     "./helpers/ui": "./src/core/helpers/ui.ts",
     "./extension-points": "./src/extension-points/index.ts",
     "./areas": "./src/areas/index.ts",
-    "./testing": "./src/testing/utils.ts"
+    "./host-api": "./src/host-api/index.ts",
+    "./integrations": "./src/integrations/index.ts",
+    "./routing": "./src/routing/index.ts",
+    "./testing": "./src/testing/utils.ts",
+    "./__mocks__/mockDsciStatus": "./src/__mocks__/mockDsciStatus.ts",
+    "./__mocks__/mockDscStatus": "./src/__mocks__/mockDscStatus.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

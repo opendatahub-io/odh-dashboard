@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import {
   HardwareProfileModel,

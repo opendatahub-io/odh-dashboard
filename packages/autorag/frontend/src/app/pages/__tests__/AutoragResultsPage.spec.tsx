@@ -5,20 +5,30 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // ============================================================================
 // Mocks
 // ============================================================================
 
 const mockUseParams = jest.fn();
+const mockUseLocation = jest.fn<{ state: unknown }, []>(() => ({ state: null }));
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
-  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
+  useLocation: () => mockUseLocation(),
   Link: ({
     to,
     children,
@@ -289,6 +299,7 @@ describe('AutoragResultsPage', () => {
     jest.clearAllMocks();
     capturedContext = null;
     mockUseParams.mockReturnValue({ namespace: 'test-ns', runId: 'run-123' });
+    mockUseLocation.mockReturnValue({ state: null });
 
     // Reset useNamespaceSelector mock to default state
     const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
@@ -1189,6 +1200,77 @@ describe('AutoragResultsPage', () => {
 
       expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
       expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+  });
+
+  describe('AutoRAG Results Viewed tracking', () => {
+    it('should fire with entrySource from location state when navigated from the experiments list', () => {
+      mockUseLocation.mockReturnValue({ state: { entrySource: 'experimentsList' } });
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+        entrySource: 'experimentsList',
+      });
+    });
+
+    it('should fall back to entrySource: other when location state is missing/invalid', () => {
+      mockUseLocation.mockReturnValue({ state: null });
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_VIEWED, {
+        entrySource: 'other',
+      });
+    });
+
+    it('should not fire again on re-renders for the same run', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      const { rerender } = renderPage();
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not fire while the pipeline run has not yet loaded', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalled();
     });
   });
 });

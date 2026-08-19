@@ -11,3 +11,13 @@
     overflow-y: hidden;
   }
 }
+
+// Allow PF modal title to wrap instead of ellipsis truncate when wrapTitle is set.
+// Scoped override: PF hardcodes nowrap/ellipsis on title classes with no CSS variable opt-out.
+.odh-content-modal--wrap-title {
+  .pf-v6-c-modal-box__title,
+  .pf-v6-c-modal-box__title-text {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+}

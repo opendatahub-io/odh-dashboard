@@ -16,7 +16,7 @@ import {
   VariableRow,
 } from '#~/types';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
-import { getKueueSubStepInfo } from '#~/concepts/kueue/messageUtils';
+import { getKueueSubStepInfo, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { useUser } from '#~/redux/selectors';
 import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';
@@ -341,12 +341,15 @@ const getKueueStepStatus = (status: KueueWorkloadStatus): EventStatus => {
     case KueueWorkloadStatus.Inadmissible:
     case KueueWorkloadStatus.Evicted:
     case KueueWorkloadStatus.Preempted:
-    case KueueWorkloadStatus.Requeued:
       return EventStatus.WARNING;
+    case KueueWorkloadStatus.Requeued:
+      return EventStatus.PENDING;
     case KueueWorkloadStatus.BlockedOnPreemptionGates:
       return EventStatus.IN_PROGRESS;
     case KueueWorkloadStatus.AdmissionCheck:
       return EventStatus.IN_PROGRESS;
+    case KueueWorkloadStatus.Queued:
+      return EventStatus.PENDING;
     default:
       return EventStatus.IN_PROGRESS;
   }
@@ -396,15 +399,19 @@ export const buildInitialProgressSteps = (
   });
 
   // Kueue admission nested as a sub-step under pod_assigned when active.
+  // Guard on queueName so auto-created workloads for non-Kueue notebooks don't show this sub-step.
   const podAssignedSubSteps: NotebookProgressStep[] = [];
-  if (kueueStatus) {
-    const { label: kueueLabel } = getKueueSubStepInfo(
-      kueueStatus.status,
-      kueueStatus.message,
-      kueueStatus.queueName,
-      isRecovery,
-      kueueStatus.queuePosition ?? undefined,
-    );
+  if (kueueStatus?.queueName) {
+    const kueueLabel =
+      kueueStatus.status === KueueWorkloadStatus.Requeued
+        ? getRequeuedMessage(kueueStatus)
+        : getKueueSubStepInfo(
+            kueueStatus.status,
+            kueueStatus.message,
+            kueueStatus.queueName,
+            isRecovery,
+            kueueStatus.queuePosition ?? undefined,
+          ).label;
     podAssignedSubSteps.push({
       stepKind: 'kueue',
       label: kueueLabel,
@@ -720,6 +727,20 @@ export const getNotebookEventStatus = (
   }
 };
 
+/**
+ * Severity within the "problem" band only (WARNING < ERROR).
+ * Non-problem statuses (PENDING, SUCCESS, etc.) are intentionally absent so they
+ * never participate in downgrade-prevention logic.
+ */
+const PROBLEM_SEVERITY: Partial<Record<EventStatus, number>> = {
+  [EventStatus.WARNING]: 1,
+  [EventStatus.ERROR]: 2,
+};
+
+/** Returns true when replacing `current` with `next` would downgrade a problem status. */
+const isProblemDowngrade = (current: EventStatus, next: EventStatus): boolean =>
+  (PROBLEM_SEVERITY[current] ?? -1) > (PROBLEM_SEVERITY[next] ?? -1);
+
 export const useNotebookStatus = (
   spawnInProgress: boolean,
   notebook: NotebookKind | null,
@@ -747,9 +768,26 @@ export const useNotebookStatus = (
     return [null, thisInstanceEvents];
   }
 
-  const lastItem = filteredEvents[filteredEvents.length - 1];
-
   const containerNames = notebook.spec.template.spec.containers.map((c) => c.name);
+
+  // Among events sharing the latest timestamp, pick the one with the highest derived severity.
+  // This prevents a lower-severity companion event (e.g. "Warning Failed ImagePullBackOff")
+  // from overriding a higher-severity one (e.g. "Normal BackOff" → ERROR) when they arrive
+  // at the same instant.
+  const latestTimestamp = getEventTimestamp(filteredEvents[filteredEvents.length - 1]);
+  const lastItem = filteredEvents
+    .filter((e) => getEventTimestamp(e) === latestTimestamp)
+    .reduce((best, evt) => {
+      const bestStep = getNotebookEventStatus(best, containerNames, gracePeriod);
+      const evtStep = getNotebookEventStatus(evt, containerNames, gracePeriod);
+      const bestStatus =
+        bestStep?.status ?? (best.type === 'Warning' ? EventStatus.WARNING : EventStatus.INFO);
+      const evtStatus =
+        evtStep?.status ?? (evt.type === 'Warning' ? EventStatus.WARNING : EventStatus.INFO);
+      return (PROBLEM_SEVERITY[evtStatus] ?? -1) >= (PROBLEM_SEVERITY[bestStatus] ?? -1)
+        ? evt
+        : best;
+    });
 
   const eventStep = getNotebookEventStatus(lastItem, containerNames, gracePeriod);
   const statusLabel = eventStep ? eventStep.description || eventStep.label : lastItem.reason;
@@ -835,10 +873,17 @@ export const useNotebookProgress = (
   currentProgress.forEach((eventStep) => {
     const match = findStepDeep(progressSteps, eventStep.stepKind, eventStep.containerName);
     if (match) {
-      match.status = eventStep.status;
+      // Downgrade-prevention only applies to same-timestamp companion events
+      // (e.g. K8s fires "Warning Failed" alongside "BackOff → ERROR" at the same instant).
+      // Events at a later timestamp always win — they represent genuine forward progress
+      // (e.g. "Pulled" SUCCESS after a previous "Failed" WARNING).
+      const isSameTimestamp = match.timestamp === eventStep.timestamp;
       match.timestamp = eventStep.timestamp;
-      if (eventStep.description) {
-        match.description = eventStep.description;
+      if (!isSameTimestamp || !isProblemDowngrade(match.status, eventStep.status)) {
+        match.status = eventStep.status;
+        if (eventStep.description) {
+          match.description = eventStep.description;
+        }
       }
     }
   });
@@ -850,6 +895,12 @@ export const useNotebookProgress = (
     if (podCreated?.status === EventStatus.PENDING) {
       podCreated.status = EventStatus.SUCCESS;
     }
+  }
+
+  // Bubble up: pod_assigned mirrors its Kueue sub-step status unless the sub-step is SUCCESS.
+  const kueueSub = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
+  if (kueueSub && kueueSub.status !== EventStatus.SUCCESS && podAssigned) {
+    podAssigned.status = kueueSub.status;
   }
 
   // Catch up sub-steps when started is SUCCESS; bubble IN_PROGRESS up when sub-steps are active.

@@ -12,6 +12,19 @@ class InfrastructurePage {
     return appChrome.findNavItem({ name: 'Infrastructure', rootSection: 'Observe & monitor' });
   }
 
+  findUtilizationTab() {
+    return cy.findByTestId('infrastructure-tab-utilization');
+  }
+
+  findClusterQueueUtilizationTab() {
+    return cy.findByTestId('infrastructure-tab-cluster-queue-utilization');
+  }
+
+  switchToClusterQueueUtilizationTab() {
+    this.findClusterQueueUtilizationTab().click();
+    return this;
+  }
+
   shouldNotFoundPage() {
     return cy.findByTestId('not-found-page').should('exist');
   }
@@ -28,8 +41,16 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-cluster-section');
   }
 
+  findClusterMetricsError() {
+    return cy.findByTestId('cluster-metrics-error');
+  }
+
   findHardwareUsageSection() {
     return cy.findByTestId('infrastructure-hardware-usage-section');
+  }
+
+  findHardwareUsageError() {
+    return cy.findByTestId('hardware-usage-error');
   }
 
   findClusterQueueUtilizationSection() {
@@ -56,28 +77,43 @@ class InfrastructurePage {
     return cy.findByTestId('hardware-usage-empty');
   }
 
-  findBorrowingLendingSection() {
-    return cy.findByTestId('infrastructure-borrowing-lending-section');
+  findBorrowingSection() {
+    return cy.findByTestId('infrastructure-borrowing-section');
   }
 
-  findBorrowingLendingChart() {
-    return cy.findByTestId('borrowing-lending-chart-has-data');
+  findBorrowingChart() {
+    return cy.findByTestId('borrowing-chart-has-data');
   }
 
-  findBorrowingLendingEmptyState() {
-    return cy.findByTestId('borrowing-lending-empty-state');
+  findBorrowingEmptyState() {
+    return cy.findByTestId('borrowing-empty-state');
+  }
+
+  findBorrowingError() {
+    return cy.findByTestId('borrowing-error');
+  }
+
+  findBorrowingChartOrEmptyState() {
+    return cy.get(
+      '[data-testid="borrowing-chart-has-data"], [data-testid="borrowing-empty-state"]',
+    );
+  }
+
+  shouldHaveBorrowingChartOrEmptyState() {
+    this.findBorrowingChartOrEmptyState().should('exist');
+    return this;
   }
 
   findCohortSelect() {
-    return cy.findByTestId('borrowing-lending-cohort-select');
+    return cy.findByTestId('borrowing-cohort-select');
   }
 
   findCqNameFilter() {
-    return cy.findByTestId('borrowing-lending-cq-filter');
+    return cy.findByTestId('borrowing-cq-filter');
   }
 
   findCountLabel() {
-    return cy.findByTestId('borrowing-lending-count-label');
+    return cy.findByTestId('borrowing-count-label');
   }
 
   findCQUtilizationSection() {
@@ -105,8 +141,8 @@ class InfrastructurePage {
     return cy.findByTestId(`cohort-accordion-${cohortName}`);
   }
 
-  findCohortBorrowLendBadge() {
-    return cy.findByTestId('cohort-borrow-lend-badge');
+  findCohortBorrowBadge() {
+    return cy.findByTestId('cohort-borrow-badge');
   }
 
   findCohortUnallocatedBorrowable() {
@@ -119,10 +155,6 @@ class InfrastructurePage {
 
   findCQBorrowBadge() {
     return cy.findByTestId('cq-borrowed-badge');
-  }
-
-  findCQLendBadge() {
-    return cy.findByTestId('cq-lent-badge');
   }
 
   findCQWorkloadCounts() {
@@ -147,10 +179,6 @@ class InfrastructurePage {
 
   findDcgmMemoryDonutInCard(cqName: string) {
     return this.findCQCard(cqName).findByTestId('dcgm-memory-donut');
-  }
-
-  findCQLendBadgeInCard(cqName: string) {
-    return this.findCQCard(cqName).find('[data-testid="cq-lent-badge"]');
   }
 
   findCQBorrowBadgeInCard(cqName: string) {

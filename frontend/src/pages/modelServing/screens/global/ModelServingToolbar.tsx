@@ -1,16 +1,19 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import ServeModelButton from './ServeModelButton';
 import {
   ModelServingToolbarFilterOptions,
-  ModelServingFilterDataType,
+  type ModelServingFilterDataType,
   modelServingFilterOptions,
-} from './const';
+} from '@odh-dashboard/model-serving/shared';
+import ServeModelButton from './ServeModelButton';
 
 type ModelServingToolbarProps = {
   filterData: ModelServingFilterDataType;
-  onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  onFilterUpdate: (
+    key: ModelServingToolbarFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
 };
 
 const ModelServingToolbar: React.FC<ModelServingToolbarProps> = ({

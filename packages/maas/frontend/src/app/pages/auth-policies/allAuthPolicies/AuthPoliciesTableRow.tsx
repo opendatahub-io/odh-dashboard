@@ -6,9 +6,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getAuthPolicyEditUrl,
+  getAuthPolicyViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import { usePolicyAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
@@ -18,6 +22,9 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -38,10 +45,9 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
-  const policyNameSegment = (name: string) => encodeURIComponent(name);
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const { affectedModels, overviewLoaded } = usePolicyAffectedModels(authPolicy);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -53,10 +59,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: authPolicy.phase ?? '',
     });
-    navigate(`${base}/view/${policyNameSegment(authPolicyName)}`, navState);
+    navigate(getAuthPolicyViewUrl(authPolicyName), navState);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
-    navigate(`${base}/edit/${policyNameSegment(authPolicyName)}`, navState);
+    navigate(getAuthPolicyEditUrl(authPolicyName), navState);
   };
 
   const groupsCount = Array.isArray(authPolicy.subjects.groups)
@@ -84,7 +90,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
               <Link
-                to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
+                to={getAuthPolicyViewUrl(authPolicy.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
                   fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
@@ -110,8 +116,23 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       <PhaseLabel
         phase={authPolicy.phase}
         statusMessage={authPolicy.statusMessage}
+        reason={authPolicy.reason}
+        status={authPolicy.status}
+        conditionType={authPolicy.conditionType}
+        lastTransitionTime={authPolicy.lastTransitionTime}
         resourceType={PhaseResourceType.AUTHPOLICY}
-        location={PhaseLabelLocation.POLICIES_TAB}
+        resourceName={authPolicy.displayName ?? authPolicy.name}
+        affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
+        resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
+        returnTo={returnTo}
+        onClick={() => {
+          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(authPolicy.phase),
+            location: PhaseLabelLocation.POLICIES_TAB,
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+        }}
       />
     </Td>
   );

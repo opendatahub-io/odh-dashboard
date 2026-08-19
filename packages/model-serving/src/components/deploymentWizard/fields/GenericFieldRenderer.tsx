@@ -1,5 +1,9 @@
 import React from 'react';
-import { resolveFieldValue, type GenericFieldProps, WizardField } from '../types';
+import {
+  resolveFieldValue,
+  type GenericFieldProps,
+  WizardField,
+} from '../../../shared/types/form-data';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { getFieldDependencies, getStateKey } from '../dynamicFormUtils';
@@ -59,7 +63,7 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
                 });
               }}
               externalData={externalData?.[field.id] ?? undefined}
-              dependencies={getFieldDependencies(field, wizardState.state)}
+              dependencies={getFieldDependencies(field, wizardState.state, wizardState.initialData)}
               isEditing={isEditing}
               isDisabled={isDisabled || hasDisabledOverride(wizardState.state[getStateKey(field)])}
             />

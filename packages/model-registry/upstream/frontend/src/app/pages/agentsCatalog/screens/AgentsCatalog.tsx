@@ -1,16 +1,25 @@
 import * as React from 'react';
-import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
-import { SearchIcon } from '@patternfly/react-icons';
+import {
+  ApplicationsPage,
+  KubeflowDocs,
+  ProjectObjectType,
+  TitleWithIcon,
+  WhosMyAdministrator,
+} from 'mod-arch-shared';
+import { useThemeContext } from 'mod-arch-kubeflow';
+import { useUserInteraction, TrackingOutcome } from '~/concepts/userInteraction';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
 import { hasAgentFiltersApplied } from '~/app/pages/agentsCatalog/utils/agentsCatalogUtils';
 import AgentsCatalogFilters from '~/app/pages/agentsCatalog/components/AgentsCatalogFilters';
 import { AGENTS_CATALOG_TITLE, AGENTS_CATALOG_DESCRIPTION } from '~/app/pages/agentsCatalog/const';
 import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
+import { AGENT_CATALOG_EVENTS, countActiveAgentFilters } from '~/app/pages/agentsCatalog/tracking';
 import AgentsCatalogSourceLabelSelector from './AgentsCatalogSourceLabelSelector';
 import AgentsCatalogAllAgentsView from './AgentsCatalogAllAgentsView';
 import AgentsCatalogGalleryView from './AgentsCatalogGalleryView';
 
 const AgentsCatalog: React.FC = () => {
+  const { trackSimpleEvent, trackFormEvent } = useUserInteraction();
   const {
     searchQuery,
     setSearchQuery,
@@ -24,6 +33,7 @@ const AgentsCatalog: React.FC = () => {
     emptyCategoryLabels,
     setCategoryCount,
   } = React.useContext(AgentsCatalogContext);
+  const { isMUITheme } = useThemeContext();
 
   const filtersApplied = hasAgentFiltersApplied(filters, searchQuery);
   const isAllAgentsView = selectedSourceLabel === undefined && !filtersApplied;
@@ -31,8 +41,12 @@ const AgentsCatalog: React.FC = () => {
   const handleSearch = React.useCallback(
     (term: string) => {
       setSearchQuery(term);
+      trackFormEvent(AGENT_CATALOG_EVENTS.SEARCH_SUBMITTED, {
+        outcome: TrackingOutcome.submit,
+        countActiveFilters: countActiveAgentFilters(filters),
+      });
     },
-    [setSearchQuery],
+    [setSearchQuery, trackFormEvent, filters],
   );
 
   const handleClearSearch = React.useCallback(() => {
@@ -40,8 +54,9 @@ const AgentsCatalog: React.FC = () => {
   }, [setSearchQuery]);
 
   const handleResetAllFilters = React.useCallback(() => {
+    trackSimpleEvent(AGENT_CATALOG_EVENTS.FILTERS_RESET);
     clearAllFilters();
-  }, [clearAllFilters]);
+  }, [trackSimpleEvent, clearAllFilters]);
 
   return (
     <ApplicationsPage
@@ -66,9 +81,14 @@ const AgentsCatalog: React.FC = () => {
         renderEmptyCategoriesState={() => (
           <EmptyCatalogState
             testid="empty-agents-catalog-no-categories"
-            title="No agents available"
-            headerIcon={SearchIcon}
-            description="There are no agent categories available. Configure sources in settings to get started."
+            title="Configure agent template sources"
+            headerIcon={null}
+            description={
+              isMUITheme
+                ? 'There are no agent templates to display. Follow the instructions in the docs below to add agent templates.'
+                : 'There are no agent templates to display. Use the OpenShift console to add agent templates to the catalog.'
+            }
+            primaryAction={isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />}
           />
         )}
         renderFilterSidebar={() => <AgentsCatalogFilters />}

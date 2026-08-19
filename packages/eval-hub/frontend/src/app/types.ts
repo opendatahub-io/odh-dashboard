@@ -84,11 +84,13 @@ export type EvaluationJobState =
   | 'failed'
   | 'cancelled'
   | 'stopping'
-  | 'stopped';
+  | 'stopped'
+  | 'partially_failed';
 
 type JobMessage = {
   message?: string;
   message_code?: string;
+  message_origin?: 'server' | 'runtime' | 'adapter' | 'sdk';
 };
 
 type JobResource = {
@@ -114,6 +116,7 @@ type BenchmarkState = {
   benchmark_index?: number;
   status: string;
   error_message?: JobMessage;
+  warning_message?: JobMessage;
   started_at?: string;
   completed_at?: string;
 };
@@ -341,6 +344,11 @@ export type ProviderBenchmarkPassCriteria = {
   threshold: number;
 };
 
+export type BenchmarkAgentMetadata = {
+  result_interpretation?: string;
+  score_ranges?: { min: number; max: number; label: string; description?: string }[];
+};
+
 export type ProviderBenchmark = {
   id: string;
   url?: string;
@@ -353,9 +361,14 @@ export type ProviderBenchmark = {
   dataset_size?: number;
   primary_score?: ProviderBenchmarkScore;
   pass_criteria?: ProviderBenchmarkPassCriteria;
+  agent?: BenchmarkAgentMetadata;
 };
 
-export type FlatBenchmark = ProviderBenchmark & { providerId: string; providerName: string };
+export type FlatBenchmark = ProviderBenchmark & {
+  providerId: string;
+  providerName: string;
+  providerAgent?: ProviderAgentMetadata;
+};
 
 export type ProviderEnvVar = {
   name: string;
@@ -382,6 +395,16 @@ export type ProviderRuntime = {
   local?: ProviderLocalRuntime;
 };
 
+export type ProviderAgentMetadata = {
+  evaluates?: string[];
+  recommended_when?: string[];
+  target_type?: string;
+  summary?: string;
+  complements?: string[];
+  hints?: string[];
+  result_interpretation?: string[];
+};
+
 export type Provider = {
   resource: ProviderResource;
   name: string;
@@ -390,6 +413,7 @@ export type Provider = {
   tags?: string[];
   runtime?: ProviderRuntime;
   benchmarks?: ProviderBenchmark[];
+  agent?: ProviderAgentMetadata;
 };
 
 export type ProvidersResponse = {

@@ -17,27 +17,28 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   mcpRegistry: false,
   toolCalling: false,
-  projectRBAC: true,
-  roleManagement: false,
+  modelCapabilities: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  maasSettingsIaRedesign: true,
   agentOps: false,
   connectionTest: false,
+  dataRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: true,
   nimWizard: false,
+  nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  notebooksV2: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -60,6 +61,8 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
+  projectRBAC: true,
+  roleManagement: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
@@ -85,6 +88,7 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
@@ -227,6 +231,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
@@ -249,7 +257,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
-    featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MCP_REGISTRY]: {
@@ -271,6 +278,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
@@ -283,9 +291,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.EXTERNAL_MODELS]: {
     featureFlags: ['externalModels'],
   },
-  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
-    featureFlags: ['maasSettingsIaRedesign'],
-  },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
@@ -293,20 +298,14 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.CONNECTION_TEST]: {
     featureFlags: ['connectionTest'],
   },
-};
-
-/** Maps each DataScienceStackComponent to its human-readable name **/
-export const DataScienceStackComponentMap: Record<string, string> = {
-  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
-  [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
-  [DataScienceStackComponent.KUEUE]: 'Kueue',
-  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
-  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
-  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
-  [DataScienceStackComponent.RAY]: 'Ray',
-  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
-  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
-  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
-  [DataScienceStackComponent.TRAINER]: 'Trainer',
-  [DataScienceStackComponent.MLFLOW]: 'MLflow',
+  [SupportedArea.MODEL_CAPABILITIES]: {
+    featureFlags: ['modelCapabilities'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.PLUGIN_NOTEBOOKS]: {
+    featureFlags: ['notebooksV2'],
+  },
+  [SupportedArea.PLUGIN_DATA_REGISTRY]: {
+    featureFlags: ['dataRegistry'],
+  },
 };

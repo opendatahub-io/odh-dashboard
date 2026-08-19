@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
+// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process.
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '#~/types';
 
@@ -56,12 +56,6 @@ export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = 
   false,
   undefined,
 ];
-
-export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
-  data: [],
-  loaded: false,
-  refresh: () => Promise.resolve(undefined),
-};
 
 export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   data: undefined,

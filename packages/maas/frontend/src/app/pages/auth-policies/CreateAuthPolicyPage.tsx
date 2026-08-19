@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
   getBackUrl,
   getBreadcrumbLabelFromState,
@@ -11,9 +11,16 @@ import {
 import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
-  const [formData, loaded, loadError] = useSubscriptionPolicyFormData();
-  const { state, pathname } = useLocation();
-  const backUrl = getBackUrl(pathname, state, 'auth-policies');
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    loaded,
+    error: loadError,
+  } = useMaaSGovernanceContext();
+  const { state } = useLocation();
+  const backUrl = getBackUrl(state, 'auth-policies');
   const returnTo = backUrl;
   const breadcrumbLabel = getBreadcrumbLabelFromState(state) ?? 'Authorization policies';
   const preSelectedModel = getPreSelectedModelFromState(state);
@@ -32,7 +39,14 @@ const CreateAuthPolicyPage: React.FC = () => {
       empty={false}
       loadError={loadError}
     >
-      <PolicyForm formData={formData} returnTo={returnTo} preSelectedModel={preSelectedModel} />
+      <PolicyForm
+        groups={groups}
+        modelRefs={modelRefs}
+        subscriptions={subscriptions}
+        policies={policies}
+        returnTo={returnTo}
+        preSelectedModel={preSelectedModel}
+      />
     </ApplicationsPage>
   );
 };

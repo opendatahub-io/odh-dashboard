@@ -6,7 +6,7 @@ import {
   type DeploymentAssemblyResources,
   isAssembleModelResourceExtension,
 } from '../../../../extension-points/deployment-wizard';
-import type { WizardFormData } from '../types';
+import type { WizardFormData } from '../../../shared/types/form-data';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 
 /**
@@ -49,10 +49,11 @@ export const useFormToResourcesTransformer = (
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
     useAssembleDeploymentFn(formData);
-  const { applyFieldData, applyExtensionsLoaded, applyExtensionErrors } = useWizardFieldApply(
-    formData.state,
-    formData.initialData?.navSourceMetadata,
-  );
+  const {
+    applyAllFieldDataFn: applyFieldData,
+    applyExtensionsLoaded,
+    applyExtensionErrors,
+  } = useWizardFieldApply(formData.state, formData.initialData?.navSourceMetadata);
 
   const loaded = assembleDeploymentFnLoaded && applyExtensionsLoaded;
   const errors = React.useMemo(() => {

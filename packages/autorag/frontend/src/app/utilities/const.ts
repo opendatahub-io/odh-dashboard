@@ -56,6 +56,8 @@ export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_METRIC_OVERALL_SCORE = 'overall_score';
 export const RAG_METRIC_ANSWER_RELEVANCE = 'answer_relevance';
 
+export const DEFAULT_OPTIMIZATION_METRIC = RAG_METRIC_OVERALL_SCORE;
+
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',

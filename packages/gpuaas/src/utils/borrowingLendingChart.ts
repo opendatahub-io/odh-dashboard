@@ -13,6 +13,7 @@ export type TooltipPoint = {
   x: number;
   y: number;
   nominalQuota?: number;
+  gpuUsage?: number;
 };
 
 /**
@@ -48,14 +49,13 @@ export const formatTooltipDate = (x: number): string => {
   return `${weekday} ${day} ${month}, ${time}`;
 };
 
-/** Signed values: "+2", "0", "-3" so positive = borrowing, negative = lending */
+/** Positive values: "+2" for borrowing above quota, "0" at quota. */
 export const formatYTick = (y: number): string => {
   if (y === 0) {
     return '0';
   }
-  const abs = Math.abs(y);
-  const val = abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : String(Math.round(abs));
-  return y > 0 ? `+${val}` : `-${val}`;
+  const val = y >= 1000 ? `${(y / 1000).toFixed(1)}k` : String(Math.round(y));
+  return `+${val}`;
 };
 
 /**
@@ -84,9 +84,8 @@ export const getLegendLabel = (s: CQMetricSeries): string =>
  */
 export const buildYDomain = (series: CQMetricSeries[]): { minY: number; maxY: number } => {
   const allY = series.flatMap((s) => s.data.map((d) => d.y));
-  const rawMin = allY.reduce((min, y) => Math.min(min, y), 0);
   const rawMax = allY.reduce((max, y) => Math.max(max, y), 0);
-  return { minY: rawMin - 1, maxY: rawMax + 1 };
+  return { minY: 0, maxY: rawMax + 1 };
 };
 
 /**

@@ -28,7 +28,7 @@ export function assignRoleViaProjectRbac(
   projectRbac.findAssignRolesSubjectTypeahead().click().type(subjectName);
   projectRbac.findTypeaheadOption(new RegExp(subjectName)).click();
   projectRbac.getManageRolesTable().toggleRole(roleName);
-  projectRbac.findAssignRolesSaveButton().click();
+  projectRbac.findAssignRolesSaveButton().click({ force: true });
 
   cy.get('body').then(($bodyEl) => {
     if ($bodyEl.find(projectRbac.getConfirmModalSelector()).length > 0) {

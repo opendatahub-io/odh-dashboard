@@ -5,19 +5,22 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import {
+  ServingRuntimeModelType,
+  getPVCNameFromURI,
+  isPVCUri,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  filterRuntimeArgsForContainer,
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
   ModelLocationData,
   ModelLocationType,
   CreateConnectionFieldData,
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
-  getPVCNameFromURI,
-  isPVCUri,
-} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import {
@@ -127,7 +130,10 @@ export const applyModelEnvVarsAndArgs = (
     envHolder.push(...modelEnvVars.variables);
   }
   if (modelArgs?.enabled) {
-    envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: modelArgs.args.join(' ') });
+    const containerArgs = filterRuntimeArgsForContainer(modelArgs.args);
+    if (containerArgs.length > 0) {
+      envHolder.push({ name: VLLM_ADDITIONAL_ARGS, value: containerArgs.join(' ') });
+    }
   }
   mainContainer.env = envHolder;
   return result;

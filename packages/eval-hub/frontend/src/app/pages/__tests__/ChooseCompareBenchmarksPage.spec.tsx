@@ -21,9 +21,10 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
-  require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
-);
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
+}));
 
 const renderPage = (initialEntry: string) =>
   render(
@@ -114,7 +115,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     );
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|truthfulqa_mc1|0'),
-    ).toHaveTextContent('Benchmark run');
+    ).toHaveTextContent('Benchmark');
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
     ).toBeInTheDocument();

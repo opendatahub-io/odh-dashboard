@@ -4,7 +4,7 @@ import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('#~/utilities/v2Redirect').then((module) => ({
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
 
@@ -308,30 +308,6 @@ const extensions: RouteExtension[] = [
       component: createRedirectComponent({
         from: '/clusterSettings',
         to: '/settings/cluster/general',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
-    },
-    properties: {
-      path: '/settings/model-resources-operations/serving-runtimes/*',
-      component: () =>
-        import('#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [ADMIN_USER],
-    },
-    properties: {
-      path: '/servingRuntimes/*',
-      component: createRedirectComponent({
-        from: '/servingRuntimes/*',
-        to: '/settings/model-resources-operations/serving-runtimes/*',
       }),
     },
   },

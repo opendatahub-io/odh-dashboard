@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,22 +10,28 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
-import { URL_PREFIX } from '~/app/utilities/const';
 import {
+  getAuthPolicyEditUrl,
   getBackUrl,
   getBreadcrumbLabelFromState,
+  getSectionUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -35,28 +41,16 @@ type PolicyActionsProps = {
   returnTo?: string;
 };
 
-const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
-  const policyRefs = Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [];
-  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
-
-  return policyRefs.map((ref) => {
-    const summary = modelRefSummaries.find(
-      (s) => s.name === ref.name && s.namespace === ref.namespace,
-    );
-    return (
-      summary ?? {
-        name: ref.name,
-        namespace: ref.namespace,
-        modelRef: { kind: '', name: ref.name },
-      }
-    );
-  });
-};
+const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] =>
+  modelRefsToSummaries(
+    Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [],
+    Array.isArray(info.modelRefs) ? info.modelRefs : [],
+  );
 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const backUrl = returnTo ?? getSectionUrl('auth-policies');
   const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
@@ -67,7 +61,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(`${base}/edit/${encodeURIComponent(policy.name)}`, navState),
+            onClick: () => navigate(getAuthPolicyEditUrl(policy.name), navState),
             isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
@@ -91,7 +85,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
                 resourceStatus: policy.phase ?? '',
                 outcome: TrackingOutcome.submit,
               });
-              navigate(base);
+              navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
@@ -113,7 +107,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
-  const backUrl = getBackUrl(location.pathname, location.state, 'auth-policies');
+  const backUrl = getBackUrl(location.state, 'auth-policies');
   const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Authorization policies';
 
   const breadcrumb = (
@@ -140,9 +134,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
       {loaded && policyInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Policy detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"
@@ -151,7 +153,10 @@ const ViewAuthPoliciesPage: React.FC = () => {
             data-testid="policy-details-tab"
           >
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-              <PolicyDetailsSection policy={policyInfo.policy} />
+              <PolicyDetailsSection
+                policy={policyInfo.policy}
+                modelRefs={viewModelRefSummaries(policyInfo)}
+              />
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <PolicyGroupsSection groups={policyInfo.policy.subjects.groups ?? []} />
@@ -163,6 +168,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
                 resourceType="authorization policy"
               />
             </PageSection>
+          </Tab>
+          <Tab
+            eventKey="yaml"
+            title={<TabTitleText>YAML</TabTitleText>}
+            aria-label="YAML tab"
+            data-testid="policy-yaml-tab"
+          >
+            <SubscriptionManagementYamlTab
+              resourceName={authPolicyName}
+              resourceType="authorizationpolicy"
+            />
           </Tab>
         </Tabs>
       )}

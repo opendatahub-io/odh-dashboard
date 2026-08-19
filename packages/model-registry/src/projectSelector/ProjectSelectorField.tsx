@@ -9,8 +9,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import type { NamespaceSelectorFieldProps } from '@mf/modelRegistry/extension-points';
 
@@ -51,6 +51,8 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   cannotCheck,
   registryName,
   selectorOnly,
+  isDisabled,
+  isFullWidth,
 }) => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const noProjects = projectsLoaded && projects.length === 0;
@@ -144,8 +146,9 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
       namespace={selectedNamespace}
       onSelection={onSelect}
       placeholder="Select a project"
-      isFullWidth={!selectorOnly}
+      isFullWidth={isFullWidth ?? !selectorOnly}
       isLoading={!projectsLoaded}
+      isDisabled={isDisabled}
     />
   );
 

@@ -22,13 +22,17 @@ import type {
   ConnectionTypeConfigMapObj,
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
-import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
+import {
+  isModelLocationType,
+  ModelLocationData,
+  ModelLocationType,
+} from '../../../shared/types/form-data';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 // Component

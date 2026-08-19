@@ -1,12 +1,13 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
-import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   OgxModelsResponse,
   OgxModelType,
   OgxFilteredVectorStoreProvidersResponse,
+  ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
@@ -26,18 +27,25 @@ export function useOgxModelsQuery(
     queryFn: async () => {
       try {
         const response = await getOgxModels('')(namespace, secretName)({});
-        z.object({
-          models: z.array(
-            z.object({
-              id: z.string(),
-              type: z.union([z.literal('llm'), z.literal('embedding')]),
-              provider: z.string(),
-              // eslint-disable-next-line camelcase
-              resource_path: z.string(),
-            }),
+        const validated = z
+          .object({
+            models: z.array(
+              z.object({
+                id: z.string(),
+                type: z.string(),
+                provider: z.string(),
+                // eslint-disable-next-line camelcase
+                resource_path: z.string(),
+              }),
+            ),
+          })
+          .parse(response);
+        return {
+          models: validated.models.filter(
+            (m): m is typeof m & { type: 'llm' | 'embedding' } =>
+              m.type === 'llm' || m.type === 'embedding',
           ),
-        }).parse(response);
-        return response;
+        };
       } catch (error) {
         if (error instanceof z.ZodError) {
           throw new Error('Invalid Open GenAI Stack models response');
@@ -328,5 +336,19 @@ export function useSecretsQuery(
     enabled: !!namespace,
     queryKey: ['autorag', 'secrets', namespace, type],
     queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
+  });
+}
+
+export function useManagedPipelinesQuery(
+  namespace?: string,
+): UseQueryResult<ManagedPipeline[], Error> {
+  return useQuery({
+    enabled: !!namespace,
+    queryKey: ['autorag', 'managedPipelines', namespace],
+    queryFn: ({ signal }) => getManagedPipelines('', namespace!, { signal }),
+    staleTime: 60_000,
+    // One retry: this query gates the "Run indexing pipeline" action; a single transient
+    // failure should not permanently hide it for the session.
+    retry: 1,
   });
 }

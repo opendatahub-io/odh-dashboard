@@ -1,4 +1,6 @@
 // eslint-disable-next-line no-restricted-syntax
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line no-restricted-syntax
 import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
@@ -20,15 +22,38 @@ import type {
   WizardFieldExtractorExtension,
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
-import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type {
+  AreaExtension,
+  RouteExtension,
+  TabRouteTabExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
-import type { KServeDeployment } from './src/deployments';
+import type { KServeDeployment } from './src/types';
 
 export const KSERVE_ID = 'kserve';
+const ADMIN_USER = 'ADMIN_USER';
+
+// Duplicated from src/settings/servingRuntimeTemplates/paths.ts — extensions.ts
+// may not import runtime values from src (no-restricted-syntax). Kept in sync by
+// extensions/__tests__/extensions.spec.ts.
+const SERVING_RUNTIME_TEMPLATES_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates';
+
+// Base path of the former standalone serving runtimes page, and the legacy v2
+// bookmark base — kept only as redirect sources to the tab above (the standalone
+// page itself has been removed).
+const SERVING_RUNTIMES_STANDALONE_PATH = '/settings/model-resources-operations/serving-runtimes';
+const SERVING_RUNTIMES_V2_PATH = '/servingRuntimes';
+
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
 
 const kserveServingRuntimeFieldExtension: WizardFieldExtension<
   KServeServingRuntimeFieldType,
@@ -103,7 +128,7 @@ const extensions: (
   | ModelServingAuthExtension<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
-  | DeployedModelServingDetails<KServeDeployment>
+  | DeployedModelServingDetails<KServeDeployment, FetchStateObject<TemplateKind[]>>
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
@@ -113,6 +138,8 @@ const extensions: (
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<DeploymentMethodFieldData, KServeDeployment>
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
+  | TabRouteTabExtension
+  | RouteExtension
 )[] = [
   {
     type: 'app.area',
@@ -190,7 +217,12 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: KSERVE_ID,
-      ServingDetailsComponent: () => import('./src/components/deploymentServingDetails'),
+      dataHook: () =>
+        import('./src/components/deploymentServingDetails').then((m) => m.useServingDetailsData),
+      ServingDetailsComponent: () =>
+        import('./src/components/deploymentServingDetails').then((m) => ({
+          default: m.default,
+        })),
     },
     flags: {
       required: [SupportedArea.K_SERVE],
@@ -304,6 +336,101 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'serving-runtime-templates',
+      title: 'Serving runtime templates',
+      component: () =>
+        import('./src/settings/servingRuntimeTemplates/ServingRuntimeTemplatesTabRoutes'),
+      group: '2_serving-runtimes',
+    },
+  },
+  // Full-page breakout routes for the serving runtime add/edit/duplicate forms,
+  // gated identically to the tab so they only exist when the tab does.
+  ...(
+    [
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/edit/:servingRuntimeName`,
+      `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/duplicate/:servingRuntimeName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+      },
+      properties: {
+        path,
+        component: () =>
+          import('./src/settings/servingRuntimeTemplates/ServingRuntimeTemplatesFormRoutes'),
+      },
+    }),
+  ),
+  // Redirect the former standalone serving runtimes URL and the legacy v2 bookmark
+  // URLs to the tab. The general wildcard redirects splice the tail onto the tab
+  // base path; the two specific v2 aliases need dedicated routes (more specific, so
+  // they win) because the old URL segment names (addServingRuntime /
+  // editServingRuntime) differ from the tab's (add / edit). The edit alias uses the
+  // /* wildcard form so buildV2RedirectElement preserves the captured runtime name;
+  // an absolute non-wildcard `to` would resolve to a fixed AbsoluteRedirect and drop
+  // the param.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_STANDALONE_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_STANDALONE_PATH}/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/*`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/addServingRuntime`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/addServingRuntime`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/add`,
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      path: `${SERVING_RUNTIMES_V2_PATH}/editServingRuntime/*`,
+      component: createRedirectComponent({
+        from: `${SERVING_RUNTIMES_V2_PATH}/editServingRuntime/*`,
+        to: `${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/edit/*`,
+      }),
     },
   },
 ];

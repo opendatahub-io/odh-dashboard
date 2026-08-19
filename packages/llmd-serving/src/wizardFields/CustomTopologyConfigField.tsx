@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -12,7 +11,7 @@ import type {
   WizardField,
   WizardReviewSection,
   WizardFormData,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -20,16 +19,19 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
+  resolveTopologyConfigsDependencies,
   isTopologyTypeFieldData,
   type TopologyTypeFieldData,
   type TopologyTypeExternalData,
+  type TopologyConfigsDependencies,
 } from './TopologyTypeField';
 import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
 
 // --- Dependencies ---
 
-type CustomTopologyConfigDependencies = {
+type CustomTopologyConfigDependencies = TopologyConfigsDependencies & {
   topologyType?: TopologyTypeFieldData;
 };
 
@@ -87,15 +89,18 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   const configRef = value?.configRef;
 
-  // Auto-select first config for non-single-node when configs load (new deploy only)
+  // Auto-select first config for non-single-node when configs load (new deploy only,
+  // or after a deleted configRef is cleared by the resolution effect below).
   React.useEffect(() => {
     if (isLoaded && !isSingleNode && !hasRealConfig && !configRef && filteredConfigs.length > 0) {
       onChange({ selectedConfig: filteredConfigs[0] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, filteredConfigs.length, topologyType]);
+  }, [isLoaded, filteredConfigs.length, topologyType, configRef]);
 
-  // Resolve configRef from extractor (edit flow) once external data loads
+  // Resolve configRef from extractor (edit flow) once external data loads.
+  // If the config was deleted, clear configRef and set the default for single-node,
+  // or clear configRef so the auto-select effect can pick one for other topologies.
   React.useEffect(() => {
     if (!configRef || hasRealConfig || !isLoaded) {
       return;
@@ -104,6 +109,10 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     const resolved = allConfigs.find((c) => c.metadata.name === configRef);
     if (resolved) {
       onChange({ selectedConfig: resolved });
+    } else if (isSingleNode) {
+      onChange({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
+    } else {
+      onChange({ configRef: undefined });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configRef, isLoaded, existingSelection, configsByTopology]);
@@ -115,7 +124,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
       result.push({
         key: SINGLE_NODE_DEFAULT_KEY,
         label: 'Single node (default)',
-        description: 'LLMInferenceServiceConfig template for this topology type.',
+        description: 'Pre-installed configuration for single-node deployments.',
         dataTestId: 'topology-config-option-single-node-default',
       });
     }
@@ -152,12 +161,14 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined configuration for this topology, or use the default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select a topology configuration for this deployment pattern.
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth
@@ -173,7 +184,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
             placeholder="Select configuration"
             value={selectedValue}
             dataTestId="custom-topology-config-select"
-            isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
+            isDisabled={!isLoaded || noConfigsAvailable}
             autoSelectOnlyOption={false}
           />
           {hasLoadError ? (
@@ -230,14 +241,15 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType = {
-  id: 'llmd-serving/custom-topology-config',
+  id: CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: (formData) => {
-      const rawTopologyData = formData['llmd-serving/topology-type'];
+    resolveDependencies: (formData, initialData) => {
+      const rawTopologyData = formData[TOPOLOGY_TYPE_FIELD_ID];
       return {
+        ...resolveTopologyConfigsDependencies(formData, initialData),
         topologyType: isTopologyTypeFieldData(rawTopologyData) ? rawTopologyData : undefined,
       };
     },
@@ -247,7 +259,7 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
       externalData?: TopologyTypeExternalData,
       dependencies?: CustomTopologyConfigDependencies,
     ): CustomTopologyConfigFieldData => {
-      if (existingFieldData) {
+      if (existingFieldData?.selectedConfig || existingFieldData?.configRef) {
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;

@@ -8,7 +8,9 @@ import type {
   CreateEvaluationJobResponse,
   EvalHubHealthResponse,
   EvaluationJob,
+  InferenceServicesResponse,
   Provider,
+  VerifyConnectionResponse,
 } from '~/app/types';
 
 export const CLIENT_API_VERSION = 'v1';
@@ -71,6 +73,26 @@ declare global {
           type: 'POST /api/:apiVersion/evaluations/jobs',
           options: { path: { apiVersion: string }; query?: Record<string, string> },
           response: ApiResponse<CreateEvaluationJobResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/logs',
+          options: { path: { apiVersion: string; jobId: string } },
+          response: ApiResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/benchmarks/:benchmarkIndex/logs',
+          options: { path: { apiVersion: string; jobId: string; benchmarkIndex: string } },
+          response: ApiResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/inferenceservices',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<InferenceServicesResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/evaluations/verify-connection',
+          options: { path: { apiVersion: string } },
+          response: ApiResponse<VerifyConnectionResponse>,
         ) => Cypress.Chainable<null>);
     }
   }

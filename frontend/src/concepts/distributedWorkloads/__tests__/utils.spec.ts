@@ -28,7 +28,10 @@ describe('getStatusInfo', () => {
   };
 
   it('provides correct info for workloads of each status', () => {
-    testWorkloadStatus(WorkloadStatusType.Pending, 'Waiting for resources');
+    testWorkloadStatus(
+      WorkloadStatusType.Pending,
+      "couldn't assign flavors to pod set main: insufficient unused quota for resource cpu in flavor default-flavor, 0 more needed",
+    );
     testWorkloadStatus(WorkloadStatusType.Inadmissible, 'The workload is inadmissible');
     testWorkloadStatus(WorkloadStatusType.Admitted, 'The workload is admitted');
     testWorkloadStatus(WorkloadStatusType.Running, 'The workload is running');
@@ -44,6 +47,29 @@ describe('getStatusInfo', () => {
     expect(info.labelStatus).toBe('success');
     expect(info.message).toBe('Job finished successfully');
     expect(info.status).toBe('Complete');
+  });
+
+  it('returns Inadmissible when request exceeds ClusterQueue maximum capacity', () => {
+    const wl = mockWorkloadK8sResource({
+      k8sName: 'over-cap-workload',
+      mockStatus: WorkloadStatusType.Pending,
+    });
+    wl.status = {
+      ...wl.status,
+      conditions: [
+        {
+          lastTransitionTime: '2024-03-18T19:15:28Z',
+          message:
+            "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor pdhote-repro-flavor, previously considered podsets requests (0) + current podset request (6100m) > maximum capacity (5)",
+          reason: 'Pending',
+          status: 'False',
+          type: 'QuotaReserved',
+        },
+      ],
+    };
+    const info = getStatusInfo(wl);
+    expect(info.status).toBe(WorkloadStatusType.Inadmissible);
+    expect(info.message).toContain('maximum capacity');
   });
   it('should return "Finished" when status is Succeeded and message is "No message"', () => {
     const wl = mockWorkloadK8sResource({
@@ -153,6 +179,19 @@ describe('getWorkloadOwner', () => {
     expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
       kind: 'ReplicaSet',
       name: 'test-replicaset-6c8949d6dc',
+    });
+  });
+
+  it('returns the name of a leaderworkerset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.LeaderWorkerSet,
+      ownerName: 'test-lws-inference',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'LeaderWorkerSet',
+      name: 'test-lws-inference',
     });
   });
 

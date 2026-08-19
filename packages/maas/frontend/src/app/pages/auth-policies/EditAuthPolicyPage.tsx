@@ -1,19 +1,26 @@
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
-  const { state, pathname } = useLocation();
-  const base = getBackUrl(pathname, state, 'auth-policies');
+  const { state } = useLocation();
+  const base = getBackUrl(state, 'auth-policies');
   const returnTo = base;
   const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
-  const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    loaded: formLoaded,
+    error: formError,
+  } = useMaaSGovernanceContext();
 
   const loaded = policyLoaded && formLoaded;
   const loadError = policyError ?? formError;
@@ -37,7 +44,10 @@ const EditAuthPolicyPage: React.FC = () => {
       {policyInfo && (
         <PolicyForm
           key={policyInfo.policy.name}
-          formData={formData}
+          groups={groups}
+          modelRefs={modelRefs}
+          subscriptions={subscriptions}
+          policies={policies}
           initialPolicy={policyInfo.policy}
           returnTo={returnTo}
         />

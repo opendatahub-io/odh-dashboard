@@ -2,10 +2,9 @@ export const GPUAAS_EVENTS = {
   PAGE_VIEWED: 'Infrastructure Page Viewed',
   PAGE_INTERACTED: 'Infrastructure Page Interacted',
   COHORT_SECTION_TOGGLED: 'Infrastructure Cohort Section Toggled',
-  BORROW_LEND_DETAIL_VIEWED: 'Infrastructure Borrow Lend Detail Viewed',
   DATA_REFRESHED: 'Infrastructure Data Refreshed',
-  BORROW_LEND_COHORT_FILTER_SELECTED: 'Infrastructure Borrow Lend Cohort Filter Selected',
-  BORROW_LEND_QUEUE_FILTER_APPLIED: 'Infrastructure Borrow Lend Queue Filter Applied',
+  BORROW_COHORT_FILTER_SELECTED: 'Infrastructure Borrow Cohort Filter Selected',
+  BORROW_QUEUE_FILTER_APPLIED: 'Infrastructure Borrow Queue Filter Applied',
 } as const;
 
 export type PageViewedProperties = {
@@ -25,7 +24,7 @@ export type PageInteractedProperties = {
     | 'cohortFilter'
     | 'queueFilter'
     | 'cohortToggle'
-    | 'borrowLendDetail'
+    | 'borrowDetail'
     | 'trendLegendToggle';
   secondsSincePageLoad: number;
 };
@@ -37,18 +36,7 @@ export type CohortSectionToggledProperties = {
   isUncohortedBucket: boolean;
   isExpanded: boolean;
   clusterQueueCount: number;
-  hasBorrowLendActive: boolean;
-};
-
-// TODO: Wire when BorrowLendDetailPopover is instrumented
-export type BorrowLendDetailViewedProperties = {
-  clusterQueueName: string;
-  clusterQueueId: string;
-  kueueCohortName: string;
-  direction: 'borrowed' | 'lent';
-  acceleratorCount: number;
-  acceleratorLabel: string;
-  counterpartyQueueName: string;
+  hasBorrowActive: boolean;
 };
 
 export type DataRefreshedProperties = {
@@ -59,14 +47,14 @@ export type DataRefreshedProperties = {
 };
 
 // TODO: Wire when cohort filter dropdown is instrumented
-export type BorrowLendCohortFilterSelectedProperties = {
+export type BorrowCohortFilterSelectedProperties = {
   selectedCohort: string;
   selectedCohortId: string;
   visibleQueueCount: number;
 };
 
 // TODO: Wire when queue search field is instrumented
-export type BorrowLendQueueFilterAppliedProperties = {
+export type BorrowQueueFilterAppliedProperties = {
   searchQuery: string;
   matchCount: number;
   isEmptyResult: boolean;

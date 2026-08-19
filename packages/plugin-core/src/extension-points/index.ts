@@ -16,6 +16,14 @@ export * from './detail-tabs';
 export * from './actions';
 export * from './detail-cards';
 export * from './table-columns';
+export * from './connection-types';
+
+// Suppress — declarative removal of (type, id)-keyed extensions
+export * from './suppress';
+
+// Patch — declarative property patches for (type, id)-keyed extensions
+export * from './patch';
+export type { NavPatch } from '../core/nav-patch';
 
 // Utilities
 export * from './utils';

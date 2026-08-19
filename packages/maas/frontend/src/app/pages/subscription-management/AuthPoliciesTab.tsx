@@ -1,8 +1,16 @@
 import React from 'react';
-import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  PageSection,
+  Spinner,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
 import DeleteAuthPolicyModal from '~/app/pages/auth-policies/DeleteAuthPolicyModal';
@@ -24,7 +32,12 @@ type AuthPoliciesTabProps = {
 };
 
 const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
-  const [authPolicies, loaded, error, refresh] = useListAuthPolicies();
+  const {
+    policies: authPolicies,
+    policiesLoaded: loaded,
+    policiesError: error,
+    refresh,
+  } = useMaaSGovernanceContext();
   const [deleteAuthPolicy, setDeleteAuthPolicy] = React.useState<MaaSAuthPolicy | undefined>(
     undefined,
   );
@@ -68,9 +81,15 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
   if (error) {
     return (
       <PageSection isFilled>
-        <Alert variant="danger" isInline title="Error loading authorization policies">
-          {error.message}
-        </Alert>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Error loading authorization policies"
+          variant={EmptyStateVariant.lg}
+          data-testid="error-empty-state"
+        >
+          <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
+        </EmptyState>
       </PageSection>
     );
   }

@@ -49,6 +49,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableKueue: boolean;
       disableLMEval: boolean;
       disableFeatureStore: boolean;
+      featureStoreAdmin: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;
@@ -74,9 +75,9 @@ export type DashboardConfig = K8sResourceCommon & {
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
-      maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       connectionTest: boolean;
+      modelCapabilities: boolean;
       observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later

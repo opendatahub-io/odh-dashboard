@@ -74,6 +74,10 @@ export const enableExternalProviders = (): void => {
     'externalProviders to be true',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
+
+  // Allow the backend ResourceWatcher cycle to propagate the change to the UI.
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
+  cy.wait(30000);
 };
 
 /**
@@ -188,5 +192,91 @@ export const waitForModelInLSD = (
 
   check(1);
 };
+
+/**
+ * Create a prompt via the Gen AI BFF MLflow prompts API.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name (alphanumerics, hyphens, underscores, dots).
+ * @param template - Prompt template string.
+ * @param commitMessage - Commit message for the prompt version.
+ */
+export const createGenAiPromptViaAPI = (
+  namespace: string,
+  name: string,
+  template: string,
+  commitMessage: string,
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy
+    .request({
+      method: 'DELETE',
+      url: `/gen-ai/api/v1/mlflow/prompts/${encodeURIComponent(
+        name,
+      )}?namespace=${encodeURIComponent(namespace)}`,
+      failOnStatusCode: false,
+    })
+    .then(() =>
+      cy.request({
+        method: 'POST',
+        url: `/gen-ai/api/v1/mlflow/prompts?namespace=${encodeURIComponent(namespace)}`,
+        body: {
+          name,
+          template,
+          commit_message: commitMessage, // eslint-disable-line camelcase
+          create_only: true, // eslint-disable-line camelcase
+        },
+      }),
+    );
+
+/**
+ * Delete a prompt via the Gen AI BFF MLflow prompts API.
+ * Silently succeeds if the prompt does not exist.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name to delete.
+ */
+export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void => {
+  cy.request({
+    method: 'DELETE',
+    url: `/gen-ai/api/v1/mlflow/prompts/${encodeURIComponent(name)}?namespace=${encodeURIComponent(
+      namespace,
+    )}`,
+    failOnStatusCode: false,
+  });
+};
+
+/**
+ * Create an external model endpoint via the gen-ai BFF API.
+ * Bypasses the UI form — creates the ConfigMap and Secret directly.
+ *
+ * @param namespace  - Project namespace to create the endpoint in.
+ * @param modelId    - Model ID (e.g. 'gemini-2.5-flash').
+ * @param displayName - Human-readable display name.
+ * @param endpointUrl - Base URL of the external model provider.
+ * @param apiKey      - API key / token for the provider.
+ * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ */
+export const createExternalModelViaAPI = (
+  namespace: string,
+  modelId: string,
+  displayName: string,
+  endpointUrl: string,
+  apiKey: string,
+  modelType = 'llm',
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy.request({
+    method: 'POST',
+    url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
+    log: false,
+    body: {
+      /* eslint-disable camelcase */
+      model_id: modelId,
+      model_display_name: displayName,
+      base_url: endpointUrl,
+      secret_value: apiKey,
+      model_type: modelType,
+      /* eslint-enable camelcase */
+    },
+  });
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

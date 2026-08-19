@@ -28,23 +28,25 @@ COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy optional packages (always copied for npm workspace resolution;
 # only compiled into the bundle when their env flag is set)
 COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/
 COPY packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY packages/connection-types/ ./packages/connection-types/
 COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/
 
-# Copy the base distribution (shell components + shared webpack config)
+# Copy the base distribution (shell components + shared rspack config)
 COPY distributions/base/ ./distributions/base/
 
 # Copy the RHAII distribution
 COPY distributions/rhaii/ ./distributions/rhaii/
 
 # Install workspace dependencies
-# Cannot use --omit=optional or --ignore-scripts: @swc/core distributes its
-# native bindings as optional deps and needs its postinstall to set them up.
+# Use --ignore-scripts for hermetic/Hermeto builds. Do not use --omit=optional:
+# @rspack/binding ships platform native bindings as optional deps required at build time.
 RUN npm cache clean --force
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii

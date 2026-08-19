@@ -1,6 +1,6 @@
 import * as React from 'react';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';

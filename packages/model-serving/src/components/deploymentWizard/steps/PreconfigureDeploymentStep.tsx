@@ -9,8 +9,9 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
-import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import { ValidatedArgumentsSection } from '../fields/validatedConfigurations/ValidatedArgumentsSection';
 
 type PreconfigureDeploymentStepProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -22,6 +23,7 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
   wizardState,
 }) => {
   const { initialProjectName, projectName, setProjectName } = wizardState.state.project;
+  const validatedConfigurations = wizardState.initialData?.validatedConfigurations ?? [];
 
   return (
     <Form>
@@ -54,6 +56,13 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
           />
         )}
       </FormGroup>
+      {validatedConfigurations.length > 0 && (
+        <ValidatedArgumentsSection
+          configurations={validatedConfigurations}
+          selection={wizardState.state.validatedConfigurationSelection}
+          runtimeArgs={wizardState.state.runtimeArgs}
+        />
+      )}
     </Form>
   );
 };

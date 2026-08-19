@@ -7,7 +7,7 @@ import {
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
@@ -19,10 +19,11 @@ import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { useValidatedConfigurationsField } from './fields/validatedConfigurations/useValidatedConfigurationsField';
+import { buildRuntimeArgsFromValidatedSelections } from './fields/validatedConfigurations/validatedConfigurationUtils';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -30,6 +31,11 @@ import {
   type WizardFormAction,
 } from './useDeploymentWizardReducer';
 import type { ExternalDataMap } from './ExternalDataLoader';
+import {
+  type InitialWizardFormData,
+  type WizardField,
+  type WizardFormData,
+} from '../../shared/types/form-data';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {
@@ -98,6 +104,7 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    namespace: project.projectName ?? undefined,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
@@ -136,7 +143,13 @@ export const useModelDeploymentWizard = (
     canCreateRoleBindings,
   );
 
-  const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
+  const runtimeArgs = useRuntimeArgsField(
+    initialData?.runtimeArgs ??
+      buildRuntimeArgsFromValidatedSelections(
+        initialData?.validatedConfigurations,
+        initialData?.selectedValidatedConfigurations,
+      ),
+  );
   const environmentVariables = useEnvironmentVariablesField(
     initialData?.environmentVariables ?? undefined,
   );
@@ -145,6 +158,9 @@ export const useModelDeploymentWizard = (
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
+  );
+  const validatedConfigurationSelection = useValidatedConfigurationsField(
+    initialData?.selectedValidatedConfigurations,
   );
 
   // Step 4: Summary
@@ -169,6 +185,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       ...formState,
     }),
     [
@@ -187,6 +204,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       formState,
     ],
   );

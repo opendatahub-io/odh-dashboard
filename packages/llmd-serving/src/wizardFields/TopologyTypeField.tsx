@@ -1,21 +1,19 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type {
+  InitialWizardFormData,
   WizardField,
   WizardFormData,
   WizardReviewSection,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
@@ -23,12 +21,47 @@ import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
   TopologyTypeLabels,
+  TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
 } from '../types';
 import { isConfigEnabled } from '../utils';
-import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
+import {
+  useFetchTopologyConfigs,
+  useFetchLLMInferenceServiceConfig,
+} from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
+import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
+
+// --- Dependencies ---
+
+export type TopologyConfigsDependencies = {
+  project?: WizardFormData['state']['project'];
+  /** The config this deployment already references, from the edit extractor. */
+  configRef?: string;
+  /** The topology type this deployment was deployed with, from the edit extractor. */
+  initialTopologyType?: TopologyType;
+};
+
+const isRecord = (data: unknown): data is Record<string, unknown> =>
+  typeof data === 'object' && data !== null;
+
+const readProperty = (data: unknown, key: string): unknown =>
+  isRecord(data) ? data[key] : undefined;
+
+export const resolveTopologyConfigsDependencies = (
+  formData: WizardFormData['state'],
+  initialData?: InitialWizardFormData,
+): TopologyConfigsDependencies => {
+  const configRef = readProperty(initialData?.[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID], 'configRef');
+  const initialTopologyType = readProperty(initialData?.[TOPOLOGY_TYPE_FIELD_ID], 'topologyType');
+  return {
+    project: formData.project,
+    configRef: typeof configRef === 'string' ? configRef : undefined,
+    initialTopologyType: Object.values(TopologyType).find((t) => t === initialTopologyType),
+  };
+};
 
 // --- External data hook ---
 
@@ -36,13 +69,31 @@ export type TopologyTypeExternalData = {
   configsByTopology: Record<TopologyType, LLMInferenceServiceConfigKind[]>;
 };
 
-export const useTopologyTypeData = (): {
+/**
+ * The dashboard configs, plus the config the deployment already references.
+ *
+ * On edit, baseRefs point at a copy of a config that lives in the deployment's own project
+ * namespace rather than in the dashboard namespace. That copy is fetched by name and folded into
+ * the configs for its topology type, so it is just another option to every consuming field — and
+ * so its topology type isn't reported as having no configurations.
+ */
+export const useTopologyTypeData = (
+  dependencies?: TopologyConfigsDependencies,
+): {
   data: TopologyTypeExternalData;
   loaded: boolean;
   loadError?: Error;
 } => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { data: configs, loaded, error } = useFetchTopologyConfigs(dashboardNamespace);
+
+  const { configRef, initialTopologyType } = dependencies ?? {};
+  const projectName = dependencies?.project?.projectName;
+  const {
+    data: referencedConfig,
+    loaded: referencedLoaded,
+    error: referencedError,
+  } = useFetchLLMInferenceServiceConfig(configRef, projectName);
 
   const configsByTopology = React.useMemo(() => {
     const grouped: Record<TopologyType, LLMInferenceServiceConfigKind[]> = {
@@ -62,16 +113,28 @@ export const useTopologyTypeData = (): {
       }
     }
 
+    // If config has no topology type, use the deployment's type
+    const referencedTopoType = referencedConfig
+      ? getConfigTopologyType(referencedConfig) ?? initialTopologyType
+      : undefined;
+    if (
+      referencedConfig &&
+      referencedTopoType &&
+      !grouped[referencedTopoType].some((c) => c.metadata.name === referencedConfig.metadata.name)
+    ) {
+      grouped[referencedTopoType].push(referencedConfig);
+    }
+
     return grouped;
-  }, [configs]);
+  }, [configs, referencedConfig, initialTopologyType]);
 
   return React.useMemo(
     () => ({
       data: { configsByTopology },
-      loaded,
-      loadError: error,
+      loaded: loaded && (!configRef || !projectName || referencedLoaded || !!referencedError),
+      loadError: error ?? referencedError,
     }),
-    [configsByTopology, loaded, error],
+    [configsByTopology, loaded, error, configRef, projectName, referencedLoaded, referencedError],
   );
 };
 
@@ -92,7 +155,11 @@ export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFiel
   );
 };
 
-export type TopologyTypeFieldType = WizardField<TopologyTypeFieldData, TopologyTypeExternalData>;
+export type TopologyTypeFieldType = WizardField<
+  TopologyTypeFieldData,
+  TopologyTypeExternalData,
+  TopologyConfigsDependencies
+>;
 
 // --- Component ---
 
@@ -105,7 +172,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
-      Object.values(TopologyType).map((topoType) => {
+      Object.values(TopologyType).map((topoType): SimpleSelectOption => {
         const configs = configsByTopology?.[topoType];
         const hasConfigs = configs !== undefined && configs.length > 0;
         const isSingleNode = topoType === TopologyType.SINGLE_NODE;
@@ -113,16 +180,15 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         return {
           key: topoType,
           label: TopologyTypeLabels[topoType],
-          dropdownLabel: isOptionDisabled ? (
-            <>
-              {TopologyTypeLabels[topoType]}{' '}
-              <Tooltip content="No configurations available. To request one, contact your administrator.">
-                <OutlinedQuestionCircleIcon />
-              </Tooltip>
-            </>
-          ) : undefined,
+          description: TopologyTypeDescriptions[topoType],
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
+          tooltipProps: isOptionDisabled
+            ? {
+                content: 'No configurations available. To request one, contact your administrator.',
+                position: 'left',
+              }
+            : undefined,
         };
       }),
     [configsByTopology],
@@ -132,18 +198,16 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
     <FormGroup fieldId="topology-type-select" label="Topology type" isRequired>
       <Stack hasGutter>
         <StackItem>
-          <Content component="p">
-            Select the deployment topology for your model. This determines how the workload is
-            distributed across nodes.
-          </Content>
-        </StackItem>
-        <StackItem>
           <SimpleSelect
             isFullWidth
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched) {
+                fireTopologyTypeSelected({
+                  llmdComposablePattern: matched,
+                  previousPattern: value?.topologyType,
+                });
                 onChange({ topologyType: matched });
               }
             }}
@@ -193,11 +257,12 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const TopologyTypeFieldWizardField: TopologyTypeFieldType = {
-  id: 'llmd-serving/topology-type',
+  id: TOPOLOGY_TYPE_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,
   reducerFunctions: {
+    resolveDependencies: resolveTopologyConfigsDependencies,
     setFieldData: (value: TopologyTypeFieldData) => value,
     getInitialFieldData: (existingFieldData?: TopologyTypeFieldData): TopologyTypeFieldData =>
       existingFieldData ?? { topologyType: TopologyType.SINGLE_NODE },

@@ -95,7 +95,7 @@ describe('Verify Connection Type Creation', () => {
       categorySection.findCategoryTable();
       categorySection.findMultiGroupSelectButton(connectionTypeCategory[0]).click();
       categorySection.findMultiGroupSelectButton(connectionTypeCategory[1]).click();
-      categorySection.findCategoryTable();
+      categorySection.findMultiGroupInput().type('{esc}');
 
       cy.step('Select model serving compatible type');
       createConnectionTypePage
@@ -205,7 +205,7 @@ describe('Verify Connection Type Creation', () => {
   it(
     'Verify User Can Duplicate, Edit and Delete a Connection Type',
     {
-      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes'],
+      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes', '@ConnectionTypesCI'],
     },
     () => {
       cy.step('Log into the application');

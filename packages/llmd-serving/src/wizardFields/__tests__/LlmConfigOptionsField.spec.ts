@@ -1,10 +1,10 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import * as projectSelectors from '@odh-dashboard/internal/redux/selectors/project';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import * as llmConfigsApi from '../../api/LLMInferenceServiceConfigs';
-import { useLLMConfigOptions, LLMConfigOptionsFieldWizardField } from '../LlmConfigOptionsField';
+import { useLLMConfigOptions, LLMConfigOptionsFieldNoTemplates } from '../LlmConfigOptionsField';
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project');
 jest.mock('../../api/LLMInferenceServiceConfigs');
@@ -145,7 +145,7 @@ describe('useLLMConfigOptions', () => {
 });
 
 describe('getInitialFieldData', () => {
-  const { getInitialFieldData } = LLMConfigOptionsFieldWizardField.reducerFunctions;
+  const { getInitialFieldData } = LLMConfigOptionsFieldNoTemplates.reducerFunctions;
 
   it('should return existing field data when provided', () => {
     const existingData = {

@@ -29,33 +29,32 @@ import {
   SupportedModelFormats,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/k8s-core';
-import {
   K8sAPIOptions,
   RoleBindingKind,
-  ServiceAccountKind,
   RoleKind,
-} from '@odh-dashboard/internal/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { ServiceAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
-import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
-import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
-import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
-import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
-import type { DeploymentStrategyFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
+  type ModelTypeFieldData,
+  type ModelAvailabilityFieldsData,
+  type RuntimeArgsFieldData,
+  type EnvironmentVariablesFieldData,
+  type CreateConnectionData,
+  type DeploymentStrategyFieldData,
+  type DeploymentMethodFieldData,
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
-import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+  filterRuntimeArgsForContainer,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
 import type { CreatingInferenceServiceObject } from './deployModel';
-import type { KServeDeployment } from './deployments';
+import type { KServeDeployment } from './types';
 
 export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
 export const KSERVE_VISIBILITY_LABEL = 'networking.kserve.io/visibility';
@@ -259,12 +258,13 @@ export const applyRuntimeArgs = (
   runtimeArgs: RuntimeArgsFieldData,
 ): InferenceServiceKind => {
   const result = structuredClone(inferenceService);
+  const containerArgs = filterRuntimeArgsForContainer(runtimeArgs.args);
   result.spec.predictor.model = {
     ...result.spec.predictor.model,
-    ...(runtimeArgs.enabled && { args: runtimeArgs.args }),
+    ...(runtimeArgs.enabled && containerArgs.length > 0 && { args: containerArgs }),
   };
 
-  if (!runtimeArgs.enabled) {
+  if (!runtimeArgs.enabled || containerArgs.length === 0) {
     delete result.spec.predictor.model.args;
   }
 

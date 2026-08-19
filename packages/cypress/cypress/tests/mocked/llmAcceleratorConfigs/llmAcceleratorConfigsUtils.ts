@@ -1,8 +1,9 @@
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   mockLLMInferenceServiceConfigK8sResource,
   MockConfigType,
-} from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+} from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 
 const llmAcceleratorConfigModel = {
   apiVersion: 'v1alpha2',
@@ -51,6 +52,7 @@ export const llmAcceleratorConfigsInitialMock = [
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
   cy.interceptK8sList(
     {
       model: llmAcceleratorConfigModel,

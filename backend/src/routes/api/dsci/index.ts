@@ -1,6 +1,6 @@
 import { getClusterInitialization } from '../../../utils/dsci';
 import { KubeFastifyInstance } from '../../../types';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get('/status', async () => getClusterInitialization(fastify));
 };

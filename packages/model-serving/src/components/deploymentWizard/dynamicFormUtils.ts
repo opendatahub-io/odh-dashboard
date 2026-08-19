@@ -1,7 +1,12 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import type { DeploymentWizardFieldOverride, WizardField, WizardFormData } from './types';
+import type {
+  DeploymentWizardFieldOverride,
+  InitialWizardFormData,
+  WizardField,
+  WizardFormData,
+} from '../../shared/types/form-data';
 import {
   isDeploymentWizardFieldOverrideExtension,
   isWizardFieldExtension,
@@ -49,8 +54,9 @@ export const useActiveFields = (
 export const getFieldDependencies = (
   field: WizardField<unknown>,
   formData: WizardFormData['state'],
+  initialData?: InitialWizardFormData,
 ): Record<string, unknown> => {
-  return field.reducerFunctions.resolveDependencies?.(formData) ?? {};
+  return field.reducerFunctions.resolveDependencies?.(formData, initialData) ?? {};
 };
 
 /**

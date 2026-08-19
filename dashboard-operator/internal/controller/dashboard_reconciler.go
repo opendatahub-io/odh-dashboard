@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -34,10 +36,34 @@ import (
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
 
+var operatorDeploymentName = getOperatorDeploymentName()
+
+func getOperatorDeploymentName() string {
+	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
+		return name
+	}
+	return "dashboard-operator"
+}
+
+func operatorOwnedResourceNames() map[string]bool {
+	base := operatorDeploymentName
+	return map[string]bool{
+		base:                  true,
+		base + "-role":        true,
+		base + "-rolebinding": true,
+	}
+}
+
 var persesdashboardGVK = schema.GroupVersionKind{
 	Group:   "perses.dev",
 	Version: "v1alpha1",
 	Kind:    "PersesDashboardList",
+}
+
+var deploymentGVK = schema.GroupVersionKind{
+	Group:   "apps",
+	Version: "v1",
+	Kind:    "Deployment",
 }
 
 // Version is set at build time via -ldflags.
@@ -202,17 +228,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	mode := dashboard.Spec.DeploymentMode
+	var result ctrl.Result
+	var err error
+	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
+		result, err = r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	} else {
+		result, err = r.reconcileStandalone(ctx, dashboard, cm, cfg)
+	}
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
 func (r *DashboardReconciler) reconcileSidecar(
@@ -249,10 +290,29 @@ func (r *DashboardReconciler) reconcileSidecar(
 		allResources = append(allResources, rendered...)
 	}
 
+	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -320,6 +380,48 @@ func (r *DashboardReconciler) reconcileSidecar(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	ns := r.ApplicationsNamespace
+	var errs []error
+
+	type namedResource struct {
+		obj  client.Object
+		name string
+	}
+	namespacedResources := []namedResource{
+		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
+		{&corev1.Secret{}, "odh-dashboard-modules-token"},
+		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
+		{&corev1.ConfigMap{}, "sidecar-params"},
+	}
+
+	for _, nr := range namespacedResources {
+		nr.obj.SetName(nr.name)
+		nr.obj.SetNamespace(ns)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
+		}
+	}
+
+	clusterResources := []client.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+	for _, obj := range clusterResources {
+		obj.SetName("odh-dashboard-modules")
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+		}
+	}
+
+	if len(errs) == 0 {
+		logger.Info("Cleaned up sidecar-specific resources")
+	}
+
+	return errors.Join(errs...)
+}
+
 func (r *DashboardReconciler) reconcileStandalone(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -328,8 +430,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 1: Deploy core manifests (main dashboard deployment without sidecar patches)
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
+	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
+	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
+	if err := r.deleteSidecarResources(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+	}
+
+	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
+	// Uses the standalone overlay which excludes BFF module sidecar containers.
+	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -351,10 +463,27 @@ func (r *DashboardReconciler) reconcileStandalone(
 		allResources = append(allResources, rendered...)
 	}
 
+	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -410,12 +539,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 	r.reconcileObservability(ctx, dashboard, cm)
 
 	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
-	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
+	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
 			conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+
+	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
+		logger.Error(err, "Failed to patch federation hash on deployment")
+		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// Step 8: URL extraction + degraded condition
@@ -534,6 +669,31 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	}
 }
 
+// cleanupRayDashboardGatewayRBAC deletes the Gateway Role/RoleBinding remapped
+// into openshift-ingress. OwnerReference GC does not run across namespaces, so
+// these must be removed explicitly on Dashboard teardown.
+func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
+	role := &rbacv1.Role{}
+	role.SetName(rayDataScienceGatewayRBACName)
+	role.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway Role", "name", role.GetName(), "namespace", role.GetNamespace())
+	if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting Role %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	rb := &rbacv1.RoleBinding{}
+	rb.SetName(rayDataScienceGatewayRBACName)
+	rb.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway RoleBinding", "name", rb.GetName(), "namespace", rb.GetNamespace())
+	if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting RoleBinding %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	return nil
+}
+
 // cleanupCrossNamespaceResources deletes Perses monitoring resources in the
 // observability namespace. OwnerReference GC only works within the same
 // namespace (or for cluster-scoped owners referencing cluster-scoped children),
@@ -541,14 +701,22 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
 
+	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
+		return err
+	}
+
 	obsNS := ""
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
 	}
 
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
+	}
+
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
-		logger.Info("No cross-namespace resources to clean up")
+		logger.Info("No observability cross-namespace resources to clean up")
 		return nil
 	}
 
@@ -638,8 +806,18 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var deployments appsv1.DeploymentList
-	if err := deleteTyped(&deployments, "Deployment", matchLabels, inNamespace); err != nil {
-		return err
+	if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing Deployments: %w", err)
+	}
+	for i := range deployments.Items {
+		dep := &deployments.Items[i]
+		if dep.Name == operatorDeploymentName {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
+		if err := r.Delete(ctx, dep); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting Deployment %s: %w", dep.Name, err)
+		}
 	}
 
 	var services corev1.ServiceList
@@ -652,9 +830,21 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
+	operatorResources := operatorOwnedResourceNames()
+
 	var serviceAccounts corev1.ServiceAccountList
-	if err := deleteTyped(&serviceAccounts, "ServiceAccount", matchLabels, inNamespace); err != nil {
-		return err
+	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing ServiceAccounts: %w", err)
+	}
+	for i := range serviceAccounts.Items {
+		sa := &serviceAccounts.Items[i]
+		if operatorResources[sa.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
+		if err := r.Delete(ctx, sa); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ServiceAccount %s: %w", sa.Name, err)
+		}
 	}
 
 	var secrets corev1.SecretList
@@ -678,13 +868,33 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var clusterRoles rbacv1.ClusterRoleList
-	if err := deleteTyped(&clusterRoles, "ClusterRole", matchLabels); err != nil {
-		return err
+	if err := r.List(ctx, &clusterRoles, matchLabels); err != nil {
+		return fmt.Errorf("listing ClusterRoles: %w", err)
+	}
+	for i := range clusterRoles.Items {
+		cr := &clusterRoles.Items[i]
+		if operatorResources[cr.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
+		if err := r.Delete(ctx, cr); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ClusterRole %s: %w", cr.Name, err)
+		}
 	}
 
 	var clusterRoleBindings rbacv1.ClusterRoleBindingList
-	if err := deleteTyped(&clusterRoleBindings, "ClusterRoleBinding", matchLabels); err != nil {
-		return err
+	if err := r.List(ctx, &clusterRoleBindings, matchLabels); err != nil {
+		return fmt.Errorf("listing ClusterRoleBindings: %w", err)
+	}
+	for i := range clusterRoleBindings.Items {
+		crb := &clusterRoleBindings.Items[i]
+		if operatorResources[crb.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
+		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
+		}
 	}
 
 	if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
@@ -782,5 +992,6 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Complete(r)
 }

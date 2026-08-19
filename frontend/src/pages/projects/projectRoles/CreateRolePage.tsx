@@ -4,9 +4,13 @@ import {
   BreadcrumbItem,
   Bullseye,
   Button,
+  Content,
+  Divider,
   Flex,
+  FlexItem,
   PageSection,
   Spinner,
+  Title,
   ToggleGroup,
   ToggleGroupItem,
   getUniqueId,
@@ -14,8 +18,8 @@ import {
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { useAccessReview } from '#~/api/useAccessReview';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole, updateRole } from '#~/api';
@@ -23,7 +27,6 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
@@ -37,7 +40,10 @@ import { fromK8sLabels, toK8sLabels } from './labelUtils';
 import { USER_LABEL_PREFIX } from './const';
 import type { LabelEntry, RuleEntry } from './types';
 
-type ViewMode = 'form' | 'yaml';
+enum ViewMode {
+  Form = 'form',
+  Yaml = 'yaml',
+}
 
 type TemplateModalState =
   | { type: 'none' }
@@ -47,6 +53,59 @@ type TemplateModalState =
 type CreateRolePageProps = {
   existingRole?: RoleKind;
   duplicateRole?: RoleKind;
+};
+
+type TitleWithViewToggleProps = {
+  title: string;
+  description?: React.ReactNode;
+  viewMode: ViewMode;
+  onViewChange: (newView: ViewMode) => void;
+};
+
+const TitleWithViewToggle: React.FC<TitleWithViewToggleProps> = ({
+  title,
+  description,
+  viewMode,
+  onViewChange,
+}) => {
+  return (
+    <Flex
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+    >
+      <FlexItem flex={{ default: 'flex_1' }}>
+        <Title
+          data-testid={`${viewMode}-view-title`}
+          className="pf-v6-u-mb-sm"
+          headingLevel="h2"
+          size="md"
+        >
+          {title}
+        </Title>
+        {description && (
+          <Content component="p" data-testid={`${viewMode}-view-description`}>
+            {description}
+          </Content>
+        )}
+      </FlexItem>
+      <ToggleGroup aria-label="Form or YAML view toggle" data-testid="form-yaml-toggle">
+        <ToggleGroupItem
+          text="Form"
+          buttonId="form-view-toggle"
+          data-testid="form-view-toggle"
+          isSelected={viewMode === ViewMode.Form}
+          onChange={() => onViewChange(ViewMode.Form)}
+        />
+        <ToggleGroupItem
+          text="YAML (read-only)"
+          buttonId="yaml-view-toggle"
+          data-testid="yaml-view-toggle"
+          isSelected={viewMode === ViewMode.Yaml}
+          onChange={() => onViewChange(ViewMode.Yaml)}
+        />
+      </ToggleGroup>
+    </Flex>
+  );
 };
 
 const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicateRole }) => {
@@ -84,7 +143,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     }));
   });
 
-  const [viewMode, setViewMode] = React.useState<ViewMode>('form');
+  const [viewMode, setViewMode] = React.useState<ViewMode>(ViewMode.Form);
   const [submitError, setSubmitError] = React.useState<Error>();
   const [showNoRulesConfirm, setShowNoRulesConfirm] = React.useState(false);
   const [templateModal, setTemplateModal] = React.useState<TemplateModalState>({ type: 'none' });
@@ -120,7 +179,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
         targetView,
         sourceView: viewMode,
       });
-      if (targetView === 'yaml') {
+      if (targetView === ViewMode.Yaml) {
         setYamlPreviewed(true);
       }
       setViewMode(targetView);
@@ -132,7 +191,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     yamlExportActionsRef.current.add(action);
   }, []);
 
-  const handleSelectTemplateClick = React.useCallback(() => {
+  const handleImportRoleTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'select' });
   }, []);
 
@@ -338,7 +397,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     ? 'Edit custom role'
     : isDuplicate
     ? 'Duplicate custom role'
-    : 'Create custom role';
+    : 'Create a role';
 
   return (
     <>
@@ -353,63 +412,67 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
             <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
           </Breadcrumb>
         }
-        description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
+        description="Define what actions users with this role can perform on project resources."
         headerAction={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <Button
               variant="secondary"
               data-testid="select-role-template-button"
-              onClick={handleSelectTemplateClick}
+              onClick={handleImportRoleTemplateClick}
             >
-              Select role template
+              Import role template
             </Button>
-            <ToggleGroup aria-label="Form or YAML view toggle" data-testid="form-yaml-toggle">
-              <ToggleGroupItem
-                text="Form"
-                buttonId="form-view-toggle"
-                data-testid="form-view-toggle"
-                isSelected={viewMode === 'form'}
-                onChange={() => handleViewModeChange('form')}
-              />
-              <ToggleGroupItem
-                text="YAML (read-only)"
-                buttonId="yaml-view-toggle"
-                data-testid="yaml-view-toggle"
-                isSelected={viewMode === 'yaml'}
-                onChange={() => handleViewModeChange('yaml')}
-              />
-            </ToggleGroup>
           </Flex>
         }
         loaded
         empty={false}
       >
+        <Divider />
         <PageSection hasBodyWrapper={false} isFilled data-testid="create-role-page">
-          <div hidden={viewMode !== 'form'}>
-            <CreateRoleForm
-              nameDescriptionData={k8sNameDescriptionData}
-              description={description}
-              onDescriptionChange={handleDescriptionChange}
-              labels={labels}
-              onLabelsChange={handleLabelsChange}
-              onHasInvalidLabelsChange={setHasInvalidLabels}
-              rules={rules}
-              onRulesChange={handleRulesChange}
-              onImportTemplate={handleImportTemplateClick}
-            />
-          </div>
-          {viewMode === 'yaml' && (
-            <CreateRoleYamlView
-              namespace={namespace}
-              k8sName={k8sNameDescriptionData.data.k8sName.value}
-              displayName={
-                k8sNameDescriptionData.data.name || k8sNameDescriptionData.data.k8sName.value
-              }
-              description={description}
-              rules={rules}
-              labels={labels}
-              onExportAction={handleYamlExportAction}
-            />
+          {viewMode === ViewMode.Form ? (
+            <>
+              <TitleWithViewToggle
+                title="Role configuration"
+                onViewChange={handleViewModeChange}
+                viewMode={viewMode}
+              />
+              <CreateRoleForm
+                nameDescriptionData={k8sNameDescriptionData}
+                description={description}
+                onDescriptionChange={handleDescriptionChange}
+                labels={labels}
+                onLabelsChange={handleLabelsChange}
+                onHasInvalidLabelsChange={setHasInvalidLabels}
+                rules={rules}
+                onRulesChange={handleRulesChange}
+                onImportTemplate={handleImportTemplateClick}
+              />
+            </>
+          ) : (
+            <>
+              <TitleWithViewToggle
+                title="Role configuration YAML"
+                description={
+                  <>
+                    View the live, read-only YAML for this role. This preview automatically updates
+                    to reflect changes you make in <strong>Form</strong> view.
+                  </>
+                }
+                onViewChange={handleViewModeChange}
+                viewMode={viewMode}
+              />
+              <CreateRoleYamlView
+                namespace={namespace}
+                k8sName={k8sNameDescriptionData.data.k8sName.value}
+                displayName={
+                  k8sNameDescriptionData.data.name || k8sNameDescriptionData.data.k8sName.value
+                }
+                description={description}
+                rules={rules}
+                labels={labels}
+                onExportAction={handleYamlExportAction}
+              />
+            </>
           )}
         </PageSection>
         <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>

@@ -56,6 +56,8 @@ type TreeTopologyProps = {
   loadingMode?: PipelineTreeLoadingMode;
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
+  /** When this value changes, reset pan/zoom and fit the graph (e.g. expand/collapse toggles). */
+  layoutResetKey?: boolean;
 };
 
 const TreeTopology: React.FC<TreeTopologyProps> = ({
@@ -64,6 +66,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   loadingMode,
   selectedIds,
   onSelectionChange,
+  layoutResetKey,
 }) => {
   const isLoading = loadingMode != null;
   const [controller, setController] = React.useState<Visualization | null>(null);
@@ -80,7 +83,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   React.useEffect(() => {
     if (isLoading) {
       setController(null);
-      return;
+      return undefined;
     }
 
     const viz = new Visualization();
@@ -103,7 +106,15 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     );
 
     setController(viz);
+    // Visualization has no destroy(); listener cleanup is in the SELECTION_EVENT effect,
+    // and dropping the controller reference is enough for GC.
+    return undefined;
   }, [isLoading]);
+
+  const surfaceState = React.useMemo(
+    () => ({ selectedIds: normalizeTopologySelection(selectedIds ?? []) }),
+    [selectedIds],
+  );
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {
@@ -155,6 +166,19 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     return undefined;
   }, [controller, isLoading]);
 
+  React.useEffect(() => {
+    if (controller && !isLoading && layoutResetKey !== undefined) {
+      const frameId = requestAnimationFrame(() => {
+        controller.getGraph().reset();
+        controller.getGraph().fit(TREE_FIT_PADDING);
+      });
+      return () => {
+        cancelAnimationFrame(frameId);
+      };
+    }
+    return undefined;
+  }, [controller, isLoading, layoutResetKey]);
+
   if (loadingMode) {
     return <PipelinePreparingState className={className} mode={loadingMode} />;
   }
@@ -197,9 +221,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
             </div>
           }
         >
-          <VisualizationSurface
-            state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
-          />
+          <VisualizationSurface state={surfaceState} />
         </TopologyView>
       </VisualizationProvider>
     </div>

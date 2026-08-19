@@ -15,12 +15,11 @@ import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashb
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;

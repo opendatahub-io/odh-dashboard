@@ -12,37 +12,30 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import {
-  ChartDonut,
   ChartDonutThreshold,
   ChartDonutUtilization,
   ChartLabel,
 } from '@patternfly/react-charts/victory';
 import {
-  chart_color_black_300 as chartColorGray,
   chart_color_blue_300 as chartColorBlue,
-  chart_color_purple_100 as chartColorPurple,
   chart_color_orange_100 as chartColorOrange,
 } from '@patternfly/react-tokens';
 import {
   AcceleratorSegment,
-  BorrowLendInfo,
+  BorrowInfo,
   PerModelDcgmData,
   buildDcgmBorrowedTooltip,
-  buildDcgmLentTooltip,
   buildDcgmOwnTooltip,
-  computeDcgmSplitData,
 } from '../utils/clusterQueueUtils';
 import { ModelGpuCount } from '../utils/hardwareModels';
 import { CQ_DONUT_INNER_RADIUS, CQ_DONUT_SIZE } from '../const';
 
-export type { BorrowLendInfo, PerModelDcgmData };
+export type { BorrowInfo, PerModelDcgmData };
 
-type BorrowLendBadgeProps = {
-  type: 'borrowed' | 'lent';
+type BorrowBadgeProps = {
   count: number;
   models: string[];
   perModelGpus?: ModelGpuCount[];
-  counterpartCQNames?: string[];
 };
 
 type DcgmDonutProps = {
@@ -53,17 +46,10 @@ type DcgmDonutProps = {
    */
   percentage: number | null | undefined;
   ariaLabel: string;
-  borrowLendInfo?: BorrowLendInfo;
-  /** Per-GPU-model utilization for richer hover tooltips in lent/borrowed state. */
+  borrowInfo?: BorrowInfo;
+  /** Per-GPU-model utilization for richer hover tooltips in borrowed state. */
   perModelData?: PerModelDcgmData[];
   testId?: string;
-};
-
-const SEGMENT_COLORS: Record<string, string> = {
-  [AcceleratorSegment.Own]: chartColorBlue.value,
-  [AcceleratorSegment.Lent]: chartColorPurple.value,
-  [AcceleratorSegment.Available]: chartColorGray.value,
-  [AcceleratorSegment.NoData]: chartColorGray.value,
 };
 
 export const TITLE_LABEL = <ChartLabel style={{ fontSize: 18, fill: 'currentColor' }} />;
@@ -91,31 +77,14 @@ export const ChartColumn: React.FC<{ label: string; children: React.ReactNode }>
   </FlexItem>
 );
 
-export const BorrowLendBadge: React.FC<BorrowLendBadgeProps> = ({
-  type,
-  count,
-  models,
-  perModelGpus = [],
-  counterpartCQNames = [],
-}) => {
-  const isBorrowed = type === 'borrowed';
-  const directionLabel = isBorrowed ? 'From' : 'To';
-
-  const perModelRows = isBorrowed
-    ? perModelGpus
-        .filter((m) => (m.borrowed ?? 0) > 0)
-        .map((m) => (
-          <Content key={m.model} component={ContentVariants.small}>
-            {m.borrowed ?? 0} × {m.model}
-          </Content>
-        ))
-    : perModelGpus
-        .filter((m) => m.nominal - m.used > 0)
-        .map((m) => (
-          <Content key={m.model} component={ContentVariants.small}>
-            {m.nominal - m.used} × {m.model}
-          </Content>
-        ));
+export const BorrowBadge: React.FC<BorrowBadgeProps> = ({ count, models, perModelGpus = [] }) => {
+  const perModelRows = perModelGpus
+    .filter((m) => (m.borrowed ?? 0) > 0)
+    .map((m) => (
+      <Content key={m.model} component={ContentVariants.small}>
+        {m.borrowed ?? 0} × {m.model}
+      </Content>
+    ));
 
   const fallbackRow = (
     <Content component={ContentVariants.small}>
@@ -125,29 +94,15 @@ export const BorrowLendBadge: React.FC<BorrowLendBadgeProps> = ({
 
   return (
     <Popover
-      headerContent={isBorrowed ? 'Borrowed capacity' : 'Lent capacity'}
+      headerContent="Borrowed capacity"
       bodyContent={
         <Stack hasGutter>
-          {counterpartCQNames.length > 0 && (
-            <StackItem>
-              {counterpartCQNames.map((cqName) => (
-                <Content key={cqName} component={ContentVariants.small}>
-                  {directionLabel}: <strong>{cqName}</strong>
-                </Content>
-              ))}
-            </StackItem>
-          )}
           <StackItem>{perModelRows.length > 0 ? perModelRows : fallbackRow}</StackItem>
         </Stack>
       }
     >
-      <Label
-        color={isBorrowed ? 'orange' : 'purple'}
-        isCompact
-        onClick={() => undefined}
-        data-testid={`cq-${type}-badge`}
-      >
-        {isBorrowed ? `Borrowed: ${count}` : `Lent: ${count}`}
+      <Label color="orange" isCompact onClick={() => undefined} data-testid="cq-borrowed-badge">
+        Borrowed: {count}
       </Label>
     </Popover>
   );
@@ -156,7 +111,7 @@ export const BorrowLendBadge: React.FC<BorrowLendBadgeProps> = ({
 export const DcgmDonut: React.FC<DcgmDonutProps> = ({
   percentage,
   ariaLabel,
-  borrowLendInfo,
+  borrowInfo,
   perModelData = [],
   testId,
 }) => {
@@ -189,69 +144,34 @@ export const DcgmDonut: React.FC<DcgmDonutProps> = ({
     );
   }
 
-  if (borrowLendInfo) {
-    if (borrowLendInfo.isBorrowing) {
-      const fillPct = Math.min(percentage, 99.9); // avoid full-circle SVG edge case at 100
-      return (
-        <Bullseye style={{ height: CQ_DONUT_SIZE, width: CQ_DONUT_SIZE }} data-testid={testId}>
-          <ChartDonutThreshold
-            ariaTitle={`${ariaLabel} (borrowed)`}
-            constrainToVisibleArea
-            data={[{ x: AcceleratorSegment.Own, y: 100 }]}
-            colorScale={[chartColorBlue.value]}
-            height={CQ_DONUT_SIZE}
-            width={CQ_DONUT_SIZE}
-            name={`dcgm-${ariaLabel}`}
-            labels={() => buildDcgmOwnTooltip(percentage, perModelData)}
-          >
-            <ChartDonutUtilization
-              data={{ x: AcceleratorSegment.Borrowed, y: fillPct }}
-              thresholds={[{ value: 0, color: chartColorOrange.value }]}
-              labels={({ datum }) =>
-                datum.x === AcceleratorSegment.Borrowed
-                  ? buildDcgmBorrowedTooltip(datum.y, perModelData)
-                  : `Own: ${Math.round(datum.y)}%`
-              }
-              title={`${Math.round(percentage)}%`}
-              subTitle="consumption"
-              titleComponent={TITLE_LABEL}
-              subTitleComponent={SUBTITLE_LABEL}
-            />
-          </ChartDonutThreshold>
-        </Bullseye>
-      );
-    }
-
-    // Lent: proportional ring — Own / Lent / Available segments.
-    const { chartData } = computeDcgmSplitData(percentage, borrowLendInfo);
-    // Map colors by segment name so filtering zero-value segments doesn't shift colors.
-    const chartColorScale = chartData.map((d) => SEGMENT_COLORS[d.x] ?? chartColorGray.value);
-
+  if (borrowInfo) {
+    const fillPct = Math.min(percentage, 99.9); // avoid full-circle SVG edge case at 100
     return (
       <Bullseye style={{ height: CQ_DONUT_SIZE, width: CQ_DONUT_SIZE }} data-testid={testId}>
-        <ChartDonut
-          ariaTitle={`${ariaLabel} (lent)`}
+        <ChartDonutThreshold
+          ariaTitle={`${ariaLabel} (borrowed)`}
           constrainToVisibleArea
-          data={chartData}
-          colorScale={chartColorScale}
-          labels={({ datum }) => {
-            if (datum.x === AcceleratorSegment.Available || datum.x === AcceleratorSegment.NoData) {
-              return `Available: ${Math.round(datum.y)}%`;
-            }
-            if (datum.x === AcceleratorSegment.Lent) {
-              return buildDcgmLentTooltip(datum.y, perModelData);
-            }
-            return `Own: ${Math.round(datum.y)}%`;
-          }}
+          data={[{ x: AcceleratorSegment.Own, y: 100 }]}
+          colorScale={[chartColorBlue.value]}
           height={CQ_DONUT_SIZE}
           width={CQ_DONUT_SIZE}
-          innerRadius={CQ_DONUT_INNER_RADIUS}
-          title={`${Math.round(percentage)}%`}
-          subTitle="consumption"
-          titleComponent={TITLE_LABEL}
-          subTitleComponent={SUBTITLE_LABEL}
           name={`dcgm-${ariaLabel}`}
-        />
+          labels={() => buildDcgmOwnTooltip(percentage, perModelData)}
+        >
+          <ChartDonutUtilization
+            data={{ x: AcceleratorSegment.Borrowed, y: fillPct }}
+            thresholds={[{ value: 0, color: chartColorOrange.value }]}
+            labels={({ datum }) =>
+              datum.x === AcceleratorSegment.Borrowed
+                ? buildDcgmBorrowedTooltip(datum.y, perModelData)
+                : `Own: ${Math.round(datum.y)}%`
+            }
+            title={`${Math.round(percentage)}%`}
+            subTitle="consumption"
+            titleComponent={TITLE_LABEL}
+            subTitleComponent={SUBTITLE_LABEL}
+          />
+        </ChartDonutThreshold>
       </Bullseye>
     );
   }

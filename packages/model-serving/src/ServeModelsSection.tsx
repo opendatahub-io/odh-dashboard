@@ -1,8 +1,6 @@
 import React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ErrorOverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import ErrorOverviewCard from '@odh-dashboard/ui-core/components/detail/ErrorOverviewCard';
 import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { Bullseye, Card, CardBody, Spinner } from '@patternfly/react-core';
@@ -68,7 +66,7 @@ const ServeModelsSectionContent: React.FC<{ platforms: ModelServingPlatform[] }>
 };
 
 const ServeModelsSection: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const { clusterPlatforms, clusterPlatformsLoaded } = useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);

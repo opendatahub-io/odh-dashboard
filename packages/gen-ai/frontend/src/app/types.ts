@@ -396,11 +396,6 @@ export interface AAModelResponse {
   endpoints: string[];
   status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
   display_name: string;
-  sa_token: {
-    name: string;
-    token_name: string;
-    token: string;
-  };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
   model_type?: LlamaModelType;
   embedding_dimension?: number;
@@ -496,10 +491,16 @@ export type {
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 /** MLflow Prompt Registry Types */
+export type MLflowPromptModelConfig = {
+  provider?: string;
+  model_name?: string;
+};
+
 export type MLflowPrompt = {
   name: string;
   description: string;
   latest_version: number;
+  model_config?: MLflowPromptModelConfig;
   tags?: Record<string, string>;
   creation_timestamp: string;
   scope?: {

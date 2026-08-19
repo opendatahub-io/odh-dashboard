@@ -21,6 +21,9 @@ import {
   UseCaseOptionValue,
   CatalogModelCustomPropertyKey,
   ModelType,
+  ModelCatalogSortOption,
+  SortField,
+  SortOrder,
 } from '~/concepts/modelCatalog/const';
 import {
   CatalogSourceStatus,
@@ -40,6 +43,9 @@ import {
   getActiveSourceLabels,
   hasValidatedToolCalling,
   getToolCallingArgs,
+  getValidatedConfigurationsForModel,
+  getSortParams,
+  getEffectiveSortBy,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -1910,5 +1916,127 @@ describe('getToolCallingArgs', () => {
       toolCallParser: 'mistral',
     });
     expect(result).toBe('--tool-call-parser mistral');
+  });
+
+  it('should quote values containing whitespace', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'parser with spaces',
+      chatTemplate: '/path with spaces/template.jinja',
+    });
+    expect(result).toContain('--tool-call-parser "parser with spaces"');
+    expect(result).toContain('--chat-template "/path with spaces/template.jinja"');
+  });
+
+  it('should trim and omit empty requiredArgs entries', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      requiredArgs: ['  --config_format granite  ', '   '],
+    });
+    expect(result).toBe('--tool-call-parser granite \\\n--config_format granite');
+  });
+});
+
+describe('getValidatedConfigurationsForModel', () => {
+  const validatedToolCallingModel = {
+    name: 'test-model',
+    validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+  };
+
+  it('should return empty object when the toolCalling flag is disabled', () => {
+    expect(getValidatedConfigurationsForModel(validatedToolCallingModel, false)).toEqual({});
+  });
+
+  it('should return empty object when the model has no validated tool calling', () => {
+    expect(getValidatedConfigurationsForModel({ name: 'test-model' }, true)).toEqual({});
+  });
+
+  it('should return validatedConfigurations and selectedValidatedConfigurations when enabled and validated', () => {
+    const result = getValidatedConfigurationsForModel(validatedToolCallingModel, true);
+
+    expect(result.validatedConfigurations).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0]).toMatchObject({
+      forField: 'args',
+      title: 'Validated arguments',
+    });
+    expect(result.validatedConfigurations?.[0].options).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0].options[0]).toMatchObject({
+      title: 'Tool calling',
+      value: '--tool-call-parser granite',
+    });
+    expect(result.selectedValidatedConfigurations).toEqual({
+      args: ['--tool-call-parser granite'],
+    });
+  });
+});
+
+describe('getEffectiveSortBy', () => {
+  it('returns the provided sortBy when not null', () => {
+    expect(getEffectiveSortBy(ModelCatalogSortOption.LOWEST_LATENCY, false)).toBe(
+      ModelCatalogSortOption.LOWEST_LATENCY,
+    );
+    expect(getEffectiveSortBy(ModelCatalogSortOption.RECENT_PUBLISH, true)).toBe(
+      ModelCatalogSortOption.RECENT_PUBLISH,
+    );
+  });
+
+  it('defaults to LOWEST_LATENCY when sortBy is null and performance view is enabled', () => {
+    expect(getEffectiveSortBy(null, true)).toBe(ModelCatalogSortOption.LOWEST_LATENCY);
+  });
+
+  it('defaults to RECENT_PUBLISH when sortBy is null and performance view is disabled', () => {
+    expect(getEffectiveSortBy(null, false)).toBe(ModelCatalogSortOption.RECENT_PUBLISH);
+  });
+});
+
+describe('getSortParams', () => {
+  it('returns LAST_UPDATE_TIME DESC for RECENT_PUBLISH sort', () => {
+    const result = getSortParams(ModelCatalogSortOption.RECENT_PUBLISH, false, undefined);
+    expect(result).toEqual({
+      orderBy: SortField.LAST_UPDATE_TIME,
+      sortOrder: SortOrder.DESC,
+    });
+  });
+
+  it('returns LAST_UPDATE_TIME DESC when performance view is disabled and sortBy is null', () => {
+    const result = getSortParams(null, false, undefined);
+    expect(result).toEqual({
+      orderBy: SortField.LAST_UPDATE_TIME,
+      sortOrder: SortOrder.DESC,
+    });
+  });
+
+  it('returns active latency field ASC for LOWEST_LATENCY with an active latency field', () => {
+    const latencyField = 'artifacts.ttft_mean.double_value' as const;
+    const result = getSortParams(ModelCatalogSortOption.LOWEST_LATENCY, true, latencyField);
+    expect(result).toEqual({
+      orderBy: latencyField,
+      sortOrder: SortOrder.ASC,
+    });
+  });
+
+  it('falls back to LAST_UPDATE_TIME DESC for LOWEST_LATENCY without an active latency field', () => {
+    const result = getSortParams(ModelCatalogSortOption.LOWEST_LATENCY, true, undefined);
+    expect(result).toEqual({
+      orderBy: SortField.LAST_UPDATE_TIME,
+      sortOrder: SortOrder.DESC,
+    });
+  });
+
+  it('returns COLD_START_LOAD_TIME ASC for LOWEST_COLD_START sort', () => {
+    const result = getSortParams(ModelCatalogSortOption.LOWEST_COLD_START, true, undefined);
+    expect(result).toEqual({
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+      sortOrder: SortOrder.ASC,
+    });
+  });
+
+  it('uses default performance sort when sortBy is null and performance view is enabled', () => {
+    const latencyField = 'artifacts.e2e_mean.double_value' as const;
+    const result = getSortParams(null, true, latencyField);
+    expect(result).toEqual({
+      orderBy: latencyField,
+      sortOrder: SortOrder.ASC,
+    });
   });
 });

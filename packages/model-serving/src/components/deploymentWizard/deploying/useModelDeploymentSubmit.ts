@@ -1,4 +1,6 @@
 import React from 'react';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useSecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -8,9 +10,15 @@ import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
 import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
-import { InitialWizardFormData } from '../types';
+import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
+import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
+import {
+  fireModelDeployed,
+  type DeploymentTrackingProperties,
+} from '../../../shared/tracking/deploymentTracking';
+import { useWizardTrackingProperties } from '../../../shared/tracking/useWizardTrackingProperties';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -21,6 +29,7 @@ export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
+  externalData: ExternalDataMap,
   exitWizardOnSubmit: () => void,
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
@@ -34,16 +43,38 @@ export const useModelDeploymentSubmit = (
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
+  const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+  const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
+  const { getTrackingProperties } = useWizardTrackingProperties(
+    formState,
+    deployMethod?.properties.platform,
+  );
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  const isEdit = !!existingDeployment;
+
+  const getBaseTrackingProperties = React.useCallback((): Omit<
+    DeploymentTrackingProperties,
+    'outcome' | 'success' | 'error'
+  > => {
+    const serverTemplateName = formState.modelServer?.data?.selection?.name;
+    return {
+      modelType: formState.modelType.data?.type,
+      runtime: serverTemplateName,
+      servingRuntimeName: formState.modelServer?.data?.selection?.label,
+      servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
+      numReplicas: formState.numReplicas.data ?? undefined,
+      modelLocationType: formState.modelLocationData.data?.type,
+    };
+  }, [formState]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -53,6 +84,10 @@ export const useModelDeploymentSubmit = (
       try {
         if (viewMode === 'form' && !validation.isAllValid) {
           throw new Error('Invalid form data');
+        }
+        // Fields derive their data from these hooks -- deploying before they settle drops that data
+        if (!isExternalDataReady(externalData)) {
+          throw new Error('Required data is still loading');
         }
         if (viewMode === 'yaml-edit' && yamlError) {
           throw yamlError;
@@ -90,6 +125,8 @@ export const useModelDeploymentSubmit = (
 
         await deployModel(
           formState,
+          externalData,
+          secretOps,
           connectionSecretName,
           deployMethod.properties,
           existingDeployment,
@@ -98,19 +135,43 @@ export const useModelDeploymentSubmit = (
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
-          applyFieldData,
+          applyAllFieldDataFn,
           runPreDeploy,
           runPostDeploy,
         );
+
+        fireModelDeployed(
+          {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            ...getBaseTrackingProperties(),
+            ...(await getTrackingProperties()),
+          },
+          isEdit,
+        );
+
         exitWizardOnSubmit();
       } catch (error) {
-        setSubmitError(error instanceof Error ? error : new Error(String(error)));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setSubmitError(error instanceof Error ? error : new Error(errorMessage));
+
+        fireModelDeployed(
+          {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            errorMessage,
+            ...getBaseTrackingProperties(),
+            ...(await getTrackingProperties()),
+          },
+          isEdit,
+        );
       } finally {
         setIsLoading(false);
       }
     },
     [
       viewMode,
+      externalData,
       validation.isAllValid,
       deployMethodLoaded,
       deployMethod,
@@ -118,15 +179,19 @@ export const useModelDeploymentSubmit = (
       preDeployExtensionsLoaded,
       postDeployExtensionsLoaded,
       formState,
+      secretOps,
       resources,
       connectionSecretName,
       existingDeployment,
       initialWizardData,
-      applyFieldData,
+      applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
+      isEdit,
+      getBaseTrackingProperties,
+      getTrackingProperties,
     ],
   );
 

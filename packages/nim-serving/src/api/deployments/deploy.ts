@@ -1,6 +1,6 @@
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { type NIMServiceKind, type NIMDeployment } from '../nimservices/types';
 import {
   assembleNIMService,
@@ -9,7 +9,7 @@ import {
   patchNIMService,
 } from '../nimservices/k8s';
 import { getNIMAccount } from '../accounts/k8s';
-import { NIM_ID } from '../../../extensions';
+import { NIM_SERVICE_ID } from '../../constants';
 
 export const isNIMDeployActive = (wizardData: WizardFormData['state']): boolean =>
   wizardData.modelLocationData.data?.type === NIMModelLocationKey;
@@ -40,7 +40,7 @@ export const assembleNIMDeployment = (
   );
 
   let result: NIMDeployment = {
-    modelServingPlatformId: NIM_ID,
+    modelServingPlatformId: NIM_SERVICE_ID,
     model: nimService,
   };
   result = applyFieldData?.(result) ?? result;
@@ -63,6 +63,7 @@ const deployNIMServiceResource = async (
 
 export const deployNIMDeployment = async (
   _wizardData: WizardFormData['state'],
+  externalData: Record<string, { loaded: boolean; loadError?: Error; data: unknown }>,
   projectName: string,
   existingDeployment?: NIMDeployment,
   modelResource?: NIMDeployment['model'],
@@ -96,7 +97,7 @@ export const deployNIMDeployment = async (
   );
 
   return {
-    modelServingPlatformId: NIM_ID,
+    modelServingPlatformId: NIM_SERVICE_ID,
     model: nimService,
   };
 };

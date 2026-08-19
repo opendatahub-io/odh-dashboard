@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import DeleteModal from '~/app/shared/DeleteModal';
@@ -22,6 +22,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
   return (
     <DeleteModal
       title="Delete playground?"
+      testId="delete-playground-modal"
       onClose={() => {
         onCancel();
         fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {

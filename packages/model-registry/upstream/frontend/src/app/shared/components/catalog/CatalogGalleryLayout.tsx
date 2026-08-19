@@ -19,7 +19,7 @@ type CatalogGalleryLayoutProps<T> = {
   items: T[];
   loaded: boolean;
   loadError: Error | undefined;
-  renderCard: (item: T) => React.ReactNode;
+  renderCard: (item: T, index: number) => React.ReactNode;
   getItemKey: (item: T) => string;
   gridSpans?: CatalogGridSpans;
   hasMore?: boolean;
@@ -106,9 +106,9 @@ function CatalogGalleryLayout<T>({
         </div>
       )}
       <Grid hasGutter>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <GridItem key={getItemKey(item)} {...gridSpansProp}>
-            {renderCard(item)}
+            {renderCard(item, index)}
           </GridItem>
         ))}
       </Grid>

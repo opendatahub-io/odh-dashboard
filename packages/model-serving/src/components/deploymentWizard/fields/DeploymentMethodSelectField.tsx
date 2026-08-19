@@ -1,16 +1,30 @@
 import React from 'react';
-import { Content, FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 import {
+  useModelServingClusterSettings,
+  type ModelServingClusterSettings,
+} from '../../../concepts/useModelServingClusterSettings';
+import {
+  type DeploymentMethodFieldOverride,
   type DeploymentMethodOption,
   type WizardField,
   type WizardFormData,
   isDeploymentMethodFieldOverride,
-} from '../types';
+} from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
+import { fireDeployMethodSelected } from '../../../shared/tracking/modelServingTrackingConstants';
 
 // Schema
 
@@ -26,6 +40,21 @@ export type DeploymentMethodExternalData = {
   options: DeploymentMethodOption[];
   suggestion?: DeploymentMethodOption;
 };
+
+export const resolveDeploymentMethodSuggestion = (
+  overrides: DeploymentMethodFieldOverride[],
+  clusterSettings: ModelServingClusterSettings | null | undefined,
+): DeploymentMethodOption | undefined =>
+  overrides.reduce<DeploymentMethodOption | undefined>((acc, override) => {
+    const s = override.suggestion?.(clusterSettings);
+    if (!s) {
+      return acc;
+    }
+    if (!acc) {
+      return s;
+    }
+    return s.order < acc.order ? s : acc;
+  }, undefined);
 
 export const useDeploymentMethodExternalData = (): {
   data: DeploymentMethodExternalData;
@@ -43,11 +72,8 @@ export const useDeploymentMethodExternalData = (): {
   return React.useMemo(() => {
     const options = overrides
       .flatMap((override) => override.options)
-      .toSorted((a, b) => b.label.localeCompare(a.label));
-    const suggestion = overrides.reduce<DeploymentMethodOption | undefined>(
-      (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
-      undefined,
-    );
+      .toSorted((a, b) => a.order - b.order);
+    const suggestion = resolveDeploymentMethodSuggestion(overrides, modelServingClusterSettings);
 
     return {
       data: { options, suggestion },
@@ -79,6 +105,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   externalData,
   isEditing,
 }) => {
+  const { trackEvent } = useHostApiCore();
   const options = externalData?.data.options ?? [];
 
   return (
@@ -88,6 +115,11 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
       isRequired
       data-testid="deployment-method-field"
     >
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>Select how this model will be deployed.</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
         {options.map((opt) => (
           <StackItem key={opt.key}>
@@ -95,11 +127,15 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
               id={`deployment-method-${opt.key}`}
               name="deployment-method"
               label={opt.label}
-              description={
-                opt.description ? <Content component="small">{opt.description}</Content> : undefined
-              }
+              description={opt.description}
               isChecked={value?.method === opt.key}
-              onChange={() => onChange({ method: opt.key })}
+              onChange={() => {
+                fireDeployMethodSelected(trackEvent, {
+                  deploymentMethod: opt.key,
+                  previousDeploymentMethod: value?.method,
+                });
+                onChange({ method: opt.key });
+              }}
               isDisabled={isEditing}
               data-testid={`deployment-method-${opt.key}`}
             />

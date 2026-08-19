@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
+const mockOnShowStatus = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
@@ -24,6 +26,14 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+beforeEach(() => {
+  queryClient.clear();
+});
+
 const renderTable = (props: {
   evaluations: EvaluationJob[];
   loaded: boolean;
@@ -31,14 +41,17 @@ const renderTable = (props: {
   collectionsLoaded?: boolean;
 }) =>
   render(
-    <MemoryRouter>
-      <EvaluationsTable
-        {...props}
-        collectionNameMap={props.collectionNameMap ?? {}}
-        collectionsLoaded={props.collectionsLoaded ?? true}
-        onRefresh={mockOnRefresh}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <EvaluationsTable
+          {...props}
+          collectionNameMap={props.collectionNameMap ?? {}}
+          collectionsLoaded={props.collectionsLoaded ?? true}
+          onRefresh={mockOnRefresh}
+          onShowStatus={mockOnShowStatus}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 const mockJobs: EvaluationJob[] = [
@@ -122,6 +135,13 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
   });
 
+  it('should call onShowStatus when EvaluationStatusLabel is clicked', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+    const statusButtons = screen.getAllByTestId('evaluation-status-button');
+    fireEvent.click(statusButtons[0].querySelector('button')!);
+    expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+  });
+
   it('should render the New evaluation button', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
@@ -151,13 +171,16 @@ describe('EvaluationsTable', () => {
     renderTable({ evaluations, loaded: true });
 
     const compareButton = screen.getByTestId('compare-evaluations-button');
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(compareButton);
+    expect(mockNavigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
-    expect(compareButton).toBeEnabled();
+    expect(compareButton).not.toHaveAttribute('aria-disabled');
   });
 
   it('should route directly to compare when selected rows are single benchmarks', () => {
@@ -286,6 +309,39 @@ describe('EvaluationsTable', () => {
       fireEvent.change(searchInput, { target: { value: 'alpha' } });
 
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
+    });
+
+    it('should filter by status, matching partially_failed jobs when "Failed" is selected', () => {
+      const partiallyFailedJob = mockEvaluationJob({
+        id: 'job-partially-failed',
+        name: 'Delta Evaluation',
+        state: 'partially_failed',
+        modelName: 'gpt-4',
+        createdAt: '2026-02-19T10:00:00Z',
+      });
+
+      renderTable({ evaluations: [...mockJobs, partiallyFailedJob], loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+
+      expect(screen.getByText('Gamma Evaluation')).toBeInTheDocument();
+      expect(screen.getByText('Delta Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Beta Evaluation')).not.toBeInTheDocument();
+    });
+
+    it('should not offer a separate "Partially failed" status filter option', () => {
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+
+      expect(screen.queryByRole('option', { name: 'Partially failed' })).not.toBeInTheDocument();
     });
   });
 

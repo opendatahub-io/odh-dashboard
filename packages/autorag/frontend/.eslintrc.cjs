@@ -302,6 +302,7 @@ module.exports = {
       parserOptions: {
         project: null,
       },
+      extends: ['plugin:@typescript-eslint/disable-type-checked'],
       rules: {
         'no-undef': 'off',
         'no-unused-vars': 'off',
@@ -309,6 +310,8 @@ module.exports = {
         'no-console': 'off',
         'import/no-unresolved': 'off',
         'react/react-in-jsx-scope': 'off',
+        'react/jsx-no-undef': 'off',
+        'react-hooks/rules-of-hooks': 'off',
         '@typescript-eslint/no-unused-vars': 'off',
         '@typescript-eslint/no-unused-expressions': 'off',
         'prettier/prettier': 'off',

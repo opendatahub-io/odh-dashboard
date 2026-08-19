@@ -1,6 +1,5 @@
 import {
   MetadataAnnotation,
-  getGeneratedSecretName,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
   getConnectionTypeRef,
@@ -8,16 +7,25 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
-import type { SecretKind, Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
+import type {
+  SecretKind,
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ProjectKind,
+} from '@odh-dashboard/k8s-core';
+import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
+import { DeployExtension } from './deploying/useDeployMethod';
+import { ExternalDataMap } from './ExternalDataLoader';
+import { RunPreDeployFns } from './deploying/useWizardFieldPreDeploy';
+import { RunPostDeployFns } from './deploying/useWizardFieldPostDeploy';
 import {
   ModelLocationType,
   ModelLocationData,
   WizardFormData,
   type InitialWizardFormData,
   WizardStepTitle,
-} from './types';
-import { DeployExtension } from './deploying/useDeployMethod';
+} from '../../shared/types/form-data';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
@@ -62,6 +70,8 @@ export const getTokenAuthenticationFromDeployment = (
 
 export const deployModel = async (
   wizardState: WizardFormData['state'],
+  externalData: ExternalDataMap,
+  secretOps: SecretOps,
   secretName?: string,
   deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
@@ -70,12 +80,9 @@ export const deployModel = async (
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  applyFieldData?: DeploymentAssemblyFn,
-  runPreDeploy?: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>,
-  runPostDeploy?: (
-    deployedModel: Deployment['model'],
-    existingDeployment?: Deployment,
-  ) => Promise<void>,
+  applyAllFieldDataFn?: DeploymentAssemblyFn,
+  runPreDeploy?: RunPreDeployFns,
+  runPostDeploy?: RunPostDeployFns,
 ): Promise<Deployment> => {
   const projectName = wizardState.project.projectName || modelResource?.metadata.namespace;
   if (!projectName) {
@@ -92,13 +99,17 @@ export const deployModel = async (
     throw new Error('Deploy method is required. Model serving platform could be missing.');
   }
 
+  // ----- Dry Runs -----
+
   // If connection name doesn't exist yet, it will fail the dry run
   const dryRunModelResource = structuredClone(modelResourceWithNamespace);
   delete dryRunModelResource?.metadata.annotations?.[MetadataAnnotation.ConnectionName];
 
-  // Dry runs
-  await Promise.all([
+  // Dry run order doesn't matter since they don't change cluster state
+  const dryRuns: Promise<unknown>[] = [];
+  dryRuns.push(
     handleConnectionCreation(
+      secretOps,
       wizardState.createConnectionData.data,
       projectName,
       wizardState.modelLocationData.data,
@@ -106,37 +117,59 @@ export const deployModel = async (
       true,
       wizardState.modelLocationData.selectedConnection,
     ),
-    ...(!overwrite
-      ? [
-          deployMethod.deploy(
-            wizardState,
-            projectName,
-            existingDeployment,
-            dryRunModelResource,
-            serverResource,
-            serverResourceTemplateName,
-            true,
-            undefined,
-            undefined,
-            initialWizardData,
-            applyFieldData,
-          ),
-        ]
-      : []),
-  ]);
-  if (runPreDeploy && modelResource) {
-    await runPreDeploy(
-      {
-        modelServingPlatformId: deployMethod.platform,
-        model: modelResource,
-        server: serverResource,
-      },
-      existingDeployment,
+  );
+  if (runPreDeploy && dryRunModelResource) {
+    dryRuns.push(
+      runPreDeploy(
+        {
+          modelServingPlatformId: deployMethod.platform,
+          model: dryRunModelResource,
+          server: serverResource,
+        },
+        existingDeployment,
+        true,
+      ),
     );
   }
 
+  if (!overwrite) {
+    dryRuns.push(
+      deployMethod.deploy(
+        wizardState,
+        externalData,
+        projectName,
+        existingDeployment,
+        dryRunModelResource,
+        serverResource,
+        serverResourceTemplateName,
+        true,
+        undefined,
+        undefined,
+        initialWizardData,
+        applyAllFieldDataFn,
+      ),
+    );
+  }
+  if (runPostDeploy && dryRunModelResource) {
+    dryRuns.push(
+      runPostDeploy(
+        {
+          modelServingPlatformId: deployMethod.platform,
+          model: dryRunModelResource,
+          server: serverResource,
+        },
+        existingDeployment,
+        true,
+      ),
+    );
+  }
+  await Promise.all(dryRuns);
+
+  // ----- Real Runs -----
+
   // Create secret
   const newSecret = await handleConnectionCreation(
+    secretOps,
     wizardState.createConnectionData.data,
     projectName,
     wizardState.modelLocationData.data,
@@ -146,16 +179,27 @@ export const deployModel = async (
   );
 
   // newSecret.metadata.name is the name of the secret created during secret creation,
-  const createdSecretName = newSecret?.metadata.name ?? secretName ?? getGeneratedSecretName();
+  const createdSecretName = newSecret?.metadata.name ?? secretName;
 
   // Create deployment
   const modelResourceWithConnection = structuredClone(modelResourceWithNamespace);
-  if (modelResourceWithConnection?.metadata.annotations) {
+  if (createdSecretName && modelResourceWithConnection?.metadata.annotations) {
     modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
       createdSecretName;
   }
+  if (runPreDeploy && modelResourceWithConnection) {
+    await runPreDeploy(
+      {
+        modelServingPlatformId: deployMethod.platform,
+        model: modelResourceWithConnection,
+        server: serverResource,
+      },
+      existingDeployment,
+    );
+  }
   const deploymentResult = await deployMethod.deploy(
     wizardState,
+    externalData,
     projectName,
     existingDeployment,
     modelResourceWithConnection,
@@ -165,12 +209,13 @@ export const deployModel = async (
     createdSecretName,
     overwrite,
     initialWizardData,
-    applyFieldData,
+    applyAllFieldDataFn,
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML
   if (newSecret && createdSecretName && wizardState.modelLocationData.data) {
     await handleSecretOwnerReferencePatch(
+      secretOps,
       wizardState.createConnectionData.data,
       deploymentResult.model,
       wizardState.modelLocationData.data,
@@ -180,7 +225,7 @@ export const deployModel = async (
     );
   }
   if (runPostDeploy) {
-    await runPostDeploy(deploymentResult.model, existingDeployment);
+    await runPostDeploy(deploymentResult, existingDeployment);
   }
 
   return deploymentResult;
@@ -224,3 +269,10 @@ export const resolveConnectionType = (
 export const isWizardStepTitle = (value: string): value is WizardStepTitle => {
   return Object.values(WizardStepTitle).some((title) => title === value);
 };
+
+export const shouldShowPreconfigureStep = (
+  project: ProjectKind | null | undefined,
+  existingData?: Pick<InitialWizardFormData, 'validatedConfigurations' | 'isEditing'>,
+): boolean =>
+  !project ||
+  (!existingData?.isEditing && (existingData?.validatedConfigurations?.length ?? 0) > 0);

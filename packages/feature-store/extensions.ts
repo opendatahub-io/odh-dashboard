@@ -9,6 +9,7 @@ import type {
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const PLUGIN_FEATURE_STORE = 'plugin-feature-store';
+const PLUGIN_FEATURE_STORE_ADMIN = 'plugin-feature-store-admin';
 
 const extensions: (
   | AreaExtension
@@ -23,6 +24,14 @@ const extensions: (
       id: PLUGIN_FEATURE_STORE,
       reliantAreas: [SupportedArea.FEATURE_STORE],
       featureFlags: ['disableFeatureStore'],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PLUGIN_FEATURE_STORE_ADMIN,
+      reliantAreas: [SupportedArea.FEATURE_STORE_ADMIN],
+      featureFlags: ['featureStoreAdmin'],
     },
   },
   {
@@ -126,6 +135,34 @@ const extensions: (
       href: '/develop-train/feature-store/feature-services',
       section: 'feature-store',
       path: '/develop-train/feature-store/feature-services/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_FEATURE_STORE_ADMIN],
+    },
+    properties: {
+      id: 'settings-feature-stores',
+      title: 'Feature stores',
+      href: '/settings/environment-setup/feature-stores',
+      section: 'settings-environment-setup',
+      path: '/settings/environment-setup/feature-stores/*',
+      accessReview: {
+        group: 'feast.dev',
+        resource: 'featurestores',
+        verb: 'list',
+      },
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_FEATURE_STORE_ADMIN],
+    },
+    properties: {
+      path: '/settings/environment-setup/feature-stores/*',
+      component: () => import('./src/screens/manage/FeatureStoreManageRoutes'),
     },
   },
   {

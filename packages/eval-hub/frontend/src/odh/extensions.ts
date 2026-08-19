@@ -47,7 +47,7 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
   {
     type: 'core.detail/tab',
     flags: {
-      required: [SupportedArea.LM_EVAL, SupportedArea.MODEL_CATALOG],
+      required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {
       id: 'security-insights',

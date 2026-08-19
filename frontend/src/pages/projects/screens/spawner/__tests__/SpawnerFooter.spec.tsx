@@ -3,6 +3,8 @@ import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PersistentVolumeClaimKind, SecretKind } from '@odh-dashboard/k8s-core';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { useUser } from '#~/redux/selectors';
 import SpawnerFooter from '#~/pages/projects/screens/spawner/SpawnerFooter';
 import {
@@ -11,10 +13,9 @@ import {
   mockStorageData,
 } from '#~/__mocks__/mockStartNotebookData';
 import { useAppContext } from '#~/app/AppContext';
-import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
+import { mockNotebookK8sResource } from '#~/__mocks__';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
 const mockNavigate = jest.fn();
@@ -39,6 +40,10 @@ jest.mock('react-router-dom', () => ({
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
   k8sGetResource: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn().mockReturnValue([true, true]),
 }));
 
 const k8sCreateSecretMock = jest.mocked(k8sCreateResource<SecretKind>);
@@ -94,6 +99,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
@@ -133,6 +139,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
 

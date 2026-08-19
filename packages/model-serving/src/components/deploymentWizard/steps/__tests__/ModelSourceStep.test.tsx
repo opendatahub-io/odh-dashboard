@@ -2,13 +2,17 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { isValidModelLocationData } from '../../fields/ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType, ModelTypeLabel } from '../../types';
+import {
+  ModelLocationData,
+  ModelLocationType,
+  ModelTypeLabel,
+} from '../../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../../fields/CreateConnectionInputFields';
 
 const modelSourceStepSchema = z.object({
@@ -21,6 +25,19 @@ const modelSourceStepSchema = z.object({
 });
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
+
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useWatchConnectionTypes: jest.fn(() => [[], true]),
+  useServingConnections: jest.fn(() => [[], true]),
+  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
+}));
 
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({

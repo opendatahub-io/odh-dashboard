@@ -11,10 +11,13 @@ import {
   Grid,
   GridItem,
   Label,
+  Popover,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import ClusterQueueCard from './ClusterQueueCard';
 import { CQDcgmResult, UnifiedCohort } from '../types';
 import { ModelGpuCount } from '../utils/hardwareModels';
@@ -22,8 +25,7 @@ import {
   filterAcceleratorCQs,
   getCohortTotalAccelerators,
   getCohortUnallocatedBorrowable,
-  getCounterpartCQNames,
-  isCohortBorrowLendActive,
+  isCohortBorrowActive,
   resolveCQDcgmUtilization,
   resolvePerModelDcgmData,
 } from '../utils/clusterQueueUtils';
@@ -64,7 +66,7 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
         const acceleratorCQs = filterAcceleratorCQs(cohort.memberClusterQueues);
         const total = getCohortTotalAccelerators(cohort);
         const unallocatedBorrowable = getCohortUnallocatedBorrowable(cohort);
-        const borrowLendActive = isCohortBorrowLendActive(cohort);
+        const borrowActive = isCohortBorrowActive(cohort);
         const isExpanded = expanded.has(cohort.name);
         const cohortLabel = cohort.name || 'Not in a cohort';
 
@@ -95,8 +97,22 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       {cohort.name && (
                         <FlexItem>
                           <Title headingLevel="h3" style={{ fontWeight: 'normal' }}>
-                            Cohort
+                            cohort
                           </Title>
+                        </FlexItem>
+                      )}
+                      {!cohort.name && (
+                        <FlexItem>
+                          <Popover
+                            bodyContent="Cluster queues not assigned to a cohort."
+                            aria-label="cluster queues not assigned to a cohort info"
+                          >
+                            <DashboardPopupIconButton
+                              icon={<OutlinedQuestionCircleIcon />}
+                              aria-label="More info"
+                              size="sm"
+                            />
+                          </Popover>
                         </FlexItem>
                       )}
                       <FlexItem>
@@ -116,22 +132,20 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                           </Content>
                         </FlexItem>
                       )}
-                      {borrowLendActive && (
+                      {borrowActive && (
                         <FlexItem>
-                          <Label color="purple" isCompact data-testid="cohort-borrow-lend-badge">
+                          <Label
+                            color="orange"
+                            variant="outline"
+                            isCompact
+                            data-testid="cohort-borrow-badge"
+                          >
                             Borrowing enabled
                           </Label>
                         </FlexItem>
                       )}
                     </Flex>
                   </StackItem>
-                  {cohort.state === 'standalone' && (
-                    <StackItem>
-                      <Content component={ContentVariants.small}>
-                        Cluster queues not assigned to a cohort.
-                      </Content>
-                    </StackItem>
-                  )}
                 </Stack>
               </CardHeader>
 
@@ -156,20 +170,12 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                         // 1 card → full width; 2+ → half each so they always fill the row
                         const span = acceleratorCQs.length === 1 ? 12 : 6;
 
-                        // Use all member CQs (not just accelerator-filtered ones) so borrowing CQs
-                        // with nominal=0 GPU quota are still found as counterparts.
-                        const counterpartCQNames = getCounterpartCQNames(
-                          cq,
-                          cohort.memberClusterQueues,
-                        );
-
                         return (
                           <GridItem key={cqName} span={span}>
                             <ClusterQueueCard
                               cq={cq}
                               hardwareModels={models}
                               perModelGpus={perModelGpus}
-                              counterpartCQNames={counterpartCQNames}
                               dcgmAvailable={dcgmAvailable}
                               computeUtilization={computeUtilization}
                               memoryUtilization={memoryUtilization}

@@ -99,6 +99,19 @@ rules:
       - update
       - patch
       - delete
+  # PodDisruptionBudgets for core dashboard availability
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
   # Networking
   - apiGroups:
       - networking.k8s.io
@@ -126,6 +139,15 @@ rules:
       - update
       - patch
       - delete
+  # Escalation for user Ray dashboard URL reads (manifests/common/rbac/all-users)
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    resourceNames:
+      - data-science-gateway
+    verbs:
+      - get
   # Events
   - apiGroups:
       - ""
@@ -269,14 +291,14 @@ rules:
       - get
       - update
       - delete
-  # Storage classes — write-only mirrors sa-rbac/cluster-role.yaml exactly.
-  # Read verbs are not granted by the operand; add here only if the operand
-  # ClusterRole is updated to include them.
+  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole.
   - apiGroups:
       - storage.k8s.io
     resources:
       - storageclasses
     verbs:
+      - get
+      - list
       - update
       - patch
   # Auth delegation for operand service accounts
@@ -337,6 +359,16 @@ rules:
       - update
       - patch
       - delete
+  # system:image-puller (referenced by the cluster-image-pullers
+  # RoleBinding) grants imagestreams/layers get under both "" and
+  # image.openshift.io. RBAC escalation prevention requires the
+  # operator SA to hold the core-group variant as well.
+  - apiGroups:
+      - ""
+    resources:
+      - imagestreams/layers
+    verbs:
+      - get
   # Verbs cover both sa-rbac/role.yaml (list) and
   # fetch-builds-and-images.rbac.yaml (get, list, watch).
   - apiGroups:
@@ -481,6 +513,14 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths
+    verbs:
+      - get
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - gatewayconfigs
+    resourceNames:
+      - default-gateway
     verbs:
       - get
   # Kubeflow notebooks

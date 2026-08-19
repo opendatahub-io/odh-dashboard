@@ -8,6 +8,8 @@ import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -16,6 +18,20 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import {
+  AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
@@ -220,6 +236,21 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
         >
           Select File
         </button>
+        <button
+          data-testid="file-explorer-select-folder"
+          onClick={() => {
+            onSelectFiles([
+              { path: '/docs/a.txt', name: 'a.txt', type: 'txt' },
+              { path: '/docs/b.txt', name: 'b.txt', type: 'txt' },
+            ]);
+            onClose();
+          }}
+        >
+          Select Folder (2 files)
+        </button>
+        <button data-testid="file-explorer-cancel" onClick={() => onClose()}>
+          Cancel
+        </button>
       </div>
     ) : null,
 }));
@@ -256,17 +287,39 @@ const createTestQueryClient = () =>
 const renderWithQueryClient = (
   component: React.ReactElement,
   defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => {
   const queryClient = createTestQueryClient();
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
-      <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
-    </QueryClientProvider>,
+      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+      <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
+        <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+      </UIErrorHandler>
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onKnowledgeSourceConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: options.onKnowledgeSourceConfigured,
+          onEvaluationSourceConfigured: jest.fn(),
+          onVectorStoreConfigured: jest.fn(),
+          onModelsConfigured: jest.fn(),
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
-const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
-  renderWithQueryClient(<AutoragConfigure />, defaultValues);
+const renderComponent = (
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
+) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
 
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
@@ -705,6 +758,170 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('AutoRAG Knowledge Source Configured tracking', () => {
+    it('should fire with knowledgeSourceType: s3 and countOfDocuments: 1 when a single file is selected', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire with countOfDocuments: 1 even when the picker returns multiple files (only the first is committed)', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-folder'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire with outcome: cancel and success: false when the S3 file browser is dismissed without a selection', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.cancel,
+          success: false,
+        },
+      );
+    });
+
+    it('should not fire a cancel event when the browser is closed immediately after a successful selection', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        expect.objectContaining({ outcome: TrackingOutcome.submit }),
+      );
+    });
+
+    it('should fire with knowledgeSourceType: upload and success: true on a successful upload', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+          {
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 1,
+            outcome: TrackingOutcome.submit,
+            success: true,
+          },
+        );
+      });
+    });
+
+    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValueOnce(
+        new Error('upload exploded: s3://acme-secret-bucket'),
+      );
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+          {
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 0,
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: AUTORAG_FAILURE_CATEGORY,
+          },
+        );
+      });
+
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
+    });
+
+    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('s3');
+    });
+
+    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      expect(onKnowledgeSourceConfigured).not.toHaveBeenCalled();
+    });
+
+    it('should report a successful upload to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('upload');
+      });
+    });
+  });
+
   describe('Run preset', () => {
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
@@ -765,11 +982,11 @@ describe('AutoragConfigure', () => {
 
       expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer faithfulness',
+        OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
       );
     });
 
-    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
+    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -777,13 +994,14 @@ describe('AutoragConfigure', () => {
       await user.click(screen.getByTestId('optimization-metric-select'));
 
       await waitFor(() => {
+        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
-    it('should offer exactly two optimization metrics', async () => {
+    it('should offer exactly three optimization metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
