@@ -292,10 +292,11 @@ describe('EnvExistingSecretField', () => {
 
       const alert = screen.getByTestId('env-collision-warning');
       expect(alert).toBeInTheDocument();
-      expect(alert).toHaveTextContent('SHARED_KEY is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent('Resolve key name collisions');
       expect(alert).toHaveTextContent(
-        'Choose one and deselect the duplicate key to resolve the collision.',
+        'The following keys are defined more than once across the selected secrets.',
       );
+      expect(alert).toHaveTextContent('Defined in secrets: secret-a, secret-b');
     });
 
     it('should show plural collision warning for multiple key collisions', () => {
@@ -318,9 +319,10 @@ describe('EnvExistingSecretField', () => {
 
       const alert = screen.getByTestId('env-collision-warning');
       expect(alert).toBeInTheDocument();
-      expect(alert).toHaveTextContent('Key name collisions across attached secrets');
-      expect(alert).toHaveTextContent('KEY_1 is defined in both secret-a and secret-b.');
-      expect(alert).toHaveTextContent('KEY_2 is defined in both secret-a and secret-b.');
+      expect(alert).toHaveTextContent('Resolve key name collisions');
+      expect(alert).toHaveTextContent('Defined in secrets: secret-a, secret-b');
+      expect(alert).toHaveTextContent('KEY_1');
+      expect(alert).toHaveTextContent('KEY_2');
     });
 
     it('should not show collision warning when only one secret is selected', () => {

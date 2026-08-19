@@ -48,7 +48,15 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   const noPermission = loaded && !canList;
   const loadFailed = loaded && canList && !!error;
   const noSecrets = loaded && canList && !error && secrets.length === 0;
-  const existingDisabled = !loaded || noPermission || loadFailed || noSecrets;
+  const allUsedElsewhere =
+    loaded &&
+    canList &&
+    !error &&
+    secrets.length > 0 &&
+    existingSecretRefs.length === 0 &&
+    usedSecretNames != null &&
+    secrets.every((s) => usedSecretNames.has(s.name));
+  const existingDisabled = !loaded || noPermission || loadFailed || noSecrets || allUsedElsewhere;
 
   const disabledMessage = !loaded
     ? 'Loading secrets...'
@@ -58,6 +66,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
     ? EXISTING_SECRET_DISABLED_MESSAGES.noPermission
     : noSecrets
     ? EXISTING_SECRET_DISABLED_MESSAGES.noSecrets
+    : allUsedElsewhere
+    ? 'All secrets are already attached in other variables.'
     : undefined;
 
   return (

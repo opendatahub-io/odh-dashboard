@@ -180,7 +180,7 @@ describe('ExistingSecretKeyPicker', () => {
   });
 
   it('should show filter input when secret has more than 10 keys', () => {
-    const manyKeys = Array.from({ length: 12 }, (_, i) => `key-${i}`);
+    const manyKeys = Array.from({ length: 12 }, (_, i) => `KEY_${i}`);
     const largeSecret: ExistingSecretMetadata[] = [{ name: 'large-secret', keys: manyKeys }];
     const selectedRefs: ExistingSecretRef[] = [
       { secretName: 'large-secret', selectedKeys: manyKeys },
@@ -201,7 +201,7 @@ describe('ExistingSecretKeyPicker', () => {
   });
 
   it('should filter visible keys when filter is typed', () => {
-    const manyKeys = Array.from({ length: 12 }, (_, i) => `key-${i}`);
+    const manyKeys = Array.from({ length: 12 }, (_, i) => `KEY_${i}`);
     const largeSecret: ExistingSecretMetadata[] = [{ name: 'large-secret', keys: manyKeys }];
     const selectedRefs: ExistingSecretRef[] = [
       { secretName: 'large-secret', selectedKeys: manyKeys },
@@ -219,14 +219,14 @@ describe('ExistingSecretKeyPicker', () => {
     expandSection('large-secret');
 
     const filterInput = screen.getByTestId('key-filter-large-secret');
-    fireEvent.change(filterInput, { target: { value: 'key-1' } });
+    fireEvent.change(filterInput, { target: { value: 'KEY_1' } });
 
-    // Should show key-1, key-10, key-11 (matching 'key-1')
-    expect(screen.getByTestId('key-checkbox-large-secret-key-1')).toBeInTheDocument();
-    expect(screen.getByTestId('key-checkbox-large-secret-key-10')).toBeInTheDocument();
-    expect(screen.getByTestId('key-checkbox-large-secret-key-11')).toBeInTheDocument();
-    // key-2 should not be visible
-    expect(screen.queryByTestId('key-checkbox-large-secret-key-2')).not.toBeInTheDocument();
+    // Should show KEY_1, KEY_10, KEY_11 (matching 'KEY_1')
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_1')).toBeInTheDocument();
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_10')).toBeInTheDocument();
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_11')).toBeInTheDocument();
+    // KEY_2 should not be visible
+    expect(screen.queryByTestId('key-checkbox-large-secret-KEY_2')).not.toBeInTheDocument();
   });
 
   it('should show deleted secret alert for a secret not in availableSecrets', () => {

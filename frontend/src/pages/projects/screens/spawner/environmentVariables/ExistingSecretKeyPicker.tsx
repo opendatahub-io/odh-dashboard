@@ -49,14 +49,19 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   onRemoveRef,
   onRemoveMissingKeys,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(isDeleted || missingKeys.length > 0);
-  const [filter, setFilter] = React.useState('');
-
   const { selectedKeys } = secretRef;
   const selectableKeys = allKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k));
+  const unavailableKeys = allKeys.filter((k) => !isValidEnvVarName(k) || RESERVED_ENV_NAMES.has(k));
   const totalSelectableKeys = selectableKeys.length;
   const totalKeys = allKeys.length;
   const hasMissingKeys = missingKeys.length > 0;
+  const allKeysUnavailable = !isDeleted && totalKeys > 0 && totalSelectableKeys === 0;
+  const someKeysUnavailable = !isDeleted && totalSelectableKeys > 0 && unavailableKeys.length > 0;
+
+  const [isExpanded, setIsExpanded] = React.useState(
+    isDeleted || missingKeys.length > 0 || allKeysUnavailable,
+  );
+  const [filter, setFilter] = React.useState('');
 
   const visibleKeys = React.useMemo(
     () =>
@@ -131,6 +136,15 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
+      {allKeysUnavailable ? (
+        <FlexItem>
+          <Tooltip content="No usable keys in this secret">
+            <Icon isInline status="danger" data-testid={`unavailable-icon-${secretRef.secretName}`}>
+              <ExclamationCircleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
       {!isDeleted ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
@@ -159,7 +173,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                 variant="danger"
                 isInline
                 isPlain
-                title="This secret was not found. This workbench cannot start until the missing secret is restored or removed."
+                title="This secret no longer exists. To continue, remove it."
                 actionLinks={
                   <Button
                     variant="link"
@@ -167,7 +181,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                     onClick={onRemoveRef}
                     data-testid={`remove-deleted-ref-${secretRef.secretName}`}
                   >
-                    Remove this reference
+                    Remove secret
                   </Button>
                 }
                 data-testid={`env-deleted-secret-alert-${secretRef.secretName}`}
@@ -202,7 +216,46 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
               </Alert>
             </StackItem>
           ) : null}
-          {!isDeleted ? (
+          {allKeysUnavailable ? (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                isPlain
+                title="None of the keys in this secret can be used as environment variables. To continue, remove it."
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={onRemoveRef}
+                    data-testid={`remove-unavailable-ref-${secretRef.secretName}`}
+                  >
+                    Remove secret
+                  </Button>
+                }
+                data-testid={`env-all-unavailable-alert-${secretRef.secretName}`}
+              />
+            </StackItem>
+          ) : null}
+          {someKeysUnavailable && !hasMissingKeys ? (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                isPlain
+                title={`${unavailableKeys.length} key${
+                  unavailableKeys.length > 1 ? 's' : ''
+                } in this secret cannot be used as environment variables`}
+                data-testid={`env-unavailable-keys-alert-${secretRef.secretName}`}
+              >
+                <p>
+                  Unavailable: {unavailableKeys.join(', ')}. These keys have invalid names or
+                  conflict with system variables.
+                </p>
+              </Alert>
+            </StackItem>
+          ) : null}
+          {!isDeleted && !allKeysUnavailable ? (
             <>
               <StackItem>
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
