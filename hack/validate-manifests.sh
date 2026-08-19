@@ -8,8 +8,8 @@ FAILED=0
 
 # --- Kustomize build validation ---
 TARGETS=(
-  manifests/odh/standalone
-  manifests/rhoai/standalone
+  manifests/odh
+  manifests/rhoai
   manifests/modules
 )
 

@@ -44,7 +44,7 @@ func TestManifestSets(t *testing.T) {
 
 func TestApplyKustomizeParams(t *testing.T) {
 	dir := t.TempDir()
-	overlay := filepath.Join(dir, "rhoai", "standalone")
+	overlay := filepath.Join(dir, "rhoai")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("existing-key=existing-value\n"), 0644))
 
@@ -72,7 +72,7 @@ func TestApplyKustomizeParams(t *testing.T) {
 
 func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 	dir := t.TempDir()
-	overlay := filepath.Join(dir, "rhoai", "standalone")
+	overlay := filepath.Join(dir, "rhoai")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"),
 		[]byte("odh-dashboard-image=quay.io/opendatahub/odh-dashboard@sha256:abc123\nkube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456\n"), 0644))

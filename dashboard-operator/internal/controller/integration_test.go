@@ -94,9 +94,9 @@ func createIntegrationManifests(t *testing.T, moduleSlugs []string) string {
 
 	base := t.TempDir()
 
-	// Core overlay: basePath/odh/standalone/
+	// Core overlay: basePath/odh/
 	// The overlay path must match overlaysSourcePaths in support.go.
-	overlay := filepath.Join(base, "odh", "standalone")
+	overlay := filepath.Join(base, "odh")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

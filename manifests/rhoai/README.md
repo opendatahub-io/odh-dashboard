@@ -5,5 +5,5 @@ These manifests are only for RHOAI. Overrides can be performed on the manifest f
 ## Build
 
 ```bash
-kustomize build manifests/rhoai/standalone
+kustomize build manifests/rhoai
 ```

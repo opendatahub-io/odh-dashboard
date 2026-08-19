@@ -49,7 +49,7 @@ func createMinimalManifests(t *testing.T) string {
 	t.Helper()
 
 	base := t.TempDir()
-	overlay := filepath.Join(base, "odh", "standalone")
+	overlay := filepath.Join(base, "odh")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 
 	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1
@@ -788,7 +788,7 @@ func TestReconcile_DistinctNamespaces(t *testing.T) {
 	cli := builder.Build()
 
 	base := t.TempDir()
-	overlay := filepath.Join(base, "odh", "standalone")
+	overlay := filepath.Join(base, "odh")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 
 	kustomization := `apiVersion: kustomize.config.k8s.io/v1beta1

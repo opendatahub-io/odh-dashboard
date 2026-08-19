@@ -53,7 +53,7 @@ The controller follows a sequential pipeline on each reconcile:
 3. Handle Removed      -> tear down all labeled resources
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
-   -> Render overlay (odh/standalone or rhoai/standalone)
+   -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
    -> For each enabled module:
    |   -> Render manifests/modules/<slug>/
@@ -91,8 +91,8 @@ Manifests are stored at a configurable base path (`--manifests-base-path` flag),
 
 | Platform | Overlay |
 |----------|---------|
-| OpenDataHub | `/odh/standalone` |
-| SelfManagedRhoai | `/rhoai/standalone` |
+| OpenDataHub | `/odh` |
+| SelfManagedRhoai | `/rhoai` |
 
 The overlay extends `manifests/base/` and produces a core pod with 3 containers (odh-dashboard, kube-rbac-proxy, core-bff).
 
@@ -525,7 +525,7 @@ All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operato
 
 | Aspect | ODH | RHOAI |
 |--------|-----|-------|
-| Overlay | `/odh/standalone` | `/rhoai/standalone` |
+| Overlay | `/odh` | `/rhoai` |
 | Section title | "OpenShift Open Data Hub" | "OpenShift Self Managed Services" |
 | Image sources | `quay.io/opendatahub/` | `quay.io/redhat-ai-dev/` (via Konflux) |
 | CRD group | `components.platform.opendatahub.io` | Same |
