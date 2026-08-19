@@ -48,10 +48,7 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
     { tags: ['@Smoke', '@Dashboard', '@NonConcurrent', '@LLMDServingCI'] },
     () => {
       cy.step('Log in with topology configs feature flag');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=llmdTemplates=true,modelDeploymentSettings=true',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to topology configurations settings');
       llmdTopologySettingsPage.navigate();

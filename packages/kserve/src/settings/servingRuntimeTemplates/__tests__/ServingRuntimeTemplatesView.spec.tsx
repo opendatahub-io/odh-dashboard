@@ -25,11 +25,11 @@ const buildContextValue = (templates: TemplateKind[]) => ({
   },
 });
 
-const renderView = (templates: TemplateKind[], noTitle?: boolean) =>
+const renderView = (templates: TemplateKind[]) =>
   render(
     <MemoryRouter>
       <CustomServingRuntimeContext.Provider value={buildContextValue(templates)}>
-        <ServingRuntimeTemplatesView noTitle={noTitle} />
+        <ServingRuntimeTemplatesView />
       </CustomServingRuntimeContext.Provider>
     </MemoryRouter>,
   );
@@ -50,14 +50,8 @@ describe('ServingRuntimeTemplatesView', () => {
     expect(screen.getByTestId('add-serving-runtime-button')).toBeInTheDocument();
   });
 
-  it('should render the page title in standalone mode (noTitle falsy)', () => {
-    renderView([mockServingRuntimeTemplateK8sResource({})], false);
-
-    expect(screen.getByRole('heading', { name: 'Serving runtime templates' })).toBeInTheDocument();
-  });
-
-  it('should suppress the page title in tab mode (noTitle true)', () => {
-    renderView([mockServingRuntimeTemplateK8sResource({})], true);
+  it('should suppress the page title (rendered as a tab, title is not needed)', () => {
+    renderView([mockServingRuntimeTemplateK8sResource({})]);
 
     expect(
       screen.queryByRole('heading', { name: 'Serving runtime templates' }),

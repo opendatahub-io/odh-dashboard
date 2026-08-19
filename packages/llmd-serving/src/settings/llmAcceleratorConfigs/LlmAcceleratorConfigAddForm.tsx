@@ -25,6 +25,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import {
@@ -45,24 +46,13 @@ type FormMode = 'add' | 'edit' | 'duplicate';
 type LlmAcceleratorConfigAddFormProps = {
   mode: FormMode;
   sourceConfig?: LLMInferenceServiceConfigKind;
-  /**
-   * Absolute path of the configurations list this form returns to. Passed
-   * explicitly because the form is mounted both as a child of the standalone
-   * list route and as a top-level breakout route beside the tabbed page, and the
-   * default route-relative `..` resolves differently in the two.
-   *
-   * After RHOAIENG-80077 removes the standalone page the breakout route is the
-   * only mount, so this could collapse to LLM_ACCELERATOR_CONFIGS_TAB_PATH.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  listPath: string;
 };
 
 const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = ({
   mode,
   sourceConfig,
-  listPath,
 }) => {
+  const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { dashboardNamespace } = useDashboardNamespace();
   const isEdit = mode === 'edit';
@@ -266,8 +256,8 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
 
 export const LlmAcceleratorConfigFormByName: React.FC<{
   mode: 'edit' | 'duplicate';
-  listPath: string;
-}> = ({ mode, listPath }) => {
+}> = ({ mode }) => {
+  const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const { configName } = useParams<{ configName: string }>();
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const config = configs.find((c) => c.metadata.name === configName);
@@ -320,7 +310,7 @@ export const LlmAcceleratorConfigFormByName: React.FC<{
     );
   }
 
-  return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} listPath={listPath} />;
+  return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;
 };
 
 export default LlmAcceleratorConfigAddForm;

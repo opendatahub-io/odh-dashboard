@@ -2,22 +2,62 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import userEvent from '@testing-library/user-event';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  UseMutationOptions,
+} from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { AutomlResultsContextProps } from '~/app/context/AutomlResultsContext';
 import * as modelRegistryApi from '~/app/api/modelRegistry';
 import * as useModelRegistriesQueryModule from '~/app/hooks/useModelRegistriesQuery';
 import type { ModelRegistriesResponse } from '~/app/types';
-import RegisterModelModal from '~/app/components/run-results/RegisterModelModal';
+import RegisterModelModal, {
+  REGISTRATION_FAILURE_MESSAGE,
+  REGISTRIES_LOAD_FAILURE_MESSAGE,
+} from '~/app/components/run-results/RegisterModelModal';
+import { useNotification } from '~/app/hooks/useNotification';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlModelRegistered,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 jest.mock('~/app/api/modelRegistry');
 jest.mock('~/app/hooks/useModelRegistriesQuery');
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(),
+}));
+
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutomlModelRegistered: jest.fn(),
+}));
+
+// `useMutation` is spied on (delegating to the real implementation) purely to capture the
+// `onError` callback the component registers, so it can be invoked directly below — the full
+// submit-via-UI flow requires a PF6 Select interaction that doesn't work in JSDOM (see the
+// 'submission' describe block).
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useMutation: jest.fn(),
+}));
 
 const mockRegisterModel = jest.mocked(modelRegistryApi.registerModel);
 const mockUseModelRegistriesQuery = jest.mocked(
   useModelRegistriesQueryModule.useModelRegistriesQuery,
 );
+const fireAutomlModelRegisteredMock = jest.mocked(fireAutomlModelRegistered);
+const useNotificationMock = jest.mocked(useNotification);
+const notificationError = jest.fn();
+const notificationSuccess = jest.fn();
+const useMutationMock = jest.mocked(useMutation);
+const actualUseMutation =
+  jest.requireActual<typeof import('@tanstack/react-query')>('@tanstack/react-query').useMutation;
 
 // Helper to create partial UseQueryResult mocks without full type ceremony
 const mockQueryResult = (
@@ -91,6 +131,7 @@ const renderModal = (
                 <RegisterModelModal
                   onClose={props.onClose ?? jest.fn()}
                   modelName={props.modelName ?? 'TestModel'}
+                  source="leaderboard"
                 />
               </AutomlResultsContext.Provider>
             }
@@ -101,9 +142,23 @@ const renderModal = (
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let capturedMutationOptions: UseMutationOptions<any, unknown, any> | undefined;
+
 describe('RegisterModelModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    capturedMutationOptions = undefined;
+    useMutationMock.mockImplementation((options) => {
+      capturedMutationOptions = options;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+      return actualUseMutation(options as any);
+    });
+    useNotificationMock.mockReturnValue({
+      success: notificationSuccess,
+      error: notificationError,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   describe('loading state', () => {
@@ -123,7 +178,7 @@ describe('RegisterModelModal', () => {
   });
 
   describe('error state', () => {
-    it('should show fallback error when error is not an Error instance', () => {
+    it('should show the fixed, user-safe message when error is not an Error instance', () => {
       mockUseModelRegistriesQuery.mockReturnValue(
         mockQueryResult({
           data: undefined,
@@ -135,24 +190,27 @@ describe('RegisterModelModal', () => {
 
       renderModal();
 
-      expect(screen.getByText('Failed to load model registries')).toBeInTheDocument();
+      expect(screen.getByText(REGISTRIES_LOAD_FAILURE_MESSAGE)).toBeInTheDocument();
     });
 
-    it('should show BFF error message when registries fail to load', () => {
+    it('should show only the fixed, user-safe message, never the raw registry error (CWE-209)', () => {
+      const sensitiveMessage =
+        'insufficient permissions: tenant=acme-corp registry-endpoint=internal-registry.svc:8443';
       mockUseModelRegistriesQuery.mockReturnValue(
         mockQueryResult({
           data: undefined,
           isLoading: false,
           isError: true,
-          error: new Error('insufficient permissions to list model registries'),
+          error: new Error(sensitiveMessage),
         }),
       );
 
       renderModal();
 
-      expect(
-        screen.getByText('insufficient permissions to list model registries'),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('registries-error')).toHaveTextContent(
+        REGISTRIES_LOAD_FAILURE_MESSAGE,
+      );
+      expect(screen.queryByText(sensitiveMessage)).not.toBeInTheDocument();
     });
   });
 
@@ -390,10 +448,55 @@ describe('RegisterModelModal', () => {
       expect(screen.getByTestId('register-model-submit')).toBeDisabled();
       expect(mockRegisterModel).not.toHaveBeenCalled();
     });
-  });
 
-  describe('cancel', () => {
-    it('should call onClose when cancel is clicked', () => {
+    it('should fire the allowlisted failure category, not the raw error message, on registration failure', () => {
+      renderModal();
+
+      // `useMutation` is spied on above purely to capture the component's `onError` callback,
+      // sidestepping the PF6 Select interaction limitation noted above.
+      expect(capturedMutationOptions?.onError).toBeDefined();
+      capturedMutationOptions?.onError?.(
+        new Error('registry rejected request: tenant=acme-corp key=AKIAabc123'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+        undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+      );
+
+      // Analytics must only ever see the fixed, allowlisted failure category — never the raw
+      // Error.message, which may originate from the backend/proxy and embed sensitive details.
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, error: AUTOML_FAILURE_CATEGORY }),
+      );
+      const allTrackingCalls = JSON.stringify(fireAutomlModelRegisteredMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-corp');
+      expect(allTrackingCalls).not.toContain('AKIAabc123');
+    });
+
+    it('should show only the fixed, user-safe message in the notification, never the raw registry error (CWE-209)', () => {
+      renderModal();
+
+      expect(capturedMutationOptions?.onError).toBeDefined();
+      capturedMutationOptions?.onError?.(
+        new Error('registry rejected request: tenant=acme-corp key=AKIAabc123'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+        undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any,
+      );
+
+      expect(notificationError).toHaveBeenCalledWith(
+        'Failed to register model',
+        REGISTRATION_FAILURE_MESSAGE,
+      );
+      const allNotificationCalls = JSON.stringify(notificationError.mock.calls);
+      expect(allNotificationCalls).not.toContain('acme-corp');
+      expect(allNotificationCalls).not.toContain('AKIAabc123');
+    });
+
+    it('should render only the fixed, user-safe message in the error alert, never the raw registry error (CWE-209)', () => {
       mockUseModelRegistriesQuery.mockReturnValue(
         mockQueryResult({
           data: mockRegistries,
@@ -401,12 +504,116 @@ describe('RegisterModelModal', () => {
           isError: false,
         }),
       );
+      const sensitiveMessage = 'registry rejected request: tenant=acme-corp key=AKIAabc123';
+      // Override the delegated `useMutation` result for this render only, to simulate the
+      // post-failure state (isError/error) without needing the PF6 Select interaction that
+      // JSDOM can't drive.
+      useMutationMock.mockImplementationOnce(
+        (options) =>
+          ({
+            ...actualUseMutation(options),
+            isError: true,
+            error: new Error(sensitiveMessage),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          }) as any,
+      );
 
+      renderModal();
+
+      const alert = screen.getByTestId('register-model-error');
+      expect(alert).toHaveTextContent(REGISTRATION_FAILURE_MESSAGE);
+      expect(alert).not.toHaveTextContent(sensitiveMessage);
+      expect(screen.queryByText(sensitiveMessage)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('cancel', () => {
+    beforeEach(() => {
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: mockRegistries,
+          isLoading: false,
+          isError: false,
+        }),
+      );
+    });
+
+    it('should call onClose when cancel is clicked', () => {
       const onClose = jest.fn();
       renderModal({ onClose });
 
       fireEvent.click(screen.getByTestId('register-model-cancel'));
       expect(onClose).toHaveBeenCalled();
+    });
+
+    it('should call onClose and fire a cancel event when Escape is pressed', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      renderModal({ onClose });
+
+      await user.keyboard('{Escape}');
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+      );
+    });
+
+    it('should call onClose and fire a cancel event when the close control is clicked', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      renderModal({ onClose });
+
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(fireAutomlModelRegisteredMock).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+      );
+    });
+
+    it('should not close or fire a cancel event via Escape while a registration request is pending', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      // Override the delegated `useMutation` result for this render only, to simulate the
+      // in-flight (isPending) state without needing the PF6 Select interaction that JSDOM
+      // can't drive.
+      useMutationMock.mockImplementationOnce(
+        (options) =>
+          ({
+            ...actualUseMutation(options),
+            isPending: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          }) as any,
+      );
+      renderModal({ onClose });
+
+      await user.keyboard('{Escape}');
+
+      // PatternFly's Modal invokes onClose for Escape regardless of the disabled Cancel
+      // button — closing here would let a stray "cancel" event race with the submit
+      // success/failure event that the mutation fires once the in-flight request resolves.
+      expect(onClose).not.toHaveBeenCalled();
+      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
+    });
+
+    it('should not close or fire a cancel event via the close control while a registration request is pending', async () => {
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      useMutationMock.mockImplementationOnce(
+        (options) =>
+          ({
+            ...actualUseMutation(options),
+            isPending: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          }) as any,
+      );
+      renderModal({ onClose });
+
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(fireAutomlModelRegisteredMock).not.toHaveBeenCalled();
     });
   });
 });

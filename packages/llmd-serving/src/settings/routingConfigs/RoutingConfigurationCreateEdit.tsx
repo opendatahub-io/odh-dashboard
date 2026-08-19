@@ -33,6 +33,7 @@ import K8sNameDescriptionField, {
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { RoutingConfigContext } from './RoutingConfigContext';
+import { ROUTING_CONFIGS_TAB_PATH } from './paths';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
@@ -80,9 +81,9 @@ const buildRouterSamplesUrl = (topology: TopologyType): string =>
 
 const RoutingConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
-  listPath: string;
   isDuplicate: boolean;
-}> = ({ sourceConfig, listPath, isDuplicate }) => {
+}> = ({ sourceConfig, isDuplicate }) => {
+  const listPath = ROUTING_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { configName } = useParams<{ configName?: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
@@ -441,25 +442,14 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 };
 
 type RoutingConfigurationCreateEditProps = {
-  /**
-   * Absolute path of the configurations list this form returns to. Passed
-   * explicitly because the form is mounted both under the standalone list route
-   * and as a top-level breakout route, and route-relative `..` resolves
-   * differently in the two.
-   *
-   * After RHOAIENG-80077 removes the standalone page the breakout route is the
-   * only mount, so this could collapse to ROUTING_CONFIGS_TAB_PATH.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  listPath: string;
   /** True when mounted at the duplicate route. */
   isDuplicate?: boolean;
 };
 
 const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditProps> = ({
-  listPath,
   isDuplicate = false,
 }) => {
+  const listPath = ROUTING_CONFIGS_TAB_PATH;
   const { configName } = useParams<{ configName?: string }>();
   const { configs } = React.useContext(RoutingConfigContext);
 
@@ -515,11 +505,7 @@ const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditPro
   }
 
   return (
-    <RoutingConfigurationCreateEditInner
-      listPath={listPath}
-      isDuplicate={isDuplicate}
-      sourceConfig={sourceConfig}
-    />
+    <RoutingConfigurationCreateEditInner isDuplicate={isDuplicate} sourceConfig={sourceConfig} />
   );
 };
 

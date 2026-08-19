@@ -108,8 +108,8 @@ After the installer completes, verify the following files exist and are correct.
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
 
 **`packages/<name>/frontend/config/moduleFederation.js`**:
-- `name` matches `<camelCase>`
-- `shared` includes all required singletons (see reference.md § Shared Singletons)
+- Uses `OdhFederationPlugin` with `name` matching `<camelCase>`
+- `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`
 - `exposes` includes `'./extensions': './src/odh/extensions'`
 
 **`packages/<name>/frontend/src/odh/extensions.ts`**:

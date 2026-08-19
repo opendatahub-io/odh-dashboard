@@ -5,6 +5,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import BacktestWindowChart from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart';
 import type { BackTestingPerWindowMetric } from '~/app/types';
 import type { ChartSeries } from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestCurveChart';
+import { fireAutomlBacktestWindowMetricViewed } from '~/app/utilities/tracking';
+
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutomlBacktestWindowMetricViewed: jest.fn(),
+}));
+
+const fireAutomlBacktestWindowMetricViewedMock = jest.mocked(fireAutomlBacktestWindowMetricViewed);
 
 // Store the last rendered series data for test assertions
 let lastRenderedSeries: ChartSeries[] | undefined;
@@ -371,6 +379,93 @@ describe('BacktestWindowChart', () => {
 
       // Should fall back to evalMetric when trying to deselect last metric
       expect(onSelectedMetricsChange).toHaveBeenCalledWith(['MASE']);
+    });
+  });
+
+  describe('metric view tracking', () => {
+    it('should fire a viewed event when an individual metric is added', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="MASE"
+          holdoutMetrics={mockHoldoutMetrics}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('metric-selector-toggle'));
+      fireEvent.click(screen.getByText('RMSE'));
+
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledTimes(1);
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledWith('RMSE');
+    });
+
+    it('should not fire a viewed event when a metric is removed', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="MASE"
+          holdoutMetrics={mockHoldoutMetrics}
+          initialSelectedMetrics={['MASE', 'RMSE']}
+        />,
+      );
+      fireAutomlBacktestWindowMetricViewedMock.mockClear();
+
+      fireEvent.click(screen.getByTestId('metric-selector-toggle'));
+      const rmseMenuItem = screen
+        .getAllByRole('menuitem')
+        .find((item) => item.textContent.includes('RMSE'));
+      const checkbox = rmseMenuItem!.querySelector('input[type="checkbox"]');
+      fireEvent.click(checkbox!);
+
+      expect(fireAutomlBacktestWindowMetricViewedMock).not.toHaveBeenCalled();
+    });
+
+    it('should fire a viewed event for every newly visible metric when "Show all" is selected', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="MASE"
+          holdoutMetrics={mockHoldoutMetrics}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('metric-selector-toggle'));
+      const checkbox = screen
+        .getByTestId('metric-selector-show-all')
+        .querySelector('input[type="checkbox"]');
+      fireEvent.click(checkbox!);
+
+      // MASE was already selected before "Show all" was clicked, so only the three
+      // newly-visible metrics (RMSE, MAE, MAPE) should fire a viewed event.
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledTimes(3);
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledWith('RMSE');
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledWith('MAE');
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledWith('MAPE');
+    });
+
+    it('should not re-fire viewed events for metrics already tracked when "Show all" is toggled again', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="MASE"
+          holdoutMetrics={mockHoldoutMetrics}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('metric-selector-toggle'));
+      const checkbox = screen
+        .getByTestId('metric-selector-show-all')
+        .querySelector('input[type="checkbox"]');
+
+      // First "Show all" click: fires for RMSE, MAE, MAPE.
+      fireEvent.click(checkbox!);
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledTimes(3);
+
+      // Toggle "Show all" off, then back on — same metrics become visible again, but
+      // they're already in trackedMetricsRef, so no additional events should fire.
+      fireEvent.click(checkbox!);
+      fireEvent.click(checkbox!);
+      expect(fireAutomlBacktestWindowMetricViewedMock).toHaveBeenCalledTimes(3);
     });
   });
 

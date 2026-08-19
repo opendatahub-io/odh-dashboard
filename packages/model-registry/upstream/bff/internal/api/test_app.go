@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/kubeflow/hub/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/bffclient"
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
@@ -22,4 +23,15 @@ func NewTestApp(cfg config.EnvConfig, logger *slog.Logger, factory k8s.Kubernete
 		kubernetesClientFactory: factory,
 		repositories:            repos,
 	}
+}
+
+// SetBFFClientFactoryForTest lets tests inject a (typically mock) inter-BFF
+// client factory into an App built via NewTestApp. The assignment happens inside
+// the Once so it's synchronized with BFFClientFactory()'s read the same way the
+// production lazy-init path is -- assigning outside Do would race with a
+// concurrent BFFClientFactory() call under go test -race.
+func (app *App) SetBFFClientFactoryForTest(factory bffclient.BFFClientFactory) {
+	app.bffClientFactoryOnce.Do(func() {
+		app.bffClientFactory = factory
+	})
 }

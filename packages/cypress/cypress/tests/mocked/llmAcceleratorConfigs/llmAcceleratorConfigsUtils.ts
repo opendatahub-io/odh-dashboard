@@ -52,10 +52,7 @@ export const llmAcceleratorConfigsInitialMock = [
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ vLLMDeploymentOnMaaS: true, modelDeploymentSettings: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
   cy.interceptK8sList(
     {
       model: llmAcceleratorConfigModel,
