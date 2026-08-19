@@ -1,29 +1,37 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
+import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { createPvc } from '@odh-dashboard/internal/api';
 import {
   NIM_PVC_ANNOTATION,
   NIM_PVC_SUBPATH_ANNOTATION,
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
-} from './NIMPVCField';
-import type { NIMDeployment } from '../../../api/nimservices/types';
+} from '../../pages/deploymentWizard/fields/NIMPVCField';
 
+/**
+ * Creates the PVC (for NEW mode) before the InferenceService + ServingRuntime
+ * are saved. Skips PVC creation for EXISTING mode since the PVC already exists.
+ *
+ * Respects the `dryRun` flag so no real PVC is created during validation.
+ */
 export const nimPVCPreDeploy = async (
   fieldData: NIMPVCFieldValue,
   wizardState: WizardFormData['state'],
-  deployment: DeploymentHookPayloadFor<NIMDeployment>,
-): Promise<DeploymentHookPayloadFor<NIMDeployment>> => {
+  deployment: DeploymentHookPayloadFor<KServeDeployment>,
+  _existingDeployment?: KServeDeployment,
+  dryRun?: boolean,
+): Promise<DeploymentHookPayloadFor<KServeDeployment>> => {
   const { projectName } = wizardState.project;
   if (!projectName) {
     throw new Error('Project is required to create PVC storage');
   }
 
-  if (fieldData.storageMode !== NIMPVCStorageMode.NEW || !deployment.model) {
+  if (fieldData.storageMode !== NIMPVCStorageMode.NEW) {
     return deployment;
   }
 
-  const pvc = await createPvc(
+  await createPvc(
     {
       name: fieldData.pvcName,
       description: '',
@@ -31,7 +39,7 @@ export const nimPVCPreDeploy = async (
       storageClassName: fieldData.storageClassName,
     },
     projectName,
-    undefined,
+    { dryRun: !!dryRun },
     false,
     {
       [NIM_PVC_ANNOTATION]: 'true',
@@ -41,25 +49,5 @@ export const nimPVCPreDeploy = async (
     { 'opendatahub.io/managed': 'true' },
   );
 
-  return {
-    ...deployment,
-    model: {
-      ...deployment.model,
-      spec: {
-        ...deployment.model.spec,
-        storage: {
-          pvc: {
-            name: pvc.metadata.name,
-            subPath: fieldData.subPath
-              ? fieldData.subPath.replace(/^\//, '') || undefined
-              : undefined,
-          },
-        },
-      },
-    },
-  };
-};
-
-export const nimPVCPostDeploy = async (): Promise<void> => {
-  // No-op: PVC persists independently of the NIMService for reuse
+  return deployment;
 };

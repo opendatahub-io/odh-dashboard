@@ -1,5 +1,6 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
@@ -33,15 +34,18 @@ const parseModelCapabilities = (annotations?: Record<string, string>): string[] 
 export const preDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
   wizardState: WizardFormData['state'],
-  deployment: LLMdDeployment,
+  deployment: DeploymentHookPayloadFor<LLMdDeployment>,
   existingDeployment?: LLMdDeployment,
   dryRun?: boolean,
-): Promise<LLMdDeployment> => {
+): Promise<DeploymentHookPayloadFor<LLMdDeployment>> => {
   if (typeof fieldData.isChecked !== 'boolean') {
     return deployment;
   }
   const { isChecked } = fieldData;
   const { model: modelResource } = deployment;
+  if (!modelResource) {
+    return deployment;
+  }
   const { name, namespace: modelNamespace } = modelResource.metadata;
   const namespace = wizardState.project.projectName ?? modelNamespace;
   if (!name || !namespace) {
@@ -116,10 +120,15 @@ export const preDeployMaaSModelRef = async (
  */
 export const postDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
-  deployedModel: LLMdDeployment,
+  deployedModel: DeploymentHookPayloadFor<LLMdDeployment>,
   existingDeployment?: LLMdDeployment,
   dryRun?: boolean,
 ): Promise<void> => {
+  // Dryrun is done in preDeploy
+  if (dryRun || !deployedModel.model) {
+    return;
+  }
+
   const { name, namespace, uid } = deployedModel.model.metadata;
   if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
     return;
@@ -130,11 +139,6 @@ export const postDeployMaaSModelRef = async (
     deployedModel.model.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = deployedModel.model.metadata.annotations?.['openshift.io/description'] ?? '';
   const modelCapabilities = parseModelCapabilities(deployedModel.model.metadata.annotations);
-
-  // Dryrun is done in preDeploy
-  if (dryRun) {
-    return;
-  }
 
   if (existingDeployment) {
     if (!isChecked) {
