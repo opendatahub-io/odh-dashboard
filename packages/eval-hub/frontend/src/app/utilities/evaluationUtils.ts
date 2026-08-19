@@ -218,3 +218,9 @@ export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
 
 export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
   benchmarks.filter((bm) => bm.status === 'failed').length;
+
+// Different benchmark providers use different scoring scales — most use 0–1 decimal fractions,
+// but some (e.g. Open LLM Leaderboard v2) use a 0–100 percentage scale. Thresholds > 1 are
+// already in percentage form; thresholds ≤ 1 are multiplied by 100 to match the slider range.
+export const normalizeThreshold = (threshold: number): number =>
+  threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
