@@ -2,6 +2,7 @@ import {
   mockNimInferenceService,
   mockNimServingRuntime,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   initInterceptsToDeployNimInWizard,
@@ -90,14 +91,14 @@ describe('NIM Models Deployments', () => {
     modelServingWizard.findNumReplicasPlusButton().click();
     modelServingWizard.findNumReplicasInputField().should('have.value', '2');
 
-    // PVC caching (not yet wired into the created resources)
-    modelServingWizard.nim.findPVCNameInput().type('nim-pvc');
+    // PVC caching storage
+    modelServingWizard.nim.findPVCNameInput().type('pr pvc test');
     modelServingWizard.nim.findSubPathInput().type('arctic-embed-l');
     modelServingWizard.nim
       .findStorageClassSelect()
       .findSelectOption('openshift-default-sc')
       .click();
-    modelServingWizard.nim.findStorageSizeInput().clear().type('75');
+    modelServingWizard.nim.setStorageSizeGi(75);
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options
@@ -108,6 +109,37 @@ describe('NIM Models Deployments', () => {
 
     // Step 4: Summary
     modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    // PVC creation — dry-run validates the PVC can be created
+    cy.wait('@createPVC').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body.metadata).to.containSubset({
+        namespace: 'test-project',
+        annotations: {
+          'dashboard.opendatahub.io/nim-pvc': 'true',
+          'dashboard.opendatahub.io/nim-subpath': 'arctic-embed-l',
+        },
+        labels: {
+          'opendatahub.io/managed': 'true',
+        },
+      });
+      expect(interception.request.body.metadata.name).to.equal('pr-pvc-test');
+      expect(interception.request.body.spec).to.containSubset({
+        accessModes: ['ReadWriteOnce'],
+        resources: { requests: { storage: '75Gi' } },
+        storageClassName: 'openshift-default-sc',
+        volumeMode: 'Filesystem',
+      });
+    });
+
+    // PVC creation — real create
+    cy.wait('@createPVC').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createPVC.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
+    });
 
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
@@ -166,9 +198,17 @@ describe('NIM Models Deployments', () => {
         supportedModelFormats: [
           { name: 'arctic-embed-l', version: '1.0.1', autoSelect: false, priority: 1 },
         ],
-        // NIM mounts a shared memory volume for the runtime
+        // NIM mounts a shared memory volume and the PVC cache volume
         volumes: [{ name: 'shm', emptyDir: { medium: 'Memory', sizeLimit: '2Gi' } }],
       });
+      // Verify the selected PVC replaced the template placeholder (no leftover nim-pvc)
+      const pvcVolumes = interception.request.body.spec.volumes.filter(
+        (v: Volume) => v.persistentVolumeClaim,
+      );
+      expect(pvcVolumes).to.have.length(1);
+      expect(pvcVolumes[0].name).to.equal('pr-pvc-test');
+      expect(pvcVolumes[0].persistentVolumeClaim.claimName).to.equal('pr-pvc-test');
+
       const kserveContainer = interception.request.body.spec.containers.find(
         (container: { name: string }) => container.name === 'kserve-container',
       );
@@ -176,6 +216,17 @@ describe('NIM Models Deployments', () => {
         image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
         volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
       });
+      // Verify PVC volumeMount and NIM_CACHE_PATH env var on kserve-container
+      const cacheMount = kserveContainer.volumeMounts.find(
+        (vm: { mountPath: string }) => vm.mountPath === '/mnt/models/cache',
+      );
+      expect(cacheMount).to.not.equal(undefined);
+      expect(cacheMount.name).to.equal('pr-pvc-test');
+      expect(cacheMount.subPath).to.equal('arctic-embed-l');
+      const cachePath = kserveContainer.env.find(
+        (e: { name: string }) => e.name === 'NIM_CACHE_PATH',
+      );
+      expect(cachePath).to.containSubset({ value: '/mnt/models/cache' });
       // resources are sized by the InferenceService hardware profile, not the runtime container
       interception.request.body.spec.containers.forEach((container: { resources?: unknown }) => {
         expect(container).to.not.have.property('resources');

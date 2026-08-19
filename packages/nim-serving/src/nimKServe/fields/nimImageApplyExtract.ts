@@ -1,6 +1,7 @@
 import { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { NIMImageFieldValue } from '../../pages/deploymentWizard/fields/NIMImageField';
 import { getModelNameFromRepository } from '../../api/images/utils';
+import { KSERVE_CONTAINER_NAME } from '../../constants';
 
 const setNIMDeploymentModelFormat = (
   deployment: KServeDeployment,
@@ -47,7 +48,7 @@ const setNIMDeploymentImage = (
   }
   const newServingRuntime = structuredClone(deployment.server);
   newServingRuntime.spec.containers = newServingRuntime.spec.containers.map((c) => {
-    if (c.name === 'kserve-container') {
+    if (c.name === KSERVE_CONTAINER_NAME) {
       return {
         ...c,
         image: `${nimImage.repository}:${nimImage.tag}`,

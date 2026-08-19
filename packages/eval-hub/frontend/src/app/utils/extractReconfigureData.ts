@@ -111,7 +111,10 @@ const extractReconfigureData = (
   }
   /* eslint-enable camelcase */
 
-  const threshold = job.pass_criteria ? Math.round(job.pass_criteria.threshold * 100) : 0;
+  // Collection flow writes pass_criteria at the job level; benchmark flow writes it on the
+  // individual benchmark entry. Fall back to the first benchmark to cover the latter case.
+  const passCriteria = job.pass_criteria ?? firstBenchmark?.pass_criteria;
+  const threshold = passCriteria ? Math.round(passCriteria.threshold * 100) : 0;
 
   const primaryMetric = firstBenchmark?.primary_score?.metric;
 

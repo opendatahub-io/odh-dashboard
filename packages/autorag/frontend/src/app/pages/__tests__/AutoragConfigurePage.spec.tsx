@@ -30,17 +30,33 @@ jest.mock('@patternfly/react-core', () => ({
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
+let mockLocationState: { from?: string } | undefined;
 const mockS3UploadMutateAsync = jest
   .fn()
   .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
-
-let mockLocationState: { from?: string } | null = null;
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
   useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
+  ),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   Link: ({
     to,
     children,
@@ -353,9 +369,9 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutoragConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLocationState = null;
     mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockLocationState = undefined;
   });
 
   describe('Initial state', () => {
@@ -583,9 +599,17 @@ describe('AutoragConfigurePage', () => {
     });
 
     it('should display breadcrumb in configure step', async () => {
-      expect(await screen.findByText('AutoRAG: test-namespace')).toBeInTheDocument();
+      expect(await screen.findByTestId('experiment-breadcrumb-home')).toHaveTextContent(
+        /AutoRAG in/,
+      );
+      expect(await screen.findByTestId('experiment-breadcrumb-home')).toHaveTextContent(
+        'test-namespace',
+      );
+      expect(await screen.findByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(
+        /Go to/,
+      );
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
-      expect(breadcrumbName).toHaveTextContent('My Experiment');
+      expect(breadcrumbName).toHaveTextContent('Experiment configurations');
     });
 
     it('should render "Create run" button', async () => {
@@ -1364,8 +1388,8 @@ describe('AutoragConfigurePage', () => {
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1393,8 +1417,8 @@ describe('AutoragConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1440,8 +1464,8 @@ describe('AutoragConfigurePage', () => {
       });
       await user.click(nextButtonAgain);
 
-      const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -1572,34 +1596,15 @@ describe('AutoragConfigurePage', () => {
         });
         await user.click(nextButton);
 
-        const breadcrumbLink = await screen.findByText('AutoRAG: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
           lastFunnelStep: 'run',
           exitDestination: 'experimentsList',
-        });
-      });
-
-      it('should fire with exitDestination: otherGenAi when the source-run breadcrumb is clicked', async () => {
-        const user = userEvent.setup();
-        mockLocationState = { from: 'results' };
-        renderWithProviders(
-          <AutoragConfigurePage
-            initialValues={{ display_name: 'Original Run - 1' }}
-            sourceRunId="prev-run-456"
-            sourceRunName="Original Run"
-          />,
-        );
-
-        const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
-        await user.click(sourceRunBreadcrumb.querySelector('a')!);
-
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
-          exitType: 'navigate',
-          lastFunnelStep: 'defineDetails',
-          exitDestination: 'otherGenAi',
         });
       });
 
@@ -1739,8 +1744,7 @@ describe('AutoragConfigurePage', () => {
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
-    it('should display breadcrumb with source run link when navigating from results page', async () => {
-      mockLocationState = { from: 'results' };
+    it('should display experiment configurations breadcrumb when reconfiguring from results', async () => {
       renderWithProviders(
         <AutoragConfigurePage
           initialValues={{ display_name: 'Original Run - 1' }}
@@ -1749,21 +1753,20 @@ describe('AutoragConfigurePage', () => {
         />,
       );
 
-      const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
-      expect(sourceRunBreadcrumb).toBeInTheDocument();
-      expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
-
-      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
-      expect(sourceRunLink).toHaveAttribute(
+      expect(screen.queryByTestId('configure-breadcrumb-source-run')).not.toBeInTheDocument();
+      const homeBreadcrumb = await screen.findByTestId('experiment-breadcrumb-home');
+      expect(homeBreadcrumb.querySelector('a')).toHaveAttribute(
         'href',
-        '/gen-ai-studio/autorag/results/test-namespace/prev-run-456',
+        '/gen-ai-studio/autorag/experiments/test-namespace',
       );
-
+      expect(await screen.findByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(
+        /Go to/,
+      );
       const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
-      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+      expect(activeBreadcrumb).toHaveTextContent('Experiment configurations');
     });
 
-    it('should NOT display source run breadcrumb when navigating from experiments page', async () => {
+    it('should display experiment configurations breadcrumb when reconfiguring from experiments page', async () => {
       renderWithProviders(
         <AutoragConfigurePage
           initialValues={{ display_name: 'Original Run - 1' }}
@@ -1774,7 +1777,7 @@ describe('AutoragConfigurePage', () => {
 
       expect(screen.queryByTestId('configure-breadcrumb-source-run')).not.toBeInTheDocument();
       const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
-      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+      expect(activeBreadcrumb).toHaveTextContent('Experiment configurations');
     });
 
     it('should navigate back when Cancel is clicked without sourceRunId', async () => {
@@ -1897,7 +1900,7 @@ describe('AutoragConfigurePage', () => {
       await user.click(nextButton);
 
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
-      expect(breadcrumbName).toHaveTextContent('Reconfigure');
+      expect(breadcrumbName).toHaveTextContent('Experiment configurations');
     });
 
     describe('configure step with pre-filled values', () => {

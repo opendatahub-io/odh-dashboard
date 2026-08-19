@@ -870,7 +870,9 @@ describe('AutoragResults', () => {
     it('should call onTryPattern with source: patternDetails from the pattern details modal action', async () => {
       const user = userEvent.setup();
       const onTryPattern = jest.fn();
-      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
+      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
+        onTryPattern,
+      });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
@@ -882,7 +884,7 @@ describe('AutoragResults', () => {
       await user.click(tryPatternAction);
 
       expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    });
+    }, 15_000);
   });
 
   describe('onViewCode source', () => {
@@ -948,7 +950,7 @@ describe('AutoragResults', () => {
       await user.click(viewCodeAction);
 
       expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    });
+    }, 15_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {

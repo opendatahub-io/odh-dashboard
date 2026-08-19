@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Drawer,
@@ -15,6 +14,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
@@ -52,6 +52,10 @@ function AutomlResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -276,14 +280,24 @@ function AutomlResultsPage(): React.JSX.Element {
                 </Split>
               }
               breadcrumb={
-                <Breadcrumb>
-                  <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isActive>
-                    <Truncate content={pipelineRun?.display_name || ''} />
-                  </BreadcrumbItem>
-                </Breadcrumb>
+                namespace ? (
+                  <ExperimentContextBreadcrumb
+                    pageName="AutoML"
+                    namespace={namespace}
+                    projectDisplayName={projectDisplayName}
+                    homePath={getRedirectPath(namespace)}
+                  >
+                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                      <Link
+                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+                        state={{ from: 'results' }}
+                      >
+                        Experiment configurations
+                      </Link>
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
+                  </ExperimentContextBreadcrumb>
+                ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
