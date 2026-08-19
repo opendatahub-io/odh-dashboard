@@ -72,6 +72,27 @@ const nimImageApplyExtension: WizardFieldApplyExtension<NIMImageFieldValue, KSer
   },
 };
 
+const nimImageExtractExtension: WizardFieldExtractorExtension<
+  NIMImageFieldValue,
+  KServeDeployment
+> = {
+  // Prefills the image field on edit. Matches the shared KServe platform (a legacy NIM
+  // InferenceService reports modelServingPlatformId === KSERVE_ID); the extractor returns
+  // undefined for non-NIM deployments so plain KServe edits are unaffected.
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'nim-serving/nimImage',
+    platform: KSERVE_ID,
+    extract: () =>
+      import('../src/nimKServe/fields/nimImageApplyExtract').then(
+        (m) => m.extractNIMKServeImageFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
 // Legacy NIM reuses KServe's form-data extension (same KSERVE_ID platform) and overrides only
 // what differs: isActive detects the NIM image on the runtime, priority beats plain KServe (0),
 // and the model location resolves to NIM instead of KServe.
@@ -116,23 +137,7 @@ const extensions: (
   nimPVCApplyExtension,
   nimPVCExtractorExtension,
   nimPVCDeployFunctionsExtension,
-  {
-    // Prefills the image field on edit. Matches the shared KServe platform (a legacy NIM
-    // InferenceService reports modelServingPlatformId === KSERVE_ID); the extractor returns
-    // undefined for non-NIM deployments so plain KServe edits are unaffected.
-    type: 'model-serving.deployment/wizard-field-extractor',
-    properties: {
-      fieldId: 'nim-serving/nimImage',
-      platform: KSERVE_ID,
-      extract: () =>
-        import('../src/nimKServe/fields/nimImageApplyExtract').then(
-          (m) => m.extractNIMKServeImageFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
+  nimImageExtractExtension,
 ];
 
 export default extensions;
