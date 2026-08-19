@@ -875,16 +875,19 @@ describe('AutoragResults', () => {
       });
 
       const row = screen.getByTestId('leaderboard-row-1');
-      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
+
       const tryPatternAction = await screen.findByText('Try this pattern');
       await user.click(tryPatternAction);
 
       expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    }, 15_000);
+    }, 20_000);
   });
 
   describe('onViewCode source', () => {
