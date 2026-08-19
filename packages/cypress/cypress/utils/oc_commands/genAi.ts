@@ -341,6 +341,11 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * Reuses mcpServerDeploy utilities for prerequisites (SA, CRB, ConfigMap)
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
+ *
+ * The Route is ephemeral test infrastructure (torn down in after()) and uses
+ * edge TLS + read-only mode. It is needed because the BFF may run outside the
+ * cluster (local dev) and cannot reach in-cluster Service DNS.
+ *
  * Returns the Route URL with `/mcp` suffix.
  */
 export const deployMCPServer = (

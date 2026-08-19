@@ -737,7 +737,6 @@ export type CustomEndpointTestData = {
     image: string;
     serverDescription: string;
     testQuestion: string;
-    expectedResponseContent: string;
   };
 };
 

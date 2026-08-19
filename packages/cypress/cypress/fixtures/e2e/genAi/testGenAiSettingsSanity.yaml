@@ -34,4 +34,3 @@ mcp:
   image: 'quay.io/containers/kubernetes_mcp_server:v0.0.60'
   serverDescription: 'Kubernetes cluster management (read-only) - list namespaces, pods, events, resources, logs, and more'
   testQuestion: 'List the namespaces in this cluster'
-  expectedResponseContent: 'default'
