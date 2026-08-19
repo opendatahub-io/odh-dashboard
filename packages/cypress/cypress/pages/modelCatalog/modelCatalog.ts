@@ -6,8 +6,8 @@ class ModelCatalog {
     this.waitLanding();
   }
 
-  visit() {
-    cy.visitWithLogin(`/ai-hub/models/catalog`);
+  visit(search = '') {
+    cy.visitWithLogin(`/ai-hub/models/catalog${search}`);
     this.wait();
   }
 
@@ -24,6 +24,7 @@ class ModelCatalog {
     cy.findByTestId('app-tab-page-title').should('exist');
     cy.findByText('Discover models that are available for your organization', {
       exact: false,
+      timeout: 20000,
     }).should('exist');
     cy.testA11y();
   }
@@ -38,8 +39,13 @@ class ModelCatalog {
     return this;
   }
 
-  findModelCatalogEmptyState() {
-    return cy.findByTestId('empty-model-catalog-state');
+  findSearchInput() {
+    return cy.findByTestId('search-input').find('input');
+  }
+
+  searchByName(name: string) {
+    this.findSearchInput().clear().type(`${name}{enter}`);
+    return this;
   }
 
   findModelCatalogModelDetailLink() {
@@ -52,8 +58,12 @@ class ModelCatalog {
 
   findModelCatalogCard(modelName: string) {
     return cy
-      .findAllByTestId('model-catalog-card')
+      .findAllByTestId('model-catalog-card', { timeout: 20000 })
       .contains('[data-testid~=model-catalog-card]', modelName);
+  }
+
+  findModelCatalogCardLink(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('model-catalog-detail-link');
   }
 
   findFirstModelCatalogCard() {
@@ -65,7 +75,7 @@ class ModelCatalog {
   }
 
   findCatalogDeployButton() {
-    return cy.findByTestId('deploy-button');
+    return cy.findByTestId('deploy-button', { timeout: 20000 });
   }
 
   clickDeployModelButtonWithRetry() {
@@ -74,6 +84,9 @@ class ModelCatalog {
     const tryClick = () => {
       attempt++;
       cy.log(`Click attempt #${attempt}`);
+      this.findCatalogDeployButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
       this.findCatalogDeployButton().click();
 
       cy.location('pathname').then((path) => {

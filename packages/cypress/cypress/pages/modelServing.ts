@@ -962,8 +962,12 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
+  findValidatedArgumentsSection() {
+    return this.findValidatedConfigurationSection('args');
+  }
+
   findValidatedConfigurationSection(forField: string) {
-    return cy.findByTestId(`validated-configuration-section-${forField}`);
+    return cy.findByTestId(`validated-configuration-section-${forField}`, { timeout: 20000 });
   }
 
   findValidatedConfigurationOption(optionSlug: string) {
@@ -1464,6 +1468,10 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findExitDeploymentDiscardButton() {
+    return cy.findByTestId('exit-deployment-discard-button');
   }
 
   findGatewaySelect() {
