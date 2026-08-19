@@ -220,15 +220,17 @@ describe('AddRuleModal orchestration', () => {
     it('should keep custom resources (unknown group) when API group is removed', () => {
       renderModal({
         id: 'r1',
-        apiGroups: ['apps'],
-        resources: ['deployments', 'mycustomresource'],
+        apiGroups: ['apps', ''],
+        resources: ['deployments', 'pods', 'mycustomresource'],
         verbs: ['get'],
       });
 
       act(() => {
-        capturedApiGroupsProps.onSelectedApiGroupsChange([]);
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['']);
       });
 
+      expect(capturedResourcesProps.selectedResources).not.toContain('deployments');
+      expect(capturedResourcesProps.selectedResources).toContain('pods');
       expect(capturedResourcesProps.selectedResources).toContain('mycustomresource');
     });
 

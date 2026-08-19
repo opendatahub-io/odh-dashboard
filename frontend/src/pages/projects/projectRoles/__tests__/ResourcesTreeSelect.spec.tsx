@@ -709,6 +709,5 @@ describe('ResourcesTreeSelect', () => {
 
       expect(screen.getByText('All resources')).toBeInTheDocument();
     });
-  
   });
 });
