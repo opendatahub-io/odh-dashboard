@@ -31,21 +31,33 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn().mockReturnValue([]),
 }));
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-assertions, @odh-dashboard/no-restricted-imports -- test mock: provide real component via host-api bridge
-  const { default: RealConnectionTypeFormFields } = jest.requireActual(
-    '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields',
-  ) as { default: React.ComponentType };
-  return {
-    useWatchConnectionTypes: jest.fn(() => [[], true]),
-    useServingConnections: jest.fn(() => [[], true]),
-    useHostApi: jest.fn(() => ({
-      ConnectionTypeFormFields: RealConnectionTypeFormFields,
-    })),
-    useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
-    useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
-  };
-});
+const StubConnectionTypeFormFields: React.FC<{
+  fields?: { type: string; envVar?: string }[];
+  connectionValues?: Record<string, unknown>;
+  onChange?: (field: { type: string; envVar?: string }, value: unknown) => void;
+}> = ({ fields, connectionValues, onChange }) => (
+  <>
+    {fields
+      ?.filter((f): f is { type: string; envVar: string } => f.type !== 'section' && !!f.envVar)
+      .map((field) => (
+        <input
+          key={field.envVar}
+          data-testid={`field ${field.envVar}`}
+          value={String(connectionValues?.[field.envVar] ?? '')}
+          onChange={(e) => onChange?.(field, e.target.value)}
+        />
+      ))}
+  </>
+);
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useWatchConnectionTypes: jest.fn(() => [[], true]),
+  useServingConnections: jest.fn(() => [[], true]),
+  useHostApi: jest.fn(() => ({
+    ConnectionTypeFormFields: StubConnectionTypeFormFields,
+  })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
+}));
 
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({
@@ -234,6 +246,11 @@ describe('ModelSourceStep', () => {
                   annotations: {
                     'opendatahub.io/connection-type': 'uri - v1',
                   },
+                },
+                data: {
+                  fields: [
+                    { envVar: 'URI', name: 'URI', required: true, type: 'uri', properties: {} },
+                  ],
                 },
               },
               additionalFields: {},
