@@ -26,12 +26,14 @@ const ProjectCell: React.FC<{ deployment: Deployment; projects: ProjectKind[] }>
   deployment,
   projects,
 }) => {
-  const platformLabel = useExtensions(isModelServingPlatformExtension);
-  const platform = platformLabel.find((p) => p.properties.id === deployment.modelServingPlatformId);
+  const platformLabels = useExtensions(isModelServingPlatformExtension);
+  const platform = platformLabels.find(
+    (p) => p.properties.id === deployment.modelServingPlatformId,
+  );
   return (
     <>
       {namespaceToProjectDisplayName(deployment.model.metadata.namespace, projects)}{' '}
-      {platform && (
+      {platform && platformLabels.length > 1 && (
         <Label data-testid="serving-platform-label" isCompact>
           {platform.properties.enableCardText.enabledText}
         </Label>
