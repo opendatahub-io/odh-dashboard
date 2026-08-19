@@ -34,6 +34,12 @@ import (
 
 const e2eNamespace = "my-project"
 
+// e2eHTTPClient is used for all requests issued by this suite. A bounded
+// timeout ensures a blocked/deadlocked handler fails a test quickly with a
+// clear "context deadline exceeded" error instead of hanging until the
+// package-level go test timeout, which would obscure which request stalled.
+var e2eHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
 // newE2EServer boots a real App wired entirely to stateful fakes (no live cluster,
 // no external processes) and returns the base URL of an httptest.Server exposing
 // app.Routes(). AuthMethodDisabled is used so requests need no identity headers —
@@ -96,7 +102,7 @@ func e2eRequest(t *testing.T, method, url string, body any) e2eResponse {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := e2eHTTPClient.Do(req)
 	if err != nil {
 		t.Fatalf("request %s %s failed: %v", method, url, err)
 	}
@@ -418,7 +424,7 @@ func e2eUploadFile(t *testing.T, baseURL, key, filename, content string) e2eResp
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := e2eHTTPClient.Do(req)
 	if err != nil {
 		t.Fatalf("upload request failed: %v", err)
 	}
