@@ -252,6 +252,37 @@ describe('ChatbotSettingsPanel', () => {
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
   });
 
+  it('should only call onCloseClick once when resized below threshold multiple times in a row', async () => {
+    const user = userEvent.setup();
+    const mockOnCloseClick = jest.fn();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
+
+    const resize99Button = screen.getByTestId('trigger-resize-99');
+    await user.click(resize99Button);
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    const resize50Button = screen.getByTestId('trigger-resize-50');
+    await user.click(resize50Button);
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onCloseClick again after crossing back above the threshold and below it again', async () => {
+    const user = userEvent.setup();
+    const mockOnCloseClick = jest.fn();
+    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={mockOnCloseClick} />);
+
+    // Panel remounts (new `key`) on auto-close, so re-query the buttons fresh each time
+    // rather than reusing a stale reference to the unmounted element.
+    await user.click(screen.getByTestId('trigger-resize-50'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId('trigger-resize-200'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId('trigger-resize-50'));
+    expect(mockOnCloseClick).toHaveBeenCalledTimes(2);
+  });
+
   it('should not throw when onCloseClick is not provided and panel is resized below threshold', async () => {
     const user = userEvent.setup();
     expect(() => {
@@ -704,6 +735,28 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} defaultActiveTabKey={1} />);
 
       expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should normalize a string defaultActiveTabKey to select the matching tab', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} defaultActiveTabKey="1" />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+    });
+
+    it('should normalize a controlled string activeTabKey to select the matching tab', () => {
+      render(<ChatbotSettingsPanel {...defaultProps} activeTabKey="2" />);
+
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveStyle({
         display: 'none',
       });
       expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({

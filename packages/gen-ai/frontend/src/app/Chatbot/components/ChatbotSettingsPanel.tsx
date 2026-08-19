@@ -187,16 +187,24 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+  // Tracks the last resize width so the auto-close logic only fires once per
+  // threshold crossing, instead of on every resize callback while below it.
+  const lastWidthRef = React.useRef<number>(AUTO_CLOSE_WIDTH_THRESHOLD);
 
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
   ) => {
+    const wasAboveThreshold = lastWidthRef.current >= AUTO_CLOSE_WIDTH_THRESHOLD;
+    lastWidthRef.current = width;
+
     if (width < AUTO_CLOSE_WIDTH_THRESHOLD) {
-      setPanelWidth(DEFAULT_WIDTH);
-      sessionStorage.setItem(SETTINGS_PANEL_WIDTH, DEFAULT_WIDTH);
-      setPanelSizeKey((k) => k + 1);
-      onCloseClick?.();
+      if (wasAboveThreshold) {
+        setPanelWidth(DEFAULT_WIDTH);
+        sessionStorage.setItem(SETTINGS_PANEL_WIDTH, DEFAULT_WIDTH);
+        setPanelSizeKey((k) => k + 1);
+        onCloseClick?.();
+      }
       return;
     }
     const newWidth = `${width}px`;
@@ -208,7 +216,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [activeTabKeyInternal, setActiveTabKeyInternal] = React.useState<string | number>(
     defaultActiveTabKey ?? 0,
   );
-  const activeTabKey = activeTabKeyProp ?? activeTabKeyInternal;
+  const rawActiveTabKey = activeTabKeyProp ?? activeTabKeyInternal;
+  // Tabs below only ever compare/select against numeric indices, so string keys
+  // (e.g. "1") must be normalized here or they'd silently deselect every tab.
+  const parsedActiveTabKey =
+    typeof rawActiveTabKey === 'string' ? Number(rawActiveTabKey) : rawActiveTabKey;
+  const activeTabKey = Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0;
   const handleTabSelect = (tabIndex: string | number) => {
     // Only update internal state when uncontrolled so it doesn't diverge from the prop
     if (activeTabKeyProp === undefined) {
