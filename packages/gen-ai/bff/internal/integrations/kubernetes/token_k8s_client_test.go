@@ -586,6 +586,42 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/publishers/ns/models/model/v1", endpoint)
 	})
 
+	t.Run("root-only gateway-internal before valid short-path gateway-internal skips root", func(t *testing.T) {
+		gwInternal := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/")},
+						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"root-only gateway-internal must not be selected; should pick the /<ns>/<model> address")
+	})
+
+	t.Run("single-segment gateway-internal path is not treated as short model path", func(t *testing.T) {
+		gwInternal := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/something")},
+						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"single-segment path should not be treated as /<ns>/<model>")
+	})
+
 	t.Run("falls back to any internal address when no gateway-internal name match", func(t *testing.T) {
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			Status: kservev1alpha1.LLMInferenceServiceStatus{
@@ -601,6 +637,26 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		assert.Equal(t, "https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local/v1", endpoint,
 			"backward-compatible: addresses without Name field still work")
 	})
+}
+
+func TestIsShortModelPath(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected bool
+	}{
+		{"/", false},
+		{"", false},
+		{"/ns", false},
+		{"/ns/model", true},
+		{"/ns/model/", true},
+		{"/ns/model/extra", false},
+		{"/publishers/ns/models/m", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			assert.Equal(t, tt.expected, isShortModelPath(tt.path))
+		})
+	}
 }
 
 // TestInferenceServiceURLSuffixConstruction tests that InferenceService URLs

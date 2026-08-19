@@ -2558,6 +2558,18 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 // path-based routing (e.g. /<namespace>/<model>/v1/...).
 const gatewayInternalName = "gateway-internal"
 
+// isShortModelPath returns true when the URL path has exactly two non-empty
+// segments: /<namespace>/<model>. Root-only ("/"), single-segment, and deeper
+// paths like /publishers/... are rejected, so only the expected path-based
+// routing form is selected as a first-choice candidate.
+func isShortModelPath(urlPath string) bool {
+	trimmed := strings.Trim(urlPath, "/")
+	if trimmed == "" {
+		return false
+	}
+	return len(strings.Split(trimmed, "/")) == 2
+}
+
 // extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
 // using the standard KServe status.addresses field. It prefers "gateway-internal" named addresses
 // with path-based routing over "gateway-internal-model-routing" (root-only, header-based) entries.
@@ -2574,7 +2586,7 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ contex
 		u := addr.URL.String()
 
 		if addr.Name != nil && *addr.Name == gatewayInternalName {
-			if !strings.HasPrefix(addr.URL.Path, "/publishers/") {
+			if isShortModelPath(addr.URL.Path) {
 				kc.Logger.Debug("extracted gateway-internal URL from LLMInferenceService status.addresses",
 					"llmServiceName", llmSvc.Name,
 					"endpoint", EnsureV1Suffix(u))
