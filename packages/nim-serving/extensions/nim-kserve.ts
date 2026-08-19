@@ -33,7 +33,7 @@ const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, 
     type: 'model-serving.deployment/wizard-field-extractor',
     properties: {
       fieldId: 'nim-serving/pvcStorage',
-      platform: NIM_LEGACY_ID,
+      platform: KSERVE_ID,
       extract: () =>
         import('../src/nimKServe/fields/nimPVCApplyExtract').then((m) => m.extractNIMPVCFieldData),
     },

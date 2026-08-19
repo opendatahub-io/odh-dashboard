@@ -5,12 +5,14 @@ import {
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
 } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
 import {
   InferenceServiceModel,
+  PVCModel,
   SecretModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
@@ -378,10 +380,20 @@ describe('NIM Models Deployments', () => {
     cy.interceptK8sList(
       ServingRuntimeModel,
       // The runtime carries the NIM image on its `kserve-container` so edit-detection recognizes
-      // it and prefills the found image (arctic-embed-l 1.0.1 exists in mockNimImages -> happy path)
+      // it and prefills the found image (arctic-embed-l 1.0.1 exists in mockNimImages -> happy path).
+      // It also carries a PVC cache volume so the PVC field prefills the existing storage selection.
       mockK8sResourceList([
-        mockNimServingRuntime({ image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1' }),
+        mockNimServingRuntime({
+          image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+          pvcName: 'my-nim-wizard-pvc',
+          subPath: 'arctic-embed-l',
+        }),
       ]),
+    );
+    // The PVC must be in the fetched list for the existing-storage select to render its name
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([mockPVCK8sResource({ name: 'my-nim-wizard-pvc' })]),
     );
 
     modelServingGlobal.visit('test-project');
@@ -411,6 +423,13 @@ describe('NIM Models Deployments', () => {
     // The saved hardware profile prefills (only one profile exists, so the selector is disabled)
     modelServingWizardEdit.selectPotentiallyDisabledProfile('default-profile');
     modelServingWizardEdit.findModelFormatSelect().should('not.exist');
-    // Stop before the PVC caching fields - editing them is not supported yet
+
+    // PVC caching prefills from the existing runtime's cache volume: existing-storage mode,
+    // the mounted PVC preselected, and its subpath loaded from the volumeMount
+    modelServingWizardEdit.nim
+      .findStorageModeSelect()
+      .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
+    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
   });
 });

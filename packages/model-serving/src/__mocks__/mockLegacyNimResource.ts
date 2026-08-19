@@ -100,11 +100,17 @@ export const mockNimInferenceService = ({
 };
 
 export const mockNimServingRuntime = ({
-  image,
+  image = 'nvcr.io/nim/nvidia/my-nim-container:mytag',
+  pvcName = 'my-nim-pvc',
+  subPath,
 }: {
   // When set, the runtime carries a `kserve-container` with this image so edit-detection
   // (isNIMKServeDeployment) recognizes it and the image field prefills on edit.
   image?: string;
+  // When set, the runtime carries a PVC cache volume + `kserve-container` volumeMount at the NIM
+  // cache path so the PVC field prefills the existing storage selection on edit.
+  pvcName?: string;
+  subPath?: string;
 } = {}): ServingRuntimeKind => {
   const servingRuntime = mockServingRuntimeK8sResource({
     name: 'test-name',
@@ -118,6 +124,23 @@ export const mockNimServingRuntime = ({
     servingRuntime.spec.containers = [
       { ...servingRuntime.spec.containers[0], name: 'kserve-container', image },
     ];
+  }
+  if (pvcName) {
+    servingRuntime.spec.volumes = [
+      ...(servingRuntime.spec.volumes ?? []),
+      { name: pvcName, persistentVolumeClaim: { claimName: pvcName } },
+    ];
+    servingRuntime.spec.containers = servingRuntime.spec.containers.map((container) =>
+      container.name === 'kserve-container'
+        ? {
+            ...container,
+            volumeMounts: [
+              ...(container.volumeMounts ?? []),
+              { name: pvcName, mountPath: '/mnt/models/cache', ...(subPath ? { subPath } : {}) },
+            ],
+          }
+        : container,
+    );
   }
 
   return servingRuntime;
