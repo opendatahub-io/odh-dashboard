@@ -499,7 +499,7 @@ make operator-chaos
 
 ### CI
 
-The `Chaos Validation` workflow (`.github/workflows/operator-chaos.yml`) runs on PRs that touch `chaos/`, `manifests/`, or `dashboard-operator/` source. It validates the knowledge model, runs preflight checks, detects breaking changes against the base branch, and simulates upgrades with `--dry-run`.
+The `Chaos Validation` workflow (`.github/workflows/operator-chaos.yml`) runs on PRs that touch `chaos/`, `manifests/`, `dashboard-operator/{internal,api,config,cmd}/`, or `dashboard-operator/Makefile`. It validates the knowledge model, runs preflight checks, detects breaking changes against the base branch, and simulates upgrades with `--dry-run`. Breaking-change detection and upgrade simulation are skipped when the base branch has no `chaos/knowledge` directory (first-time integration).
 
 ### Maintenance
 

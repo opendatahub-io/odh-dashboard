@@ -5,6 +5,9 @@ operator:
 
 components:
   - name: odh-dashboard
+    # controller refers to the upstream opendatahub-operator reconciler that
+    # owns the Dashboard lifecycle (DataScienceCluster CRD). The in-repo
+    # DashboardReconciler is a downstream module controller managed by it.
     controller: DataScienceCluster
     managedResources:
       - apiVersion: apps/v1
@@ -13,6 +16,9 @@ components:
         namespace: opendatahub
         labels:
           deployment: odh-dashboard
+          # Labels below are injected by the ODH kustomize overlay
+          # (manifests/odh/kustomization.yaml), not the base manifest.
+          # RHOAI deployments may use different overlay labels.
           app: odh-dashboard
           app.kubernetes.io/part-of: odh-dashboard
         expectedSpec:

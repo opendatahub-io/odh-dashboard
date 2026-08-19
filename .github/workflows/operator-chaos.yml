@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=$(grep '^OPERATOR_CHAOS_VERSION' dashboard-operator/Makefile | head -1 | sed 's/.*?= *//')
+          version=$(grep '^OPERATOR_CHAOS_VERSION' dashboard-operator/Makefile | head -1 | sed 's/^[^=]*= *//')
           mkdir -p "${RUNNER_TEMP}/bin"
           GOBIN="${RUNNER_TEMP}/bin" go install "github.com/opendatahub-io/operator-chaos/cmd/operator-chaos@${version}"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
