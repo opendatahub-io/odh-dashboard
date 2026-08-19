@@ -89,7 +89,7 @@ jobs:
             KEEP_OURS_PATTERNS=(
               "frontend/.env"
               ".tekton/"
-              "manifests/odh/standalone/params.env"
+              "manifests/odh/params.env"
               "manifests/modules/model-registry/params.env"
               "manifests/modules/gen-ai/params.env"
               "manifests/modules/maas/params.env"
@@ -177,9 +177,9 @@ jobs:
           sed -i "s/^INTERNAL_DASHBOARD_VERSION=.*/INTERNAL_DASHBOARD_VERSION=${NEW_VERSION}/" frontend/.env
           echo "Updated frontend/.env"
           
-          # Update manifests/odh/standalone/params.env (odh-dashboard-image)
-          sed -i "s|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:.*|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:${NEW_VERSION}-odh|" manifests/odh/standalone/params.env
-          echo "Updated manifests/odh/standalone/params.env"
+          # Update manifests/odh/params.env (odh-dashboard-image)
+          sed -i "s|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:.*|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:${NEW_VERSION}-odh|" manifests/odh/params.env
+          echo "Updated manifests/odh/params.env"
 
           # Update per-module params.env image versions
           for params_file in manifests/modules/*/params.env; do
@@ -200,7 +200,7 @@ jobs:
           done
 
           # Commit version bump
-          git add frontend/.env manifests/odh/standalone/params.env manifests/modules/*/params.env
+          git add frontend/.env manifests/odh/params.env manifests/modules/*/params.env
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
@@ -226,7 +226,7 @@ jobs:
 
           ## Files updated
           - \`frontend/.env\`
-          - \`manifests/odh/standalone/params.env\`
+          - \`manifests/odh/params.env\`
           - \`manifests/modules/*/params.env\`
 
           ---

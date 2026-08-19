@@ -677,9 +677,9 @@ jobs:
           # Try overlay first, fall back to base, fail if both are invalid
           APPLY_EXIT=0
 
-          if [ -d "manifests/odh/standalone" ]; then
-            echo "Applying manifests/odh/standalone..."
-            if ! kubectl apply -k manifests/odh/standalone -n opendatahub 2>&1; then
+          if [ -d "manifests/odh" ]; then
+            echo "Applying manifests/odh..."
+            if ! kubectl apply -k manifests/odh -n opendatahub 2>&1; then
               APPLY_EXIT=$?
               echo "::error::Manifest application failed with exit code $APPLY_EXIT"
               echo "::group::Recent cluster events"

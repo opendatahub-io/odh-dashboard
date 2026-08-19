@@ -25,12 +25,6 @@ var platformPaths = map[cluster.Platform]string{
 	cluster.OpenDataHub:      "/odh",
 }
 
-var overlaysSourcePaths = map[cluster.Platform]string{
-	cluster.SelfManagedRhoai: "/rhoai/standalone",
-	cluster.ManagedRhoai:     "/not-supported",
-	cluster.OpenDataHub:      "/odh/standalone",
-}
-
 var imagesMap = map[string]string{
 	"odh-dashboard-image":            "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
 	"model-registry-ui-image":        "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
@@ -50,9 +44,9 @@ var imagesMap = map[string]string{
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := overlaysSourcePaths[platform]
+	sourcePath, ok := platformPaths[platform]
 	if !ok {
-		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+		sourcePath = platformPaths[cluster.OpenDataHub]
 	}
 
 	return render.ManifestInfo{

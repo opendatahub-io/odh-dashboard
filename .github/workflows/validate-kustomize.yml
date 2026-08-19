@@ -30,10 +30,8 @@ jobs:
         target:
           - name: RHOAI
             path: manifests/rhoai
-          - name: RHOAI Standalone
-            path: manifests/rhoai/standalone
-          - name: ODH Standalone
-            path: manifests/odh/standalone
+          - name: ODH
+            path: manifests/odh
           - name: Modules
             path: manifests/modules
     steps:
