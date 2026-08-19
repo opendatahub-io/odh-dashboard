@@ -59,7 +59,7 @@ export type HostApiCoreServices = {
   /** Fire a tracking event with arbitrary properties. */
   trackEvent: (
     eventName: string,
-    properties: Record<string, string | number | boolean | undefined>,
+    properties: Record<string, string | number | boolean | string[] | undefined>,
   ) => void;
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
@@ -104,6 +104,12 @@ export type HostApiInfraServices = {
  * Provided via HostApiContext (the domain bridge).
  */
 export type HostApiServices = {
+  /** Fire a tracking event with arbitrary properties. */
+  trackEvent: (
+    eventName: string,
+    properties: Record<string, string | number | boolean | string[] | undefined>,
+  ) => void;
+
   /** Watch serving runtime templates in a namespace. Returns a K8s watch-style tuple. */
   useTemplates: (namespace?: string) => K8sWatchResult<TemplateKind[]>;
 

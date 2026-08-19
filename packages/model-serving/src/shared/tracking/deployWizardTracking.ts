@@ -1,0 +1,194 @@
+import { ModelServingTrackingEvent, type TrackEventFn } from './modelServingTrackingConstants';
+import type { ValidatedConfiguration, ValidatedConfigurationOption } from '../types/form-data';
+
+export const TOOL_CALLING_CONFIGURATION_TITLE = 'Tool calling';
+export const TOOL_CALLING_INJECTED_ARGS_MARKER = `# Validated arguments for ${TOOL_CALLING_CONFIGURATION_TITLE}`;
+
+export type DeployWizardEntryPoint =
+  | 'model_details'
+  | 'deployments_list'
+  | 'project_deployments'
+  | 'navigator'
+  | 'edit';
+
+export type DeployWizardNavSource = {
+  fromCatalog?: boolean;
+  catalogModelId?: string;
+  fromProject?: boolean;
+  fromProjectNavigator?: boolean;
+};
+
+export type DeployWizardNavState = DeployWizardNavSource & {
+  projectName?: string;
+  editMode?: boolean;
+};
+
+export type DeployWizardStartedProperties = {
+  entryPoint: DeployWizardEntryPoint;
+  catalogModelId?: string;
+  hasValidatedArgumentsSection: boolean;
+  isEditMode: boolean;
+};
+
+export type ValidatedArgumentSelectedProperties = {
+  configurationName: string;
+  configurationIcon: string;
+  isSelected: boolean;
+  catalogModelId?: string;
+  entryPoint: 'model_details';
+  hasValidatedArgumentsSection: true;
+};
+
+export type ValidatedArgumentsViewedProperties = {
+  configurationName: string;
+  catalogModelId?: string;
+  entryPoint: 'model_details';
+  hasValidatedArgumentsSection: true;
+};
+
+export type ModelDeployedTrackingProperties = {
+  enableToolCalling: boolean;
+  validatedConfigurationCount: number;
+  validatedConfigurationNames: string[];
+  hasValidatedArgumentsSection: boolean;
+  catalogModelId?: string;
+  entryPoint: DeployWizardEntryPoint;
+  outcome: 'submit' | 'cancel';
+  success?: boolean;
+  error?: string;
+  hasInjectedValidatedArgs: boolean;
+} & Record<string, string | number | boolean | string[] | undefined>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+export const getDeployWizardNavState = (locationState: unknown): DeployWizardNavState => {
+  if (!isRecord(locationState)) {
+    return {};
+  }
+  return {
+    fromCatalog: locationState.fromCatalog === true,
+    catalogModelId:
+      typeof locationState.catalogModelId === 'string' ? locationState.catalogModelId : undefined,
+    fromProject: locationState.fromProject === true,
+    projectName:
+      typeof locationState.projectName === 'string' ? locationState.projectName : undefined,
+    fromProjectNavigator: locationState.fromProjectNavigator === true,
+    editMode: locationState.editMode === true,
+  };
+};
+
+export const getDeployWizardEntryPoint = (
+  navState: DeployWizardNavState,
+): DeployWizardEntryPoint => {
+  if (navState.editMode) {
+    return 'edit';
+  }
+  if (navState.fromCatalog && navState.catalogModelId) {
+    return 'model_details';
+  }
+  if (navState.fromProjectNavigator) {
+    return 'navigator';
+  }
+  if (navState.fromProject && navState.projectName) {
+    return 'project_deployments';
+  }
+  return 'deployments_list';
+};
+
+export const isShowValidatedArgumentsSection = (
+  navState: DeployWizardNavState,
+  validatedConfigurations?: ValidatedConfiguration[],
+): boolean =>
+  Boolean(navState.fromCatalog) &&
+  Boolean(navState.catalogModelId) &&
+  !navState.editMode &&
+  Boolean(validatedConfigurations?.some((configuration) => configuration.options.length > 0));
+
+export const getSelectedValidatedOptions = (
+  configurations: ValidatedConfiguration[] | undefined,
+  selected: Record<string, string[]> | undefined,
+): ValidatedConfigurationOption[] => {
+  if (!configurations?.length || !selected) {
+    return [];
+  }
+  return configurations.flatMap((configuration) =>
+    configuration.options.filter((option) =>
+      (selected[configuration.forField] ?? []).includes(option.value),
+    ),
+  );
+};
+
+export const getModelDeployedTrackingProperties = ({
+  navState,
+  validatedConfigurations,
+  selectedValidatedConfigurations,
+  runtimeArgs,
+  outcome,
+  success,
+  error,
+  additionalProperties,
+}: {
+  navState: DeployWizardNavState;
+  validatedConfigurations?: ValidatedConfiguration[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
+  runtimeArgs?: string[];
+  outcome: 'submit' | 'cancel';
+  success?: boolean;
+  error?: string;
+  additionalProperties?: Record<string, string | number | boolean | string[] | undefined>;
+}): ModelDeployedTrackingProperties => {
+  const selectedOptions = getSelectedValidatedOptions(
+    validatedConfigurations,
+    selectedValidatedConfigurations,
+  );
+  const validatedConfigurationNames = selectedOptions.map((option) => option.title);
+  const hasInjectedValidatedArgs = (runtimeArgs ?? []).includes(TOOL_CALLING_INJECTED_ARGS_MARKER);
+
+  return {
+    ...additionalProperties,
+    enableToolCalling:
+      selectedOptions.some((option) => option.title === TOOL_CALLING_CONFIGURATION_TITLE) ||
+      hasInjectedValidatedArgs,
+    validatedConfigurationCount: validatedConfigurationNames.length,
+    validatedConfigurationNames,
+    hasValidatedArgumentsSection: isShowValidatedArgumentsSection(
+      navState,
+      validatedConfigurations,
+    ),
+    catalogModelId: navState.catalogModelId,
+    entryPoint: getDeployWizardEntryPoint(navState),
+    outcome,
+    success,
+    error,
+    hasInjectedValidatedArgs,
+  };
+};
+
+export const fireDeployWizardStarted = (
+  trackEvent: TrackEventFn,
+  properties: DeployWizardStartedProperties,
+): void => {
+  trackEvent(ModelServingTrackingEvent.DEPLOY_WIZARD_STARTED, properties);
+};
+
+export const fireValidatedArgumentSelected = (
+  trackEvent: TrackEventFn,
+  properties: ValidatedArgumentSelectedProperties,
+): void => {
+  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED, properties);
+};
+
+export const fireValidatedArgumentsViewed = (
+  trackEvent: TrackEventFn,
+  properties: ValidatedArgumentsViewedProperties,
+): void => {
+  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED, properties);
+};
+
+export const fireModelDeployed = (
+  trackEvent: TrackEventFn,
+  properties: ModelDeployedTrackingProperties,
+): void => {
+  trackEvent(ModelServingTrackingEvent.MODEL_DEPLOYED, properties);
+};

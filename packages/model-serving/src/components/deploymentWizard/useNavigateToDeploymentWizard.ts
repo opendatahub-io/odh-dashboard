@@ -4,6 +4,7 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from '../../shared/types/form-data';
+import type { DeployWizardNavSource } from '../../shared/tracking/deployWizardTracking';
 import { type Deployment } from '../../../extension-points';
 
 /**
@@ -54,9 +55,14 @@ export const useNavigateToDeploymentWizard = (
   initialData?: InitialWizardFormData | null,
   returnRouteValue?: string,
   cancelReturnRouteValue?: string,
+  navSource?: DeployWizardNavSource,
 ): ((projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null) => void) => {
   const navigate: NavigateFunction = useNavigate();
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
+  const fromCatalog = navSource?.fromCatalog;
+  const catalogModelId = navSource?.catalogModelId;
+  const fromProject = navSource?.fromProject;
+  const fromProjectNavigator = navSource?.fromProjectNavigator;
 
   // Load hooks needed for the deployment wizard
   const { formData, loaded, error } = useExtractFormDataFromDeployment(deployment);
@@ -93,6 +99,11 @@ export const useNavigateToDeploymentWizard = (
           returnRoute,
           cancelReturnRoute,
           projectName,
+          fromCatalog,
+          catalogModelId,
+          fromProject,
+          fromProjectNavigator,
+          editMode: Boolean(deployment),
         },
       });
     },
@@ -105,6 +116,10 @@ export const useNavigateToDeploymentWizard = (
       cancelReturnRoute,
       error,
       isYAMLViewerEnabled,
+      fromCatalog,
+      catalogModelId,
+      fromProject,
+      fromProjectNavigator,
     ],
   );
 

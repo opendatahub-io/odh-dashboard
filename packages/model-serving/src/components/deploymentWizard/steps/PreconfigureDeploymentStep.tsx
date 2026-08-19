@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Form,
   FormGroup,
@@ -12,6 +13,10 @@ import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ValidatedArgumentsSection } from '../fields/validatedConfigurations/ValidatedArgumentsSection';
+import {
+  getDeployWizardNavState,
+  isShowValidatedArgumentsSection,
+} from '../../../shared/tracking/deployWizardTracking';
 
 type PreconfigureDeploymentStepProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -24,6 +29,12 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
 }) => {
   const { initialProjectName, projectName, setProjectName } = wizardState.state.project;
   const validatedConfigurations = wizardState.initialData?.validatedConfigurations ?? [];
+  const location = useLocation();
+  const navState = getDeployWizardNavState(location.state);
+  const showValidatedArgumentsSection = isShowValidatedArgumentsSection(
+    navState,
+    validatedConfigurations,
+  );
 
   return (
     <Form>
@@ -56,11 +67,12 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
           />
         )}
       </FormGroup>
-      {validatedConfigurations.length > 0 && (
+      {showValidatedArgumentsSection && (
         <ValidatedArgumentsSection
           configurations={validatedConfigurations}
           selection={wizardState.state.validatedConfigurationSelection}
           runtimeArgs={wizardState.state.runtimeArgs}
+          catalogModelId={navState.catalogModelId}
         />
       )}
     </Form>

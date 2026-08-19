@@ -12,10 +12,17 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import ModelDeploymentWizard from './ModelDeploymentWizard';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  fireDeployWizardStarted,
+  getDeployWizardEntryPoint,
+  getDeployWizardNavState,
+  isShowValidatedArgumentsSection,
+} from '../../shared/tracking/deployWizardTracking';
 
 const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
   return (
@@ -45,6 +52,7 @@ const ErrorContent: React.FC<{ error: Error }> = ({ error }) => {
 
 export const ModelDeploymentWizardPage: React.FC = () => {
   const location = useLocation();
+  const { trackEvent } = useHostApi();
 
   // Extract state from navigation
   const existingData = location.state?.initialData;
@@ -54,6 +62,24 @@ export const ModelDeploymentWizardPage: React.FC = () => {
   const projectName = location.state?.projectName;
   // refreshKey is used to force the wizard to re-mount when refreshing with updated deployment data
   const refreshKey: number | undefined = location.state?.refreshKey;
+
+  const navState = getDeployWizardNavState(location.state);
+  const hasFiredWizardStarted = React.useRef(false);
+  React.useEffect(() => {
+    if (hasFiredWizardStarted.current) {
+      return;
+    }
+    hasFiredWizardStarted.current = true;
+    fireDeployWizardStarted(trackEvent, {
+      entryPoint: getDeployWizardEntryPoint(navState),
+      catalogModelId: navState.catalogModelId,
+      hasValidatedArgumentsSection: isShowValidatedArgumentsSection(
+        navState,
+        existingData?.validatedConfigurations,
+      ),
+      isEditMode: Boolean(navState.editMode),
+    });
+  }, [trackEvent, navState, existingData?.validatedConfigurations]);
 
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const currentProject = React.useMemo(() => {

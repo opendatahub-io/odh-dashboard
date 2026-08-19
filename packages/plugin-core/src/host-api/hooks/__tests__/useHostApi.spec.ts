@@ -5,6 +5,7 @@ import { HostApiContext } from '../../HostApiContext';
 import { useHostApi } from '../useHostApi';
 
 const mockServices: HostApiServices = {
+  trackEvent: jest.fn(),
   useTemplates: jest.fn(() => [[], false, undefined]),
   setProjectServingPlatform: jest.fn(),
   useWatchConnectionTypes: jest.fn(() => [[], false, undefined, jest.fn()]),

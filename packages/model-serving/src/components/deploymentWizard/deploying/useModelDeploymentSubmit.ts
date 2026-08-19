@@ -1,5 +1,4 @@
 import React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useSecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
@@ -14,16 +13,7 @@ import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
-import {
-  fireModelDeployed,
-  type DeploymentTrackingProperties,
-} from '../../../shared/tracking/deploymentTracking';
-import { useWizardTrackingProperties } from '../../../shared/tracking/useWizardTrackingProperties';
-import { MODEL_CAPABILITIES_FIELD_ID } from '../fields/modelCapabilities/ModelCapabilitiesField';
-import {
-  getCapabilityCounts,
-  type ModelDeployedCapabilityProperties,
-} from '../../../shared/tracking/modelCapabilitiesTracking';
+import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeployedTracking';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -49,41 +39,23 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
+  const isEdit = !!existingDeployment;
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { fireModelDeployedTracking } = useModelDeployedTracking(
+    formState,
+    initialWizardData,
+    deployMethod?.properties.platform,
+    isEdit,
+  );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
-  const { getTrackingProperties } = useWizardTrackingProperties(
-    formState,
-    deployMethod?.properties.platform,
-  );
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-
-  const isEdit = !!existingDeployment;
-
-  const getBaseTrackingProperties = React.useCallback((): Omit<
-    DeploymentTrackingProperties,
-    'outcome' | 'success' | 'error'
-  > &
-    ModelDeployedCapabilityProperties => {
-    const serverTemplateName = formState.modelServer?.data?.selection?.name;
-    const capabilitiesRaw: unknown = formState[MODEL_CAPABILITIES_FIELD_ID];
-    const capabilities: string[] = Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [];
-    return {
-      modelType: formState.modelType.data?.type,
-      runtime: serverTemplateName,
-      servingRuntimeName: formState.modelServer?.data?.selection?.label,
-      servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
-      numReplicas: formState.numReplicas.data ?? undefined,
-      modelLocationType: formState.modelLocationData.data?.type,
-      ...getCapabilityCounts(capabilities),
-    };
-  }, [formState]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -149,31 +121,14 @@ export const useModelDeploymentSubmit = (
           runPostDeploy,
         );
 
-        fireModelDeployed(
-          {
-            outcome: TrackingOutcome.submit,
-            success: true,
-            ...getBaseTrackingProperties(),
-            ...(await getTrackingProperties()),
-          },
-          isEdit,
-        );
+        await fireModelDeployedTracking('submit', true);
 
         exitWizardOnSubmit();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         setSubmitError(error instanceof Error ? error : new Error(errorMessage));
 
-        fireModelDeployed(
-          {
-            outcome: TrackingOutcome.submit,
-            success: false,
-            errorMessage,
-            ...getBaseTrackingProperties(),
-            ...(await getTrackingProperties()),
-          },
-          isEdit,
-        );
+        await fireModelDeployedTracking('submit', false, errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -198,9 +153,7 @@ export const useModelDeploymentSubmit = (
       runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
-      isEdit,
-      getBaseTrackingProperties,
-      getTrackingProperties,
+      fireModelDeployedTracking,
     ],
   );
 
