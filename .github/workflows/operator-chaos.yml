@@ -9,6 +9,7 @@ on:
       - 'dashboard-operator/api/**'
       - 'dashboard-operator/config/**'
       - 'dashboard-operator/cmd/**'
+      - 'dashboard-operator/Makefile'
       - '.github/workflows/operator-chaos.yml'
 
 env:
