@@ -723,10 +723,8 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Terminate Pipeline Run', () => {
-      let createdRunId: string;
-
-      it('should create a run to terminate', async () => {
-        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+      it('should create and terminate a newly created (PENDING) run', async () => {
+        const createResult = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'terminate-target',
           test_data_secret_name: SECRET,
           test_data_bucket_name: BUCKET,
@@ -737,16 +735,14 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           ogx_secret_name: OGX_SECRET,
         });
-        expect(result.success).toBe(true);
-        if (result.success) {
-          type RunEnvelope = { data: { run_id: string } };
-          createdRunId = (result.response.data as RunEnvelope).data.run_id;
-          expect(createdRunId).toBeDefined();
+        expect(createResult.success).toBe(true);
+        if (!createResult.success) {
+          return;
         }
-      });
-
-      it('should terminate the newly created (PENDING) run', async () => {
+        type RunEnvelope = { data: { run_id: string } };
+        const createdRunId = (createResult.response.data as RunEnvelope).data.run_id;
         expect(createdRunId).toBeDefined();
+
         const result = await apiClient.post(
           `/api/v1/pipeline-runs/${createdRunId}/terminate?namespace=${NS}`,
           {},
@@ -776,9 +772,7 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Retry Pipeline Run', () => {
-      let failedRunId: string;
-
-      it('should create and terminate a run to produce a FAILED state', async () => {
+      it('should retry a run that reached a FAILED state after termination', async () => {
         const createResult = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'retry-target',
           test_data_secret_name: SECRET,
@@ -791,22 +785,24 @@ describe('AutoRAG API Contract Tests', () => {
           ogx_secret_name: OGX_SECRET,
         });
         expect(createResult.success).toBe(true);
-        if (createResult.success) {
-          type RunEnvelope = { data: { run_id: string } };
-          failedRunId = (createResult.response.data as RunEnvelope).data.run_id;
+        if (!createResult.success) {
+          return;
         }
+        type RunEnvelope = { data: { run_id: string } };
+        const failedRunId = (createResult.response.data as RunEnvelope).data.run_id;
+
         const terminateResult = await apiClient.post(
           `/api/v1/pipeline-runs/${failedRunId}/terminate?namespace=${NS}`,
           {},
         );
         expect(terminateResult.success).toBe(true);
+
+        // The fake transitions CANCELING -> FAILED asynchronously ~2s after
+        // terminate; wait for that before attempting the retry.
         await new Promise<void>((resolve) => {
           setTimeout(resolve, 3000);
         });
-      });
 
-      it('should retry the FAILED run', async () => {
-        expect(failedRunId).toBeDefined();
         const result = await apiClient.post(
           `/api/v1/pipeline-runs/${failedRunId}/retry?namespace=${NS}`,
           {},
@@ -815,7 +811,7 @@ describe('AutoRAG API Contract Tests', () => {
         if (result.success) {
           expect(result.response.status).toBe(200);
         }
-      });
+      }, 10000);
 
       it('should return 400 when retrying a SUCCEEDED run', async () => {
         const result = await apiClient.post(
