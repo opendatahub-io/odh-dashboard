@@ -21,7 +21,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import type {
   WizardField,
@@ -68,7 +68,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
   onChange,
   isDisabled = false,
 }) => {
-  const { trackEvent } = useHostApi();
+  const trackEvent = useTrackEvent();
   const [isOpen, setIsOpen] = React.useState(false);
   const [customInput, setCustomInput] = React.useState('');
   const [customInputError, setCustomInputError] = React.useState('');
