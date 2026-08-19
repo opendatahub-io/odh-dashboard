@@ -49,13 +49,15 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 # Change file ownership to the assemble user
 USER default
 
-# Install pnpm and workspace dependencies
+# Install pnpm and workspace dependencies (@odh-dashboard/* packages)
 RUN npm install -g pnpm@11.22.0
 RUN pnpm install --frozen-lockfile
 
-# Build the module
+# Upstream frontend is a git-subtree npm island (not a pnpm workspace member).
+# Install its webpack toolchain from package-lock.json, then build with npm.
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN pnpm run build:prod
+RUN npm ci --omit=optional
+RUN npm run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
