@@ -47,13 +47,13 @@ The CRD embeds types from `odh-platform-utilities/api/common`:
 
 The controller follows a sequential pipeline on each reconcile:
 
-```
+```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
 3. Handle Removed      -> tear down all labeled resources
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
-   -> Render standalone overlay (odh/standalone or rhoai/standalone)
+   -> Render overlay (odh/standalone or rhoai/standalone)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
    -> For each enabled module:
    |   -> Render manifests/modules/<slug>/
@@ -320,7 +320,7 @@ The Dashboard type provides five methods:
 |-----------|-----------|-------------|
 | `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
-| `Degraded` | One or more modules degraded (standalone) | No degradation / route not ready |
+| `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
 
 The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled) are treated as non-blocking by the rollup.

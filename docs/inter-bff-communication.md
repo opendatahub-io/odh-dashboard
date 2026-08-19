@@ -49,7 +49,7 @@ Each BFF that needs to call another BFF configures these environment variables:
 |----------|-------------|---------|
 | `MOCK_BFF_CLIENTS` | Enable mock BFF clients for testing | `false` |
 | `BFF_<TARGET>_DEV_URL` | Dev override URL (e.g., `http://localhost:4000/api/v1`) | - |
-| `BFF_<TARGET>_SERVICE_NAME` | Kubernetes service name | varies by mode (see below) |
+| `BFF_<TARGET>_SERVICE_NAME` | Kubernetes service name | `odh-dashboard-<target>-ui` |
 | `BFF_<TARGET>_SERVICE_PORT` | Target BFF port | varies by target |
 | `BFF_<TARGET>_TLS_ENABLED` | Enable HTTPS for inter-BFF calls | `false` (local) / `true` (prod) |
 | `BFF_<TARGET>_AUTH_METHOD` | Authentication method: `user_token` or `internal` | `user_token` |
@@ -148,9 +148,9 @@ Mock mode returns predefined responses without making HTTP calls. Useful for:
 
 ## Kubernetes Deployment
 
-### Standalone Deployment Configuration (Primary)
+### Deployment Configuration
 
-In standalone mode, each module runs as its own Kubernetes Deployment with its own Service. Inter-BFF environment variables must reference the target module's standalone service name.
+Each module runs as its own Kubernetes Deployment with its own Service. Inter-BFF environment variables must reference the target module's service name.
 
 Add environment variables to your BFF container in `manifests/modules/<slug>/deployment.yaml`:
 
@@ -192,7 +192,7 @@ Inter-BFF communication is pod-to-pod between different Deployments. Each module
 
 ```yaml
 egress:
-  # Inter-BFF communication with other standalone modules
+  # Inter-BFF communication with other modules
   - to:
       - podSelector:
           matchLabels:
@@ -369,7 +369,7 @@ router.POST("/api/v1/my-endpoint",
 
 ### 7. Update Manifests
 
-Add environment variables and network policy rules as shown in the [Kubernetes Deployment](#kubernetes-deployment) section above. For standalone mode, use the module-specific service names in environment variables and add pod-to-pod NetworkPolicy rules.
+Add environment variables and network policy rules as shown in the [Kubernetes Deployment](#kubernetes-deployment) section above. Use the module-specific service names in environment variables and add pod-to-pod NetworkPolicy rules.
 
 ## Error Handling
 
@@ -476,7 +476,7 @@ Without this entry, `/core-bff/api/*` requests return 404 from Fastify (no proxy
 
 ### Adding a new module that calls core-bff
 
-1. Add an env var entry for `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` in the module's standalone `manifests/modules/<slug>/deployment.yaml`, or wire it via `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`
+1. Add an env var entry for `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` in `manifests/modules/<slug>/deployment.yaml`, or wire it via `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`
 2. Add an egress rule to `manifests/modules/<slug>/networkpolicy.yaml`:
    ```yaml
    - to:
@@ -487,7 +487,7 @@ Without this entry, `/core-bff/api/*` requests return 404 from Fastify (no proxy
        - port: 8943
          protocol: TCP
    ```
-3. Use `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` env vars as service coordinates (auto-injected in standalone mode; set manually for local dev with `BFF_CORE_BFF_DEV_URL`)
+3. Use `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` env vars as service coordinates (auto-injected by the operator; set manually for local dev with `BFF_CORE_BFF_DEV_URL`)
 
 ### Local development
 

@@ -364,7 +364,6 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-
 		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules: disableAllModulesExcept("modelRegistry"),
 	})
@@ -379,7 +378,7 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 
 	// First reconcile adds the finalizer and returns early.
 	reconcile(t, r)
-	// Second reconcile executes the full standalone pipeline.
+	// Second reconcile executes the full deployment pipeline.
 	reconcile(t, r)
 
 	// Verify module Deployment was created with correct labels.
@@ -434,7 +433,6 @@ func TestIntegration_StandaloneDisableModule(t *testing.T) {
 
 	// Create Dashboard with modelRegistry enabled.
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-
 		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules: disableAllModulesExcept("modelRegistry"),
 	})
@@ -576,7 +574,6 @@ func TestIntegration_DSCComponentGate(t *testing.T) {
 	// Create Dashboard with DSC Components map that does NOT include
 	// "modelregistry" — the component required by the modelRegistry module.
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-
 		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules: disableAllModulesExcept("modelRegistry"),
 		Components: map[string]v1alpha1.ComponentAvailability{

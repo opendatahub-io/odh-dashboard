@@ -134,6 +134,7 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Checks: Pod status, logs, health endpoints
 
 ### BFF Module Validation
+
 Runs only when a PR changes files in a package that has a `Dockerfile.workspace` (e.g., `packages/gen-ai/`, `packages/mlflow/`). Skipped entirely when no BFF packages are affected.
 
 - ✅ **Dynamic module discovery**
