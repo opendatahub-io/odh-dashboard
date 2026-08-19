@@ -160,6 +160,7 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
         <DeleteModal
           title="Delete llm-d routing configuration?"
           onClose={() => {
+            fireRoutingConfigDeleted({ outcome: TrackingOutcome.cancel });
             setDeleteConfig(undefined);
             setIsDeleting(false);
           }}

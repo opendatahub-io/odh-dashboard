@@ -22,7 +22,10 @@ const DeleteLlmAcceleratorConfigModal: React.FC<DeleteLlmAcceleratorConfigModalP
   return (
     <DeleteModal
       title="Delete LLM accelerator configuration?"
-      onClose={() => onClose(false)}
+      onClose={() => {
+        fireLlmAcceleratorConfigDeleted({ outcome: TrackingOutcome.cancel });
+        onClose(false);
+      }}
       submitButtonLabel="Delete LLM accelerator configuration"
       onDelete={() => {
         setIsDeleting(true);

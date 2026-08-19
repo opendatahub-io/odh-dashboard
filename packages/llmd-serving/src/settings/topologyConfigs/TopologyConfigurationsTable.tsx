@@ -217,6 +217,7 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
         <DeleteModal
           title="Delete llm-d topology configuration?"
           onClose={() => {
+            fireTopologyConfigDeleted({ outcome: TrackingOutcome.cancel });
             setDeleteConfig(undefined);
             setIsDeleting(false);
           }}

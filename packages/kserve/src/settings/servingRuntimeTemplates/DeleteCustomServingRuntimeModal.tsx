@@ -44,7 +44,10 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
   return (
     <DeleteModal
       title="Delete serving runtime?"
-      onClose={() => onBeforeClose(false)}
+      onClose={() => {
+        fireServingRuntimeTemplateDeleted({ outcome: TrackingOutcome.cancel });
+        onBeforeClose(false);
+      }}
       submitButtonLabel="Delete serving runtime"
       onDelete={() => {
         setIsDeleting(true);
