@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import type {
   AccessReviewResourceAttributes,
   Connection,
@@ -11,6 +12,7 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeFormFieldsProps } from '../extension-points/connection-types';
 
 export type { K8sWatchResult } from '@odh-dashboard/k8s-core';
 
@@ -147,8 +149,24 @@ export type HostApiServices = {
   /** Check whether a project has NIM support enabled. */
   isProjectNIMSupported: (currentProject: ProjectKind) => boolean;
 
-  /** Build the route path to registered model deployments. */
-  registeredModelDeploymentsRoute: (rmId?: string, preferredModelRegistry?: string) => string;
+  /** Create a new OpenShift project (username injected by host). */
+  createProject: (displayName: string, description: string, k8sName?: string) => Promise<string>;
+
+  /** Render connection type form fields inside the deployment wizard. */
+  ConnectionTypeFormFields: React.ComponentType<ConnectionTypeFormFieldsProps>;
+
+  /** React contexts provided by the host for use in federated modules. */
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.Context is invariant; unknown is not assignable from concrete context types
+    ProjectDetailsContext: React.Context<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.Context is invariant; unknown is not assignable from concrete context types
+    ModelServingContext: React.Context<any>;
+    ModelServingContextProvider: React.ComponentType<{
+      children: React.ReactNode;
+      namespace?: string;
+      getErrorComponent?: (errorMessage?: string) => React.ReactElement;
+    }>;
+  };
 };
 
 export type SecretOps = Pick<

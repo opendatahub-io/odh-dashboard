@@ -3,7 +3,6 @@ import {
   ActionList,
   ActionListGroup,
   ActionListItem,
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Content,
@@ -16,9 +15,10 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -83,12 +83,11 @@ function AutoragConfigurePage({
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
   const notification = useNotification();
+  const location = useLocation();
   const fromResultsPage =
     location.state != null &&
     typeof location.state === 'object' &&
-    'from' in location.state &&
     location.state.from === 'results';
 
   const { namespace } = useParams();
@@ -101,6 +100,10 @@ function AutoragConfigurePage({
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
+  const projectDisplayName = useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
@@ -209,8 +212,7 @@ function AutoragConfigurePage({
   // run's results page (still part of this same package) when reconfigure was entered from
   // there — from the runs list, Cancel returns to the experiments list. There's no dedicated
   // "back to this package's own results page" bucket in the exitDestination taxonomy, so this
-  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list) — the same
-  // bucket used for the source-run breadcrumb link below.
+  // is reported as 'otherGenAi' (elsewhere in Gen AI Studio, not the AutoRAG list).
   const cancelExitDestination: AutoragExitDestination = fromResultsPage
     ? 'otherGenAi'
     : 'experimentsList';
@@ -307,6 +309,10 @@ function AutoragConfigurePage({
     form,
     computeReconfigureTracking,
   ]);
+
+  const handleHomeNavigate = useCallback(() => {
+    fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList');
+  }, []);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -416,34 +422,19 @@ function AutoragConfigurePage({
         )
       }
       breadcrumb={
-        (step === 'configure' || sourceRunId) && (
-          <Breadcrumb>
-            <BreadcrumbItem>
-              <Link
-                to={getRedirectPath(namespace!)}
-                onClick={() =>
-                  fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList')
-                }
-              >
-                AutoRAG: {namespace}
-              </Link>
-            </BreadcrumbItem>
-            {fromResultsPage && sourceRunId && sourceRunName && (
-              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link
-                  to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
-                  onClick={() =>
-                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
-                  }
-                >
-                  <Truncate content={sourceRunName} />
-                </Link>
-              </BreadcrumbItem>
-            )}
+        (step === 'configure' || sourceRunId) &&
+        namespace && (
+          <ExperimentContextBreadcrumb
+            pageName="AutoRAG"
+            namespace={namespace}
+            projectDisplayName={projectDisplayName}
+            homePath={getRedirectPath(namespace)}
+            onHomeNavigate={handleHomeNavigate}
+          >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
+              Experiment configurations
             </BreadcrumbItem>
-          </Breadcrumb>
+          </ExperimentContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}

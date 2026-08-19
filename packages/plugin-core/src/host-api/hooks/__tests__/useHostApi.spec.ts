@@ -19,7 +19,15 @@ const mockServices: HostApiServices = {
     refreshNIMAvailability: jest.fn(),
   })),
   isProjectNIMSupported: jest.fn(() => false),
-  registeredModelDeploymentsRoute: jest.fn(() => ''),
+  createProject: jest.fn(),
+  ConnectionTypeFormFields: jest.fn(),
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ProjectDetailsContext: React.createContext<any>(null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ModelServingContext: React.createContext<any>(null),
+    ModelServingContextProvider: jest.fn(),
+  },
 };
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>

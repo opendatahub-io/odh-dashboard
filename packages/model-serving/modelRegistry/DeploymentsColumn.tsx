@@ -1,15 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import type { RegisteredModelRef } from '@odh-dashboard/model-registry/shared';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{
   registeredModel: RegisteredModelRef;
-  preferredModelRegistryName?: string;
-}> = ({ registeredModel, preferredModelRegistryName }) => {
-  const { registeredModelDeploymentsRoute } = useHostApi();
+  deploymentsUrl?: string;
+}> = ({ registeredModel, deploymentsUrl }) => {
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
 
   if (!loaded) {
@@ -30,8 +28,16 @@ const DeploymentsColumn: React.FC<{
     return <span>-</span>;
   }
 
+  if (!deploymentsUrl) {
+    return (
+      <span>
+        {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
+      </span>
+    );
+  }
+
   return (
-    <Link to={registeredModelDeploymentsRoute(registeredModel.id, preferredModelRegistryName)}>
+    <Link to={deploymentsUrl}>
       {deploymentCount} {deploymentCount === 1 ? 'deployment' : 'deployments'}
     </Link>
   );

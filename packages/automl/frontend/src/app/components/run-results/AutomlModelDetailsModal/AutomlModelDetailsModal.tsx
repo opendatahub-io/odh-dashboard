@@ -265,7 +265,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
           </Flex>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={onClose} data-testid="model-details-close">
+          <Button variant="link" onClick={onClose} data-testid="model-details-close">
             Close
           </Button>
         </ModalFooter>
