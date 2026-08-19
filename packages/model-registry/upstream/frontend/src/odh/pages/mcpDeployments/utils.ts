@@ -1,3 +1,4 @@
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import {
   McpDeployment,
   McpDeploymentCondition,
@@ -5,6 +6,15 @@ import {
   McpConditionStatus,
   McpReadyReason,
 } from '~/odh/types/mcpDeploymentTypes';
+
+/** Adapts a McpDeployment to the minimal shape ResourceNameTooltip needs. */
+export const convertMcpDeploymentToK8sResource = (
+  deployment: McpDeployment,
+): K8sResourceCommon => ({
+  apiVersion: 'mcp.x-k8s.io/v1alpha1',
+  kind: 'MCPServer',
+  metadata: { name: deployment.name },
+});
 
 export const getCondition = (
   conditions: McpDeploymentCondition[],
@@ -24,6 +34,14 @@ export const getConnectionUrl = (deployment: McpDeployment): string | undefined 
 
 export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
   deployment.displayName || deployment.name;
+
+/** Sort/filter key for the "MCP server" column. */
+export const getMcpServerSortKey = (deployment: McpDeployment): string =>
+  deployment.registryServerDisplayName || deployment.registryServer || deployment.serverName || '';
+
+/** Sort key for the "Registered version" column. */
+export const getRegisteredVersionSortKey = (deployment: McpDeployment): string =>
+  deployment.registryServer ? deployment.registryVersion || '' : '';
 
 export type McpDeploymentStatusInfo = {
   label: string;

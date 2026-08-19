@@ -11,5 +11,5 @@ spec:
     Agent with human-in-the-loop approval that pauses execution before
     running sensitive tools and waits for human review. Simple questions
     are answered directly without triggering the approval loop.
-  url: 'https://red.ht/4d9prLy'
+  url: 'https://red.ht/3RGZOtB'
   appName: agentic-starter-kits

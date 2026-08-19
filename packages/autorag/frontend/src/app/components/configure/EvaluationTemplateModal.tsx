@@ -1,5 +1,6 @@
 import React from 'react';
 import CodeSnippetModal from '~/app/components/common/CodeSnippetModal';
+import { fireAutoragEvaluationTemplateDownloaded } from '~/app/utilities/tracking';
 
 const EVALUATION_TEMPLATE = `[
   {
@@ -41,6 +42,7 @@ function EvaluationTemplateModal(props: EvaluationTemplateModalProps): React.JSX
       downloadText="Download template"
       downloadFileName="evaluation-template.json"
       onClose={props.onClose}
+      onDownload={fireAutoragEvaluationTemplateDownloaded}
     />
   );
 }

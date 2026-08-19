@@ -20,6 +20,12 @@ spec:
         - podSelector:
             matchLabels:
               deployment: gen-ai-ui
+        # Inter-BFF communication from the model-registry BFF (see docs/inter-bff-communication.md),
+        # used to resolve MCP Registry server details for the deployments table. No namespaceSelector
+        # needed: both BFFs run in the same ODH namespace, so this is intentionally same-namespace-only.
+        - podSelector:
+            matchLabels:
+              deployment: model-registry-ui
   egress:
     - to:
         - namespaceSelector:
@@ -35,6 +41,13 @@ spec:
             cidr: 0.0.0.0/0
       ports:
         - port: 6443
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: model-registry-ui
+      ports:
+        - port: 8043
           protocol: TCP
     - to:
         - podSelector:
