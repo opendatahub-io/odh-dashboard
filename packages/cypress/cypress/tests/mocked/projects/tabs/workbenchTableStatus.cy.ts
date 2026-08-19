@@ -10,6 +10,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
@@ -17,6 +18,7 @@ import { initIntercepts } from './workbenchTestUtils';
 import {
   NotebookModel,
   PodModel,
+  PVCModel,
   ProjectModel,
   HardwareProfileModel,
   LocalQueueModel,
@@ -471,6 +473,75 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project/spawner');
     hardwareProfileSection.findSelect().click();
     cy.findByRole('option', { name: /Use existing settings/ }).should('not.exist');
+  });
+
+  it('Shows migration required label and popover for unmigrated workbenches', () => {
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Unmigrated Notebook',
+          injectAuth: null,
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+        mockNotebookK8sResource({
+          name: 'migrated-notebook',
+          displayName: 'Migrated Notebook',
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'test-notebook' }),
+        mockPVCK8sResource({ name: 'migrated-notebook' }),
+      ]),
+    );
+    workbenchPage.visit('test-project');
+
+    const unmigratedRow = workbenchPage.getNotebookRow('Unmigrated Notebook');
+    unmigratedRow.findMigrationRequiredLabel().should('have.text', 'Migration required').click();
+    unmigratedRow.findMigrationRequiredPopoverTitle().should('have.text', 'Migration required');
+    unmigratedRow
+      .findMigrationRequiredPopover()
+      .should(
+        'contain.text',
+        'To prevent access issues, migrate this workbench by editing the workbench description and saving.',
+      )
+      .and(
+        'contain.text',
+        'Alternatively, delete this workbench and create a new one using the same cluster storage to preserve user data.',
+      )
+      .and(
+        'contain.text',
+        'Note: Once migrated, the old URL will no longer work. Access the new URL by clicking on the name link.',
+      );
+
+    workbenchPage
+      .getNotebookRow('Migrated Notebook')
+      .findMigrationRequiredLabel()
+      .should('not.exist');
   });
 
   it('Expanded workbench table row', () => {

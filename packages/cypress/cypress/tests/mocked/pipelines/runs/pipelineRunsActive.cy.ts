@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import {
+  PluginStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
@@ -405,7 +406,36 @@ describe('Pipeline runs - Active runs', () => {
           );
         });
 
-        // CONVERTED to Jest: PipelineRunTableRowMlflowExperiment.spec.tsx
+        it('navigate to MLflow experiment details from active run row', () => {
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+          cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+            expect(req.query.workspace).to.equal(projectName);
+            req.reply({ data: { experiments: [] } });
+          });
+          const runWithMlflow = buildMockRunKF({
+            display_name: 'Run with mlflow',
+            run_id: 'run-with-mlflow',
+            plugins_output: {
+              mlflow: {
+                entries: {
+                  experiment_name: { value: 'MLflow experiment 1' },
+                  experiment_id: { value: 'mlflow-exp-1' },
+                },
+                state: PluginStateKF.PLUGIN_SUCCEEDED,
+              },
+            },
+          });
+          activeRunsTable.mockGetActiveRuns([runWithMlflow], projectName);
+
+          pipelineRunsGlobal.visit(projectName, 'active');
+          activeRunsTable
+            .findMlflowExperimentLink(runWithMlflow.display_name)
+            .should('have.attr', 'href')
+            .and('include', '/develop-train/mlflow/experiments/mlflow-exp-1')
+            .and('include', `workspace=${projectName}`);
+        });
       });
 
       // CONVERTED to Jest: PipelineRunTable.spec.tsx
@@ -623,7 +653,14 @@ describe('Pipeline runs - Active runs', () => {
         });
       });
 
-      // CONVERTED to Jest: PipelineRunTypeLabel.spec.tsx
+      describe('Labels', () => {
+        it('shows model registered label when fine tuning and model registry is enabled', () => {
+          pipelineRunsGlobal.visit(projectName, 'active');
+          activeRunsTable
+            .findModelRegisteredLabel('Test active run 1')
+            .should('have.text', 'Model registered');
+        });
+      });
     });
   });
 });

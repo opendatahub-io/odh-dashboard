@@ -126,13 +126,24 @@ describe('Artifacts', () => {
 
   describe('details', () => {
     // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactDetails.spec.tsx
-    // - "renders the project navigator link" -> ArtifactDetails.spec.tsx breadcrumb tests
-    // - "shows empty state for properties and custom properties" -> ArtifactDetails.spec.tsx "should show empty state for properties and custom properties"
-    // - "Registered models section" -> ArtifactDetails.spec.tsx "should show Registered models section"
-    // - "should show an error icon when pipeline run fails to run" -> ArtifactDetails.spec.tsx "should show an error icon when pipeline run fails to load"
+    // - "shows empty state for properties and custom properties" -> ArtifactDetails.spec.tsx
+    // - "Registered models section" -> ArtifactDetails.spec.tsx
+    // - "should show an error icon when pipeline run fails to run" -> ArtifactDetails.spec.tsx
 
     // CONVERTED to Jest: frontend/src/utilities/__tests__/v2Redirect.spec.tsx
     // - "redirect from v2 to v3 route" -> covered by v2Redirect.spec.tsx wildcard redirect tests
+
+    it('renders the project navigator link', () => {
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [mockedArtifactsResponse.artifacts[0]],
+          artifactTypes: [],
+        }),
+      );
+      artifactDetails.visit(projectName, 'metrics', '1');
+      artifactDetails.findProjectNavigatorLink().should('exist');
+    });
 
     it('shows Overview tab content', () => {
       artifactDetails.mockGetArtifactById(

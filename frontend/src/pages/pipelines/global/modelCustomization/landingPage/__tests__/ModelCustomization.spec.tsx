@@ -6,13 +6,16 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ApplicationsPage: ({
     title,
+    description,
     children,
   }: {
     title: React.ReactNode;
+    description?: React.ReactNode;
     children?: React.ReactNode;
   }) => (
     <div>
       <div data-testid="app-page-title">{title}</div>
+      <div data-testid="app-page-description">{description}</div>
       <div>{children}</div>
     </div>
   ),
@@ -54,13 +57,32 @@ jest.mock(
 );
 
 describe('ModelCustomization', () => {
-  it('should show the page with correct title when rendered', () => {
+  it('should render the page title and description', () => {
     render(<ModelCustomization />);
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('Model customization');
+    expect(screen.getByTestId('app-page-description')).toHaveTextContent(
+      'Optionally customize foundation models',
+    );
   });
 
-  it('should render the drawer container', () => {
+  it('should render the LAB-tuning card with descriptive content', () => {
     render(<ModelCustomization />);
-    expect(screen.getByTestId('drawer-model-customization')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'LAB-tuning', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText(/LAB-tuning significantly reduces limitations/)).toBeInTheDocument();
+  });
+
+  it('should render the drawer container in collapsed state', () => {
+    render(<ModelCustomization />);
+    const drawer = screen.getByTestId('drawer-model-customization');
+    expect(drawer).toBeInTheDocument();
+    expect(drawer).not.toHaveClass('pf-m-expanded');
+  });
+
+  it('should render all content sections', () => {
+    render(<ModelCustomization />);
+    expect(screen.getByTestId('mock-lab-method')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-prerequisites')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-project-setup')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-next-steps')).toBeInTheDocument();
   });
 });
