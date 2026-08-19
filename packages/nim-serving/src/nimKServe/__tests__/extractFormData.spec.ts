@@ -47,6 +47,14 @@ describe('isNIMKServeDeployment', () => {
     ).toBe(false);
   });
 
+  it('should return false for a non-NIM nvcr.io image (not under the nim/ namespace)', () => {
+    expect(
+      isNIMKServeDeployment(
+        makeDeployment(makeServingRuntime('nvcr.io/nvidia/tritonserver:24.01')),
+      ),
+    ).toBe(false);
+  });
+
   it('should return false when there is no server', () => {
     expect(isNIMKServeDeployment(makeDeployment())).toBe(false);
   });
