@@ -719,7 +719,7 @@ describe('AutoragResultsPage', () => {
       const experimentConfigLink = screen.getByTestId(
         'results-breadcrumb-experiment-configurations',
       );
-      expect(experimentConfigLink).toHaveTextContent('Experiment configurations');
+      expect(experimentConfigLink).toHaveTextContent('Run configurations');
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute(
         'href',
         '/gen-ai-studio/autorag/reconfigure/test-ns/run-123',
