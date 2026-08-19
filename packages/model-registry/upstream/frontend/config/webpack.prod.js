@@ -4,6 +4,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
+const { patternFlyCssIncludes } = require('../../../../../scripts/webpack/pnpmResolverIncludes');
 
 setupDotenvFilesForEnv({ env: 'production' });
 const webpackCommon = require('./webpack.common.js');
@@ -49,13 +50,7 @@ module.exports = merge(
       rules: [
         {
           test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/mod-arch-shared/node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-          ],
+          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
           use: [MiniCssExtractPlugin.loader, 'css-loader'],
         },
       ],

@@ -49,12 +49,21 @@ describe('pnpmResolverIncludes', () => {
     const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
     const alias = tanstackQueryCoreAlias(genAiDir);
     assert.ok(alias['@tanstack/query-core']);
-    const version = require(path.join(alias['@tanstack/query-core'], 'package.json')).version;
+    const { version } = require(path.join(alias['@tanstack/query-core'], 'package.json'));
     assert.match(version, /^5\./);
   });
 
   it('returns an empty alias object when query-core is not installed locally', () => {
     const { tanstackQueryCoreAlias } = require('../pnpmResolverIncludes');
     assert.deepEqual(tanstackQueryCoreAlias('/tmp/nonexistent-package'), {});
+  });
+
+  it('returns @mui/utils paired with the package @mui/material install', () => {
+    const { muiMaterialPeerAliases } = require('../pnpmResolverIncludes');
+    const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
+    const alias = muiMaterialPeerAliases(genAiDir);
+    assert.ok(alias['@mui/utils']);
+    const { version } = require(path.join(alias['@mui/utils'], 'package.json'));
+    assert.match(version, /^7\./);
   });
 });

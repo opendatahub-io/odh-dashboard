@@ -95,9 +95,10 @@ This package uses Module Federation and depends on workspace packages like:
 
 The workspace-aware Dockerfile ensures these dependencies are available during the build process by:
 
-1. Installing workspace dependencies at the root level
+1. Running `pnpm install` at the repo root for `@odh-dashboard/*` workspace packages
 2. Copying shared packages into the build context
-3. Installing module-specific dependencies including federated modules
+3. Running `npm ci` in `upstream/frontend` for the upstream webpack toolchain (git-subtree npm island)
+4. Building with `npm run build:prod` in the upstream frontend directory
 4. Building from the workspace context rather than module isolation
 
 For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../docs/workspace-dockerfiles.md).
