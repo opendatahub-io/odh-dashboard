@@ -150,9 +150,38 @@ const muiMaterialPeerAliases = (relativeDirname) => {
   return alias;
 };
 
+/**
+ * Pin react/react-dom to a single install tree. pnpm + npm hybrid upstream builds can
+ * resolve duplicate React copies and break module federation shared modules at runtime.
+ */
+const reactSingletonAliases = (relativeDirname) => {
+  const alias = {};
+
+  try {
+    const reactPkg = require.resolve('react/package.json', { paths: [relativeDirname] });
+    const reactDir = path.dirname(reactPkg);
+    alias.react = reactDir;
+    alias['react-dom'] = path.dirname(
+      require.resolve('react-dom/package.json', { paths: [reactDir] }),
+    );
+    for (const subpath of ['jsx-runtime', 'jsx-dev-runtime']) {
+      try {
+        alias[`react/${subpath}`] = require.resolve(`react/${subpath}`, { paths: [reactDir] });
+      } catch {
+        // Subpath not present in this React version.
+      }
+    }
+  } catch {
+    // React not used in this frontend.
+  }
+
+  return alias;
+};
+
 const pnpmWebpackResolveAliases = (relativeDirname) => ({
   ...tanstackQueryCoreAlias(relativeDirname),
   ...muiMaterialPeerAliases(relativeDirname),
+  ...reactSingletonAliases(relativeDirname),
 });
 
 module.exports = {
@@ -163,5 +192,6 @@ module.exports = {
   patternFlyFontIncludes,
   muiMaterialPeerAliases,
   pnpmWebpackResolveAliases,
+  reactSingletonAliases,
   tanstackQueryCoreAlias,
 };
