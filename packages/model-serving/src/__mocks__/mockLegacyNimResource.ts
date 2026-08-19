@@ -51,6 +51,7 @@ export const mockNimImages = ({
   });
 
 type NimInferenceService = {
+  name?: string;
   namespace?: string;
   displayName?: string;
   resources?: {
@@ -63,6 +64,7 @@ type NimInferenceService = {
 };
 
 export const mockNimInferenceService = ({
+  name = 'test-name',
   displayName = 'Test Name',
   namespace = 'test-project',
   resources = {
@@ -71,8 +73,8 @@ export const mockNimInferenceService = ({
   },
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
-    name: 'test-name',
-    runtimeName: 'test-name',
+    name,
+    runtimeName: name,
     displayName,
     namespace,
     resources,
