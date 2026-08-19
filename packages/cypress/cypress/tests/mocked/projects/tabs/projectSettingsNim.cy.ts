@@ -46,7 +46,7 @@ const initIntercepts = ({
     },
   );
 
-  const mockProject = mockProjectK8sResource({});
+  const mockProject = mockProjectK8sResource({ enableNIM: true });
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProject]));
   cy.interceptK8s(ProjectModel, mockProject);
 
