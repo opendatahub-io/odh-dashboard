@@ -5,4 +5,4 @@ export {
   fireIdentifyEvent,
   computeAnonymousUserId,
 } from './segmentUtils';
-export type { IdentifyTraits, BaseTrackingEventProperties } from './segmentUtils';
+export type { BaseTrackingEventProperties } from './segmentUtils';

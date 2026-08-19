@@ -22,9 +22,7 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
         setUserID(val);
       });
     }
-    // compute anonymousId only once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userID, username]);
 
   const props: IdentifyEventProperties = React.useMemo(
     () => ({
