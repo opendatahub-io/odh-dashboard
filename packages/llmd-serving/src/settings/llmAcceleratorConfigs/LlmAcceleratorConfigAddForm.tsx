@@ -18,7 +18,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -40,6 +40,10 @@ import {
 } from '../../utils';
 import { ConfigType, CONFIG_TYPE_LABEL } from '../../types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
+import {
+  fireLlmAcceleratorConfigCreated,
+  fireLlmAcceleratorConfigUpdated,
+} from '../../tracking/llmdTrackingConstants';
 
 type FormMode = 'add' | 'edit' | 'duplicate';
 
@@ -157,10 +161,33 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       : createLLMInferenceServiceConfig(config);
     submitFn
       .then(() => {
+        if (isEdit) {
+          fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: true });
+        } else {
+          fireLlmAcceleratorConfigCreated({
+            outcome: TrackingOutcome.submit,
+            success: true,
+            mode: isDuplicate ? 'duplicate' : 'create',
+          });
+        }
         navigate(listPath);
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err : new Error(String(err)));
+        if (isEdit) {
+          fireLlmAcceleratorConfigUpdated({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: err instanceof Error ? err.message : 'unknown',
+          });
+        } else {
+          fireLlmAcceleratorConfigCreated({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: err instanceof Error ? err.message : 'unknown',
+            mode: isDuplicate ? 'duplicate' : 'create',
+          });
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -168,6 +195,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   }, [
     yamlCode,
     isEdit,
+    isDuplicate,
     sourceConfig?.metadata.name,
     nameDescData,
     version,
@@ -244,7 +272,17 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
             isDisabled={loading}
             variant="link"
             data-testid="cancel-button"
-            onClick={() => navigate(listPath)}
+            onClick={() => {
+              if (isEdit) {
+                fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.cancel });
+              } else {
+                fireLlmAcceleratorConfigCreated({
+                  outcome: TrackingOutcome.cancel,
+                  mode: isDuplicate ? 'duplicate' : 'create',
+                });
+              }
+              navigate(listPath);
+            }}
           >
             Cancel
           </Button>

@@ -16,10 +16,12 @@ import {
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+import { fireLlmAcceleratorConfigEnablementChanged } from '../../tracking/llmdTrackingConstants';
 
 type LlmAcceleratorConfigEnabledToggleProps = {
   config: LLMInferenceServiceConfigKind;
@@ -66,13 +68,23 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     [config, notification],
   );
 
-  const handleToggle = React.useCallback(() => {
+  const handleToggle = React.useCallback(async () => {
     if (effectiveEnabled) {
-      patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'true' });
+      const success = await patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'true' });
+      fireLlmAcceleratorConfigEnablementChanged({
+        outcome: TrackingOutcome.submit,
+        success,
+        enabled: false,
+      });
     } else if (unsupportedUnaccepted) {
       setShowAcceptanceModal(true);
     } else {
-      patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'false' });
+      const success = await patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'false' });
+      fireLlmAcceleratorConfigEnablementChanged({
+        outcome: TrackingOutcome.submit,
+        success,
+        enabled: true,
+      });
     }
   }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations]);
 
@@ -81,6 +93,11 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     const success = await patchConfigAnnotations({
       [UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION]: 'true',
       [DISABLED_ANNOTATION]: 'false',
+    });
+    fireLlmAcceleratorConfigEnablementChanged({
+      outcome: TrackingOutcome.submit,
+      success,
+      enabled: true,
     });
     if (success) {
       fireRiskAccepted(fireMiscTrackingEvent, {
