@@ -327,6 +327,16 @@ rules:
       - get
       - create
       - update
+  # TLS security profile for server TLS configuration
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+      - watch
   # OpenShift platform detection for operand
   - apiGroups:
       - config.openshift.io

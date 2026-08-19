@@ -4,11 +4,14 @@ go 1.26
 
 replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services
 
+replace github.com/opendatahub-io/odh-dashboard/pkg/tls => ../../../pkg/tls
+
 require (
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kubeflow/model-registry/pkg/openapi v0.3.2
 	github.com/opendatahub-io/odh-dashboard/packages/autox-core/services v0.0.0-00010101000000-000000000000
+	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.20.0
