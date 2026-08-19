@@ -9,12 +9,6 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   // ARC: AI2 Reasoning Challenge
   arc_easy: 'https://huggingface.co/datasets/allenai/ai2_arc',
 
-  // AraDiCE: individual sub-benchmarks that differ from the ArabicMMLU prefix
-  AraDiCE_openbookqa_eng: 'https://huggingface.co/datasets/allenai/openbookqa',
-  AraDiCE_piqa_lev: 'https://huggingface.co/datasets/ybisk/piqa',
-  AraDiCE_truthfulqa_mc1_lev: 'https://huggingface.co/datasets/truthfulqa/truthful_qa',
-  AraDiCE_winogrande_eng: 'https://huggingface.co/datasets/allenai/winogrande',
-
   // Arabic MT: individual benchmarks that map to distinct datasets
   arabic_mt_boolq_light: 'https://huggingface.co/datasets/google/boolq',
   arabic_mt_hellaswag: 'https://huggingface.co/datasets/Rowan/hellaswag',
@@ -125,8 +119,8 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
  * one parent dataset. Ordered longest-prefix-first for correct matching.
  */
 const PREFIX_BENCHMARK_DATASETS: [string, string][] = [
-  // AraDiCE: ArabicMMLU variants
-  ['AraDiCE_ArabicMMLU', 'https://huggingface.co/datasets/MBZUAI/ArabicMMLU'],
+  // AraDiCE: all AraDiCE benchmark variants (BoolQ, OpenBookQA, PIQA, TruthfulQA, Winogrande, ArabicMMLU)
+  ['AraDiCE', 'https://huggingface.co/datasets/QCRI/AraDiCE'],
 
   // AfriXNLI / IrokoBench: African language NLI
   ['afrixnli', 'https://huggingface.co/datasets/masakhane/afrixnli'],
