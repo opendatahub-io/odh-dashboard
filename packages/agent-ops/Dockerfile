@@ -21,7 +21,7 @@ COPY ${UI_SOURCE_CODE} /usr/src/app
 
 # Install the dependencies and build
 RUN npm cache clean --force
-RUN npm ci --omit=optional
+RUN npm ci
 RUN npm run build:prod
 
 # BFF build stage

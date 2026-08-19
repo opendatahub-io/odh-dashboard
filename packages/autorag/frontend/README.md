@@ -68,9 +68,9 @@ autorag/frontend/
 ├── .prettierrc           # Code formatting rules
 ├── babel.config.js       # Babel transpiler config
 └── config/
-    ├── webpack.dev.js    # Development webpack config
-    ├── webpack.prod.js   # Production webpack config
-    └── webpack.common.js # Shared webpack config
+    ├── rspack.dev.js    # Development rspack config
+    ├── rspack.prod.js   # Production rspack config
+    └── rspack.common.js # Shared rspack config
 ```
 
 ---
@@ -115,7 +115,7 @@ import icon from '~/app/assets/icons/workflow.svg';
 }
 ```
 
-> **Note**: SVG files for CSS backgrounds must be in a `bgimages/` directory. This is configured in `webpack.common.js` to differentiate from inline SVG usage.
+> **Note**: SVG files for CSS backgrounds must be in a `bgimages/` directory. This is configured in `rspack.common.js` to differentiate from inline SVG usage.
 
 ---
 

@@ -1,27 +1,20 @@
 /* eslint-disable no-console */
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+const { rspack } = require('@rspack/core');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
-const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const IMAGES_DIRNAME = process.env._IMAGES_DIRNAME;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
-const {
-  _OUTPUT_ONLY: OUTPUT_ONLY,
-  FAVICON,
-  PRODUCT_NAME,
-  COVERAGE,
-  _DEPLOYMENT_MODE: DEPLOYMENT_MODE,
-} = process.env;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/automl/' : PUBLIC_PATH;
+const { _OUTPUT_ONLY: OUTPUT_ONLY, FAVICON, PRODUCT_NAME, COVERAGE } = process.env;
+const BASE_PATH = PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
@@ -43,15 +36,21 @@ module.exports = (env) => ({
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-          env === 'development'
-            ? { loader: 'swc-loader' }
-            : {
-                loader: 'ts-loader',
-                options: {
-                  transpileOnly: true,
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+              jsc: {
+                transform: {
+                  react: {
+                    runtime: 'classic',
+                    refresh: env === 'development',
+                  },
                 },
               },
-        ],
+            },
+          },
+        ].filter(Boolean),
       },
       {
         test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -79,7 +78,6 @@ module.exports = (env) => ({
         use: {
           loader: 'file-loader',
           options: {
-            // Limit at 50k. larger files emitted into separate files
             limit: 5000,
             outputPath: 'fonts',
             name: '[name].[ext]',
@@ -133,7 +131,10 @@ module.exports = (env) => ({
           COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
+          path.resolve(
+            RELATIVE_DIRNAME,
+            'node_modules/@patternfly/react-styles/css/assets/images',
+          ),
           path.resolve(
             RELATIVE_DIRNAME,
             'node_modules/@patternfly/react-core/dist/styles/assets/images',
@@ -170,11 +171,8 @@ module.exports = (env) => ({
       {
         test: /\.s[ac]ss$/i,
         use: [
-          // Creates `style` nodes from JS strings
-          'style-loader',
-          // Translates CSS into CommonJS
+          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
-          // Compiles Sass to CSS
           'sass-loader',
         ],
       },
@@ -196,7 +194,7 @@ module.exports = (env) => ({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
-    new HtmlWebpackPlugin({
+    new rspack.HtmlRspackPlugin({
       template: path.join(SRC_DIR, 'index.html'),
       title: PRODUCT_NAME,
       favicon: path.join(SRC_DIR, 'images', FAVICON),
@@ -206,7 +204,7 @@ module.exports = (env) => ({
       },
       chunks: ['app'],
     }),
-    new CopyPlugin({
+    new rspack.CopyRspackPlugin({
       patterns: [
         {
           from: path.join(SRC_DIR, 'locales'),
@@ -250,6 +248,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
     symlinks: false,
     cacheWithContext: false,

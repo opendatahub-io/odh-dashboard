@@ -1,16 +1,13 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 const path = require('path');
-const { merge } = require('webpack-merge');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
-const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
-
 setupDotenvFilesForEnv({ env: 'development' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
@@ -23,11 +20,10 @@ const PORT = process.env._PORT;
 const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
-const MLFLOW_PROXY_PORT = process.env.MLFLOW_PROXY_PORT || '4000';
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/eval-hub/' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
 
 // Get the kubeconfig token at startup as a fallback for standalone dev mode.
 const getKubeconfigToken = () => {
@@ -79,92 +75,78 @@ const onProxyReq = (proxyReq, req) => {
   }
 };
 
-module.exports = smp.wrap(
-  merge(
-    {
-      plugins: [
-        ...setupWebpackDotenvFilesForEnv({
-          directory: RELATIVE_DIRNAME,
-          env: 'development',
-          isRoot: IS_PROJECT_ROOT_DIR,
-        }),
+module.exports = merge(
+  {
+    plugins: [
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'development',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
+  },
+  rspackCommon('development'),
+  {
+    mode: 'development',
+    devtool: 'eval-source-map',
+    optimization: {
+      removeEmptyChunks: true,
+    },
+    devServer: {
+      host: HOST,
+      port: PORT,
+      compress: true,
+      historyApiFallback: true,
+      hot: true,
+      open: false,
+      proxy: [
+        {
+          context: ['/api', '/autorag/api', '/gen-ai/api'],
+          target: {
+            host: PROXY_HOST,
+            protocol: PROXY_PROTOCOL,
+            port: PROXY_PORT,
+          },
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          onProxyReq,
+        },
+      ],
+      devMiddleware: {
+        stats: 'errors-only',
+      },
+      client: {
+        overlay: false,
+      },
+      static: {
+        directory: DIST_DIR,
+        publicPath: BASE_PATH,
+      },
+      onListening: (devServer) => {
+        if (devServer) {
+          console.log(
+            `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
+          );
+        }
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.css$/,
+          include: [
+            SRC_DIR,
+            COMMON_DIR,
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+          ],
+          use: ['style-loader', 'css-loader'],
+        },
       ],
     },
-    webpackCommon('development'),
-    {
-      mode: 'development',
-      devtool: 'eval-source-map',
-      optimization: {
-        runtimeChunk: 'single',
-        removeEmptyChunks: true,
-      },
-      devServer: {
-        host: HOST,
-        port: PORT,
-        compress: true,
-        historyApiFallback: true,
-        hot: true,
-        open: false,
-        proxy: [
-          {
-            context: ['/api', '/mod-arch/api', '/eval-hub/api'],
-            target: {
-              host: PROXY_HOST,
-              protocol: PROXY_PROTOCOL,
-              port: PROXY_PORT,
-            },
-            changeOrigin: true,
-            headers: getProxyHeaders(),
-            onProxyReq,
-          },
-          {
-            context: ['/mlflow'],
-            target: {
-              host: PROXY_HOST,
-              protocol: PROXY_PROTOCOL,
-              port: MLFLOW_PROXY_PORT,
-            },
-            changeOrigin: true,
-            headers: getProxyHeaders(),
-            onProxyReq,
-          },
-        ],
-        devMiddleware: {
-          stats: 'errors-only',
-        },
-        client: {
-          overlay: false,
-        },
-        static: {
-          directory: DIST_DIR,
-          publicPath: BASE_PATH,
-        },
-        onListening: (devServer) => {
-          if (devServer) {
-            console.log(
-              `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
-            );
-          }
-        },
-      },
-      module: {
-        rules: [
-          {
-            test: /\.css$/,
-            include: [
-              SRC_DIR,
-              COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-            ],
-            use: ['style-loader', 'css-loader'],
-          },
-        ],
-      },
-      plugins: [
-        new ForkTsCheckerWebpackPlugin(),
-        new ReactRefreshWebpackPlugin({ overlay: false }),
-      ],
-    },
-  ),
+    plugins: [
+      new TsCheckerRspackPlugin(),
+      new ReactRefreshRspackPlugin({ overlay: false }),
+    ],
+  },
 );
