@@ -1,14 +1,22 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
-import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  createOpenShiftProject,
+} from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
 import type { FeatureStoreTestData } from '../../../types';
-import { createFeatureStoreCR } from '../../../utils/oc_commands/featureStoreResources';
+import {
+  applyFeastPermissionViaSdk,
+  createFeatureStoreCR,
+} from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { workbenchPage, createSpawnerPage } from '../../../pages/workbench';
 import { NotebookStatusLabel } from '../../../types';
@@ -57,10 +65,27 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
         .then(() => {
           cy.step(`Create Feature Store namespace: ${fsProjectName}`);
           createCleanProject(fsProjectName);
+
+          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
+            const ocUser = whoami.stdout.trim();
+            if (ocUser) {
+              return addUserToProject(fsProjectName, ocUser, 'admin').then(() =>
+                addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin'),
+              );
+            }
+            return addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+          });
         })
         .then(() => {
           cy.step(`Apply FeatureStore CR in namespace: ${fsProjectName}`);
+          createRegistryStep(fsProjectName);
           createFeatureStoreCR(fsProjectName, testData.feastInstanceName);
+        })
+        .then(() => {
+          return applyFeastPermissionViaSdk(fsProjectName, testData.feastInstanceName, {
+            name: 'feast-auth',
+            namespaces: [fsProjectName],
+          });
         })
         .then(() => {
           cy.step(`Create Data Science Project namespace: ${dspProjectName}`);
@@ -79,6 +104,9 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
     }
     cy.step('Restore admin oc session for cleanup');
     ensureAdminOcSession();
+
+    cy.step(`Removing S3 registry files for: ${fsProjectName}`);
+    deleteFeastRegistryFiles(fsProjectName);
 
     cy.step(`Delete Data Science Project: ${dspProjectName}`);
     deleteOpenShiftProject(dspProjectName, { wait: false, ignoreNotFound: true });
