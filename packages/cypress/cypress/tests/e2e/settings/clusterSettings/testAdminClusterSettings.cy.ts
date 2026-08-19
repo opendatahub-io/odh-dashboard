@@ -222,18 +222,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
   it(
     'Cluster Admin user can access all Settings pages',
-    {
-      tags: [
-        '@Smoke',
-        '@SmokeSet2',
-        '@ODS-1688',
-        '@Dashboard',
-        '@ModelServing',
-        '@SettingsCI',
-        '@KServeCI',
-        '@ModelServingCI',
-      ],
-    },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1688', '@Dashboard', '@SettingsCI'] },
     function testClusterAdminSettingsAccess() {
       // Skip on BYOIDC clusters - User Management page requires groups API which returns 404 on BYOIDC
       skipIfBYOIDC(
