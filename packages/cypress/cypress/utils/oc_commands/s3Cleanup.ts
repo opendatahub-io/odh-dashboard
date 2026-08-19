@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 import { applyOpenShiftYaml } from './baseCommands';
-=======
 import type { AWSS3Buckets } from '../../types';
->>>>>>> 64e349831 (fix(cypress): add Feature Store auth and S3 registry setup)
 import { AWS_BUCKETS } from '../s3Buckets';
 
 /** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
@@ -165,8 +162,7 @@ const requireBucket1 = (): AWSS3Buckets => {
   return buckets;
 };
 
-const endpointArg = (endpoint: string): string =>
-  endpoint ? `--endpoint-url ${shQuote(endpoint)}` : '';
+const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-url', endpoint] : []);
 
 /**
  * Creates an empty S3 prefix for the namespace-scoped Feast registry.
@@ -189,26 +185,22 @@ export const createRegistryStep = (namespace: string): void => {
   const prefixKey = `feast-test/${namespace}/credit_scoring_local/`;
 
   cy.step(`Create Feast registry folder: s3://${bucketConfig.NAME}/${prefixKey}`);
-  cy.exec(
-    `oc run ${podName} -n ${namespace} ` +
-      `--image=amazon/aws-cli:latest ` +
-      `--restart=Never --rm --attach --tty=false ` +
-      `--env=AWS_ACCESS_KEY_ID=${shQuote(buckets.AWS_ACCESS_KEY_ID)} ` +
-      `--env=AWS_SECRET_ACCESS_KEY=${shQuote(buckets.AWS_SECRET_ACCESS_KEY)} ` +
-      `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
-      `-- s3api put-object --bucket ${shQuote(bucketConfig.NAME)} --key ${shQuote(prefixKey)} ` +
-      `${endpointArg(bucketConfig.ENDPOINT)}`,
-    { failOnNonZeroExit: false, log: false, timeout: 120000 },
-  ).then((result) => {
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to create Feast registry folder s3://${bucketConfig.NAME}/${prefixKey}: ${
-          result.stderr || result.stdout
-        }`,
-      );
-    }
-    cy.log(`Created Feast registry folder s3://${bucketConfig.NAME}/${prefixKey}`);
+  runAwsCliInCluster({
+    namespace,
+    podName,
+    region: bucketConfig.REGION,
+    awsCliArgs: [
+      's3api',
+      'put-object',
+      '--bucket',
+      bucketConfig.NAME,
+      '--key',
+      prefixKey,
+      ...endpointArgs(bucketConfig.ENDPOINT),
+    ],
+    failOnNonZeroExit: true,
   });
+  cy.log(`Created Feast registry folder s3://${bucketConfig.NAME}/${prefixKey}`);
 };
 
 /**
@@ -232,14 +224,10 @@ export const deleteFeastRegistryFiles = (namespace: string): void => {
   const podName = `feast-s3-cleanup-${Date.now()}`;
   const s3Path = `s3://${bucketConfig.NAME}/feast-test/${namespace}/`;
 
-  cy.exec(
-    `oc run ${podName} -n ${namespace} ` +
-      `--image=amazon/aws-cli:latest ` +
-      `--restart=Never --rm --attach --tty=false ` +
-      `--env=AWS_ACCESS_KEY_ID=${shQuote(buckets.AWS_ACCESS_KEY_ID)} ` +
-      `--env=AWS_SECRET_ACCESS_KEY=${shQuote(buckets.AWS_SECRET_ACCESS_KEY)} ` +
-      `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
-      `-- s3 rm ${shQuote(s3Path)} --recursive ${endpointArg(bucketConfig.ENDPOINT)}`,
-    { failOnNonZeroExit: false, log: false, timeout: 120000 },
-  );
+  runAwsCliInCluster({
+    namespace,
+    podName,
+    region: bucketConfig.REGION,
+    awsCliArgs: ['s3', 'rm', s3Path, '--recursive', ...endpointArgs(bucketConfig.ENDPOINT)],
+  });
 };
