@@ -67,6 +67,9 @@ const roleBindingsMock = require('@odh-dashboard/internal/api/k8s/roleBindings')
 const k8sUtilsMock = require('@odh-dashboard/internal/api/k8sUtils');
 
 const make404 = () => ({ statusObject: { code: 404, status: 'Failure', message: 'not found' } });
+const make409 = () => ({
+  statusObject: { code: 409, status: 'Failure', message: 'already exists' },
+});
 
 const mockOwner: K8sResourceCommon = {
   apiVersion: 'serving.kserve.io/v1beta1',
@@ -145,6 +148,19 @@ describe('createServiceAccountIfMissing', () => {
 
     await expect(createServiceAccountIfMissing(sa, 'test-ns')).rejects.toBe(error);
   });
+
+  it('should re-fetch on 409 conflict during create', async () => {
+    const existing = { metadata: { name: 'test-sa', uid: 'existing-uid' } };
+    serviceAccountsMock.getServiceAccount
+      .mockRejectedValueOnce(make404())
+      .mockResolvedValueOnce(existing);
+    serviceAccountsMock.createServiceAccount.mockRejectedValue(make409());
+    const sa = { metadata: { name: 'test-sa' } } as never;
+
+    const result = await createServiceAccountIfMissing(sa, 'test-ns');
+    expect(result).toBe(existing);
+    expect(serviceAccountsMock.getServiceAccount).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('createRoleIfMissing', () => {
@@ -178,6 +194,17 @@ describe('createRoleIfMissing', () => {
 
     await expect(createRoleIfMissing(role, 'test-ns')).rejects.toBe(error);
     expect(rolesMock.createRole).not.toHaveBeenCalled();
+  });
+
+  it('should re-fetch on 409 conflict during create', async () => {
+    const existing = { metadata: { name: 'test-role', uid: 'existing-uid' } };
+    rolesMock.getRole.mockRejectedValueOnce(make404()).mockResolvedValueOnce(existing);
+    rolesMock.createRole.mockRejectedValue(make409());
+    const role = { metadata: { name: 'test-role' } } as never;
+
+    const result = await createRoleIfMissing(role, 'test-ns');
+    expect(result).toBe(existing);
+    expect(rolesMock.getRole).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -230,6 +257,19 @@ describe('createRoleBindingIfMissing', () => {
 
     await expect(createRoleBindingIfMissing(rb, 'test-ns')).rejects.toEqual(make404());
   });
+
+  it('should re-fetch on 409 conflict during create', async () => {
+    const existing = { metadata: { name: 'test-rb', uid: 'existing-uid' } };
+    roleBindingsMock.getRoleBinding
+      .mockRejectedValueOnce(make404())
+      .mockResolvedValueOnce(existing);
+    roleBindingsMock.createRoleBinding.mockRejectedValue(make409());
+    const rb = { metadata: { name: 'test-rb' } } as never;
+
+    const result = await createRoleBindingIfMissing(rb, 'test-ns');
+    expect(result).toBe(existing);
+    expect(roleBindingsMock.getRoleBinding).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('setUpTokenAuth', () => {
@@ -265,6 +305,8 @@ describe('setUpTokenAuth', () => {
     await setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'llminferenceservices');
 
     expect(rolesMock.createRole).toHaveBeenCalled();
+    const roleArg = rolesMock.createRole.mock.calls[0][0];
+    expect(roleArg.rules[0].resources).toEqual(['llminferenceservices']);
   });
 
   it('should create secrets for new tokens', async () => {

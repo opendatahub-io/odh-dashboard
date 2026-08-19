@@ -92,8 +92,8 @@ export const deployKServeDeployment = async (
   if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
       inferenceServiceData.tokenAuth,
-      inferenceServiceData.k8sName,
-      projectName,
+      inferenceServiceResult.metadata.name,
+      inferenceServiceResult.metadata.namespace,
       createTokenAuth,
       inferenceServiceResult,
       'inferenceservices',

@@ -63,6 +63,7 @@ export const getTokenNames = (
 };
 
 const is404 = (error: unknown): boolean => getGenericErrorCode(error) === 404;
+const is409 = (error: unknown): boolean => getGenericErrorCode(error) === 409;
 
 export type TokenAuthResourceType = 'inferenceservices' | 'llminferenceservices';
 
@@ -98,7 +99,12 @@ export const createServiceAccountIfMissing = async (
 ): Promise<ServiceAccountKind> =>
   getServiceAccount(serviceAccount.metadata.name, namespace).catch((e: unknown) => {
     if (is404(e)) {
-      return createServiceAccount(serviceAccount, opts);
+      return createServiceAccount(serviceAccount, opts).catch((createError: unknown) => {
+        if (is409(createError)) {
+          return getServiceAccount(serviceAccount.metadata.name, namespace);
+        }
+        return Promise.reject(createError);
+      });
     }
     return Promise.reject(e);
   });
@@ -110,7 +116,12 @@ export const createRoleIfMissing = async (
 ): Promise<RoleKind> =>
   getRole(namespace, role.metadata.name).catch((e: unknown) => {
     if (is404(e)) {
-      return createRole(role, opts);
+      return createRole(role, opts).catch((createError: unknown) => {
+        if (is409(createError)) {
+          return getRole(namespace, role.metadata.name);
+        }
+        return Promise.reject(createError);
+      });
     }
     return Promise.reject(e);
   });
@@ -123,6 +134,9 @@ export const createRoleBindingIfMissing = async (
   getRoleBinding(namespace, rolebinding.metadata.name).catch((e: unknown) => {
     if (is404(e)) {
       return createRoleBinding(rolebinding, opts).catch((error: unknown) => {
+        if (is409(error)) {
+          return getRoleBinding(namespace, rolebinding.metadata.name);
+        }
         if (is404(error) && opts?.dryRun) {
           return Promise.resolve(rolebinding);
         }
