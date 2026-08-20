@@ -90,7 +90,6 @@ export const mapResultToItems = (
         selectable:
           !options?.selectableExtensions ||
           options.selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
-        forceShowAsSelected: false,
         details: {
           ...(isValidDate && {
             'Last Modified': (

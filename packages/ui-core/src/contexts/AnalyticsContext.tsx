@@ -12,12 +12,42 @@ export type FormTrackingEventProperties = {
   [key: string]: string | number | boolean | undefined;
 };
 
-export type AnalyticsAPI = {
-  fireFormTrackingEvent: (eventName: string, properties: FormTrackingEventProperties) => void;
+export type MiscTrackingEventProperties = {
+  [key: string]: string | number | boolean | undefined;
 };
 
-const noopAnalytics: AnalyticsAPI = {
+export type LinkTrackingEventProperties = {
+  from?: string;
+  href?: string;
+  to?: string;
+  type?: string;
+  section?: string;
+  name?: string;
+  projectName?: string;
+};
+
+export type IdentifyEventProperties = {
+  isAdmin: boolean;
+  userID?: string;
+  canCreateProjects: boolean;
+};
+
+export type AnalyticsAPI = {
+  fireFormTrackingEvent: (eventName: string, properties: FormTrackingEventProperties) => void;
+  fireMiscTrackingEvent: (eventName: string, properties: MiscTrackingEventProperties) => void;
+  fireLinkTrackingEvent: (eventName: string, properties: LinkTrackingEventProperties) => void;
+  fireSimpleTrackingEvent: (eventName: string) => void;
+  firePageEvent: () => void;
+  fireIdentifyEvent: (properties: IdentifyEventProperties) => void;
+};
+
+export const noopAnalytics: AnalyticsAPI = {
   fireFormTrackingEvent: () => undefined,
+  fireMiscTrackingEvent: () => undefined,
+  fireLinkTrackingEvent: () => undefined,
+  fireSimpleTrackingEvent: () => undefined,
+  firePageEvent: () => undefined,
+  fireIdentifyEvent: () => undefined,
 };
 
 export const AnalyticsContext = React.createContext<AnalyticsAPI>(noopAnalytics);

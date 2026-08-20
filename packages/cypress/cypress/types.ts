@@ -340,6 +340,23 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+export type AcceleratorTestData = DataScienceProjectData & {
+  unsupportedAcceleratorConfigFixturePath: string;
+  acceleratorConfigName: string;
+  version: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
+export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
+  servingRuntimeId: string;
+  servingRuntimeDisplayName: string;
+  unsupportedServingRuntimeYamlFixturePath: string;
+  apiProtocol: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -693,6 +710,11 @@ export type CustomEndpointTestData = {
     commitMessage: string;
     testMessageWithPrompt: string;
   };
+  prompt2: {
+    name: string;
+    template: string;
+    commitMessage: string;
+  };
   rag: {
     fileName: string;
     fixturePath: string;
@@ -702,6 +724,19 @@ export type CustomEndpointTestData = {
   guardrails: {
     safeMessage: string;
     maliciousMessage: string;
+  };
+  agent: {
+    name: string;
+    description: string;
+  };
+  mcp: {
+    configMapName: string;
+    namespace: string;
+    serverKey: string;
+    serverName: string;
+    image: string;
+    serverDescription: string;
+    testQuestion: string;
   };
 };
 

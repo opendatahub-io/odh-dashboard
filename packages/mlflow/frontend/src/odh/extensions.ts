@@ -1,6 +1,11 @@
-import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  ActionExtension,
+  NavExtension,
+  RouteExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
-const extensions: (NavExtension | RouteExtension)[] = [
+const extensions: (NavExtension | RouteExtension | ActionExtension)[] = [
   // Navigation section kept commented out, only used for local testing
   // {
   //   type: 'app.navigation/section',
@@ -36,6 +41,18 @@ const extensions: (NavExtension | RouteExtension)[] = [
     properties: {
       path: '/mlflow-bff/main-view/*',
       component: () => import('./MlflowWrapper'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG, SupportedArea.MCP_REGISTRY],
+    },
+    properties: {
+      id: 'register-mcp-server',
+      label: 'Register MCP server',
+      group: 'mcp-catalog.server-actions',
+      component: () => import('./components/McpServerRegisterAction'),
     },
   },
 ];

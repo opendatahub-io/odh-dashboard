@@ -10,6 +10,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
+  CollectionBenchmark,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
@@ -22,11 +23,30 @@ import {
   ListEvaluationJobsParams,
   NamespaceKind,
   Provider,
+  ProviderBenchmark,
   ProvidersResponse,
   VerifyConnectionRequest,
   VerifyConnectionResponse,
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
+
+const validateCollection = (data: unknown): void => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid collection: expected an object');
+  }
+  if (!('name' in data) || typeof data.name !== 'string' || data.name.length === 0) {
+    throw new Error('Invalid collection: missing or empty name');
+  }
+  if (!('resource' in data) || !data.resource || typeof data.resource !== 'object') {
+    throw new Error('Invalid collection: missing resource');
+  }
+  if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
+    throw new Error('Invalid collection: missing resource.id');
+  }
+  if ('benchmarks' in data && data.benchmarks != null && !Array.isArray(data.benchmarks)) {
+    throw new Error('Invalid collection: benchmarks is not an array');
+  }
+};
 
 const validateEvaluationJob = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
@@ -43,6 +63,60 @@ const validateEvaluationJob = (data: unknown): void => {
     throw new Error('Invalid evaluation job: results.benchmarks is not an array');
   }
 };
+
+const isString = (v: unknown): v is string => typeof v === 'string';
+
+const isValidProviderItem = (p: unknown): p is Provider =>
+  p != null &&
+  typeof p === 'object' &&
+  'resource' in p &&
+  p.resource != null &&
+  typeof p.resource === 'object' &&
+  'id' in p.resource &&
+  typeof p.resource.id === 'string' &&
+  'name' in p &&
+  typeof p.name === 'string';
+
+const isValidProviderBenchmark = (b: unknown): b is ProviderBenchmark =>
+  b != null &&
+  typeof b === 'object' &&
+  'id' in b &&
+  typeof b.id === 'string' &&
+  'name' in b &&
+  typeof b.name === 'string';
+
+const isValidCollectionItem = (c: unknown): c is Collection =>
+  c != null &&
+  typeof c === 'object' &&
+  'resource' in c &&
+  c.resource != null &&
+  typeof c.resource === 'object' &&
+  'id' in c.resource &&
+  typeof c.resource.id === 'string' &&
+  'name' in c &&
+  typeof c.name === 'string';
+
+const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
+  b != null && typeof b === 'object' && 'id' in b && typeof b.id === 'string';
+
+const sanitizeProviders = (items: unknown[]): Provider[] =>
+  items.filter(isValidProviderItem).map((p) => ({
+    ...p,
+    benchmarks: Array.isArray(p.benchmarks)
+      ? p.benchmarks.filter(isValidProviderBenchmark).map((b) => ({
+          ...b,
+          metrics: Array.isArray(b.metrics) ? b.metrics.filter(isString) : undefined,
+        }))
+      : undefined,
+  }));
+
+const sanitizeCollectionItems = (items: unknown[]): Collection[] =>
+  items.filter(isValidCollectionItem).map((c) => ({
+    ...c,
+    benchmarks: Array.isArray(c.benchmarks)
+      ? c.benchmarks.filter(isValidCollectionBenchmark)
+      : undefined,
+  }));
 
 export const getUser =
   (hostPath: string) =>
@@ -177,6 +251,28 @@ export const deleteEvaluationJob =
       ),
     ).then(() => undefined);
 
+export const getCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>
   (opts: APIOptions): Promise<CollectionsListResponse> => {
@@ -222,10 +318,10 @@ export const getCollections =
           return { items: [] };
         }
         if (Array.isArray(data)) {
-          return { items: data };
+          return { items: sanitizeCollectionItems(data) };
         }
         return {
-          items: data.items ?? [],
+          items: sanitizeCollectionItems(data.items ?? []),
           // eslint-disable-next-line camelcase
           total_count: data.total_count,
           limit: data.limit,
@@ -248,7 +344,7 @@ export const getProviders =
     ).then((response) => {
       if (isModArchResponse<ProvidersResponse | Provider[]>(response)) {
         const { data } = response;
-        return Array.isArray(data) ? data : data.items;
+        return sanitizeProviders(Array.isArray(data) ? data : data.items);
       }
       throw new Error('Invalid response format');
     });

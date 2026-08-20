@@ -110,8 +110,9 @@ describe('Home page Admin section', () => {
 
     homePage.returnToHome();
     homeAdminSection.findServingRuntimeButton().click();
-    // homePage.findAppPageTitle().should('have.text', 'Serving runtimes');
-    verifyRelativeURL('/settings/model-resources-operations/serving-runtimes');
+    verifyRelativeURL(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+    );
     homePage.returnToHome();
     homeAdminSection.findClusterSettingButton().click();
     homePage.findAppPageTitle().should('have.text', 'General settings');

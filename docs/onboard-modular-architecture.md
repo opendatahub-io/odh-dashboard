@@ -7,6 +7,8 @@ This guide outlines the steps to create and onboard a new modular architecture m
 - Node.js and npm installed.
 - Access to the ODH Dashboard repository.
 
+> **Recommended**: Use the `/module-onboarding` Claude Code skill to automate this entire process, including standalone manifest creation and dashboard-operator registration. After module scaffolding, use `/konflux-onboarding` for CI/CD pipeline setup. These skills are the recommended method for onboarding new modules.
+
 ## Steps
 
 ### 1. Navigate to the Packages Directory
@@ -177,7 +179,7 @@ Each module's Kubernetes manifests live in `manifests/modules/<slug>/`. For exam
 | `service-account.yaml` | ServiceAccount for the module's pods |
 | `cluster-role.yaml` | RBAC permissions (e.g., access to specific CRDs, secrets, configmaps) |
 | `cluster-role-binding.yaml` | Binds the ClusterRole to the module's ServiceAccount |
-| `params.yaml` | Kustomize parameters for image references and namespace |
+| `params.env` | Kustomize parameters for image references and namespace |
 | `kustomization.yaml` | Kustomize configuration referencing all the above resources |
 
 When creating manifests for a new module, reference an existing module (e.g., `manifests/modules/gen-ai/`) as a pattern. Key things to customize:
@@ -194,3 +196,5 @@ When creating manifests for a new module, reference an existing module (e.g., `m
 - [Inter-BFF Communication](./inter-bff-communication.md) - How BFF services communicate with each other
 - [Dashboard Operator Architecture](./dashboard-operator.md) - Full details on the operator controller
 - [Architecture Overview](./architecture.md) - Overall system architecture
+- `/module-onboarding` skill -- Automated scaffolding, operator registration, and manifest creation
+- `/konflux-onboarding` skill -- CI/CD pipeline setup (Dockerfiles, Konflux, OpenShift CI)

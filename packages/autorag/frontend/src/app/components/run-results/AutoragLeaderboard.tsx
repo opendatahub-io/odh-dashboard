@@ -46,6 +46,13 @@ import {
 } from '~/app/utilities/utils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import {
+  fireAutoragResultsColumnToggled,
+  fireAutoragLeaderboardPresetApplied,
+  mapOptimizationMetric,
+  type ResultsColumnName,
+  type LeaderboardPresetType,
+} from '~/app/utilities/tracking';
 import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
@@ -274,6 +281,58 @@ const SETTINGS_COLUMNS = Object.entries(COLUMN_META)
     testId: meta.testId!,
   }));
 
+// Explicit allowlist (rather than reusing COLUMN_META's ids directly) so the analytics taxonomy
+// doesn't silently grow every time a new settings column is added to COLUMN_META — new ids fall
+// back to `'other'` in `getColumnAnalyticsName` until deliberately added here.
+const SETTINGS_COLUMN_ANALYTICS_NAMES: Partial<Record<string, ResultsColumnName>> = {
+  chunkingMethod: 'chunkingMethod',
+  chunkingChunkSize: 'chunkingChunkSize',
+  chunkingChunkOverlap: 'chunkingChunkOverlap',
+  retrievalMethod: 'retrievalMethod',
+  retrievalSearchMode: 'retrievalSearchMode',
+  retrievalRankerStrategy: 'retrievalRankerStrategy',
+  retrievalNumberOfChunks: 'retrievalNumberOfChunks',
+};
+
+/**
+ * Maps an internal column id (as used in `columnDefs`/`ColumnManagementModalColumn.key`) to the
+ * discrete `ResultsColumnName` analytics taxonomy. `optimizedMetricKey` disambiguates the sticky
+ * `'optimized-metric'` column, whose underlying metric varies per run.
+ */
+const getColumnAnalyticsName = (
+  columnId: string,
+  optimizedMetricKey: string,
+): ResultsColumnName => {
+  if (columnId === 'rank') {
+    return 'rank';
+  }
+  if (columnId === 'pattern') {
+    return 'patternName';
+  }
+  if (columnId === 'modelNames') {
+    return 'modelNames';
+  }
+  if (columnId === 'optimized-metric') {
+    return mapOptimizationMetric(optimizedMetricKey) ?? 'otherMetric';
+  }
+  if (columnId.startsWith('metric:')) {
+    return mapOptimizationMetric(columnId.slice('metric:'.length)) ?? 'otherMetric';
+  }
+  return SETTINGS_COLUMN_ANALYTICS_NAMES[columnId] ?? 'other';
+};
+
+// Explicit allowlist mapping each "Manage columns" quick-select preset's display label to its
+// discrete analytics identity — mirrors `SETTINGS_COLUMN_ANALYTICS_NAMES` above so a label
+// rename doesn't silently break (or leak into) the analytics taxonomy.
+const PRESET_ANALYTICS_TYPES: Record<string, LeaderboardPresetType> = {
+  'Optimization metrics': 'optimizationMetrics',
+  'Optimization metrics and chunking': 'optimizationMetricsAndChunking',
+  'Full configuration': 'fullConfiguration',
+};
+
+const getPresetAnalyticsType = (presetLabel: string): LeaderboardPresetType =>
+  PRESET_ANALYTICS_TYPES[presetLabel] ?? 'other';
+
 const getColumnInfoProps = (
   columnId: string,
   tooltipName?: string,
@@ -446,22 +505,39 @@ function AutoragLeaderboard({
     }));
   }, [columnDefs, visibleColumnIds, columnOrder, DEFAULT_VISIBLE_IDS]);
 
-  const handleApplyColumns = React.useCallback((newColumns: ColumnManagementModalColumn[]) => {
-    const newVisibleIds = new Set<string>();
-    newColumns.forEach((col) => {
-      if (col.isShown) {
-        newVisibleIds.add(col.key);
-      }
-    });
-    setVisibleColumnIds(newVisibleIds);
-    setColumnOrder(newColumns.map((col) => col.key));
+  const handleApplyColumns = React.useCallback(
+    (newColumns: ColumnManagementModalColumn[]) => {
+      const newVisibleIds = new Set<string>();
+      newColumns.forEach((col) => {
+        if (col.isShown) {
+          newVisibleIds.add(col.key);
+        }
+      });
 
-    // Reset sort to the first visible column if the currently sorted column is being hidden
-    const fallbackSortId = newColumns.find((col) => col.isShown)?.key ?? 'rank';
-    setActiveSort((prev) =>
-      newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
-    );
-  }, []);
+      // Track only columns whose visibility actually changed from the prior applied state —
+      // a reorder-only save (or a checkbox toggled back to its original state) fires nothing.
+      newColumns.forEach((col) => {
+        const wasVisible = visibleColumnIds.has(col.key);
+        const isShown = col.isShown ?? false;
+        if (wasVisible !== isShown) {
+          fireAutoragResultsColumnToggled(
+            getColumnAnalyticsName(col.key, optimizedMetric),
+            isShown,
+          );
+        }
+      });
+
+      setVisibleColumnIds(newVisibleIds);
+      setColumnOrder(newColumns.map((col) => col.key));
+
+      // Reset sort to the first visible column if the currently sorted column is being hidden
+      const fallbackSortId = newColumns.find((col) => col.isShown)?.key ?? 'rank';
+      setActiveSort((prev) =>
+        newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
+      );
+    },
+    [visibleColumnIds, optimizedMetric],
+  );
 
   // All visible columns in user order, used for both header and body rendering
   const visibleColumns = React.useMemo(() => {
@@ -1096,6 +1172,9 @@ function AutoragLeaderboard({
         defaultColumns={defaultColumns}
         applyColumns={handleApplyColumns}
         presets={columnPresets}
+        onPresetSelect={(presetLabel) =>
+          fireAutoragLeaderboardPresetApplied(getPresetAnalyticsType(presetLabel))
+        }
       />
     </Card>
   );
