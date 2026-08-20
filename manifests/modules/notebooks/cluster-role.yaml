@@ -33,6 +33,7 @@ rules:
       - list
       - watch
       - create
+      - delete
     resources:
       - persistentvolumeclaims
   - apiGroups:

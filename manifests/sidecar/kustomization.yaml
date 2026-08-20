@@ -8,7 +8,6 @@ resources:
   - modules-cluster-role.yaml
   - modules-cluster-role-binding.yaml
   - modules-sa-token-secret.yaml
-  - notebooks-rbac.yaml
 configMapGenerator:
   - name: sidecar-params
     env: params.env
@@ -125,16 +124,6 @@ replacements:
           name: odh-dashboard
         fieldPaths:
           - spec.template.spec.containers.[name=agent-ops-ui].image
-  - source:
-      kind: ConfigMap
-      name: sidecar-params
-      fieldPath: data.notebooks-ui-image
-    targets:
-      - select:
-          kind: Deployment
-          name: odh-dashboard
-        fieldPaths:
-          - spec.template.spec.containers.[name=notebooks-ui].image
 patchesJson6902:
   - path: deployment.yaml
     target:

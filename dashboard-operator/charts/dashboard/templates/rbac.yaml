@@ -655,6 +655,68 @@ rules:
       - create
       - update
       - delete
+  # Workbenches V2 BFF: mirors modules/notebooks/cluster-role.yaml
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - namespaces
+      - configmaps
+      - pods
+      - persistentvolumes
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - secrets
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+    resources:
+      - persistentvolumeclaims
+  - apiGroups:
+      - storage.k8s.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - storageclasses
+  - apiGroups:
+      - kubeflow.org
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - workspaces
+      - workspacekinds
+  - apiGroups:
+      - authorization.k8s.io
+    verbs:
+      - create
+    resources:
+      - subjectaccessreviews
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
