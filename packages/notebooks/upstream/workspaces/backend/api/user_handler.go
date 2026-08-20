@@ -18,6 +18,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -45,8 +46,8 @@ func (a *App) GetUserHandler(w http.ResponseWriter, r *http.Request, ps httprout
 	userId := r.Header.Get(a.Config.UserIdHeader)
 
 	// Remove prefix if configured (e.g., "system:serviceaccount:" prefix)
-	if a.Config.UserIdPrefix != "" && len(userId) > len(a.Config.UserIdPrefix) {
-		userId = userId[len(a.Config.UserIdPrefix):]
+	if a.Config.UserIdPrefix != "" {
+		userId = strings.TrimPrefix(userId, a.Config.UserIdPrefix)
 	}
 
 	// Fallback headers for different deployment scenarios

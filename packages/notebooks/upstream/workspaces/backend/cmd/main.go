@@ -124,13 +124,6 @@ func main() {
 		"Scheme used in the Swagger UI (http or https)",
 	)
 
-	// Override Swagger metadata with runtime config
-	if cfg.SwaggerEnabled {
-		openapi.SwaggerInfo.Host = cfg.SwaggerHost
-		openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
-		openapi.SwaggerInfo.Schemes = []string{cfg.SwaggerScheme}
-	}
-
 	flag.StringVar(
 		&cfg.StaticAssetsDir,
 		"static-assets-dir",
@@ -139,6 +132,13 @@ func main() {
 	)
 
 	flag.Parse()
+
+	// Override Swagger metadata with runtime config (must be after flag.Parse)
+	if cfg.SwaggerEnabled {
+		openapi.SwaggerInfo.Host = cfg.SwaggerHost
+		openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
+		openapi.SwaggerInfo.Schemes = []string{cfg.SwaggerScheme}
+	}
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
