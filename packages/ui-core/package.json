@@ -24,6 +24,7 @@
     "./design/TitleWithIcon": "./src/design/TitleWithIcon.tsx",
     "./utilities/fetchState": "./src/utilities/fetchState.ts",
     "./utilities/metrics": "./src/utilities/metrics.ts",
+    "./utilities/metrics/usePrometheusQueryRange": "./src/utilities/metrics/usePrometheusQueryRange.ts",
     "./utilities/time": "./src/utilities/time.ts",
     "./components/detail": "./src/components/detail/index.ts",
     "./components/detail/OverviewCard": "./src/components/detail/OverviewCard.tsx",

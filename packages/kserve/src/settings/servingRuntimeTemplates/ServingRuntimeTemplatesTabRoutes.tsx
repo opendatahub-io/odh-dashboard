@@ -15,7 +15,7 @@ import ServingRuntimeTemplatesView from './ServingRuntimeTemplatesView';
 const ServingRuntimeTemplatesTabRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<CustomServingRuntimeContextProvider />}>
-      <Route index element={<ServingRuntimeTemplatesView noTitle />} />
+      <Route index element={<ServingRuntimeTemplatesView />} />
       <Route path="*" element={<Navigate to="." replace />} />
     </Route>
   </Routes>

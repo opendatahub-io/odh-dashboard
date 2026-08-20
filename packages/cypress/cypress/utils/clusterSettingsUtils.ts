@@ -1,42 +1,6 @@
 import { getOdhDashboardConfigGroupsConfig } from './oc_commands/project';
 import type { CommandLineResult, DashboardConfig, NotebookControllerCullerConfig } from '../types';
-import { modelServingSettings, pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
-
-/**
- * Validates the visibility and state of Model Serving Platform checkboxes
- * in the Cluster Settings based on the provided dashboard configuration.
- *
- * This function checks whether the Model Serving feature is enabled or disabled,
- * and subsequently verifies the state of the Single-Platform checkbox.
- *
- * - If Model Serving is disabled, the checkbox should not be visible.
- * - If Model Serving is enabled:
- *   - The Single-Platform Checkbox will be checked if KServe is enabled;
- *     otherwise, it will not be checked.
- *
- * @param dashboardConfig The Model Serving Platform configuration object containing
- *                        settings related to model serving and KServe.
- */
-export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig): void => {
-  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-  const isModelServingEnabled = dashboardConfig.dashboardConfig?.disableModelServing;
-  const isKServeEnabled = dashboardConfig.dashboardConfig?.disableKServe;
-  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
-
-  cy.log(`Value of isModelServingEnabled: ${String(isModelServingEnabled)}`);
-  cy.log(`Value of isKServeEnabled: ${String(isKServeEnabled)}`);
-
-  if (isModelServingEnabled) {
-    modelServingSettings.findSinglePlatformSwitch().should('not.exist');
-    cy.log('Model Serving is disabled, checkboxes should not be visible');
-  } else if (isKServeEnabled) {
-    modelServingSettings.findSinglePlatformSwitch().should('not.be.checked');
-    cy.log('Single-Platform Checkbox is disabled, it should not be checked');
-  } else {
-    modelServingSettings.findSinglePlatformSwitch().should('be.checked');
-    cy.log('Single-Platform Checkbox is enabled, it should be checked');
-  }
-};
+import { pvcSizeSettings, cullerSettings } from '../pages/clusterSettings';
 
 /**
  * Validates the PVC Size displays in the Cluster Settings.

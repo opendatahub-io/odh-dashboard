@@ -217,4 +217,126 @@ describe('BenchmarkDrawerTileContent', () => {
     );
     expect(screen.getByRole('link', { name: /View benchmark dataset/i })).toBeInTheDocument();
   });
+
+  describe('collapsible behavior', () => {
+    it('should not show expand/collapse button when isCollapsible is false', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          description="Some description"
+          trackingSurface="test_surface"
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /collapse/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Description')).toBeInTheDocument();
+      expect(screen.getByText('Some description')).toBeInTheDocument();
+    });
+
+    it('should hide description and details when isCollapsible is true and collapsed', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          description="Hidden description"
+          metrics={['accuracy']}
+          providerName="LM Eval"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
+      expect(screen.queryByText('Description')).not.toBeInTheDocument();
+      expect(screen.queryByText('Hidden description')).not.toBeInTheDocument();
+      expect(screen.queryByText('Metrics evaluated')).not.toBeInTheDocument();
+      expect(screen.queryByText('Evaluation framework')).not.toBeInTheDocument();
+    });
+
+    it('should show description and details after clicking expand', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          description="Revealed description"
+          metrics={['accuracy']}
+          providerName="LM Eval"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+      expect(screen.getByRole('button', { name: 'Collapse' })).toBeInTheDocument();
+      expect(screen.getByText('Description')).toBeInTheDocument();
+      expect(screen.getByText('Revealed description')).toBeInTheDocument();
+      expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
+      expect(screen.getByText('Evaluation framework')).toBeInTheDocument();
+    });
+
+    it('should collapse again after clicking collapse', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          description="Toggle description"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+      expect(screen.getByText('Toggle description')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
+      expect(screen.queryByText('Toggle description')).not.toBeInTheDocument();
+    });
+
+    it('should not be collapsible when isCollapsible is true but showHeader is false', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="bench-1"
+          description="Always visible"
+          metrics={['accuracy']}
+          trackingSurface="test_surface"
+          isCollapsible
+          showHeader={false}
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Description')).toBeInTheDocument();
+      expect(screen.getByText('Always visible')).toBeInTheDocument();
+      expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
+    });
+
+    it('should not be collapsible when tile has no description or metadata', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Empty Benchmark"
+          id="bench-empty"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      expect(screen.queryByRole('button', { name: /expand/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /collapse/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Empty Benchmark')).toBeInTheDocument();
+      expect(screen.getByText('bench-empty')).toBeInTheDocument();
+    });
+
+    it('should still show header name and subtitle when collapsed', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Collapsible Benchmark"
+          id="bench-1"
+          providerName="LM Eval"
+          description="Hidden content"
+          trackingSurface="test_surface"
+          isCollapsible
+        />,
+      );
+      expect(screen.getByText('Collapsible Benchmark')).toBeInTheDocument();
+      expect(screen.getByText('bench-1 · LM Eval')).toBeInTheDocument();
+      expect(screen.queryByText('Hidden content')).not.toBeInTheDocument();
+    });
+  });
 });

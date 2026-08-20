@@ -224,19 +224,9 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
 
 ## Shared Singletons (moduleFederation.js)
 
-Every federated module must share these as singletons:
+`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from webpack `compiler.context`.
 
-```javascript
-shared: {
-  react: { singleton: true, requiredVersion: deps.react },
-  'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-  'react-router': { singleton: true, requiredVersion: deps['react-router'] },
-  'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-  '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
-  '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
-  '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
-}
-```
+Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds eager-share and bundle imports, while federated remotes use `import: false`.
 
 ## Onboarding Checklist
 
@@ -294,7 +284,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Symptom**: Build error mentioning missing shared module.
 
-**Fix**: Verify `frontend/config/moduleFederation.js` lists all required singletons (see Shared Singletons section above). Ensure `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` are in the package's dependencies.
+**Fix**: Verify `frontend/config/moduleFederation.js` uses `OdhFederationPlugin` with `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`. Ensure `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` are in the package's dependencies.
 
 ### BFF Go build fails
 

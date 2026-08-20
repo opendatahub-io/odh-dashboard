@@ -380,51 +380,11 @@ describe('isAreaAvailable', () => {
     });
   });
 
-  describe('MODEL_DEPLOYMENT_SETTINGS area', () => {
-    it('should be available when modelDeploymentSettings flag is true and MODEL_SERVING is available', () => {
-      const isAvailable = isAreaAvailable(
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        mockDashboardConfig({ modelDeploymentSettings: true, disableModelServing: false }).spec,
-        null,
-        null,
-      );
-
-      expect(isAvailable.status).toBe(true);
-      expect(isAvailable.featureFlags).toEqual({ modelDeploymentSettings: 'on' });
-      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.MODEL_SERVING]: true });
-    });
-
-    it('should not be available when modelDeploymentSettings flag is false', () => {
-      const isAvailable = isAreaAvailable(
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        mockDashboardConfig({ modelDeploymentSettings: false }).spec,
-        null,
-        null,
-      );
-
-      expect(isAvailable.status).toBe(false);
-      expect(isAvailable.featureFlags).toEqual({ modelDeploymentSettings: 'off' });
-    });
-
-    it('should not be available when MODEL_SERVING is disabled', () => {
-      const isAvailable = isAreaAvailable(
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        mockDashboardConfig({ modelDeploymentSettings: true, disableModelServing: true }).spec,
-        null,
-        null,
-      );
-
-      expect(isAvailable.status).toBe(false);
-      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.MODEL_SERVING]: false });
-    });
-  });
-
-  describe('LLM admin page areas with MODEL_DEPLOYMENT_SETTINGS enabled', () => {
+  describe('LLM admin page areas', () => {
     it('should make LLMD_TOPOLOGY_CONFIGS available when llmdTemplates is true', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
-          modelDeploymentSettings: true,
           llmdTemplates: true,
           disableLLMd: false,
           disableModelServing: false,
@@ -447,7 +407,6 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
-          modelDeploymentSettings: true,
           llmdTemplates: false,
           disableLLMd: false,
           disableModelServing: false,
@@ -469,7 +428,6 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.VLLM_ON_MAAS,
         mockDashboardConfig({
-          modelDeploymentSettings: true,
           vLLMDeploymentOnMaaS: true,
           disableLLMd: false,
           disableModelServing: false,
@@ -492,7 +450,6 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.VLLM_ON_MAAS,
         mockDashboardConfig({
-          modelDeploymentSettings: true,
           vLLMDeploymentOnMaaS: false,
           disableLLMd: false,
           disableModelServing: false,
@@ -514,7 +471,6 @@ describe('isAreaAvailable', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.LLMD_TOPOLOGY_CONFIGS,
         mockDashboardConfig({
-          modelDeploymentSettings: true,
           llmdTemplates: true,
           disableLLMd: true,
         }).spec,

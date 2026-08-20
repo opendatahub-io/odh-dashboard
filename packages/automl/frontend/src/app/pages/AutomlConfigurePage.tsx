@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
@@ -27,6 +27,19 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import {
+  AUTOML_FAILURE_CATEGORY,
+  fireAutomlFlowExited,
+  fireAutomlRunCreated,
+  fireAutomlRunDetailsDefined,
+  fireAutomlRunReconfigured,
+  mapOptimizationMetric,
+  mapPredictionType,
+  TrackingOutcome,
+  type AutomlExitDestination,
+  type AutomlFunnelStep,
+  type RunActionSource,
+} from '~/app/utilities/tracking';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description'] as const satisfies Array<
@@ -52,11 +65,17 @@ function AutomlConfigurePage({
   const navigate = useNavigate();
   const location = useLocation();
   const notification = useNotification();
-  const fromResultsPage =
-    location.state != null &&
-    typeof location.state === 'object' &&
-    'from' in location.state &&
-    location.state.from === 'results';
+  const locationFrom =
+    location.state != null && typeof location.state === 'object' && 'from' in location.state
+      ? location.state.from
+      : undefined;
+  const fromResultsPage = locationFrom === 'results';
+  const reconfigureSource: RunActionSource | undefined =
+    locationFrom === 'results'
+      ? 'resultsPage'
+      : locationFrom === 'runsList'
+        ? 'runsList'
+        : undefined;
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -70,10 +89,20 @@ function AutomlConfigurePage({
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
+  // The actual baseline the form starts from — not just `initialValues`, which reconfigure
+  // loaders may leave partially populated (e.g. `eval_metric` is omitted when it can't be
+  // resolved from the source run's pipeline parameters). Diffing against raw `initialValues`
+  // would treat every such omitted field as "changed" the instant the schema default resolves
+  // to anything other than `undefined`, even with no user action at all.
+  const initialFormValues = React.useMemo(
+    () => ({ ...configureSchema.defaults, ...initialValues }),
+    [initialValues],
+  );
+
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: { ...configureSchema.defaults, ...initialValues },
+    defaultValues: initialFormValues,
   });
 
   const [displayName, description] = useWatch({
@@ -81,9 +110,94 @@ function AutomlConfigurePage({
     name: createFields,
   });
 
-  const [step, setStep] = useState<'create' | 'configure'>('create');
+  // Watched purely to compute `changedFieldsOnExit` below — mirrors the same four fields
+  // `fireAutomlRunReconfigured` diffs at submit time, so abandon/cancel tracking reports the
+  // same notion of "changed" as a successful (or failed) reconfigure submission would.
+  const [watchedTaskType, watchedEvalMetric, watchedTargetColumn, watchedSecretName] = useWatch({
+    control: form.control,
+    name: ['task_type', 'eval_metric', 'target_column', 'train_data_secret_name'],
+  });
 
-  const onCancel = useCallback(() => navigate(-1), [navigate]);
+  const [step, setStep] = useState<'create' | 'configure'>('create');
+  const isRecommendedRef = React.useRef(true);
+  const funnelStepRef = React.useRef<AutomlFunnelStep>('defineDetails');
+  // Cancel is only rendered on step 'create'. `sourceRunId` is set for every reconfigure flow
+  // (both results-page and runs-list origins), but `navigate(-1)` only lands on another AutoML
+  // run's results page when reconfigure was entered from there — from the runs list, Cancel
+  // returns to the experiments list. Use the origin, not the presence of sourceRunId.
+  const cancelExitDestination: AutomlExitDestination = fromResultsPage
+    ? 'otherAutoml'
+    : 'experimentsList';
+
+  // Only meaningful for reconfigure: the configure screen starts fully populated, so unlike the
+  // create flow there's no "how far did they get" to report — instead report whether the user
+  // changed anything before leaving. `undefined` (rather than `''`) for the create flow, so the
+  // field is omitted from that event entirely instead of always reporting "no changes".
+  const changedFieldsOnExit = React.useMemo(() => {
+    if (!sourceRunId) {
+      return undefined;
+    }
+    const fields: string[] = [];
+    if (watchedTaskType !== initialFormValues.task_type) {
+      fields.push('predictionType');
+    }
+    if (watchedEvalMetric !== initialFormValues.eval_metric) {
+      fields.push('optimizationMetric');
+    }
+    if (watchedTargetColumn !== initialFormValues.target_column) {
+      fields.push('targetColumn');
+    }
+    if (watchedSecretName !== initialFormValues.train_data_secret_name) {
+      fields.push('s3Connection');
+    }
+    return fields.join(',');
+  }, [
+    sourceRunId,
+    watchedTaskType,
+    watchedEvalMetric,
+    watchedTargetColumn,
+    watchedSecretName,
+    initialFormValues,
+  ]);
+  // Kept in a ref (like funnelStepRef) so the beforeunload listener below — registered once,
+  // with an empty dependency array — always reads the latest value instead of a stale closure.
+  const changedFieldsOnExitRef = React.useRef(changedFieldsOnExit);
+  useEffect(() => {
+    changedFieldsOnExitRef.current = changedFieldsOnExit;
+  }, [changedFieldsOnExit]);
+
+  useEffect(() => {
+    if (step === 'configure') {
+      // Reconfigure's configure screen is fully populated on mount, so there's no equivalent
+      // to the create flow's progressive trainingData → predictionType unlocking — it's always
+      // just 'configure', with changedFieldsOnExit carrying the meaningful signal instead.
+      funnelStepRef.current = sourceRunId ? 'configure' : 'trainingData';
+    }
+  }, [step, sourceRunId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      fireAutomlFlowExited(
+        'abandon',
+        funnelStepRef.current,
+        'none',
+        changedFieldsOnExitRef.current,
+      );
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  const onCancel = useCallback(() => {
+    fireAutomlRunDetailsDefined(TrackingOutcome.cancel, Boolean(description?.trim()));
+    fireAutomlFlowExited(
+      'navigate',
+      funnelStepRef.current,
+      cancelExitDestination,
+      changedFieldsOnExitRef.current,
+    );
+    navigate(-1);
+  }, [navigate, description, cancelExitDestination]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -188,11 +302,33 @@ function AutomlConfigurePage({
         (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
+              <Link
+                to={getRedirectPath(namespace!)}
+                onClick={() =>
+                  fireAutomlFlowExited(
+                    'navigate',
+                    funnelStepRef.current,
+                    'experimentsList',
+                    changedFieldsOnExitRef.current,
+                  )
+                }
+              >
+                AutoML: {namespace}
+              </Link>
             </BreadcrumbItem>
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}>
+                <Link
+                  to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutomlFlowExited(
+                      'navigate',
+                      funnelStepRef.current,
+                      'otherAutoml',
+                      changedFieldsOnExitRef.current,
+                    )
+                  }
+                >
                   <Truncate content={sourceRunName} />
                 </Link>
               </BreadcrumbItem>
@@ -218,20 +354,81 @@ function AutomlConfigurePage({
             event.preventDefault();
 
             if (step === 'create') {
+              fireAutomlRunDetailsDefined(TrackingOutcome.submit, Boolean(description?.trim()));
               setStep('configure');
               return;
             }
 
             form.handleSubmit(
               async (data: ConfigureSchema) => {
+                const trackingProperties = {
+                  predictionType: mapPredictionType(data.task_type),
+                  optimizationMetric: mapOptimizationMetric(data.eval_metric),
+                  isRecommended: isRecommendedRef.current,
+                };
+                // Computed up front (before the mutation) so it's available in both the
+                // success and failure branches below — the failure branch needs to report
+                // what the user actually changed, not an empty diff.
+                const changedFields: string[] = [];
+                if (sourceRunId) {
+                  // Diffed against `initialFormValues` (the form's actual starting point),
+                  // not the raw `initialValues` prop — see its definition above for why.
+                  if (data.task_type !== initialFormValues.task_type) {
+                    changedFields.push('predictionType');
+                  }
+                  if (data.eval_metric !== initialFormValues.eval_metric) {
+                    changedFields.push('optimizationMetric');
+                  }
+                  // The submit transformer deletes `target_column`, moving its value to
+                  // `target` (timeseries) or `label_column` (tabular) — compare against
+                  // whichever one is populated post-transform.
+                  if ((data.target ?? data.label_column) !== initialFormValues.target_column) {
+                    changedFields.push('targetColumn');
+                  }
+                  if (data.train_data_secret_name !== initialFormValues.train_data_secret_name) {
+                    changedFields.push('s3Connection');
+                  }
+                }
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                  navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`);
+                  if (sourceRunId) {
+                    fireAutomlRunReconfigured({
+                      ...trackingProperties,
+                      changedFields,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                      source: reconfigureSource,
+                    });
+                  } else {
+                    fireAutomlRunCreated({
+                      ...trackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                    });
+                  }
+                  navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`, {
+                    state: { entrySource: 'direct' },
+                  });
                 } catch (error) {
-                  notification.error(
-                    'Failed to create pipeline run',
-                    error instanceof Error ? error.message : '',
-                  );
+                  const errorMessage = error instanceof Error ? error.message : '';
+                  if (sourceRunId) {
+                    fireAutomlRunReconfigured({
+                      ...trackingProperties,
+                      changedFields,
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: AUTOML_FAILURE_CATEGORY,
+                      source: reconfigureSource,
+                    });
+                  } else {
+                    fireAutomlRunCreated({
+                      ...trackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: AUTOML_FAILURE_CATEGORY,
+                    });
+                  }
+                  notification.error('Failed to create pipeline run', errorMessage);
                 }
               },
               // this `onInvalid` case should be impossible to hit
@@ -255,6 +452,20 @@ function AutomlConfigurePage({
                 <AutomlConfigure
                   initialValues={initialValues}
                   initialInputDataSecret={initialInputDataSecret}
+                  onRecommendationChange={(isRecommended) => {
+                    isRecommendedRef.current = isRecommended;
+                  }}
+                  // Reconfigure's configure screen has no genuine sub-step progression to
+                  // report (see funnelStepRef effect above) — only wire this up for the
+                  // create-run flow, so a pre-populated reconfigure target column can't
+                  // advance funnelStepRef the way it used to.
+                  onFunnelStepChange={
+                    sourceRunId
+                      ? undefined
+                      : (funnelStep) => {
+                          funnelStepRef.current = funnelStep;
+                        }
+                  }
                 />
               )}
             </PageSection>

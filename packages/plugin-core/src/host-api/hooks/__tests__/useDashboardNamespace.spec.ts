@@ -1,14 +1,14 @@
 import React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import type { HostApiServices } from '../../types';
-import { HostApiContext } from '../../HostApiContext';
+import type { HostApiCoreServices } from '../../types';
+import { HostApiCoreContext } from '../../HostApiCoreContext';
 import { useDashboardNamespace } from '../useDashboardNamespace';
 
 function createWrapper(namespace: string): React.FC<{ children: React.ReactNode }> {
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      HostApiContext.Provider,
-      { value: { dashboardNamespace: namespace } as HostApiServices },
+      HostApiCoreContext.Provider,
+      { value: { dashboardNamespace: namespace } as HostApiCoreServices },
       children,
     );
   Wrapper.displayName = 'Wrapper';

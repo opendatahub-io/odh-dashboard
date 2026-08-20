@@ -19,13 +19,13 @@ retryableBefore(() => {
       cy.log(`Loaded Single-Model Name: ${modelServingSingleName}`);
       cy.log(`Loaded Single-Model Metadata Name: ${metadataSingleDisplayName}`);
 
-      // Call cleanupTemplates here, after metadataDisplayName is set
-      return cleanupTemplates(metadataSingleDisplayName);
+      // Clean up by nested ServingRuntime name (Template row id)
+      return cleanupTemplates(modelServingSingleName);
     });
 });
 after(() => {
-  if (metadataSingleDisplayName) {
-    cleanupTemplates(metadataSingleDisplayName);
+  if (modelServingSingleName) {
+    cleanupTemplates(modelServingSingleName);
   }
 });
 

@@ -12,10 +12,7 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 
 it('LLM accelerator configurations should not be available for non product admins', () => {
   asProjectAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ vLLMDeploymentOnMaaS: true, modelDeploymentSettings: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
   llmAcceleratorConfigs.visit(false);
   pageNotfound.findPage().should('exist');
   llmAcceleratorConfigs.findNavItem().should('not.exist');
@@ -23,10 +20,7 @@ it('LLM accelerator configurations should not be available for non product admin
 
 it('LLM accelerator configurations tab should not be available when vLLMDeploymentOnMaaS is disabled', () => {
   asProductAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ vLLMDeploymentOnMaaS: false, modelDeploymentSettings: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: false }));
   llmAcceleratorConfigs.visit(false);
   // The parent tabbed page still renders (other tabs are visible), but the accelerator
   // tab is hidden. TabRoutePage redirects to the first available tab.

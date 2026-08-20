@@ -1,20 +1,18 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { SharedModuleMetadata } from '../shared-modules-meta.ts';
 import type { RuntimeOdhPackages, WorkspacePackageInfo } from '../getRuntimeOdhPackages.ts';
 
-const {
-  sharedPluginModules,
-  getSharedModuleMetadata,
-  PF_REACT_ICONS_CREATE_ICON_MODULE,
-  getPfReactIconsCreateIconSharedConfig,
-} = require('../shared-modules-meta.ts') as {
+const { sharedPluginModules, getSharedModuleMetadata } = require('../shared-modules-meta.ts') as {
   sharedPluginModules: Record<string, Partial<SharedModuleMetadata>>;
   getSharedModuleMetadata: (moduleName: string) => SharedModuleMetadata;
-  PF_REACT_ICONS_CREATE_ICON_MODULE: string;
-  getPfReactIconsCreateIconSharedConfig: (requiredVersion: string) => Record<string, unknown>;
 };
-const { getRuntimeOdhPackages } = require('../getRuntimeOdhPackages.ts') as {
-  getRuntimeOdhPackages: (packages?: WorkspacePackageInfo[]) => RuntimeOdhPackages;
-};
+const { collectDependenciesFromContext, getRuntimeOdhPackages } =
+  require('../getRuntimeOdhPackages.ts') as {
+    collectDependenciesFromContext: (startDir: string) => Record<string, string>;
+    getRuntimeOdhPackages: (packages?: WorkspacePackageInfo[]) => RuntimeOdhPackages;
+  };
 
 jest.mock('child_process', () => ({
   execFileSync: jest.fn(() =>
@@ -93,39 +91,6 @@ describe('getSharedModuleMetadata', () => {
   });
 });
 
-describe('getPfReactIconsCreateIconSharedConfig', () => {
-  const concreteSemver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-
-  it('returns singleton sharing metadata for the createIcon deep import', () => {
-    const config = getPfReactIconsCreateIconSharedConfig('^6.4.0');
-    expect(PF_REACT_ICONS_CREATE_ICON_MODULE).toBe('@patternfly/react-icons/dist/esm/createIcon');
-    expect(config.singleton).toBe(true);
-    expect(config.requiredVersion).toBe('^6.4.0');
-    if (config.version !== undefined) {
-      expect(config.version).toEqual(expect.stringMatching(concreteSemver));
-    }
-  });
-
-  it('omits version when package metadata cannot be loaded', () => {
-    jest.isolateModules(() => {
-      jest.doMock('@patternfly/react-icons/package.json', () => {
-        throw new Error('Cannot find module');
-      });
-      const { getPfReactIconsCreateIconSharedConfig: getConfig } =
-        require('../shared-modules-meta.ts') as {
-          getPfReactIconsCreateIconSharedConfig: (
-            requiredVersion: string,
-          ) => Record<string, unknown>;
-        };
-      const config = getConfig('^6.4.0');
-      expect(config).toEqual({
-        singleton: true,
-        requiredVersion: '^6.4.0',
-      });
-    });
-  });
-});
-
 describe('getRuntimeOdhPackages', () => {
   it('returns empty host deps when the host package is missing from the workspace', () => {
     const { all, hostProvided } = getRuntimeOdhPackages([
@@ -172,5 +137,153 @@ describe('getRuntimeOdhPackages', () => {
     const { all } = getRuntimeOdhPackages();
 
     expect(all.has('@odh-dashboard/eslint-config')).toBe(false);
+  });
+});
+
+describe('collectDependenciesFromContext', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'odh-mf-deps-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('should return dependencies from the package.json in the given directory', () => {
+    fs.writeFileSync(
+      path.join(root, 'package.json'),
+      JSON.stringify({
+        dependencies: { react: '^18.3.1', '@patternfly/react-core': '~6.5.1' },
+      }),
+    );
+
+    expect(collectDependenciesFromContext(root)).toEqual({
+      react: '^18.3.1',
+      '@patternfly/react-core': '~6.5.1',
+    });
+  });
+
+  it('should not include parent package.json dependencies', () => {
+    fs.writeFileSync(
+      path.join(root, 'package.json'),
+      JSON.stringify({ dependencies: { '@odh-dashboard/internal': '*' } }),
+    );
+    const frontendDir = path.join(root, 'frontend');
+    fs.mkdirSync(frontendDir);
+    fs.writeFileSync(
+      path.join(frontendDir, 'package.json'),
+      JSON.stringify({ dependencies: { react: '^18.3.1' } }),
+    );
+
+    expect(collectDependenciesFromContext(frontendDir)).toEqual({ react: '^18.3.1' });
+  });
+
+  it('should return an empty object when no package.json exists', () => {
+    const empty = path.join(root, 'empty');
+    fs.mkdirSync(empty);
+
+    expect(collectDependenciesFromContext(empty)).toEqual({});
+  });
+});
+
+describe('OdhFederationPlugin share policy', () => {
+  const { BaseOdhFederationPlugin } = require('../BaseOdhFederationPlugin.ts') as {
+    BaseOdhFederationPlugin: new (options: {
+      name: string;
+      isHost: boolean;
+      remotes?: Record<string, string>;
+      exposes?: Record<string, string>;
+    }) => {
+      apply: (compiler: { options: { context?: string } }) => void;
+    };
+  };
+
+  type MfConfig = {
+    name: string;
+    filename: string;
+    remotes?: Record<string, string>;
+    shared: Record<string, Record<string, unknown>>;
+    exposes: Record<string, string>;
+    runtime?: false | string;
+  };
+
+  let lastConfig: MfConfig | undefined;
+  let root: string;
+
+  class CapturePlugin extends BaseOdhFederationPlugin {
+    protected getModuleFederationPlugin() {
+      return class {
+        constructor(config: MfConfig) {
+          lastConfig = config;
+        }
+
+        apply(): void {
+          /* capture only */
+        }
+      };
+    }
+  }
+
+  beforeEach(() => {
+    lastConfig = undefined;
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'odh-mf-plugin-'));
+    fs.writeFileSync(
+      path.join(root, 'package.json'),
+      JSON.stringify({
+        dependencies: {
+          react: '^18.3.1',
+          '@patternfly/react-table': '~6.5.1',
+        },
+      }),
+    );
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('eager-shares must-share modules and omits import: false when isHost', () => {
+    new CapturePlugin({
+      name: 'host',
+      isHost: true,
+      remotes: { maas: 'maas@http://localhost/remoteEntry.js' },
+    }).apply({
+      options: { context: root },
+    });
+
+    expect(lastConfig?.name).toBe('host');
+    expect(lastConfig?.runtime).toBe(false);
+    expect(lastConfig?.exposes).toEqual({});
+    expect(lastConfig?.remotes).toEqual({ maas: 'maas@http://localhost/remoteEntry.js' });
+    expect(lastConfig?.shared.react).toEqual(
+      expect.objectContaining({ singleton: true, eager: true, requiredVersion: '^18.3.1' }),
+    );
+    expect(lastConfig?.shared.react.import).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/internal'].import).toBeUndefined();
+    expect(lastConfig?.shared['@patternfly/react-table'].eager).toBeUndefined();
+  });
+
+  it('sets import: false and runtime: false when not isHost', () => {
+    new CapturePlugin({
+      name: 'maas',
+      isHost: false,
+      exposes: { './extensions': './src/odh/extensions' },
+    }).apply({ options: { context: root } });
+
+    expect(lastConfig?.name).toBe('maas');
+    expect(lastConfig?.runtime).toBe(false);
+    expect(lastConfig?.exposes).toEqual({ './extensions': './src/odh/extensions' });
+    expect(lastConfig?.remotes).toBeUndefined();
+    expect(lastConfig?.shared.react).toEqual(
+      expect.objectContaining({ singleton: true, import: false, requiredVersion: '^18.3.1' }),
+    );
+    expect(lastConfig?.shared.react.eager).toBeUndefined();
+    expect(lastConfig?.shared['@odh-dashboard/internal']).toEqual(
+      expect.objectContaining({ singleton: true, requiredVersion: '*', import: false }),
+    );
+    expect(lastConfig?.shared['@odh-dashboard/maas'].import).toBeUndefined();
+    expect(lastConfig?.shared['@patternfly/react-table'].import).toBeUndefined();
   });
 });

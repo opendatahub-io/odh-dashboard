@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { HostApiContext, type HostApiServices } from '@odh-dashboard/plugin-core/host-api';
+import {
+  HostApiContext,
+  HostApiCoreContext,
+  HostApiInfraContext,
+  type HostApiServices,
+  type HostApiCoreServices,
+  type HostApiInfraServices,
+} from '@odh-dashboard/plugin-core/host-api';
 import { useDashboardNamespace } from '#~/redux/selectors/project';
 import { checkAccess } from '#~/api/checkAccess';
 import {
@@ -33,20 +40,34 @@ type HostApiProviderProps = {
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const value = React.useMemo<HostApiServices>(
+  const core = React.useMemo<HostApiCoreServices>(
     () => ({
       dashboardNamespace,
       checkAccess,
-      getSecretsByLabel,
-      getDashboardPvcs,
+      trackEvent: fireMiscTrackingEvent,
       fetchDashboardConfig,
-      useTemplates,
-      setProjectServingPlatform: addSupportServingPlatformProject,
+    }),
+    [dashboardNamespace],
+  );
+
+  const infra = React.useMemo<HostApiInfraServices>(
+    () => ({
       createSecret,
       getSecret,
       deleteSecret,
+      getSecretsByLabel,
       patchSecretWithOwnerReference,
       patchSecretWithProtocolAnnotation,
+      createProject,
+      getDashboardPvcs,
+    }),
+    [],
+  );
+
+  const domain = React.useMemo<HostApiServices>(
+    () => ({
+      useTemplates,
+      setProjectServingPlatform: addSupportServingPlatformProject,
       useWatchConnectionTypes,
       useServingConnections,
       getDashboardConfigTemplateOrder,
@@ -56,14 +77,18 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
         useModelServingMetrics as unknown as HostApiServices['useModelServingMetrics'],
       useServingPlatformStatuses,
       isProjectNIMSupported,
-      trackEvent: fireMiscTrackingEvent,
-      createProject,
       registeredModelDeploymentsRoute,
     }),
-    [dashboardNamespace],
+    [],
   );
 
-  return <HostApiContext.Provider value={value}>{children}</HostApiContext.Provider>;
+  return (
+    <HostApiCoreContext.Provider value={core}>
+      <HostApiInfraContext.Provider value={infra}>
+        <HostApiContext.Provider value={domain}>{children}</HostApiContext.Provider>
+      </HostApiInfraContext.Provider>
+    </HostApiCoreContext.Provider>
+  );
 };
 
 export default HostApiProvider;

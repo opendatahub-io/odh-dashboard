@@ -47,30 +47,27 @@ const ADMIN_USER = 'ADMIN_USER';
 
 // Keep in sync with ../src/settings/llmAcceleratorConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
-// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
-// https://issues.redhat.com/browse/RHOAIENG-80077
-const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
-  '/settings/model-resources-operations/llm-accelerator-configs';
 const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations';
 
 // Keep in sync with ../src/settings/topologyConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
-// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
-// https://issues.redhat.com/browse/RHOAIENG-80077
-const TOPOLOGY_CONFIGS_STANDALONE_PATH =
-  '/settings/model-resources-operations/llmd-topology-configurations';
 const TOPOLOGY_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/topology-configurations';
 
 // Keep in sync with ../src/settings/routingConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
-// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
-// https://issues.redhat.com/browse/RHOAIENG-80077
-const ROUTING_CONFIGS_STANDALONE_PATH =
-  '/settings/model-resources-operations/llmd-routing-configurations';
 const ROUTING_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/routing-configurations';
+
+// Base paths of the former standalone pages, kept only as redirect sources to the
+// tabs above (the standalone pages themselves have been removed).
+const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llm-accelerator-configs';
+const TOPOLOGY_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-topology-configurations';
+const ROUTING_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-routing-configurations';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
@@ -561,100 +558,13 @@ const extensions: (
         import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      id: 'settings-llm-accelerator-configs',
-      title: 'LLM accelerator configurations',
-      href: LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH,
-      section: 'settings-model-resources-and-operations',
-      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
-      group: '1_model-resources',
-    },
-  },
+  // Redirects from old standalone URLs to tabs on the model deployment settings page.
+  // The accelerator, topology, and routing standalone pages are gone; each redirect
+  // is reachable whenever the tab's own feature areas are enabled.
   {
     type: 'app.route',
     flags: {
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
-      component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
-    },
-  },
-  // Standalone llm-d topology configurations page — nav item + route. Hidden when
-  // modelDeploymentSettings is on (disallowed flag); removed entirely by
-  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      id: 'settings-llmd-topology-configurations',
-      title: 'llm-d topology configurations',
-      href: TOPOLOGY_CONFIGS_STANDALONE_PATH,
-      section: 'settings-model-resources-and-operations',
-      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
-      group: '2_model-resources',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
-      component: () => import('../src/settings/topologyConfigs/TopologyConfigurationsRoutes'),
-    },
-  },
-  // Standalone llm-d routing configurations page — nav item + route. Hidden when
-  // modelDeploymentSettings is on (disallowed flag); removed entirely by
-  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      id: 'settings-llmd-routing-configurations',
-      title: 'llm-d routing configurations',
-      href: ROUTING_CONFIGS_STANDALONE_PATH,
-      section: 'settings-model-resources-and-operations',
-      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
-      group: '2_model-resources',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
-      component: () => import('../src/settings/routingConfigs/RoutingConfigurationsRoutes'),
-    },
-  },
-  // Redirects from old standalone URLs to tabs on the model deployment settings page
-  {
-    type: 'app.route',
-    flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        LLMD_SERVING_ID,
-        ADMIN_USER,
-        SupportedArea.VLLM_ON_MAAS,
-      ],
     },
     properties: {
       path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
@@ -667,11 +577,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
       path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
@@ -684,11 +590,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
       path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
@@ -701,12 +603,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        LLMD_SERVING_ID,
-        ADMIN_USER,
-        SupportedArea.VLLM_ON_MAAS,
-      ],
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -730,12 +627,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          LLMD_SERVING_ID,
-          ADMIN_USER,
-          SupportedArea.VLLM_ON_MAAS,
-        ],
+        required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
       },
       properties: {
         path,
@@ -747,11 +639,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -774,11 +662,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-          ADMIN_USER,
-        ],
+        required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
       },
       properties: {
         path,
@@ -789,11 +673,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -816,11 +696,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-          ADMIN_USER,
-        ],
+        required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
       },
       properties: {
         path,
