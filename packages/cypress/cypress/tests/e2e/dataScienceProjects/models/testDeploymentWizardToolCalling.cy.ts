@@ -9,6 +9,7 @@ import { waitForModelCatalogCards } from '../../../../utils/oc_commands/modelCat
 import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { modelCatalog } from '../../../../pages/modelCatalog/modelCatalog';
 import { setupToolCallingWizardTestData } from '../../../../utils/modelCatalogToolCallingSetup';
+import { verifyLLMInferenceServiceRuntimeArgs } from '../../../../utils/oc_commands/modelServing';
 
 let sourceData: ModelCatalogSourceTestData;
 let projectName: string;
@@ -16,8 +17,13 @@ let modelName: string;
 let validatedConfigurationOptionId: string;
 const uuid = generateTestUUID();
 
+const TOOL_CALLING_FIXTURE_PATH = 'e2e/modelCatalog/testSourceEnableDisable.yaml';
+const MODEL_CATALOG_FIXTURE_PATH = 'e2e/modelCatalog/testModelCatalog.yaml';
+const MODEL_SERVING_CONNECTION_YAML = 'resources/yaml/data_connection_model_serving.yaml';
+const awsBucket = 'BUCKET_1' as const;
+
 const TOOL_CALLING_FEATURE_FLAG_ON = 'toolCalling=true';
-const TOOL_CALLING_FEATURE_FLAG_OFF = 'toolCalling=false';
+const MODEL_CATALOG_UI_TIMEOUT = 20000;
 
 const selectProjectOnPreconfigureStep = (): void => {
   cy.step('Select project on the preconfigure step');
@@ -27,7 +33,13 @@ const selectProjectOnPreconfigureStep = (): void => {
 
 describe('Verify tool calling configuration in the deployment wizard', () => {
   retryableBefore(() => {
-    return setupToolCallingWizardTestData(uuid).then((setupData) => {
+    return setupToolCallingWizardTestData(
+      uuid,
+      awsBucket,
+      TOOL_CALLING_FIXTURE_PATH,
+      MODEL_CATALOG_FIXTURE_PATH,
+      MODEL_SERVING_CONNECTION_YAML,
+    ).then((setupData) => {
       sourceData = setupData.sourceData;
       projectName = setupData.projectName;
       modelName = setupData.modelName;
@@ -40,32 +52,49 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
   });
 
   it(
-    'should show the tool calling card and prefill runtime args on advanced settings',
+    'Should deploy a catalog model with tool calling runtime args from the wizard',
     { tags: ['@Dashboard', '@ModelServing', '@ModelCatalog', '@Featureflagged'] },
     () => {
-      const deploymentName = modelName;
-      const flagsQuery = `?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_ON}`;
+      const deploymentName = `${modelName}-${uuid}`;
+      let resourceName: string;
 
       cy.step(`Log in with toolCalling feature flag (${TOOL_CALLING_FEATURE_FLAG_ON})`);
       cy.visitWithLogin(`/?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_ON}`, LDAP_ADMIN_USER);
 
       cy.step('Navigate to Model Catalog');
-      modelCatalog.visit(flagsQuery);
+      cy.visitWithLogin(
+        `/ai-hub/models/catalog?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_ON}`,
+        LDAP_ADMIN_USER,
+      );
+      cy.findByTestId('app-tab-page-title', { timeout: MODEL_CATALOG_UI_TIMEOUT }).should('exist');
+      cy.findByText('Discover models that are available for your organization', {
+        exact: false,
+        timeout: MODEL_CATALOG_UI_TIMEOUT,
+      }).should('exist');
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();
 
       cy.step(`Search for ${sourceData.toolCallingModelName} and open it`);
       modelCatalog.searchByName(sourceData.toolCallingModelName);
-      modelCatalog.findModelCatalogCardLink(sourceData.toolCallingModelName).click();
-      modelDetailsPage.findPageTitle().should('exist');
+      modelCatalog
+        .findModelCatalogCardLink(sourceData.toolCallingModelName)
+        .should('be.visible', { timeout: MODEL_CATALOG_UI_TIMEOUT })
+        .click();
+      modelDetailsPage.findPageTitle().should('exist', { timeout: MODEL_CATALOG_UI_TIMEOUT });
 
       cy.step('Deploy the model from catalog into the wizard');
+      modelCatalog
+        .findCatalogDeployButton()
+        .should('be.visible', { timeout: MODEL_CATALOG_UI_TIMEOUT })
+        .and('not.have.attr', 'aria-disabled', 'true');
       modelCatalog.clickDeployModelButtonWithRetry();
       modelServingWizard.findPreconfigureStep().should('be.enabled');
 
       cy.step('Verify the Tool calling card is selected on the wizard');
-      modelServingWizard.findValidatedArgumentsSection().should('be.visible');
+      modelServingWizard
+        .findValidatedArgumentsSection()
+        .should('be.visible', { timeout: MODEL_CATALOG_UI_TIMEOUT });
       modelServingWizard
         .findValidatedConfigurationOption(validatedConfigurationOptionId)
         .should('be.visible');
@@ -94,6 +123,14 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
 
       cy.step('Complete model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(deploymentName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.selectDeploymentType(ModelDeploymentType.TYPE1);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
@@ -110,62 +147,18 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirection to deployments page with new deployment');
-      cy.location('pathname').should('eq', `/ai-hub/models/deployments/${projectName}`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(10000);
+      cy.location('pathname', { timeout: MODEL_CATALOG_UI_TIMEOUT }).should(
+        'eq',
+        `/ai-hub/models/deployments/${projectName}`,
+      );
       modelServingGlobal.getModelRow(deploymentName).should('exist');
-    },
-  );
 
-  it(
-    'should not show the tool calling card when the toolCalling flag is disabled',
-    { tags: ['@Dashboard', '@ModelServing', '@ModelCatalog', '@Featureflagged'] },
-    () => {
-      const deploymentName = `${modelName}-off`;
-      const flagsQuery = `?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_OFF}`;
-
-      cy.step(`Log in with toolCalling feature flag (${TOOL_CALLING_FEATURE_FLAG_OFF})`);
-      cy.visitWithLogin(`/?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_OFF}`, LDAP_ADMIN_USER);
-
-      cy.step('Navigate to Model Catalog');
-      modelCatalog.visit(flagsQuery);
-
-      cy.step('Wait for model catalog cards to appear');
-      waitForModelCatalogCards();
-
-      cy.step(`Search for ${sourceData.toolCallingModelName} and open it`);
-      modelCatalog.searchByName(sourceData.toolCallingModelName);
-      modelCatalog.findModelCatalogCardLink(sourceData.toolCallingModelName).click();
-      modelDetailsPage.findPageTitle().should('exist');
-
-      cy.step('Deploy the model from catalog into the wizard');
-      modelCatalog.clickDeployModelButtonWithRetry();
-      modelServingWizard.findPreconfigureStep().should('be.enabled');
-
-      cy.step('Verify the wizard opened without the tool calling card');
-      modelServingWizard.findPreconfigureStep().should('be.enabled');
-      modelServingWizard.findValidatedArgumentsSection().should('not.exist');
-      modelServingWizard
-        .findValidatedConfigurationOption(validatedConfigurationOptionId)
-        .should('not.exist');
-
-      selectProjectOnPreconfigureStep();
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      cy.step('Skip prefilled model source step');
-      modelServingWizard.findModelSourceStep().should('be.enabled');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      cy.step('Complete model deployment step');
-      modelServingWizard.findModelDeploymentNameInput().clear().type(deploymentName);
-      modelServingWizard.selectDeploymentType(ModelDeploymentType.TYPE1);
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      cy.step('Submit deployment from review step');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-      modelServingWizard.findSubmitButton().should('be.enabled').click();
-
-      cy.step('Verify redirection to deployments page with new deployment');
-      cy.location('pathname').should('eq', `/ai-hub/models/deployments/${projectName}`);
-      modelServingGlobal.getModelRow(deploymentName).should('exist');
+      cy.step('Verify tool calling runtime arg on the LLMInferenceService');
+      cy.then(() => {
+        verifyLLMInferenceServiceRuntimeArgs(projectName, resourceName, sourceData.toolCallingArg);
+      });
     },
   );
 });

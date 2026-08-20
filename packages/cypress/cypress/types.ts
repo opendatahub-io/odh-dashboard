@@ -744,12 +744,6 @@ export type ModelCatalogSourceTestData = {
   toolCallingModelName: string;
 };
 
-export type ModelCatalogTestData = {
-  projectResourceName: string;
-  singleModelName: string;
-  awsBucket: 'BUCKET_1';
-};
-
 export type ModelAsAServiceTestData = {
   projectResourceName: string;
   singleModelName: string;

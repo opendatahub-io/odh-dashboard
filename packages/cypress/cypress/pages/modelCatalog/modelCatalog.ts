@@ -6,8 +6,8 @@ class ModelCatalog {
     this.waitLanding();
   }
 
-  visit(search = '') {
-    cy.visitWithLogin(`/ai-hub/models/catalog${search}`);
+  visit() {
+    cy.visitWithLogin('/ai-hub/models/catalog');
     this.wait();
   }
 
@@ -24,7 +24,6 @@ class ModelCatalog {
     cy.findByTestId('app-tab-page-title').should('exist');
     cy.findByText('Discover models that are available for your organization', {
       exact: false,
-      timeout: 20000,
     }).should('exist');
     cy.testA11y();
   }
@@ -58,7 +57,7 @@ class ModelCatalog {
 
   findModelCatalogCard(modelName: string) {
     return cy
-      .findAllByTestId('model-catalog-card', { timeout: 20000 })
+      .findAllByTestId('model-catalog-card')
       .contains('[data-testid~=model-catalog-card]', modelName);
   }
 
@@ -75,7 +74,7 @@ class ModelCatalog {
   }
 
   findCatalogDeployButton() {
-    return cy.findByTestId('deploy-button', { timeout: 20000 });
+    return cy.findByTestId('deploy-button');
   }
 
   clickDeployModelButtonWithRetry() {
@@ -84,9 +83,6 @@ class ModelCatalog {
     const tryClick = () => {
       attempt++;
       cy.log(`Click attempt #${attempt}`);
-      this.findCatalogDeployButton()
-        .should('be.visible')
-        .and('not.have.attr', 'aria-disabled', 'true');
       this.findCatalogDeployButton().click();
 
       cy.location('pathname').then((path) => {

@@ -967,7 +967,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findValidatedConfigurationSection(forField: string) {
-    return cy.findByTestId(`validated-configuration-section-${forField}`, { timeout: 20000 });
+    return cy.findByTestId(`validated-configuration-section-${forField}`);
   }
 
   findValidatedConfigurationOption(optionSlug: string) {

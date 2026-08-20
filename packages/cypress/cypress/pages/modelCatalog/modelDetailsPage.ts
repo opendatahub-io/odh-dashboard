@@ -14,7 +14,7 @@ class ModelDetailsPage {
   }
 
   findDeployModelButton() {
-    return cy.findByTestId('deploy-button', { timeout: 20000 });
+    return cy.findByTestId('deploy-button');
   }
 
   findTuneModelButton() {
@@ -26,7 +26,7 @@ class ModelDetailsPage {
   }
 
   findLongDescription() {
-    return cy.findByTestId('model-long-description', { timeout: 20000 });
+    return cy.findByTestId('model-long-description');
   }
 
   findModelVersion() {
@@ -42,7 +42,7 @@ class ModelDetailsPage {
   }
 
   findModelSourceImageLocation() {
-    return cy.findByTestId('source-image-location', { timeout: 20000 });
+    return cy.findByTestId('source-image-location');
   }
 
   getModelSourceImageLocation() {
@@ -136,7 +136,7 @@ class ModelDetailsPage {
   }
 
   findValidatedConfigurationsCard() {
-    return cy.findByTestId('validated-configurations-card', { timeout: 20000 });
+    return cy.findByTestId('validated-configurations-card');
   }
 
   findToolCallingCard() {
