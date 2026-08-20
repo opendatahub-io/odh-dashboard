@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
@@ -194,10 +195,12 @@ func TestParamsPreservation(t *testing.T) {
 
 func TestImagesMapContainsAllModules(t *testing.T) {
 	for name, mod := range moduleRegistry {
-		paramKey := mod.ManifestSlug + "-ui-image"
-		envVar, ok := imagesMap[paramKey]
-		assert.True(t, ok, "imagesMap missing entry for module %q (expected key %q)", name, paramKey)
-		assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch for module %q", name)
+		t.Run(name, func(t *testing.T) {
+			paramKey := mod.ManifestSlug + "-ui-image"
+			envVar, ok := imagesMap[paramKey]
+			assert.True(t, ok, "imagesMap missing entry (expected key %q)", paramKey)
+			assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch")
+		})
 	}
 }
 
@@ -205,20 +208,32 @@ func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
 	require.NoError(t, err)
 
-	content := string(data)
+	var values struct {
+		RelatedImages map[string]string `yaml:"relatedImages"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &values))
+	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
+
 	for name, mod := range moduleRegistry {
-		assert.Contains(t, content, mod.ImageEnvVar,
-			"values.yaml must contain RELATED_IMAGE env var for module %q", name)
+		t.Run("module_"+name, func(t *testing.T) {
+			_, ok := values.RelatedImages[mod.ImageEnvVar]
+			assert.True(t, ok, "relatedImages must contain key %q", mod.ImageEnvVar)
+		})
 	}
 
-	coreEnvVars := []string{
-		"RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
-		"RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
-		"RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
+	coreEnvVars := []struct {
+		name   string
+		envVar string
+	}{
+		{"dashboard", "RELATED_IMAGE_ODH_DASHBOARD_IMAGE"},
+		{"kube-rbac-proxy", "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE"},
+		{"core-bff", "RELATED_IMAGE_ODH_CORE_BFF_IMAGE"},
 	}
-	for _, env := range coreEnvVars {
-		assert.Contains(t, content, env,
-			"values.yaml must contain core RELATED_IMAGE env var %q", env)
+	for _, tt := range coreEnvVars {
+		t.Run("core_"+tt.name, func(t *testing.T) {
+			_, ok := values.RelatedImages[tt.envVar]
+			assert.True(t, ok, "relatedImages must contain key %q", tt.envVar)
+		})
 	}
 }
 
