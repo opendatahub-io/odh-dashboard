@@ -145,7 +145,7 @@ Create the following subtasks under the new epic.
 | 4 | `<name>: Track & Verify ODH Konflux Onboarding` | Major | Track ODH Konflux component onboarding (Quay repo, build pipeline, release config). Automated by DevOps CI. |
 | 5 | `<name>: Set up module for OpenShift CI builds` | Major | Configure OpenShift CI in `openshift/release` repo (ci-operator config + prowgen jobs). Partially automated by `/konflux-onboarding` Phase 5. |
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
-| 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — coordinate with the Platform team. |
+| 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — open a PR and request review in `#ai-core-platform-requests` Slack channel. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
 
 For each subtask:
@@ -608,7 +608,7 @@ If a tracking epic was created in Phase 1 (or provided via `--jira`), update eac
 - **Subtask 3** (Dockerfiles & Tekton): Add comment noting which Dockerfiles were created, add PR links
 - **Subtask 5** (OpenShift CI): Link to the `openshift/release` PR
 - **Subtask 6** (Standalone module manifests): Note whether manifests were created in `manifests/modules/<name>/` (Type A) or N/A (Type B)
-- **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change is a separate step for the Platform team
+- **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change requires a separate PR reviewed via `#ai-core-platform-requests`
 
 For subtasks covered by DevOps automation (2, 4, 8), add a comment noting they will be tracked via the DevOps onboarding flow after the user runs `/create-component-onboarding-jira`.
 
@@ -648,6 +648,6 @@ Print a final report:
 5. Review and merge Dockerfile.konflux.<name> PR in the downstream repo
 6. Review and merge OpenShift CI PR in openshift/release
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
-8. Coordinate opendatahub-operator integration with Platform team — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go`
+8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
 ```
