@@ -775,6 +775,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId3: string;
   toolCallingLabel: string;
   toolCallingArg: string;
+  /** Catalog card title of a model that has servingConfig tool-calling args. */
+  toolCallingModelName: string;
 };
 
 export type ModelAsAServiceTestData = {
