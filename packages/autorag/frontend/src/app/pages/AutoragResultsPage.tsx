@@ -432,7 +432,7 @@ function AutoragResultsPage(): React.JSX.Element {
                         to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
                         state={{ from: 'results' }}
                       >
-                        Experiment configurations
+                        Run configurations
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
