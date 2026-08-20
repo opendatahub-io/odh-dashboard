@@ -99,7 +99,7 @@ export const blankDashboardCR: DashboardConfig = {
       mcpRegistry: false,
       agentOps: false,
       agentsCatalog: false,
-      toolCalling: false,
+      toolCalling: true,
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
@@ -189,6 +189,7 @@ export const DEFAULT_NOTEBOOK_SIZES: NotebookSize[] = [
 ];
 
 export const THANOS_RBAC_PORT = '9092';
+export const THANOS_WEB_PORT = '9091';
 export const THANOS_INSTANCE_NAME = 'thanos-querier';
 export const THANOS_NAMESPACE = 'openshift-monitoring';
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
