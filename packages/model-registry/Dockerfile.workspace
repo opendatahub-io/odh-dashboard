@@ -57,9 +57,9 @@ RUN pnpm install --frozen-lockfile
 # Install its webpack toolchain from package-lock.json, then build with npm.
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 # pnpm hoists a newer esbuild binary to the workspace root; defer lifecycle scripts so
-# npm ci installs the lockfile-pinned esbuild before running install.js locally.
-RUN npm ci --omit=optional --ignore-scripts \
-    && PATH="$(pwd)/node_modules/.bin:/usr/local/bin:/usr/bin:/bin" node ./node_modules/esbuild/install.js
+# npm ci installs lockfile-pinned optional @esbuild/* packages before install.js runs.
+RUN npm ci --ignore-scripts \
+    && node ./node_modules/esbuild/install.js
 RUN npm run build:prod
 
 # BFF build stage
