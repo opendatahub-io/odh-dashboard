@@ -85,6 +85,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
         '@ModelServing',
         '@Deployment',
         '@Playground',
+        '@GenAICI',
         '@NonConcurrent',
       ],
     },
