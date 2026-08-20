@@ -364,6 +364,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   }, [logs, logsLoaded]);
 
   React.useEffect(() => {
+    scrollToBottomOnNextLoad.current = false;
     if (typeof logContainerRef.current?.scrollTo === 'function') {
       logContainerRef.current.scrollTo(0, 0);
     }
