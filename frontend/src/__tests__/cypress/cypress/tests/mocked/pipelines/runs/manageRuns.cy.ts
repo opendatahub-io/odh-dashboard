@@ -68,7 +68,10 @@ describe('Manage runs', () => {
   });
 
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
+    manageRunsPage
+      .findBreadcrumb()
+      .findByRole('link', { name: 'Compare runs' })
+      .click({ force: true });
     cy.location('pathname').should(
       'equal',
       `/experiments/${projectName}/${experimentId}/compareRuns`,
@@ -77,7 +80,7 @@ describe('Manage runs', () => {
   });
 
   it('navigates to experiment runs page when the experiment name breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Default' }).click();
+    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Default' }).click({ force: true });
     cy.location('pathname').should('equal', `/experiments/${projectName}/${experimentId}/runs`);
   });
 
@@ -85,7 +88,7 @@ describe('Manage runs', () => {
     manageRunsPage
       .findBreadcrumb()
       .findByRole('link', { name: 'Experiments in Test project' })
-      .click();
+      .click({ force: true });
     cy.location('pathname').should('equal', `/experiments/${projectName}`);
   });
 

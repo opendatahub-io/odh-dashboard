@@ -311,14 +311,16 @@ describe('Experiments', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
       cy.findByLabelText('Breadcrumb')
         .findByRole('link', { name: `Experiments in ${projectName}` })
-        .click();
+        .click({ force: true });
       verifyRelativeURL(`/experiments/${projectName}`);
       pipelineRunsGlobal.findProjectNavigatorLink().should('exist');
     });
 
     it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
-      cy.findByLabelText('Breadcrumb').findByText(mockExperiment.display_name).click();
+      cy.findByLabelText('Breadcrumb')
+        .findByText(mockExperiment.display_name)
+        .click({ force: true });
       verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
     });
 

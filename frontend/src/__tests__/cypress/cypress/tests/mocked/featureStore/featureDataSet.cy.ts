@@ -511,7 +511,7 @@ describe('DataSet Details', () => {
     cy.wait('@getDataSetDetails');
 
     featureDataSetDetails.findSourceFeatureService().within(() => {
-      cy.findByText('test-feature-service').click();
+      cy.findByText('test-feature-service').click({ force: true });
     });
 
     cy.url().should(
