@@ -271,9 +271,11 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
     case PhaseStatus.UNAVAILABLE:
       return 'Inference not serving';
     case PhaseStatus.FAILED:
-      return 'Gateway not found';
+      return 'Model setup failed';
     case PhaseStatus.PENDING:
-      return 'Awaiting subscription';
+      return 'Awaiting governance pairing';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -282,9 +284,13 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
 const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Some models unavailable';
+    case PhaseStatus.PENDING:
+      return 'Setting up subscription';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -293,9 +299,13 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
 const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Some models unavailable';
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
+    case PhaseStatus.PENDING:
+      return 'Setting up policy';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
