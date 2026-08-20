@@ -9,7 +9,9 @@ import {
   MaaSEvents,
   ModelInfoContext,
   MySubscriptionsGrouping,
+  MySubscriptionsRowExpandedProperties,
   SubscriptionDetailNavLocation,
+  SubscriptionDetailNavigatedProperties,
 } from '~/app/types/event-tracking';
 import { ModelGroupEntry } from './SubscriptionsViewTable';
 import { ModelInfoPopover, formatTokenLimit } from './SubscriptionModelsTable';
@@ -36,7 +38,7 @@ const ModelGroupRow: React.FC<{
                   currentView: MySubscriptionsGrouping.MODEL,
                   nestedItemCount: modelGroup.subscriptions.length,
                   expanded: next,
-                });
+                } satisfies MySubscriptionsRowExpandedProperties);
                 return next;
               });
             },
@@ -89,10 +91,10 @@ const ModelGroupRow: React.FC<{
                           data-testid={`subscription-detail-link-${sub.subscriptionIdHeader}`}
                           to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
                           onClick={() => {
-                            fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_DETAIL_NAVIGATED, {
+                            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
                               currentView: MySubscriptionsGrouping.MODEL,
                               location: SubscriptionDetailNavLocation.EXPANDED_NESTED_ROW,
-                            });
+                            } satisfies SubscriptionDetailNavigatedProperties);
                           }}
                         >
                           {sub.displayName || sub.subscriptionIdHeader}

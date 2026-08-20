@@ -28,7 +28,11 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
-import { ApiKeyBulkRevokeMode, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  ApiKeyBulkRevokeMode,
+  ApiKeysBulkRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -61,17 +65,20 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
 
   const handleClose = React.useCallback(
     (revoked: boolean) => {
+      if (revoking) {
+        return;
+      }
       if (!revoked) {
         fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
           outcome: TrackingOutcome.cancel,
           bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
           keyCount: activeKeys.length,
           isAdmin: true,
-        });
+        } satisfies ApiKeysBulkRevokedProperties);
       }
       onClose(revoked);
     },
-    [activeKeys.length, onClose],
+    [activeKeys.length, onClose, revoking],
   );
 
   const handleSearch = React.useCallback(async () => {
@@ -111,7 +118,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
         bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
         keyCount: activeKeys.length,
         isAdmin: true,
-      });
+      } satisfies ApiKeysBulkRevokedProperties);
       notification.success(`All active keys for "${searchedUsername}" revoked`);
       onClose(true);
     } catch (err) {
@@ -123,7 +130,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
         bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
         keyCount: activeKeys.length,
         isAdmin: true,
-      });
+      } satisfies ApiKeysBulkRevokedProperties);
       setRevokeError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
@@ -283,6 +290,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
         </Button>
         <Button
           variant="link"
+          isDisabled={revoking}
           onClick={() => handleClose(false)}
           data-testid="cancel-admin-revoke-button"
         >

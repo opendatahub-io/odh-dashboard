@@ -12,7 +12,11 @@ import {
 } from '~/app/types/api-key';
 import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  ApiKeysSearchAppliedProperties,
+  ApiKeysStatusFilterAppliedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -119,7 +123,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
         hasQuery: Boolean(filterData.username),
         resultCount: response.data.length,
         isAdmin: true,
-      });
+      } satisfies ApiKeysSearchAppliedProperties);
     }
   }, [isFetching, loaded, filterData.username, response.data.length]);
 
@@ -127,7 +131,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     fireMiscTrackingEvent(MaaSEvents.API_KEYS_STATUS_FILTER_APPLIED, {
       selectedStatuses: JSON.stringify(statuses),
       selectedCount: statuses.length,
-    });
+    } satisfies ApiKeysStatusFilterAppliedProperties);
   };
 
   const onUsernameChange = React.useCallback((value: string) => {

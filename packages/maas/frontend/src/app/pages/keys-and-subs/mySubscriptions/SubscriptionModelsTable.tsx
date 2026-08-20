@@ -14,7 +14,12 @@ import React from 'react';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
 import { formatWindow } from '~/app/utilities/rateLimits';
-import { MaaSEvents, ModelInfoContext } from '~/app/types/event-tracking';
+import {
+  MaaSEvents,
+  ModelIdCopiedProperties,
+  ModelInfoContext,
+  ModelInfoViewedProperties,
+} from '~/app/types/event-tracking';
 
 export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   if (!limits || limits.length === 0) {
@@ -48,7 +53,9 @@ export const ModelInfoPopover: React.FC<{
           data-testid="model-id-copy"
           onCopy={(event, text) => {
             clipboardCopyFunc(event, text);
-            fireMiscTrackingEvent(MaaSEvents.MODEL_ID_COPIED, { modelIdFrom: context });
+            fireMiscTrackingEvent(MaaSEvents.MODEL_ID_COPIED, {
+              modelIdFrom: context,
+            } satisfies ModelIdCopiedProperties);
           }}
         >
           {modelId}
@@ -75,7 +82,9 @@ export const ModelInfoPopover: React.FC<{
       className="pf-v6-u-p-0"
       data-testid={`model-info-button-${modelId}`}
       onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.MODEL_INFO_VIEWED, { context });
+        fireMiscTrackingEvent(MaaSEvents.MODEL_INFO_VIEWED, {
+          context,
+        } satisfies ModelInfoViewedProperties);
       }}
     >
       <OutlinedQuestionCircleIcon />

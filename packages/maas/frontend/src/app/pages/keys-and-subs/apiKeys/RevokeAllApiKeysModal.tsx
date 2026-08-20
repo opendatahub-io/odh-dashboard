@@ -16,7 +16,11 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { bulkRevokeApiKeys } from '~/app/api/api-keys';
 import useUser from '~/app/hooks/useUser';
-import { ApiKeyBulkRevokeMode, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  ApiKeyBulkRevokeMode,
+  ApiKeysBulkRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
@@ -43,7 +47,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
         keyCount,
         isAdmin: false,
-      });
+      } satisfies ApiKeysBulkRevokedProperties);
       onClose(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to revoke API keys';
@@ -54,7 +58,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
         keyCount,
         isAdmin: false,
-      });
+      } satisfies ApiKeysBulkRevokedProperties);
       setError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
@@ -69,7 +73,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
         bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
         keyCount,
         isAdmin: false,
-      });
+      } satisfies ApiKeysBulkRevokedProperties);
       onClose(false);
     }
   };

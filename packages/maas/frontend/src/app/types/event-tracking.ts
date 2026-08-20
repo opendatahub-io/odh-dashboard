@@ -36,9 +36,9 @@ export const MaaSEvents = {
   API_KEY_REVOKED: 'API Key Revoked',
   API_KEYS_BULK_REVOKED: 'API Keys Bulk Revoked',
   MY_SUBSCRIPTIONS_GROUPBY_CHANGED: 'My Subscriptions GroupBy Changed',
-  SUBSCRIPTION_DETAIL_NAVIGATED: 'Subscription Detail Navigated',
-  MODEL_ID_COPIED: 'Model ID Copied',
-  MODEL_INFO_VIEWED: 'Model Info Viewed',
+  MY_SUBSCRIPTIONS_DETAIL_NAVIGATED: 'My Subscriptions Detail Navigated',
+  MODEL_ID_COPIED: 'My Subscription Model ID Copied',
+  MODEL_INFO_VIEWED: 'My Subscriptions Model Info Viewed',
   MY_SUBSCRIPTIONS_ROW_EXPANDED: 'My Subscriptions Row Expanded',
   API_KEYS_STATUS_FILTER_APPLIED: 'API Keys Status Filter Applied',
   API_KEYS_SEARCH_APPLIED: 'API Keys Search Applied',
@@ -384,6 +384,7 @@ export enum MySubscriptionsGrouping {
 export enum SubscriptionDetailNavLocation {
   LIST_ROW = 'list_row',
   EXPANDED_NESTED_ROW = 'expanded_nested_row',
+  API_KEYS_TABLE = 'api_keys_table',
 }
 
 export enum ModelInfoContext {

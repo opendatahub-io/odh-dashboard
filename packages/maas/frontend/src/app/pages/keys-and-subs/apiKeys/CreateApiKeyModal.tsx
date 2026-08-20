@@ -57,7 +57,13 @@ import {
   UserSubscription,
 } from '~/app/types/subscriptions';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
-import { ApiKeyCreateInitiatedFrom, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  ApiKeyCreateInitiatedFrom,
+  ApiKeyCopiedProperties,
+  ApiKeyCreatedProperties,
+  ApiKeyCreationSubscriptionBrowsedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -217,14 +223,15 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     return selectedOption?.expiresIn;
   };
 
-  const getCreateTrackingProps = (outcome: TrackingOutcome, success?: boolean, err?: string) => ({
-    outcome,
-    ...(success !== undefined && { success }),
-    ...(err !== undefined && { error: err }),
-    expiresIn: getExpiresIn() ?? formData.expirationOption,
-    modelCount: selectedSubscription?.model_refs.length ?? 0,
-    initiatedFrom,
-  });
+  const getCreateTrackingProps = (outcome: TrackingOutcome, success?: boolean, err?: string) =>
+    ({
+      outcome,
+      ...(success !== undefined && { success }),
+      ...(err !== undefined && { error: err }),
+      expiresIn: getExpiresIn() ?? formData.expirationOption,
+      modelCount: selectedSubscription?.model_refs.length ?? 0,
+      initiatedFrom,
+    }) satisfies ApiKeyCreatedProperties;
 
   const [isTokenVisible, setIsTokenVisible] = React.useState(false);
   const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
@@ -234,7 +241,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     fireMiscTrackingEvent(MaaSEvents.API_KEY_COPIED, {
       copied,
       initiatedFrom,
-    });
+    } satisfies ApiKeyCopiedProperties);
   };
 
   const handleClose = (created?: boolean) => {
@@ -261,7 +268,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
           subscriptionIndex,
           modelCount: sortedSubscriptions[subscriptionIndex].model_refs.length,
           initiatedFrom,
-        });
+        } satisfies ApiKeyCreationSubscriptionBrowsedProperties);
       }
     }
   };

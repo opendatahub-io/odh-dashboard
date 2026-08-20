@@ -5,7 +5,11 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { APIKey } from '~/app/types/api-key';
 import DeleteModal from '~/app/shared/DeleteModal';
 import useRevokeApiKey from '~/app/hooks/useRevokeApiKey';
-import { ApiKeyRevokeInitiatedFrom, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  ApiKeyRevokeInitiatedFrom,
+  ApiKeyRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type RevokeApiKeyModalProps = {
   apiKey: APIKey;
@@ -26,7 +30,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
         fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
           outcome: TrackingOutcome.cancel,
           initiatedFrom,
-        });
+        } satisfies ApiKeyRevokedProperties);
       }
       onClose(deleted);
     },
@@ -43,7 +47,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
         outcome: TrackingOutcome.submit,
         success: true,
         initiatedFrom,
-      });
+      } satisfies ApiKeyRevokedProperties);
       onClose(true);
     } catch (err) {
       fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
@@ -51,7 +55,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
         success: false,
         error: err instanceof Error ? err.message : 'Failed to revoke API key',
         initiatedFrom,
-      });
+      } satisfies ApiKeyRevokedProperties);
       // Error is handled by the hook and displayed in the modal
     }
   }, [revokeApiKeyCallback, apiKey.id, onClose, initiatedFrom]);
