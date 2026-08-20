@@ -26,7 +26,10 @@ import {
   type PlaygroundOpenedSource,
   type ViewCodeEntrySource,
 } from '~/app/utilities/tracking';
-import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
+import {
+  shouldShowStageMapUnavailableNotice,
+  type PipelineTreeLoadingMode,
+} from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import AutoragPipelineVisualization from './AutoragPipelineVisualization';
 import RunIndexingPipelineModal from './RunIndexingPipelineModal';
@@ -338,6 +341,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
+              hasStageMapTask,
+              hasComponentStageMap: Boolean(componentStageMap),
+              componentStageMapLoading: Boolean(componentStageMapLoading),
+              treeLoadingMode,
+              runIsTerminal,
+            })}
           />
         </StackItem>
         <StackItem>

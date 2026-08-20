@@ -40,6 +40,7 @@ type AutoragPipelineVisualizationProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
+  showStageMapUnavailableNotice?: boolean;
 };
 
 const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> = ({
@@ -49,6 +50,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
   treeLoadingMode,
   componentStageMap,
   pipelineRun,
+  showStageMapUnavailableNotice,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
     if (treeLoadingMode === 'preparing' || !runState) {
@@ -189,6 +191,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                   treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
+                  showStageMapUnavailableNotice={showStageMapUnavailableNotice}
                   onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>
