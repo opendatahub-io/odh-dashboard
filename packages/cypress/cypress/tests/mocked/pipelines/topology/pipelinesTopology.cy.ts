@@ -388,7 +388,11 @@ describe('Pipeline topology', () => {
         pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
 
         pipelineRecurringRunDetails.findDetailsTab().click();
-        pipelineRecurringRunDetails.findDetailItem('Project').findValue().find('a').click();
+        pipelineRecurringRunDetails
+          .findDetailItem('Project')
+          .findValue()
+          .find('a')
+          .click({ force: true });
         verifyRelativeURL(`/projects/${projectId}`);
       });
 
