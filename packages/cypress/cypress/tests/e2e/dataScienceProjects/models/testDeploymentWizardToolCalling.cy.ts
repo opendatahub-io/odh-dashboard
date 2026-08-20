@@ -66,11 +66,6 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
         `/ai-hub/models/catalog?devFeatureFlags=${TOOL_CALLING_FEATURE_FLAG_ON}`,
         LDAP_ADMIN_USER,
       );
-      cy.findByTestId('app-tab-page-title', { timeout: MODEL_CATALOG_UI_TIMEOUT }).should('exist');
-      cy.findByText('Discover models that are available for your organization', {
-        exact: false,
-        timeout: MODEL_CATALOG_UI_TIMEOUT,
-      }).should('exist');
 
       cy.step('Wait for model catalog cards to appear');
       waitForModelCatalogCards();
@@ -147,13 +142,8 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
       modelServingWizard.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify redirection to deployments page with new deployment');
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(10000);
-      cy.location('pathname', { timeout: MODEL_CATALOG_UI_TIMEOUT }).should(
-        'eq',
-        `/ai-hub/models/deployments/${projectName}`,
-      );
-      modelServingGlobal.getModelRow(deploymentName).should('exist');
+      cy.location('pathname').should('eq', `/ai-hub/models/deployments/${projectName}`);
+      modelServingGlobal.getDeploymentRow(deploymentName);
 
       cy.step('Verify tool calling runtime arg on the LLMInferenceService');
       cy.then(() => {
