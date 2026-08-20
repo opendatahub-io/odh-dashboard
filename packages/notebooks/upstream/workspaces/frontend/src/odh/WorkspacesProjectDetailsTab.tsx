@@ -1,4 +1,3 @@
-/* eslint-disable @cspell/spellchecker */
 import React, { useMemo } from 'react';
 import {
   ModularArchContextProvider,

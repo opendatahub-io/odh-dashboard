@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import {
   Select,
   SelectList,
@@ -61,23 +63,30 @@ const NamespaceSelector: React.FC<NamespaceSelectorProps> = ({
   );
 
   return (
-    <Select
-      isOpen={isOpen}
-      selected={selectedValue}
-      onSelect={handleSelect}
-      onOpenChange={setIsOpen}
-      toggle={toggle}
-      shouldFocusToggleOnSelect
-      data-testid="namespace-selector"
-    >
-      <SelectList>
-        {namespaces.map((namespace) => (
-          <SelectOption key={namespace.name} value={namespace.name}>
-            {namespace.name}
-          </SelectOption>
-        ))}
-      </SelectList>
-    </Select>
+    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+      <FlexItem>
+        <Content component={ContentVariants.small}>Project</Content>
+      </FlexItem>
+      <FlexItem>
+        <Select
+          isOpen={isOpen}
+          selected={selectedValue}
+          onSelect={handleSelect}
+          onOpenChange={setIsOpen}
+          toggle={toggle}
+          shouldFocusToggleOnSelect
+          data-testid="namespace-selector"
+        >
+          <SelectList>
+            {namespaces.map((namespace) => (
+              <SelectOption key={namespace.name} value={namespace.name}>
+                {namespace.name}
+              </SelectOption>
+            ))}
+          </SelectList>
+        </Select>
+      </FlexItem>
+    </Flex>
   );
 };
 

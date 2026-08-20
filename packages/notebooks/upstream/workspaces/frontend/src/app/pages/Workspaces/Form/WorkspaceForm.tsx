@@ -1,4 +1,3 @@
-/* eslint-disable @cspell/spellchecker */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
