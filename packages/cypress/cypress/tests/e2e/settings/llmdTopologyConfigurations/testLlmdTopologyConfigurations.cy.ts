@@ -63,7 +63,7 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
   it(
     'Admin can manage topology configurations and verify wizard visibility',
     {
-      tags: ['@Smoke', '@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
+      tags: ['@Featureflagged', '@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
     },
     () => {
       cy.step('Log in with topology configs feature flag');

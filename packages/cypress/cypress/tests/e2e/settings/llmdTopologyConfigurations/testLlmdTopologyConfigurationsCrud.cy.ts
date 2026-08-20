@@ -43,7 +43,9 @@ describe('LLMD Topology Configurations - Admin CRUD', () => {
 
   it(
     'Admin creates a topology config via the UI, it persists on the cluster, and delete removes it',
-    { tags: ['@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'] },
+    {
+      tags: ['@Featureflagged', '@Dashboard', '@ModelServing', '@LLMDServingCI', '@ModelServingCI'],
+    },
     () => {
       cy.step('Log in with the topology configs feature flag');
       cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', HTPASSWD_CLUSTER_ADMIN_USER);
