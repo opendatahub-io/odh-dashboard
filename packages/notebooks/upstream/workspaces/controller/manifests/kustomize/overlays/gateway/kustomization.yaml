@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: redhat-ods-applications
+
+resources:
+- ../../base
+
+components:
+- ../../components/gateway
+- ../../components/openshift-webhook
+- ../../components/common
+
+configMapGenerator:
+- envs:
+  - params.env
+  name: kubeflow-workspaces-gateway-config
+
+replacements:
+- source:
+    fieldPath: data.WORKBENCH_CONTROLLER_IMAGE
+    kind: ConfigMap
+    name: kubeflow-workspaces-gateway-config
+    version: v1
+  targets:
+  - fieldPaths:
+    - spec.template.spec.containers.[name=manager].image
+    select:
+      kind: Deployment
+      name: workspaces-controller
+
+patches:
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: redhat-ods-applications
+  target:
+    kind: ClusterRoleBinding
+    name: workspaces-manager-rolebinding
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: redhat-ods-applications
+  target:
+    kind: RoleBinding
+    name: workspaces-leader-election-rolebinding
+- patch: |-
+    # OpenShift SCC: allow the platform to assign UID (restricted-v2 / nonroot-v2).
+    - op: remove
+      path: /spec/template/spec/containers/0/securityContext/runAsUser
+  target:
+    kind: Deployment
+    name: workspaces-controller

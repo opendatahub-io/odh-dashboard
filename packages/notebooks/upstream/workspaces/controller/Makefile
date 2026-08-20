@@ -160,6 +160,32 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=$(ignore-not-found)
 
+.PHONY: deploy-gateway
+deploy-gateway: manifests kustomize ## Deploy controller with gateway overlay to the K8s cluster specified in ~/.kube/config.
+ifndef IMG
+	$(error IMG must be set)
+endif
+ifneq ($(findstring |,$(IMG)),)
+	$(error IMG must not contain '|')
+endif
+ifneq ($(findstring ",$(IMG)),)
+	$(error IMG must not contain double quotes)
+endif
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@sed -i "s|^WORKBENCH_CONTROLLER_IMAGE=.*|WORKBENCH_CONTROLLER_IMAGE=${IMG}|" manifests/kustomize/.output/overlays/gateway/params.env
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) apply -f -
+
+.PHONY: undeploy-gateway
+undeploy-gateway: kustomize ## Undeploy controller (gateway overlay) from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) delete --ignore-not-found="$(ignore-not-found)" -f -
+
 ##@ Dependencies
 
 ## Location to install dependencies to
