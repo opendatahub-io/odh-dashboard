@@ -11,6 +11,7 @@ resources:
 
 components:
 - ../../components/gateway
+- ../../components/openshift-rbac
 - ../../components/openshift-webhook
 - ../../components/common
 
