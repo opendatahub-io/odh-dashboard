@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
-import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
 import type {
   ClusterSettingsType,
   ModelServingPlatformEnabled,
@@ -12,6 +12,10 @@ import {
 } from '@odh-dashboard/internal/services/clusterSettingsService';
 import ModelServingPlatformSettings from './ModelServingPlatformSettings';
 import DeploymentStrategySettings, { DeploymentStrategy } from './DeploymentStrategySettings';
+import {
+  fireDeploymentStrategyChanged,
+  firePlatformSettingChanged,
+} from '../../shared/tracking/generalSettingsTracking';
 
 const DEFAULT_DISTRIBUTED_INFERENCING = true;
 const DEFAULT_ENABLED_PLATFORMS: ModelServingPlatformEnabled = { kServe: true, LLMd: true };
@@ -119,6 +123,43 @@ const GeneralSettingsTab: React.FC = () => {
 
       if (!response.success) {
         throw new Error(response.error);
+      }
+
+      // Fire a tracking event per setting that actually changed, comparing the
+      // saved payload against the pre-save baseline. No PII — booleans/enums only.
+      const previous = baselineSettings;
+      if (
+        previous?.modelServingPlatformEnabled.kServe !== payload.modelServingPlatformEnabled.kServe
+      ) {
+        firePlatformSettingChanged({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          setting: 'model_serving_enabled',
+          enabled: payload.modelServingPlatformEnabled.kServe,
+        });
+      }
+      if (previous?.modelServingPlatformEnabled.LLMd !== payload.modelServingPlatformEnabled.LLMd) {
+        firePlatformSettingChanged({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          setting: 'llmd_enabled',
+          enabled: payload.modelServingPlatformEnabled.LLMd,
+        });
+      }
+      if (previous?.isDistributedInferencingDefault !== payload.isDistributedInferencingDefault) {
+        firePlatformSettingChanged({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          setting: 'llmd_default_for_generative',
+          enabled: payload.isDistributedInferencingDefault ?? false,
+        });
+      }
+      if (previous?.defaultDeploymentStrategy !== payload.defaultDeploymentStrategy) {
+        fireDeploymentStrategyChanged({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          strategy: defaultDeploymentStrategy,
+        });
       }
 
       setBaselineSettings(payload);
