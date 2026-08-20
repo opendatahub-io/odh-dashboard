@@ -9,7 +9,6 @@ import {
   Content,
   Popover,
 } from '@patternfly/react-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import {
   formatValidatedOptionValueForDisplay,
   slugifyValidatedOptionTitle,
@@ -30,7 +29,6 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
   onSelectionChange,
   catalogModelId,
 }) => {
-  const { trackEvent } = useHostApi();
   const optionSlug = slugifyValidatedOptionTitle(option.title);
   const formattedArgs = formatValidatedOptionValueForDisplay(option.value);
 
@@ -65,6 +63,14 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
         <Popover
           aria-label={`${option.title} arguments`}
           headerContent={`${option.title} arguments`}
+          onShow={() => {
+            fireValidatedArgumentsViewed({
+              configurationName: option.title,
+              catalogModelId,
+              entryPoint: 'model_details',
+              hasValidatedArgumentsSection: true,
+            });
+          }}
           bodyContent={
             <pre
               data-testid={`validated-configuration-arguments-popover-content-${optionSlug}`}
@@ -79,14 +85,6 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
             isInline
             id={`select-config-view-${optionSlug}`}
             data-testid={`validated-configuration-view-arguments-${optionSlug}`}
-            onClick={() => {
-              fireValidatedArgumentsViewed(trackEvent, {
-                configurationName: option.title,
-                catalogModelId,
-                entryPoint: 'model_details',
-                hasValidatedArgumentsSection: true,
-              });
-            }}
           >
             View arguments
           </Button>

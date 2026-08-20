@@ -1,3 +1,5 @@
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 export type TrackEventFn = (
   eventName: string,
   properties: Record<string, string | number | boolean | string[] | undefined>,
@@ -19,9 +21,6 @@ export type DeployMethodSelectedProperties = {
   previousDeploymentMethod?: string;
 };
 
-export const fireDeployMethodSelected = (
-  trackEvent: TrackEventFn,
-  properties: DeployMethodSelectedProperties,
-): void => {
-  trackEvent(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, properties);
+export const fireDeployMethodSelected = (properties: DeployMethodSelectedProperties): void => {
+  fireMiscTrackingEvent(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, properties);
 };

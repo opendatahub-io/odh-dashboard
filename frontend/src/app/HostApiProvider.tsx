@@ -72,7 +72,6 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
 
   const domain = React.useMemo<HostApiServices>(
     () => ({
-      trackEvent: fireMiscTrackingEvent,
       useTemplates,
       setProjectServingPlatform: addSupportServingPlatformProject,
       useWatchConnectionTypes,

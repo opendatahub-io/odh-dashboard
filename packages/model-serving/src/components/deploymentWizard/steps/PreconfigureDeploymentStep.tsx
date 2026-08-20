@@ -13,10 +13,8 @@ import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ValidatedArgumentsSection } from '../fields/validatedConfigurations/ValidatedArgumentsSection';
-import {
-  getDeployWizardNavState,
-  isShowValidatedArgumentsSection,
-} from '../../../shared/tracking/deployWizardTracking';
+import { hasValidatedConfigurationOptions } from '../fields/validatedConfigurations/validatedConfigurationUtils';
+import { getDeployWizardNavState } from '../../../shared/tracking/deployWizardTracking';
 
 type PreconfigureDeploymentStepProps = {
   wizardState: UseModelDeploymentWizardState;
@@ -31,10 +29,7 @@ export const PreconfigureDeploymentStepContent: React.FC<PreconfigureDeploymentS
   const validatedConfigurations = wizardState.initialData?.validatedConfigurations ?? [];
   const location = useLocation();
   const navState = getDeployWizardNavState(location.state);
-  const showValidatedArgumentsSection = isShowValidatedArgumentsSection(
-    navState,
-    validatedConfigurations,
-  );
+  const showValidatedArgumentsSection = hasValidatedConfigurationOptions(validatedConfigurations);
 
   return (
     <Form>

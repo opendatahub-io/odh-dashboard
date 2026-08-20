@@ -1,4 +1,9 @@
-import { ModelServingTrackingEvent, type TrackEventFn } from './modelServingTrackingConstants';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome, type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { ModelServingTrackingEvent } from './modelServingTrackingConstants';
 import type { ValidatedConfiguration, ValidatedConfigurationOption } from '../types/form-data';
 
 export const TOOL_CALLING_CONFIGURATION_TITLE = 'Tool calling';
@@ -90,12 +95,13 @@ export const getDeployWizardEntryPoint = (
   if (navState.fromProjectNavigator) {
     return 'navigator';
   }
-  if (navState.fromProject && navState.projectName) {
+  if (navState.fromProject) {
     return 'project_deployments';
   }
   return 'deployments_list';
 };
 
+/** Analytics-only gate for `hasValidatedArgumentsSection` — do not use for UI visibility. */
 export const isShowValidatedArgumentsSection = (
   navState: DeployWizardNavState,
   validatedConfigurations?: ValidatedConfiguration[],
@@ -165,30 +171,73 @@ export const getModelDeployedTrackingProperties = ({
   };
 };
 
-export const fireDeployWizardStarted = (
-  trackEvent: TrackEventFn,
-  properties: DeployWizardStartedProperties,
-): void => {
-  trackEvent(ModelServingTrackingEvent.DEPLOY_WIZARD_STARTED, properties);
+export const getDeployWizardStartedProperties = ({
+  navSource,
+  projectName,
+  isEditMode,
+  validatedConfigurations,
+}: {
+  navSource?: DeployWizardNavSource;
+  projectName?: string;
+  isEditMode: boolean;
+  validatedConfigurations?: ValidatedConfiguration[];
+}): DeployWizardStartedProperties => {
+  const navState: DeployWizardNavState = {
+    fromCatalog: navSource?.fromCatalog,
+    catalogModelId: navSource?.catalogModelId,
+    fromProject: navSource?.fromProject,
+    fromProjectNavigator: navSource?.fromProjectNavigator,
+    projectName,
+    editMode: isEditMode,
+  };
+
+  return {
+    entryPoint: getDeployWizardEntryPoint(navState),
+    catalogModelId: navState.catalogModelId,
+    hasValidatedArgumentsSection: isShowValidatedArgumentsSection(
+      navState,
+      validatedConfigurations,
+    ),
+    isEditMode,
+  };
+};
+
+export const fireDeployWizardStarted = (properties: DeployWizardStartedProperties): void => {
+  fireMiscTrackingEvent(ModelServingTrackingEvent.DEPLOY_WIZARD_STARTED, properties);
 };
 
 export const fireValidatedArgumentSelected = (
-  trackEvent: TrackEventFn,
   properties: ValidatedArgumentSelectedProperties,
 ): void => {
-  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED, properties);
+  fireMiscTrackingEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED, properties);
 };
 
 export const fireValidatedArgumentsViewed = (
-  trackEvent: TrackEventFn,
   properties: ValidatedArgumentsViewedProperties,
 ): void => {
-  trackEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED, properties);
+  fireMiscTrackingEvent(ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED, properties);
 };
 
-export const fireModelDeployed = (
-  trackEvent: TrackEventFn,
+const toFormTrackingProperties = (
   properties: ModelDeployedTrackingProperties,
-): void => {
-  trackEvent(ModelServingTrackingEvent.MODEL_DEPLOYED, properties);
+): FormTrackingEventProperties => {
+  const formProperties: FormTrackingEventProperties = {
+    outcome: properties.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+  };
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (key === 'outcome' || value === undefined) {
+      continue;
+    }
+    formProperties[key] = Array.isArray(value) ? value.join(',') : value;
+  }
+
+  return formProperties;
+};
+
+export const fireModelDeployed = (properties: ModelDeployedTrackingProperties): void => {
+  fireFormTrackingEvent(
+    ModelServingTrackingEvent.MODEL_DEPLOYED,
+    toFormTrackingProperties(properties),
+  );
 };

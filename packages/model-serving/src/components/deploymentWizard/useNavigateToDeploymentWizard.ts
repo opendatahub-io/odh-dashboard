@@ -4,7 +4,11 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from '../../shared/types/form-data';
-import type { DeployWizardNavSource } from '../../shared/tracking/deployWizardTracking';
+import {
+  fireDeployWizardStarted,
+  getDeployWizardStartedProperties,
+  type DeployWizardNavSource,
+} from '../../shared/tracking/deployWizardTracking';
 import { type Deployment } from '../../../extension-points';
 
 /**
@@ -91,6 +95,20 @@ export const useNavigateToDeploymentWizard = (
         // If extraction failed for an existing deployment, auto-fallback to YAML edit mode
         viewMode: deployment && error && isYAMLViewerEnabled ? 'yaml-edit' : undefined,
       };
+
+      fireDeployWizardStarted(
+        getDeployWizardStartedProperties({
+          navSource: {
+            fromCatalog,
+            catalogModelId,
+            fromProject,
+            fromProjectNavigator,
+          },
+          projectName,
+          isEditMode: Boolean(deployment),
+          validatedConfigurations: mergedInitialData.validatedConfigurations,
+        }),
+      );
 
       navigate(getDeploymentWizardRoute(), {
         state: {

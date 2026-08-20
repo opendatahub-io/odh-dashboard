@@ -3,19 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/internal/__mocks__/mockValidatedConfigurations';
 import { PreconfigureDeploymentStepContent } from '../PreconfigureDeploymentStep';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useHostApi: jest.fn(),
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
-const mockTrackEvent = jest.fn();
-(useHostApi as jest.Mock).mockReturnValue({ trackEvent: mockTrackEvent });
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',
@@ -113,7 +112,7 @@ describe('PreconfigureDeploymentStep', () => {
     expect(screen.queryByTestId('validated-configuration-section-args')).not.toBeInTheDocument();
   });
 
-  it('should not render validated arguments when configs exist but the catalog section is not shown', () => {
+  it('should render validated arguments when configs have options regardless of catalog nav state', () => {
     const wizardState = mockDeploymentWizardState({
       initialData: {
         validatedConfigurations: [mockToolCallingValidatedConfiguration()],
@@ -129,7 +128,7 @@ describe('PreconfigureDeploymentStep', () => {
 
     renderStep(wizardState);
 
-    expect(screen.queryByTestId('validated-configuration-section-args')).not.toBeInTheDocument();
+    expect(screen.getByTestId('validated-configuration-section-args')).toBeInTheDocument();
   });
 
   it('should render validated arguments section when validatedConfigurations is provided from catalog', () => {
@@ -203,7 +202,7 @@ describe('PreconfigureDeploymentStep', () => {
         '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
       ],
     });
-    expect(mockTrackEvent).toHaveBeenCalledWith(
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
       ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED,
       {
         configurationName: 'Tool calling',
@@ -260,7 +259,7 @@ describe('PreconfigureDeploymentStep', () => {
       enabled: true,
       args: ['--user-arg'],
     });
-    expect(mockTrackEvent).toHaveBeenCalledWith(
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
       ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED,
       expect.objectContaining({ isSelected: false, configurationName: 'Tool calling' }),
     );
@@ -282,9 +281,12 @@ describe('PreconfigureDeploymentStep', () => {
 
     renderStep(wizardState, CATALOG_NAV_STATE);
 
-    fireEvent.click(screen.getByTestId('validated-configuration-view-arguments-tool-calling'));
+    const viewArgumentsButton = screen.getByTestId(
+      'validated-configuration-view-arguments-tool-calling',
+    );
+    fireEvent.click(viewArgumentsButton);
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
       ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED,
       {
         configurationName: 'Tool calling',
@@ -293,6 +295,14 @@ describe('PreconfigureDeploymentStep', () => {
         hasValidatedArgumentsSection: true,
       },
     );
+
+    fireEvent.click(viewArgumentsButton);
+
+    expect(
+      mockFireMiscTrackingEvent.mock.calls.filter(
+        ([eventName]) => eventName === ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED,
+      ),
+    ).toHaveLength(1);
   });
 
   it('should not render any card when validatedConfigurations has no options for a field', () => {

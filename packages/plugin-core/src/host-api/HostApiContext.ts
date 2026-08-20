@@ -17,7 +17,6 @@ const notProvided = (name: string) => () => {
  * For K8s operations (secrets, projects, PVCs) use HostApiInfraContext.
  */
 export const HostApiContext = React.createContext<HostApiServices>({
-  trackEvent: notProvided('trackEvent'),
   useTemplates: notProvided('useTemplates'),
   setProjectServingPlatform: notProvided('setProjectServingPlatform'),
   useWatchConnectionTypes: notProvided('useWatchConnectionTypes'),
