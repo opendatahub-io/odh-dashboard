@@ -60,9 +60,15 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   const someKeysUnavailable = !isDeleted && totalSelectableKeys > 0 && unavailableKeys.length > 0;
 
   const [isExpanded, setIsExpanded] = React.useState(
-    isDeleted || isEmptySecret || missingKeys.length > 0 || allKeysUnavailable,
+    isDeleted || isEmptySecret || hasMissingKeys || allKeysUnavailable,
   );
   const [filter, setFilter] = React.useState('');
+
+  React.useEffect(() => {
+    if (isDeleted || isEmptySecret || hasMissingKeys || allKeysUnavailable) {
+      setIsExpanded(true);
+    }
+  }, [isDeleted, isEmptySecret, hasMissingKeys, allKeysUnavailable]);
 
   const visibleKeys = React.useMemo(
     () =>

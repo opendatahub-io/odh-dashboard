@@ -513,6 +513,40 @@ describe('ExistingSecretKeyPicker', () => {
     });
   });
 
+  describe('expandable section auto-expand', () => {
+    it('should expand when a secret becomes all-keys-unavailable after mount', () => {
+      const usableSecrets: ExistingSecretMetadata[] = [{ name: 'bad-secret', keys: ['username'] }];
+      const unavailableSecrets: ExistingSecretMetadata[] = [
+        { name: 'bad-secret', keys: ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'bad-secret', selectedKeys: ['username'] },
+      ];
+      const onUpdate = jest.fn();
+
+      const { rerender } = render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={usableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-all-unavailable-alert-bad-secret')).not.toBeInTheDocument();
+
+      rerender(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={unavailableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('env-all-unavailable-alert-bad-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('remove-unavailable-ref-bad-secret')).toBeInTheDocument();
+    });
+  });
+
   describe('collision icons', () => {
     it('should show collision warning icon on colliding keys', () => {
       const selectedRefs: ExistingSecretRef[] = [
