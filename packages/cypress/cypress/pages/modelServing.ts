@@ -1083,19 +1083,14 @@ class ModelServingWizard extends Wizard {
   }
 
   selectServingRuntimeOption(name: string) {
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="model-server-auto-select-suggestion"]').length > 0) {
+    this.findModelServerAutoSelectRadio().then(($radio) => {
+      if ($radio.is(':checked')) {
+        // Auto-select the best runtime for my model based on model type, model format, and hardware profile
         this.findModelServerAutoSelectSuggestion().should('contain.text', name);
-      } else if ($body.find('[data-testid="model-server-manual-select-radio"]').length > 0) {
-        this.findModelServerManualSelectRadio().click();
-        this.findServingRuntimeTemplateSearchSelector().click();
-        this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
-        cy.findByTestId('global-scoped-serving-runtimes')
-          .find('[data-testid^="servingRuntime"]')
-          .first()
-          .click();
       } else {
+        // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
         this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
         cy.findByTestId('global-scoped-serving-runtimes')
           .find('[data-testid^="servingRuntime"]')
