@@ -27,7 +27,7 @@ const NotebooksWrapperContent: React.FC = () => {
   if (loadError) {
     return (
       <Bullseye>
-        <div>Error loading settings: {loadError.message}</div>
+        <div>Unable to load application settings. Please try again later.</div>
       </Bullseye>
     );
   }
