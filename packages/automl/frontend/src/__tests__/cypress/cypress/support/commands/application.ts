@@ -1,4 +1,5 @@
 import type { MatcherOptions } from '@testing-library/cypress';
+import { queryByRole } from '@testing-library/dom';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
 
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -179,7 +180,19 @@ Cypress.Commands.add('findDropdownItem', { prevSubject: 'element' }, (subject, n
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.get('body').findByRole('menuitem', { name });
+
+    // PatternFly's Dropdown toggle can report `aria-expanded="true"` while its
+    // Popper-rendered menu content fails to mount (a timing issue more likely to
+    // surface under CI load). When that happens, retrying the same query for
+    // longer never helps since the content genuinely never appears, so force a
+    // fresh open cycle by closing and reopening instead.
+    return cy.get('body').then(($body) => {
+      if (!queryByRole($body[0], 'menuitem', { name })) {
+        cy.wrap($el).click(); // close
+        cy.wrap($el).click(); // reopen, forcing a new Popper `show()` cycle
+      }
+      return cy.get('body').findByRole('menuitem', { name });
+    });
   });
 });
 
