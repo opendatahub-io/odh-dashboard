@@ -53,7 +53,7 @@ export const ModelInfoPopover: React.FC<{
           data-testid="model-id-copy"
           onCopy={(event, text) => {
             clipboardCopyFunc(event, text);
-            fireMiscTrackingEvent(MaaSEvents.MODEL_ID_COPIED, {
+            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_ID_COPIED, {
               modelIdFrom: context,
             } satisfies ModelIdCopiedProperties);
           }}
@@ -82,7 +82,7 @@ export const ModelInfoPopover: React.FC<{
       className="pf-v6-u-p-0"
       data-testid={`model-info-button-${modelId}`}
       onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.MODEL_INFO_VIEWED, {
+        fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_INFO_VIEWED, {
           context,
         } satisfies ModelInfoViewedProperties);
       }}
