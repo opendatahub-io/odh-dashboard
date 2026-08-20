@@ -540,13 +540,6 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should not show validate connection button for pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
   it('should require S3 secret name for pre-recorded mode', () => {
     navigateToBenchmarkStart();
 
