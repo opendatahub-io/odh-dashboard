@@ -729,6 +729,15 @@ export type CustomEndpointTestData = {
     name: string;
     description: string;
   };
+  mcp: {
+    configMapName: string;
+    namespace: string;
+    serverKey: string;
+    serverName: string;
+    image: string;
+    serverDescription: string;
+    testQuestion: string;
+  };
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
