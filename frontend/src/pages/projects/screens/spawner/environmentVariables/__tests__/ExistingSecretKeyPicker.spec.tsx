@@ -435,6 +435,84 @@ describe('ExistingSecretKeyPicker', () => {
     });
   });
 
+  describe('empty secret detection', () => {
+    it('should show warning alert when a secret has no keys', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('secret-key-section-empty-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('env-empty-secret-alert-empty-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-secret-icon-empty-secret')).toBeInTheDocument();
+    });
+
+    it('should show empty secret message without a remove action', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-empty-secret-alert-empty-secret');
+      expect(alert).toHaveTextContent('This secret has no keys.');
+      expect(alert).toHaveTextContent(
+        'No environment variables will be set from this secret. If this is unexpected, contact your administrator.',
+      );
+      expect(screen.queryByTestId('remove-deleted-ref-empty-secret')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('remove-unavailable-ref-empty-secret')).not.toBeInTheDocument();
+    });
+
+    it('should not show key count badge for empty secret', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('key-count-badge-empty-secret')).not.toBeInTheDocument();
+    });
+
+    it('should prefer empty secret alert over missing keys when secret has no keys', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'empty-secret', selectedKeys: ['stale-key'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('env-empty-secret-alert-empty-secret')).toBeInTheDocument();
+      expect(screen.queryByTestId('env-missing-keys-alert-empty-secret')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('missing-keys-icon-empty-secret')).not.toBeInTheDocument();
+    });
+  });
+
   describe('collision icons', () => {
     it('should show collision warning icon on colliding keys', () => {
       const selectedRefs: ExistingSecretRef[] = [

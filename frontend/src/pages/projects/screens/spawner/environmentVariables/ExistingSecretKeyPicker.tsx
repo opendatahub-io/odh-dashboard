@@ -55,11 +55,12 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   const totalSelectableKeys = selectableKeys.length;
   const totalKeys = allKeys.length;
   const hasMissingKeys = missingKeys.length > 0;
+  const isEmptySecret = !isDeleted && totalKeys === 0;
   const allKeysUnavailable = !isDeleted && totalKeys > 0 && totalSelectableKeys === 0;
   const someKeysUnavailable = !isDeleted && totalSelectableKeys > 0 && unavailableKeys.length > 0;
 
   const [isExpanded, setIsExpanded] = React.useState(
-    isDeleted || missingKeys.length > 0 || allKeysUnavailable,
+    isDeleted || isEmptySecret || missingKeys.length > 0 || allKeysUnavailable,
   );
   const [filter, setFilter] = React.useState('');
 
@@ -123,13 +124,26 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
-      {!isDeleted && hasMissingKeys ? (
+      {!isDeleted && hasMissingKeys && !isEmptySecret ? (
         <FlexItem>
           <Tooltip content="Missing keys detected">
             <Icon
               isInline
               status="warning"
               data-testid={`missing-keys-icon-${secretRef.secretName}`}
+            >
+              <ExclamationTriangleIcon />
+            </Icon>
+          </Tooltip>
+        </FlexItem>
+      ) : null}
+      {isEmptySecret ? (
+        <FlexItem>
+          <Tooltip content="This secret has no keys.">
+            <Icon
+              isInline
+              status="warning"
+              data-testid={`empty-secret-icon-${secretRef.secretName}`}
             >
               <ExclamationTriangleIcon />
             </Icon>
@@ -145,7 +159,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
-      {!isDeleted ? (
+      {!isDeleted && !isEmptySecret ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
             {actualSelectedCount} of {totalSelectableKeys} keys
@@ -188,7 +202,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
               />
             </StackItem>
           ) : null}
-          {!isDeleted && hasMissingKeys ? (
+          {!isDeleted && hasMissingKeys && !isEmptySecret ? (
             <StackItem>
               <Alert
                 variant="warning"
@@ -214,6 +228,22 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                   {missingKeys.length === 1
                     ? ' Key no longer exists. To continue, remove it.'
                     : ' Keys no longer exist. To continue, remove them.'}
+                </p>
+              </Alert>
+            </StackItem>
+          ) : null}
+          {isEmptySecret ? (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                isPlain
+                title="This secret has no keys."
+                data-testid={`env-empty-secret-alert-${secretRef.secretName}`}
+              >
+                <p>
+                  No environment variables will be set from this secret. If this is unexpected,
+                  contact your administrator.
                 </p>
               </Alert>
             </StackItem>
@@ -257,7 +287,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
               </Alert>
             </StackItem>
           ) : null}
-          {!isDeleted && !allKeysUnavailable ? (
+          {!isDeleted && !allKeysUnavailable && !isEmptySecret ? (
             <>
               <StackItem>
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
