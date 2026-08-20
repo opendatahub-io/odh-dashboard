@@ -357,6 +357,6 @@ Each module can declare required DataScienceCluster components. If the component
 
 ### External: opendatahub-operator
 
-The opendatahub-operator dynamically discovers `RELATED_IMAGE_ODH_MOD_ARCH_*` environment variables at runtime via `os.Environ()` prefix matching in `internal/controller/modules/dashboard/support.go`. **No code changes are needed in the opendatahub-operator when onboarding a new module** — the new module's env var is automatically forwarded as long as Konflux injects it into the operator's deployment.
+The opendatahub-operator uses an explicit list of `RELATED_IMAGE_*` env var names in `internal/controller/modules/dashboard/support.go` → `relatedImages()`. When onboarding a new module, add the new env var name (e.g., `"RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE"`) to this list. This is a one-line change — coordinate with the Platform team or open a PR against `opendatahub-io/opendatahub-operator`.
 
-The only coordination needed with the Platform team is ensuring the Konflux nudge pipeline includes the new module's image digest in the operator deployment.
+The Konflux nudge pipeline must also include the new module's image digest in the operator deployment.
