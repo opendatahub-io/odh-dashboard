@@ -1,7 +1,7 @@
 apiVersion: serving.kserve.io/v1alpha2
 kind: LLMInferenceServiceConfig
 metadata:
-  name: e2e-multi-node-topology
+  name: {{TOPOLOGY_CONFIG_NAME}}
   annotations:
     openshift.io/display-name: E2E Multi-Node Topology
     openshift.io/description: Test topology config for multi-node data-parallel deployments

@@ -3,8 +3,8 @@ import {
   interceptTemplatePatch,
   interceptDashboardConfigPatch,
 } from './customServingRuntimesUtils';
-import { servingRuntimes } from '../../../pages/servingRuntimes';
-import { unsupportedStatusAcceptanceModal } from '../../../pages/llmAcceleratorConfigs';
+import { servingRuntimeTemplates } from '../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
+import { unsupportedStatusAcceptanceModal } from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 
 describe('Custom serving runtimes — unsupported resource handling', () => {
@@ -12,18 +12,23 @@ describe('Custom serving runtimes — unsupported resource handling', () => {
     asProductAdminUser();
     customServingRuntimesIntercept();
 
-    servingRuntimes.visit();
+    servingRuntimeTemplates.visit();
   });
 
   it('should show toggle OFF for unsupported unaccepted template', () => {
-    servingRuntimes.getRowById('template-unsupported-unaccepted').shouldBeEnabled(false);
-    servingRuntimes.getRowById('template-unsupported-unaccepted').shouldHaveUnsupportedLabel(true);
+    servingRuntimeTemplates.getRowById('template-unsupported-unaccepted').shouldBeEnabled(false);
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-unaccepted')
+      .shouldHaveUnsupportedLabel(true);
   });
 
   it('should show acceptance modal when toggling on an unsupported unaccepted template', () => {
     unsupportedStatusAcceptanceModal.shouldNotExist();
 
-    servingRuntimes.getRowById('template-unsupported-unaccepted').findEnabledToggle().click();
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-unaccepted')
+      .findEnabledToggle()
+      .click();
 
     unsupportedStatusAcceptanceModal.shouldBeOpen();
     unsupportedStatusAcceptanceModal
@@ -32,20 +37,26 @@ describe('Custom serving runtimes — unsupported resource handling', () => {
   });
 
   it('should dismiss modal without patching when cancel is clicked', () => {
-    servingRuntimes.getRowById('template-unsupported-unaccepted').findEnabledToggle().click();
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-unaccepted')
+      .findEnabledToggle()
+      .click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
     unsupportedStatusAcceptanceModal.findCancelButton().click();
 
     unsupportedStatusAcceptanceModal.shouldNotExist();
-    servingRuntimes.getRowById('template-unsupported-unaccepted').shouldBeEnabled(false);
+    servingRuntimeTemplates.getRowById('template-unsupported-unaccepted').shouldBeEnabled(false);
   });
 
   it('should patch template annotation and enable when accept is clicked', () => {
     interceptTemplatePatch('template-unsupported-unaccepted');
     interceptDashboardConfigPatch();
 
-    servingRuntimes.getRowById('template-unsupported-unaccepted').findEnabledToggle().click();
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-unaccepted')
+      .findEnabledToggle()
+      .click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
     unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
@@ -67,25 +78,29 @@ describe('Custom serving runtimes — unsupported resource handling', () => {
 
   it('should toggle already-accepted unsupported template normally without modal', () => {
     interceptDashboardConfigPatch();
-    servingRuntimes.getRowById('template-unsupported-accepted').shouldBeEnabled(true);
+    servingRuntimeTemplates.getRowById('template-unsupported-accepted').shouldBeEnabled(true);
 
-    servingRuntimes.getRowById('template-unsupported-accepted').findEnabledToggle().click();
+    servingRuntimeTemplates.getRowById('template-unsupported-accepted').findEnabledToggle().click();
 
     cy.wait('@patchDashboardConfig');
     unsupportedStatusAcceptanceModal.shouldNotExist();
   });
 
   it('should show limited support label on unsupported templates', () => {
-    servingRuntimes.getRowById('template-unsupported-unaccepted').shouldHaveUnsupportedLabel(true);
-    servingRuntimes.getRowById('template-unsupported-accepted').shouldHaveUnsupportedLabel(true);
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-unaccepted')
+      .shouldHaveUnsupportedLabel(true);
+    servingRuntimeTemplates
+      .getRowById('template-unsupported-accepted')
+      .shouldHaveUnsupportedLabel(true);
   });
 
   it('should not show limited support label on normal templates', () => {
-    servingRuntimes.getRowById('template-1').shouldHaveUnsupportedLabel(false);
+    servingRuntimeTemplates.getRowById('template-1').shouldHaveUnsupportedLabel(false);
   });
 
   it('should show version label on templates with version annotation', () => {
-    servingRuntimes
+    servingRuntimeTemplates
       .getRowById('template-unsupported-unaccepted')
       .findServingRuntimeVersionLabel()
       .should('have.text', '0.11.0+rhai5');
