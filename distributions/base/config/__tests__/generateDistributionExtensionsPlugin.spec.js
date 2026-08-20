@@ -92,7 +92,7 @@ describe('GenerateDistributionExtensionsPlugin', () => {
       expect(() =>
         plugin.validatePackageRef({
           name: '@odh-dashboard/pkg',
-          extensionsPath: './extensions/portal',
+          extensionsPath: './extensions/static',
         }),
       ).not.toThrow();
     });
