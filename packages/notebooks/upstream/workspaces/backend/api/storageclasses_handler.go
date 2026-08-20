@@ -20,6 +20,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -62,12 +65,31 @@ func (a *App) GetStorageClassesHandler(w http.ResponseWriter, r *http.Request, _
 	if namespace != "" {
 		// user intends to create a pvc in the namespace
 		authPolicies = []*auth.ResourcePolicy{
-			auth.NewResourcePolicy(auth.VerbCreate, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+			auth.NewResourcePolicy(
+				auth.ResourceVerbCreate,
+				&corev1.PersistentVolumeClaim{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "PersistentVolumeClaim",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespace,
+					},
+				},
+			),
 		}
 	} else {
 		// administrative listing of storage classes
 		authPolicies = []*auth.ResourcePolicy{
-			auth.NewResourcePolicy(auth.VerbList, auth.StorageClasses, auth.ResourcePolicyResourceMeta{}),
+			auth.NewResourcePolicy(
+				auth.ResourceVerbList,
+				&storagev1.StorageClass{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "storage.k8s.io/v1",
+						Kind:       "StorageClass",
+					},
+				},
+			),
 		}
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {

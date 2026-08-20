@@ -22,7 +22,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -70,7 +72,19 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbGet, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbGet,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
@@ -144,7 +158,18 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbList, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbList,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
@@ -239,7 +264,19 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbCreate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceCreate.Name}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbCreate,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceCreate.Name,
+				},
+			},
+		),
 	}
 	actor, ok := a.requireAuth(w, r, authPolicies)
 	if !ok {
@@ -311,7 +348,19 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbUpdate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbUpdate,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
 	}
 	actor, ok := a.requireAuth(w, r, authPolicies)
 	if !ok {
@@ -419,7 +468,19 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbDelete, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbDelete,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return

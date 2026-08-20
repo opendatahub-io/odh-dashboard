@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -100,7 +101,19 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbUpdate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbUpdate,
+			&kubefloworgv1beta1.Workspace{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "Workspace",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return

@@ -22,6 +22,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -115,12 +117,34 @@ func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http
 	if namespace != "" {
 		// user intends to create a workspace in a namespace, and needs the list of options values
 		authPolicies = []*auth.ResourcePolicy{
-			auth.NewResourcePolicy(auth.VerbCreate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+			auth.NewResourcePolicy(
+				auth.ResourceVerbCreate,
+				&kubefloworgv1beta1.Workspace{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "kubeflow.org/v1beta1",
+						Kind:       "Workspace",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespace,
+					},
+				},
+			),
 		}
 	} else {
 		// administrative listing of all options values for the workspace kind
 		authPolicies = []*auth.ResourcePolicy{
-			auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
+			auth.NewResourcePolicy(
+				auth.ResourceVerbGet,
+				&kubefloworgv1beta1.WorkspaceKind{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "kubeflow.org/v1beta1",
+						Kind:       "WorkspaceKind",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: name,
+					},
+				},
+			),
 		}
 	}
 

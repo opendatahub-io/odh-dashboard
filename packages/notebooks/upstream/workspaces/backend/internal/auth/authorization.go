@@ -18,19 +18,18 @@ package auth
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -73,93 +72,96 @@ func NewRequestAuthorizer(restConfig *rest.Config, httpClient *http.Client) (aut
 	return delegatingAuthorizer, nil
 }
 
-// resourceGVRMap maps resource policy resources to their API group and version.
-var resourceGVRMap = map[ResourcePolicyResource]schema.GroupVersionResource{
-	Namespaces:             corev1.SchemeGroupVersion.WithResource(string(Namespaces)),
-	PersistentVolumeClaims: corev1.SchemeGroupVersion.WithResource(string(PersistentVolumeClaims)),
-	Secrets:                corev1.SchemeGroupVersion.WithResource(string(Secrets)),
-	StorageClasses:         storagev1.SchemeGroupVersion.WithResource(string(StorageClasses)),
-	WorkspaceKinds:         kubefloworgv1beta1.GroupVersion.WithResource(string(WorkspaceKinds)),
-	Workspaces:             kubefloworgv1beta1.GroupVersion.WithResource(string(Workspaces)),
+type ResourcePolicy struct {
+	Verb ResourceVerb
+
+	Group    string
+	Version  string
+	Kind     string
+	Resource string
+
+	Namespace string
+	Name      string
 }
 
-// NewResourcePolicy returns a resource policy for the given verb and resource type.
-func NewResourcePolicy(verb ResourcePolicyVerb, resource ResourcePolicyResource, resourceMeta ResourcePolicyResourceMeta) *ResourcePolicy {
-	gvr, ok := resourceGVRMap[resource]
-	if !ok {
-		// this should never happen unless we forgot to update the map
-		panic(fmt.Sprintf("unsupported ResourcePolicyResource: %s", resource))
+// kindToResource converts a Kind name to a resource name (lowercase plural).
+// This is a simplified conversion that works for common resources.
+func kindToResource(kind string) string {
+	if kind == "" {
+		return ""
 	}
+	lower := strings.ToLower(kind)
+	// Handle common irregular plurals
+	if strings.HasSuffix(lower, "s") {
+		return lower + "es"
+	}
+	return lower + "s"
+}
+
+// NewResourcePolicy returns a new resource policy based on the provided verb and resource object.
+func NewResourcePolicy(verb ResourceVerb, object client.Object) *ResourcePolicy {
+	gvk := object.GetObjectKind().GroupVersionKind()
+	resource := kindToResource(gvk.Kind)
+
+	slog.Debug("NewResourcePolicy",
+		"verb", verb,
+		"group", gvk.Group,
+		"version", gvk.Version,
+		"kind", gvk.Kind,
+		"resource", resource,
+	)
 
 	policy := &ResourcePolicy{
-		Verb:         verb,
-		GVR:          gvr,
-		ResourceMeta: resourceMeta,
+		Verb:     verb,
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Kind:     gvk.Kind,
+		Resource: resource,
+	}
+
+	if object.GetNamespace() != "" {
+		policy.Namespace = object.GetNamespace()
+	}
+
+	if object.GetName() != "" {
+		policy.Name = object.GetName()
 	}
 
 	return policy
 }
 
-type ResourcePolicy struct {
-	Verb         ResourcePolicyVerb
-	GVR          schema.GroupVersionResource
-	ResourceMeta ResourcePolicyResourceMeta
-}
-
 // AttributesFor returns an authorizer.Attributes which could be used with an authorizer.Authorizer to authorize the user for the resource policy.
 func (p *ResourcePolicy) AttributesFor(u user.Info) authorizer.Attributes {
+	slog.Info("AttributesFor SAR check",
+		"user", u.GetName(),
+		"groups", u.GetGroups(),
+		"verb", p.Verb,
+		"apiGroup", p.Group,
+		"resource", p.Resource,
+		"namespace", p.Namespace,
+	)
 	return authorizer.AttributesRecord{
 		User:            u,
 		Verb:            string(p.Verb),
-		Namespace:       p.ResourceMeta.Namespace,
-		APIGroup:        p.GVR.Group,
-		APIVersion:      p.GVR.Version,
-		Resource:        p.GVR.Resource,
-		Subresource:     "", // not currently used
-		Name:            p.ResourceMeta.Name,
+		Namespace:       p.Namespace,
+		APIGroup:        p.Group,
+		APIVersion:      p.Version,
+		Resource:        p.Resource,
+		Name:            p.Name,
 		ResourceRequest: true,
 	}
 }
 
-// ResourcePolicyVerb are the verbs available for resource policies.
+// ResourceVerb are the verbs available for resource policies.
 // Corresponds to the verbs of a SubjectAccessReview:
 // https://github.com/kubernetes/kubernetes/blob/v1.35.0/pkg/apis/authorization/types.go#L78-L79
-type ResourcePolicyVerb string
+type ResourceVerb string
 
 const (
-	VerbCreate ResourcePolicyVerb = "create"
-	VerbDelete ResourcePolicyVerb = "delete"
-	VerbGet    ResourcePolicyVerb = "get"
-	VerbList   ResourcePolicyVerb = "list"
-	VerbPatch  ResourcePolicyVerb = "patch"
-	VerbUpdate ResourcePolicyVerb = "update"
+	ResourceVerbCreate ResourceVerb = "create"
+	ResourceVerbDelete ResourceVerb = "delete"
+	ResourceVerbGet    ResourceVerb = "get"
+	ResourceVerbList   ResourceVerb = "list"
+	ResourceVerbPatch  ResourceVerb = "patch"
+	ResourceVerbUpdate ResourceVerb = "update"
 )
-
-// ResourcePolicyResource are the resource types (kinds) available for resource policies.
-type ResourcePolicyResource string
-
-const (
-	//
-	// WARNING: these MUST be the "plural" form of the resource name because
-	//          URLs of Kubernetes APIs are structured as: /apis/<group>/<version>/<plural>
-	//
-
-	Namespaces             ResourcePolicyResource = "namespaces"
-	PersistentVolumeClaims ResourcePolicyResource = "persistentvolumeclaims"
-	Secrets                ResourcePolicyResource = "secrets"
-	StorageClasses         ResourcePolicyResource = "storageclasses"
-	WorkspaceKinds         ResourcePolicyResource = "workspacekinds"
-	Workspaces             ResourcePolicyResource = "workspaces"
-)
-
-// ResourcePolicyResourceMeta selects specific resources based on their object metadata.
-type ResourcePolicyResourceMeta struct {
-	// Namespace is the namespace of the resource which the action will be performed on.
-	// "" (empty) is the only valid value for cluster-scoped resources
-	// "" (empty) means the caller must be authorized to perform the action in all namespaces.
-	Namespace string
-
-	// Name is the name of the resource which the action will be performed on.
-	// "" (empty) means the caller must be authorized to perform the action on all resources of this type.
-	Name string
-}

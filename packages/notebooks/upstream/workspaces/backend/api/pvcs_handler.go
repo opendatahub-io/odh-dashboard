@@ -22,7 +22,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -62,7 +64,18 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbList, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbList,
+			&corev1.PersistentVolumeClaim{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "PersistentVolumeClaim",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
@@ -151,7 +164,19 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbCreate, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcCreate.Name}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbCreate,
+			&corev1.PersistentVolumeClaim{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "PersistentVolumeClaim",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      pvcCreate.Name,
+				},
+			},
+		),
 	}
 	actor, ok := a.requireAuth(w, r, authPolicies)
 	if !ok {
@@ -219,7 +244,19 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbDelete, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcName}),
+		auth.NewResourcePolicy(
+			auth.ResourceVerbDelete,
+			&corev1.PersistentVolumeClaim{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "PersistentVolumeClaim",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      pvcName,
+				},
+			},
+		),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
