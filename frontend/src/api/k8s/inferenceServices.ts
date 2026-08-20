@@ -15,7 +15,7 @@ import { K8sAPIOptions } from '#~/k8sTypes';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { parseCommandLine } from '#~/api/k8s/utils';
-import { getModelServingProjects } from '#~/api';
+import { getModelServingProjects } from '#~/api/k8s/projects';
 
 const applyAuthToInferenceService = (
   inferenceService: InferenceServiceKind,
