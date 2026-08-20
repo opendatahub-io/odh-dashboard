@@ -1,5 +1,6 @@
 import { appChrome } from '../appChrome';
 import { TableRow } from '../components/table';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
 
 class TopologyConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -96,12 +97,33 @@ class TopologyConfigurations {
     return cy.findByTestId('topology-config-name');
   }
 
+  findEditResourceNameLink() {
+    return cy.findByTestId('topology-config-editResourceLink');
+  }
+
   findDescriptionInput() {
     return cy.findByTestId('topology-config-description');
   }
 
   findConfigSourceSelect() {
     return cy.findByTestId('config-source-select');
+  }
+
+  selectConfigSource(optionKey: string) {
+    this.findConfigSourceSelect().click();
+    cy.findByTestId(optionKey).click();
+  }
+
+  findYamlEditor() {
+    return cy.findByTestId('config-yaml-editor');
+  }
+
+  /**
+   * The config YAML field is a PatternFly Monaco CodeEditor (no <textarea>).
+   * Use this to read/write its content via the shared DashboardCodeEditor helper.
+   */
+  getYamlEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('config-yaml-editor'));
   }
 
   findSubmitButton() {

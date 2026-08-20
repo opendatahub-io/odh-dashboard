@@ -10,7 +10,11 @@ import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { createCleanProject } from '../../../../utils/projectChecker';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  waitForUserProjectAccess,
+} from '../../../../utils/oc_commands/project';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import type { RoutingTestData, DataScienceProjectData } from '../../../../types';
@@ -19,6 +23,9 @@ let testData: RoutingTestData;
 const uuid = generateTestUUID();
 let projectName: string;
 let routingConfigName: string;
+// Duplicating a config produces display name "Copy of <name>", whose k8s
+// metadata.name (and therefore its row/option testids) is "copy-of-<name>".
+let duplicateRoutingConfigName: string;
 
 describe('LLMD Routing Configurations - Admin Settings', () => {
   retryableBefore(() => {
@@ -29,15 +36,22 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
         testData = fixtureData as RoutingTestData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         routingConfigName = `${testData.routingConfigName}-${uuid}`;
+        duplicateRoutingConfigName = `copy-of-${routingConfigName}`;
       })
       .then(() => {
         createCleanProject(projectName);
+      })
+      .then(() => {
+        // The project is created via oc as a cluster admin; grant the test's
+        // login user admin access so it appears in their Projects list (STEP 8).
+        addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+        return waitForUserProjectAccess(projectName, LDAP_ADMIN_USER.USERNAME);
       });
   });
 
   after(() => {
     cleanupLLMInferenceServiceConfig(routingConfigName);
-    cleanupLLMInferenceServiceConfig(`${routingConfigName}-copy`);
+    cleanupLLMInferenceServiceConfig(duplicateRoutingConfigName);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
@@ -60,11 +74,9 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       llmdRoutingCreatePage.selectConfigSource(testData.configSourceEditorKey);
       llmdRoutingCreatePage.findYamlEditor().should('exist');
       cy.fixture(testData.routingConfigFixture).then((yamlContent: string) => {
-        llmdRoutingCreatePage.findYamlEditor().find('textarea').clear({ force: true });
-        llmdRoutingCreatePage.findYamlEditor().find('textarea').type(yamlContent, {
-          parseSpecialCharSequences: false,
-          delay: 0,
-        });
+        // The config field is a Monaco CodeEditor (no textarea); set content via
+        // the shared helper, which uploads through the editor's file input.
+        llmdRoutingCreatePage.getYamlEditor().setValue(yamlContent);
       });
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
 
@@ -86,13 +98,15 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       routingConfigurations.getRow(routingConfigName).findKebabAction('Duplicate').click();
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
       routingConfigurations.findTable().should('exist');
-      routingConfigurations.getRow(`${routingConfigName}-copy`).find().should('exist');
+      routingConfigurations.getRow(duplicateRoutingConfigName).find().should('exist');
 
       cy.step('Delete the original routing config');
       routingConfigurations.getRow(routingConfigName).findKebabAction('Delete').click();
+      // The delete modal gates its danger button on typing the config name to confirm.
+      deleteRouteModal.findInput().clear().type(routingConfigName);
       deleteRouteModal.findSubmitButton().should('be.enabled').click();
       routingConfigurations.getRow(routingConfigName).find().should('not.exist');
-      routingConfigurations.getRow(`${routingConfigName}-copy`).find().should('exist');
+      routingConfigurations.getRow(duplicateRoutingConfigName).find().should('exist');
 
       cy.step('Navigate to project and open deploy wizard');
       projectListPage.navigate();
@@ -120,7 +134,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
         .findRoutingConfigSelect()
         .should('contain.text', testData.defaultRoutingLabel);
       modelServingWizard.findRoutingConfigSelect().click();
-      modelServingWizard.findRoutingConfigOption(`${routingConfigName}-copy`).should('exist');
+      modelServingWizard.findRoutingConfigOption(duplicateRoutingConfigName).should('exist');
     },
   );
 });

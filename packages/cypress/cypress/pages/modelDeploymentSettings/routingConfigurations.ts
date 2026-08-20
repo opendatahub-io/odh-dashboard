@@ -1,6 +1,7 @@
 import { appChrome } from '../appChrome';
 import { TableRow } from '../components/table';
 import { DeleteModal } from '../components/DeleteModal';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
 
 class RoutingConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -119,6 +120,14 @@ class LlmdRoutingCreatePage {
 
   findYamlEditor() {
     return cy.findByTestId('config-yaml-editor');
+  }
+
+  /**
+   * The config YAML field is a PatternFly Monaco CodeEditor (no <textarea>).
+   * Use this to read/write its content via the shared DashboardCodeEditor helper.
+   */
+  getYamlEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('config-yaml-editor'));
   }
 
   findSubmitButton() {
