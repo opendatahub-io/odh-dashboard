@@ -1,3 +1,4 @@
+/* eslint-disable @cspell/spellchecker */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
@@ -241,7 +242,7 @@ const WorkspaceForm: React.FC = () => {
         },
       };
       await submitFormData({ mode, data: preparedData, api, namespace });
-      navigate('workspaces');
+      navigate(-1);
       notification.success(
         `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
       );
@@ -253,7 +254,7 @@ const WorkspaceForm: React.FC = () => {
   }, [data, mode, navigate, api, namespace, notification]);
 
   const cancel = useCallback(() => {
-    navigate('workspaces');
+    navigate(-1);
   }, [navigate]);
 
   const handleKindSelect = useCallback(

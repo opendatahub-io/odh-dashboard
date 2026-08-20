@@ -1,3 +1,4 @@
+/* eslint-disable @cspell/spellchecker */
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useTypedLocation } from '~/app/routerHelper';
@@ -11,6 +12,7 @@ interface WorkspaceFormLocationData {
   namespace: string;
   workspaceName?: string;
   workspaceKindName?: string;
+  returnUrl?: string;
 }
 
 function getRouteStateIfMatch<K extends AppRouteKey>(
@@ -46,6 +48,8 @@ export function useWorkspaceFormLocationData(): WorkspaceFormLocationData {
       namespace,
       workspaceName,
       workspaceKindName,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      returnUrl: editState?.returnUrl,
     };
   }
 
@@ -56,6 +60,8 @@ export function useWorkspaceFormLocationData(): WorkspaceFormLocationData {
     return {
       mode: 'create',
       namespace,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      returnUrl: createState?.returnUrl,
     };
   }
 

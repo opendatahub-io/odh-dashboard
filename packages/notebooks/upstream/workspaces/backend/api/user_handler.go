@@ -69,5 +69,5 @@ func (a *App) GetUserHandler(w http.ResponseWriter, r *http.Request, ps httprout
 		},
 	}
 
-	a.dataResponse(w, r, &response)
+	a.WriteJSON(w, http.StatusOK, response, nil)
 }

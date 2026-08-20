@@ -10,8 +10,8 @@ export const POLL_INTERVAL = process.env.POLL_INTERVAL
   : 30000;
 export const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 export const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
-export const ROUTES_PREFIX = process.env.ROUTES_PREFIX ?? '';
-export const URL_PREFIX = process.env.URL_PREFIX ?? '/workspaces';
+export const URL_PREFIX = process.env.URL_PREFIX ?? '/notebooks';
+export const ROUTES_PREFIX = process.env.ROUTES_PREFIX ?? URL_PREFIX;
 export const BFF_API_VERSION = 'v1';
 export const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 export const COMPANY_URI = process.env.COMPANY_URI || 'oci://kubeflow.io';

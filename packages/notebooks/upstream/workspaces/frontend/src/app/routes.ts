@@ -1,3 +1,4 @@
+/* eslint-disable @cspell/spellchecker */
 export const AppRoutePaths = {
   root: '/',
   workspaces: '/workspaces',
@@ -54,11 +55,13 @@ export type RouteStateMap = {
   workspaces: undefined;
   workspaceCreate: {
     namespace: string;
+    returnUrl?: string;
   };
   workspaceEdit: {
     namespace: string;
     workspaceName: string;
     workspaceKindName: string;
+    returnUrl?: string;
   };
   workspaceKinds: undefined;
   workspaceKindSummary: {
