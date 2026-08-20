@@ -48,6 +48,9 @@ name: Cypress e2e Test
 #   PRIMARY:   OC_SERVER_PRIMARY, OCP_CONSOLE_URL_PRIMARY, ODH_DASHBOARD_URL_PRIMARY
 #   SECONDARY: OC_SERVER, OCP_CONSOLE_URL, ODH_DASHBOARD_URL
 #   AUTH:      GITLAB_TOKEN, GITLAB_TEST_VARS_URL, ODH_NAMESPACES
+#
+# After downloading test-variables.yml, e2e-tests registers GitHub Actions
+# masks for AWS keys and other credentials so Cypress [EXEC] logs cannot leak them.
 # =============================================================================
 
 on:
@@ -1050,6 +1053,17 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
+      # The e2e job checks out the PR SHA, then downloads test-variables.yml.
+      # Run the mask script from the default branch, not from the PR workspace.
+      - name: Checkout trusted credential tools
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: ${{ runner.temp }}/trusted-credential-tools
+          persist-credentials: false
+          sparse-checkout: .github/scripts/mask-cypress-test-secrets.sh
+          sparse-checkout-cone-mode: false
+
       - name: Module caches
         uses: ./.github/actions/module-caches
         with:
@@ -1074,6 +1088,12 @@ jobs:
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
             -o ${{ github.workspace }}/packages/cypress/test-variables.yml
           echo "✅ Downloaded test configuration"
+          MASK_SCRIPT="${{ runner.temp }}/trusted-credential-tools/.github/scripts/mask-cypress-test-secrets.sh"
+          if [[ -f "$MASK_SCRIPT" ]]; then
+            bash "$MASK_SCRIPT" "${{ github.workspace }}/packages/cypress/test-variables.yml"
+          else
+            echo "⚠️ Trusted mask script not on default branch yet; skipping Actions masks"
+          fi
 
       - name: Login to OpenShift cluster
         env:
