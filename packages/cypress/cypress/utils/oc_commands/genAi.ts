@@ -1,6 +1,8 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
-import { patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import { setupMcpServerDeployResources, cleanupMcpServerDeployResources } from './mcpServerDeploy';
+import { replacePlaceholdersInYaml } from '../yaml_files';
 import type { GenAiTestData } from '../../types';
 
 /**
@@ -278,5 +280,126 @@ export const createExternalModelViaAPI = (
       /* eslint-enable camelcase */
     },
   });
+
+/**
+ * Ensure an MCP server entry exists in the gen-ai MCP servers ConfigMap.
+ * Creates the ConfigMap if it doesn't exist, or patches an existing one.
+ * Uses file-based patching to avoid shell injection from user-controlled values.
+ */
+export const ensureMCPServerConfigMapEntry = (
+  configMapName: string,
+  serverKey: string,
+  serverData: { url: string; transport?: string; description?: string; logo?: string },
+): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const valueJson = JSON.stringify(serverData);
+  const patchJson = JSON.stringify({ data: { [serverKey]: valueJson } });
+  const patchFile = `/tmp/mcp-cm-patch-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
+
+  cy.exec(`oc get configmap ${configMapName} -n ${namespace} -o name`, {
+    failOnNonZeroExit: false,
+  }).then((result) => {
+    if (result.exitCode === 0) {
+      cy.exec(
+        `oc patch configmap ${configMapName} -n ${namespace} --type=merge --patch-file ${patchFile}`,
+      );
+    } else {
+      const cmJson = JSON.stringify({
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: { name: configMapName, namespace },
+        data: { [serverKey]: valueJson },
+      });
+      const cmFile = `/tmp/mcp-cm-create-${Date.now()}.json`;
+      cy.writeFile(cmFile, cmJson);
+      cy.exec(`oc apply -f ${cmFile}`);
+    }
+  });
+};
+
+/**
+ * Remove an MCP server entry from the gen-ai MCP servers ConfigMap.
+ * Uses file-based JSON patch to avoid shell injection from key values.
+ */
+export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: string): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const escapedKey = serverKey.replace(/~/g, '~0').replace(/\//g, '~1');
+  const patchJson = JSON.stringify([{ op: 'remove', path: `/data/${escapedKey}` }]);
+  const patchFile = `/tmp/mcp-cm-remove-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
+  cy.exec(
+    `oc patch configmap ${configMapName} -n ${namespace} --type=json --patch-file ${patchFile}`,
+    { failOnNonZeroExit: false },
+  );
+};
+
+/**
+ * Deploy a kubernetes-mcp-server for Gen AI playground testing.
+ * Reuses mcpServerDeploy utilities for prerequisites (SA, CRB, ConfigMap)
+ * and adds the Deployment, Service, and Route on top.
+ * Idempotent — skips resources that already exist.
+ *
+ * The Route is ephemeral test infrastructure (torn down in after()) and uses
+ * edge TLS + read-only mode. It is needed because the BFF may run outside the
+ * cluster (local dev) and cannot reach in-cluster Service DNS.
+ *
+ * Returns the Route URL with `/mcp` suffix.
+ */
+export const deployMCPServer = (
+  mcpNamespace: string,
+  image: string,
+  clusterRoleBindingName: string,
+): Cypress.Chainable<string> => {
+  const name = 'kubernetes-mcp-server';
+
+  cy.exec(`oc get project ${mcpNamespace} -o name`, { failOnNonZeroExit: false }).then((r) => {
+    if (r.exitCode !== 0) {
+      cy.exec(`oc new-project ${mcpNamespace}`);
+    }
+  });
+
+  setupMcpServerDeployResources(mcpNamespace, {
+    serviceAccountName: name,
+    clusterRoleBindingName,
+    configMapName: name,
+  });
+
+  cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
+    const rendered = replacePlaceholdersInYaml(yamlContent, {
+      NAMESPACE: mcpNamespace,
+      IMAGE: image,
+    });
+    applyOpenShiftYaml(rendered);
+  });
+
+  cy.exec(`oc rollout status deployment/${name} -n ${mcpNamespace} --timeout=120s`, {
+    timeout: 130000,
+  });
+
+  return cy
+    .exec(`oc get route ${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const host = result.stdout.trim().replace(/^'|'$/g, '');
+      const url = `https://${host}/mcp`;
+      cy.log(`MCP server URL: ${url}`);
+      return cy.wrap(url);
+    });
+};
+
+/**
+ * Tear down the MCP server deployed by deployMCPServer.
+ * Removes workloads by label and cluster-scoped CRB via the shared utility.
+ */
+export const teardownMCPServer = (mcpNamespace: string, clusterRoleBindingName: string): void => {
+  const name = 'kubernetes-mcp-server';
+  cy.exec(
+    `oc delete deployment,svc,route -l app.kubernetes.io/name=${name} -n ${mcpNamespace} --ignore-not-found`,
+    { failOnNonZeroExit: false },
+  );
+  cleanupMcpServerDeployResources(clusterRoleBindingName);
+};
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

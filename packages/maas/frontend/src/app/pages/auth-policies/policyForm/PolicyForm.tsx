@@ -23,6 +23,8 @@ import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
@@ -31,6 +33,17 @@ import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/typ
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
+import {
+  AuthPolicyCreatedCancelProperties,
+  AuthPolicyCreatedErrorProperties,
+  AuthPolicyCreatedSuccessProperties,
+  AuthPolicyUpdatedCancelProperties,
+  AuthPolicyUpdatedErrorProperties,
+  AuthPolicyUpdatedSuccessProperties,
+  EventTrackingEditSource,
+  EventTrackingPrefillSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -45,6 +58,7 @@ export type PolicyFormProps = {
   initialPolicy?: MaaSAuthPolicy;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
+  editSource?: EventTrackingEditSource;
 };
 
 const PolicyForm: React.FC<PolicyFormProps> = ({
@@ -55,6 +69,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
   initialPolicy,
   returnTo,
   preSelectedModel,
+  editSource,
 }) => {
   const navigate = useNavigate();
   const { refresh } = useMaaSGovernanceContext();
@@ -151,14 +166,35 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
       if (!initialPolicy) {
         const request: CreatePolicyRequest = { name: nameDescData.k8sName.value, ...sharedFields };
         await createAuthPolicy()(apiOpts, request);
+        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_CREATED, submitCreateTrackingEventProperties);
       } else {
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
+        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_UPDATED, submitUpdateTrackingEventProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('auth-policies'));
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
+      const errMsg =
+        e instanceof Error
+          ? e.message
+          : `Failed to ${initialPolicy ? 'update' : 'create'} authorization policy`;
+      fireFormTrackingEvent(
+        initialPolicy ? MaaSEvents.AUTH_POLICY_UPDATED : MaaSEvents.AUTH_POLICY_CREATED,
+        initialPolicy
+          ? {
+              ...errorUpdateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              editSource,
+            }
+          : {
+              ...errorCreateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+            },
+      );
+      setSubmitError(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,6 +202,47 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
 
   const primaryLabel = initialPolicy ? 'Save changes' : 'Create authorization policy';
   const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
+
+  const cancelUpdateTrackingEventProperties: AuthPolicyUpdatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+    editSource,
+  };
+
+  const cancelCreateTrackingEventProperties: AuthPolicyCreatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+  };
+
+  const errorUpdateTrackingEventProperties: AuthPolicyUpdatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+    editSource,
+  };
+
+  const errorCreateTrackingEventProperties: AuthPolicyCreatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+  };
+
+  const submitUpdateTrackingEventProperties: AuthPolicyUpdatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: selectedModels.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    editSource,
+  };
+
+  const submitCreateTrackingEventProperties: AuthPolicyCreatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: selectedModels.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    modelCountAvailable: modelRefs.length,
+    prefillSource: preSelectedModel
+      ? EventTrackingPrefillSource.MODEL
+      : EventTrackingPrefillSource.NONE,
+  };
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -286,7 +363,15 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? getSectionUrl('auth-policies'))}
+            onClick={() => {
+              navigate(returnTo ?? getSectionUrl('auth-policies'));
+              fireFormTrackingEvent(
+                initialPolicy ? MaaSEvents.AUTH_POLICY_UPDATED : MaaSEvents.AUTH_POLICY_CREATED,
+                initialPolicy
+                  ? cancelUpdateTrackingEventProperties
+                  : cancelCreateTrackingEventProperties,
+              );
+            }}
             isDisabled={isSubmitting}
             data-testid="policy-cancel-button"
           >

@@ -5,6 +5,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { EventTrackingEditSource } from '~/app/types/event-tracking';
 import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {
@@ -21,6 +22,15 @@ const EditAuthPolicyPage: React.FC = () => {
     loaded: formLoaded,
     error: formError,
   } = useMaaSGovernanceContext();
+
+  const editSource =
+    state != null &&
+    typeof state === 'object' &&
+    'editSource' in state &&
+    (state.editSource === EventTrackingEditSource.LIST_KEBAB ||
+      state.editSource === EventTrackingEditSource.DETAIL_KEBAB)
+      ? state.editSource
+      : undefined;
 
   const loaded = policyLoaded && formLoaded;
   const loadError = policyError ?? formError;
@@ -50,6 +60,7 @@ const EditAuthPolicyPage: React.FC = () => {
           policies={policies}
           initialPolicy={policyInfo.policy}
           returnTo={returnTo}
+          editSource={editSource}
         />
       )}
     </ApplicationsPage>

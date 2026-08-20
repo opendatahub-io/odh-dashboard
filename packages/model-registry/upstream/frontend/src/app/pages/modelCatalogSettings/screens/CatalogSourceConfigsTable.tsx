@@ -31,9 +31,14 @@ const CatalogSourceConfigsTable: React.FC<CatalogSourceConfigsTableProps> = ({
 }) => {
   const [toggleError, setToggleError] = React.useState<Error | undefined>(undefined);
   const [updatingToggleId, setUpdatingToggleId] = React.useState<string | null>(null);
-  const { apiState, refreshCatalogSourceConfigs, catalogSourcesLoadError } = React.useContext(
-    ModelCatalogSettingsContext,
-  );
+  const {
+    apiState,
+    refreshCatalogSourceConfigs,
+    refreshCatalogSources,
+    catalogSourcesLoadError,
+    catalogSources,
+    markSourcePending,
+  } = React.useContext(ModelCatalogSettingsContext);
 
   const handleEnableToggle = async (checked: boolean, catalogSourceConfig: CatalogSourceConfig) => {
     if (!apiState.apiAvailable) {
@@ -43,12 +48,22 @@ const CatalogSourceConfigsTable: React.FC<CatalogSourceConfigsTableProps> = ({
     setUpdatingToggleId(catalogSourceConfig.id);
     setToggleError(undefined);
 
+    // ponytail: only mark pending and refresh sources when enabling
+    if (checked) {
+      const previousStatus =
+        catalogSources?.items?.find((s) => s.id === catalogSourceConfig.id)?.status ?? '';
+      markSourcePending(catalogSourceConfig.id, previousStatus);
+    }
+
     try {
       await apiState.api.updateCatalogSourceConfig({}, catalogSourceConfig.id, {
         enabled: checked,
       });
       setToggleError(undefined);
       refreshCatalogSourceConfigs();
+      if (checked) {
+        refreshCatalogSources();
+      }
     } catch (e) {
       if (e instanceof Error) {
         setToggleError(new Error(`Error enabling/disabling source ${catalogSourceConfig.name}`));

@@ -63,7 +63,6 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
       return;
     }
     onSave(localLimits.map(toTokenRateLimit));
-    onClose();
   };
 
   const title = `Edit subscription token limits`;

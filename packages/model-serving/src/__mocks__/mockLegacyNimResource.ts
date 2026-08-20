@@ -60,15 +60,24 @@ type NimInferenceService = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
   hardwareProfileResourceVersion?: string;
+  hasExternalRoute?: boolean;
+  args?: string[];
+  env?: Array<{ name: string; value?: string }>;
 };
 
 export const mockNimInferenceService = ({
   displayName = 'Test Name',
   namespace = 'test-project',
   resources = {
-    limits: { cpu: '16', memory: '64Gi' },
-    requests: { cpu: '8', memory: '32Gi' },
+    limits: { cpu: '4', memory: '8Gi' },
+    requests: { cpu: '2', memory: '6Gi' },
   },
+  hardwareProfileName,
+  hardwareProfileNamespace,
+  hardwareProfileResourceVersion,
+  hasExternalRoute,
+  args,
+  env,
 }: NimInferenceService = {}): InferenceServiceKind => {
   const inferenceService = mockInferenceServiceK8sResource({
     name: 'test-name',
@@ -76,6 +85,12 @@ export const mockNimInferenceService = ({
     displayName,
     namespace,
     resources,
+    hardwareProfileName,
+    hardwareProfileNamespace,
+    hardwareProfileResourceVersion,
+    hasExternalRoute,
+    args,
+    env,
   });
 
   delete inferenceService.metadata.labels?.name;
@@ -93,7 +108,19 @@ export const mockNimInferenceService = ({
   return inferenceService;
 };
 
-export const mockNimServingRuntime = (): ServingRuntimeKind => {
+export const mockNimServingRuntime = ({
+  image = 'nvcr.io/nim/nvidia/my-nim-container:mytag',
+  pvcName = 'my-nim-pvc',
+  subPath,
+}: {
+  // When set, the runtime carries a `kserve-container` with this image so edit-detection
+  // (isNIMKServeDeployment) recognizes it and the image field prefills on edit.
+  image?: string;
+  // When set, the runtime carries a PVC cache volume + `kserve-container` volumeMount at the NIM
+  // cache path so the PVC field prefills the existing storage selection on edit.
+  pvcName?: string;
+  subPath?: string;
+} = {}): ServingRuntimeKind => {
   const servingRuntime = mockServingRuntimeK8sResource({
     name: 'test-name',
     displayName: 'Test Name',
@@ -101,6 +128,28 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
   if (servingRuntime.metadata.annotations) {
     servingRuntime.metadata.annotations['opendatahub.io/template-display-name'] = 'NVIDIA NIM';
     servingRuntime.metadata.annotations['opendatahub.io/template-name'] = 'nvidia-nim-runtime';
+  }
+  if (image) {
+    servingRuntime.spec.containers = [
+      { ...servingRuntime.spec.containers[0], name: 'kserve-container', image },
+    ];
+  }
+  if (pvcName) {
+    servingRuntime.spec.volumes = [
+      ...(servingRuntime.spec.volumes ?? []),
+      { name: pvcName, persistentVolumeClaim: { claimName: pvcName } },
+    ];
+    servingRuntime.spec.containers = servingRuntime.spec.containers.map((container) =>
+      container.name === 'kserve-container'
+        ? {
+            ...container,
+            volumeMounts: [
+              ...(container.volumeMounts ?? []),
+              { name: pvcName, mountPath: '/mnt/models/cache', ...(subPath ? { subPath } : {}) },
+            ],
+          }
+        : container,
+    );
   }
 
   return servingRuntime;

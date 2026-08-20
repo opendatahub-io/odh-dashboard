@@ -1,6 +1,7 @@
-import { appChrome } from './appChrome';
-import { TableRow } from './components/table';
-import { DeleteModal } from './components/DeleteModal';
+import { appChrome } from '../appChrome';
+import { TableRow } from '../components/table';
+import { DeleteModal } from '../components/DeleteModal';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
 
 class RoutingConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -19,7 +20,7 @@ class RoutingConfigRow extends TableRow {
   }
 }
 
-class LlmdRoutingSettingsPage {
+class RoutingConfigurations {
   visit(wait = true) {
     cy.visitWithLogin(
       '/settings/model-resources-operations/model-deployment-settings/routing-configurations',
@@ -40,7 +41,10 @@ class LlmdRoutingSettingsPage {
   }
 
   private wait() {
-    this.findTable();
+    // The tab renders an empty state (no table) until the first config exists,
+    // so wait for the Add button, which is present in both the empty and
+    // populated states, rather than the table.
+    this.findAddButton().should('exist');
   }
 
   findNavItem() {
@@ -121,6 +125,14 @@ class LlmdRoutingCreatePage {
     return cy.findByTestId('config-yaml-editor');
   }
 
+  /**
+   * The config YAML field is a PatternFly Monaco CodeEditor (no <textarea>).
+   * Use this to read/write its content via the shared DashboardCodeEditor helper.
+   */
+  getYamlEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('config-yaml-editor'));
+  }
+
   findSubmitButton() {
     return cy.findByTestId('submit-routing-config-button');
   }
@@ -136,6 +148,6 @@ class DeleteRouteModal extends DeleteModal {
   }
 }
 
-export const llmdRoutingSettingsPage = new LlmdRoutingSettingsPage();
+export const routingConfigurations = new RoutingConfigurations();
 export const llmdRoutingCreatePage = new LlmdRoutingCreatePage();
 export const deleteRouteModal = new DeleteRouteModal();

@@ -4,7 +4,7 @@ import {
   interceptLlmAcceleratorConfigUpdate,
   interceptLlmAcceleratorConfigDelete,
 } from './llmAcceleratorConfigsUtils';
-import { llmAcceleratorConfigs } from '../../../pages/llmAcceleratorConfigs';
+import { llmAcceleratorConfigurations } from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 
@@ -12,59 +12,73 @@ describe('LLM accelerator configurations CRUD operations', () => {
   beforeEach(() => {
     asProductAdminUser();
     llmAcceleratorConfigsIntercept();
-    llmAcceleratorConfigs.visit();
+    llmAcceleratorConfigurations.visit();
   });
 
   describe('Navigation flows', () => {
     it('should navigate to add form when clicking Add button', () => {
-      llmAcceleratorConfigs.findAddButton().click();
+      llmAcceleratorConfigurations.findAddButton().click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/add',
       );
-      llmAcceleratorConfigs.findAppTitle().should('have.text', 'Add LLM accelerator configuration');
+      llmAcceleratorConfigurations
+        .findAppTitle()
+        .should('have.text', 'Add LLM accelerator configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmAcceleratorConfigs.findTabPageTitle().should('not.exist');
-      llmAcceleratorConfigs.findTab().should('not.exist');
+      llmAcceleratorConfigurations.findTabPageTitle().should('not.exist');
+      llmAcceleratorConfigurations.findTab().should('not.exist');
     });
 
     it('should navigate to edit form when clicking Edit action', () => {
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
+      llmAcceleratorConfigurations.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/edit/vllm-cuda',
       );
-      llmAcceleratorConfigs.findAppTitle().should('have.text', 'Edit vLLM CUDA Accelerator');
+      llmAcceleratorConfigurations.findAppTitle().should('have.text', 'Edit vLLM CUDA Accelerator');
     });
 
     it('should navigate to duplicate form when clicking Duplicate action', () => {
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Duplicate').click();
+      llmAcceleratorConfigurations
+        .getRowByName('vllm-cuda')
+        .find()
+        .findKebabAction('Duplicate')
+        .click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/duplicate/vllm-cuda',
       );
-      llmAcceleratorConfigs
+      llmAcceleratorConfigurations
         .findAppTitle()
         .should('have.text', 'Duplicate LLM accelerator configuration');
     });
 
     it('should reload edit form and preserve inputs', () => {
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
-      llmAcceleratorConfigs.findNameInput().should('have.value', 'vLLM CUDA Accelerator');
+      llmAcceleratorConfigurations.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
+      llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM CUDA Accelerator');
 
       cy.reload();
 
-      llmAcceleratorConfigs.findNameInput().should('have.value', 'vLLM CUDA Accelerator');
+      llmAcceleratorConfigurations.findNameInput().should('have.value', 'vLLM CUDA Accelerator');
     });
 
     it('should reload duplicate form and preserve inputs', () => {
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Duplicate').click();
-      llmAcceleratorConfigs.findNameInput().should('have.value', 'Copy of vLLM CUDA Accelerator');
+      llmAcceleratorConfigurations
+        .getRowByName('vllm-cuda')
+        .find()
+        .findKebabAction('Duplicate')
+        .click();
+      llmAcceleratorConfigurations
+        .findNameInput()
+        .should('have.value', 'Copy of vLLM CUDA Accelerator');
 
       cy.reload();
 
-      llmAcceleratorConfigs.findNameInput().should('have.value', 'Copy of vLLM CUDA Accelerator');
+      llmAcceleratorConfigurations
+        .findNameInput()
+        .should('have.value', 'Copy of vLLM CUDA Accelerator');
     });
   });
 
@@ -72,12 +86,12 @@ describe('LLM accelerator configurations CRUD operations', () => {
     it('should create a new config', () => {
       interceptLlmAcceleratorConfigCreate();
 
-      llmAcceleratorConfigs.findAddButton().click();
-      llmAcceleratorConfigs.findNameInput().type('New Config');
-      llmAcceleratorConfigs.findVersionInput().type('v1.0.0');
-      llmAcceleratorConfigs.findYAMLCodeEditor().setValue('metadata:\n  name: placeholder');
+      llmAcceleratorConfigurations.findAddButton().click();
+      llmAcceleratorConfigurations.findNameInput().type('New Config');
+      llmAcceleratorConfigurations.findVersionInput().type('v1.0.0');
+      llmAcceleratorConfigurations.findYAMLCodeEditor().setValue('metadata:\n  name: placeholder');
 
-      llmAcceleratorConfigs.findSubmitButton().click();
+      llmAcceleratorConfigurations.findSubmitButton().click();
 
       cy.wait('@createConfig').then((interception) => {
         expect(interception.request.body.metadata).to.include({
@@ -92,9 +106,9 @@ describe('LLM accelerator configurations CRUD operations', () => {
     it('should update an existing config', () => {
       interceptLlmAcceleratorConfigUpdate('vllm-cuda');
 
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
-      llmAcceleratorConfigs.findNameInput().clear().type('Updated CUDA');
-      llmAcceleratorConfigs.findSubmitButton().click();
+      llmAcceleratorConfigurations.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
+      llmAcceleratorConfigurations.findNameInput().clear().type('Updated CUDA');
+      llmAcceleratorConfigurations.findSubmitButton().click();
 
       cy.wait('@updateConfig').then((interception) => {
         expect(interception.request.body.metadata.annotations).to.include({
@@ -106,7 +120,11 @@ describe('LLM accelerator configurations CRUD operations', () => {
     it('should delete a config', () => {
       interceptLlmAcceleratorConfigDelete('vllm-cuda');
 
-      llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Delete').click();
+      llmAcceleratorConfigurations
+        .getRowByName('vllm-cuda')
+        .find()
+        .findKebabAction('Delete')
+        .click();
       deleteModal.find().should('exist');
       deleteModal.findInput().type('vLLM CUDA Accelerator');
       deleteModal.findSubmitButton().click();

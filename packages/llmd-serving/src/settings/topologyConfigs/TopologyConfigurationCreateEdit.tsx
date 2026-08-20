@@ -20,7 +20,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
@@ -52,6 +52,10 @@ import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
+import {
+  fireTopologyConfigCreated,
+  fireTopologyConfigUpdated,
+} from '../../tracking/llmdTrackingConstants';
 
 const TopologyConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
@@ -260,8 +264,20 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
+        fireTopologyConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          topologyType: resolvedTopologyType,
+        });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
+        fireTopologyConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: resolvedTopologyType,
+        });
       }
       navigate(listPath);
     } catch (e) {
@@ -271,6 +287,21 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
         err.message,
       );
+      if (isEditMode) {
+        fireTopologyConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          topologyType: resolvedTopologyType,
+        });
+      } else {
+        fireTopologyConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: resolvedTopologyType,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -356,7 +387,17 @@ const TopologyConfigurationCreateEditInner: React.FC<{
             variant="link"
             data-testid="cancel-topology-config-button"
             isDisabled={loading}
-            onClick={() => navigate(listPath)}
+            onClick={() => {
+              if (isEditMode) {
+                fireTopologyConfigUpdated({ outcome: TrackingOutcome.cancel });
+              } else {
+                fireTopologyConfigCreated({
+                  outcome: TrackingOutcome.cancel,
+                  mode: isDuplicate ? 'duplicate' : 'create',
+                });
+              }
+              navigate(listPath);
+            }}
           >
             Cancel
           </Button>
