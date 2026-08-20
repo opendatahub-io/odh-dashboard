@@ -48,7 +48,7 @@ const DataRegistryPage: React.FC = () => {
 
   const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
     useAssets(selectedProject);
-  const [collections, collectionsLoaded, , collectionsRefresh] = useCollections(
+  const [collections, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
     selectedProject,
     assets,
     collectionNames,
@@ -161,9 +161,10 @@ const DataRegistryPage: React.FC = () => {
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError}
             labels={labels}
-            onManageCollections={() => setIsCollectionsModalOpen(true)}
-            onManageLabels={() => {
-              // TODO: implement manage labels modal
+            onManageCollections={() => {
+              if (!collectionsError) {
+                setIsCollectionsModalOpen(true);
+              }
             }}
           />
           <ManageCollectionsModal

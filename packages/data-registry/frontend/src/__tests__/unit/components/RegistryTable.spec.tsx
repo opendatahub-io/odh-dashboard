@@ -38,7 +38,6 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         error={undefined}
         labels={mockLabels}
         onManageCollections={jest.fn()}
-        onManageLabels={jest.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -85,11 +84,6 @@ describe('RegistryTable', () => {
     expect(screen.getByTestId('filter-category')).toBeTruthy();
     expect(screen.getByTestId('filter-value')).toBeTruthy();
     expect(screen.getByTestId('asset-search')).toBeTruthy();
-  });
-
-  it('should render register data button', () => {
-    renderTable();
-    expect(screen.getByTestId('register-data-button')).toBeTruthy();
   });
 
   it('should render kebab menu', () => {

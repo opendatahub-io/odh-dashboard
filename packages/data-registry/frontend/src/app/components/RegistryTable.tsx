@@ -35,7 +35,6 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   onManageCollections: () => void;
-  onManageLabels: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -105,7 +104,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   onManageCollections,
-  onManageLabels,
 }) => {
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
@@ -151,11 +149,18 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       result = result.filter((a) => a.format.toLowerCase() === selectedFormat.toLowerCase());
     }
     if (activeSortIndex !== undefined) {
-      const sortKeys: (keyof RegistryAsset)[] = ['name', 'format', 'connectionRef'];
-      const key = sortKeys[activeSortIndex];
+      const getSortValue = (asset: RegistryAsset, colIndex: number): string => {
+        if (colIndex === 0) {
+          return asset.name;
+        }
+        if (colIndex === 1) {
+          return asset.format;
+        }
+        return asset.connectionRef || asset.location;
+      };
       result = result.toSorted((a, b) => {
-        const aVal = String(a[key]);
-        const bVal = String(b[key]);
+        const aVal = getSortValue(a, activeSortIndex);
+        const bVal = getSortValue(b, activeSortIndex);
         return activeSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       });
     }
@@ -375,12 +380,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 data-testid="asset-search"
               />
             </ToolbarItem>
-            {/* Register data */}
-            <ToolbarItem>
-              <Button variant="primary" data-testid="register-data-button">
-                Register data
-              </Button>
-            </ToolbarItem>
             {/* Kebab */}
             <ToolbarItem>
               <Dropdown
@@ -401,11 +400,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 )}
               >
                 <DropdownList>
-                  <DropdownItem key="manage-collections" onClick={onManageCollections}>
+                  <DropdownItem
+                    key="manage-collections"
+                    onClick={onManageCollections}
+                    data-testid="manage-collections-action"
+                  >
                     Manage collections
-                  </DropdownItem>
-                  <DropdownItem key="manage-labels" onClick={onManageLabels}>
-                    Manage labels
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>

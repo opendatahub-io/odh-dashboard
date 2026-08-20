@@ -44,7 +44,12 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   const filteredCollections = React.useMemo(
     () =>
       filterText
-        ? collections.filter((c) => c.name.toLowerCase().includes(filterText.toLowerCase()))
+        ? collections.filter((c) => {
+            const lower = filterText.toLowerCase();
+            return (
+              c.name.toLowerCase().includes(lower) || c.description.toLowerCase().includes(lower)
+            );
+          })
         : collections,
     [collections, filterText],
   );

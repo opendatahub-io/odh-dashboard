@@ -132,7 +132,7 @@ describe('Registry Table', () => {
   it('should open manage collections modal', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
-    cy.contains('Manage collections').click();
+    cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('manage-collections-modal').should('exist');
     cy.findByTestId('create-collection-button').should('exist');
   });
@@ -154,10 +154,16 @@ describe('Registry Table', () => {
       statusCode: 200,
       body: { namespace: ['new-collection'], properties: { description: 'Test' } },
     }).as('createCollection');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces`, {
+      body: { namespaces: [['analytics'], ['default'], ['new-collection']] },
+    }).as('getCollectionsAfterCreate');
+    cy.intercept('GET', `${REGISTRY_API}/test-project/namespaces/new-collection`, {
+      body: { namespace: ['new-collection'], properties: { description: 'Test' } },
+    });
 
     visitWithData();
     cy.findByTestId('registry-kebab').click();
-    cy.contains('Manage collections').click();
+    cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('create-collection-button').click();
     cy.findByTestId('create-collection-modal').should('exist');
     cy.findByTestId('collection-name-input').type('new-collection');
@@ -173,7 +179,7 @@ describe('Registry Table', () => {
   it('should block delete when collection has assets', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
-    cy.contains('Manage collections').click();
+    cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('collection-kebab-analytics').click();
     cy.contains('Delete').click();
     cy.findByTestId('delete-collection-modal').should('exist');
@@ -200,7 +206,7 @@ describe('Registry Table', () => {
 
     visitWithData();
     cy.findByTestId('registry-kebab').click();
-    cy.contains('Manage collections').click();
+    cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('collection-kebab-empty-collection').click();
     cy.contains('Delete').click();
     cy.findByTestId('delete-collection-modal').should('exist');
