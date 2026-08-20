@@ -188,7 +188,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       viewAuthPolicyPage.findGroupsSection().should('contain.text', testData.policiesGroups[0]);
       viewAuthPolicyPage.findModelsSection().should('contain.text', modelName);
 
-      cy.step('Verify the YAML Tab')
+      cy.step('Verify the YAML Tab');
       stubClipboardWriteTextForApiKeyModal('copiedYAML');
       viewAuthPolicyPage.findYamlTab().click();
       viewAuthPolicyPage.findYAMLCodeEditor().copyToClipboard().click();
