@@ -61,7 +61,6 @@ export type AuthPolicyUpdatedSuccessProperties = {
 export type AuthPolicyUpdatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
-  error: string;
   editSource?: EventTrackingEditSource;
 };
 
@@ -84,7 +83,6 @@ export type AuthPolicyCreatedSuccessProperties = {
 export type AuthPolicyCreatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
-  error: string;
 };
 
 export type AuthPolicyCreatedCancelProperties = {
@@ -106,7 +104,6 @@ export type SubscriptionCreatedSuccessProperties = {
 export type SubscriptionCreatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
-  error: string;
 };
 
 export type SubscriptionCreatedCancelProperties = {
@@ -128,7 +125,6 @@ export type SubscriptionUpdatedSuccessProperties = {
 export type SubscriptionUpdatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
-  error: string;
   editSource?: EventTrackingEditSource;
 };
 

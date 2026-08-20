@@ -186,14 +186,12 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
               ...errorUpdateTrackingEventProperties,
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errMsg,
               editSource,
             }
           : {
               ...errorCreateTrackingEventProperties,
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errMsg,
             },
       );
       setSubmitError(errMsg);
@@ -217,14 +215,12 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
   const errorUpdateTrackingEventProperties: AuthPolicyUpdatedErrorProperties = {
     outcome: TrackingOutcome.submit,
     success: false,
-    error: submitError ?? 'Failed to update authorization policy',
     editSource,
   };
 
   const errorCreateTrackingEventProperties: AuthPolicyCreatedErrorProperties = {
     outcome: TrackingOutcome.submit,
     success: false,
-    error: submitError ?? 'Failed to create authorization policy',
   };
 
   const submitUpdateTrackingEventProperties: AuthPolicyUpdatedSuccessProperties = {

@@ -297,13 +297,11 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               ...errorEditTrackingEventProperties,
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errMsg,
             }
           : {
               ...errorCreateTrackingEventProperties,
               outcome: TrackingOutcome.submit,
               success: false,
-              error: errMsg,
             },
       );
       setSubmitError(errMsg);
@@ -353,13 +351,11 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const errorCreateTrackingEventProperties: SubscriptionCreatedErrorProperties = {
     outcome: TrackingOutcome.submit,
     success: false,
-    error: submitError ?? 'Failed to create subscription',
   };
 
   const errorEditTrackingEventProperties: SubscriptionUpdatedErrorProperties = {
     outcome: TrackingOutcome.submit,
     success: false,
-    error: submitError ?? 'Failed to update subscription',
     editSource,
   };
 
