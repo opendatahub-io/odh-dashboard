@@ -52,6 +52,14 @@ func main() {
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
 
+	// ─── Data Registry API ────────────────────────────────────────
+	flag.StringVar(&cfg.DataRegistryAPIURL, "data-registry-api-url", getEnvAsString("DATA_REGISTRY_API_URL", ""),
+		"Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
+	flag.StringVar(&cfg.DataRegistryConfigMapName, "data-registry-configmap-name", getEnvAsString("DATA_REGISTRY_CONFIGMAP_NAME", config.DefaultDataRegistryConfigMapName),
+		"Name of the ConfigMap (in the pod's namespace) holding the Data Registry API URL")
+	flag.StringVar(&cfg.DataRegistryConfigMapKey, "data-registry-configmap-key", getEnvAsString("DATA_REGISTRY_CONFIGMAP_KEY", config.DefaultDataRegistryConfigMapKey),
+		"Key within the Data Registry ConfigMap holding the API URL")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")

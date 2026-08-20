@@ -114,6 +114,47 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
 
+  const getBreadcrumbItems = (): React.ReactElement[] => {
+    const items: React.ReactElement[] = [
+      <BreadcrumbItem
+        key="evaluations"
+        render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
+      />,
+    ];
+    if (isReconfigure) {
+      items.push(
+        <BreadcrumbItem key="active" isActive>
+          Reconfigure evaluation
+        </BreadcrumbItem>,
+      );
+    } else {
+      items.push(
+        <BreadcrumbItem
+          key="type"
+          render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
+        />,
+        <BreadcrumbItem
+          key="suite"
+          render={() => (
+            <Link
+              to={
+                isCollectionFlow
+                  ? evaluationCollectionsRoute(namespace)
+                  : evaluationBenchmarksRoute(namespace)
+              }
+            >
+              {breadcrumbFlowLabel}
+            </Link>
+          )}
+        />,
+        <BreadcrumbItem key="active" isActive>
+          Start evaluation run
+        </BreadcrumbItem>,
+      );
+    }
+    return items;
+  };
+
   // ── Source dropdown state ────────────────────────────────────────────
 
   const [isSourceOpen, setIsSourceOpen] = React.useState(false);
@@ -188,38 +229,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
-          {isReconfigure ? (
-            <BreadcrumbItem isActive>Reconfigure evaluation</BreadcrumbItem>
-          ) : (
-            <>
-              <BreadcrumbItem
-                render={() => (
-                  <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
-                )}
-              />
-              <BreadcrumbItem
-                render={() => (
-                  <Link
-                    to={
-                      isCollectionFlow
-                        ? evaluationCollectionsRoute(namespace)
-                        : evaluationBenchmarksRoute(namespace)
-                    }
-                  >
-                    {breadcrumbFlowLabel}
-                  </Link>
-                )}
-              />
-              <BreadcrumbItem isActive>Start evaluation run</BreadcrumbItem>
-            </>
-          )}
-        </Breadcrumb>
-      }
+      breadcrumb={<Breadcrumb>{getBreadcrumbItems()}</Breadcrumb>}
       loaded
       empty={false}
     >

@@ -1,3 +1,4 @@
+import { translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import {
   convertToUnit,
   MEMORY_UNITS_FOR_PARSING,
@@ -35,7 +36,7 @@ export const applyNIMPVCFieldData = (
       ...deployment.model.spec,
       storage: {
         pvc: {
-          name: fieldData.pvcName,
+          name: translateDisplayNameForK8s(fieldData.pvcName),
           subPath: normalizeSubPath(fieldData.subPath),
         },
       },

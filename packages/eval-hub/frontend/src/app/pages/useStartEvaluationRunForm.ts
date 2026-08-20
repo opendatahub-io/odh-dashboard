@@ -19,6 +19,7 @@ import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
+import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
@@ -65,13 +66,13 @@ export function useStartEvaluationRunForm({
 
   const defaultThreshold = React.useMemo(() => {
     if (collection?.pass_criteria) {
-      return Math.round(collection.pass_criteria.threshold * 100);
+      return normalizeThreshold(collection.pass_criteria.threshold);
     }
     if (collection) {
       return DEFAULT_SUITE_THRESHOLD;
     }
     if (benchmark?.pass_criteria) {
-      return Math.round(benchmark.pass_criteria.threshold * 100);
+      return normalizeThreshold(benchmark.pass_criteria.threshold);
     }
     return 0;
   }, [benchmark, collection]);

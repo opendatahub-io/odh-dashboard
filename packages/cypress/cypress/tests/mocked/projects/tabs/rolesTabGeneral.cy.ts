@@ -1,23 +1,44 @@
 /**
- * Tests for the role template selection flow: Select role template (header button),
- * Import rules from template (toolbar button), discard changes confirmation,
- * search filtering, and form pre-population.
+ * Combined tests for the Roles tab:
+ * - Feature flag gating (visibility, SSAR access, create role form)
+ * - Role template selection flow (Select role template, Import rules from template,
+ *   discard changes confirmation, search filtering, and form pre-population)
  */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import {
   ClusterRoleModel,
   ProjectModel,
   RoleBindingModel,
   RoleModel,
+  SelfSubjectAccessReviewModel,
 } from '../../../../utils/models';
-import { asProjectAdminUser } from '../../../../utils/mockUsers';
+import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
 import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
-const initIntercepts = () => {
+const initRolesTabIntercepts = ({ roleManagement = true }: { roleManagement?: boolean } = {}) => {
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      roleManagement,
+    }),
+  );
+
+  cy.interceptK8s(ProjectModel, mockProjectK8sResource({ k8sName: NAMESPACE }));
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([mockProjectK8sResource({ k8sName: NAMESPACE })]),
+  );
+  cy.interceptK8sList({ model: RoleModel, ns: NAMESPACE }, mockK8sResourceList([]));
+  cy.interceptK8sList(ClusterRoleModel, mockK8sResourceList([]));
+  cy.interceptK8sList({ model: RoleBindingModel, ns: NAMESPACE }, mockK8sResourceList([]));
+};
+
+const initRolesTemplateIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({ k8sName: NAMESPACE }));
   cy.interceptK8sList(
@@ -29,10 +50,194 @@ const initIntercepts = () => {
   cy.interceptK8sList({ model: RoleBindingModel, ns: NAMESPACE }, mockK8sResourceList([]));
 };
 
+describe('Roles tab feature flag gating', () => {
+  describe('with roleManagement flag disabled', () => {
+    beforeEach(() => {
+      asProjectAdminUser();
+      initRolesTabIntercepts({ roleManagement: false });
+    });
+
+    it('should not show the Roles tab', () => {
+      projectRoles.visitOverview(NAMESPACE);
+      projectRoles.findRolesTab().should('not.exist');
+    });
+
+    it('should redirect from /roles/create to the project page when flag is disabled', () => {
+      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
+      cy.url().should('not.include', '/roles/create');
+      cy.url().should('include', `/projects/${NAMESPACE}`);
+    });
+  });
+
+  describe('with roleManagement flag enabled', () => {
+    beforeEach(() => {
+      asProjectAdminUser();
+      initRolesTabIntercepts({ roleManagement: true });
+    });
+
+    it('should show the Roles tab', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findRolesTab().should('exist');
+    });
+
+    it('should show the Create role button in the Roles tab', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findCreateRoleButton().should('exist');
+    });
+
+    it('should render the create role form with all fields and placeholder states', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCreateRoleForm().should('exist');
+      projectRoles.findRoleNameInput().should('exist');
+      projectRoles.findDescriptionTextarea();
+      projectRoles.findAddLabelButton().should('exist');
+      projectRoles.findPermissionsEmptyState().should('contain.text', 'No rules added');
+      projectRoles.findSelectRoleTemplateButton().should('not.be.disabled');
+      projectRoles.findAddRuleButton().should('not.be.disabled');
+      projectRoles.findImportTemplateButton().should('not.be.disabled');
+    });
+
+    it('should enable the submit button when name is filled', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+      projectRoles.findSubmitButton().should('be.enabled');
+    });
+
+    it('should disable submit when a label row has a touched empty key', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findLabelKeyInput(0).focus().blur();
+      projectRoles.findSubmitButton().should('be.disabled');
+
+      projectRoles.findLabelKeyInput(0).type('team');
+      projectRoles.findSubmitButton().should('be.enabled');
+    });
+
+    it('should disable submit when duplicate label keys exist', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(0).type('team');
+      projectRoles.findLabelValueInput(0).type('platform');
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(1).type('team');
+      projectRoles.findLabelValueInput(1).type('other');
+      projectRoles.findSubmitButton().should('be.disabled');
+    });
+
+    it('should add and remove label rows', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findLabelKeyInput(0).should('not.exist');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(0).should('exist');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(1).should('exist');
+
+      projectRoles.findLabelRemoveButton(1).click();
+      projectRoles.findLabelKeyInput(1).should('not.exist');
+
+      projectRoles.findLabelRemoveButton(0).click();
+      projectRoles.findLabelKeyInput(0).should('not.exist');
+    });
+
+    it('should navigate back to roles tab on cancel', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCancelButton().click();
+      cy.url().should('include', `/projects/${NAMESPACE}`);
+      cy.url().should('include', 'section=roles');
+    });
+  });
+
+  describe('with roleManagement flag enabled but user lacks create permission', () => {
+    beforeEach(() => {
+      asProjectEditUser();
+      initRolesTabIntercepts({ roleManagement: true });
+      cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+        const { resourceAttributes } = req.body.spec;
+        if (!resourceAttributes) {
+          req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+          return;
+        }
+        if (
+          resourceAttributes.resource === 'roles' &&
+          resourceAttributes.verb === 'create' &&
+          resourceAttributes.group === 'rbac.authorization.k8s.io'
+        ) {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: false,
+            }),
+          );
+        } else {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: true,
+            }),
+          );
+        }
+      });
+    });
+
+    it('should show the Roles tab when user has list access to roles', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findRolesTab().should('exist');
+    });
+  });
+
+  describe('with roleManagement flag enabled but user lacks list permission on roles', () => {
+    beforeEach(() => {
+      asProjectEditUser();
+      initRolesTabIntercepts({ roleManagement: true });
+      cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+        const { resourceAttributes } = req.body.spec;
+        if (!resourceAttributes) {
+          req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+          return;
+        }
+        if (
+          resourceAttributes.resource === 'roles' &&
+          resourceAttributes.group === 'rbac.authorization.k8s.io'
+        ) {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: false,
+            }),
+          );
+        } else {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: true,
+            }),
+          );
+        }
+      });
+    });
+
+    it('should not show the Roles tab when user lacks list access to roles', () => {
+      projectRoles.visitOverview(NAMESPACE);
+      projectRoles.findRolesTab().should('not.exist');
+    });
+  });
+});
+
 describe('Select role template (header button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
-    initIntercepts();
+    initRolesTemplateIntercepts();
   });
 
   it('should open template modal directly when form is clean', () => {
@@ -165,7 +370,7 @@ describe('Select role template (header button)', () => {
 describe('Add rules from template (toolbar button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
-    initIntercepts();
+    initRolesTemplateIntercepts();
   });
 
   it('should open template modal directly from empty state', () => {

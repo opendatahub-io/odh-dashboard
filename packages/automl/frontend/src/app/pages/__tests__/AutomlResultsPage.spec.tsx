@@ -755,7 +755,7 @@ describe('AutomlResultsPage', () => {
       const experimentConfigLink = screen.getByTestId(
         'results-breadcrumb-experiment-configurations',
       );
-      expect(experimentConfigLink).toHaveTextContent('Experiment configurations');
+      expect(experimentConfigLink).toHaveTextContent('Run configurations');
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute(
         'href',
         '/develop-train/automl/reconfigure/test-ns/run-123',

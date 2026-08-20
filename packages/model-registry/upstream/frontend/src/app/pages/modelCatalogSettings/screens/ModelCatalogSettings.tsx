@@ -20,6 +20,7 @@ const ModelCatalogSettings: React.FC = () => {
     catalogSourceConfigsLoadError,
     apiState,
     refreshCatalogSourceConfigs,
+    refreshCatalogSources,
   } = React.useContext(ModelCatalogSettingsContext);
 
   const configs = catalogSourceConfigs?.catalogs || [];
@@ -32,8 +33,9 @@ const ModelCatalogSettings: React.FC = () => {
       }
       await apiState.api.deleteCatalogSourceConfig({}, sourceId);
       refreshCatalogSourceConfigs();
+      refreshCatalogSources();
     },
-    [apiState.api, apiState.apiAvailable, refreshCatalogSourceConfigs],
+    [apiState.api, apiState.apiAvailable, refreshCatalogSourceConfigs, refreshCatalogSources],
   );
 
   return (
