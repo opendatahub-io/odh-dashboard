@@ -156,7 +156,10 @@ describe('GeneralSettingsTab', () => {
       );
     });
 
-    expect(mockNotification.success).toHaveBeenCalled();
+    expect(mockNotification.success).toHaveBeenCalledWith(
+      'Model deployment settings saved successfully.',
+      'It can take up to 2 minutes for configuration changes to be applied.',
+    );
   });
 
   it('should show error notification when save fails', async () => {
