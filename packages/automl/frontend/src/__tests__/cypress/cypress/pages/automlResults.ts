@@ -61,7 +61,7 @@ class AutomlResultsPage {
   }
 
   findModelSelectorOption(name: string) {
-    return this.findModelSelectorDropdown().findDropdownItem(name);
+    return this.findModelSelectorDropdown().findDropdownItem(name, 'model-selector-menu');
   }
 
   findTab(tabName: string) {
