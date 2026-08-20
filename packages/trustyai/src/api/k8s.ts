@@ -2,42 +2,13 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sGetResource,
-  K8sResourceBaseOptions,
-  K8sResourceDeleteOptions,
   K8sStatus,
-  QueryParams,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { kindApiVersion } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions, TrustyAIKind } from '@odh-dashboard/k8s-core';
 import { TrustyAIApplicationsModel } from './model';
 import { TRUSTYAI_DEFINITION_NAME } from '../const';
-
-const dryRunPayload = (dryRun?: boolean): Pick<K8sResourceDeleteOptions, 'payload'> =>
-  dryRun ? { payload: { dryRun: ['All'] } } : {};
-
-const mergeK8sQueryParams = (opts: K8sAPIOptions, specificOpts: QueryParams = {}): QueryParams => ({
-  ...specificOpts,
-  ...(opts.dryRun && { dryRun: 'All' }),
-});
-
-const applyK8sAPIOptions = <T extends K8sResourceBaseOptions>(
-  apiData: T,
-  opts: K8sAPIOptions = {},
-): T => ({
-  ...dryRunPayload(opts.dryRun),
-  ...apiData,
-  queryOptions: {
-    ...apiData.queryOptions,
-    queryParams: mergeK8sQueryParams(opts, apiData.queryOptions?.queryParams),
-  },
-  fetchOptions: {
-    ...apiData.fetchOptions,
-    requestInit: {
-      ...apiData.fetchOptions?.requestInit,
-      ...(opts.signal && { signal: opts.signal }),
-    },
-  },
-});
 
 export const getTrustyAICR = async (
   namespace: string,

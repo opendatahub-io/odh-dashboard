@@ -42,7 +42,7 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   namespace,
 }) => {
   const crState = useTrustyAINamespaceCR(namespace);
-  const [trustyNamespaceCR, crLoaded, , refreshCR] = crState;
+  const [trustyNamespaceCR, , , refreshCR] = crState;
   const statusState = useDeepCompareMemoize(getTrustyStatusState(crState));
 
   const taisName = trustyNamespaceCR?.metadata.name;
@@ -58,24 +58,13 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   const contextValue = React.useMemo(
     () => ({
       namespace,
-      hasCR: !!trustyNamespaceCR,
-      crInitializing: !crLoaded,
       statusState,
       refreshState,
       refreshAPIState,
       apiState,
       data,
     }),
-    [
-      namespace,
-      trustyNamespaceCR,
-      crLoaded,
-      statusState,
-      refreshState,
-      refreshAPIState,
-      apiState,
-      data,
-    ],
+    [namespace, statusState, refreshState, refreshAPIState, apiState, data],
   );
 
   return <TrustyAIContext.Provider value={contextValue}>{children}</TrustyAIContext.Provider>;
