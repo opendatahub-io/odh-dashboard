@@ -11,6 +11,7 @@
     "./hooks/useDoesTrustyAICRExist": "./src/hooks/useDoesTrustyAICRExist.ts",
     "./utilities/utils": "./src/utilities/utils.ts",
     "./api/k8s": "./src/api/k8s.ts",
+    "./api/model": "./src/api/model.ts",
     "./api/custom": "./src/api/custom.ts",
     "./context/useTrustyAINamespaceCR": "./src/context/useTrustyAINamespaceCR.ts"
   },
