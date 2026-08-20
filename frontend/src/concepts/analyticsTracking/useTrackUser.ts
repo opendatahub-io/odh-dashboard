@@ -18,9 +18,11 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
 
   React.useEffect(() => {
     if (!userID && username) {
-      computeAnonymousUserId(username).then((val) => {
-        setUserID(val);
-      });
+      computeAnonymousUserId(username)
+        .then((val) => {
+          setUserID(val);
+        })
+        .catch(() => undefined);
     }
   }, [userID, username]);
 
