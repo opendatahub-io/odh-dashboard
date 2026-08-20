@@ -4,6 +4,7 @@ import PageLoadErrorState from '~/app/components/PageLoadErrorState';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { APIKey } from '~/app/types/api-key';
+import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
@@ -90,6 +91,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
       <>
         {isModalOpen && (
           <CreateApiKeyModal
+            initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
             onClose={() => {
               setIsModalOpen(false);
               refreshAll();
@@ -105,6 +107,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
     <>
       {isModalOpen && (
         <CreateApiKeyModal
+          initiatedFrom={ApiKeyCreateInitiatedFrom.API_KEYS_TOOLBAR}
           onClose={() => {
             setIsModalOpen(false);
             refreshAll();
@@ -155,6 +158,7 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
       {revokeApiKey && revokeApiKey.name && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}
+          initiatedFrom={ApiKeyRevokeInitiatedFrom.API_KEYS_TABLE}
           onClose={(revoked) => {
             setRevokeApiKey(undefined);
             if (revoked) {
