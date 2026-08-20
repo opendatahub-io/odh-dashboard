@@ -96,4 +96,11 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('No evaluation metrics available for this model.')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
+
+  it('should use native table layout so print/download can render metrics', () => {
+    const model = buildModel({ accuracy: 0.8 });
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByLabelText('Evaluation metrics')).not.toHaveClass('pf-m-grid-md');
+  });
 });

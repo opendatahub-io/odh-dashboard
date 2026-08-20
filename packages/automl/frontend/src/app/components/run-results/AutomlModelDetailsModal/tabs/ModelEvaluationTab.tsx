@@ -13,7 +13,16 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
   }
 
   return (
-    <Table aria-label="Evaluation metrics" variant="compact" className="automl-evaluation-table">
+    // Native table layout: PF's default gridBreakPoint="gridMd" uses display:grid
+    // below the md container width. Firefox cannot print that grid, so Model
+    // evaluation is blank in the download/print preview. Confusion matrix already
+    // opts out the same way.
+    <Table
+      aria-label="Evaluation metrics"
+      variant="compact"
+      className="automl-evaluation-table"
+      gridBreakPoint=""
+    >
       <Thead>
         <Tr>
           <Th>Measures</Th>
