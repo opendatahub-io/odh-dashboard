@@ -23,7 +23,135 @@ export const MaaSEvents = {
   EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED: 'External Models Provider Labels Expanded',
   EXTERNAL_MODELS_INFO_POPOVER_VIEWED: 'External Models Info Popover Viewed',
   EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED: 'External Model Provider Detail Viewed',
+  SUBSCRIPTION_CREATED: 'Subscription Created',
+  SUBSCRIPTION_UPDATED: 'Subscription Updated',
+  SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED: 'Subscription Token Limits Configured',
+  AUTH_POLICY_CREATED: 'Auth Policy Created',
+  AUTH_POLICY_UPDATED: 'Auth Policy Updated',
+  MODEL_AS_MAAS_PUBLISHED: 'Model as Maas Published',
 };
+
+export type ModelAsMaasPublishedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  source: PublishedAsMaasSource;
+  addedAsMaas: boolean;
+  mode: ModelDeploymentMode;
+};
+
+export enum PublishedAsMaasSource {
+  MODEL_DEPLOYMENT_WIZARD = 'deployment_wizard',
+}
+
+export enum ModelDeploymentMode {
+  CREATE = 'create',
+  EDIT = 'edit',
+}
+
+export type AuthPolicyUpdatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  hasDescription: boolean;
+  hasMatchingSubscription?: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyUpdatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyUpdatedCancelProperties = {
+  outcome: TrackingOutcome;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyCreatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  modelCountAvailable: number;
+  hasDescription: boolean;
+  hasMatchingSubscription?: boolean;
+  prefillSource: EventTrackingPrefillSource;
+};
+
+export type AuthPolicyCreatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+};
+
+export type AuthPolicyCreatedCancelProperties = {
+  outcome: TrackingOutcome;
+};
+
+export type SubscriptionCreatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  modelCountAvailable: number;
+  hasDescription: boolean;
+  hasMatchingPolicy: boolean;
+  priority: number;
+  prefillSource?: EventTrackingPrefillSource;
+};
+
+export type SubscriptionCreatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+};
+
+export type SubscriptionCreatedCancelProperties = {
+  outcome: TrackingOutcome;
+  modelCount: number;
+  modelCountWoLimit: number;
+};
+export type SubscriptionUpdatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  hasDescription: boolean;
+  hasMatchingPolicy?: boolean;
+  priority: number;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionUpdatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionUpdatedCancelProperties = {
+  outcome: TrackingOutcome;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionTokenLimitsConfiguredCancelProperties = {
+  outcome: TrackingOutcome;
+};
+
+export type SubscriptionTokenLimitsConfiguredSuccessProperties = {
+  outcome: TrackingOutcome;
+  limitCount: number;
+};
+
+export enum EventTrackingPrefillSource {
+  MODEL = 'model',
+  GROUP = 'group',
+  NONE = 'none',
+}
+
+export enum EventTrackingEditSource {
+  LIST_KEBAB = 'list-kebab',
+  DETAIL_KEBAB = 'detail-kebab',
+}
 
 export type MaaSResourceDeletedProperties = {
   resourceType: EventTrackingResourceType;
