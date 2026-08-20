@@ -41,7 +41,10 @@ class RoutingConfigurations {
   }
 
   private wait() {
-    this.findTable();
+    // The tab renders an empty state (no table) until the first config exists,
+    // so wait for the Add button, which is present in both the empty and
+    // populated states, rather than the table.
+    this.findAddButton().should('exist');
   }
 
   findNavItem() {

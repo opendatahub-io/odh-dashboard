@@ -49,8 +49,11 @@ describe('LLMD Topology Configurations - Admin CRUD', () => {
       cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to topology configurations settings');
+      // On a clean cluster the tab renders an empty state (no table) until the
+      // first config exists, so open the create form via the Add button (present
+      // in both the empty state and the populated table) rather than asserting
+      // the table up front.
       topologyConfigurations.navigate();
-      topologyConfigurations.findTable().should('exist');
 
       cy.step('Open the create form (single node topology)');
       topologyConfigurations.findAddButton().click();

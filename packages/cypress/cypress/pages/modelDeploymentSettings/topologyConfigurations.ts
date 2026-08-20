@@ -40,7 +40,10 @@ class TopologyConfigurations {
   }
 
   private wait() {
-    this.findTable();
+    // The tab renders an empty state (no table) until the first config exists,
+    // so wait for the Add button, which is present in both the empty state
+    // (as the split-button primary) and the populated table header.
+    this.findAddButton().should('exist');
   }
 
   findNavItem() {
