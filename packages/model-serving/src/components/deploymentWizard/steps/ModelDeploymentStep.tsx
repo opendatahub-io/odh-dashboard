@@ -14,6 +14,7 @@ const EXPLICIT_TOPOLOGY_FIELD_IDS = [
   'llmd-serving/topology-type',
   'llmd-serving/custom-topology-config',
   'llmd-serving/advanced-routing',
+  'llmd-serving/accelerator-config',
 ];
 
 type ModelDeploymentStepProps = {
@@ -104,6 +105,12 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         />
         <GenericFieldRenderer
           fieldId="llmd-serving/advanced-routing"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <GenericFieldRenderer
+          fieldId="llmd-serving/accelerator-config"
           wizardState={wizardState}
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
