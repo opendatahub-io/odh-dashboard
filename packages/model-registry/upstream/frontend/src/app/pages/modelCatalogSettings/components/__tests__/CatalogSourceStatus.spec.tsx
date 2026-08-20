@@ -7,6 +7,7 @@ import {
 } from '~/app/context/modelCatalogSettings/ModelCatalogSettingsContext';
 import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
+import { CatalogSourceStatus as CatalogSourceStatusEnum } from '~/concepts/modelCatalogSettings/const';
 
 const mockConfig: CatalogSourceConfig = {
   id: 'test-source',
