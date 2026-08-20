@@ -186,6 +186,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | GET    | `/healthcheck`       | Liveness probe                       |
 | GET    | `/api/v1/user`       | Returns authenticated user info      |
 | GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+| \*     | `/api/v1/*` (catchall) | Data Registry API proxy — see [bff/README.md](bff/README.md#data-registry-api-proxy) |
 
 ---
 
@@ -234,6 +235,9 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from         | Authorization |
 | `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix                    | Bearer        |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
+| `-data-registry-api-url` | `DATA_REGISTRY_API_URL` | Upstream Data Registry API base URL (overrides ConfigMap lookup) | "" |
+| `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | ConfigMap (pod's namespace) holding the API URL | data-registry-config |
+| `-data-registry-configmap-key` | `DATA_REGISTRY_CONFIGMAP_KEY` | Key within that ConfigMap holding the URL | apiURL |
 
 ---
 
