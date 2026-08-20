@@ -34,8 +34,20 @@ const parseMaaSModelsListResponse = (body: unknown): { id: string }[] => {
  * Stubs `navigator.clipboard.writeText` with a stub aliased as `clipboardWrite`.
  * Call after the dialog is open and before clicking the copy button.
  */
-export const stubClipboardWriteTextForApiKeyModal = (): void => {
+export const stubClipboardWriteTextForApiKeyModal = (copiedAliasName?: string): void => {
   cy.window().then((win) => {
+    if (copiedAliasName) {
+      const copied: string[] = [];
+      cy.wrap(copied).as(copiedAliasName);
+      cy.stub(win.navigator.clipboard, 'writeText')
+        .as(CLIPBOARD_WRITE_STUB_ALIAS)
+        .callsFake((text: string) => {
+          copied.push(text);
+          return Promise.resolve();
+        });
+      return;
+    }
+
     cy.stub(win.navigator.clipboard, 'writeText').as(CLIPBOARD_WRITE_STUB_ALIAS);
   });
 };
@@ -52,38 +64,28 @@ export const stubClipboardWriteTextForApiKeyModal = (): void => {
 export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
   projectName: string,
   getLlmInferenceServiceName: () => string,
+  apiKey: string,
   inferenceOptions: VerifyMaaSModelInferencingOptions = {},
-): Cypress.Chainable<MaaSModelInferencingResult> =>
-  cy
-    .get(`@${CLIPBOARD_WRITE_STUB_ALIAS}`)
-    .should('have.been.calledOnce')
-    .invoke('getCall', 0)
-    .its('args.0')
-    .should('be.a', 'string')
-    .and('not.be.empty')
-    .then((raw) => {
-      const token = String(raw).trim();
-      const llmInferenceServiceName = getLlmInferenceServiceName().trim();
-      return cy
-        .wrap(token)
-        .as('maasApiKeyToken')
-        .then(() => cy.step('Inference with the model using the API key'))
-        .then(() =>
-          verifyMaaSModelInferencing(llmInferenceServiceName, projectName, token, inferenceOptions),
-        )
-        .then((result) => {
-          const { response } = result;
-          expect(response.status).to.equal(200);
-          return cy
-            .log(`Response status: ${response.status}`)
-            .log(`✅ Inference with the model using the copied API key successful`)
-            .log(`✅ Response body: ${JSON.stringify(response.body)}`)
-            .then(() => result);
-        });
-    });
+): Cypress.Chainable<MaaSModelInferencingResult> => {
+  const llmInferenceServiceName = getLlmInferenceServiceName().trim();
+  return verifyMaaSModelInferencing(
+    llmInferenceServiceName,
+    projectName,
+    apiKey,
+    inferenceOptions,
+  ).then((result) => {
+    const { response } = result;
+    expect(response.status).to.equal(200);
+    return cy
+      .log(`Response status: ${response.status}`)
+      .log(`✅ Inference with the model using the copied API key successful`)
+      .log(`✅ Response body: ${JSON.stringify(response.body)}`)
+      .then(() => result);
+  });
+};
 
 /**
- * Asserts the model returns 403 using alias `maasApiKeyToken` (after the key was revoked in the UI).
+ * Asserts the model returns 403 using apiKey (after the key was revoked in the UI).
  *
  * @param getLlmInferenceServiceName Same deferred getter as {@link verifyMaaSModelInferenceUsingCopiedApiKeyFromModal}.
  * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` for the MaaS `/v1/completions` POST (e.g. 503 while gateway catches up; 403 is not retried).
@@ -91,25 +93,25 @@ export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
 export const verifyMaaSModelInferenceUsingRevokedApiKey = (
   projectName: string,
   getLlmInferenceServiceName: () => string,
+  apiKey: string,
   inferenceOptions: VerifyMaaSModelInferencingOptions = {},
-): Cypress.Chainable<MaaSModelInferencingResult> =>
-  cy.get('@maasApiKeyToken').then((revokedToken) => {
-    const llmInferenceServiceName = getLlmInferenceServiceName().trim();
-    return verifyMaaSModelInferencing(
-      llmInferenceServiceName,
-      projectName,
-      String(revokedToken),
-      inferenceOptions,
-    ).then((result) => {
-      const { response } = result;
-      expect(response.status).to.equal(403);
-      return cy
-        .log(`Response status: ${response.status}`)
-        .log(`❌ Inference with the model using the revoked API key failed`)
-        .log(`❌ Response body: ${JSON.stringify(response.body)}`)
-        .then(() => result);
-    });
+): Cypress.Chainable<MaaSModelInferencingResult> => {
+  const llmInferenceServiceName = getLlmInferenceServiceName().trim();
+  return verifyMaaSModelInferencing(
+    llmInferenceServiceName,
+    projectName,
+    apiKey,
+    inferenceOptions,
+  ).then((result) => {
+    const { response } = result;
+    expect(response.status).to.equal(403);
+    return cy
+      .log(`Response status: ${response.status}`)
+      .log(`❌ Inference with the model using the revoked API key failed`)
+      .log(`❌ Response body: ${JSON.stringify(response.body)}`)
+      .then(() => result);
   });
+};
 
 export const verifyMaasModelExistsForUser = (
   modelName: string,
