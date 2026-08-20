@@ -126,7 +126,13 @@ const tanstackQueryCoreAlias = (relativeDirname) => {
 const muiMaterialPeerAliases = (relativeDirname) => {
   const alias = {};
 
-  for (const pkg of ['@mui/utils', '@mui/system']) {
+  for (const pkg of [
+    '@mui/material',
+    '@mui/utils',
+    '@mui/system',
+    '@emotion/react',
+    '@emotion/styled',
+  ]) {
     try {
       const materialPkg = require.resolve('@mui/material/package.json', {
         paths: [relativeDirname],
@@ -178,10 +184,26 @@ const reactSingletonAliases = (relativeDirname) => {
   return alias;
 };
 
+/**
+ * Pin @openshift/dynamic-plugin-sdk to one install tree. Hybrid pnpm workspace + npm upstream
+ * builds can bundle two SDK copies so PluginStoreProvider context is invisible to hooks.
+ */
+const dynamicPluginSdkAlias = (relativeDirname) => {
+  try {
+    const sdkPkg = require.resolve('@openshift/dynamic-plugin-sdk/package.json', {
+      paths: [relativeDirname],
+    });
+    return { '@openshift/dynamic-plugin-sdk': path.dirname(sdkPkg) };
+  } catch {
+    return {};
+  }
+};
+
 const pnpmWebpackResolveAliases = (relativeDirname) => ({
   ...tanstackQueryCoreAlias(relativeDirname),
   ...muiMaterialPeerAliases(relativeDirname),
   ...reactSingletonAliases(relativeDirname),
+  ...dynamicPluginSdkAlias(relativeDirname),
 });
 
 module.exports = {
@@ -190,6 +212,7 @@ module.exports = {
   isVendorCss,
   patternFlyCssIncludes,
   patternFlyFontIncludes,
+  dynamicPluginSdkAlias,
   muiMaterialPeerAliases,
   pnpmWebpackResolveAliases,
   reactSingletonAliases,
