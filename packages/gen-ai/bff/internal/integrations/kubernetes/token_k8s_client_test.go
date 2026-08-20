@@ -510,7 +510,7 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 			"should pick gateway-internal with path, not gateway-internal-model-routing root URL")
 	})
 
-	t.Run("prefers short path over publishers path among gateway-internal addresses", func(t *testing.T) {
+	t.Run("picks first gateway-internal address", func(t *testing.T) {
 		gatewayInternalName := "gateway-internal"
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			Status: kservev1alpha1.LLMInferenceServiceStatus{
@@ -524,8 +524,8 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		}
 		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
 		assert.NoError(t, err)
-		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
-			"should prefer the short /<ns>/<model> path over /publishers/... path")
+		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/publishers/myns/models/mymodel/v1", endpoint,
+			"should pick the first gateway-internal address")
 	})
 
 	t.Run("realistic openshift-ai-inference gateway addresses", func(t *testing.T) {
@@ -549,8 +549,8 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		}
 		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
 		assert.NoError(t, err)
-		assert.Equal(t, "http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/repro-85200/llama-32-1b-instruct/v1", endpoint,
-			"should select the gateway-internal address with /<ns>/<model> path, not root or publishers")
+		assert.Equal(t, "http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/publishers/repro-85200/models/llama-32-1b-instruct/v1", endpoint,
+			"should select the first gateway-internal address, not model-routing or external")
 	})
 
 	t.Run("trailing slash on gateway root URL does not produce double-slash", func(t *testing.T) {
@@ -570,7 +570,7 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 			"should not produce //v1 from trailing slash")
 	})
 
-	t.Run("falls back to publishers path when no short path available", func(t *testing.T) {
+	t.Run("gateway-internal with publishers path works", func(t *testing.T) {
 		gatewayInternalName := "gateway-internal"
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			Status: kservev1alpha1.LLMInferenceServiceStatus{
@@ -586,14 +586,15 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/publishers/ns/models/model/v1", endpoint)
 	})
 
-	t.Run("root-only gateway-internal before valid short-path gateway-internal skips root", func(t *testing.T) {
-		gwInternal := "gateway-internal"
+	t.Run("prefers gateway-internal over internal name type", func(t *testing.T) {
+		internalName := "internal"
+		gwInternalName := "gateway-internal"
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			Status: kservev1alpha1.LLMInferenceServiceStatus{
 				AddressStatus: duckv1.AddressStatus{
 					Addresses: []duckv1.Addressable{
-						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/")},
-						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+						{Name: &internalName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local:8080")},
+						{Name: &gwInternalName, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
 					},
 				},
 			},
@@ -601,25 +602,26 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
 		assert.NoError(t, err)
 		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
-			"root-only gateway-internal must not be selected; should pick the /<ns>/<model> address")
+			"gateway-internal should be preferred over internal")
 	})
 
-	t.Run("single-segment gateway-internal path is not treated as short model path", func(t *testing.T) {
-		gwInternal := "gateway-internal"
+	t.Run("falls back to internal name type when no gateway-internal", func(t *testing.T) {
+		internalName := "internal"
+		modelRoutingName := "internal-model-routing"
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			Status: kservev1alpha1.LLMInferenceServiceStatus{
 				AddressStatus: duckv1.AddressStatus{
 					Addresses: []duckv1.Addressable{
-						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/something")},
-						{Name: &gwInternal, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+						{Name: &modelRoutingName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local/")},
+						{Name: &internalName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local/myns/mymodel")},
 					},
 				},
 			},
 		}
 		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
 		assert.NoError(t, err)
-		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
-			"single-segment path should not be treated as /<ns>/<model>")
+		assert.Equal(t, "http://my-model-svc.myns.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"should pick internal address, not internal-model-routing")
 	})
 
 	t.Run("falls back to any internal address when no gateway-internal name match", func(t *testing.T) {
@@ -637,26 +639,6 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		assert.Equal(t, "https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local/v1", endpoint,
 			"backward-compatible: addresses without Name field still work")
 	})
-}
-
-func TestIsShortModelPath(t *testing.T) {
-	tests := []struct {
-		path     string
-		expected bool
-	}{
-		{"/", false},
-		{"", false},
-		{"/ns", false},
-		{"/ns/model", true},
-		{"/ns/model/", true},
-		{"/ns/model/extra", false},
-		{"/publishers/ns/models/m", false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			assert.Equal(t, tt.expected, isShortModelPath(tt.path))
-		})
-	}
 }
 
 // TestInferenceServiceURLSuffixConstruction tests that InferenceService URLs

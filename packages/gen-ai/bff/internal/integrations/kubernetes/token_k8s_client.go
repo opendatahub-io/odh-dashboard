@@ -2554,29 +2554,23 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
-// gatewayInternalName is the address name used for internal gateway URLs with
-// path-based routing (e.g. /<namespace>/<model>/v1/...).
-const gatewayInternalName = "gateway-internal"
-
-// isShortModelPath returns true when the URL path has exactly two non-empty
-// segments: /<namespace>/<model>. Root-only ("/"), single-segment, and deeper
-// paths like /publishers/... are rejected, so only the expected path-based
-// routing form is selected as a first-choice candidate.
-func isShortModelPath(urlPath string) bool {
-	trimmed := strings.Trim(urlPath, "/")
-	if trimmed == "" {
-		return false
-	}
-	return len(strings.Split(trimmed, "/")) == 2
-}
+// Address name types from the KServe LLMInferenceService status contract.
+// See: https://kserve.github.io/website/docs/next/model-serving/generative-inference/llmisvc/llmisvc-status#statusaddresses
+const (
+	addressNameGatewayInternal = "gateway-internal"
+	addressNameInternal        = "internal"
+)
 
 // extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
-// using the standard KServe status.addresses field. It prefers "gateway-internal" named addresses
-// with path-based routing over "gateway-internal-model-routing" (root-only, header-based) entries.
-// Among gateway-internal addresses, it prefers the short /<namespace>/<model> path over the
-// /publishers/... form, since HTTPRoute rules match the short path for path-based routing.
+// using the standard KServe status.addresses field.
+//
+// Selection priority (per KServe status contract):
+//  1. First "gateway-internal" address (path-based routing, cluster-local gateway URL)
+//  2. First "internal" address (private IP / internal hostname, no gateway)
+//  3. First address with an internal cluster host (unnamed fallback)
+//  4. Singular status.address as last resort
 func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
-	var gatewayCandidate, anyInternalCandidate string
+	var internalCandidate, anyInternalCandidate string
 
 	for _, addr := range llmSvc.Status.Addresses {
 		if addr.URL == nil || !isInternalClusterHost(addr.URL.Host) {
@@ -2585,16 +2579,15 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ contex
 
 		u := addr.URL.String()
 
-		if addr.Name != nil && *addr.Name == gatewayInternalName {
-			if isShortModelPath(addr.URL.Path) {
-				kc.Logger.Debug("extracted gateway-internal URL from LLMInferenceService status.addresses",
-					"llmServiceName", llmSvc.Name,
-					"endpoint", EnsureV1Suffix(u))
-				return EnsureV1Suffix(u), nil
-			}
-			if gatewayCandidate == "" {
-				gatewayCandidate = u
-			}
+		if addr.Name != nil && *addr.Name == addressNameGatewayInternal {
+			kc.Logger.Debug("extracted gateway-internal URL from LLMInferenceService status.addresses",
+				"llmServiceName", llmSvc.Name,
+				"endpoint", EnsureV1Suffix(u))
+			return EnsureV1Suffix(u), nil
+		}
+
+		if addr.Name != nil && *addr.Name == addressNameInternal && internalCandidate == "" {
+			internalCandidate = u
 		}
 
 		if anyInternalCandidate == "" {
@@ -2602,15 +2595,15 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ contex
 		}
 	}
 
-	if gatewayCandidate != "" {
-		kc.Logger.Debug("extracted gateway-internal (publishers path) URL from LLMInferenceService status.addresses",
+	if internalCandidate != "" {
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses",
 			"llmServiceName", llmSvc.Name,
-			"endpoint", EnsureV1Suffix(gatewayCandidate))
-		return EnsureV1Suffix(gatewayCandidate), nil
+			"endpoint", EnsureV1Suffix(internalCandidate))
+		return EnsureV1Suffix(internalCandidate), nil
 	}
 
 	if anyInternalCandidate != "" {
-		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses (no gateway-internal name match)",
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses (fallback)",
 			"llmServiceName", llmSvc.Name,
 			"endpoint", EnsureV1Suffix(anyInternalCandidate))
 		return EnsureV1Suffix(anyInternalCandidate), nil
