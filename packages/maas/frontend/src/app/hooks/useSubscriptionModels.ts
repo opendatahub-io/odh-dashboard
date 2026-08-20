@@ -101,6 +101,7 @@ export const useSubscriptionModels = (
           i === editLimitsTarget ? { ...entry, tokenRateLimits: rateLimits } : entry,
         ),
       );
+      setEditLimitsTarget(null);
     },
     [editLimitsTarget],
   );
