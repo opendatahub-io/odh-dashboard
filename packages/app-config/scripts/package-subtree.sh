@@ -268,7 +268,7 @@ if [ "$CONTINUE_MODE" = true ]; then
     clean_exit 1 "" true
   fi
 
-  commits=$(git rev-list --reverse "$CURRENT_COMMIT..$TARGET_COMMIT")
+  commits=$(git rev-list --ancestry-path --no-merges --reverse "$CURRENT_COMMIT..$TARGET_COMMIT")
   if [ -n "$commits" ]; then
     continue_commit=$(echo "$commits" | head -n 1)
     continue_commit_msg=$(git log -1 --format="%s" "$continue_commit")
