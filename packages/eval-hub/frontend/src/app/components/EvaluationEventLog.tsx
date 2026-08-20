@@ -331,7 +331,9 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
       }
       setDownloadError(err instanceof Error ? err : new Error(String(err)));
     } finally {
-      setDownloading(false);
+      if (downloadAbortRef.current === controller) {
+        setDownloading(false);
+      }
     }
   }, [namespace, jobId, evaluationName, benchmarkIndex]);
 
@@ -345,14 +347,19 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   }, [refresh]);
 
   React.useEffect(() => {
-    if (scrollToBottomOnNextLoad.current && logsLoaded && logs) {
+    if (!logsLoaded) {
+      return;
+    }
+    if (scrollToBottomOnNextLoad.current) {
       scrollToBottomOnNextLoad.current = false;
-      requestAnimationFrame(() => {
-        const el = logContainerRef.current;
-        if (el && el.scrollHeight > el.clientHeight) {
-          el.scrollTo(0, el.scrollHeight);
-        }
-      });
+      if (logs) {
+        requestAnimationFrame(() => {
+          const el = logContainerRef.current;
+          if (el && el.scrollHeight > el.clientHeight) {
+            el.scrollTo(0, el.scrollHeight);
+          }
+        });
+      }
     }
   }, [logs, logsLoaded]);
 
@@ -656,26 +663,25 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                 className="evalhub-log-viewer__tail-notice"
                 variant="info"
                 isInline
-                title={
+                title={`Only the ${LOG_VIEWER_TAIL_LINES} most recent messages are displayed`}
+                data-testid="log-tail-notice"
+                actionLinks={
                   <>
-                    Only the {LOG_VIEWER_TAIL_LINES} most recent messages are displayed.{' '}
-                    <Button variant="link" isInline onClick={handleDownload}>
-                      Download
-                    </Button>{' '}
-                    the log to see up to {LOG_DOWNLOAD_MAX_LINES_DISPLAY} lines
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={handleDownload}
+                      isDisabled={downloading}
+                    >
+                      Download full log (up to {LOG_DOWNLOAD_MAX_LINES_DISPLAY} lines)
+                    </Button>
                     {isInProgress ? (
-                      <>
-                        , or{' '}
-                        <Button variant="link" isInline onClick={handleRefresh}>
-                          refresh
-                        </Button>{' '}
-                        to see newer messages
-                      </>
+                      <Button variant="link" isInline onClick={handleRefresh}>
+                        Refresh for newer messages
+                      </Button>
                     ) : null}
-                    .
                   </>
                 }
-                data-testid="log-tail-notice"
               />
             </>
           )}
