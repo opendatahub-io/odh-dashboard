@@ -10,6 +10,7 @@ import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import useServingPlatformStatuses from '@odh-dashboard/model-serving/hooks/useServingPlatformStatuses';
 import './MetricsPageTabs.scss';
 import { MetricsTabKeys } from './types';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
@@ -17,7 +18,6 @@ import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConf
 import PerformanceTab from './performance/PerformanceTab';
 import BiasTab from './bias/BiasTab';
 import NIMTab from './nim/NimTab';
-import useServingPlatformStatuses from '../../hooks/useServingPlatformStatuses';
 
 type MetricsPageTabsProps = {
   model: InferenceServiceKind;

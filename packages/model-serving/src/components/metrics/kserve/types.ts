@@ -1,4 +1,4 @@
-import { ConfigMapKind } from '@odh-dashboard/internal/k8sTypes';
+import { ConfigMapKind } from '@odh-dashboard/k8s-core';
 import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from './const';
 
 export type KserveMetricsConfigMapKind = ConfigMapKind & {

@@ -4,13 +4,10 @@ import {
   SupportedArea,
   useIsAreaAvailable,
 } from '@odh-dashboard/plugin-core/areas';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- interim host coupling; NIM availability + serving-platform types not yet extracted from frontend (RHOAIENG-79894)
-import { ServingPlatformStatuses } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- interim host coupling; NIM availability + serving-platform types not yet extracted from frontend (RHOAIENG-79894)
-import { useIsNIMAvailable } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/useIsNIMAvailable';
+import { useIsNIMAvailable } from './useIsNIMAvailable';
+import type { ServingPlatformStatuses } from '../shared/types';
 
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- interim host coupling; NIM availability + serving-platform types not yet extracted from frontend (RHOAIENG-79894)
-export type { ServingPlatformStatuses } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+export type { ServingPlatformStatuses } from '../shared/types';
 
 const useServingPlatformStatuses = (
   shouldRefreshNimAvailability = false,
