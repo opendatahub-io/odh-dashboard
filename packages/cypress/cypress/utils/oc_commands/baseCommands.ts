@@ -117,8 +117,9 @@ export const applyOpenShiftYaml = (
     .toString(36)
     .substr(2, 9)}.yaml`;
 
-  // Write YAML content to temp file using Node.js fs to avoid logging
-  return cy.writeFile(tempFileName, yamlContent).then(() => {
+  // Write YAML to a temp file so `oc apply -f <path>` does not put secrets on argv.
+  // log: false keeps Cypress from printing file contents (often Secret YAML) to CI logs.
+  return cy.writeFile(tempFileName, yamlContent, { log: false }).then(() => {
     const ocCommand = `oc apply ${ns} -f ${tempFileName} && rm -f ${tempFileName}`;
     return execWithOutput(ocCommand);
   });

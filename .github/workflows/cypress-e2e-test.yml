@@ -48,6 +48,9 @@ name: Cypress e2e Test
 #   PRIMARY:   OC_SERVER_PRIMARY, OCP_CONSOLE_URL_PRIMARY, ODH_DASHBOARD_URL_PRIMARY
 #   SECONDARY: OC_SERVER, OCP_CONSOLE_URL, ODH_DASHBOARD_URL
 #   AUTH:      GITLAB_TOKEN, GITLAB_TEST_VARS_URL, ODH_NAMESPACES
+#
+# After downloading test-variables.yml, e2e-tests registers GitHub Actions
+# masks for AWS keys and other credentials so Cypress [EXEC] logs cannot leak them.
 # =============================================================================
 
 on:
@@ -1074,6 +1077,8 @@ jobs:
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
             -o ${{ github.workspace }}/packages/cypress/test-variables.yml
           echo "✅ Downloaded test configuration"
+          bash "${{ github.workspace }}/.github/scripts/mask-cypress-test-secrets.sh" \
+            "${{ github.workspace }}/packages/cypress/test-variables.yml"
 
       - name: Login to OpenShift cluster
         env:
