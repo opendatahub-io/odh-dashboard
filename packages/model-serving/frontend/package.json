@@ -1,0 +1,69 @@
+{
+  "name": "model-serving-ui",
+  "version": "1.0.0",
+  "description": "Module Federation remote for model-serving",
+  "license": "Apache-2.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "overrides": {
+    "js-yaml": "^4.1.1",
+    "csstype": "3.2.3"
+  },
+  "scripts": {
+    "build": "npm run build:prod",
+    "build:prod": "webpack --config ./config/webpack.prod.js",
+    "build:clean": "rm -rf ./dist",
+    "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
+    "test:type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@module-federation/enhanced": "^0.24.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
+    "@swc/core": "^1.9.1",
+    "@types/react-dom": "^18.3.1",
+    "@odh-dashboard/app-config": "*",
+    "copy-webpack-plugin": "^14.0.0",
+    "core-js": "^3.40.0",
+    "css-loader": "^7.1.2",
+    "css-minimizer-webpack-plugin": "^8.0.0",
+    "dotenv": "^16.5.0",
+    "dotenv-expand": "^5.1.0",
+    "dotenv-webpack": "^6.0.0",
+    "file-loader": "^6.2.0",
+    "fork-ts-checker-webpack-plugin": "^9.0.2",
+    "html-webpack-plugin": "^5.6.3",
+    "js-yaml-loader": "^1.2.2",
+    "mini-css-extract-plugin": "^2.9.0",
+    "postcss": "^8.5.14",
+    "raw-loader": "^4.0.2",
+    "react-refresh": "^0.14.2",
+    "sass": "^1.87.0",
+    "sass-loader": "^16.0.0",
+    "speed-measure-webpack-plugin": "^1.5.0",
+    "style-loader": "^4.0.0",
+    "svg-url-loader": "^8.0.0",
+    "swc-loader": "^0.2.6",
+    "terser-webpack-plugin": "^5.3.17",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.2",
+    "url-loader": "^4.1.1",
+    "webpack": "5.104.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.4",
+    "webpack-merge": "^6.0.1"
+  },
+  "dependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
+    "@patternfly/patternfly": "~6.5.1",
+    "@patternfly/react-core": "~6.5.1",
+    "@patternfly/react-icons": "~6.5.1",
+    "@patternfly/react-table": "~6.5.1",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router": "^7.16.0",
+    "react-router-dom": "^7.16.0"
+  }
+}
