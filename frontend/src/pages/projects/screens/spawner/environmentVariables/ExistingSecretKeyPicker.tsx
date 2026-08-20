@@ -210,8 +210,10 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                 data-testid={`env-missing-keys-alert-${secretRef.secretName}`}
               >
                 <p>
-                  Missing: {missingKeys.join(', ')}. These keys may have been renamed or removed.
-                  Remove missing keys to prevent the workbench from failing to start.
+                  Missing: {missingKeys.join(', ')}.
+                  {missingKeys.length === 1
+                    ? ' Key no longer exists. To continue, remove it.'
+                    : ' Keys no longer exist. To continue, remove them.'}
                 </p>
               </Alert>
             </StackItem>

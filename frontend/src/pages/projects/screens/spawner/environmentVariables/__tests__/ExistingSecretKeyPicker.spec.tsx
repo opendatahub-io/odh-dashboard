@@ -363,7 +363,9 @@ describe('ExistingSecretKeyPicker', () => {
 
       const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
       expect(alert).toHaveTextContent('1 previously selected key was not found in this secret');
-      expect(alert).toHaveTextContent('Missing: password');
+      expect(alert).toHaveTextContent(
+        'Missing: password. Key no longer exists. To continue, remove it.',
+      );
     });
 
     it('should show plural message for multiple missing keys', () => {
@@ -385,7 +387,9 @@ describe('ExistingSecretKeyPicker', () => {
 
       const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
       expect(alert).toHaveTextContent('2 previously selected keys were not found in this secret');
-      expect(alert).toHaveTextContent('Missing: username, password');
+      expect(alert).toHaveTextContent(
+        'Missing: username, password. Keys no longer exist. To continue, remove them.',
+      );
     });
 
     it('should remove missing keys when "Remove missing keys" is clicked', () => {
