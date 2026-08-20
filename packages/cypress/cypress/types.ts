@@ -810,6 +810,8 @@ export type ModelAsAServiceTestData = {
     revoked: string;
   };
   apiKeyCount: number;
+  apiVersion: string;
+  kind: string;
 };
 
 export enum ApiKeyStatus {

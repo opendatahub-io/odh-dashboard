@@ -419,6 +419,18 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .and('contain.text', projectName)
         .and('contain.text', tokenRateLimit.limit.toString());
 
+        cy.step('Verify the YAML Tab')
+        stubClipboardWriteTextForApiKeyModal('copiedYAML');
+        viewSubscriptionPage.findYamlTab().click();
+        viewSubscriptionPage.findYAMLCodeEditor().copyToClipboard().click();
+        getClipboardContent('copiedYAML').then((copied) => {
+          expect(copied).to.have.length.at.least(1);
+          const yamlContent = copied[0];
+          expect(yamlContent).to.include(testData.apiVersion);
+          expect(yamlContent).to.include(`name: ${subscriptionName}`);
+        });
+        viewSubscriptionPage.findYAMLCodeEditor().download().should('exist').click();
+
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
       cy.url().should('include', '/maas/maas-governance/subscriptions');
 
