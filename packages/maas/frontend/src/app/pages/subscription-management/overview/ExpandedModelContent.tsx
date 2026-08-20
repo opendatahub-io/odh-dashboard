@@ -116,6 +116,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                     state={linkState}
                     className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
                     onClick={onLinkClick}
+                    data-testid="expandable-item-name"
                   >
                     {displayName ?? name}
                   </Link>
@@ -292,7 +293,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               lastTransitionTime={sub.lastTransitionTime}
               resourceUrl={getSubscriptionViewUrl(sub.name)}
             >
-              <Content className="pf-v6-u-mb-sm">
+              <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
                 {formatTokenLimits(sub.tokenRateLimits ?? [])}
               </Content>

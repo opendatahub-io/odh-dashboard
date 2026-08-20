@@ -315,12 +315,7 @@ describe('Subscription Management Page / Overview Tab', () => {
 
     // Select the group —> matching subs/policies expand and chips turn blue
     overviewTabPage.findGroupChip('premium-users', graniteRow).click();
-    overviewTabPage
-      .findGroupChips('premium-users', graniteRow)
-      .should('have.length', 5)
-      .each(($chip) => {
-        cy.wrap($chip).should('have.class', 'pf-m-blue');
-      });
+    overviewTabPage.shouldGroupChipsBeHighlighted('premium-users', graniteRow, true, 5);
 
     [
       'Premium Team Subscription',
@@ -343,10 +338,7 @@ describe('Subscription Management Page / Overview Tab', () => {
 
     // Unselect the group —> chips return to grey and the expanded items close
     overviewTabPage.findGroupChip('premium-users', graniteRow).click();
-    overviewTabPage
-      .findGroupChips('premium-users', graniteRow)
-      .should('have.length', 1)
-      .and('have.class', 'pf-m-clickable'); // clickable meaning it's grey and can be selected, there's no explicitly grey color on this element
+    overviewTabPage.shouldGroupChipsBeHighlighted('premium-users', graniteRow, false, 1);
 
     ['deleting-sub', 'test-subscription-policy', 'Premium Team Policy', 'deleting-policy'].forEach(
       (name) => {

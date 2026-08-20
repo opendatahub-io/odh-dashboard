@@ -23,7 +23,13 @@ const CreateSubscriptionPage: React.FC = () => {
       title="Create subscription"
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to={backUrl}>{breadcrumbLabel}</Link>} />
+          <BreadcrumbItem
+            render={() => (
+              <Link to={backUrl} data-testid="breadcrumb-subscriptions-link">
+                {breadcrumbLabel}
+              </Link>
+            )}
+          />
           <BreadcrumbItem isActive>Create subscription</BreadcrumbItem>
         </Breadcrumb>
       }
