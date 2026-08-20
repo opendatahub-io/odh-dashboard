@@ -1,6 +1,7 @@
 import {
   Button,
   ClipboardCopy,
+  clipboardCopyFunc,
   Content,
   ContentVariants,
   Flex,
@@ -10,8 +11,15 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
 import { formatWindow } from '~/app/utilities/rateLimits';
+import {
+  MaaSEvents,
+  ModelIdCopiedProperties,
+  ModelInfoContext,
+  ModelInfoViewedProperties,
+} from '~/app/types/event-tracking';
 
 export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   if (!limits || limits.length === 0) {
@@ -26,7 +34,8 @@ export const ModelInfoPopover: React.FC<{
   displayName: string;
   modelId: string;
   description?: string;
-}> = ({ displayName, modelId, description }) => (
+  context: ModelInfoContext;
+}> = ({ displayName, modelId, description, context }) => (
   <Popover
     headerContent={displayName}
     bodyContent={
@@ -37,7 +46,18 @@ export const ModelInfoPopover: React.FC<{
         >
           Model ID
         </Content>
-        <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied" data-testid="model-id-copy">
+        <ClipboardCopy
+          isReadOnly
+          hoverTip="Copy"
+          clickTip="Copied"
+          data-testid="model-id-copy"
+          onCopy={(event, text) => {
+            clipboardCopyFunc(event, text);
+            fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_ID_COPIED, {
+              modelIdFrom: context,
+            } satisfies ModelIdCopiedProperties);
+          }}
+        >
           {modelId}
         </ClipboardCopy>
         {description && (
@@ -61,13 +81,21 @@ export const ModelInfoPopover: React.FC<{
       aria-label={`More info about ${displayName}`}
       className="pf-v6-u-p-0"
       data-testid={`model-info-button-${modelId}`}
+      onClick={() => {
+        fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTION_MODEL_INFO_VIEWED, {
+          context,
+        } satisfies ModelInfoViewedProperties);
+      }}
     >
       <OutlinedQuestionCircleIcon />
     </Button>
   </Popover>
 );
 
-export const ModelRow: React.FC<{ model: ModelRefInfo }> = ({ model }) => (
+export const ModelRow: React.FC<{ model: ModelRefInfo; context: ModelInfoContext }> = ({
+  model,
+  context,
+}) => (
   <Tr data-testid="subscription-model-row">
     <Td dataLabel="Model">
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -79,6 +107,7 @@ export const ModelRow: React.FC<{ model: ModelRefInfo }> = ({ model }) => (
             displayName={model.display_name || model.name}
             modelId={model.name}
             description={model.description}
+            context={context}
           />
         </FlexItem>
       </Flex>
@@ -94,12 +123,14 @@ type SubscriptionModelsTableProps = {
   models: ModelRefInfo[];
   ariaLabel?: string;
   tableTestId?: string;
+  context: ModelInfoContext;
 };
 
 const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
   models,
   ariaLabel = 'Subscription models table',
   tableTestId = 'subscription-models-table',
+  context,
 }) => (
   <Table aria-label={ariaLabel} data-testid={tableTestId} variant="compact" borders={false}>
     <Thead>
@@ -115,7 +146,7 @@ const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
           <Td dataLabel="Token limits">—</Td>
         </Tr>
       ) : (
-        models.map((model) => <ModelRow key={model.name} model={model} />)
+        models.map((model) => <ModelRow key={model.name} model={model} context={context} />)
       )}
     </Tbody>
   </Table>
