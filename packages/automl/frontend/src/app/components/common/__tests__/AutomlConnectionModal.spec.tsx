@@ -107,7 +107,7 @@ describe('AutomlConnectionModal', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
+    await user.click(screen.getByRole('button', { name: 'Connection type' }));
     expect(screen.getByRole('option', { name: /type one/ })).toBeTruthy();
     expect(screen.getByRole('option', { name: /type two/ })).toBeTruthy();
     expect(screen.queryByRole('option', { name: /type three disabled/ })).toBeFalsy();
@@ -277,7 +277,7 @@ describe('AutomlConnectionModal', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
+    await user.click(screen.getByRole('button', { name: 'Connection type' }));
     await user.click(screen.getByRole('option', { name: /type one/ }));
 
     await user.type(
@@ -298,7 +298,7 @@ describe('AutomlConnectionModal', () => {
     );
     expect(screen.getByRole('textbox', { name: 'Short text 1' })).toHaveValue('one field');
 
-    await user.click(screen.getByRole('button', { name: 'Typeahead menu toggle' }));
+    await user.click(screen.getByRole('button', { name: 'Connection type' }));
     await user.click(screen.getByRole('option', { name: /type two/ }));
 
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue(

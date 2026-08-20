@@ -316,4 +316,44 @@ describe('Connections', () => {
       });
     });
   });
+
+  it('Create connection typeahead keeps options inside the modal dialog', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 's3',
+        displayName: 'S3 compatible object storage - v1',
+        fields: mockModelServingFields,
+      }),
+      mockConnectionTypeConfigMap({
+        name: 'uri-v1',
+        displayName: 'URI - v1',
+      }),
+    ]);
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage.findAddConnectionButton().click();
+
+    // aria-controls is only set while open (listbox must exist in the DOM).
+    // Callback should keeps the element subject — chai not.have.attr yields undefined.
+    cy.findByTestId('connection-type-dropdown')
+      .findByRole('combobox', { name: 'Connection type' })
+      .should(($el) => {
+        expect($el).not.to.have.attr('aria-controls');
+      })
+      .click();
+    cy.findByTestId('connection-type-dropdown')
+      .findByRole('combobox', { name: 'Connection type' })
+      .should('have.attr', 'aria-controls', 'connection-type-listbox');
+
+    cy.findByRole('dialog').within(() => {
+      cy.get('#connection-type-listbox').should('exist');
+      cy.findByRole('option', { name: /URI/i }).should('exist');
+    });
+
+    cy.findByTestId('connection-type-dropdown')
+      .findByRole('combobox', { name: 'Connection type' })
+      .closeSelectMenu();
+    cy.findByRole('dialog').should('contain.text', 'Create connection');
+  });
 });
