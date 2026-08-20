@@ -24,6 +24,7 @@ const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
 
       return getTrustyAICR(namespace, opts).catch((e) => {
         if (e.statusObject?.code === 404) {
+          // Not finding is okay, not an error
           return null;
         }
         throw e;

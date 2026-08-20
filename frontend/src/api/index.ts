@@ -52,22 +52,5 @@ export * from './models';
 // Rules access review hook
 export * from './useRulesReview';
 
-// Explainability — moved to @odh-dashboard/trustyai
-export type {
-  BaseMetricListResponse,
-  BaseMetricCreationResponse,
-  BaseMetricResponse,
-} from '@odh-dashboard/trustyai/types';
-export { createTrustyAICR, deleteTrustyAICR, getTrustyAICR } from '@odh-dashboard/trustyai/api/k8s';
-export {
-  getAllBiasRequests,
-  getSpdRequests,
-  createSpdRequest,
-  deleteSpdRequest,
-  getDirRequests,
-  createDirRequest,
-  deleteDirRequest,
-} from '@odh-dashboard/trustyai/api/custom';
-
 // Generic K8s utils
 export * from './k8sUtils';
