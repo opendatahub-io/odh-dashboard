@@ -34,11 +34,17 @@ import (
 
 var log = ctrl.Log.WithName("tls")
 
+// tls13CipherNames contains TLS 1.3 cipher names that Go manages automatically.
+// These must not be placed in tls.Config.CipherSuites (which controls TLS 1.0–1.2 only).
+var tls13CipherNames = map[string]bool{
+	"TLS_AES_128_GCM_SHA256":       true,
+	"TLS_AES_256_GCM_SHA384":       true,
+	"TLS_CHACHA20_POLY1305_SHA256": true,
+}
+
 // openSSLToGoCipher maps OpenSSL cipher suite names to Go crypto/tls constants.
+// Only TLS 1.0–1.2 ciphers are included; TLS 1.3 ciphers are managed by Go automatically.
 var openSSLToGoCipher = map[string]uint16{
-	"TLS_AES_128_GCM_SHA256":               tls.TLS_AES_128_GCM_SHA256,
-	"TLS_AES_256_GCM_SHA384":               tls.TLS_AES_256_GCM_SHA384,
-	"TLS_CHACHA20_POLY1305_SHA256":         tls.TLS_CHACHA20_POLY1305_SHA256,
 	"ECDHE-ECDSA-AES128-GCM-SHA256":        tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	"ECDHE-RSA-AES128-GCM-SHA256":          tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	"ECDHE-ECDSA-AES256-GCM-SHA384":        tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -203,6 +209,9 @@ func parseCustomProfile(spec map[string]interface{}) (uint16, []uint16) {
 
 	ciphers := make([]uint16, 0, len(cipherNames))
 	for _, name := range cipherNames {
+		if tls13CipherNames[name] {
+			continue
+		}
 		if id, ok := openSSLToGoCipher[name]; ok {
 			ciphers = append(ciphers, id)
 		} else {

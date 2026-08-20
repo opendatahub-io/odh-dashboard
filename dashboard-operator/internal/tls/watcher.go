@@ -74,7 +74,7 @@ func (w *ProfileWatcher) Reconcile(
 }
 
 func (w *ProfileWatcher) SetupWithManager(mgr ctrl.Manager) error {
-	w.lastProfile = w.InitialProfile
+	w.lastProfile = normalizeProfileMap(w.InitialProfile)
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(apiServerGVK)
