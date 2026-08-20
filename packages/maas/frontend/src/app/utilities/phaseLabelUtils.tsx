@@ -286,7 +286,7 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
     case PhaseStatus.FAILED:
       return 'All models unavailable or setup failed';
     case PhaseStatus.DEGRADED:
-      return 'Some models unavailable';
+      return 'Models unavailable';
     case PhaseStatus.PENDING:
       return 'Setting up subscription';
     case PhaseStatus.INVALID:
@@ -299,7 +299,7 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
 const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
-      return 'Some models unavailable';
+      return 'Models unavailable';
     case PhaseStatus.FAILED:
       return 'All models unavailable or setup failed';
     case PhaseStatus.PENDING:
@@ -471,7 +471,7 @@ const getAlertContentForAuthPolicy = (
       return {
         title: 'Policy degraded',
         children:
-          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced',
+          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced.',
       };
     case PhaseStatus.FAILED:
       return {
