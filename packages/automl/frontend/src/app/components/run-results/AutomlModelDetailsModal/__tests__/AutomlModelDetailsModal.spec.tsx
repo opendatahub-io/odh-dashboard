@@ -197,9 +197,7 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    // PF Modal renders a close button
-    const closeButton = screen.getByLabelText('Close');
-    await userEvent.click(closeButton);
+    await userEvent.click(screen.getByTestId('model-details-close'));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });

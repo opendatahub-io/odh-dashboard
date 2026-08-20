@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationReconfigureLoader from '~/app/pages/EvaluationReconfigureLoader';
-import { CollectionsListResponse, EvaluationJob, InferenceServiceItem } from '~/app/types';
+import { Collection, EvaluationJob, InferenceServiceItem } from '~/app/types';
 
 const mockUseEvaluationJob = jest.fn<
   [EvaluationJob | null, boolean, Error | undefined],
@@ -25,14 +25,13 @@ jest.mock('~/app/hooks/useInferenceServices', () => ({
   useInferenceServices: (...args: [string]) => mockUseInferenceServices(...args),
 }));
 
-const mockGetCollections = jest.fn<
-  (opts: unknown) => Promise<CollectionsListResponse>,
-  [string, { namespace: string; name: string }]
+const mockGetCollection = jest.fn<
+  (opts: unknown) => Promise<Collection>,
+  [string, string, string]
 >();
 
 jest.mock('~/app/api/k8s', () => ({
-  getCollections: (...args: [string, { namespace: string; name: string }]) =>
-    mockGetCollections(...args),
+  getCollection: (...args: [string, string, string]) => mockGetCollection(...args),
 }));
 
 jest.mock('~/app/pages/StartEvaluationRunPage', () => {
@@ -119,12 +118,10 @@ describe('EvaluationReconfigureLoader', () => {
     expect(mockUseInferenceServices).toHaveBeenCalledWith('my-namespace');
   });
 
-  it('should show an error state when getCollections returns no matching collection', async () => {
+  it('should show an error state when getCollection fails', async () => {
     const job = mockEvaluationJob({ id: 'job-123', collectionId: 'missing-collection' });
     mockUseEvaluationJob.mockReturnValue([job, true, undefined]);
-    mockGetCollections.mockReturnValue(() =>
-      Promise.resolve({ items: [{ resource: { id: 'other-collection' }, name: 'Other' }] }),
-    );
+    mockGetCollection.mockReturnValue(() => Promise.reject(new Error('Collection not found')));
 
     renderLoader();
 
@@ -132,9 +129,7 @@ describe('EvaluationReconfigureLoader', () => {
       expect(screen.getByTestId('reconfigure-load-error')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('reconfigure-load-error')).toHaveTextContent(
-      'Collection "missing-collection" not found',
-    );
+    expect(screen.getByTestId('reconfigure-load-error')).toHaveTextContent('Collection not found');
     expect(screen.queryByTestId('start-evaluation-run-page')).not.toBeInTheDocument();
   });
 });

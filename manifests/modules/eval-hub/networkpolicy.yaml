@@ -48,3 +48,8 @@ spec:
           protocol: TCP
         - port: 80
           protocol: TCP
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 8443
+          protocol: TCP

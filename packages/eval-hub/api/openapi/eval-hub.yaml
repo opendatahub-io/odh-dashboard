@@ -180,6 +180,35 @@ paths:
       summary: List Collections
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/collections/{id}:
+    summary: Get a single benchmark collection
+    description: >-
+      Retrieves a single benchmark collection by its resource ID from the
+      EvalHub control plane. Returns the collection with its benchmarks,
+      tags, and metadata.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollection
+      summary: Get Collection by ID
+      description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -359,8 +388,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -403,8 +430,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -414,6 +439,73 @@ paths:
       description: >-
         Retrieves execution logs for a specific benchmark within an
         evaluation job. Returns plain text log output.
+
+  # =============================================================================
+  # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
+  # =============================================================================
+
+  /eval-hub/api/v1/catalog/sources/{source_id}/security_artifacts/{model_name}:
+    summary: Get security artifacts for a model from the Model Catalog
+    description: >-
+      Proxies the request to the Model-Catalog BFF (model-registry package) to
+      retrieve security artifacts for a specific model. Only the security_artifacts
+      endpoint is permitted by the bffclient allowlist; other model-catalog
+      endpoints are blocked.
+    get:
+      tags:
+        - ModelCatalog
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - name: source_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Catalog source identifier
+          example: 'sample-source'
+        - name: model_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Model name (URL-encoded if it contains slashes, e.g. repo1%2Fgranite-8b)
+          example: 'granite-8b'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/nextPageToken'
+        - $ref: '#/components/parameters/orderBy'
+        - $ref: '#/components/parameters/sortOrder'
+      responses:
+        '200':
+          $ref: '#/components/responses/CatalogSecurityArtifactsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          description: Bad Gateway - Model-Catalog BFF returned an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service Unavailable - Model-Catalog BFF is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: getCatalogModelSecurityArtifacts
+      summary: Get Model Security Artifacts
+      description: >-
+        Fetches security artifacts for a model from the Model Catalog via
+        inter-BFF communication. The response is proxied from the model-catalog
+        BFF's /model_catalog/sources/{source_id}/security_artifacts/{model_name}
+        endpoint.
 
   # =============================================================================
   # INFERENCE SERVICES
@@ -444,6 +536,8 @@ paths:
                   - name: 'llama-32-1b-instruct'
                     url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
                     ready: true
+                    model_format_name: 'vLLM'
+                    api_protocol: 'REST'
                   - name: 'mistral-7b'
                     url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
                     ready: true
@@ -502,6 +596,7 @@ paths:
                   success: true
                   message: 'Connection successful'
                   response_time_ms: 120
+                  openai_compatible: true
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -940,6 +1035,80 @@ components:
           $ref: '#/components/schemas/OciExport'
 
     # -------------------------------------------------------------------------
+    # Model Catalog security artifact schemas (inter-BFF)
+    # -------------------------------------------------------------------------
+
+    CatalogSecurityArtifact:
+      type: object
+      required:
+        - artifactType
+      properties:
+        artifactType:
+          type: string
+          example: 'metrics-artifact'
+          description: Type of artifact (e.g. metrics-artifact, model-artifact)
+        id:
+          type: string
+          nullable: true
+          example: '259215'
+          description: Unique artifact identifier from the model registry
+        name:
+          type: string
+          nullable: true
+          example: 'security-b1c2d3e4-3001-4000-a000-000000000005'
+          description: Human-readable artifact name
+        externalId:
+          type: string
+          nullable: true
+          example: 'b1c2d3e4-3001-4000-a000-000000000005'
+          description: External identifier for cross-system reference
+        metricsType:
+          type: string
+          nullable: true
+          example: 'security-metrics'
+          description: Sub-type of metrics artifact
+        uri:
+          type: string
+          nullable: true
+          description: URI to the artifact data
+        createTimeSinceEpoch:
+          type: string
+          nullable: true
+          example: '1693526400000'
+          description: Creation timestamp in milliseconds since epoch
+        lastUpdateTimeSinceEpoch:
+          type: string
+          nullable: true
+          description: Last update timestamp in milliseconds since epoch
+        customProperties:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Custom metadata properties associated with the artifact
+
+    CatalogSecurityArtifactList:
+      type: object
+      required:
+        - items
+        - size
+      properties:
+        nextPageToken:
+          type: string
+          description: Token for fetching the next page of results
+        pageSize:
+          type: integer
+          format: int32
+          description: Maximum items per page
+        size:
+          type: integer
+          format: int32
+          description: Number of items returned in this page
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogSecurityArtifact'
+
+    # -------------------------------------------------------------------------
     # InferenceService schemas
     # -------------------------------------------------------------------------
 
@@ -961,6 +1130,22 @@ components:
           type: boolean
           description: Whether the InferenceService is in a Ready state
           example: true
+        model_format_name:
+          type: string
+          description: >-
+            Model format name from the InferenceService spec
+            (spec.predictor.model.modelFormat.name). Empty when not set.
+          example: 'vLLM'
+        api_protocol:
+          type: string
+          enum:
+            - REST
+            - gRPC
+          description: >-
+            API protocol version from the InferenceService spec
+            (spec.predictor.model.protocolVersion or the ServingRuntime's
+            supportedModelFormats protocolVersion). Absent when not set.
+          example: 'REST'
 
     InferenceServicesResponse:
       type: object
@@ -982,9 +1167,13 @@ components:
           - name: 'llama-32-1b-instruct'
             url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            model_format_name: 'vLLM'
+            api_protocol: 'REST'
           - name: 'mistral-7b'
             url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            model_format_name: 'vLLM'
+            api_protocol: 'REST'
 
     # -------------------------------------------------------------------------
     # Connection verification schemas
@@ -1122,9 +1311,12 @@ components:
 
     CollectionResource:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
+          minLength: 1
           example: 'collection-001'
         tenant:
           type: string
@@ -1188,11 +1380,15 @@ components:
 
     Collection:
       type: object
+      required:
+        - resource
+        - name
       properties:
         resource:
           $ref: '#/components/schemas/CollectionResource'
         name:
           type: string
+          minLength: 1
           example: 'Open LLM Leaderboard v2'
         category:
           type: string
@@ -1654,6 +1850,32 @@ components:
                       provider_id: 'lm_evaluation_harness'
                       weight: 1
 
+    CollectionResponse:
+      description: A single benchmark collection from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Collection'
+          example:
+            data:
+              resource:
+                id: 'collection-001'
+              name: 'Open LLM Leaderboard v2'
+              category: 'General'
+              description: 'Comprehensive evaluation suite for general-purpose language models.'
+              tags:
+                - 'Comprehensive'
+                - 'Industry Standard'
+              benchmarks:
+                - id: 'arc_challenge'
+                  provider_id: 'lm_evaluation_harness'
+                  weight: 1
+
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues
       content:
@@ -1717,6 +1939,34 @@ components:
                     limit: 5
                     tokenizer: 'google/flan-t5-small'
 
+    CatalogSecurityArtifactsResponse:
+      description: Security artifacts for the requested model
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CatalogSecurityArtifactList'
+          example:
+            data:
+              nextPageToken: ''
+              pageSize: 10
+              size: 1
+              items:
+                - artifactType: 'metrics-artifact'
+                  metricsType: 'security-metrics'
+                  createTimeSinceEpoch: '1693526400000'
+                  customProperties:
+                    benchmark:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'intents'
+                    category:
+                      metadataType: 'MetadataStringValue'
+                      string_value: 'security'
+
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
       content:
@@ -1745,13 +1995,6 @@ components:
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorEnvelope'
-
-    Forbidden:
-      description: Forbidden - Insufficient permissions to access the requested namespace
       content:
         application/json:
           schema:
@@ -1829,6 +2072,14 @@ components:
         type: string
       required: false
       description: Tags to search for
+    collectionId:
+      in: path
+      name: id
+      schema:
+        type: string
+      required: true
+      description: Unique identifier for the benchmark collection
+      example: 'collection-001'
     evaluationJobId:
       in: path
       name: id
@@ -1881,6 +2132,44 @@ components:
       description: >-
         When false (default), cancels a running evaluation job.
         When true, permanently deletes the evaluation job.
+    pageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+        format: int32
+      required: false
+      description: Number of entities in each page
+      examples:
+        pageSize:
+          value: 100
+    nextPageToken:
+      in: query
+      name: nextPageToken
+      schema:
+        type: string
+      required: false
+      description: Token to use to retrieve next page of results
+    orderBy:
+      in: query
+      name: orderBy
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the order of the listed entities
+    sortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+      required: false
+      description: Specifies the sort order for the listed entities
 
   # =============================================================================
   # SECURITY
@@ -1905,3 +2194,5 @@ tags:
     description: Benchmark collection management via EvalHub
   - name: Providers
     description: Evaluation provider and benchmark catalogue management via EvalHub
+  - name: ModelCatalog
+    description: Model Catalog inter-BFF proxy endpoints (security artifacts)
