@@ -376,6 +376,45 @@ describe('TypeaheadSelect', () => {
     expect(onToggle.mock.calls.filter(([isOpenNow]) => isOpenNow === false)).toHaveLength(1);
   });
 
+  it('should call the latest onToggle(false) when Tab closes the menu', async () => {
+    const firstToggle = jest.fn();
+    const secondToggle = jest.fn();
+    const { rerender } = render(
+      <TypeaheadSelect
+        ariaLabel="Connection type"
+        selectOptions={defaultOptions}
+        onSelect={jest.fn()}
+        onToggle={firstToggle}
+        isRequired={false}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connection type' });
+
+    await act(async () => {
+      fireEvent.click(combobox);
+    });
+    firstToggle.mockClear();
+
+    rerender(
+      <TypeaheadSelect
+        ariaLabel="Connection type"
+        selectOptions={defaultOptions}
+        onSelect={jest.fn()}
+        onToggle={secondToggle}
+        isRequired={false}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+      await Promise.resolve();
+    });
+
+    expect(firstToggle).not.toHaveBeenCalled();
+    expect(secondToggle.mock.calls.filter(([isOpenNow]) => isOpenNow === false)).toHaveLength(1);
+  });
+
   it('should keep aria-activedescendant aligned with grouped render order', async () => {
     render(
       <TypeaheadSelect
@@ -402,7 +441,33 @@ describe('TypeaheadSelect', () => {
     expect(document.getElementById('test-select-option-s-alpha')).toBeInTheDocument();
   });
 
-  it('should not throw when options shrink under a stale focused index', async () => {
+  it('should render numeric and string option values as distinct options', async () => {
+    render(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={[
+          { content: 'Numeric one', value: 1 },
+          { content: 'String one', value: '1' },
+        ]}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connection type' });
+
+    await act(async () => {
+      fireEvent.click(combobox);
+    });
+
+    expect(document.getElementById('test-select-option-n-1')).toBeInTheDocument();
+    expect(document.getElementById('test-select-option-s-1')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Numeric one' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'String one' })).toBeInTheDocument();
+  });
+
+  it('should clear aria-activedescendant when the focused option is removed', async () => {
     const { rerender } = render(
       <TypeaheadSelect
         id="test-select"
@@ -433,9 +498,126 @@ describe('TypeaheadSelect', () => {
       />,
     );
 
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
+
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-s3');
+  });
+
+  it('should reset focus when same-length options replace the focused value', async () => {
+    const { rerender } = render(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={defaultOptions}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connection type' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-uuri');
+
+    rerender(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={[
+          { content: 'Alpha', value: 'alpha' },
+          { content: 'Beta', value: 'beta' },
+          { content: 'Gamma', value: 'gamma' },
+        ]}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('should keep aria-activedescendant on the same option when the list is reordered', async () => {
+    const { rerender } = render(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={defaultOptions}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connection type' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-uuri');
+
+    rerender(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={[
+          { content: 'URI', value: 'uri' },
+          { content: 'S3', value: 's3' },
+          { content: 'OCI', value: 'oci' },
+        ]}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-uuri');
+    expect(document.getElementById('test-select-option-s-uuri')).toBeInTheDocument();
+  });
+
+  it('should clear aria-activedescendant when the focused option becomes disabled', async () => {
+    const { rerender } = render(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={defaultOptions}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connection type' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-uuri');
+
+    rerender(
+      <TypeaheadSelect
+        id="test-select"
+        ariaLabel="Connection type"
+        selectOptions={[
+          { content: 'S3', value: 's3' },
+          { content: 'URI', value: 'uri', isDisabled: true },
+          { content: 'OCI', value: 'oci' },
+        ]}
+        onSelect={jest.fn()}
+        isRequired={false}
+      />,
+    );
 
     expect(combobox).not.toHaveAttribute('aria-activedescendant');
   });

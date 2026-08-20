@@ -324,6 +324,28 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     setFilterValue(String(selected?.content ?? ''));
   };
 
+  const closeMenuRef = React.useRef(closeMenu);
+  React.useLayoutEffect(() => {
+    closeMenuRef.current = closeMenu;
+  });
+
+  React.useLayoutEffect(() => {
+    if (focusedItemIndex === null || activeItemId === null) {
+      return;
+    }
+    const nextIndex = navigableSelections.findIndex(
+      (option) => createOptionElementId(instanceId, option.value) === activeItemId,
+    );
+    const nextOption = nextIndex >= 0 ? navigableSelections[nextIndex] : undefined;
+    if (!nextOption || nextOption.isDisabled || nextOption.isAriaDisabled) {
+      resetActiveAndFocusedItem();
+      return;
+    }
+    if (nextIndex !== focusedItemIndex) {
+      setFocusedItemIndex(nextIndex);
+    }
+  }, [navigableSelections, instanceId, focusedItemIndex, activeItemId]);
+
   const isTabTargetForTypeahead = (event: KeyboardEvent): boolean => {
     const { target } = event;
     if (!(target instanceof Node)) {
@@ -346,7 +368,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       }
     }
     resetActiveAndFocusedItem();
-    queueMicrotask(() => closeMenu());
+    queueMicrotask(() => closeMenuRef.current());
   };
 
   React.useEffect(() => {
@@ -363,7 +385,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       }
       const { target } = event;
       if (target instanceof Node && menuToggleRef.current?.contains(target)) {
-        closeMenu();
+        closeMenuRef.current();
       }
     };
     document.addEventListener('keydown', onTabCapture, true);
@@ -617,10 +639,11 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const tSelectOption = (option: TypeaheadSelectOption, index: number) => {
     const { content, value, dropdownLabel, ...optionProps } = option;
+    const optionElementId = createOptionElementId(instanceId, value);
     return (
       <SelectOption
-        key={value}
-        id={createOptionElementId(instanceId, value)}
+        key={optionElementId}
+        id={optionElementId}
         value={value}
         isFocused={focusedItemIndex === index}
         {...optionProps}

@@ -57,7 +57,8 @@ Every control below is tagged:
 ### Cluster prerequisites
 
 - Open Data Hub / RHOAI Dashboard installed
-- User with project create access (cluster-admin simplifies admin phases)
+- Dedicated non-production test user with the minimum permissions required by this runbook (project create, plus serving/registry access for Phase 2 if those operators are installed)
+- Use `cluster-admin` only on an isolated, disposable cluster when a phase requires it
 - At least one Notebook ImageStream, storage class, and (for Phase 2) model serving / model registry if those operators are installed
 
 ### Commands
@@ -369,6 +370,20 @@ Skip any row if the operator / feature flag is unavailable.
 
 ---
 
+## Phase 5 — Cleanup
+
+Record whether `manual-76231-test` existed before this run.
+
+If this run created the project, delete it after testing:
+
+```bash
+oc delete project manual-76231-test --wait=true
+```
+
+If the project pre-existed, delete only the connections, PVCs, storage, and optional serving resources created by this run, and remove their test secrets.
+
+---
+
 ## Suggested order (highest value)
 
 1. **1A** Create connection type  
@@ -419,6 +434,9 @@ REGRESSION
 
 OPTIONAL
 [ ] 4A–4D as available
+
+CLEANUP
+[ ] 5 Delete `manual-76231-test` if this run created it, otherwise remove resources created here
 ```
 
 ---
@@ -426,6 +444,6 @@ OPTIONAL
 ## Reference
 
 - Prior runbook pattern: `notes/RHOAIENG-66822-manual-select-testing.md` (may be absent in this worktree; structure mirrored here)
-- Cypress mocked: `packages/cypress/cypress/tests/mocked/projects/tabs/connections.cy.ts`, `workbench.cy.ts`
+- Cypress mocked: `packages/cypress/cypress/tests/mocked/projects/tabs/connections.cy.ts`, `packages/cypress/cypress/tests/mocked/projects/tabs/workbenchEditDelete.cy.ts`
 - Shared hook: `packages/ui-core/src/utilities/useMenuPopperInModal.ts`
 - Branch context: `.cursor/context/current/scope.md`, `notes.md`
