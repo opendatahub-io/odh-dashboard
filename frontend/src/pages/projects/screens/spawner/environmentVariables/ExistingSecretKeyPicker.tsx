@@ -165,7 +165,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
           </Tooltip>
         </FlexItem>
       ) : null}
-      {!isDeleted && !isEmptySecret ? (
+      {!isDeleted && !isEmptySecret && !allKeysUnavailable ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
             {actualSelectedCount} of {totalSelectableKeys} keys
