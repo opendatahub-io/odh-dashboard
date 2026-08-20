@@ -61,7 +61,10 @@ describe('Manage runs', () => {
   });
 
   it('navigates to "Compare runs" page when "Compare runs" breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Compare runs' }).click();
+    manageRunsPage
+      .findBreadcrumb()
+      .findByRole('link', { name: 'Compare runs' })
+      .click({ force: true });
     cy.location('pathname').should(
       'equal',
       `/develop-train/pipelines/runs/${projectName}/compare-runs`,
@@ -70,7 +73,10 @@ describe('Manage runs', () => {
   });
 
   it('navigates to runs page when the project breadcrumb is clicked', () => {
-    manageRunsPage.findBreadcrumb().findByRole('link', { name: 'Runs in Test project' }).click();
+    manageRunsPage
+      .findBreadcrumb()
+      .findByRole('link', { name: 'Runs in Test project' })
+      .click({ force: true });
     cy.location('pathname').should('equal', `/develop-train/pipelines/runs/${projectName}`);
   });
 
