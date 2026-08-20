@@ -1,5 +1,5 @@
 import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { proxyGET, proxyCREATE, proxyDELETE } from './proxyUtils';
+import { proxyCREATE, proxyDELETE, proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { handleTrustyAIFailures } from './errorUtils';
 import type {
   BaseMetricRequest,
