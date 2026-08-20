@@ -4,18 +4,23 @@ import {
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
 } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
 import {
   InferenceServiceModel,
+  PVCModel,
+  SecretModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
   ModelLocationSelectOption,
@@ -57,6 +62,73 @@ describe('NIM Models Deployments', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('exist');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Delete').should('exist');
+  });
+
+  it('should show the NIM deployment details in the expanded row on the project Models tab', () => {
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      // Carry the hardware profile annotations so the expanded row resolves the saved profile
+      mockK8sResourceList([
+        mockNimInferenceService({
+          hardwareProfileName: 'default-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          hardwareProfileResourceVersion: '1309350',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([mockNimServingRuntime()]));
+    // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
+    // token table reads the deployment's service-account token secret ("<deployment-name>-sa").
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          name: 'default-name2-test-name-sa',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'default-name2',
+            'kubernetes.io/service-account.name': 'test-name-sa',
+          },
+          type: 'kubernetes.io/service-account-token',
+          // Decodes to 48 chars so the masked value renders the full 40-bullet cap
+          data: { token: btoa('x'.repeat(48)) },
+        }),
+      ]),
+    );
+
+    modelServingSection.visit('test-project');
+
+    const row = modelServingSection.getKServeRow('Test Name');
+    row.findToggleButton().click();
+
+    row.findDescriptionListItem('Framework').next('dd').should('have.text', 'arctic-embed-l');
+    row.findDescriptionListItem('Model server replicas').next('dd').should('have.text', '1');
+    row
+      .findDescriptionListItem('Model server size')
+      .next('dd')
+      .should('contain.text', '2 CPUs, 6GiB Memory requested');
+    row
+      .findDescriptionListItem('Model server size')
+      .next('dd')
+      .should('contain.text', '4 CPUs, 8GiB Memory limit');
+    row
+      .findDescriptionListItem('Hardware profile')
+      .next('dd')
+      .should('have.text', 'default-profile');
+    row
+      .findDescriptionListItem('Model availability')
+      .next('dd')
+      .should('have.text', 'No model availability');
+    row
+      .findDescriptionListItem('Token authentication')
+      .next('dd')
+      .should('contain.text', 'default-name2');
+    row
+      .findDescriptionListItem('Token authentication')
+      .next('dd')
+      .findByTestId('token-secret')
+      .should('contain.text', '•'.repeat(40));
   });
 
   it('should deploy a NIM model through the wizard', () => {
@@ -289,5 +361,114 @@ describe('NIM Models Deployments', () => {
       });
       expect(interception.request.body.type).to.equal('kubernetes.io/service-account-token');
     });
+  });
+
+  it('should edit a NIM deployment through the wizard', () => {
+    initInterceptsToEnableNim({ nimWizard: true });
+    initInterceptsToDeployNimInWizard();
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      // Carry the hardware profile annotations so the wizard prefills the saved profile on edit
+      mockK8sResourceList([
+        mockNimInferenceService({
+          hardwareProfileName: 'default-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          hardwareProfileResourceVersion: '1309350',
+          hasExternalRoute: true,
+          // Advanced settings prefill from the deployment on edit
+          args: ['--verbose', '--log-level=debug'],
+          env: [{ name: 'CUSTOM_VAR', value: 'custom-value' }],
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      ServingRuntimeModel,
+      // The runtime carries the NIM image on its `kserve-container` so edit-detection recognizes
+      // it and prefills the found image (arctic-embed-l 1.0.1 exists in mockNimImages -> happy path).
+      // It also carries a PVC cache volume so the PVC field prefills the existing storage selection.
+      mockK8sResourceList([
+        mockNimServingRuntime({
+          image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+          pvcName: 'my-nim-wizard-pvc',
+          subPath: 'arctic-embed-l',
+        }),
+      ]),
+    );
+    // The PVC must be in the fetched list for the existing-storage select to render its name
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([mockPVCK8sResource({ name: 'my-nim-wizard-pvc' })]),
+    );
+    // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
+    // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
+    // and prefills the existing service account name from the secret's display name.
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          name: 'my-existing-sa-test-name-sa',
+          namespace: 'test-project',
+          annotations: {
+            'openshift.io/display-name': 'my-existing-sa',
+            'kubernetes.io/service-account.name': 'test-name-sa',
+          },
+          type: 'kubernetes.io/service-account-token',
+          data: { token: btoa('test-token') },
+        }),
+      ]),
+    );
+
+    modelServingGlobal.visit('test-project');
+
+    // The NIM deployment is listed in the model deployments table
+    modelServingSection.findDeploymentsTable().should('have.length', 1);
+    modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').click();
+
+    // Step 1: Model source - location is NVIDIA NIM and the existing image is found (no warning)
+    modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+    modelServingWizardEdit
+      .findModelLocationSelect()
+      .should('contain.text', ModelLocationSelectOption.NIM);
+    modelServingWizardEdit.nim
+      .findImageSelect()
+      .find('input')
+      .should('have.value', 'Snowflake Arctic Embed Large Embedding - 1.0.1');
+    modelServingWizardEdit.nim.findImageNotFoundWarning().should('not.exist');
+    // NIM forces the model type - it cannot be changed
+    modelServingWizardEdit.findModelTypeSelect().should('contain.text', ModelTypeLabel.NIM);
+    modelServingWizardEdit.findModelTypeSelect().should('be.disabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment - name prefilled, no model format select (NIM is legacy KServe)
+    modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
+    modelServingWizardEdit.findModelDeploymentNameInput().should('have.value', 'Test Name');
+    // The saved hardware profile prefills (only one profile exists, so the selector is disabled)
+    modelServingWizardEdit.selectPotentiallyDisabledProfile('default-profile');
+    modelServingWizardEdit.findModelFormatSelect().should('not.exist');
+
+    // PVC caching prefills from the existing runtime's cache volume: existing-storage mode,
+    // the mounted PVC preselected, and its subpath loaded from the volumeMount
+    modelServingWizardEdit.nim
+      .findStorageModeSelect()
+      .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
+    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
+
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced settings - external route, token auth, the existing service account, runtime
+    // args, and custom env variables all prefill from the deployment on edit
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
+    modelServingWizardEdit.findServiceAccountNameInput().should('have.value', 'my-existing-sa');
+    modelServingWizardEdit.findRuntimeArgsCheckbox().should('be.checked');
+    modelServingWizardEdit
+      .findRuntimeArgsTextBox()
+      .should('have.value', '--verbose\n--log-level=debug');
+    modelServingWizardEdit.findEnvVariablesCheckbox().should('be.checked');
+    modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
+    modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
   });
 });
