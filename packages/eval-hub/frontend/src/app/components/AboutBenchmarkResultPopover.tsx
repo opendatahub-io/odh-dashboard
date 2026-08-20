@@ -41,11 +41,11 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
     return null;
   }
 
-  // Prefer the job's own primary_score, fall back to the provider catalog — the same source
-  // that drives result_interpretation, keeping the direction label consistent with the body text.
+  // Prefer the provider catalog's lower_is_better — the same source that drives
+  // result_interpretation, keeping the direction label consistent with the body text.
   const lowerIsBetter =
-    benchmarkConfig?.primary_score?.lower_is_better ??
     providerBenchmark?.primary_score?.lower_is_better ??
+    benchmarkConfig?.primary_score?.lower_is_better ??
     false;
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
