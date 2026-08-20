@@ -3,10 +3,31 @@
   "name": "@odh-dashboard/model-serving",
   "description": "Plugin to display model deployments. Used in combination with specific model serving platform extensions.",
   "version": "0.0.0",
+  "module-federation": {
+    "name": "modelServing",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/model-serving/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9109
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
   "e2eCiTags": [
     "@ModelServingCI"
   ],
   "scripts": {
+    "install:module": "npm install --prefix frontend",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
@@ -92,6 +113,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
