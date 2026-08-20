@@ -116,18 +116,48 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.WorkspaceKind{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeflow.org/v1beta1",
-					Kind:       "WorkspaceKind",
-				},
-			},
-		),
+	namespace := r.URL.Query().Get(constants.NamespaceFilterQueryParam)
+
+	// validate query parameters
+	var valErrs field.ErrorList
+	if namespace != "" {
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespaceFilterQueryParam), namespace)...)
 	}
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgQueryParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	var authPolicies []*auth.ResourcePolicy
+
+	if namespace != "" {
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(
+				auth.ResourceVerbCreate,
+				&kubefloworgv1beta1.Workspace{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "kubeflow.org/v1beta1",
+						Kind:       "Workspace",
+					},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+				},
+			),
+		}
+	} else {
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(
+				auth.ResourceVerbList,
+				&kubefloworgv1beta1.WorkspaceKind{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "kubeflow.org/v1beta1",
+						Kind:       "WorkspaceKind",
+					},
+				},
+			),
+		}
+	}
+
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
