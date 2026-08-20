@@ -1,3 +1,4 @@
 {
-  "import": ["./cspell.config.cjs"]
+  "import": ["./cspell.config.cjs"],
+  "words": ["workspacekinds"]
 }

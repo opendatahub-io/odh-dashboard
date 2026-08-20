@@ -1,26 +1,33 @@
+/* eslint-disable @cspell/spellchecker */
 import React, { useMemo } from 'react';
 import {
+  ModularArchContextProvider,
   BrowserStorageContextProvider,
   NotificationContextProvider,
-  ModularArchContextProvider,
-  ModularArchConfig,
   DeploymentMode,
   useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
-import AppRoutes from '~/app/AppRoutes';
-import { NotebookContextProvider } from '~/app/context/NotebookContext';
-import { BFF_API_VERSION, MANDATORY_NAMESPACE, URL_PREFIX } from '~/shared/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
+import { NotebookContextProvider } from '~/app/context/NotebookContext';
+import { WorkspacesWrapper } from '~/app/pages/Workspaces/WorkspacesWrapper';
+import { BFF_API_VERSION, URL_PREFIX } from '~/shared/utilities/const';
 import ToastNotifications from '~/app/standalone/ToastNotifications';
 
-const NotebooksWrapperContent: React.FC = () => {
+type WorkspacesProjectDetailsTabProps = {
+  namespace?: string;
+};
+
+const WorkspacesProjectDetailsTabContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
 
   const contextValue = useMemo(
-    () => ({ config: configSettings, user: userSettings }),
+    () => ({
+      config: configSettings,
+      user: userSettings,
+    }),
     [configSettings, userSettings],
   );
 
@@ -46,7 +53,7 @@ const NotebooksWrapperContent: React.FC = () => {
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
             <NotebookContextProvider>
-              <AppRoutes />
+              <WorkspacesWrapper />
               <ToastNotifications />
             </NotebookContextProvider>
           </NotificationContextProvider>
@@ -56,19 +63,22 @@ const NotebooksWrapperContent: React.FC = () => {
   ) : null;
 };
 
-const NotebooksWrapper: React.FC = () => {
-  const modularArchConfig: ModularArchConfig = {
-    deploymentMode: DeploymentMode.Federated,
-    URL_PREFIX,
-    BFF_API_VERSION,
-    mandatoryNamespace: MANDATORY_NAMESPACE,
-  };
+const WorkspacesProjectDetailsTab: React.FC<WorkspacesProjectDetailsTabProps> = ({ namespace }) => {
+  const config = useMemo(
+    () => ({
+      deploymentMode: DeploymentMode.Federated,
+      URL_PREFIX,
+      BFF_API_VERSION,
+      mandatoryNamespace: namespace,
+    }),
+    [namespace],
+  );
 
   return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      <NotebooksWrapperContent />
+    <ModularArchContextProvider config={config}>
+      <WorkspacesProjectDetailsTabContent />
     </ModularArchContextProvider>
   );
 };
 
-export default NotebooksWrapper;
+export default WorkspacesProjectDetailsTab;
