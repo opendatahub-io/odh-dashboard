@@ -20,8 +20,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
@@ -45,15 +43,7 @@ func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&corev1.Namespace{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "v1",
-					Kind:       "Namespace",
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbList, auth.Namespaces, auth.ResourcePolicyResourceMeta{}),
 	}
 	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
