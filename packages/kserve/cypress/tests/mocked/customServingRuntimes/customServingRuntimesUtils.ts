@@ -6,7 +6,7 @@ import {
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared/types';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { ProjectModel, TemplateModel } from '../../../utils/models';
+import { ProjectModel, TemplateModel } from '@odh-dashboard/cypress/cypress/utils/models';
 
 const mockUnsupportedAccepted = mockServingRuntimeTemplateK8sResource({
   name: 'template-unsupported-accepted',

@@ -8,6 +8,7 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { topologyConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/topologyConfigurations';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 
 const mockPreInstalledConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'preinstalled-single-node',
@@ -33,8 +34,10 @@ const allConfigs = [mockPreInstalledConfig, mockUserConfig, mockDisabledConfig];
 
 const initIntercepts = ({
   configs = allConfigs,
+  llmdTemplates = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+  llmdTemplates?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -50,7 +53,7 @@ const initIntercepts = ({
   const config = mockDashboardConfig({
     disableKServe: false,
     disableLLMd: false,
-    llmdTemplates: true,
+    llmdTemplates,
   });
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
@@ -69,6 +72,14 @@ describe('LLMD Topology Admin Settings', () => {
       topologyConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
       topologyConfigurations.findTab().should('exist');
       topologyConfigurations.findTable().should('exist');
+    });
+
+    it('should not show the topology configurations tab when llmdTemplates is disabled', () => {
+      initIntercepts({ llmdTemplates: false });
+      topologyConfigurations.visit(false);
+      // The parent tabbed page still renders; the topology tab is gated off.
+      topologyConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
+      topologyConfigurations.findTab().should('not.exist');
     });
   });
 
@@ -203,6 +214,113 @@ describe('LLMD Topology Admin Settings', () => {
       // beneath the tabbed page title and tab bar, which would give it two headings.
       topologyConfigurations.findTabPageTitle().should('not.exist');
       topologyConfigurations.findTab().should('not.exist');
+    });
+
+    it('should return to the topology list on cancel from edit', () => {
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Edit').click();
+      cy.url().should('include', '/topology-configurations/edit/user-multi-node');
+      topologyConfigurations.findCancelButton().click();
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/topology-configurations',
+      );
+      topologyConfigurations.findTable().should('exist');
+    });
+  });
+
+  describe('CRUD operations', () => {
+    it('should create a topology config', () => {
+      initIntercepts({ configs: [] });
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockLLMInferenceServiceConfigK8sResource({ name: 'new-topology' }),
+      ).as('createConfig');
+
+      topologyConfigurations.visit(false);
+      topologyConfigurations.findEmptyStateAddButton().click();
+      topologyConfigurations.findAppTitle().should('have.text', 'Add Single node configuration');
+
+      topologyConfigurations.findDisplayNameInput().type('New topology');
+      // The YAML editor only mounts once a configuration source is chosen
+      // (showEditor gates on configSource === 'editor' in create mode).
+      topologyConfigurations.selectConfigSource('editor');
+      topologyConfigurations.getYamlEditor().setValue('metadata:\n  name: placeholder');
+      topologyConfigurations.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@createConfig').then((interception) => {
+        expect(interception.request.body.metadata.annotations).to.include({
+          'openshift.io/display-name': 'New topology',
+        });
+      });
+    });
+
+    it('should edit a topology config', () => {
+      initIntercepts();
+      cy.interceptK8s(
+        'PATCH',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
+        mockLLMInferenceServiceConfigK8sResource({ name: 'user-multi-node' }),
+      ).as('patchConfig');
+
+      topologyConfigurations.visit();
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Edit').click();
+      topologyConfigurations.findDisplayNameInput().clear().type('Renamed multinode');
+      topologyConfigurations.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@patchConfig').then((interception) => {
+        const patches: { op: string; path: string; value: string }[] = interception.request.body;
+        const displayNamePatch = patches.find(
+          (p) => p.path === '/metadata/annotations/openshift.io~1display-name',
+        );
+        expect(displayNamePatch?.value).to.equal('Renamed multinode');
+      });
+    });
+
+    it('should duplicate a topology config', () => {
+      initIntercepts();
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockLLMInferenceServiceConfigK8sResource({ name: 'user-multi-node-copy' }),
+      ).as('createConfig');
+
+      topologyConfigurations.visit();
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Duplicate').click();
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/topology-configurations/duplicate/user-multi-node',
+      );
+      topologyConfigurations.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@createConfig').then((interception) => {
+        expect(interception.request.body.metadata.annotations).to.include({
+          'openshift.io/display-name': 'Copy of User Multi-node Config',
+        });
+      });
+    });
+
+    it('should delete a topology config', () => {
+      initIntercepts();
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
+        mockLLMInferenceServiceConfigK8sResource({ name: 'user-multi-node' }),
+      ).as('deleteConfig');
+
+      topologyConfigurations.visit();
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Delete').click();
+      deleteModal.find().should('exist');
+      deleteModal.findInput().type('User Multi-node Config');
+      deleteModal.findSubmitButton().should('be.enabled').click();
+      cy.wait('@deleteConfig');
+
+      cy.wsK8s(
+        'DELETED',
+        LLMInferenceServiceConfigModel,
+        mockLLMInferenceServiceConfigK8sResource({ name: 'user-multi-node' }),
+      );
+      topologyConfigurations.getRow('user-multi-node').find().should('not.exist');
     });
   });
 });

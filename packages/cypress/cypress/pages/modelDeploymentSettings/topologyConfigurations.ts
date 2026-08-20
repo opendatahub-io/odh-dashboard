@@ -133,6 +133,10 @@ class TopologyConfigurations {
     return cy.findByTestId('submit-topology-config-button');
   }
 
+  findCancelButton() {
+    return cy.findByTestId('cancel-topology-config-button');
+  }
+
   getRow(name: string) {
     return new TopologyConfigRow(
       () =>
