@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"path"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,45 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
+)
+
+const (
+	Version    = "1.0.0"
+	PathPrefix = "/api/v1"
+
+	MediaTypeJson = "application/json"
+	MediaTypeYaml = "application/yaml"
+
+	NamespacePathParam    = "namespace"
+	ResourceNamePathParam = "name"
+
+	// healthcheck
+	HealthCheckPath = PathPrefix + "/healthcheck"
+
+	// user
+	UserPath = PathPrefix + "/user"
+
+	// workspaces
+	AllWorkspacesPath         = PathPrefix + "/workspaces"
+	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
+	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
+	WorkspaceActionsPath      = WorkspacesByNamePath + "/actions"
+	PauseWorkspacePath        = WorkspaceActionsPath + "/pause"
+
+	// workspacekinds
+	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
+	WorkspaceKindsByNamePath = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
+
+	// namespaces
+	AllNamespacesPath = PathPrefix + "/namespaces"
+
+	// secrets
+	SecretsByNamespacePath = PathPrefix + "/secrets/:" + NamespacePathParam
+	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
+
+	// swagger
+	SwaggerPath    = PathPrefix + "/swagger/*any"
+	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
 )
 
 type App struct {
@@ -78,6 +118,9 @@ func (a *App) Routes() http.Handler {
 	// healthcheck
 	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
 
+	// user
+	router.GET(UserPath, a.GetUserHandler)
+
 	// namespaces
 	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)
 
@@ -120,5 +163,29 @@ func (a *App) Routes() http.Handler {
 		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
 	}
 
-	return a.recoverPanic(a.enableCORS(router))
+	// Create a mux to combine API routes with static file serving
+	mux := http.NewServeMux()
+
+	// API routes - handle /api/v1/* paths
+	mux.Handle(PathPrefix+"/", a.recoverPanic(a.enableCORS(router)))
+
+	// Static file server for frontend assets (Module Federation support)
+	if a.Config.StaticAssetsDir != "" {
+		staticDir := http.Dir(a.Config.StaticAssetsDir)
+		fileServer := http.FileServer(staticDir)
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// Check if the requested file exists in static dir
+			if _, err := staticDir.Open(r.URL.Path); err == nil {
+				a.logger.Debug("Serving static file", slog.String("path", r.URL.Path))
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+
+			// Fallback to index.html for SPA routes
+			a.logger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
+			http.ServeFile(w, r, path.Join(a.Config.StaticAssetsDir, "index.html"))
+		})
+	}
+
+	return mux
 }

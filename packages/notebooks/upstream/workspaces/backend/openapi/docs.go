@@ -715,6 +715,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/user": {
+            "get": {
+                "description": "Returns the current user's settings including user ID and admin status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get user settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.UserEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspacekinds": {
             "get": {
                 "description": "Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.",
@@ -2047,6 +2073,32 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/storageclasses.StorageClassListItem"
                     }
+                }
+            }
+        },
+        "api.UserEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/api.UserResponse"
+                }
+            }
+        },
+        "api.UserResponse": {
+            "type": "object",
+            "required": [
+                "clusterAdmin",
+                "userId"
+            ],
+            "properties": {
+                "clusterAdmin": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "string"
                 }
             }
         },
