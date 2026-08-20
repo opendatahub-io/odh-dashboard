@@ -59,7 +59,7 @@ ARG URL_PREFIX=/notebooks
 # pnpm hoists a newer esbuild binary to the workspace root; defer lifecycle scripts so
 # npm ci installs the lockfile-pinned esbuild before running install.js locally.
 RUN npm ci --omit=optional --ignore-scripts \
-    && npm rebuild esbuild --foreground-scripts
+    && PATH="$(pwd)/node_modules/.bin:/usr/local/bin:/usr/bin:/bin" node ./node_modules/esbuild/install.js
 RUN npm run build:prod
 
 # BFF build stage
