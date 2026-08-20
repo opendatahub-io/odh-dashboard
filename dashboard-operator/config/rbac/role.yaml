@@ -336,7 +336,13 @@ rules:
       - cluster
     verbs:
       - get
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    verbs:
       - watch
+      - list
   # OpenShift platform detection for operand
   - apiGroups:
       - config.openshift.io

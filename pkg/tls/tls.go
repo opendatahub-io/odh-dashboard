@@ -52,6 +52,8 @@ var openSSLToGo = map[string]uint16{
 	"ECDHE-RSA-AES128-SHA256":       tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	"ECDHE-ECDSA-AES128-SHA":        tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
 	"ECDHE-RSA-AES128-SHA":          tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"ECDHE-ECDSA-AES256-SHA":        tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"ECDHE-RSA-AES256-SHA":          tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 	"AES128-GCM-SHA256":             tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 	"AES256-GCM-SHA384":             tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 	"AES128-SHA256":                 tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
@@ -172,8 +174,10 @@ var wellKnownProfiles = map[string]tlsProfileSpec{
 // does not exist (IsNotFound), it returns Intermediate defaults
 // (TLS 1.2, 6 ECDHE ciphers, ALPN h2+http/1.1).
 //
-// On any other error (client creation failure, permission denied, etc.) it
-// returns the error so the caller can exit. This is the fail-closed behavior.
+// On Forbidden/Unauthorized, falls back to Intermediate defaults (fail-open;
+// check RBAC if the profile is not being applied). On any other unexpected
+// error (e.g., REST client creation failure), returns the error so the caller
+// can exit (fail-closed).
 func ServerTLSConfig(ctx context.Context, logger *slog.Logger) (*tls.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -306,14 +310,27 @@ func resolveProfileSpec(profile *tlsSecurityProfile) (tlsProfileSpec, error) {
 	return defaultProfile, nil
 }
 
+// tls13CipherNames contains TLS 1.3 cipher names that Go manages automatically.
+// These are not mapped in openSSLToGo because Go does not allow configuring
+// TLS 1.3 cipher suites via CipherSuites — they are always enabled.
+var tls13CipherNames = map[string]bool{
+	"TLS_AES_128_GCM_SHA256":       true,
+	"TLS_AES_256_GCM_SHA384":       true,
+	"TLS_CHACHA20_POLY1305_SHA256": true,
+}
+
 // resolveCiphers converts cipher name strings (OpenSSL or IANA format) to Go cipher suite IDs.
 // Returns the resolved IDs and a list of names that could not be mapped.
+// TLS 1.3 cipher names are silently skipped (Go manages them automatically).
 func resolveCiphers(names []string) ([]uint16, []string) {
 	var codes []uint16
 	var dropped []string
 	seen := make(map[uint16]bool)
 
 	for _, name := range names {
+		if tls13CipherNames[name] {
+			continue
+		}
 		code, ok := openSSLToGo[name]
 		if !ok {
 			dropped = append(dropped, name)
