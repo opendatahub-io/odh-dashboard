@@ -58,12 +58,13 @@ describe('pnpmResolverIncludes', () => {
     assert.deepEqual(tanstackQueryCoreAlias('/tmp/nonexistent-package'), {});
   });
 
-  it('returns @mui/utils paired with the package @mui/material install', () => {
+  it('returns @mui/material and peers from the same install tree', () => {
     const { muiMaterialPeerAliases } = require('../pnpmResolverIncludes');
     const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
     const alias = muiMaterialPeerAliases(genAiDir);
+    assert.ok(alias['@mui/material']);
     assert.ok(alias['@mui/utils']);
-    const { version } = require(path.join(alias['@mui/utils'], 'package.json'));
+    const { version } = require(path.join(alias['@mui/material'], 'package.json'));
     assert.match(version, /^7\./);
   });
 });
