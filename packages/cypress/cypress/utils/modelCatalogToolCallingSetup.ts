@@ -1,12 +1,11 @@
 import * as yaml from 'js-yaml';
-import { loadDSPFixture } from './dataLoader';
 import {
   detectModelCatalogNamespace,
   ensureModelCatalogSourceEnabled,
   verifyModelCatalogBackend,
 } from './oc_commands/modelCatalog';
 import { provisionProjectForModelServing } from './oc_commands/modelServing';
-import type { ModelCatalogSourceTestData } from '../types';
+import type { ModelCatalogSourceTestData, ModelCatalogTestData } from '../types';
 
 export type ToolCallingWizardSetupData = {
   sourceData: ModelCatalogSourceTestData;
@@ -14,12 +13,6 @@ export type ToolCallingWizardSetupData = {
   modelName: string;
   awsBucket: 'BUCKET_1';
   validatedConfigurationOptionId: string;
-};
-
-type ModelCatalogToolCallingFixtureData = {
-  projectResourceName: string;
-  singleModelName: string;
-  awsBucket: 'BUCKET_1';
 };
 
 const TOOL_CALLING_FIXTURE_PATH = 'e2e/modelCatalog/testSourceEnableDisable.yaml';
@@ -63,13 +56,8 @@ export const setupToolCallingWizardTestData = (
       }));
     })
     .then(({ sourceData, validatedConfigurationOptionId }) =>
-      loadDSPFixture(MODEL_CATALOG_FIXTURE_PATH).then((fixtureData) => {
-        const modelCatalogFixtureData = fixtureData as ModelCatalogToolCallingFixtureData;
-        const {
-          awsBucket,
-          projectResourceName,
-          singleModelName: modelName,
-        } = modelCatalogFixtureData;
+      cy.fixture(MODEL_CATALOG_FIXTURE_PATH).then((fixtureData: ModelCatalogTestData) => {
+        const { awsBucket, projectResourceName, singleModelName: modelName } = fixtureData;
         const build =
           Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID') || LOCAL_BUILD_FALLBACK;
         const localRunSuffix =
