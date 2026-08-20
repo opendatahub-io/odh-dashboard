@@ -375,7 +375,11 @@ _git_upstream_cmd() {
 _filter_rev_list() {
   local from_commit="$1"
   local to_commit="$2"
-  git rev-list --no-merges --reverse "$from_commit..$to_commit"
+  # --ancestry-path excludes commits reachable from $from_commit via other
+  # merge paths, preventing re-application of commits already in the subtree
+  # when upstream merges a branch whose commits are ancestors of the tracking
+  # pointer through a different path.
+  git rev-list --ancestry-path --no-merges --reverse "$from_commit..$to_commit"
 }
 
 _get_commit_url() {
