@@ -1,7 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: redhat-ods-applications
+# Placeholder namespace: workbenches-operator rewrites this via patchKustomizeNamespace
+# (APPLICATIONS_NAMESPACE or platform default). For manual deploy, make deploy-gateway
+# substitutes NAMESPACE (default: redhat-ods-applications).
+namespace: opendatahub
 
 resources:
 - ../../base
@@ -18,6 +21,21 @@ configMapGenerator:
 
 replacements:
 - source:
+    fieldPath: metadata.namespace
+    kind: ServiceAccount
+    name: workspaces-controller
+  targets:
+  - fieldPaths:
+    - subjects.[kind=ServiceAccount].namespace
+    select:
+      kind: ClusterRoleBinding
+      name: workspaces-manager-rolebinding
+  - fieldPaths:
+    - subjects.[kind=ServiceAccount].namespace
+    select:
+      kind: RoleBinding
+      name: workspaces-leader-election-rolebinding
+- source:
     fieldPath: data.WORKBENCH_CONTROLLER_IMAGE
     kind: ConfigMap
     name: kubeflow-workspaces-gateway-config
@@ -30,20 +48,6 @@ replacements:
       name: workspaces-controller
 
 patches:
-- patch: |-
-    - op: replace
-      path: /subjects/0/namespace
-      value: redhat-ods-applications
-  target:
-    kind: ClusterRoleBinding
-    name: workspaces-manager-rolebinding
-- patch: |-
-    - op: replace
-      path: /subjects/0/namespace
-      value: redhat-ods-applications
-  target:
-    kind: RoleBinding
-    name: workspaces-leader-election-rolebinding
 - patch: |-
     # OpenShift SCC: allow the platform to assign UID (restricted-v2 / nonroot-v2).
     - op: remove
