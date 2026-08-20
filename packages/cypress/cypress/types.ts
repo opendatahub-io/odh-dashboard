@@ -665,6 +665,8 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+  datasetName: string;
+  featureServiceName: string;
   dspProjectName: string;
   workbenchName: string;
   sectionTab: string;
