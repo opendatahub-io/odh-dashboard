@@ -832,7 +832,6 @@ export const verifyMaaSModelInferencing = (
           ...(apiKey && { Authorization: 'Bearer <redacted>' }),
         })}`,
       );
-      cy.log(`API Key: ${apiKey}`);
       cy.log(`Request body: ${JSON.stringify(requestBody)}`);
       cy.log(`Request timeout: ${completionsRequestTimeoutMs}ms`);
       const requestOptions: Partial<Cypress.RequestOptions> & { strictSSL: boolean } = {

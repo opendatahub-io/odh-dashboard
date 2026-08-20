@@ -350,7 +350,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
 
           cy.step('Try and inference with the model using the copied API key');
-          cy.log(`API Key: ${apiKeys[0]}`);
           verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(
             projectName,
             () => modelName,

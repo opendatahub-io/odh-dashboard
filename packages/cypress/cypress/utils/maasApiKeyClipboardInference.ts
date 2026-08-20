@@ -85,7 +85,7 @@ export const verifyMaaSModelInferenceUsingCopiedApiKeyFromModal = (
 };
 
 /**
- * Asserts the model returns 403 using alias `maasApiKeyToken` (after the key was revoked in the UI).
+ * Asserts the model returns 403 using apiKey (after the key was revoked in the UI).
  *
  * @param getLlmInferenceServiceName Same deferred getter as {@link verifyMaaSModelInferenceUsingCopiedApiKeyFromModal}.
  * @param inferenceOptions Optional `maxAttempts` / `retryIntervalMs` for the MaaS `/v1/completions` POST (e.g. 503 while gateway catches up; 403 is not retried).
