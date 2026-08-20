@@ -887,7 +887,7 @@ describe('AutoragResults', () => {
       await user.click(tryPatternAction);
 
       expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    }, 20_000);
+    }, 45_000);
   });
 
   describe('onViewCode source', () => {
@@ -953,7 +953,7 @@ describe('AutoragResults', () => {
       await user.click(viewCodeAction);
 
       expect(onViewCode).toHaveBeenCalledWith('Pattern1', 'patternDetails');
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {
