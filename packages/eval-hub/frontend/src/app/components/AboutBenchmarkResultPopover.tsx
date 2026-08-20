@@ -6,6 +6,7 @@ import {
   formatBenchmarkScore,
   getBenchmarkDisplayName,
   getJobBenchmarks,
+  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 
 type AboutBenchmarkResultPopoverProps = {
@@ -15,10 +16,7 @@ type AboutBenchmarkResultPopoverProps = {
   provider?: Provider;
 };
 
-const formatThreshold = (threshold: number): string => {
-  const value = threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
-  return `${value}%`;
-};
+const formatThreshold = (threshold: number): string => `${normalizeThreshold(threshold)}%`;
 
 const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = ({
   benchmarkId,

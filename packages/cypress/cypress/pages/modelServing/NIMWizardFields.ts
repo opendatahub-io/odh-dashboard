@@ -33,6 +33,12 @@ export class NIMWizardFields extends SubComponentBase {
     return this.findScope().findByTestId('nim-storage-size-input').find('input');
   }
 
+  /** PF NumberInput is controlled — use select-all instead of clear().type() to avoid stale values. */
+  setStorageSizeGi(sizeGi: number): void {
+    this.findStorageSizeInput().type(`{selectall}${sizeGi}`);
+    this.findStorageSizeInput().should('have.value', String(sizeGi));
+  }
+
   findExistingPVCSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('nim-existing-pvc-select');
   }

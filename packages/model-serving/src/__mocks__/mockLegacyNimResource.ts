@@ -118,6 +118,10 @@ export const mockNimServingRuntimeTemplate = ({
     namespace,
     // NIM writes the selected image and the shm mounts onto the `kserve-container`
     containerName: 'kserve-container',
+    // Real NIM operator templates ship a placeholder `nim-pvc` volume that must be
+    // replaced at deploy time — keep that shape so wizard tests catch leftovers.
+    volumes: [{ name: 'nim-pvc', persistentVolumeClaim: { claimName: 'nim-pvc' } }],
+    containerVolumeMounts: [{ name: 'nim-pvc', mountPath: '/mnt/models/cache' }],
   });
   if (templateMock.metadata.annotations != null) {
     templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';
