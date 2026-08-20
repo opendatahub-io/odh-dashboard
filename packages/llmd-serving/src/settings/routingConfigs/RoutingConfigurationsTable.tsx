@@ -11,7 +11,11 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
 import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../../types';
-import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
+import {
+  isConfigEnabled,
+  isConfigEffectivelyEnabled,
+  isDeletionBlockedByFinalizer,
+} from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
@@ -89,14 +93,21 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
     }
     setIsDeleting(true);
     try {
-      await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
+      const result = await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
         model: LLMInferenceServiceConfigModel,
         queryOptions: {
           name: deleteConfig.metadata.name,
           ns: dashboardNamespace,
         },
       });
-      setDeleteConfig(undefined);
+      if (isDeletionBlockedByFinalizer(result)) {
+        notification.error(
+          'Unable to delete configuration',
+          'This configuration is currently in use by a deployment and cannot be deleted until the deployment is removed.',
+        );
+      } else {
+        setDeleteConfig(undefined);
+      }
     } catch (e) {
       notification.error(
         'Error deleting configuration',

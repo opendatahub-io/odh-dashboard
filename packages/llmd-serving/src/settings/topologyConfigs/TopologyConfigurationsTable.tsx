@@ -26,7 +26,11 @@ import {
   TopologyTypeLabels,
   getConfigTopologyType,
 } from '../../types';
-import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
+import {
+  isConfigEnabled,
+  isConfigEffectivelyEnabled,
+  isDeletionBlockedByFinalizer,
+} from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
 
 const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
@@ -119,8 +123,15 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
         ns: dashboardNamespace,
       },
     })
-      .then(() => {
-        setDeleteConfig(undefined);
+      .then((result) => {
+        if (isDeletionBlockedByFinalizer(result)) {
+          notification.error(
+            'Unable to delete configuration',
+            'This configuration is currently in use by a deployment and cannot be deleted until the deployment is removed.',
+          );
+        } else {
+          setDeleteConfig(undefined);
+        }
       })
       .catch((e: unknown) => {
         notification.error(
