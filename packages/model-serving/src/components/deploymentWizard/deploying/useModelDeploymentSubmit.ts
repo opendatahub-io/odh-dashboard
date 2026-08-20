@@ -20,7 +20,10 @@ import {
 } from '../../../shared/tracking/deploymentTracking';
 import { useWizardTrackingProperties } from '../../../shared/tracking/useWizardTrackingProperties';
 import { MODEL_CAPABILITIES_FIELD_ID } from '../fields/modelCapabilities/ModelCapabilitiesField';
-import { getCapabilityCounts } from '../../../shared/tracking/modelCapabilitiesTracking';
+import {
+  getCapabilityCounts,
+  type ModelDeployedCapabilityProperties,
+} from '../../../shared/tracking/modelCapabilitiesTracking';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -66,8 +69,11 @@ export const useModelDeploymentSubmit = (
   const getBaseTrackingProperties = React.useCallback((): Omit<
     DeploymentTrackingProperties,
     'outcome' | 'success' | 'error'
-  > => {
+  > &
+    ModelDeployedCapabilityProperties => {
     const serverTemplateName = formState.modelServer?.data?.selection?.name;
+    const capabilitiesRaw: unknown = formState[MODEL_CAPABILITIES_FIELD_ID];
+    const capabilities: string[] = Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [];
     return {
       modelType: formState.modelType.data?.type,
       runtime: serverTemplateName,
@@ -75,6 +81,7 @@ export const useModelDeploymentSubmit = (
       servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
       numReplicas: formState.numReplicas.data ?? undefined,
       modelLocationType: formState.modelLocationData.data?.type,
+      ...getCapabilityCounts(capabilities),
     };
   }, [formState]);
 
@@ -142,16 +149,12 @@ export const useModelDeploymentSubmit = (
           runPostDeploy,
         );
 
-        const capabilitiesRaw: unknown = formState[MODEL_CAPABILITIES_FIELD_ID];
-        const capabilities: string[] = Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [];
-
         fireModelDeployed(
           {
             outcome: TrackingOutcome.submit,
             success: true,
             ...getBaseTrackingProperties(),
             ...(await getTrackingProperties()),
-            ...getCapabilityCounts(capabilities),
           },
           isEdit,
         );
@@ -161,9 +164,6 @@ export const useModelDeploymentSubmit = (
         const errorMessage = error instanceof Error ? error.message : String(error);
         setSubmitError(error instanceof Error ? error : new Error(errorMessage));
 
-        const capabilitiesRaw: unknown = formState[MODEL_CAPABILITIES_FIELD_ID];
-        const capabilities: string[] = Array.isArray(capabilitiesRaw) ? capabilitiesRaw : [];
-
         fireModelDeployed(
           {
             outcome: TrackingOutcome.submit,
@@ -171,7 +171,6 @@ export const useModelDeploymentSubmit = (
             errorMessage,
             ...getBaseTrackingProperties(),
             ...(await getTrackingProperties()),
-            ...getCapabilityCounts(capabilities),
           },
           isEdit,
         );

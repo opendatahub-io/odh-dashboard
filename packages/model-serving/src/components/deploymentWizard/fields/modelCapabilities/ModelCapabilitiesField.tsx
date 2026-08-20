@@ -34,13 +34,13 @@ import {
   includesModelCapability,
   isSameModelCapability,
   normalizeModelCapability,
-  resolveWellKnownModelCapability,
   type ModelCapability,
 } from '../../../../shared/modelCapabilities';
 import {
   fireCapabilityAdded,
   fireCapabilityMenuOpened,
   fireCapabilityRemoved,
+  toCapabilityEventProps,
 } from '../../../../shared/tracking/modelCapabilitiesTracking';
 
 export type ModelCapabilitiesFieldData = ModelCapability[];
@@ -79,10 +79,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
   );
 
   const handleAddWellKnown = (capability: string) => {
-    fireCapabilityAdded(trackEvent, {
-      capabilityName: capability,
-      isSuggested: true,
-    });
+    fireCapabilityAdded(trackEvent, toCapabilityEventProps(capability));
     onChange([...selectedCapabilities, capability]);
   };
 
@@ -97,21 +94,13 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
       return;
     }
     setCustomInputError('');
-    const isSuggested = resolveWellKnownModelCapability(capability) != null;
-    fireCapabilityAdded(trackEvent, {
-      capabilityName: isSuggested ? capability : 'custom',
-      isSuggested,
-    });
+    fireCapabilityAdded(trackEvent, toCapabilityEventProps(capability));
     onChange([...selectedCapabilities, capability]);
     setCustomInput('');
   };
 
   const handleRemove = (capability: string) => {
-    const isSuggested = resolveWellKnownModelCapability(capability) != null;
-    fireCapabilityRemoved(trackEvent, {
-      capabilityName: isSuggested ? capability : 'custom',
-      isSuggested,
-    });
+    fireCapabilityRemoved(trackEvent, toCapabilityEventProps(capability));
     onChange(selectedCapabilities.filter((c) => !isSameModelCapability(c, capability)));
   };
 
