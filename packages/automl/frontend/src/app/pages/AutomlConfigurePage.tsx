@@ -3,7 +3,6 @@ import {
   ActionList,
   ActionListGroup,
   ActionListItem,
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Content,
@@ -14,10 +13,11 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -63,8 +63,8 @@ function AutomlConfigurePage({
   sourceRunName,
 }: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
   const notification = useNotification();
+  const location = useLocation();
   const locationFrom =
     location.state != null && typeof location.state === 'object' && 'from' in location.state
       ? location.state.from
@@ -86,6 +86,10 @@ function AutomlConfigurePage({
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
+  const projectDisplayName = useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
@@ -199,6 +203,15 @@ function AutomlConfigurePage({
     navigate(-1);
   }, [navigate, description, cancelExitDestination]);
 
+  const handleHomeNavigate = useCallback(() => {
+    fireAutomlFlowExited(
+      'navigate',
+      funnelStepRef.current,
+      'experimentsList',
+      changedFieldsOnExitRef.current,
+    );
+  }, []);
+
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
     // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
@@ -299,44 +312,19 @@ function AutomlConfigurePage({
         )
       }
       breadcrumb={
-        (step === 'configure' || sourceRunId) && (
-          <Breadcrumb>
-            <BreadcrumbItem>
-              <Link
-                to={getRedirectPath(namespace!)}
-                onClick={() =>
-                  fireAutomlFlowExited(
-                    'navigate',
-                    funnelStepRef.current,
-                    'experimentsList',
-                    changedFieldsOnExitRef.current,
-                  )
-                }
-              >
-                AutoML: {namespace}
-              </Link>
-            </BreadcrumbItem>
-            {fromResultsPage && sourceRunId && sourceRunName && (
-              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link
-                  to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
-                  onClick={() =>
-                    fireAutomlFlowExited(
-                      'navigate',
-                      funnelStepRef.current,
-                      'otherAutoml',
-                      changedFieldsOnExitRef.current,
-                    )
-                  }
-                >
-                  <Truncate content={sourceRunName} />
-                </Link>
-              </BreadcrumbItem>
-            )}
+        (step === 'configure' || sourceRunId) &&
+        namespace && (
+          <ExperimentContextBreadcrumb
+            pageName="AutoML"
+            namespace={namespace}
+            projectDisplayName={projectDisplayName}
+            homePath={getRedirectPath(namespace)}
+            onHomeNavigate={handleHomeNavigate}
+          >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
+              Experiment configurations
             </BreadcrumbItem>
-          </Breadcrumb>
+          </ExperimentContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}

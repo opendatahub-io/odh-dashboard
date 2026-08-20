@@ -5,8 +5,3 @@ const registeredModelsRoute = (preferredModelRegistry?: string): string =>
 
 export const registeredModelRoute = (rmId = '', preferredModelRegistry?: string): string =>
   `${registeredModelsRoute(preferredModelRegistry)}/${rmId}`;
-
-export const registeredModelDeploymentsRoute = (
-  rmId = '',
-  preferredModelRegistry?: string,
-): string => `${registeredModelRoute(rmId, preferredModelRegistry)}/deployments`;

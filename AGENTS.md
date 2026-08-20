@@ -141,8 +141,8 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
-| **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification (pass module name as argument) |
-| **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, Tekton pipelines, DevOps coordination, RHOAI downstream setup |
+| **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification. Standalone manifests and operator registration are deferred to `/konflux-onboarding` (pass module name as argument) |
+| **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, standalone manifests, OpenShift CI, operator registration, DevOps coordination, RHOAI downstream setup |
 | **Prototype Spec**                 | `skills/prototype-spec/`               | Extracting PF component details from a UX prototype fork, scoped to a Jira ticket or epic |
 | **Prototype Tickets**              | `skills/prototype-tickets/`            | Drafting Jira tickets from a UX prototype fork — splits by feature area, generates ACs from prototype scenarios |
 | **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |

@@ -30,6 +30,24 @@ import {
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
+const validateCollection = (data: unknown): void => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid collection: expected an object');
+  }
+  if (!('name' in data) || typeof data.name !== 'string' || data.name.length === 0) {
+    throw new Error('Invalid collection: missing or empty name');
+  }
+  if (!('resource' in data) || !data.resource || typeof data.resource !== 'object') {
+    throw new Error('Invalid collection: missing resource');
+  }
+  if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
+    throw new Error('Invalid collection: missing resource.id');
+  }
+  if ('benchmarks' in data && data.benchmarks != null && !Array.isArray(data.benchmarks)) {
+    throw new Error('Invalid collection: benchmarks is not an array');
+  }
+};
+
 const validateEvaluationJob = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid evaluation job: missing results');
@@ -232,6 +250,28 @@ export const deleteEvaluationJob =
         opts,
       ),
     ).then(() => undefined);
+
+export const getCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
 
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>
