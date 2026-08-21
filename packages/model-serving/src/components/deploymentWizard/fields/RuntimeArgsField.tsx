@@ -77,7 +77,11 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
     <Stack hasGutter>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="pf-v6-u-font-weight-bold" data-testid="runtime-args-label">
+          <span
+            id="runtime-args-label"
+            className="pf-v6-u-font-weight-bold"
+            data-testid="runtime-args-label"
+          >
             Additional runtime arguments
           </span>
           <Popover
@@ -128,6 +132,7 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
         <TextArea
           id="runtime-args-textarea"
           data-testid="runtime-args-textarea"
+          aria-labelledby="runtime-args-label"
           placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
           value={`${data.args.join('\n')}\n`}
           onChange={handleTextAreaChange}
