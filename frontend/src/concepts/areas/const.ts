@@ -29,6 +29,7 @@ export const techPreviewFlags = {
   agentOps: false,
   connectionTest: false,
   dataRegistry: false,
+  dataConnectHub: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -307,5 +308,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
+  },
+  [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
+    featureFlags: ['dataConnectHub'],
   },
 };
