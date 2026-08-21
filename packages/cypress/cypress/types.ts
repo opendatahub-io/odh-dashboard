@@ -66,6 +66,11 @@ export type DspaReplacements = {
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
   AWS_REGION: string;
+  AWS_S3_HOST: string;
+  AWS_S3_SCHEME: string;
+  MLFLOW_INTEGRATION_MODE: string;
+  MLFLOW_INJECT_USER_ENV_VARS: string;
+  PIPELINE_STORE: string;
 };
 
 export type StorageClassConfig = {
@@ -969,4 +974,22 @@ export type AgentRuntimesTestData = {
   filterOptionStatus: string;
   statusPending: string;
   statusReady: string;
+};
+
+export type MlflowIrisRunData = {
+  name: string;
+  description: string;
+  neighbors: string;
+  standardScaler: 'true' | 'false';
+};
+
+export type MlflowPipelineIntegrationTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  pipelineName: string;
+  pipelineDescription: string;
+  experimentName: string;
+  mlflowExperimentName: string;
+  run1: MlflowIrisRunData;
+  run2: MlflowIrisRunData;
 };

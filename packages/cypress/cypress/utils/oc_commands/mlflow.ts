@@ -10,7 +10,7 @@ const UI_POLL_CONFIG = {
   pollIntervalMs: 5000,
 } as const;
 
-const assertNamespace = (namespace: string): string => {
+export const assertNamespace = (namespace: string): string => {
   if (!K8S_NAMESPACE_RE.test(namespace)) {
     throw new Error(`Invalid namespace: ${namespace}`);
   }
@@ -136,6 +136,12 @@ const waitForMlflowCRAvailable = (namespace: string): Cypress.Chainable<Cypress.
  * then cy.reload() for subsequent attempts to avoid repeated OAuth overhead.
  */
 const SIDEBAR_SETTLE_TIMEOUT = 30000;
+const DASHBOARD_SESSION_TIMEOUT = 60000;
+
+export const waitForDashboardSession = (): Cypress.Chainable<JQuery<HTMLElement>> =>
+  cy.get('#page-sidebar', {
+    timeout: DASHBOARD_SESSION_TIMEOUT,
+  });
 
 const logSidebarDiagnostics = (): void => {
   cy.window({ log: false }).then((win) => {
@@ -233,7 +239,7 @@ const waitForNavItemInSidebar = (navLabel: string, url = '/'): Cypress.Chainable
     cy.get('[data-testid="dashboard-page-main"]', { timeout: SIDEBAR_SETTLE_TIMEOUT });
 
     return appChrome
-      .findSideBar()
+      .findSideBar({ timeout: SIDEBAR_SETTLE_TIMEOUT })
       .then(() => findNavItemInSidebar(navLabel))
       .then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -421,6 +427,99 @@ export const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
 };
 
 /**
+ * Poll the dashboard MLflow BFF until it reports configured=true.
+ *
+ * After a full cy.visit the shared useMLflowStatus store resets; create-run
+ * hides the MLflow section until this endpoint succeeds. Requires an active
+ * browser session (call after cy.visitWithLogin).
+ */
+export const waitForMlflowBffConfigured = (timeoutMs = 60000): Cypress.Chainable<boolean> => {
+  const pollIntervalMs = 2000;
+  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+  const startTime = Date.now();
+
+  const check = (attempt = 1): Cypress.Chainable<boolean> => {
+    return cy
+      .request({
+        url: '/_bff/mlflow/api/v1/status',
+        failOnStatusCode: false,
+        timeout: 10000,
+        log: false,
+      })
+      .then((resp: Cypress.Response<{ configured?: boolean }>) => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        if (resp.status === 200 && resp.body.configured === true) {
+          cy.log(`MLflow BFF configured=true (after ${elapsed}s)`);
+          return cy.wrap(true);
+        }
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `MLflow BFF not configured after ${elapsed}s (HTTP ${
+              resp.status
+            }, body=${JSON.stringify(resp.body)})`,
+          );
+        }
+        cy.log(
+          `MLflow BFF not configured yet (attempt ${attempt}/${maxAttempts}, HTTP ${resp.status})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+      });
+  };
+
+  cy.log(`Polling MLflow BFF /status for configured=true (max ${timeoutMs / 1000}s)`);
+  return check();
+};
+
+export const waitForDspaWebhookReady = (
+  projectName: string,
+  timeout: number,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = assertNamespace(projectName);
+  return cy
+    .exec(`oc wait --for=condition=WebhookReady dspa/dspa -n ${ns} --timeout=${timeout}ms`, {
+      failOnNonZeroExit: false,
+      timeout,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `DSPA WebhookReady wait failed: ${maskSensitiveInfo(result.stderr || result.stdout)}`,
+        );
+      }
+      return result;
+    });
+};
+
+/**
+ * DSPA condition Ready can flip True before the API server pod is Ready.
+ * CreateRun in that window stores plugins_input (experiment column works) but
+ * skips the MLflow plugin, so plugins_output / root_run_id never appear and
+ * Compare stays on the KFP URL.
+ */
+export const waitForDspaApiServerPodReady = (
+  projectName: string,
+  timeout: number,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = assertNamespace(projectName);
+  return cy
+    .exec(
+      `oc wait --for=condition=Ready pod -l app=ds-pipeline-dspa -n ${ns} --timeout=${timeout}ms`,
+      { failOnNonZeroExit: false, timeout },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `DSPA API server pod Ready wait failed: ${maskSensitiveInfo(
+            result.stderr || result.stdout,
+          )}`,
+        );
+      }
+      return result;
+    });
+};
+
+/**
  * Enable MLflow tracking server (no Gen AI):
  * 1. Wait for MLflow operator pod to be running
  * 2. Create an MLflow CR and wait for it to be ready
@@ -435,7 +534,7 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
     .then(() => {
       cy.step('Establish browser session for remote entry check');
       cy.visitWithLogin('/');
-      return cy.get('#page-sidebar', { timeout: 15000 });
+      return waitForDashboardSession();
     })
     .then(() => {
       cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
@@ -480,7 +579,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     .then(() => {
       cy.step('Establish browser session for remote entry check');
       cy.visitWithLogin(devFlagsUrl);
-      return cy.get('#page-sidebar', { timeout: 15000 });
+      return waitForDashboardSession();
     })
     .then(() => {
       cy.step('Wait for mlflowEmbedded module federation remote to be loadable');

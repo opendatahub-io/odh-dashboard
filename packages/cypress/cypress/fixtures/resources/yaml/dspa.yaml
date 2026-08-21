@@ -19,6 +19,7 @@ spec:
     trackArtifacts: true
     collectMetrics: true
     injectDefaultScript: true
+    pipelineStore: {{PIPELINE_STORE}}
   database:
     disableHealthCheck: false
     mariaDB:
@@ -27,20 +28,23 @@ spec:
       pvcSize: 10Gi
       username: mlpipeline
   dspVersion: v2
+  mlflow:
+    integrationMode: {{MLFLOW_INTEGRATION_MODE}}
+    injectUserEnvVars: {{MLFLOW_INJECT_USER_ENV_VARS}}
   objectStorage:
     disableHealthCheck: false
     enableExternalRoute: false
     externalStorage:
       basePath: ''
       bucket: {{AWS_S3_BUCKET}}
-      host: s3.amazonaws.com
+      host: {{AWS_S3_HOST}}
       port: ''
       region: {{AWS_REGION}}
       s3CredentialsSecret:
         accessKey: AWS_ACCESS_KEY_ID
         secretKey: AWS_SECRET_ACCESS_KEY
         secretName: {{DSPA_SECRET_NAME}}
-      scheme: https
+      scheme: {{AWS_S3_SCHEME}}
   persistenceAgent:
     deploy: true
     numWorkers: 2
