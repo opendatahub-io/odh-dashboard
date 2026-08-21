@@ -8,9 +8,9 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import {
-  llmdRoutingSettingsPage,
+  routingConfigurations,
   llmdRoutingCreatePage,
-} from '@odh-dashboard/cypress/cypress/pages/llmdRoutingSettings';
+} from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/routingConfigurations';
 
 const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-scheduler',
@@ -87,88 +87,84 @@ describe('LLMD Routing Admin Settings', () => {
   describe('tab visibility', () => {
     it('should show routing configurations tab when flags enabled', () => {
       initIntercepts();
-      llmdRoutingSettingsPage.visit();
-      llmdRoutingSettingsPage
-        .findTabPageTitle()
-        .should('contain.text', 'Model deployment settings');
-      llmdRoutingSettingsPage.findTab().should('exist');
-      llmdRoutingSettingsPage.findTable().should('exist');
+      routingConfigurations.visit();
+      routingConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
+      routingConfigurations.findTab().should('exist');
+      routingConfigurations.findTable().should('exist');
     });
   });
 
   describe('empty state', () => {
     it('should show empty state when no routing configurations exist', () => {
       initIntercepts({ configs: [] });
-      llmdRoutingSettingsPage.visit(false);
-      llmdRoutingSettingsPage
-        .findTabPageTitle()
-        .should('contain.text', 'Model deployment settings');
-      llmdRoutingSettingsPage.findTab().should('exist');
-      llmdRoutingSettingsPage.findEmptyState().should('exist');
-      llmdRoutingSettingsPage
+      routingConfigurations.visit(false);
+      routingConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
+      routingConfigurations.findTab().should('exist');
+      routingConfigurations.findEmptyState().should('exist');
+      routingConfigurations
         .findEmptyState()
         .should('contain.text', 'No llm-d routing configurations');
-      llmdRoutingSettingsPage.findEmptyStateAddButton().should('exist');
+      routingConfigurations.findEmptyStateAddButton().should('exist');
     });
 
     it('should navigate to add page from empty state button', () => {
       initIntercepts({ configs: [] });
-      llmdRoutingSettingsPage.visit(false);
-      llmdRoutingSettingsPage.findEmptyStateAddButton().click();
+      routingConfigurations.visit(false);
+      routingConfigurations.findEmptyStateAddButton().click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/routing-configurations/add',
       );
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdRoutingSettingsPage.findTabPageTitle().should('not.exist');
-      llmdRoutingSettingsPage.findTab().should('not.exist');
-      llmdRoutingSettingsPage.findAppTitle().should('have.text', 'Add llm-d routing configuration');
+      routingConfigurations.findTabPageTitle().should('not.exist');
+      routingConfigurations.findTab().should('not.exist');
+      routingConfigurations.findAppTitle().should('have.text', 'Add llm-d routing configuration');
     });
   });
 
   describe('configurations table', () => {
     beforeEach(() => {
       initIntercepts();
-      llmdRoutingSettingsPage.visit();
+      routingConfigurations.visit();
     });
 
     it('should list routing configs with correct columns', () => {
-      llmdRoutingSettingsPage.getRow('managed-scheduler-httproute').find().should('exist');
-      llmdRoutingSettingsPage
+      routingConfigurations.getRow('managed-scheduler-httproute').find().should('exist');
+      routingConfigurations
         .getRow('managed-scheduler-httproute')
         .find()
         .should('contain.text', 'Managed scheduler with HTTPRoute');
 
-      llmdRoutingSettingsPage.getRow('managed-scheduler').find().should('exist');
-      llmdRoutingSettingsPage
+      routingConfigurations.getRow('managed-scheduler').find().should('exist');
+      routingConfigurations
         .getRow('managed-scheduler')
         .find()
         .should('contain.text', 'Managed scheduler');
 
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').find().should('exist');
-      llmdRoutingSettingsPage
+      routingConfigurations.getRow('lab-routing-profile').find().should('exist');
+      routingConfigurations
         .getRow('lab-routing-profile')
         .find()
         .should('contain.text', 'Lab routing profile');
     });
 
     it('should show pre-installed badge on well-known configs', () => {
-      llmdRoutingSettingsPage.getRow('managed-scheduler').shouldHavePreInstalledLabel(true);
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').shouldHavePreInstalledLabel(false);
+      routingConfigurations.getRow('managed-scheduler').shouldHavePreInstalledLabel(true);
+      routingConfigurations.getRow('lab-routing-profile').shouldHavePreInstalledLabel(false);
     });
 
     it('should show topology type labels', () => {
-      llmdRoutingSettingsPage
+      routingConfigurations
         .getRow('managed-scheduler-httproute')
         .findTopologyTypeCell()
         .should('have.text', 'Single node, Multi-node');
-      llmdRoutingSettingsPage
+      routingConfigurations
         .getRow('managed-scheduler')
         .findTopologyTypeCell()
         .should('have.text', 'Single node');
       // No supported topologies annotation means the config applies to all topologies
-      llmdRoutingSettingsPage
+      routingConfigurations
         .getRow('managed-httproute')
         .findTopologyTypeCell()
         .should('have.text', 'All');
@@ -192,7 +188,7 @@ describe('LLMD Routing Admin Settings', () => {
         patchedConfig,
       ).as('patchConfig');
 
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').findEnabledSwitch().click();
+      routingConfigurations.getRow('lab-routing-profile').findEnabledSwitch().click();
       cy.wait('@patchConfig').then((interception) => {
         const patches: { op: string; path: string; value: string }[] = interception.request.body;
         const disabledPatch = patches.find(
@@ -203,40 +199,40 @@ describe('LLMD Routing Admin Settings', () => {
     });
 
     it('should hide delete action for pre-installed configs', () => {
-      llmdRoutingSettingsPage
+      routingConfigurations
         .getRow('managed-scheduler')
         .findKebabAction('Delete', false)
         .should('not.exist');
     });
 
     it('should show delete action for user-created configs', () => {
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').findKebabAction('Delete');
+      routingConfigurations.getRow('lab-routing-profile').findKebabAction('Delete');
     });
 
     it('should navigate to edit form when clicking Edit action', () => {
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').findKebabAction('Edit').click();
+      routingConfigurations.getRow('lab-routing-profile').findKebabAction('Edit').click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/routing-configurations/edit/lab-routing-profile',
       );
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdRoutingSettingsPage.findTabPageTitle().should('not.exist');
-      llmdRoutingSettingsPage.findTab().should('not.exist');
-      llmdRoutingSettingsPage.findAppTitle().should('have.text', 'Edit Lab routing profile');
+      routingConfigurations.findTabPageTitle().should('not.exist');
+      routingConfigurations.findTab().should('not.exist');
+      routingConfigurations.findAppTitle().should('have.text', 'Edit Lab routing profile');
     });
 
     it('should navigate to duplicate form when clicking Duplicate action', () => {
-      llmdRoutingSettingsPage.getRow('lab-routing-profile').findKebabAction('Duplicate').click();
+      routingConfigurations.getRow('lab-routing-profile').findKebabAction('Duplicate').click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/routing-configurations/duplicate/lab-routing-profile',
       );
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdRoutingSettingsPage.findTabPageTitle().should('not.exist');
-      llmdRoutingSettingsPage.findTab().should('not.exist');
-      llmdRoutingSettingsPage
+      routingConfigurations.findTabPageTitle().should('not.exist');
+      routingConfigurations.findTab().should('not.exist');
+      routingConfigurations
         .findAppTitle()
         .should('have.text', 'Duplicate llm-d routing configuration');
     });
@@ -245,16 +241,16 @@ describe('LLMD Routing Admin Settings', () => {
   describe('create page', () => {
     beforeEach(() => {
       initIntercepts();
-      llmdRoutingSettingsPage.visit();
-      llmdRoutingSettingsPage.findAddButton().click();
+      routingConfigurations.visit();
+      routingConfigurations.findAddButton().click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/routing-configurations/add',
       );
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdRoutingSettingsPage.findTabPageTitle().should('not.exist');
-      llmdRoutingSettingsPage.findTab().should('not.exist');
+      routingConfigurations.findTabPageTitle().should('not.exist');
+      routingConfigurations.findTab().should('not.exist');
       llmdRoutingCreatePage.findTitle().should('have.text', 'Add llm-d routing configuration');
     });
 
@@ -273,7 +269,7 @@ describe('LLMD Routing Admin Settings', () => {
 
     it('should navigate back on cancel', () => {
       llmdRoutingCreatePage.findCancelButton().click();
-      llmdRoutingSettingsPage.findTable().should('exist');
+      routingConfigurations.findTable().should('exist');
     });
   });
 });

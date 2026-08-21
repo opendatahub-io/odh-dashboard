@@ -4,28 +4,30 @@ import {
   interceptLlmAcceleratorConfigPatch,
 } from './llmAcceleratorConfigsUtils';
 import {
-  llmAcceleratorConfigs,
+  llmAcceleratorConfigurations,
   unsupportedStatusAcceptanceModal,
-} from '../../../pages/llmAcceleratorConfigs';
+} from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
 
 it('LLM accelerator configurations should not be available for non product admins', () => {
   asProjectAdminUser();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
-  llmAcceleratorConfigs.visit(false);
+  llmAcceleratorConfigurations.visit(false);
   pageNotfound.findPage().should('exist');
-  llmAcceleratorConfigs.findNavItem().should('not.exist');
+  llmAcceleratorConfigurations.findNavItem().should('not.exist');
 });
 
 it('LLM accelerator configurations tab should not be available when vLLMDeploymentOnMaaS is disabled', () => {
   asProductAdminUser();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: false }));
-  llmAcceleratorConfigs.visit(false);
+  llmAcceleratorConfigurations.visit(false);
   // The parent tabbed page still renders (other tabs are visible), but the accelerator
   // tab is hidden. TabRoutePage redirects to the first available tab.
-  llmAcceleratorConfigs.findTabPageTitle().should('contain.text', 'Model deployment settings');
-  llmAcceleratorConfigs.findTab().should('not.exist');
+  llmAcceleratorConfigurations
+    .findTabPageTitle()
+    .should('contain.text', 'Model deployment settings');
+  llmAcceleratorConfigurations.findTab().should('not.exist');
 });
 
 describe('LLM accelerator configurations', () => {
@@ -33,31 +35,31 @@ describe('LLM accelerator configurations', () => {
     asProductAdminUser();
     llmAcceleratorConfigsIntercept();
 
-    llmAcceleratorConfigs.visit();
+    llmAcceleratorConfigurations.visit();
   });
 
   it('should render the page with configs from the API', () => {
-    llmAcceleratorConfigs.findNavItem().should('exist');
-    llmAcceleratorConfigs.getRowByName('vllm-cuda').find().should('exist');
-    llmAcceleratorConfigs.getRowByName('vllm-rocm').find().should('exist');
-    llmAcceleratorConfigs.getRowByName('vllm-cpu').find().should('exist');
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').find().should('exist');
-    llmAcceleratorConfigs.getRowByName('vllm-gaudi').find().should('exist');
+    llmAcceleratorConfigurations.findNavItem().should('exist');
+    llmAcceleratorConfigurations.getRowByName('vllm-cuda').find().should('exist');
+    llmAcceleratorConfigurations.getRowByName('vllm-rocm').find().should('exist');
+    llmAcceleratorConfigurations.getRowByName('vllm-cpu').find().should('exist');
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').find().should('exist');
+    llmAcceleratorConfigurations.getRowByName('vllm-gaudi').find().should('exist');
   });
 
   it('should show enabled toggle ON for enabled config and OFF for disabled config', () => {
-    llmAcceleratorConfigs.getRowByName('vllm-cuda').shouldBeEnabled(true);
-    llmAcceleratorConfigs.getRowByName('vllm-cpu').shouldBeEnabled(false);
+    llmAcceleratorConfigurations.getRowByName('vllm-cuda').shouldBeEnabled(true);
+    llmAcceleratorConfigurations.getRowByName('vllm-cpu').shouldBeEnabled(false);
   });
 
   it('should show toggle OFF for unsupported unaccepted config', () => {
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').shouldBeEnabled(false);
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').shouldHaveUnsupportedLabel(true);
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').shouldBeEnabled(false);
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').shouldHaveUnsupportedLabel(true);
   });
 
   it('should disable a config by toggling off', () => {
     interceptLlmAcceleratorConfigPatch('vllm-cuda');
-    llmAcceleratorConfigs.getRowByName('vllm-cuda').findEnabledToggle().click();
+    llmAcceleratorConfigurations.getRowByName('vllm-cuda').findEnabledToggle().click();
 
     cy.wait('@patchConfig').then((interception) => {
       const body = interception.request.body as { op: string; path: string; value: string }[];
@@ -70,7 +72,7 @@ describe('LLM accelerator configurations', () => {
   it('should show acceptance modal when toggling on an unsupported unaccepted config', () => {
     unsupportedStatusAcceptanceModal.shouldNotExist();
 
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').findEnabledToggle().click();
 
     unsupportedStatusAcceptanceModal.shouldBeOpen();
     unsupportedStatusAcceptanceModal
@@ -79,7 +81,7 @@ describe('LLM accelerator configurations', () => {
   });
 
   it('should dismiss modal without patching when cancel is clicked', () => {
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').findEnabledToggle().click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
     unsupportedStatusAcceptanceModal.findCancelButton().click();
@@ -89,7 +91,7 @@ describe('LLM accelerator configurations', () => {
 
   it('should patch config when accept is clicked on unsupported modal', () => {
     interceptLlmAcceleratorConfigPatch('vllm-tpu');
-    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+    llmAcceleratorConfigurations.getRowByName('vllm-tpu').findEnabledToggle().click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
     unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
@@ -111,9 +113,9 @@ describe('LLM accelerator configurations', () => {
 
   it('should toggle already-accepted unsupported config normally without modal', () => {
     interceptLlmAcceleratorConfigPatch('vllm-gaudi');
-    llmAcceleratorConfigs.getRowByName('vllm-gaudi').shouldBeEnabled(false);
+    llmAcceleratorConfigurations.getRowByName('vllm-gaudi').shouldBeEnabled(false);
 
-    llmAcceleratorConfigs.getRowByName('vllm-gaudi').findEnabledToggle().click();
+    llmAcceleratorConfigurations.getRowByName('vllm-gaudi').findEnabledToggle().click();
 
     cy.wait('@patchConfig').then((interception) => {
       const body = interception.request.body as { op: string; path: string; value: string }[];

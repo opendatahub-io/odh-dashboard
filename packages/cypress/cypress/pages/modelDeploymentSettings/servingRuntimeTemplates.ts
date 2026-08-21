@@ -1,7 +1,7 @@
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
-import { appChrome } from './appChrome';
-import { DashboardCodeEditor } from './components/DashboardCodeEditor';
-import type { ModelTypeLabelValue } from '../utils/modelServingConstants';
+import { appChrome } from '../appChrome';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
+import type { ModelTypeLabelValue } from '../../utils/modelServingConstants';
 
 class ServingRuntimeRow {
   constructor(public readonly id: string) {}
@@ -68,7 +68,7 @@ class ServingRuntimeRow {
   }
 }
 
-class ServingRuntimes {
+class ServingRuntimeTemplates {
   visit(wait = true) {
     cy.visitWithLogin(
       '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
@@ -104,8 +104,15 @@ class ServingRuntimes {
     });
   }
 
+  // The standalone add/edit/duplicate form pages still render 'app-page-title'.
   findAppTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  // The serving-runtime-templates tab lives under the Model deployment settings
+  // tab-route page, whose title uses the 'app-tab-page-title' testid.
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
   }
 
   findAddButton() {
@@ -191,4 +198,4 @@ class ServingRuntimes {
   }
 }
 
-export const servingRuntimes = new ServingRuntimes();
+export const servingRuntimeTemplates = new ServingRuntimeTemplates();
