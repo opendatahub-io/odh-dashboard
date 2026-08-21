@@ -338,6 +338,45 @@ export const deleteNotebook = (
   });
 };
 
+/**
+ * Starts a background `oc port-forward` for a service and briefly waits for the tunnel to establish.
+ * Only runs when the dashboard `baseUrl` is localhost (e.g. GitHub PR CI runs, where the test runner
+ * accesses cluster services via localhost rather than in-cluster networking). No-ops otherwise, since
+ * on a real cluster the service is already reachable directly.
+ *
+ * @param namespace The namespace containing the service.
+ * @param serviceName The name of the service to port-forward.
+ * @param port The port to forward (used as both the local and remote port).
+ * @param waitTimeMs Time to wait after starting the port-forward for the tunnel to establish (default 3000ms).
+ * @returns A Cypress chainable that resolves once the port-forward process has been started (or immediately if skipped).
+ */
+export const startPortForward = (
+  namespace: string,
+  serviceName: string,
+  port: number,
+  waitTimeMs = 3000,
+): Cypress.Chainable<CommandLineResult | null> => {
+  const baseUrl = Cypress.config('baseUrl') || '';
+  if (!baseUrl.includes('localhost')) {
+    cy.log(`Skipping port-forward for ${serviceName} - baseUrl is not localhost`);
+    return cy.wrap<CommandLineResult | null>(null);
+  }
+
+  const logFile = `/tmp/port-forward-${serviceName}-${port}.log`;
+
+  return cy
+    .exec(
+      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${port} > ${logFile} 2>&1 & echo $!`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult | null> => {
+      cy.log(`Port-forward PID: ${result.stdout.trim()}`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(waitTimeMs);
+      return cy.wrap<CommandLineResult | null>(result);
+    });
+};
+
 export type PollOptions = {
   maxAttempts?: number;
   pollIntervalMs?: number;
