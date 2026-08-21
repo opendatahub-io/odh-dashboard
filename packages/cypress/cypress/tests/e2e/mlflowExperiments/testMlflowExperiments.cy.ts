@@ -5,6 +5,7 @@ import {
   doesMlflowCRExist,
   createMlflowExperimentViaAPI,
   deleteMlflowExperimentViaAPI,
+  findAvailableExperimentSuffix,
   getMlflowExperimentIdByName,
   logMlflowRunsViaAPI,
 } from '../../../utils/oc_commands/mlflow';
@@ -19,6 +20,7 @@ import type { MlflowExperimentsTestData } from '../../../types';
 describe('Verify MLflow Experiments page', () => {
   let testData: MlflowExperimentsTestData;
   let projectName: string;
+  let testSuffix: string;
   let crExisted: boolean | undefined;
   let runsExperimentId: string | undefined;
   let uiExperimentName: string | undefined;
@@ -46,6 +48,20 @@ describe('Verify MLflow Experiments page', () => {
       .then(() => {
         cy.step('Enable all features required for MLflow Experiments');
         return enableMlflowFeatures();
+      })
+      .then(() => {
+        cy.step('Find available experiment suffix to avoid stale name collisions');
+        const allBaseNames = [
+          testData.experiments[0].name,
+          testData.experiments[0].renamedName,
+          testData.experiments[1].name,
+        ];
+        return findAvailableExperimentSuffix(projectName, allBaseNames, uuid).then((suffix) => {
+          testSuffix = suffix;
+          if (suffix !== uuid) {
+            cy.log(`UUID ${uuid} had collisions, using suffix ${suffix} instead`);
+          }
+        });
       });
   });
 
@@ -71,10 +87,10 @@ describe('Verify MLflow Experiments page', () => {
     },
     () => {
       const experiment = testData.experiments[0];
-      const experimentName = `${experiment.name}-${uuid}`;
+      const experimentName = `${experiment.name}-${testSuffix}`;
       uiExperimentName = experimentName;
-      const renamedExperimentName = `${experiment.renamedName}-${uuid}`;
-      const runsExperimentName = `${testData.experiments[1].name}-${uuid}`;
+      const renamedExperimentName = `${experiment.renamedName}-${testSuffix}`;
+      const runsExperimentName = `${testData.experiments[1].name}-${testSuffix}`;
       const [run1, run2] = testData.runs;
 
       // =======================================================================
@@ -185,7 +201,7 @@ describe('Verify MLflow Experiments page', () => {
       mlflowExperiments.findExperimentInTable(experimentName).should('be.visible');
 
       // =======================================================================
-      // Rename experiment
+      // Edit experiment (rename)
       // =======================================================================
 
       cy.step('Click experiment to open detail page');
@@ -194,14 +210,18 @@ describe('Verify MLflow Experiments page', () => {
       cy.step('Open overflow menu on detail page');
       mlflowExperiments.findOverflowMenuTrigger().click();
 
-      cy.step('Click rename action');
-      mlflowExperiments.findRenameAction().click();
+      cy.step('Click edit experiment action');
+      mlflowExperiments.findEditExperimentAction().click();
 
       cy.step('Clear and type new name');
-      mlflowExperiments.findRenameInput().should('be.visible').clear().type(renamedExperimentName);
+      mlflowExperiments
+        .findEditExperimentNameInput()
+        .should('be.visible')
+        .clear()
+        .type(renamedExperimentName);
 
-      cy.step('Submit rename');
-      mlflowExperiments.findRenameSubmitButton().click();
+      cy.step('Submit edit experiment');
+      mlflowExperiments.findEditExperimentSubmitButton().click();
       mlflowExperiments.findExperimentDetailHeading(renamedExperimentName).should('be.visible');
       uiExperimentName = renamedExperimentName;
 
