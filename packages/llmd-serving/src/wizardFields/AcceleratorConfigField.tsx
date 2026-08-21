@@ -107,13 +107,18 @@ export const useAcceleratorConfigData = (
 
   const combined = React.useMemo(() => {
     const enabled = configs.filter(isConfigEffectivelyEnabled);
-    if (
-      referencedConfig &&
-      !enabled.some((c) => c.metadata.name === referencedConfig.metadata.name)
-    ) {
-      return [...enabled, referencedConfig];
+    if (!referencedConfig) {
+      return enabled;
     }
-    return enabled;
+    // The deployment's referenced copy lives in the project namespace and takes precedence: list it
+    // first and drop any dashboard config with the same identity (name + namespace) so a same-named
+    // dashboard config can't shadow the copy the deployment actually references.
+    const withoutDuplicate = enabled.filter(
+      (c) =>
+        c.metadata.name !== referencedConfig.metadata.name ||
+        c.metadata.namespace !== referencedConfig.metadata.namespace,
+    );
+    return [referencedConfig, ...withoutDuplicate];
   }, [configs, referencedConfig]);
 
   return React.useMemo(
@@ -185,11 +190,12 @@ const configSupportsTopology = (
   config: LLMInferenceServiceConfigKind,
   topologyType?: TopologyType,
 ): boolean => {
-  if (topologyType === TopologyType.SINGLE_NODE) {
+  // An absent topology field (LLMD_TOPOLOGY_CONFIGS off) means the deployment is implicitly
+  // single-node — same as isActive treats it — so all single-node configs are visible. Without this,
+  // visibleConfigs would be empty in the vLLMDeploymentOnMaaS-on / llmdTemplates-off combination and
+  // no accelerator config could be selected.
+  if (topologyType === TopologyType.SINGLE_NODE || !topologyType) {
     return true;
-  }
-  if (!topologyType) {
-    return false;
   }
   return getConfigSupportedTopologies(config).includes(topologyType);
 };

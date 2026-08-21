@@ -183,6 +183,25 @@ describe('AcceleratorConfigFieldComponent edit configRef resolution', () => {
     return onChange;
   };
 
+  it('lists accelerator configs when no topology field is present (llmdTemplates off)', () => {
+    // Regression: with the topology field absent the deployment is implicitly single-node, so
+    // single-node configs must still be selectable. Previously visibleConfigs was empty here, so the
+    // Manual dropdown only offered the built-in option in the vLLMDeploymentOnMaaS-on/llmdTemplates-off combo.
+    const onChange = jest.fn();
+    render(
+      <AcceleratorConfigFieldComponent
+        id="accelerator-config"
+        value={{ selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false }}
+        onChange={onChange}
+        externalData={{ data: { configs: [rocm] }, loaded: true }}
+        dependencies={{}}
+        isEditing={false}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('serving-runtime-template-selection-toggle'));
+    expect(screen.getByTestId(`servingRuntime ${rocm.metadata.name}`)).toBeInTheDocument();
+  });
+
   it('resolves a configRef into the referenced config on edit', () => {
     const onChange = renderWithConfigs({ configRef: 'rocm' }, [rocm]);
     expect(onChange).toHaveBeenCalledWith({ selectedConfig: rocm });
@@ -257,7 +276,9 @@ describe('useAcceleratorConfigData', () => {
       project: mockProject,
     });
 
-    expect(renderResult.result.current.data.configs).toEqual([makeConfig('rocm'), localCopy]);
+    // Referenced project-namespace copy is listed first so the edit resolver (which matches by name)
+    // picks it over any same-named dashboard config.
+    expect(renderResult.result.current.data.configs).toEqual([localCopy, makeConfig('rocm')]);
   });
 
   it('does not duplicate the referenced config if it is already a dashboard config', () => {
@@ -267,5 +288,24 @@ describe('useAcceleratorConfigData', () => {
       project: mockProject,
     });
     expect(renderResult.result.current.data.configs).toEqual([makeConfig('rocm')]);
+  });
+
+  it('keeps the referenced copy first when a dashboard config shares its name but not namespace', () => {
+    // Same name, different namespace = different k8s identity. The deployment references the
+    // project-namespace copy, which must take precedence over the dashboard config of the same name.
+    const dashboardSameName = makeConfig('shared-name'); // namespace: 'dashboard'
+    const localCopy: LLMInferenceServiceConfigKind = {
+      ...makeConfig('shared-name'),
+      metadata: { name: 'shared-name', namespace: 'my-project', labels: {} },
+    };
+    setDashboardConfigs([dashboardSameName]);
+    setReferencedConfig(localCopy);
+
+    const renderResult = testHook(useAcceleratorConfigData)({
+      configRef: 'shared-name',
+      project: mockProject,
+    });
+
+    expect(renderResult.result.current.data.configs).toEqual([localCopy, dashboardSameName]);
   });
 });
