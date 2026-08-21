@@ -1,5 +1,4 @@
-# Core RHOAI renames for standalone mode.
-# Does NOT contain sidecar container-index patches (those only apply in sidecar mode).
+# Core RHOAI renames.
 - op: replace
   path: /metadata/name
   value: rhods-dashboard
