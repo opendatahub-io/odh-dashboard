@@ -1,12 +1,19 @@
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sGetResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { RoleKind } from '#~/k8sTypes';
-import { createRole, generateRoleInferenceService, getRole, updateRole } from '#~/api/k8s/roles';
+import {
+  createRole,
+  deleteRole,
+  generateRoleInferenceService,
+  getRole,
+  updateRole,
+} from '#~/api/k8s/roles';
 import { RoleModel } from '#~/api/models/k8s';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -18,6 +25,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 const k8sGetResourceMock = jest.mocked(k8sGetResource);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource);
+const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource);
 const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<RoleKind>);
 
 const namespace = 'namespace';
@@ -125,6 +133,32 @@ describe('updateRole', () => {
       model: RoleModel,
       queryOptions: { queryParams: {} },
       resource: roleMock,
+    });
+  });
+});
+
+describe('deleteRole', () => {
+  it('should delete role', async () => {
+    const mockStatus = { kind: 'Status', status: 'Success' };
+    k8sDeleteResourceMock.mockResolvedValue(mockStatus);
+    const result = await deleteRole('roleName', namespace);
+    expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleModel,
+      queryOptions: { name: 'roleName', ns: namespace, queryParams: {} },
+    });
+    expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(mockStatus);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sDeleteResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(deleteRole('roleName', namespace)).rejects.toThrow('error1');
+    expect(k8sDeleteResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sDeleteResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleModel,
+      queryOptions: { name: 'roleName', ns: namespace, queryParams: {} },
     });
   });
 });

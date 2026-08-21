@@ -43,6 +43,7 @@ import {
   getActiveSourceLabels,
   hasValidatedToolCalling,
   getToolCallingArgs,
+  getValidatedConfigurationsForModel,
   getSortParams,
   getEffectiveSortBy,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
@@ -1915,6 +1916,57 @@ describe('getToolCallingArgs', () => {
       toolCallParser: 'mistral',
     });
     expect(result).toBe('--tool-call-parser mistral');
+  });
+
+  it('should quote values containing whitespace', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'parser with spaces',
+      chatTemplate: '/path with spaces/template.jinja',
+    });
+    expect(result).toContain('--tool-call-parser "parser with spaces"');
+    expect(result).toContain('--chat-template "/path with spaces/template.jinja"');
+  });
+
+  it('should trim and omit empty requiredArgs entries', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      requiredArgs: ['  --config_format granite  ', '   '],
+    });
+    expect(result).toBe('--tool-call-parser granite \\\n--config_format granite');
+  });
+});
+
+describe('getValidatedConfigurationsForModel', () => {
+  const validatedToolCallingModel = {
+    name: 'test-model',
+    validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+  };
+
+  it('should return empty object when the toolCalling flag is disabled', () => {
+    expect(getValidatedConfigurationsForModel(validatedToolCallingModel, false)).toEqual({});
+  });
+
+  it('should return empty object when the model has no validated tool calling', () => {
+    expect(getValidatedConfigurationsForModel({ name: 'test-model' }, true)).toEqual({});
+  });
+
+  it('should return validatedConfigurations and selectedValidatedConfigurations when enabled and validated', () => {
+    const result = getValidatedConfigurationsForModel(validatedToolCallingModel, true);
+
+    expect(result.validatedConfigurations).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0]).toMatchObject({
+      forField: 'args',
+      title: 'Validated arguments',
+    });
+    expect(result.validatedConfigurations?.[0].options).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0].options[0]).toMatchObject({
+      title: 'Tool calling',
+      value: '--tool-call-parser granite',
+    });
+    expect(result.selectedValidatedConfigurations).toEqual({
+      args: ['--tool-call-parser granite'],
+    });
   });
 });
 

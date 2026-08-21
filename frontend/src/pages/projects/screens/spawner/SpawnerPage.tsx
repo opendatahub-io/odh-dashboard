@@ -64,6 +64,7 @@ import {
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
+import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -103,6 +104,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     limitNameResourceType: LimitNameResourceType.WORKBENCH,
     safePrefix: 'wb-',
     regexp: K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
+    namespace: currentProject.metadata.name,
   });
   const [isAttachStorageModalOpen, setIsAttachStorageModalOpen] = React.useState(false);
   const [isCreateStorageModalOpen, setIsCreateStorageModalOpen] = React.useState(false);
@@ -202,6 +204,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const existingSecretsData = useExistingSecrets(currentProject.metadata.name);
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -380,7 +384,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <EnvironmentVariables
                 envVariables={envVariables}
                 setEnvVariables={setEnvVariables}
-                namespace={currentProject.metadata.name}
+                existingSecretsData={existingSecretsData}
               />
             </FormSection>
             <FormSection
@@ -502,6 +506,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
                   existingNotebook={existingNotebook}
+                  existingSecretsData={existingSecretsData}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

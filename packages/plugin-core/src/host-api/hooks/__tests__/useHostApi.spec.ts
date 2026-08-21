@@ -5,18 +5,29 @@ import { HostApiContext } from '../../HostApiContext';
 import { useHostApi } from '../useHostApi';
 
 const mockServices: HostApiServices = {
-  dashboardNamespace: 'test-ns',
-  checkAccess: jest.fn(),
-  getSecretsByLabel: jest.fn(),
-  getDashboardPvcs: jest.fn(),
-  fetchDashboardConfig: jest.fn(),
   useTemplates: jest.fn(() => [[], false, undefined]),
   setProjectServingPlatform: jest.fn(),
-  createSecret: jest.fn(),
-  getSecret: jest.fn(),
-  deleteSecret: jest.fn(),
-  patchSecretWithOwnerReference: jest.fn(),
-  patchSecretWithProtocolAnnotation: jest.fn(),
+  useWatchConnectionTypes: jest.fn(() => [[], false, undefined, jest.fn()]),
+  useServingConnections: jest.fn(() => [[], false, undefined, jest.fn()]),
+  getDashboardConfigTemplateOrder: jest.fn(),
+  getDashboardConfigTemplateDisablement: jest.fn(),
+  useModelServingMetrics: jest.fn(() => ({ data: {}, refresh: jest.fn() })),
+  useServingPlatformStatuses: jest.fn(() => ({
+    kServe: { enabled: false, installed: false },
+    kServeNIM: { enabled: false, installed: false },
+    platformEnabledCount: 0,
+    refreshNIMAvailability: jest.fn(),
+  })),
+  isProjectNIMSupported: jest.fn(() => false),
+  createProject: jest.fn(),
+  ConnectionTypeFormFields: jest.fn(),
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ProjectDetailsContext: React.createContext<any>(null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ModelServingContext: React.createContext<any>(null),
+    ModelServingContextProvider: jest.fn(),
+  },
 };
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
@@ -30,15 +41,8 @@ describe('useHostApi', () => {
 
   it('should throw when context is not provided and a service is called', () => {
     const { result } = renderHook(() => useHostApi());
-    expect(() =>
-      result.current.checkAccess({
-        group: '',
-        resource: '',
-        subresource: '',
-        verb: 'get',
-        name: '',
-        namespace: '',
-      }),
-    ).toThrow('HostApiContext not provided: checkAccess');
+    expect(() => result.current.useTemplates('test-ns')).toThrow(
+      'HostApiContext not provided: useTemplates',
+    );
   });
 });

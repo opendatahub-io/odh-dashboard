@@ -13,27 +13,35 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import { MCP_REGISTRY_BASENAME, mcpRegistryBaseRoute } from './const';
+import useHostRouteSync from './useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import NoProjectsEmptyState from '../shared/NoProjectsEmptyState';
 
-const MCP_REGISTRY_BASENAME = '/ai-hub/mcp-servers/registry';
-
-const mcpRegistryBaseRoute = (namespace?: string): string => {
-  if (!namespace) {
-    return MCP_REGISTRY_BASENAME;
-  }
-  return `${MCP_REGISTRY_BASENAME}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
-};
+const LoadingState: React.FC = () => (
+  <PageSection hasBodyWrapper={false}>
+    <Bullseye>
+      <Spinner />
+    </Bullseye>
+  </PageSection>
+);
 
 const MlflowMcpRegistryTabContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const {
+    projects,
+    preferredProject,
+    loaded: projectsLoaded,
+    loadError: projectsLoadError,
+  } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
+  const syncHostRoute = useHostRouteSync();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -42,6 +50,22 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         .catch(() => ({ default: MLflowUnavailable })),
     [],
   );
+
+  if (!projectsLoaded && !projectsLoadError) {
+    return <LoadingState />;
+  }
+
+  if (projects.length === 0) {
+    return (
+      <PageSection hasBodyWrapper={false}>
+        <NoProjectsEmptyState
+          message="To register an MCP server, first create a project."
+          testId="mcp-registry-no-projects-empty-state"
+          getRedirectPath={mcpRegistryBaseRoute}
+        />
+      </PageSection>
+    );
+  }
 
   if (!workspace && projects.length > 0) {
     const defaultProject = storedProject ?? preferredProject ?? projects[0];
@@ -68,7 +92,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <Bullseye>Project</Bullseye>
+                  <Content>Project</Content>
                 </FlexItem>
                 <FlexItem>
                   <ProjectSelectorNavigator
@@ -84,14 +108,8 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
       <LazyCodeRefComponent
         key={workspace}
         component={loadWrapper}
-        props={{ basename: MCP_REGISTRY_BASENAME, onBreadcrumbChange: () => undefined }}
-        fallback={
-          <PageSection hasBodyWrapper={false}>
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          </PageSection>
-        }
+        props={{ basename: MCP_REGISTRY_BASENAME, onBreadcrumbChange: syncHostRoute }}
+        fallback={<LoadingState />}
       />
     </>
   );

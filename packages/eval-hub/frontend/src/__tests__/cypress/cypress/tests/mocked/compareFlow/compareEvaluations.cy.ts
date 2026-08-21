@@ -111,15 +111,22 @@ describe('Evaluations Page - Compare button state', () => {
   it('should be disabled when no runs are selected', () => {
     initIntercepts({ jobs: [singleBenchmarkJob1, singleBenchmarkJob2] });
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findCompareButton().should('be.disabled');
+    // Wait for the table to render before checking the compare button
+    evaluationsPage.findEvaluationsTable().should('exist');
+    evaluationsPage.findCompareButton().should('have.attr', 'aria-disabled', 'true');
+    evaluationsPage.findCompareButton().click();
+    cy.url().should('not.include', 'compare-runs');
   });
 
   it('should remain disabled with only one run selected', () => {
     initIntercepts({ jobs: [singleBenchmarkJob1, singleBenchmarkJob2] });
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findEvaluationsTable().should('exist');
     // Date-desc sort: job1 (Apr 15) is row 0, job2 (Apr 14) is row 1
     evaluationsPage.findEvaluationCheckbox(0).click();
-    evaluationsPage.findCompareButton().should('be.disabled');
+    evaluationsPage.findCompareButton().should('have.attr', 'aria-disabled', 'true');
+    evaluationsPage.findCompareButton().click();
+    cy.url().should('not.include', 'compare-runs');
   });
 });
 
@@ -127,9 +134,10 @@ describe('Evaluations Page - Compare routing', () => {
   it('should route to compare-runs for two single-benchmark runs', () => {
     initIntercepts({ jobs: [singleBenchmarkJob1, singleBenchmarkJob2] });
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findEvaluationsTable().should('exist');
     evaluationsPage.findEvaluationCheckbox(0).click();
     evaluationsPage.findEvaluationCheckbox(1).click();
-    evaluationsPage.findCompareButton().should('not.be.disabled');
+    evaluationsPage.findCompareButton().should('not.have.attr', 'aria-disabled', 'true');
     evaluationsPage.findCompareButton().click();
     cy.url().should('include', `${NAMESPACE}/compare-runs`);
     cy.url().should('not.include', 'benchmarks');
@@ -138,10 +146,11 @@ describe('Evaluations Page - Compare routing', () => {
   it('should route to compare-runs/benchmarks for suite runs', () => {
     initIntercepts({ jobs: [suiteJob1, suiteJob2] });
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findEvaluationsTable().should('exist');
     // Date-desc sort: suiteJob1 (Apr 15) is row 0, suiteJob2 (Apr 14) is row 1
     evaluationsPage.findEvaluationCheckbox(0).click();
     evaluationsPage.findEvaluationCheckbox(1).click();
-    evaluationsPage.findCompareButton().should('not.be.disabled');
+    evaluationsPage.findCompareButton().should('not.have.attr', 'aria-disabled', 'true');
     evaluationsPage.findCompareButton().click();
     cy.url().should('include', `${NAMESPACE}/compare-runs/benchmarks`);
   });
@@ -151,6 +160,7 @@ describe('Evaluations Page - Non-comparable rows', () => {
   it('should have a disabled checkbox for a running run', () => {
     initIntercepts({ jobs: [singleBenchmarkJob1, runningJob] });
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findEvaluationsTable().should('exist');
     // Date-desc sort: singleBenchmarkJob1 (Apr 15) is row 0, runningJob (Apr 13) is row 1.
     // PF v6 Checkbox spreads data-testid onto <input> directly — assert disabled on the element itself.
     evaluationsPage.findEvaluationCheckbox(1).should('be.disabled');

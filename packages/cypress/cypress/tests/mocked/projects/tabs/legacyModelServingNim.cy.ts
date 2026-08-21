@@ -1,4 +1,4 @@
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   mockNimInferenceService,
   mockNimServingRuntime,
@@ -7,7 +7,7 @@ import {
   mockMultipleNimServingRuntimes,
   mockNimImages,
   mockNimServingResource,
-} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import { InferenceServiceModel, ServingRuntimeModel } from '../../../../utils/models';
 import { projectDetails, projectDetailsOverviewTab } from '../../../../pages/projects';
 import { nimDeployModal } from '../../../../pages/components/NIMDeployModal';
@@ -174,11 +174,11 @@ describe('NIM Model Serving', () => {
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '8 CPUs, 32GiB Memory requested');
+        .should('contain.text', '2 CPUs, 6GiB Memory requested');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Model server size')
-        .should('contain.text', '16 CPUs, 64GiB Memory limit');
+        .should('contain.text', '4 CPUs, 8GiB Memory limit');
       projectDetails
         .getKserveTableRow('Test Name')
         .findInfoValueFor('Hardware profile')

@@ -44,9 +44,9 @@ export const getPipelineTreeLoadingContent = (
   switch (mode) {
     case 'preparing':
       return {
-        title: 'Preparing pipeline',
-        primaryText: 'Starting your evaluation, this may take a few moments',
-        secondaryText: 'The pipeline visualization will appear when the run structure is ready.',
+        title: 'Starting evaluation',
+        primaryText: 'Starting evaluation',
+        secondaryText: 'This might take a few moments.',
       };
     case 'hydrating':
     default:
@@ -152,23 +152,30 @@ export type PipelineDetailsEmptyContent = {
   secondaryText?: string;
 };
 
+export const getStepDetailsLoadingContent = (): PipelineDetailsEmptyContent => ({
+  title: 'Running task',
+  variant: 'loading',
+  primaryText: 'Running task',
+  secondaryText: 'Details will appear once this step is complete.',
+});
+
 export const getPipelineDetailsEmptyContent = (
   statusFilter: PipelineStatusFilter,
 ): PipelineDetailsEmptyContent => {
   switch (statusFilter) {
     case 'loading':
       return {
-        title: 'Preparing pipeline',
+        title: 'Starting evaluation',
         variant: 'loading',
-        primaryText: 'Preparing pipeline',
-        secondaryText: 'Pipeline steps will appear on the left once the run structure is ready.',
+        primaryText: 'Starting evaluation',
+        secondaryText: 'This might take a few moments.',
       };
     case 'in-progress':
       return {
         title: 'Running pipeline',
         variant: 'loading',
-        primaryText: 'Running pipeline',
-        secondaryText: 'Details will appear once the step is complete.',
+        primaryText: 'Pipeline run in progress',
+        secondaryText: 'Step details will become available as steps complete.',
       };
     case 'completed':
     case 'canceled':
@@ -177,7 +184,7 @@ export const getPipelineDetailsEmptyContent = (
       return {
         title: 'Pipeline details',
         variant: 'idle',
-        secondaryText: 'Click on any node in the pipeline to view its details here.',
+        secondaryText: 'Select a step to view its details.',
       };
   }
 };

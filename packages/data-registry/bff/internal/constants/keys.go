@@ -1,0 +1,38 @@
+package constants
+
+type contextKey string
+
+// NOTE: If you are adding any HTTP headers, they need to also be added to the EnableCORS middleware
+// to ensure requests are not blocked when using CORS.
+const (
+	NamespaceHeaderParameterKey contextKey = "namespace"
+
+	// The following keys are used to store the user access token in the context
+	RequestIdentityKey contextKey = "requestIdentityKey"
+
+	// For config.AuthMethodInternal
+	// Kubeflow authorization operates using custom authentication headers:
+	// Note: The functionality for `kubeflow-groups` is not fully operational at Kubeflow platform at this time
+	// but it's supported on Mod Arch BFF
+	KubeflowUserIDHeader       = "kubeflow-userid" // kubeflow-userid :contains the user's email address
+	KubeflowUserGroupsIdHeader = "kubeflow-groups" // kubeflow-groups : Holds a comma-separated list of user groups
+
+	// XUserHeader is a caller-asserted identity header that some upstream APIs trust for
+	// attribution (e.g. the Data Registry API's `registered_by` field). Proxies must strip any
+	// caller-supplied value rather than forwarding it verbatim, the same way Authorization is
+	// never copied as-is from the incoming request.
+	XUserHeader = "X-User"
+
+	TraceIdKey     contextKey = "TraceIdKey"
+	TraceLoggerKey contextKey = "TraceLoggerKey"
+)
+
+// BFFTarget represents a target BFF service (re-exported from bffclient package)
+type BFFTarget string
+
+// BFFClientKey returns a context key for storing BFF clients by target.
+// This allows multiple BFF clients to be stored in the same context.
+// Usage: ctx.Value(constants.BFFClientKey("maas"))
+func BFFClientKey(target BFFTarget) contextKey {
+	return contextKey("BFFClientKey_" + string(target))
+}

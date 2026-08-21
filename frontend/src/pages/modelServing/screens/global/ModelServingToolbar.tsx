@@ -10,7 +10,10 @@ import ServeModelButton from './ServeModelButton';
 
 type ModelServingToolbarProps = {
   filterData: ModelServingFilterDataType;
-  onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
+  onFilterUpdate: (
+    key: ModelServingToolbarFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
 };
 
 const ModelServingToolbar: React.FC<ModelServingToolbarProps> = ({

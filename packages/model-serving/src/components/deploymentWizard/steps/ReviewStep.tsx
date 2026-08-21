@@ -25,6 +25,7 @@ import {
   resolveFieldValue,
 } from '../../../shared/types/form-data';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
+import { filterRuntimeArgsForContainer } from '../fields/RuntimeArgsField';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
 
@@ -63,6 +64,7 @@ const getStatusSections = (
   projectName: string | undefined,
   extensionStatusSections: StatusSection[] | undefined,
   isGenAiEnabled: boolean,
+  hasModelServerExtension: boolean,
 ): StatusSection[] => {
   return [
     {
@@ -251,11 +253,16 @@ const getStatusSections = (
           },
           optional: true,
         },
-        {
-          key: 'modelServer',
-          label: 'Deployment resource',
-          comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
-        },
+        ...(hasModelServerExtension
+          ? []
+          : ([
+              {
+                key: 'modelServer',
+                label: 'Serving runtime',
+                comp: (state: WizardState) =>
+                  state.modelServer?.data?.selection?.label || 'Auto-selected',
+              },
+            ] satisfies StatusItem[])),
         {
           key: 'numReplicas',
           label: 'Replicas',
@@ -316,9 +323,12 @@ const getStatusSections = (
             if (!runtimeArgs || !runtimeArgs.enabled || runtimeArgs.args.length === 0) {
               return undefined;
             }
-            const allArgs = runtimeArgs.args.flatMap((arg) =>
+            const allArgs = filterRuntimeArgsForContainer(runtimeArgs.args).flatMap((arg) =>
               arg.trim().split(/\s+/).filter(Boolean),
             );
+            if (allArgs.length === 0) {
+              return undefined;
+            }
             return (
               <>
                 <div>{allArgs.length}</div>
@@ -406,9 +416,24 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     }));
   }, [extensionSections]);
 
+  const hasModelServerExtension = extensionSections.some(
+    (section) =>
+      section.title === WizardStepTitle.MODEL_DEPLOYMENT &&
+      section.items.some(
+        (item) => item.key === 'modelServer' && (item.isVisible?.(wizardState.state) ?? true),
+      ),
+  );
+
   const statusSections = React.useMemo(
-    () => [...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled)],
-    [projectName, extensionStatusSections, isGenAiEnabled],
+    () => [
+      ...getStatusSections(
+        projectName,
+        extensionStatusSections,
+        isGenAiEnabled,
+        hasModelServerExtension,
+      ),
+    ],
+    [projectName, extensionStatusSections, isGenAiEnabled, hasModelServerExtension],
   );
 
   if (!wizardState.loaded.summaryLoaded) {

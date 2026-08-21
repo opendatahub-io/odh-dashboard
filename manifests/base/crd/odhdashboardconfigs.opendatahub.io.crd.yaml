@@ -188,7 +188,13 @@ spec:
                       description: 'When true, enables the Agents Catalog page.'
                     toolCalling:
                       type: boolean
-                      description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
+                      description: 'When true, enables the tool-calling checkbox in the deployment wizard for catalog models that have validated tool-calling arguments.'
+                    modelCapabilities:
+                      type: boolean
+                      description: 'When true, enables model capabilities selection in the deployment wizard and the Capabilities column on the deployments table.'
+                    workbenchesV2:
+                      type: boolean
+                      description: 'When true, enables the new notebooks v2 features.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
@@ -204,6 +210,9 @@ spec:
                     disableLLMd:
                       type: boolean
                       description: 'When true, disables the LLMd (Large Language Model daemon) serving features on KServe.'
+                    llmdTemplates:
+                      type: boolean
+                      description: 'When true, enables llm-d topology and routing configuration fields in the deployment wizard and admin settings pages. Tech Preview.'
                     deploymentWizardYAMLViewer:
                       type: boolean
                       description: 'When true, enables the YAML viewer in the model deployment wizard.'

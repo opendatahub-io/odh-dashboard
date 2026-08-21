@@ -186,7 +186,7 @@ class McpManageSourcePage {
   }
 
   findPreviewPanelEmptyMessage() {
-    return cy.contains('To view the MCP servers from this source that will appear');
+    return cy.contains('Complete all required fields, then click');
   }
 
   findPreviewButtonHeader() {

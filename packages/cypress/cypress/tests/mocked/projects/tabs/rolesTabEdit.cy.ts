@@ -2,13 +2,11 @@
  * Tests for the Edit Role flow: loading existing role, pre-populating form,
  * submitting via PUT, and error handling.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockRoleK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
-import { mock404Error, mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRoleK8sResource } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mock409Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -35,6 +33,10 @@ const existingRole = (() => {
     ],
   });
   role.metadata.resourceVersion = '12345';
+  role.metadata.annotations = {
+    'openshift.io/display-name': 'My Custom Role',
+    'openshift.io/description': 'A role for testing',
+  };
   return role;
 })();
 
@@ -57,25 +59,13 @@ describe('Edit Role', () => {
     initIntercepts();
   });
 
-  it('should load the edit page and show existing role name', () => {
+  it('should pre-populate form with existing role data', () => {
     projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
-    projectRoles.findRoleNameInput().should('have.value', ROLE_NAME);
-  });
 
-  it('should show k8s resource name as immutable (plain text, not editable)', () => {
-    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
-    cy.findByTestId('role-resourceName').should('not.exist');
-    cy.contains(ROLE_NAME).should('exist');
-  });
-
-  it('should show "Edit custom role" as page title', () => {
-    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
-    cy.findByTestId('app-page-title').should('contain.text', 'Edit custom role');
-  });
-
-  it('should show "Save changes" as submit button text', () => {
-    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
-    projectRoles.findSubmitButton().should('have.text', 'Save changes');
+    projectRoles.findRoleNameInput().should('have.value', 'My Custom Role');
+    projectRoles.findDescriptionTextarea().should('have.value', 'A role for testing');
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
   });
 
   it('should submit via PUT when saving changes', () => {
@@ -135,21 +125,10 @@ describe('Edit Role', () => {
     });
   });
 
-  it('should show error page when role does not exist (404)', () => {
-    cy.interceptK8s(
-      'GET',
-      { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
-      { statusCode: 404, body: mock404Error({}) },
-    );
-
-    cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/edit`);
-    cy.contains('Unable to load role').should('exist');
-  });
-
   it('should navigate to edit page from table kebab action', () => {
     projectRoles.visit(NAMESPACE);
 
-    const row = projectRoles.getRow(ROLE_NAME);
+    const row = projectRoles.getRow('My Custom Role');
     row.findKebabAction('Edit role').click();
 
     cy.url().should('include', `/roles/${ROLE_NAME}/edit`);

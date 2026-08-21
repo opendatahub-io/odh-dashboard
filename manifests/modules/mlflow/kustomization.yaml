@@ -12,13 +12,14 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: mlflow-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: mlflow-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.mlflow-ui-image
-configurations:
-  - params.yaml
+      fieldPath: data.mlflow-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: mlflow-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=mlflow-ui].image

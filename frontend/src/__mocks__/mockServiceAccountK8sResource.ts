@@ -1,4 +1,4 @@
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { ServiceAccountKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {

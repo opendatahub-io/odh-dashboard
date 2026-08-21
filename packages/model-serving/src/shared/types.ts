@@ -1,16 +1,24 @@
 import type {
+  ConfigMapKind,
   Connection,
   K8sResourceCommon,
   ContainerResources,
   DisplayNameAnnotations,
   NodeSelector,
   PodAffinity,
+  SecretKind,
   SupportedModelFormats,
   Toleration,
   Volume,
   VolumeMount,
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
+
+export type NimServingResponse = {
+  body: {
+    body: ConfigMapKind | SecretKind;
+  };
+};
 
 export type LabeledConnection = {
   connection: Connection;
@@ -59,19 +67,6 @@ export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   imageName?: string;
   supportedModelFormatsInfo?: SupportedModelFormatsInfo;
   scope?: string;
-};
-
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
 };
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -247,4 +242,9 @@ export enum ServingRuntimeAPIProtocol {
 export enum ServingRuntimeModelType {
   PREDICTIVE = 'predictive',
   GENERATIVE = 'generative',
+}
+
+export enum PerformanceMetricType {
+  SERVER = 'server',
+  MODEL = 'model',
 }

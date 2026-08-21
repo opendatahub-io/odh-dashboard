@@ -8,6 +8,8 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   list_and_sample: 'List and sample',
   write_descriptor: 'Write descriptor',
   load_descriptor: 'Load descriptor',
+  load_benchmark: 'Load benchmark',
+  discover_documents: 'Discover documents',
   extract_documents: 'Extract documents',
   prepare_search_space: 'Prepare search space',
   write_report: 'Write report',
@@ -16,15 +18,15 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   write_patterns: 'Write patterns',
   build_requests: 'Build requests',
   write_artifacts: 'Write artifacts',
-  build_leaderboard: 'Build leaderboard',
+  build_leaderboard: 'Select best pattern',
 };
 
 export const STEP_DISPLAY_NAMES: Record<string, string> = {
-  chunking: 'Chunking',
-  embedding: 'Embedding',
-  retrieval: 'Retrieval',
-  generation: 'Generation',
-  evaluation: 'Evaluation',
+  chunking: 'Chunk documents',
+  embedding: 'Generate embeddings',
+  retrieval: 'Retrieve documents',
+  generation: 'Generate responses',
+  evaluation: 'Evaluate results',
 };
 
 const fallbackStageLabel = (stageId: string): string => {

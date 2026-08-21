@@ -18,7 +18,7 @@ const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
 const ADMIN_USER = 'ADMIN_USER';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
 
@@ -295,8 +295,20 @@ const extensions: (
     properties: {
       id: 'deploy-mcp-server',
       label: 'Deploy MCP server',
-      group: 'mcp-catalog.server-deploy',
+      group: 'mcp-catalog.server-actions',
       component: () => import('./components/McpServerDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'deploy-mcp-registry-server',
+      label: 'Deploy',
+      group: 'mcp-registry.server-deploy',
+      component: () => import('./components/McpRegistryServerDeployAction'),
     },
   },
   {

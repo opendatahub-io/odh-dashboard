@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   buildMockExperimentKF,
   buildMockPipeline,
@@ -6,7 +7,6 @@ import {
   buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
-  mockDashboardConfig,
 } from '@odh-dashboard/internal/__mocks__';
 import type { PipelineRunKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
@@ -105,7 +105,7 @@ describe('Manage runs', () => {
 
     it('shows the MLflow experiment column when MLflow is enabled', () => {
       initIntercepts({
-        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
+        mlflow: { enabled: true, bffConfigured: true },
       });
       interceptDSPAMlflowIntegration(projectName);
       manageRunsPage.visit(projectName, initialRunIds);
@@ -113,18 +113,9 @@ describe('Manage runs', () => {
       manageRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');
     });
 
-    it('hides the MLflow experiment column when mlflowPipelines is disabled', () => {
-      initIntercepts({
-        mlflow: { enabled: true, pipelinesIntegration: false },
-      });
-      manageRunsPage.visit(projectName, initialRunIds);
-
-      manageRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-    });
-
     it('hides the MLflow experiment column when BFF status is not configured', () => {
       initIntercepts({
-        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: false },
+        mlflow: { enabled: true, bffConfigured: false },
       });
       manageRunsPage.visit(projectName, initialRunIds);
 
@@ -133,7 +124,7 @@ describe('Manage runs', () => {
 
     it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
       initIntercepts({
-        mlflow: { enabled: true, pipelinesIntegration: true, bffConfigured: true },
+        mlflow: { enabled: true, bffConfigured: true },
       });
       interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
       manageRunsPage.visit(projectName, initialRunIds);
@@ -145,7 +136,6 @@ describe('Manage runs', () => {
 
 type MlflowInterceptOptions = {
   enabled: boolean;
-  pipelinesIntegration?: boolean;
   bffConfigured?: boolean;
 };
 
@@ -153,16 +143,8 @@ const initIntercepts = (options: { mlflow?: MlflowInterceptOptions } = {}) => {
   const { mlflow } = options;
 
   if (mlflow?.enabled) {
-    const pipelinesIntegrationEnabled = mlflow.pipelinesIntegration !== false;
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        mlflowPipelines: pipelinesIntegrationEnabled,
-      }),
-    );
-    if (pipelinesIntegrationEnabled) {
-      interceptMlflowStatus(mlflow.bffConfigured ?? true);
-    }
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+    interceptMlflowStatus(mlflow.bffConfigured ?? true);
   } else {
     configIntercept();
   }

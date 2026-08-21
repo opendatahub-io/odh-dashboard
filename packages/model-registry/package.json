@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "38902a0a51f08c79f9298b5584b39e6bffa530b6"
+    "commit": "b56bb20c065988b07939e67fe1405e29fd23fe32"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -54,6 +54,7 @@
   ],
   "exports": {
     "./extensions": "./extensions.ts",
+    "./shared": "./shared/index.ts",
     "./model-catalog-deploy": {
       "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
     },
@@ -73,6 +74,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",

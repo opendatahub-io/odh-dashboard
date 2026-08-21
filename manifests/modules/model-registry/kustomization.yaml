@@ -12,15 +12,17 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: model-registry-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: model-registry-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.model-registry-ui-image
-replacements:
+      fieldPath: data.model-registry-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: model-registry-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=model-registry-ui].image
   - source:
       kind: ConfigMap
       name: model-registry-params
@@ -31,5 +33,3 @@ replacements:
           name: model-registry-ui
         fieldPaths:
           - spec.template.spec.containers.[name=model-registry-ui].env.[name=GATEWAY_DOMAIN].value
-configurations:
-  - params.yaml

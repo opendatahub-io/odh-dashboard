@@ -11,7 +11,18 @@ export const modelsAsAServiceNamespace = 'models-as-a-service';
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
 
-/** Base URL from `status.addresses` (path includes namespace/model); prefers https when multiple gateway-external entries exist (matches typical `curl -k https://maas.apps…/…` flows). */
+/**
+ * Base URL for MaaS completions calls.
+ *
+ * Prefer `status.url` (single canonical URL chosen by the controller) when present.
+ * Otherwise, fall back to `status.addresses` entries named `gateway-external`.
+ *
+ * Some clusters publish multiple `gateway-external` URLs (e.g. both:
+ * - `/publishers/<ns>/models/<model>`
+ * - `/<ns>/<model>`
+ * )
+ * so we prefer the non-`/publishers/` form when both exist.
+ */
 const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   if (!isRecord(doc)) {
     throw new Error('Invalid LLMInferenceService JSON');
@@ -19,6 +30,10 @@ const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   const { status } = doc;
   if (!isRecord(status)) {
     throw new Error('LLMInferenceService status missing');
+  }
+  const canonicalUrl = status.url;
+  if (typeof canonicalUrl === 'string' && canonicalUrl.length > 0) {
+    return canonicalUrl;
   }
   const { addresses } = status;
   if (!Array.isArray(addresses)) {
@@ -41,6 +56,12 @@ const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
 
   if (candidates.length === 0) {
     throw new Error(`No ${gatewayExternalName} URL found in LLMInferenceService status.addresses`);
+  }
+
+  // Prefer non-publishers form when available.
+  const nonPublishersUrl = candidates.find((u) => !u.includes('/publishers/'));
+  if (nonPublishersUrl) {
+    return nonPublishersUrl;
   }
 
   const httpsUrl = candidates.find((u) => u.startsWith('https://'));

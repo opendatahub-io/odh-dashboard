@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate, useParams } from 'react-router-dom';
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigAddForm, {
   LlmAcceleratorConfigFormByName,
 } from '../LlmAcceleratorConfigAddForm';
@@ -12,6 +12,7 @@ import {
   updateLLMInferenceServiceConfig,
 } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
+import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../paths';
 
 jest.mock('react-router-dom', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -45,6 +46,9 @@ const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 const mockCreateLLMInferenceServiceConfig = jest.mocked(createLLMInferenceServiceConfig);
 const mockUpdateLLMInferenceServiceConfig = jest.mocked(updateLLMInferenceServiceConfig);
+
+// The component now derives listPath internally from the shared tab path constant.
+const LIST_PATH = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
 
 describe('LlmAcceleratorConfigAddForm', () => {
   const navigateMock = jest.fn();
@@ -127,7 +131,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
       fireEvent.click(screen.getByTestId('submit-button'));
 
       await waitFor(() => {
-        expect(navigateMock).toHaveBeenCalledWith('..');
+        expect(navigateMock).toHaveBeenCalledWith(LIST_PATH);
       });
     });
 
@@ -137,7 +141,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
       const cancelButton = screen.getByTestId('cancel-button');
       fireEvent.click(cancelButton);
 
-      expect(navigateMock).toHaveBeenCalledWith('..');
+      expect(navigateMock).toHaveBeenCalledWith(LIST_PATH);
     });
   });
 
@@ -273,7 +277,7 @@ describe('LlmAcceleratorConfigFormByName', () => {
     expect(screen.getByTestId('app-page-title')).toBeInTheDocument();
   });
 
-  it('should redirect when config is not found', () => {
+  it('should show a not-found message rather than redirect when editing a config that is not found', () => {
     mockUseParams.mockReturnValue({ configName: 'nonexistent-config' });
 
     render(
@@ -286,6 +290,36 @@ describe('LlmAcceleratorConfigFormByName', () => {
       </LlmAcceleratorConfigContext.Provider>,
     );
 
-    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '..');
+    expect(screen.getByText('Unable to edit accelerator configuration')).toBeInTheDocument();
+    expect(screen.getByText('nonexistent-config', { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return to the list' })).toHaveAttribute(
+      'href',
+      LIST_PATH,
+    );
+    // It must NOT silently redirect to the list.
+    expect(screen.queryByTestId('navigate')).not.toBeInTheDocument();
+  });
+
+  it('should label the not-found message as a duplicate failure when duplicating a config that is not found', () => {
+    mockUseParams.mockReturnValue({ configName: 'nonexistent-config' });
+
+    render(
+      <LlmAcceleratorConfigContext.Provider
+        value={{
+          configs: [],
+        }}
+      >
+        <LlmAcceleratorConfigFormByName mode="duplicate" />
+      </LlmAcceleratorConfigContext.Provider>,
+    );
+
+    // Copy reflects the duplicate operation, not "edit".
+    expect(screen.getByText('Unable to duplicate accelerator configuration')).toBeInTheDocument();
+    expect(screen.queryByText('Unable to edit accelerator configuration')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return to the list' })).toHaveAttribute(
+      'href',
+      LIST_PATH,
+    );
+    expect(screen.queryByTestId('navigate')).not.toBeInTheDocument();
   });
 });

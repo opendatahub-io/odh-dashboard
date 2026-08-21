@@ -7,11 +7,11 @@ import {
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   INFERENCE_SERVICE_NAME_REGEX,
   AccessTypes,
+  uriToModelLocation,
 } from '@odh-dashboard/k8s-core';
 import type { ConnectionTypeValueType } from '@odh-dashboard/k8s-core';
-import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
+import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { getModelRegistryMetadata } from './utils/deployUtils';
 import {
   ModelLocationData,

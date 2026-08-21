@@ -8,6 +8,12 @@ import type {
 } from '@openshift/dynamic-plugin-sdk';
 import { PluginEventType } from '@openshift/dynamic-plugin-sdk';
 import { isEqual, pickBy } from 'lodash-es';
+import {
+  type StoredPatch,
+  extractPatches,
+  applySuppress,
+  applyPatches,
+} from './extensionResolution';
 
 const uuidv4 = () =>
   '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
@@ -21,6 +27,9 @@ export class PluginStore implements PluginStoreInterface {
   /** Extensions which are currently in use. */
   private extensions: LoadedExtension[] = [];
 
+  /** Last-wins property patches keyed by `(type, id)`, collected at construction. */
+  private readonly patches: Map<string, StoredPatch>;
+
   /** Subscribed event listeners. */
   private readonly listeners = new Map<PluginEventType, Set<VoidFunction>>();
 
@@ -28,16 +37,20 @@ export class PluginStore implements PluginStoreInterface {
   private featureFlags: FeatureFlags = {};
 
   constructor(extensions: Record<string, Extension[]>) {
-    this.allExtensions = [];
+    const raw: LoadedExtension[] = [];
     Object.entries(extensions).forEach(([pluginName, pluginExtensions]) => {
       pluginExtensions.forEach((e: Extension) => {
-        this.allExtensions.push({
+        raw.push({
           ...e,
           pluginName,
           uid: uuidv4(),
         });
       });
     });
+
+    const { extensions: withoutPatches, patches } = extractPatches(raw);
+    this.patches = patches;
+    this.allExtensions = applySuppress(withoutPatches);
 
     Object.values(PluginEventType).forEach((t) => {
       this.listeners.set(t, new Set());
@@ -59,7 +72,8 @@ export class PluginStore implements PluginStoreInterface {
   private updateExtensions() {
     const prevExtensions = this.extensions;
 
-    this.extensions = this.allExtensions.filter((e) => this.isExtensionInUse(e));
+    const inUse = this.allExtensions.filter((e) => this.isExtensionInUse(e));
+    this.extensions = applyPatches(inUse, this.patches);
 
     if (!isEqual(prevExtensions, this.extensions)) {
       this.invokeListeners(PluginEventType.ExtensionsChanged);

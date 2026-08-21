@@ -64,6 +64,19 @@ runs:
       shell: bash
       run: npm install --prefix packages/agent-ops/frontend
 
+    - name: data-registry node_modules cache
+      id: data-registry-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: packages/data-registry/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-data-registry-${{ hashFiles('packages/data-registry/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-data-registry-
+    - name: Install data-registry dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.data-registry-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/data-registry/frontend
+
     - name: automl node_modules cache
       id: automl-cache
       if: inputs.include-modules == 'true'

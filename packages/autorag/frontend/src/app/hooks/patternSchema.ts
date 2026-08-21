@@ -69,7 +69,8 @@ const VectorStoreBindingSchema = z
   .object({
     provider_id: z.string(),
     provider_type: z.string(),
-    vector_store_id: z.string(),
+    // Pipeline output may emit null when no collection was bound
+    vector_store_id: z.string().nullable(),
   })
   .passthrough();
 

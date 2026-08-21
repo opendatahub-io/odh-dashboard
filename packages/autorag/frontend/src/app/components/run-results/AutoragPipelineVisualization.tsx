@@ -12,6 +12,8 @@ import {
 import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { canShowPatternsExpandToggle } from '~/app/topology/tree-view/branchExpand';
+import { PatternsExpandProvider } from '~/app/topology/tree-view/PatternsExpandContext';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import {
   getTreeTopologyFromResult,
@@ -57,10 +59,33 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
+  const [patternsExpanded, setPatternsExpanded] = React.useState(false);
+
+  const showPatternsToggle = React.useMemo(
+    () => canShowPatternsExpandToggle(treeViewData.stageMapNodes),
+    [treeViewData.stageMapNodes],
+  );
+
+  const winnerResolved = statusFilter === 'completed' && !!treeViewData.selectedPattern;
 
   const pipelineTopology = React.useMemo(
-    () => getTreeTopologyFromResult(transformPipelineData(treeViewData)),
-    [treeViewData],
+    () =>
+      getTreeTopologyFromResult(
+        transformPipelineData(treeViewData, {
+          patternsExpanded,
+          winnerResolved,
+        }),
+      ),
+    [treeViewData, patternsExpanded, winnerResolved],
+  );
+
+  const patternsExpandValue = React.useMemo(
+    () => ({
+      patternsExpanded,
+      showToggle: showPatternsToggle,
+      onToggle: () => setPatternsExpanded((prev) => !prev),
+    }),
+    [patternsExpanded, showPatternsToggle],
   );
 
   const showTreeLoadingState = treeLoadingMode != null;
@@ -96,40 +121,40 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     }
   }, [showTreeLoadingState]);
 
+  React.useEffect(() => {
+    if (!showPatternsToggle && patternsExpanded) {
+      setPatternsExpanded(false);
+    }
+  }, [showPatternsToggle, patternsExpanded]);
+
   return (
     <div className="autorag-pipeline-visualization" data-testid="autorag-pipeline-visualization">
       <Flex
         className="autorag-pipeline-visualization__header"
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'wrap' }}
-        spaceItems={{ default: 'spaceItemsMd' }}
       >
         <FlexItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-          >
+          <Flex>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
               </Title>
             </FlexItem>
             <FlexItem>
-              <Label variant="outline" {...getPipelineStatusLabelProps(statusLabel)}>
+              <Label
+                variant="outline"
+                data-testid="run-status-label"
+                {...getPipelineStatusLabelProps(statusLabel)}
+              >
                 {statusLabel.text}
               </Label>
             </FlexItem>
           </Flex>
         </FlexItem>
 
-        <FlexItem className="autorag-pipeline-visualization__toolbar">
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            justifyContent={{ default: 'justifyContentFlexEnd' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-            flexWrap={{ default: 'wrap' }}
-          >
+        <FlexItem>
+          <Flex>
             <FlexItem>
               <Button
                 variant="tertiary"
@@ -170,13 +195,16 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
             }
           >
             <DrawerContentBody className="autorag-pipeline-visualization__drawer-content">
-              <TreeTopology
-                className="autorag-tree-topology-container"
-                topology={pipelineTopology}
-                loadingMode={treeLoadingMode}
-                selectedIds={selectedIds}
-                onSelectionChange={handleSelectionChange}
-              />
+              <PatternsExpandProvider value={patternsExpandValue}>
+                <TreeTopology
+                  className="autorag-tree-topology-container"
+                  topology={pipelineTopology}
+                  loadingMode={treeLoadingMode}
+                  selectedIds={selectedIds}
+                  onSelectionChange={handleSelectionChange}
+                  layoutResetKey={patternsExpanded}
+                />
+              </PatternsExpandProvider>
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>

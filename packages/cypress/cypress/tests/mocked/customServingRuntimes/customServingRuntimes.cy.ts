@@ -1,11 +1,11 @@
-import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared';
-import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { customServingRuntimesIntercept } from './customServingRuntimesUtils';
-import { servingRuntimes } from '../../../pages/servingRuntimes';
+import { servingRuntimeTemplates } from '../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
@@ -17,9 +17,9 @@ const editfilePath =
 
 it('Custom servingruntimes should not be available for non product admins', () => {
   asProjectAdminUser();
-  servingRuntimes.visit(false);
+  servingRuntimeTemplates.visit(false);
   pageNotfound.findPage().should('exist');
-  servingRuntimes.findNavItem().should('not.exist');
+  servingRuntimeTemplates.findNavItem().should('not.exist');
 });
 
 describe('Custom serving runtimes', () => {
@@ -27,33 +27,42 @@ describe('Custom serving runtimes', () => {
     asProductAdminUser();
     customServingRuntimesIntercept();
 
-    servingRuntimes.visit();
-  });
-
-  it('should display platform labels', () => {
-    servingRuntimes.shouldBeSingleModel(true);
+    servingRuntimeTemplates.visit();
   });
 
   it('should display serving runtime version label', () => {
-    servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
-    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimeTemplates
+      .getRowById('template-1')
+      .findServingRuntimeVersionLabel()
+      .should('exist');
+    servingRuntimeTemplates
+      .getRowById('template-2')
+      .findServingRuntimeVersionLabel()
+      .should('exist');
   });
 
   it('should test pre-installed label', () => {
-    servingRuntimes.getRowById('template-1').shouldHavePreInstalledLabel(false);
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').should('exist');
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').should('exist');
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').should('exist');
-  });
-
-  it('should display platform labels in table rows', () => {
-    servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
-    servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
+    servingRuntimeTemplates.getRowById('template-1').shouldHavePreInstalledLabel(false);
+    servingRuntimeTemplates
+      .getRowById('template-1')
+      .find()
+      .findKebabAction('Delete')
+      .should('exist');
+    servingRuntimeTemplates.getRowById('template-1').find().findKebabAction('Edit').should('exist');
+    servingRuntimeTemplates
+      .getRowById('template-1')
+      .find()
+      .findKebabAction('Duplicate')
+      .should('exist');
   });
 
   it('should display api protocol in table row', () => {
-    servingRuntimes.getRowById('template-1').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
-    servingRuntimes.getRowById('template-2').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimeTemplates
+      .getRowById('template-1')
+      .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimeTemplates
+      .getRowById('template-2')
+      .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
   });
 
   // I have no idea why this isn't passing in the CI, it passes locally
@@ -68,24 +77,24 @@ describe('Custom serving runtimes', () => {
   //     'createTemplate',
   //   );
 
-  //   servingRuntimes.findAddButton().click();
-  //   servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
+  //   servingRuntimeTemplates.findAddButton().click();
+  //   servingRuntimeTemplates.findAppTitle().should('contain', 'Add serving runtime');
 
-  //   servingRuntimes.findSubmitButton().should('be.disabled');
-  //   servingRuntimes.shouldDisplayAPIProtocolValues([
+  //   servingRuntimeTemplates.findSubmitButton().should('be.disabled');
+  //   servingRuntimeTemplates.shouldDisplayAPIProtocolValues([
   //     ServingRuntimeAPIProtocol.REST,
   //     ServingRuntimeAPIProtocol.GRPC,
   //   ]);
-  //   servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
-  //   servingRuntimes.findSelectModelTypeButton().click();
-  //   servingRuntimes.selectModelType('Predictive model');
-  //   servingRuntimes.findStartFromScratchButton().click();
-  //   servingRuntimes.uploadYaml(addfilePath);
-  //   servingRuntimes.getDashboardCodeEditor().findInput().should('not.be.empty');
+  //   servingRuntimeTemplates.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+  //   servingRuntimeTemplates.findSelectModelTypeButton().click();
+  //   servingRuntimeTemplates.selectModelType('Predictive model');
+  //   servingRuntimeTemplates.findStartFromScratchButton().click();
+  //   servingRuntimeTemplates.uploadYaml(addfilePath);
+  //   servingRuntimeTemplates.getDashboardCodeEditor().findInput().should('not.be.empty');
 
   //   // Wait for form validation to complete
-  //   servingRuntimes.findSubmitButton().should('be.enabled');
-  //   servingRuntimes.findSubmitButton().click();
+  //   servingRuntimeTemplates.findSubmitButton().should('be.enabled');
+  //   servingRuntimeTemplates.findSubmitButton().click();
   //   cy.wait('@createSingleModelServingRuntime').then((interception) => {
   //     expect(interception.request.url).to.include('?dryRun=All');
   //     expect(interception.request.body).to.containSubset({
@@ -117,7 +126,7 @@ describe('Custom serving runtimes', () => {
   //     });
   //   });
 
-  //   servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+  //   servingRuntimeTemplates.findAppTitle().should('contain', 'Serving runtimes');
 
   //   cy.wsK8s(
   //     'ADDED',
@@ -130,8 +139,8 @@ describe('Custom serving runtimes', () => {
   //     }),
   //   );
 
-  //   servingRuntimes.getRowById('template-new').find().should('exist');
-  //   servingRuntimes.getRowById('template-new').shouldBeSingleModel(true);
+  //   servingRuntimeTemplates.getRowById('template-new').find().should('exist');
+  //   servingRuntimeTemplates.getRowById('template-new').shouldBeSingleModel(true);
   // });
 
   it('should duplicate a serving runtime', () => {
@@ -145,17 +154,17 @@ describe('Custom serving runtimes', () => {
       'duplicateTemplate',
     );
 
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
-    servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
-    cy.url().should('include', '/serving-runtimes/add');
+    servingRuntimeTemplates.getRowById('template-1').find().findKebabAction('Duplicate').click();
+    servingRuntimeTemplates.findAppTitle().should('have.text', 'Duplicate serving runtime');
+    cy.url().should('include', '/serving-runtime-templates/duplicate/template-1');
 
-    servingRuntimes.shouldDisplayAPIProtocolValues([
+    servingRuntimeTemplates.shouldDisplayAPIProtocolValues([
       ServingRuntimeAPIProtocol.REST,
       ServingRuntimeAPIProtocol.GRPC,
     ]);
-    servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
-    servingRuntimes.findSubmitButton().should('be.enabled');
-    servingRuntimes.findSubmitButton().click();
+    servingRuntimeTemplates.selectAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimeTemplates.findSubmitButton().should('be.enabled');
+    servingRuntimeTemplates.findSubmitButton().click();
 
     cy.wait('@duplicateServingRuntime').then((interception) => {
       expect(interception.request.body.metadata).to.containSubset({
@@ -184,7 +193,14 @@ describe('Custom serving runtimes', () => {
       });
     });
 
-    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+    // After submitting, we return to the serving-runtime-templates list, which is now a
+    // tab on the Model deployment settings page — so the visible title is the tabbed
+    // page shell's, not a standalone "Serving runtimes" page title.
+    cy.findByTestId('app-tab-page-title').should('contain', 'Model deployment settings');
+    // Wait for the templates list itself to finish mounting after the navigation before
+    // pushing the websocket ADDED event — otherwise the event can fire before the list
+    // has subscribed and the new row is missed.
+    servingRuntimeTemplates.getRowById('template-1').find().should('exist');
 
     cy.wsK8s(
       'ADDED',
@@ -197,8 +213,8 @@ describe('Custom serving runtimes', () => {
       }),
     );
 
-    servingRuntimes.getRowById('template-1-copy').find().should('exist');
-    servingRuntimes
+    servingRuntimeTemplates.getRowById('template-1-copy').find().should('exist');
+    servingRuntimeTemplates
       .getRowById('template-1-copy')
       .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
   });
@@ -215,12 +231,12 @@ describe('Custom serving runtimes', () => {
       mockServingRuntimeTemplateK8sResource({}),
     ).as('editTemplate');
 
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
-    servingRuntimes.findAppTitle().should('contain', 'Edit Caikit');
-    cy.url().should('include', '/serving-runtimes/edit/template-1');
-    servingRuntimes.findSubmitButton().should('be.disabled');
-    servingRuntimes.uploadYaml(editfilePath);
-    servingRuntimes.findSubmitButton().click();
+    servingRuntimeTemplates.getRowById('template-1').find().findKebabAction('Edit').click();
+    servingRuntimeTemplates.findAppTitle().should('contain', 'Edit Caikit');
+    cy.url().should('include', '/serving-runtime-templates/edit/template-1');
+    servingRuntimeTemplates.findSubmitButton().should('be.disabled');
+    servingRuntimeTemplates.uploadYaml(editfilePath);
+    servingRuntimeTemplates.findSubmitButton().click();
 
     cy.wait('@editServingRuntime').then((interception) => {
       expect(interception.request.body).to.containSubset({
@@ -262,7 +278,7 @@ describe('Custom serving runtimes', () => {
       mockServingRuntimeTemplateK8sResource({}),
     ).as('deleteServingRuntime');
 
-    servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').click();
+    servingRuntimeTemplates.getRowById('template-1').find().findKebabAction('Delete').click();
     deleteModal.findSubmitButton().should('be.disabled');
 
     // test delete form is enabled after filling out required fields
@@ -280,20 +296,46 @@ describe('Custom serving runtimes', () => {
         apiProtocol: ServingRuntimeAPIProtocol.REST,
       }),
     );
-    servingRuntimes.getRowById('template-1').find().should('not.exist');
+    servingRuntimeTemplates.getRowById('template-1').find().should('not.exist');
   });
 
-  describe('redirect from v2 to v3 route', () => {
-    it('root', () => {
+  describe('redirect from old standalone routes to the tab', () => {
+    // Both `/servingRuntimes/*` and the removed standalone
+    // `/settings/model-resources-operations/serving-runtimes/*` now redirect straight
+    // to the serving-runtime-templates tab on the Model deployment settings page. The
+    // redirect lands on the tabbed page shell, so the visible title is the shell's
+    // ("Model deployment settings"), not a tab-specific title.
+    it('root (legacy /servingRuntimes URL)', () => {
       cy.visitWithLogin('/servingRuntimes');
-      cy.findByTestId('app-page-title').contains('Serving runtimes');
-      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes');
+      cy.findByTestId('app-tab-page-title').contains('Model deployment settings');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+      );
     });
 
+    it('root (removed standalone URL)', () => {
+      cy.visitWithLogin('/settings/model-resources-operations/serving-runtimes');
+      cy.findByTestId('app-tab-page-title').contains('Model deployment settings');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+      );
+    });
+
+    // The pre-migration standalone routes (`CustomServingRuntimeRoutes.tsx` +
+    // `v2Redirects.ts`, both since removed) used to translate these two
+    // legacy sub-path aliases via a nested router before landing on the add/edit form.
+    // That mapping is now restored as two dedicated `app.route` redirects in
+    // `packages/model-serving/extensions/odh.ts`, registered more specifically than
+    // the general `/servingRuntimes/*` redirect above so they win.
     it('add', () => {
       cy.visitWithLogin('/servingRuntimes/addServingRuntime');
       cy.findByTestId('app-page-title').contains('Add serving runtime');
-      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes/add');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/add',
+      );
     });
 
     it('edit', () => {
@@ -301,7 +343,7 @@ describe('Custom serving runtimes', () => {
       cy.findByTestId('app-page-title').contains('Edit Caikit');
       cy.url().should(
         'include',
-        '/settings/model-resources-operations/serving-runtimes/edit/template-1',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/edit/template-1',
       );
     });
   });

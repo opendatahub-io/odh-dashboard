@@ -3,13 +3,22 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
 import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
+import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
   usePatternEvaluationResults: (...args: unknown[]) => mockUsePatternEvaluationResults(...args),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockPattern: AutoragPattern = {
   name: 'pattern0',
@@ -342,6 +351,49 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
     });
+
+    it('should keep Sample Q&A tab visible and close button accessible when evaluation results fail', async () => {
+      // Use two patterns so the compare toggle is rendered
+      const twoPatternProps = {
+        ...defaultProps,
+        patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+      };
+
+      // Start in loading state — tab is visible, simulating the window Cypress finds it in CI
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      });
+
+      const user = userEvent.setup();
+      const onClose = jest.fn();
+      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
+
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Evaluation results fetch fails (e.g. malformed JSON from S3)
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      rerender(<PatternDetailsModal {...twoPatternProps} onClose={onClose} />);
+
+      // Tab must remain in DOM — removing it while active caused the CI crash
+      expect(screen.getByTestId('tab-sample_qa')).toBeInTheDocument();
+
+      // Error state must be shown inside the tab
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
+
+      // Compare toggle must be disabled on the Sample Q&A tab with an error
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
+
+      // Close button must still work — this is the regression assertion from the CI failure
+      await user.click(screen.getByLabelText('Close'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Tab reset behavior', () => {
@@ -416,6 +468,12 @@ describe('PatternDetailsModal', () => {
   });
 
   describe('onClose callback', () => {
+    it('should render Close as a link-style footer button', () => {
+      render(<PatternDetailsModal {...defaultProps} />);
+      const closeButton = screen.getByTestId('pattern-details-close');
+      expect(closeButton).toHaveClass('pf-m-link');
+    });
+
     it('should call onClose when the modal close button is clicked', async () => {
       const user = userEvent.setup();
       const onClose = jest.fn();
@@ -442,6 +500,22 @@ describe('PatternDetailsModal', () => {
         render(<PatternDetailsModal {...defaultProps} />);
         await user.click(screen.getByTestId('pattern-details-download'));
         expect(printSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        printSpy.mockRestore();
+      }
+    });
+
+    it('should fire AutoRAG Pattern Details Download Initiated when Download is clicked', async () => {
+      const user = userEvent.setup();
+      const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
+      try {
+        render(<PatternDetailsModal {...defaultProps} />);
+        await user.click(screen.getByTestId('pattern-details-download'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOAD_INITIATED,
+          { downloadType: 'patternDetails' },
+        );
       } finally {
         printSpy.mockRestore();
       }
@@ -486,6 +560,75 @@ describe('PatternDetailsModal', () => {
       });
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('compare patterns toggle', () => {
+    const twoPatternProps = {
+      ...defaultProps,
+      patterns: [mockPattern, { ...mockPattern, name: 'pattern1', iteration: 1 }],
+    };
+
+    it('should disable compare toggle when on Sample Q&A tab and evaluation results fail', async () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab (stays visible because isEvaluationError keeps it shown)
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeDisabled();
+    });
+
+    it('should not disable compare toggle on settings tabs even when evaluation results fail', () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      });
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      // Default tab is pattern_information — toggle should not be disabled
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
+    });
+
+    it('should enable compare toggle when evaluation results load successfully', async () => {
+      mockUsePatternEvaluationResults.mockReturnValue({
+        data: mockEvaluationResults,
+        isLoading: false,
+        isError: false,
+      });
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      await user.click(screen.getByTestId('tab-sample_qa'));
+      expect(screen.getByTestId('compare-patterns-toggle')).not.toBeDisabled();
+    });
+
+    it('should show error state when comparison results fail but primary succeeds', async () => {
+      mockUsePatternEvaluationResults.mockImplementation((_namespace, _basePath, patternName) => {
+        if (patternName === 'pattern1') {
+          return { data: undefined, isLoading: false, isError: true };
+        }
+        return { data: mockEvaluationResults, isLoading: false, isError: false };
+      });
+
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Navigate to Sample Q&A tab — visible because primary data exists
+      await user.click(screen.getByTestId('tab-sample_qa'));
+
+      // Enable comparison mode — toggle is not disabled (no errors yet)
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Comparison fetch errors — error state must be shown
+      expect(screen.getByTestId('sample-qa-error-state')).toBeInTheDocument();
     });
   });
 
@@ -683,6 +826,128 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('comparison-modal-cancel'));
 
       expect(screen.queryByTestId('comparison-column-header-comparison')).not.toBeInTheDocument();
+    });
+
+    describe('AutoRAG Patterns Compared tracking', () => {
+      it('should fire with interactionType: initial, rankDifference: 1, scoreDifference: -0.21 for the first selection', async () => {
+        // mockPattern (primary, rank 1, score 0.66) vs comparisonPattern (rank 2, score 0.45):
+        // rankDifference = 2 - 1 = 1, scoreDifference = 0.45 - 0.66 = -0.21 (comparison scores
+        // lower).
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'initial',
+          rankDifference: 1,
+          scoreDifference: -0.21,
+        });
+      });
+
+      it('should fire with interactionType: changed when swapping to a different comparison pattern', async () => {
+        // thirdPattern is a same-score clone of mockPattern (primary): scoreDifference = 0, and
+        // rankDifference is 1 (rank 2 - rank 1) once comparisonPattern (the lowest score) sorts
+        // to the bottom.
+        const user = userEvent.setup();
+        const thirdPattern: AutoragPattern = {
+          ...mockPattern,
+          name: 'pattern2',
+          iteration: 2,
+        };
+        const threePatternProps = {
+          ...defaultProps,
+          patterns: [mockPattern, comparisonPattern, thirdPattern],
+        };
+        render(<PatternDetailsModal {...threePatternProps} />);
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('change-comparison-pattern'));
+        await user.click(screen.getByTestId('comparison-pattern-row-2'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'changed',
+          rankDifference: 1,
+          scoreDifference: 0,
+        });
+      });
+
+      it('should fire with a negative rankDifference and a positive scoreDifference when comparing against a higher-ranked pattern', async () => {
+        // mockPattern (primary, score 0.66) ends up rank 4 once three higher-scoring patterns
+        // are added; comparing against the top-scoring one (rank 1, score 0.95) gives
+        // rankDifference = 1 - 4 = -3 (negative = comparison outranks primary) and
+        // scoreDifference = 0.95 - 0.66 = 0.29 (positive = comparison scores higher).
+        const withOptimizedScore = (name: string, score: number): AutoragPattern => ({
+          ...mockPattern,
+          name,
+          evaluation: {
+            metrics: mockPattern.evaluation.metrics.map((m) =>
+              m.optimization_metric ? { ...m, scores: { ...m.scores, mean: score } } : m,
+            ),
+          },
+        });
+        const higherA = withOptimizedScore('higherA', 0.75);
+        const higherB = withOptimizedScore('higherB', 0.85);
+        const topPattern = withOptimizedScore('topPattern', 0.95);
+        const fourPatternProps = {
+          ...defaultProps,
+          patterns: [mockPattern, higherA, higherB, topPattern],
+        };
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...fourPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-3'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.PATTERNS_COMPARED, {
+          interactionType: 'initial',
+          rankDifference: -3,
+          scoreDifference: 0.29,
+        });
+      });
+
+      it('should not fire when the comparison select modal is cancelled', async () => {
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+        fireMiscTrackingEventMock.mockClear();
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-modal-cancel'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
+
+      it('should not fire when comparison mode is turned off', async () => {
+        const user = userEvent.setup();
+        render(<PatternDetailsModal {...twoPatternProps} />);
+
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+        await user.click(screen.getByTestId('comparison-pattern-row-1'));
+        await user.click(screen.getByTestId('compare-pattern-confirm'));
+        fireMiscTrackingEventMock.mockClear();
+
+        // Disable comparison
+        await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.PATTERNS_COMPARED,
+          expect.anything(),
+        );
+      });
     });
 
     it('should reset comparison state when modal reopens', async () => {

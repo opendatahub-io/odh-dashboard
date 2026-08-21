@@ -20,7 +20,6 @@ import {
   ModelSubscriptionRef,
   OwnerSpec,
   SubjectSpec,
-  SubscriptionPolicyFormDataResponse,
   SubscriptionInfoResponse,
   TokenMetadata,
   TokenRateLimit,
@@ -28,10 +27,12 @@ import {
   UserSubscription,
   ModelRefInfo,
   TokenRateLimitInfo,
-  ModelOverviewItem,
 } from '~/app/types/subscriptions';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+
+const isYamlResponse = (v: unknown): v is { content: string } =>
+  isRecord(v) && typeof v.content === 'string';
 
 const isOptionalString = (v: unknown): v is string | undefined =>
   v === undefined || typeof v === 'string';
@@ -141,19 +142,6 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
 
-const isSubscriptionPolicyFormDataResponse = (
-  v: unknown,
-): v is SubscriptionPolicyFormDataResponse =>
-  isRecord(v) &&
-  Array.isArray(v.groups) &&
-  v.groups.every((g: unknown) => typeof g === 'string') &&
-  Array.isArray(v.modelRefs) &&
-  v.modelRefs.every(isMaaSModelRefSummary) &&
-  Array.isArray(v.subscriptions) &&
-  v.subscriptions.every(isMaaSSubscription) &&
-  Array.isArray(v.policies) &&
-  v.policies.every(isMaaSAuthPolicy);
-
 const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionResponse =>
   isRecord(v) &&
   isMaaSSubscription(v.subscription) &&
@@ -213,25 +201,36 @@ export const getSubscriptionInfo =
       throw new Error('Invalid response format');
     });
 
-export const getSubscriptionPolicyFormData =
+/** GET /api/v1/all-groups - List available group names */
+export const listAllGroups =
   (hostPath = '') =>
-  (opts: APIOptions): Promise<SubscriptionPolicyFormDataResponse> =>
+  (opts: APIOptions): Promise<string[]> =>
     handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscription-policy-form-data`,
-        {},
-        opts,
-      ),
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-groups`, {}, opts),
     ).then((response) => {
       if (
         isModArchResponse<unknown>(response) &&
-        isSubscriptionPolicyFormDataResponse(response.data)
+        Array.isArray(response.data) &&
+        response.data.every((g: unknown) => typeof g === 'string')
       ) {
-        return {
-          ...response.data,
-          subscriptions: response.data.subscriptions.map(normalizeSubscription),
-        };
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+/** GET /api/v1/all-maas-models - List all MaaSModelRef summaries */
+export const listAllMaasModels =
+  (hostPath = '') =>
+  (opts: APIOptions): Promise<MaaSModelRefSummary[]> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-maas-models`, {}, opts),
+    ).then((response) => {
+      if (
+        isModArchResponse<unknown>(response) &&
+        Array.isArray(response.data) &&
+        response.data.every(isMaaSModelRefSummary)
+      ) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });
@@ -312,14 +311,19 @@ export const getUserSubscription =
       throw new Error('Invalid response format');
     });
 
-export const getModelsOverview =
-  (hostPath = '') =>
-  (opts: APIOptions): Promise<ModelOverviewItem[]> =>
+export const getResourceYaml =
+  (name: string, resourceType: string, hostPath = '') =>
+  (opts: APIOptions): Promise<string> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/overview/models`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
+        { name, type: resourceType },
+        opts,
+      ),
     ).then((response) => {
-      if (isModArchResponse<ModelOverviewItem[]>(response) && Array.isArray(response.data)) {
-        return response.data;
+      if (isYamlResponse(response)) {
+        return response.content;
       }
       throw new Error('Invalid response format');
     });

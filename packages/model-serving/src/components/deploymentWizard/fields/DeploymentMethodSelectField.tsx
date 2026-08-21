@@ -10,9 +10,14 @@ import {
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 import {
+  useModelServingClusterSettings,
+  type ModelServingClusterSettings,
+} from '../../../concepts/useModelServingClusterSettings';
+import {
+  type DeploymentMethodFieldOverride,
   type DeploymentMethodOption,
   type WizardField,
   type WizardFormData,
@@ -36,6 +41,21 @@ export type DeploymentMethodExternalData = {
   suggestion?: DeploymentMethodOption;
 };
 
+export const resolveDeploymentMethodSuggestion = (
+  overrides: DeploymentMethodFieldOverride[],
+  clusterSettings: ModelServingClusterSettings | null | undefined,
+): DeploymentMethodOption | undefined =>
+  overrides.reduce<DeploymentMethodOption | undefined>((acc, override) => {
+    const s = override.suggestion?.(clusterSettings);
+    if (!s) {
+      return acc;
+    }
+    if (!acc) {
+      return s;
+    }
+    return s.order < acc.order ? s : acc;
+  }, undefined);
+
 export const useDeploymentMethodExternalData = (): {
   data: DeploymentMethodExternalData;
   loaded: boolean;
@@ -53,10 +73,7 @@ export const useDeploymentMethodExternalData = (): {
     const options = overrides
       .flatMap((override) => override.options)
       .toSorted((a, b) => a.order - b.order);
-    const suggestion = overrides.reduce<DeploymentMethodOption | undefined>(
-      (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
-      undefined,
-    );
+    const suggestion = resolveDeploymentMethodSuggestion(overrides, modelServingClusterSettings);
 
     return {
       data: { options, suggestion },
@@ -88,6 +105,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   externalData,
   isEditing,
 }) => {
+  const { trackEvent } = useHostApiCore();
   const options = externalData?.data.options ?? [];
 
   return (
@@ -112,7 +130,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
               description={opt.description}
               isChecked={value?.method === opt.key}
               onChange={() => {
-                fireDeployMethodSelected({
+                fireDeployMethodSelected(trackEvent, {
                   deploymentMethod: opt.key,
                   previousDeploymentMethod: value?.method,
                 });

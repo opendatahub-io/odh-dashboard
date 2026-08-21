@@ -1,26 +1,23 @@
-import {
-  mock404Error,
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockRoleBindingK8sResource,
-  mockRoleK8sResource,
-  mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource, mockRoleK8sResource } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import {
   mockServingRuntimeTemplateK8sResource,
   mockInvalidTemplateK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared/types';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';

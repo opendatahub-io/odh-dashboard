@@ -129,6 +129,20 @@ describe('NIMSettingsCard', () => {
     expect(screen.getByTestId('nim-replace-key-button')).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('should show enabled Remove and Replace buttons when user has permission in READY state', () => {
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.READY,
+    });
+    render(<NIMSettingsCard namespace="test-ns" />);
+    expect(screen.getByTestId('nim-remove-button')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByTestId('nim-replace-key-button')).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
   it('should show remove tooltip on disabled Remove button', async () => {
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     mockUseNIMAccountStatus.mockReturnValue({

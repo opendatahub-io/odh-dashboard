@@ -43,7 +43,10 @@ export type FeastContainerConfigs = {
   env?: FeastEnvVar[];
   envFrom?: FeastEnvFromSource[];
   imagePullPolicy?: string;
-  resources?: Record<string, unknown>;
+  resources?: {
+    requests?: Record<string, string>;
+    limits?: Record<string, string>;
+  };
   nodeSelector?: Record<string, string>;
 };
 
@@ -110,7 +113,7 @@ export type FeastRegistryFilePersistence = {
 
 export type FeastRegistryDBStorePersistence = {
   type: string;
-  secretRef: { name: string };
+  secretRef?: { name: string };
   secretKeyName?: string;
 };
 
@@ -208,6 +211,7 @@ export type FeastAuthzConfig = {
   oidc?: {
     secretRef?: { name: string };
   };
+  noAuth?: boolean;
 };
 
 export type FeastCronJobContainerConfigs = FeastContainerConfigs & {

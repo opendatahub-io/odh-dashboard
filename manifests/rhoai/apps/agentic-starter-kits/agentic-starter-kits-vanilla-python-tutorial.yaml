@@ -11,5 +11,5 @@ spec:
     Create a lightweight agent using only the OpenAI Python client and
     an Action/Observation loop with tools. No framework dependencies --
     works with OpenAI or any compatible API including Llama Stack.
-  url: 'https://red.ht/49t8Yzi'
+  url: 'https://red.ht/4fQlWe9'
   appName: agentic-starter-kits

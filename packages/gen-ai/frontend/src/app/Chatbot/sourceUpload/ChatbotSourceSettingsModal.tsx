@@ -475,6 +475,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                 variant="primary"
                 isDisabled={!fields.vectorStore || !vectorStoreName || isUploading}
                 isLoading={isUploading}
+                data-testid="source-settings-upload-button"
                 onClick={async () => {
                   try {
                     await onSubmitSettings(fields);
@@ -492,6 +493,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
               <Button
                 key="cancel"
                 variant="link"
+                data-testid="source-settings-cancel-button"
                 onClick={() => {
                   setFields(DEFAULT_SOURCE_SETTINGS);
                   onToggle();
@@ -527,6 +529,7 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                 onClick={onSubmitVectorStoreCreation}
                 isDisabled={!vectorStoreForm.vectorName.trim() || isCreatingVectorStore}
                 isLoading={isCreatingVectorStore}
+                data-testid="vector-store-create-button"
               >
                 {isCreatingVectorStore ? 'Creating...' : 'Create'}
               </Button>

@@ -10,7 +10,7 @@ export const LLMD_DEPLOYMENT_METHOD_KEY = 'llm-inference-service-llmd';
 const SIMPLE_VLLM_OPTION = {
   key: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
   label: 'LLM inference service',
-  description: 'Deploy a large language model using the standard LLM inference service.',
+  description: 'Deploy a large language model. Compatible with Models as a Service.',
   order: 1,
 };
 
@@ -19,6 +19,8 @@ export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {
   type: 'modifier',
   isActive: () => true,
   options: [SIMPLE_VLLM_OPTION],
+  suggestion: (clusterSettings) =>
+    !clusterSettings?.isLLMdDefault ? SIMPLE_VLLM_OPTION : undefined,
 };
 
 // LLM-d
@@ -27,7 +29,7 @@ const LLMD_OPTION = {
   key: LLMD_DEPLOYMENT_METHOD_KEY,
   label: 'LLM inference service with llm-d',
   description:
-    'Deploy a large language model with llm-d for additional scheduling and routing capabilities.',
+    'Same as LLM inference service, but with distributed serving and advanced routing techniques such as cache-aware routing and disaggregated prefill and decode.',
   order: 2,
 };
 

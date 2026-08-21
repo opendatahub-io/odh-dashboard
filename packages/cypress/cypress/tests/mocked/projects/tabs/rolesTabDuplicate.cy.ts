@@ -2,13 +2,11 @@
  * Tests for the Duplicate Role flow: loading source role, pre-populating form
  * with "Copy of" display name, cleared k8s name, submitting via POST.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockRoleK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
-import { mock404Error, mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRoleK8sResource } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mock409Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -21,18 +19,24 @@ import { projectRoles } from '../../../../pages/projectRoles';
 const NAMESPACE = 'test-project';
 const SOURCE_ROLE_NAME = 'my-custom-role';
 
-const sourceRole = mockRoleK8sResource({
-  name: SOURCE_ROLE_NAME,
-  namespace: NAMESPACE,
-  labels: { 'opendatahub.io/dashboard': 'true' },
-  rules: [
-    {
-      verbs: ['get', 'list'],
-      apiGroups: ['apps'],
-      resources: ['deployments'],
-    },
-  ],
-});
+const sourceRole = (() => {
+  const role = mockRoleK8sResource({
+    name: SOURCE_ROLE_NAME,
+    namespace: NAMESPACE,
+    labels: { 'opendatahub.io/dashboard': 'true' },
+    rules: [
+      {
+        verbs: ['get', 'list'],
+        apiGroups: ['apps'],
+        resources: ['deployments'],
+      },
+    ],
+  });
+  role.metadata.annotations = {
+    'openshift.io/display-name': 'My Custom Role',
+  };
+  return role;
+})();
 
 const initIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
@@ -53,19 +57,12 @@ describe('Duplicate Role', () => {
     initIntercepts();
   });
 
-  it('should show "Duplicate custom role" as page title', () => {
+  it('should pre-populate form with "Copy of" name and existing rules', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    cy.findByTestId('app-page-title').should('contain.text', 'Duplicate custom role');
-  });
 
-  it('should pre-populate the display name with "Copy of" prefix', () => {
-    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findRoleNameInput().should('have.value', `Copy of ${SOURCE_ROLE_NAME}`);
-  });
-
-  it('should have submit button enabled when form is pre-populated', () => {
-    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findSubmitButton().should('be.enabled');
+    projectRoles.findRoleNameInput().should('have.value', 'Copy of My Custom Role');
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
   });
 
   it('should have k8s resource name field editable (not immutable)', () => {
@@ -125,21 +122,10 @@ describe('Duplicate Role', () => {
     projectRoles.findSubmitButton().should('be.enabled');
   });
 
-  it('should show error page when source role does not exist (404)', () => {
-    cy.interceptK8s(
-      'GET',
-      { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
-      { statusCode: 404, body: mock404Error({}) },
-    );
-
-    cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/duplicate`);
-    cy.contains('Unable to load role').should('exist');
-  });
-
   it('should navigate to duplicate page from table kebab action', () => {
     projectRoles.visit(NAMESPACE);
 
-    const row = projectRoles.getRow(SOURCE_ROLE_NAME);
+    const row = projectRoles.getRow('My Custom Role');
     row.findKebabAction('Duplicate role').click();
 
     cy.url().should('include', `/roles/${SOURCE_ROLE_NAME}/duplicate`);

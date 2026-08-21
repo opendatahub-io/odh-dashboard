@@ -1,4 +1,4 @@
-import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { EventKind } from '@odh-dashboard/k8s-core';
 
 type MockEventResourceConfigType = {

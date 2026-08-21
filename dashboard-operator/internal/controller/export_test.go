@@ -25,3 +25,17 @@ func BuildFederationConfigMap(r *DashboardReconciler, statuses map[string]v1alph
 func (r *DashboardReconciler) PatchDeploymentFederationHash(ctx context.Context, configData string) error {
 	return r.patchDeploymentFederationHash(ctx, configData)
 }
+
+func (r *DashboardReconciler) DeleteSidecarResources(ctx context.Context) error {
+	return r.deleteSidecarResources(ctx)
+}
+
+func (r *DashboardReconciler) AutoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+	return r.autoDetectObservability(ctx, dashboard)
+}
+
+func (r *DashboardReconciler) MonitoringNamespace() string {
+	return r.monitoringNamespace()
+}
+
+const ObservabilityRetryInterval = observabilityRetryInterval

@@ -10,14 +10,6 @@
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
 }
 
-.automl-pipeline-visualization__toolbar {
-  margin-left: auto;
-
-  .pf-v6-l-flex {
-    justify-content: flex-end;
-  }
-}
-
 .automl-pipeline-visualization__body {
   height: 45vh;
   min-height: 45vh;
@@ -54,16 +46,4 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-}
-
-@media (max-width: 992px) {
-  .automl-pipeline-visualization__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .automl-pipeline-visualization__toolbar {
-    margin-left: 0;
-    width: 100%;
-  }
 }

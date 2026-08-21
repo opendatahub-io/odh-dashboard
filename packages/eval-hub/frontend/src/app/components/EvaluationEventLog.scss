@@ -1,0 +1,95 @@
+// Log viewer
+.evalhub-log-viewer {
+  max-height: 46vh;
+  overflow: auto;
+
+  &--running {
+    max-height: 52vh;
+  }
+
+  &--completed {
+    max-height: 54vh;
+  }
+}
+
+.evalhub-log-viewer__row {
+  display: flex;
+  gap: var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--xl) var(--pf-t--global--spacer--xs) 0;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  position: relative;
+
+  &:hover,
+  &:focus-within {
+    background-color: var(--pf-t--global--background--color--primary--hover);
+
+    .evalhub-log-viewer__copy {
+      opacity: 1;
+    }
+  }
+
+&--section {
+    font-weight: var(--pf-t--global--font--weight--heading--default);
+  }
+
+  &--benchmark {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs) 0;
+    font-weight: var(--pf-t--global--font--weight--heading--bold);
+    color: var(--pf-t--global--text--color--regular);
+    background-color: var(--pf-t--global--background--color--primary--default);
+    pointer-events: none;
+  }
+
+  &--no-border {
+    border-bottom-color: transparent;
+  }
+
+  &--empty-filter {
+    color: var(--pf-t--global--text--color--subtle);
+    font-style: italic;
+  }
+}
+
+%evalhub-log-cell {
+  flex-shrink: 0;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.evalhub-log-viewer__cell--timestamp {
+  @extend %evalhub-log-cell;
+
+  width: 7em;
+  white-space: nowrap;
+}
+
+.evalhub-log-viewer__cell--full {
+  flex: 1;
+  min-width: 0;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.evalhub-log-viewer__cell--message {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.evalhub-log-viewer__copy {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  max-height: calc(1lh + 2 * var(--pf-t--global--spacer--xs));
+  display: flex;
+  align-items: center;
+  opacity: 0;
+}
+
+.evalhub-log-viewer__alert {
+  margin-top: var(--pf-t--global--spacer--md);
+}

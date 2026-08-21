@@ -1,22 +1,7 @@
-import {
-  BaseMetricCreationResponse,
-  BaseMetricListResponse,
-  BaseMetricRequest,
-  BiasMetricType,
-} from '#~/api';
+import { type BaseMetricRequest, TrustyInstallState } from '@odh-dashboard/trustyai/types';
+import { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
-export enum TrustyInstallState {
-  UNINSTALLING = 'uninstalling',
-  INSTALLED = 'installed',
-  INSTALLING = 'installing',
-  /** Unrelated to Trusty error / infra failed, network issue, etc */
-  INFRA_ERROR = 'infra-error',
-  /** Specific error with the CR */
-  CR_ERROR = 'error',
-  UNINSTALLED = 'uninstalled',
-  LOADING_INITIAL_STATE = 'unknown',
-}
 export const TRUSTY_CR_NOT_AVAILABLE_STATES = [
   TrustyInstallState.UNINSTALLED,
   TrustyInstallState.LOADING_INITIAL_STATE,
@@ -63,18 +48,4 @@ export type ExplainabilityAPI = {
   createDirRequest: CreateDirRequest;
   deleteSpdRequest: DeleteSpdRequest;
   deleteDirRequest: DeleteDirRequest;
-};
-
-export type BiasMetricConfig = {
-  id: string;
-  name: string;
-  metricType: BiasMetricType;
-  protectedAttribute: string;
-  outcomeName: string;
-  favorableOutcome: string;
-  privilegedAttribute: string;
-  unprivilegedAttribute: string;
-  modelId: string;
-  thresholdDelta?: number;
-  batchSize?: number;
 };

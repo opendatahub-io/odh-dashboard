@@ -12,7 +12,7 @@ ODH Dashboard is a **monorepo** containing the main dashboard application and mu
 odh-dashboard/
 ├── frontend/                    # Main dashboard frontend application
 │   └── src/
-│       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__)
+│       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__); some mocks live in type-owning packages
 ├── backend/                     # Main dashboard backend (Node.js/Express)
 │   └── src/
 ├── dashboard-operator/          # Dashboard Module Controller (Go, controller-runtime)
@@ -104,6 +104,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Distributions**           | `distributions.md`            | When working on code in `distributions/`                                       |
 | **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
 | **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
+| **envtest Integration Tests** | `envtest-integration-tests.md` | When writing or modifying envtest integration tests in `dashboard-operator/` |
 | **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
 | **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
@@ -140,11 +141,12 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
-| **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification (pass module name as argument) |
-| **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, Tekton pipelines, DevOps coordination, RHOAI downstream setup |
+| **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification. Standalone manifests and operator registration are deferred to `/konflux-onboarding` (pass module name as argument) |
+| **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, standalone manifests, OpenShift CI, operator registration, DevOps coordination, RHOAI downstream setup |
 | **Prototype Spec**                 | `skills/prototype-spec/`               | Extracting PF component details from a UX prototype fork, scoped to a Jira ticket or epic |
 | **Prototype Tickets**              | `skills/prototype-tickets/`            | Drafting Jira tickets from a UX prototype fork — splits by feature area, generates ACs from prototype scenarios |
 | **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |
 | **Coverage Boost**                 | `skills/coverage-boost/`               | Parsing coverage reports to find uncovered lines, then generating targeted unit tests to boost coverage for a package or file |
+| **envtest Debug**                  | `skills/envtest-debug/`                | Debugging envtest integration test failures — analyzes output, identifies failure patterns, suggests fixes |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

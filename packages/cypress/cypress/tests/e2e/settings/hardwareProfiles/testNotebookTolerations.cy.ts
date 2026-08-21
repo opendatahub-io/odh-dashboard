@@ -47,7 +47,14 @@ describe('Notebooks - tolerations tests', () => {
   it(
     'Verify Juypter Notebook Creation using Hardware Profiles and applying Tolerations',
     {
-      tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet2', '@NonConcurrent'],
+      tags: [
+        '@Dashboard',
+        '@HardwareProfiles',
+        '@Smoke',
+        '@SmokeSet2',
+        '@NonConcurrent',
+        '@HardwareProfilesCI',
+      ],
     },
     () => {
       // Authentication and navigation

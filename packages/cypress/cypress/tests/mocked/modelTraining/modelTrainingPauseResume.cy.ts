@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
 import { mockTrainJobK8sResourceList } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
@@ -255,41 +255,7 @@ describe('Model Training Pause/Resume', () => {
     asClusterAdminUser();
   });
 
-  describe('Pause/Resume Column in Table', () => {
-    it('should display Pause button for running jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('running-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Pause');
-    });
-
-    it('should display Resume button for paused jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('paused-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Resume');
-    });
-
-    it('should not display pause/resume button for completed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('completed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-
-    it('should not display pause/resume button for failed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('failed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-  });
+  // CONVERTED to Jest: StateActionToggle.spec.tsx
 
   describe('Pause Confirmation Modal', () => {
     it('should open pause modal when clicking Pause button', () => {

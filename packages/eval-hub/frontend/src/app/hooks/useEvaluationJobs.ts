@@ -13,6 +13,7 @@ import { POLL_INTERVAL } from '~/app/utilities/const';
 export const useEvaluationJobs = (
   params?: ListEvaluationJobsParams,
   evalHubNotReady?: boolean,
+  pollingEnabled = true,
 ): [EvaluationJob[], boolean, Error | undefined, FetchStateRefreshPromise<EvaluationJob[]>] => {
   const paramsKey = JSON.stringify(params);
   const stableParams = React.useMemo(() => params, [paramsKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -28,7 +29,7 @@ export const useEvaluationJobs = (
   );
   const [jobs, loaded, error, refresh] = useFetchState<EvaluationJob[]>(callback, [], {
     initialPromisePurity: true,
-    refreshRate: evalHubNotReady ? 0 : POLL_INTERVAL,
+    refreshRate: evalHubNotReady || !pollingEnabled ? 0 : POLL_INTERVAL,
   });
 
   return [jobs, loaded, error, refresh];

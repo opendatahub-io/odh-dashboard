@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 const setupDotenvFile = (path: string) => dotenv.config({ path });
 
 const setupDotenvFilesForEnv = (env: string): void => {
-  const RELATIVE_DIRNAME = path.resolve(__dirname, '..', '..', '..');
+  const RELATIVE_DIRNAME = path.resolve(process.cwd(), '..');
 
   if (env) {
     setupDotenvFile(path.resolve(RELATIVE_DIRNAME, `.env.${env}.local`));

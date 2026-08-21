@@ -6,7 +6,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 
 type BiasConfigurationTableRowProps = {
   obj: BiasMetricConfig;

@@ -8,7 +8,7 @@ import {
 } from '@odh-dashboard/plugin-core';
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
@@ -230,6 +230,11 @@ export const mockDeploymentWizardState = (
           isVisible: true,
         },
         canCreateRoleBindings: true,
+        validatedConfigurationSelection: {
+          selectedValidatedConfigurations: {},
+          toggleOption: jest.fn(),
+          isOptionSelected: jest.fn().mockReturnValue(false),
+        },
       },
       loaded: {
         modelSourceLoaded: true,

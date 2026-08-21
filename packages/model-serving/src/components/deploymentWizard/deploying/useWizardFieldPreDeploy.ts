@@ -1,9 +1,15 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardFormData } from '../../../shared/types/form-data';
-import { type Deployment } from '../../../../extension-points';
+import { type Deployment, type DeploymentHookPayload } from '../../../../extension-points';
 import { isWizardFieldDeploymentFunctionsExtension } from '../../../../extension-points/deployment-wizard';
 import { useActiveFields } from '../dynamicFormUtils';
+
+export type RunPreDeployFns = (
+  deployment: DeploymentHookPayload,
+  existingDeployment?: Deployment,
+  dryRun?: boolean,
+) => Promise<DeploymentHookPayload>;
 
 /**
  * Hook that returns an async function to dry-run all active pre-deploy extensions before
@@ -19,7 +25,7 @@ import { useActiveFields } from '../dynamicFormUtils';
 export const useWizardFieldPreDeploy = (
   wizardState: WizardFormData['state'],
 ): {
-  runPreDeploy: (deployment: Deployment, existingDeployment?: Deployment) => Promise<Deployment>;
+  runPreDeploy: RunPreDeployFns;
   preDeployExtensionsLoaded: boolean;
 } => {
   const [preDeployExtensions, preDeployExtensionsLoaded] = useResolvedExtensions(
@@ -36,18 +42,25 @@ export const useWizardFieldPreDeploy = (
     [preDeployExtensions, activeFields],
   );
 
-  const runPreDeploy = React.useCallback(
-    async (deployment: Deployment, existingDeployment?: Deployment): Promise<Deployment> => {
+  const runPreDeploy = React.useCallback<RunPreDeployFns>(
+    async (
+      deployment: DeploymentHookPayload,
+      existingDeployment?: Deployment,
+      dryRun?: boolean,
+    ): Promise<DeploymentHookPayload> => {
       let current = deployment;
       for (const ext of activePreDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
-        current = await ext.properties.preDeploy(
-          fieldData,
-          wizardState,
-          current,
-          existingDeployment,
-        );
+        if (typeof ext.properties.preDeploy === 'function') {
+          current = await ext.properties.preDeploy(
+            fieldData,
+            wizardState,
+            current,
+            existingDeployment,
+            dryRun,
+          );
+        }
       }
       return current;
     },

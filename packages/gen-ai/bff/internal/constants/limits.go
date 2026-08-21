@@ -27,6 +27,10 @@ const (
 	// initial body parsing. Set to the largest per-type limit (currently 10MB).
 	MediaUploadMaxBodySize = 10 << 20 // 10MB
 
+	// ChatCompletionMaxBodySize caps the request body for POST /v1/chat/completions proxy.
+	// Chat payloads are JSON with messages array; 5MB accommodates large conversation history.
+	ChatCompletionMaxBodySize = 5 << 20 // 5MB
+
 	// OGXFileRetrievalTimeout is the timeout for retrieving file content from OGX.
 	OGXFileRetrievalTimeout = 10 * time.Second
 

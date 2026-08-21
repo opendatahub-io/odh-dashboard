@@ -1,12 +1,21 @@
 import React from 'react';
 import { Checkbox, Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
+import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import type {
   WizardField,
+  WizardFormData,
   WizardStateOverrides,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUtils';
+import { ModelDeploymentMode } from '~/app/types/event-tracking';
 import { MAAS_DEFAULT_GATEWAY } from './maasDeploymentTransformer';
+import {
+  endMaaSPublishTrackingSession,
+  isDeploymentWizardPath,
+  startMaaSPublishTrackingSession,
+  updateMaaSPublishTrackingSession,
+} from './maasPublishTracking';
 
 export type MaaSFieldValue = {
   isChecked: boolean;
@@ -19,6 +28,56 @@ export const maasFieldSchema = z.object({
 const setMaaSFieldData = (value: MaaSFieldValue): MaaSFieldValue => value;
 const getInitialMaaSFieldData = (value?: MaaSFieldValue): MaaSFieldValue =>
   value ?? { isChecked: false };
+
+const isMaaSFieldValue = (value: unknown): value is MaaSFieldValue =>
+  value != null &&
+  typeof value === 'object' &&
+  'isChecked' in value &&
+  typeof value.isChecked === 'boolean';
+
+type MaaSTrackingDependencies = {
+  addedAsMaas: boolean;
+};
+
+const resolveMaaSTrackingDependencies = (
+  formData: WizardFormData['state'],
+): MaaSTrackingDependencies => {
+  const raw: unknown = formData['maas/save-as-maas-checkbox'];
+  return { addedAsMaas: isMaaSFieldValue(raw) ? raw.isChecked : false };
+};
+
+/**
+ * Keeps a publish-tracking session alive for the whole wizard while this field is
+ * active (not only while the Advanced settings step is mounted). On wizard exit
+ * without submit, fires cancel.
+ */
+const useMaaSPublishTrackingSession = (
+  dependencies?: MaaSTrackingDependencies,
+): { data: null; loaded: true } => {
+  const location = useLocation();
+  const isEditing = Boolean(
+    location.state?.existingDeployment || location.state?.initialData?.isEditing,
+  );
+  const mode = isEditing ? ModelDeploymentMode.EDIT : ModelDeploymentMode.CREATE;
+  const addedAsMaas = dependencies?.addedAsMaas ?? false;
+
+  React.useEffect(() => {
+    startMaaSPublishTrackingSession(mode);
+  }, [mode]);
+
+  React.useEffect(() => {
+    updateMaaSPublishTrackingSession(addedAsMaas);
+  }, [addedAsMaas]);
+
+  React.useEffect(
+    () => () => {
+      endMaaSPublishTrackingSession(!isDeploymentWizardPath(window.location.pathname));
+    },
+    [],
+  );
+
+  return { data: null, loaded: true };
+};
 
 type MaaSFieldProps = {
   id: string;
@@ -58,7 +117,7 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
   );
 };
 
-export type MaaSFieldType = WizardField<MaaSFieldValue>;
+export type MaaSFieldType = WizardField<MaaSFieldValue, null, MaaSTrackingDependencies>;
 
 export const MaaSEndpointFieldWizardField: MaaSFieldType = {
   id: 'maas/save-as-maas-checkbox',
@@ -70,6 +129,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     setFieldData: setMaaSFieldData,
     getInitialFieldData: getInitialMaaSFieldData,
     validationSchema: maasFieldSchema,
+    resolveDependencies: resolveMaaSTrackingDependencies,
     getFieldOverrides: (fieldValue) => {
       const overrides: WizardStateOverrides = {};
       if (fieldValue.isChecked) {
@@ -82,6 +142,7 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
     },
   },
   component: MaaSField,
+  externalDataHook: useMaaSPublishTrackingSession,
   getReviewSections: (value) => [
     {
       title: 'Advanced settings',

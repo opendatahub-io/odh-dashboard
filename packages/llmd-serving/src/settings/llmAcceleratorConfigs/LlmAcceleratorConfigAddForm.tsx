@@ -5,30 +5,45 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   FormGroup,
   TextInput,
 } from '@patternfly/react-core';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
-import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
+import {
+  isConfigObject,
+  cleanResourceForYAMLViewer,
+  stripDuplicatingAnnotations,
+  stripDuplicatingLabels,
+} from '../../utils';
 import { ConfigType, CONFIG_TYPE_LABEL } from '../../types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
+import {
+  fireLlmAcceleratorConfigCreated,
+  fireLlmAcceleratorConfigUpdated,
+} from '../../tracking/llmdTrackingConstants';
 
 type FormMode = 'add' | 'edit' | 'duplicate';
 
@@ -41,6 +56,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   mode,
   sourceConfig,
 }) => {
+  const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { dashboardNamespace } = useDashboardNamespace();
   const isEdit = mode === 'edit';
@@ -84,6 +100,8 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     }
     if (isDuplicate) {
       const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+      const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
       const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
       return YAML.stringify({
         ...sourceConfig,
@@ -91,9 +109,10 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
-            ...cleanMeta.annotations,
+            ...cleanAnnotations,
             'openshift.io/display-name': duplicateDisplayName,
           },
+          labels: cleanLabels,
         },
       });
     }
@@ -123,10 +142,28 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       parsed = YAML.parse(yamlCode);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
+      if (isEdit) {
+        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+      } else {
+        fireLlmAcceleratorConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+        });
+      }
       return;
     }
     if (!isConfigObject(parsed)) {
       setError(new Error('YAML must represent a valid kubernetes resource object'));
+      if (isEdit) {
+        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+      } else {
+        fireLlmAcceleratorConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+        });
+      }
       return;
     }
     const config = overrideLlmConfigFields(parsed, {
@@ -142,10 +179,31 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       : createLLMInferenceServiceConfig(config);
     submitFn
       .then(() => {
-        navigate('..');
+        if (isEdit) {
+          fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: true });
+        } else {
+          fireLlmAcceleratorConfigCreated({
+            outcome: TrackingOutcome.submit,
+            success: true,
+            mode: isDuplicate ? 'duplicate' : 'create',
+          });
+        }
+        navigate(listPath);
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err : new Error(String(err)));
+        if (isEdit) {
+          fireLlmAcceleratorConfigUpdated({
+            outcome: TrackingOutcome.submit,
+            success: false,
+          });
+        } else {
+          fireLlmAcceleratorConfigCreated({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            mode: isDuplicate ? 'duplicate' : 'create',
+          });
+        }
       })
       .finally(() => {
         setLoading(false);
@@ -153,11 +211,13 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   }, [
     yamlCode,
     isEdit,
+    isDuplicate,
     sourceConfig?.metadata.name,
     nameDescData,
     version,
     dashboardNamespace,
     navigate,
+    listPath,
   ]);
 
   return (
@@ -166,7 +226,9 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       description={description}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="..">LLM accelerator configurations</Link>} />
+          <BreadcrumbItem
+            render={() => <Link to={listPath}>LLM accelerator configurations</Link>}
+          />
           {isEdit && sourceConfig && (
             <BreadcrumbItem>{getDisplayNameFromK8sResource(sourceConfig)}</BreadcrumbItem>
           )}
@@ -226,7 +288,17 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
             isDisabled={loading}
             variant="link"
             data-testid="cancel-button"
-            onClick={() => navigate('..')}
+            onClick={() => {
+              if (isEdit) {
+                fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.cancel });
+              } else {
+                fireLlmAcceleratorConfigCreated({
+                  outcome: TrackingOutcome.cancel,
+                  mode: isDuplicate ? 'duplicate' : 'create',
+                });
+              }
+              navigate(listPath);
+            }}
           >
             Cancel
           </Button>
@@ -236,15 +308,60 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   );
 };
 
-export const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> = ({
-  mode,
-}) => {
+export const LlmAcceleratorConfigFormByName: React.FC<{
+  mode: 'edit' | 'duplicate';
+}> = ({ mode }) => {
+  const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const { configName } = useParams<{ configName: string }>();
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const config = configs.find((c) => c.metadata.name === configName);
 
+  // The named config must exist (context is already loaded — the provider gates
+  // on that). When it doesn't, tell the user rather than silently redirecting —
+  // a deep link or reload to a deleted/renamed config should explain what
+  // happened. Matches the pattern used by serving runtimes, connection types,
+  // and hardware profiles. The copy reflects the active operation so a missing
+  // duplicate target isn't labelled as an edit.
   if (!config) {
-    return <Navigate to=".." replace />;
+    const operationLabel = mode === 'duplicate' ? 'Duplicate' : 'Edit';
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title={`${operationLabel} LLM accelerator configuration`}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={listPath}>LLM accelerator configurations</Link>}
+            />
+            <BreadcrumbItem isActive>{operationLabel}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText={`Unable to ${
+              mode === 'duplicate' ? 'duplicate' : 'edit'
+            } accelerator configuration`}
+          >
+            <EmptyStateBody>
+              We were unable to find an accelerator configuration named &quot;{configName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      </ApplicationsPage>
+    );
   }
 
   return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;

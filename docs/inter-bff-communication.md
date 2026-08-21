@@ -4,7 +4,7 @@ This document describes the architecture and implementation patterns for communi
 
 ## Overview
 
-The ODH Dashboard uses a modular architecture where multiple BFF services run as containers in a single pod. Each BFF serves a specific feature module (Gen-AI, MaaS, Model Registry, etc.). Inter-BFF communication enables these services to coordinate and share functionality.
+The ODH Dashboard uses a modular architecture where multiple BFF services run as independent Kubernetes Deployments. Each BFF serves a specific feature module (Gen-AI, MaaS, Model Registry, etc.). Inter-BFF communication enables these services to coordinate and share functionality. Standalone deployment is the primary deployment mode; sidecar mode (all BFFs in one pod) is legacy and deprecated.
 
 ### Use Cases
 
@@ -18,7 +18,32 @@ The ODH Dashboard uses a modular architecture where multiple BFF services run as
 
 Two deployment modes affect how inter-BFF calls are made:
 
-**Sidecar mode** — all BFFs share one pod; calls go to `localhost:<port>` or the shared `odh-dashboard` service:
+**Standalone mode (primary)** -- each BFF is its own pod with its own Kubernetes Service; calls go to K8s service DNS. core-bff remains in the **main dashboard pod** in both modes:
+
+```
+┌─────────────────────────────────────────────┐
+│  Main Dashboard Pod (odh-dashboard svc)      │
+│  ┌─────────────┐  ┌──────────────┐          │
+│  │ odh-dashboard│  │  core-bff   │           │
+│  │    :8080    │  │    :8943    │           │
+│  └─────────────┘  └──────┬──────┘           │
+└──────────────────────────┼──────────────────┘
+                            │ ← port 8943 on odh-dashboard svc
+         ┌──────────────────┼─────────────────┐
+         │                  │                 │
+┌────────┴──────┐  ┌────────┴──────┐  ┌───────┴───────┐
+│  gen-ai pod   │  │   maas pod    │  │  mlflow pod   │
+│    :8143      │  │    :8243      │  │    :8343      │
+│ odh-dashboard-│  │ odh-dashboard-│  │ odh-dashboard-│
+│ gen-ai-ui svc │  │ maas-ui svc   │  │ mlflow-ui svc │
+└───────────────┘  └───────────────┘  └───────────────┘
+```
+
+In standalone mode, each module has its own Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`), so inter-BFF calls use the module-specific service name rather than the shared `odh-dashboard` service.
+
+**Sidecar mode (legacy/deprecated)** -- all BFFs share one pod; calls go to `localhost:<port>` or the shared `odh-dashboard` service:
+
+> **Note**: Sidecar mode is deprecated. New modules should target standalone deployment only.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -38,25 +63,6 @@ Two deployment modes affect how inter-BFF calls are made:
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Standalone mode** — each BFF is its own pod; calls go to K8s service DNS. core-bff remains in the **main dashboard pod** in both modes:
-
-```
-┌─────────────────────────────────────────────┐
-│  Main Dashboard Pod (odh-dashboard svc)      │
-│  ┌─────────────┐  ┌──────────────┐          │
-│  │ odh-dashboard│  │  core-bff   │           │
-│  │    :8080    │  │    :8943    │           │
-│  └─────────────┘  └──────┬──────┘           │
-└──────────────────────────┼──────────────────┘
-                            │ ← port 8943 on odh-dashboard svc
-         ┌──────────────────┼─────────────────┐
-         │                  │                 │
-┌────────┴──────┐  ┌────────┴──────┐  ┌───────┴───────┐
-│  gen-ai pod   │  │   maas pod    │  │  mlflow pod   │
-│    :8143      │  │    :8243      │  │    :8343      │
-└───────────────┘  └───────────────┘  └───────────────┘
-```
-
 ## Configuration
 
 ### Environment Variables
@@ -67,7 +73,7 @@ Each BFF that needs to call another BFF configures these environment variables:
 |----------|-------------|---------|
 | `MOCK_BFF_CLIENTS` | Enable mock BFF clients for testing | `false` |
 | `BFF_<TARGET>_DEV_URL` | Dev override URL (e.g., `http://localhost:4000/api/v1`) | - |
-| `BFF_<TARGET>_SERVICE_NAME` | Kubernetes service name | `odh-dashboard` |
+| `BFF_<TARGET>_SERVICE_NAME` | Kubernetes service name | varies by mode (see below) |
 | `BFF_<TARGET>_SERVICE_PORT` | Target BFF port | varies by target |
 | `BFF_<TARGET>_TLS_ENABLED` | Enable HTTPS for inter-BFF calls | `false` (local) / `true` (prod) |
 | `BFF_<TARGET>_AUTH_METHOD` | Authentication method: `user_token` or `internal` | `user_token` |
@@ -85,7 +91,19 @@ In Kubernetes, BFFs discover each other using DNS:
 <service-name>.<namespace>.svc.cluster.local:<port>
 ```
 
-Example: `odh-dashboard.redhat-ods-applications.svc.cluster.local:8243`
+**Standalone mode (primary)**: Each BFF has its own Kubernetes Service, so the service name in `BFF_<TARGET>_SERVICE_NAME` is the module-specific service name. For example, to call the MaaS BFF from the Gen-AI BFF:
+
+```
+odh-dashboard-maas-ui.redhat-ods-applications.svc.cluster.local:8243
+```
+
+The operator injects these service names automatically via environment variables in each module's `deployment.yaml`, or wires them through the `interBFFDependencies` mechanism in `dashboard-operator/internal/controller/module_deploy.go`.
+
+**Sidecar mode (legacy)**: All BFFs share the `odh-dashboard` service, so the service name is always `odh-dashboard` and only the port differs:
+
+```
+odh-dashboard.redhat-ods-applications.svc.cluster.local:8243
+```
 
 For local development, use `BFF_<TARGET>_DEV_URL` to override service discovery:
 
@@ -103,6 +121,19 @@ Inter-BFF calls forward the user's authentication token from the original reques
 | `internal` | `kubeflow-userid`, `kubeflow-groups` | Kubeflow deployments |
 
 The calling BFF extracts the token from the incoming request's `RequestIdentity` context and forwards it to the target BFF.
+
+Not every target BFF implements `internal` on its own server side -- check the target's
+`internal/config/environment.go` before setting `BFF_<TARGET>_AUTH_METHOD=internal`. For
+example, the MLflow BFF currently only accepts `disabled`/`user_token` and exits at startup
+on any other value, so calls to it must use `user_token`.
+
+> **Security note on `internal` auth**: a BFF running `AuthMethod=internal` trusts the
+> `kubeflow-userid`/`kubeflow-groups` header values on incoming requests verbatim -- there's
+> no signature or cryptographic verification of who set them. This is only safe behind a
+> trusted network boundary (e.g. Istio's `RequestAuthentication`/`AuthorizationPolicy` in
+> Kubeflow deployments) that strips any client-supplied versions of these headers before
+> re-injecting verified ones. Don't enable `internal` auth -- on either side of an inter-BFF
+> call -- without that boundary in place; use `user_token` otherwise.
 
 ### TLS Configuration
 
@@ -147,9 +178,45 @@ Mock mode returns predefined responses without making HTTP calls. Useful for:
 
 ## Kubernetes Deployment
 
-### Deployment Configuration
+### Standalone Deployment Configuration (Primary)
 
-Add environment variables to your BFF container in `deployment.yaml`:
+In standalone mode, each module runs as its own Kubernetes Deployment with its own Service. Inter-BFF environment variables must reference the target module's standalone service name.
+
+Add environment variables to your BFF container in `manifests/modules/<slug>/deployment.yaml`:
+
+```yaml
+env:
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  # Inter-BFF: calling MaaS from this module
+  - name: BFF_MAAS_SERVICE_NAME
+    value: "odh-dashboard-maas-ui"
+  - name: BFF_MAAS_SERVICE_PORT
+    value: "8243"
+  - name: BFF_MAAS_TLS_ENABLED
+    value: "true"
+  - name: BFF_MAAS_AUTH_METHOD
+    value: "user_token"
+  - name: BFF_MAAS_AUTH_TOKEN_HEADER
+    value: "x-forwarded-access-token"
+  - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+    value: ""
+  # Inter-BFF: calling core-bff (always on main dashboard pod)
+  - name: BFF_CORE_BFF_SERVICE_NAME
+    value: "odh-dashboard"
+  - name: BFF_CORE_BFF_SERVICE_PORT
+    value: "8943"
+  - name: BFF_CORE_BFF_TLS_ENABLED
+    value: "true"
+```
+
+Note that `BFF_MAAS_SERVICE_NAME` is `odh-dashboard-maas-ui` (the standalone Service) rather than `odh-dashboard` (the shared sidecar Service). The `BFF_CORE_BFF_SERVICE_NAME` remains `odh-dashboard` because core-bff always runs in the main dashboard pod.
+
+### Sidecar Deployment Configuration (Legacy)
+
+In sidecar mode, all BFFs share the `odh-dashboard` service:
 
 ```yaml
 env:
@@ -173,7 +240,57 @@ env:
 
 ### Network Policy
 
-Enable egress between BFFs in `networkpolicy.yaml`:
+#### Standalone Mode (Primary)
+
+In standalone mode, inter-BFF communication is pod-to-pod between different Deployments. Each module's NetworkPolicy must allow egress to the target module's pods and ingress from calling modules.
+
+**Egress** in `manifests/modules/<slug>/networkpolicy.yaml` -- allow calling other module BFFs:
+
+```yaml
+egress:
+  # Inter-BFF communication with other standalone modules
+  - to:
+      - podSelector:
+          matchLabels:
+            deployment: maas-ui
+    ports:
+      - port: 8243
+        protocol: TCP
+  # Communication with core-bff on main dashboard pod
+  - to:
+      - podSelector:
+          matchLabels:
+            deployment: odh-dashboard
+    ports:
+      - port: 8943
+        protocol: TCP
+```
+
+**Ingress** -- allow other modules to call this module's BFF:
+
+```yaml
+ingress:
+  # Allow calls from main dashboard (Fastify proxy)
+  - from:
+      - podSelector:
+          matchLabels:
+            deployment: odh-dashboard
+    ports:
+      - port: 8143
+        protocol: TCP
+  # Allow calls from other modules that depend on this one
+  - from:
+      - podSelector:
+          matchLabels:
+            deployment: autorag-ui
+    ports:
+      - port: 8143
+        protocol: TCP
+```
+
+#### Sidecar Mode (Legacy)
+
+In sidecar mode, all BFFs are in the same pod, so NetworkPolicy only needs to cover pod-level rules:
 
 ```yaml
 egress:
@@ -330,7 +447,7 @@ router.POST("/api/v1/my-endpoint",
 
 ### 7. Update Manifests
 
-Add environment variables and network policy rules as shown in the Kubernetes Deployment section above.
+Add environment variables and network policy rules as shown in the [Kubernetes Deployment](#kubernetes-deployment) section above. For standalone mode, use the module-specific service names in environment variables and add pod-to-pod NetworkPolicy rules.
 
 ## Error Handling
 
@@ -370,7 +487,8 @@ if err != nil {
 
 - Verify target BFF is running: `curl http://localhost:<port>/healthcheck`
 - Check `BFF_<TARGET>_DEV_URL` is set correctly for local development
-- In Kubernetes: `kubectl get svc odh-dashboard -n <namespace>`
+- In Kubernetes (standalone): `kubectl get svc odh-dashboard-<slug>-ui -n <namespace>`
+- In Kubernetes (sidecar): `kubectl get svc odh-dashboard -n <namespace>`
 
 ### Token Forwarding Issues
 
@@ -378,6 +496,16 @@ if err != nil {
 - Verify `BFF_<TARGET>_AUTH_TOKEN_HEADER` header name
 - For ODH/RHOAI: use `x-forwarded-access-token` (no prefix)
 - For standard Bearer: use `Authorization` with `Bearer ` prefix
+- If the **calling** BFF itself runs with `AuthMethod=internal` (see the BFF's own
+  `--auth-method`/`AUTH_METHOD`, distinct from `BFF_<TARGET>_AUTH_METHOD`), incoming
+  requests aren't required to carry a user bearer token, so `identity.Token` can be empty
+  regardless of the target's configured auth method. If the target expects
+  `BFF_<TARGET>_AUTH_METHOD=user_token` (the default) in that case, inter-BFF calls will
+  fail authentication. Don't "fix" this by switching the target to `internal` auth unless
+  you've confirmed the trust boundary described above already applies to it -- that trades
+  a failed inter-BFF call for a spoofable-identity vulnerability. Absent that boundary,
+  treat the failure as expected and make sure best-effort call sites degrade gracefully
+  rather than block the caller's own response
 
 ### TLS Errors
 
@@ -388,7 +516,8 @@ if err != nil {
 ### Service Discovery Failures
 
 - Check `POD_NAMESPACE` is set (auto-injected via downward API)
-- Verify service exists: `kubectl get svc odh-dashboard -n <namespace>`
+- Standalone mode: verify service exists with `kubectl get svc odh-dashboard-<slug>-ui -n <namespace>`
+- Sidecar mode: verify service exists with `kubectl get svc odh-dashboard -n <namespace>`
 - Check NetworkPolicy allows egress on target port
 - DNS format: `<service>.<namespace>.svc.cluster.local:<port>`
 
@@ -458,4 +587,5 @@ BFF_CORE_BFF_DEV_URL=http://localhost:8943/api go run cmd/main.go --port=8080
 
 - [Gen-AI BFF Inter-BFF Implementation](../packages/gen-ai/bff/README.md#inter-bff-communication)
 - [Modular Architecture Overview](./architecture.md)
-- [Network Policy Configuration](../manifests/sidecar/networkpolicy.yaml)
+- [Module Federation](./module-federation.md)
+- [Onboarding a New Module](./onboard-modular-architecture.md)

@@ -31,7 +31,9 @@ Keep this list current: **add a row in the same PR** that introduces or changes 
 
 - **Base URL:** Callers typically use a base URL ending in **`/api/v1`** and append the path (e.g. `POST …/api-keys` relative to that base).
 - **Create key:** Request body uses the mod-arch envelope; include **`ephemeral: true`** when the use case is short-lived keys (callers may hardcode this in middleware so end users do not need to).
-+- **List models:** Outbound **`X-MaaS-Return-All-Models`** (or other custom headers) may be set by the **caller** or its middleware so responses include richer subscription aggregation. Note: headers are forwarded to the MaaS API **except** `Content-Type` and `Authorization`, which the MaaS BFF manages itself on the upstream call.- **Auth:** Each consumer must send credentials the MaaS BFF expects (e.g. token header for `user_token` mode, or Kubeflow identity headers for `internal` mode).
+- **List models:** Outbound **`X-MaaS-Return-All-Models`** (or other custom headers) may be set by the **caller** or its middleware so responses include richer subscription aggregation. Note: headers are forwarded to the MaaS API **except** `Content-Type` and `Authorization`, which the MaaS BFF manages itself on the upstream call.
+- **Auth:** Each consumer must send credentials the MaaS BFF expects (e.g. token header for `user_token` mode, or Kubeflow identity headers for `internal` mode).
+- **Availability:** Contract routes may return **`503 Service Unavailable`** while the upstream `maas-api` is not yet discoverable (for example MaaS is not installed on the cluster). The BFF process itself stays up and retries discovery in the background.
 
 ---
 

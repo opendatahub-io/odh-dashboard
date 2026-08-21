@@ -686,9 +686,10 @@ paths:
     description: >-
       Retrieves a single pipeline run by its unique identifier from the
       Pipeline Server in the specified namespace. The Pipeline Server
-      (DSPipelineApplication) and AutoRAG managed pipeline are automatically discovered.
-      The run is validated to ensure it belongs to the discovered AutoRAG pipeline before
-      being returned. Returns 404 if the run doesn't exist, belongs to a different pipeline,
+      (DSPipelineApplication) and managed pipelines (AutoRAG optimization and
+      documents indexing) are automatically discovered. The run is validated to
+      ensure it belongs to a discovered managed pipeline before being returned.
+      Returns 404 if the run doesn't exist, belongs to a different pipeline,
       or required managed pipelines are unavailable in the namespace.
     get:
       tags:
@@ -722,9 +723,10 @@ paths:
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
       description: >-
-        Returns a single pipeline run by its unique identifier, but only if it belongs to the
-        discovered AutoRAG managed pipeline in the namespace. This ensures users can only access
-        runs from the AutoRAG pipeline and not runs from other pipelines in the same namespace.
+        Returns a single pipeline run by its unique identifier, but only if it belongs to a
+        discovered managed pipeline (AutoRAG optimization or documents indexing) in the
+        namespace. This ensures users can only access runs from those managed pipelines and
+        not runs from other pipelines in the same namespace.
     delete:
       tags:
         - PipelineOperation
@@ -859,8 +861,86 @@ paths:
         in the namespace.
 
   # =============================================================================
-  # MANAGED PIPELINES ENDPOINT
+  # INDEXING PIPELINE RUNS ENDPOINT
   # =============================================================================
+
+  /api/v1/indexing-pipeline-runs:
+    summary: Create a documents indexing pipeline run
+    description: >-
+      Creates a new documents-indexing-pipeline run using the runtime parameters from a
+      pattern's indexing.pipeline_spec (as written by AutoRAG into pattern.json).
+      The BFF discovers the documents-indexing-pipeline managed pipeline in the namespace
+      and injects pipeline/version IDs. Returns 404 if the indexing pipeline is not discovered.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIndexingPipelineRunRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreatePipelineRunResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: createIndexingPipelineRun
+      summary: Create Indexing Pipeline Run
+      description: >-
+        Creates a documents-indexing-pipeline run. Requires a display name and the pipeline
+        runtime parameters from pattern.indexing.pipeline_spec.parameters. Returns 404 if
+        documents-indexing-pipeline is not available in the namespace.
+
+  # =============================================================================
+  # MANAGED PIPELINES ENDPOINTS
+  # =============================================================================
+
+  /api/v1/managed-pipelines:
+    summary: List discovered managed pipelines in a namespace
+    description: >-
+      Returns the managed pipelines discovered in the namespace (AutoRAG optimization and
+      documents indexing). Pipelines that are not present are omitted from the list.
+      Used by the UI to gate actions that require a specific managed pipeline.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedPipelinesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: listManagedPipelines
+      summary: List Managed Pipelines
+      description: >-
+        Lists discovered managed pipelines (autorag, indexing) for the namespace.
+        Soft-missing pipelines are omitted rather than causing a 404.
 
   /api/v1/managed-pipelines/enable:
     summary: Enable managed pipelines on an existing pipeline server
@@ -1267,9 +1347,10 @@ components:
           type: string
           enum:
             - autorag
+            - indexing
           description: >-
-            Type of the pipeline that produced this run. Always "autorag" for
-            AutoRAG pipeline runs.
+            Type of the pipeline that produced this run. "autorag" for AutoRAG
+            optimization runs; "indexing" for documents-indexing-pipeline runs.
           example: "autorag"
 
     CreateAutoRAGRunRequest:
@@ -1351,6 +1432,84 @@ components:
           description: Maximum number of RAG patterns to generate. Passed to ai4rag (max_number_of_rag_patterns). Defaults to 8.
           default: 8
       additionalProperties: false
+
+    CreateIndexingPipelineRunRequest:
+      type: object
+      description: >-
+        Request body for creating a documents-indexing-pipeline run from an AutoRAG pattern.
+        `parameters` is the runtime config payload from pattern.indexing.pipeline_spec.parameters
+        and is forwarded to Kubeflow Pipelines as-is. The BFF does not re-declare individual
+        pipeline input requiredness; that stays with the managed pipeline version.
+      required:
+        - display_name
+        - parameters
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Human-readable name for the indexing run
+          example: "Index build - Pattern1"
+        description:
+          type: string
+          maxLength: 255
+          description: Optional description of the run
+        parameters:
+          type: object
+          description: >-
+            Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
+            (for example embedding_model_id, input_data_*, ogx_secret_name, chunking fields).
+          additionalProperties: true
+          minProperties: 1
+          example:
+            embedding_model_id: "vllm-embedding/ibm-granite/granite-embedding-english-r2"
+            input_data_secret_name: "aws-connection-my-bucket"
+            input_data_bucket_name: "my-bucket"
+            input_data_key: "docs/"
+            ogx_secret_name: "ogx-connection"
+            vector_io_provider_id: "milvus"
+            chunk_size: 512
+            chunk_overlap: 50
+            chunking_method: "recursive"
+      additionalProperties: false
+
+    ManagedPipeline:
+      type: object
+      description: A managed pipeline discovered in the namespace
+      required:
+        - pipeline_type
+        - pipeline_id
+        - pipeline_version_id
+        - display_name
+      properties:
+        pipeline_type:
+          type: string
+          enum:
+            - autorag
+            - indexing
+          description: Logical pipeline type used by AutoRAG BFF discovery
+          example: "indexing"
+        pipeline_id:
+          type: string
+          description: Kubeflow pipeline ID
+        pipeline_version_id:
+          type: string
+          description: Kubeflow pipeline version ID
+        display_name:
+          type: string
+          description: Pipeline display name as registered in the pipeline server
+          example: "documents-indexing-pipeline"
+
+    ManagedPipelinesData:
+      type: object
+      description: List of discovered managed pipelines
+      required:
+        - pipelines
+      properties:
+        pipelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagedPipeline"
 
     PipelineRunsData:
       type: object
@@ -1983,6 +2142,21 @@ components:
                         state: "SUCCEEDED"
                     child_tasks:
                       - pod_name: "model-training-pod-def456"
+
+    ManagedPipelinesResponse:
+      description: List of discovered managed pipelines
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/ManagedPipelinesData"
 
     EnableManagedPipelinesResponse:
       description: Managed pipelines enabled or pipeline server restarted

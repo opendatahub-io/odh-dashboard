@@ -139,7 +139,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
-          <AgentRuntimeStatusLabel status={runtime.status} statusMessage={runtime.statusMessage} />
+          <AgentRuntimeStatusLabel status={runtime.status} />
         </Td>
         <Td isActionCell data-testid="agent-runtime-actions">
           {actions.length > 0 ? (

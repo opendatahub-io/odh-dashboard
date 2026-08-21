@@ -22,8 +22,8 @@ import 'cypress-plugin-steps';
 import { type ModuleFederationConfig, getModuleFederationURL } from '@odh-dashboard/app-config';
 import './commands';
 import '../utils/moduleFederationMock';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 import { asProjectAdminUser } from '../utils/mockUsers';
 import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
@@ -284,18 +284,20 @@ Cypress.on('command:end', function handleCommandEnd() {
 });
 
 Cypress.on('command:enqueued', (command) => {
+  const arg = typeof command.args[0] === 'string' ? command.args[0] : '';
+  const maskedArg = maskSensitiveInfo(arg);
+
   if (command.name === 'step') {
     if (commandStack.length === 0) {
       stepCounter++;
-      cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+      cy.task('log', `[STEP ${stepCounter}] ${maskedArg}`);
     } else {
-      cy.task('log', `${command.args[0]}`);
+      cy.task('log', maskedArg);
     }
   } else if (command.name === 'exec') {
-    const maskedCommand = maskSensitiveInfo(command.args[0]);
-    cy.task('log', `[EXEC] ${maskedCommand}`);
+    cy.task('log', `[EXEC] ${maskedArg}`);
   } else if (command.name === 'log') {
-    cy.task('log', `${command.args[0]}`);
+    cy.task('log', maskedArg);
   }
 });
 

@@ -249,7 +249,3 @@ type DashboardList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Dashboard `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Dashboard{}, &DashboardList{})
-}
