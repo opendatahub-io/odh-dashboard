@@ -30,9 +30,11 @@ import {
   useFetchLLMInferenceServiceConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { ACCELERATOR_CONFIG_FIELD_ID } from '../const';
+import { ACCELERATOR_CONFIG_FIELD_ID, ACCELERATOR_CONFIG_DEFAULT } from '../const';
 
-export const ACCELERATOR_CONFIG_DEFAULT = 'default' as const;
+// Re-exported for existing importers; the value lives in const.ts so the deploy path can reference
+// it without pulling this React component (and its dependencies) into the apply/extract chunk.
+export { ACCELERATOR_CONFIG_DEFAULT };
 
 // Synthetic "no override / use the built-in image" option surfaced in the Manual selection list.
 // Its `name` doubles as the sentinel we persist (ACCELERATOR_CONFIG_DEFAULT); it carries no

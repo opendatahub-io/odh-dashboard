@@ -18,3 +18,9 @@ export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 export const TOPOLOGY_TYPE_FIELD_ID = 'llmd-serving/topology-type';
 export const CUSTOM_TOPOLOGY_CONFIG_FIELD_ID = 'llmd-serving/custom-topology-config';
 export const ACCELERATOR_CONFIG_FIELD_ID = 'llmd-serving/accelerator-config';
+
+// Sentinel persisted when the user keeps the built-in image instead of an accelerator config.
+// Uses characters that are invalid in a Kubernetes object name, so it can never collide with a
+// real LLMInferenceServiceConfig name. Lives here (not in the field module) so the deploy path can
+// reference it without importing React.
+export const ACCELERATOR_CONFIG_DEFAULT = '__built-in-image__' as const;
