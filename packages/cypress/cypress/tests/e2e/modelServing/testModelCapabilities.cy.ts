@@ -1,10 +1,19 @@
-import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
-import type { DataScienceProjectData, ModelCapabilitiesTestData } from '../../../types';
+import {
+  modelServingGlobal,
+  modelServingWizard,
+  modelServingWizardEdit,
+} from '../../../pages/modelServing';
+import type {
+  DataScienceProjectData,
+  ModelCapabilitiesTestData,
+  DataConnectionUriReplacements,
+} from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { loadDSPFixture } from '../../../utils/dataLoader';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { provisionProjectForModelServing } from '../../../utils/oc_commands/modelServing';
+import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { verifyInferenceServiceAnnotation } from '../../../utils/oc_commands/inferenceService';
 
@@ -23,6 +32,12 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
           testData.awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
+        const uriConnectionReplacements: DataConnectionUriReplacements = {
+          NAMESPACE: projectName,
+          MODEL_URI: Buffer.from('https://example.com/model').toString('base64'),
+          CONNECTION_NAME: 'test-uri-secret',
+        };
+        createDataConnectionUri(uriConnectionReplacements);
       },
     );
   });
@@ -46,8 +61,11 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
       cy.step('Configure model source');
       modelServingWizard.findModelTypeSelectOption('Generative AI model (Example, LLM)').click();
       modelServingWizard.findModelLocationSelectOption('Existing connection').click();
-      modelServingWizard.findExistingConnectionSelect().click();
-      modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
+      modelServingWizard
+        .findExistingConnectionSelect()
+        .should('not.have.class', 'pf-m-disabled')
+        .click();
+      modelServingWizard.findExistingConnectionSelectOption('test-uri-secret').click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Configure deployment');
@@ -69,18 +87,19 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
       modelServingWizard.findCapabilityLabel(testData.customCapabilities[0]).should('exist');
 
       cy.step('Complete wizard and deploy model');
+      modelServingWizard.findNextButton().click();
       modelServingWizard.findSubmitButton().click();
 
       cy.step('Verify InferenceService annotation for capabilities');
-      const expectedCapabilities = [
+      const expectedCapabilities = JSON.stringify([
         testData.wellKnownCapabilities[0],
         testData.wellKnownCapabilities[1],
         testData.customCapabilities[0],
-      ].join(',');
+      ]);
       verifyInferenceServiceAnnotation(
         projectName,
         testData.modelName,
-        'model-capabilities',
+        'opendatahub.io/model-capabilities',
         expectedCapabilities,
       ).should('be.true');
 
@@ -103,27 +122,29 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
       deploymentRow.findKebab().click();
       deploymentRow.findKebabAction('Edit').click();
 
-      cy.step('Navigate to advanced options in edit mode');
+      cy.step('Navigate to capabilities step in edit mode');
+      modelServingWizard.findNextButton().click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Remove one capability and add another');
       modelServingWizard.removeCapability(testData.customCapabilities[0]);
-      modelServingWizard.selectWellKnownCapability(testData.wellKnownCapabilities[2]);
-      modelServingWizard.findCapabilityLabel(testData.wellKnownCapabilities[2]).should('exist');
+      modelServingWizard.addCustomCapability(testData.customCapabilities[1]);
+      modelServingWizard.findCapabilityLabel(testData.customCapabilities[1]).should('exist');
 
       cy.step('Submit changes');
-      modelServingWizard.findSubmitButton().click();
+      modelServingWizardEdit.findNextButton().click();
+      modelServingWizardEdit.findSubmitButton().click();
 
       cy.step('Verify updated InferenceService annotation');
-      const updatedCapabilities = [
+      const updatedCapabilities = JSON.stringify([
         testData.wellKnownCapabilities[0],
         testData.wellKnownCapabilities[1],
-        testData.wellKnownCapabilities[2],
-      ].join(',');
+        testData.customCapabilities[1],
+      ]);
       verifyInferenceServiceAnnotation(
         projectName,
         testData.modelName,
-        'model-capabilities',
+        'opendatahub.io/model-capabilities',
         updatedCapabilities,
       ).should('be.true');
     },

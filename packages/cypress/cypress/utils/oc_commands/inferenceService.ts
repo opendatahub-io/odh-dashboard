@@ -9,7 +9,7 @@ export const verifyInferenceServiceAnnotation = (
   expectedValue: string,
   { maxAttempts = 30, pollIntervalMs = 2000 } = {},
 ): Cypress.Chainable<boolean> => {
-  const command = `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o jsonpath='{.metadata.annotations.${annotationKey}}'`;
+  const command = `oc get inferenceservice ${inferenceServiceName} -n ${namespace} -o go-template='{{index .metadata.annotations "${annotationKey}"}}'`;
 
   const check = (attempt = 1): Cypress.Chainable<boolean> =>
     cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
@@ -21,6 +21,12 @@ export const verifyInferenceServiceAnnotation = (
         );
         cy.log(`Annotation value: ${actualValue}`);
         return cy.wrap(true);
+      }
+
+      if (attempt % 5 === 1) {
+        cy.log(
+          `[attempt ${attempt}] exit=${result.exitCode} stdout="${actualValue}" stderr="${result.stderr}"`,
+        );
       }
 
       if (attempt >= maxAttempts) {
