@@ -6,6 +6,7 @@ import {
   HelperTextItem,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { type ZodIssue } from 'zod';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -28,12 +29,16 @@ import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocatio
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
+import { isEditingNimModelLocation, shouldHideNimModelLocationOption } from '../utils';
 import {
   isModelLocationType,
   ModelLocationData,
   ModelLocationType,
 } from '../../../shared/types/form-data';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+
+const NIM_EDIT_LOCATION_DISABLED_TOOLTIP =
+  'Model location cannot be changed when editing an NVIDIA NIM deployment.';
 
 // Component
 
@@ -63,7 +68,11 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
+  const isEditing = wizardState.initialData?.isEditing ?? false;
   const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
+  const isEditingNimDeployment = isEditingNimModelLocation(isEditing, modelLocation);
+  const isEditingNonNimDeployment = shouldHideNimModelLocationOption(isEditing, modelLocation);
+  const isLocationSelectDisabled = modelLocationData?.disableInputFields || isEditingNimDeployment;
 
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
   // Filtered types for the dropdown so only enabled types are shown
@@ -157,7 +166,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     if (uriConnectionTypes.length > 0 || hasURISelected) {
       options.push({ key: uriOption.key, label: uriOption.label });
     }
-    if (isNimWizardEnabled) {
+    if (isNimWizardEnabled && !isEditingNonNimDeployment) {
       options.push(NIMModelLocationOption);
     }
     return options;
@@ -169,6 +178,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     uriConnectionTypes.length,
     selectedOption?.key,
     isNimWizardEnabled,
+    isEditingNonNimDeployment,
   ]);
 
   const selectOptions = React.useMemo(() => {
@@ -187,6 +197,60 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     }
     return baseOptions;
   }, [baseOptions]);
+
+  const handleModelLocationChange = (key: string) => {
+    if (key === '__placeholder__') {
+      return;
+    }
+    if (key === currentKey) {
+      return;
+    }
+    setSelectedConnection(undefined);
+    resetModelLocationData();
+    setUserSelectedOption(undefined);
+    const newOption = selectOptions.find((option) => option.key === key);
+    if (newOption && isModelLocationType(key) && key !== ModelLocationType.NEW) {
+      setModelLocationData({
+        type: key,
+        fieldValues: {},
+        additionalFields: {},
+      });
+      setUserSelectedOption(newOption);
+    } else {
+      const optionToTypes: Partial<
+        Record<string, { option: typeof s3Option; types: ConnectionTypeConfigMapObj[] }>
+      > = {
+        [s3Option.key]: { option: s3Option, types: s3ConnectionTypes },
+        [ociOption.key]: { option: ociOption, types: ociConnectionTypes },
+        [uriOption.key]: { option: uriOption, types: uriConnectionTypes },
+      };
+
+      const match = optionToTypes[key];
+      if (match) {
+        setUserSelectedOption({ key: match.option.key, label: match.option.label });
+        setModelLocationData({
+          type: ModelLocationType.NEW,
+          connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
+          fieldValues: {},
+          additionalFields: {},
+        });
+      }
+    }
+  };
+
+  const modelLocationSelect = (
+    <SimpleSelect
+      isDisabled={isLocationSelectDisabled}
+      dataTestId="model-location-select"
+      options={selectOptions}
+      onChange={handleModelLocationChange}
+      onBlur={validationProps?.onBlur}
+      placeholder="Select model location"
+      value={currentKey}
+      toggleProps={{ style: { minWidth: '450px' } }}
+    />
+  );
+
   return (
     <>
       {modelLocationData?.prefillAlertText && (
@@ -204,54 +268,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
         </FormHelperText>
         <Stack hasGutter>
           <StackItem>
-            <SimpleSelect
-              isDisabled={modelLocationData?.disableInputFields}
-              dataTestId="model-location-select"
-              options={selectOptions}
-              onChange={(key) => {
-                if (key === '__placeholder__') {
-                  return;
-                }
-                if (key === currentKey) {
-                  return;
-                }
-                setSelectedConnection(undefined);
-                resetModelLocationData();
-                setUserSelectedOption(undefined);
-                const newOption = selectOptions.find((option) => option.key === key);
-                if (newOption && isModelLocationType(key) && key !== ModelLocationType.NEW) {
-                  setModelLocationData({
-                    type: key,
-                    fieldValues: {},
-                    additionalFields: {},
-                  });
-                  setUserSelectedOption(newOption);
-                } else {
-                  const optionToTypes: Partial<
-                    Record<string, { option: typeof s3Option; types: ConnectionTypeConfigMapObj[] }>
-                  > = {
-                    [s3Option.key]: { option: s3Option, types: s3ConnectionTypes },
-                    [ociOption.key]: { option: ociOption, types: ociConnectionTypes },
-                    [uriOption.key]: { option: uriOption, types: uriConnectionTypes },
-                  };
-
-                  const match = optionToTypes[key];
-                  if (match) {
-                    setUserSelectedOption({ key: match.option.key, label: match.option.label });
-                    setModelLocationData({
-                      type: ModelLocationType.NEW,
-                      connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
-                      fieldValues: {},
-                      additionalFields: {},
-                    });
-                  }
-                }
-              }}
-              onBlur={validationProps?.onBlur}
-              placeholder="Select model location"
-              value={currentKey}
-              toggleProps={{ style: { minWidth: '450px' } }}
-            />
+            {isEditingNimDeployment ? (
+              <Tooltip content={NIM_EDIT_LOCATION_DISABLED_TOOLTIP}>
+                <span>{modelLocationSelect}</span>
+              </Tooltip>
+            ) : (
+              modelLocationSelect
+            )}
           </StackItem>
           <ZodErrorHelperText zodIssue={validationIssues} />
           {modelLocation && !hasOnlyExtensionFields(modelLocation) && (

@@ -451,6 +451,7 @@ describe('ModelLocationSelectField', () => {
     const mockSetModelLocationData = jest.fn();
     const mockWizardState: UseModelDeploymentWizardState = {
       fields: [],
+      initialData: undefined,
       state: {
         createConnectionData: {
           data: {},
@@ -979,6 +980,49 @@ describe('ModelLocationSelectField', () => {
         fieldValues: {},
         additionalFields: {},
       });
+    });
+    it('should disable model location select when editing a NIM deployment', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      render(
+        <ModelLocationSelectField
+          wizardState={{
+            ...mockWizardState,
+            initialData: { isEditing: true },
+          }}
+          modelLocation={ModelLocationType.NIM}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+        />,
+      );
+
+      expect(screen.getByTestId('model-location-select')).toBeDisabled();
+    });
+    it('should hide NVIDIA NIM option when editing a non-NIM deployment', async () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      render(
+        <ModelLocationSelectField
+          wizardState={{
+            ...mockWizardState,
+            initialData: { isEditing: true },
+          }}
+          modelLocation={ModelLocationType.EXISTING}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+        />,
+      );
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.queryByRole('option', { name: 'NVIDIA NIM' })).not.toBeInTheDocument();
     });
   });
 });
