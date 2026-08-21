@@ -60,6 +60,7 @@ func (app *App) newServiceMux() *http.ServeMux {
 		mux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
 	}
 	app.registerModelServingProxy(mux)
+	app.registerModuleProxies(mux)
 
 	return mux
 }
@@ -97,6 +98,11 @@ func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Han
 	mux.Handle(APIPathPrefix+"/", authedHandler)
 	mux.Handle(PathPrefix+"/", authedHandler)
 	mux.Handle(proxy.WssProxyPrefix, authedHandler)
+
+	// Bare module paths (e.g. /gen-ai/api/) need explicit auth routing to avoid the SPA catch-all.
+	for _, mp := range app.moduleProxies {
+		mux.Handle(mp.path+"/", authedHandler)
+	}
 
 	// Exact-path handlers prevent ServeMux from 307-redirecting bare roots to subtree patterns.
 	mux.HandleFunc(APIPathPrefix, app.notFoundResponse)
