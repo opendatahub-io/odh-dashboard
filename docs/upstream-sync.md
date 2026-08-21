@@ -244,6 +244,26 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 4. Run tests
 5. Open a PR
 
+## Automated sync (model-registry)
+
+GitHub Actions workflow [`.github/workflows/model-registry-upstream-sync.yml`](../.github/workflows/model-registry-upstream-sync.yml) runs on a schedule:
+
+| Trigger | When |
+|---------|------|
+| Cron | Monday and Wednesday at 08:00 UTC |
+| Manual | Actions → **Model Registry Upstream Sync** → Run workflow |
+
+Behavior:
+
+1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
+2. If already up to date, exit without a PR.
+3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
+4. On conflict or sync failure, a separate notify job opens (or comments on) a GitHub issue for manual `/upstream-sync` — **no PR**.
+5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
+6. Only if those checks pass, a separate **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, and creates or updates a PR against `main`.
+
+Manual sync with `/upstream-sync` remains available for conflicts and ad-hoc syncs.
+
 ## Claude Code Skills
 
 Three Claude Code skills automate the sync workflows. All are available via slash commands.
