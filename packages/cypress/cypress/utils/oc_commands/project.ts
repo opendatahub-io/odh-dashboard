@@ -179,7 +179,7 @@ export const waitForProjectActive = (
   projectName: string,
   timeout = 60000,
 ): Cypress.Chainable<CommandLineResult> => {
-  const timeoutSeconds = Math.floor(timeout / 1000);
+  const timeoutSeconds = Math.max(1, Math.ceil(timeout / 1000));
   const waitCmd = `oc wait --for=jsonpath='{.status.phase}'=Active project/${projectName} --timeout=${timeoutSeconds}s`;
 
   cy.log(`Waiting for project ${projectName} to become Active`);
