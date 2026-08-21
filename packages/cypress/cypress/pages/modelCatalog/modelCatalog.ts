@@ -7,7 +7,7 @@ class ModelCatalog {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/models/catalog`);
+    cy.visitWithLogin('/ai-hub/models/catalog');
     this.wait();
   }
 
@@ -38,8 +38,13 @@ class ModelCatalog {
     return this;
   }
 
-  findModelCatalogEmptyState() {
-    return cy.findByTestId('empty-model-catalog-state');
+  findSearchInput() {
+    return cy.findByTestId('search-input').find('input');
+  }
+
+  searchByName(name: string) {
+    this.findSearchInput().clear().type(`${name}{enter}`);
+    return this;
   }
 
   findModelCatalogModelDetailLink() {
@@ -54,6 +59,10 @@ class ModelCatalog {
     return cy
       .findAllByTestId('model-catalog-card')
       .contains('[data-testid~=model-catalog-card]', modelName);
+  }
+
+  findModelCatalogCardLink(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('model-catalog-detail-link');
   }
 
   findFirstModelCatalogCard() {

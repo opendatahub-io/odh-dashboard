@@ -163,7 +163,10 @@ const GeneralSettingsTab: React.FC = () => {
       }
 
       setBaselineSettings(payload);
-      notification.success('Model deployment settings saved successfully.');
+      notification.success(
+        'Model deployment settings saved successfully.',
+        'It can take up to 2 minutes for configuration changes to be applied.',
+      );
     } catch (error) {
       notification.error(
         'Error saving settings',

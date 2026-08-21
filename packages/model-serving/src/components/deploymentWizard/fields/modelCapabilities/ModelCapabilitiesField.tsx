@@ -21,6 +21,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import type {
   WizardField,
@@ -35,6 +36,12 @@ import {
   normalizeModelCapability,
   type ModelCapability,
 } from '../../../../shared/modelCapabilities';
+import {
+  fireCapabilityAdded,
+  fireCapabilityMenuOpened,
+  fireCapabilityRemoved,
+  toCapabilityEventProps,
+} from '../../../../shared/tracking/modelCapabilitiesTracking';
 
 export type ModelCapabilitiesFieldData = ModelCapability[];
 
@@ -61,6 +68,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
   onChange,
   isDisabled = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isOpen, setIsOpen] = React.useState(false);
   const [customInput, setCustomInput] = React.useState('');
   const [customInputError, setCustomInputError] = React.useState('');
@@ -71,6 +79,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
   );
 
   const handleAddWellKnown = (capability: string) => {
+    fireCapabilityAdded(trackEvent, toCapabilityEventProps(capability));
     onChange([...selectedCapabilities, capability]);
   };
 
@@ -85,11 +94,13 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
       return;
     }
     setCustomInputError('');
+    fireCapabilityAdded(trackEvent, toCapabilityEventProps(capability));
     onChange([...selectedCapabilities, capability]);
     setCustomInput('');
   };
 
   const handleRemove = (capability: string) => {
+    fireCapabilityRemoved(trackEvent, toCapabilityEventProps(capability));
     onChange(selectedCapabilities.filter((c) => !isSameModelCapability(c, capability)));
   };
 
@@ -155,7 +166,14 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                     variant="link"
                     icon={<PlusCircleIcon />}
                     isDisabled={isDisabled}
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => {
+                      if (!isOpen) {
+                        fireCapabilityMenuOpened(trackEvent, {
+                          countOfExistingCapabilities: selectedCapabilities.length,
+                        });
+                      }
+                      setIsOpen(!isOpen);
+                    }}
                     data-testid="add-capability-btn"
                   >
                     Add capability

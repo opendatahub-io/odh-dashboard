@@ -36,23 +36,13 @@ const NoSubscriptionsWarning: React.FC = () => (
         location: PhaseLabelLocation.OVERVIEW,
       } satisfies SubscriptionManagementStatusPopoverViewedProperties);
     }}
-    headerContent="Configuration warning"
+    headerContent="No subscriptions"
     bodyContent={
-      <div>
-        <p>
-          This model has no subscriptions. Without a subscription, no token rate limits are
-          configured and the model cannot be called through the MaaS API gateway.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <strong>How to fix this:</strong>
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Create a new subscription that includes this model and at least one group.
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Or add this model to an existing subscription from the Subscriptions tab.
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it is not included in any
+        subscriptions. Create a subscription that includes this model and at least 1 group, or add
+        this model to an existing subscription from the <b>Subscriptions</b> tab.
+      </p>
     }
   >
     <Button

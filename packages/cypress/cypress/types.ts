@@ -357,6 +357,15 @@ export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type ModelCapabilitiesTestData = DataScienceProjectData & {
+  wellKnownCapabilities: string[];
+  customCapabilities: string[];
+  modelName: string;
+  awsBucket: 'BUCKET_1' | 'BUCKET_3';
+  uriConnectionName: string;
+  uriConnectionModelUri: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -775,6 +784,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId3: string;
   toolCallingLabel: string;
   toolCallingArg: string;
+  /** Catalog card title of a model that has servingConfig tool-calling args. */
+  toolCallingModelName: string;
 };
 
 export type ModelAsAServiceTestData = {

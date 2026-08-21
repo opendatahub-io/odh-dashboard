@@ -253,7 +253,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
       {subscriptions.length === 0 ? (
         <SectionEmptyState
           title="No subscriptions"
-          subtitle="No rate limits configured for this model."
+          subtitle="To make this model callable through the MaaS API gateway and to configure rate limits, add this model to a subscription."
         />
       ) : (
         subscriptions.map((sub, index) => {
@@ -349,7 +349,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
       {policies.length === 0 ? (
         <SectionEmptyState
           title="No authorization policies"
-          subtitle="Access is denied by default."
+          subtitle="To authorize users to access this model, create and assign an authorization policy."
         />
       ) : (
         policies.map((policy, index) => {

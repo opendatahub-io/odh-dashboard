@@ -5,6 +5,7 @@ namespace: kubeflow-workspaces
 
 resources:
 - ../../base
+- ../../base/namespace
 
 components:
 - ../../components/certmanager

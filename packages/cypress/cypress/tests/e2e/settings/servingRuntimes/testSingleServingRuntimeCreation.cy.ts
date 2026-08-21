@@ -1,38 +1,53 @@
 import { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared/types';
-import { servingRuntimes } from '../../../../pages/servingRuntimes';
+import { servingRuntimeTemplates } from '../../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { getSingleModelPath } from '../../../../utils/fileImportUtils';
-import { getSingleModelServingRuntimeInfo } from '../../../../utils/fileParserUtil';
-import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import {
+  cleanupTemplates,
+  renderYamlFileWithReplacements,
+} from '../../../../utils/oc_commands/templates';
 import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
-let modelServingSingleName: string;
-let metadataSingleDisplayName: string;
+const uuid = generateTestUUID();
+// Unique per-run names so the test is safe to run concurrently.
+const modelServingSingleName = `single-cypress-vllm-runtime-${uuid}`;
+const metadataSingleDisplayName = `Cypress Single ServingRuntime for KServe ${uuid}`;
+// Rendered copy of the runtime YAML, written to a temp path outside the repo so the
+// test still exercises the real "pick a file from disk" upload path (selectFile with a
+// file path) without leaving stray files in the fixtures tree.
+const renderedRuntimeYamlPath = `/tmp/kserve_singleservingruntime-${uuid}.yaml`;
 
 retryableBefore(() => {
-  cy.wrap(null)
-    .then(() => getSingleModelServingRuntimeInfo())
-    .then((info) => {
-      // Load Single-Model serving runtime info before tests run
-      modelServingSingleName = info.singleModelServingName;
-      metadataSingleDisplayName = info.displayName;
-      cy.log(`Loaded Single-Model Name: ${modelServingSingleName}`);
-      cy.log(`Loaded Single-Model Metadata Name: ${metadataSingleDisplayName}`);
+  // Render the templatized runtime YAML with unique names and write it to disk.
+  renderYamlFileWithReplacements(getSingleModelPath(), {
+    SERVING_RUNTIME_NAME: modelServingSingleName,
+    SERVING_RUNTIME_DISPLAY_NAME: metadataSingleDisplayName,
+  }).then((renderedYaml) => cy.writeFile(renderedRuntimeYamlPath, renderedYaml));
 
-      // Clean up by nested ServingRuntime name (Template row id)
-      return cleanupTemplates(modelServingSingleName);
-    });
+  // Clean up by nested ServingRuntime name (Template row id).
+  cleanupTemplates(modelServingSingleName);
 });
 after(() => {
-  if (modelServingSingleName) {
-    cleanupTemplates(modelServingSingleName);
-  }
+  cleanupTemplates(modelServingSingleName);
+  cy.task('deleteFile', renderedRuntimeYamlPath);
 });
 
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent', '@SettingsCI'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@ODS-2276',
+        '@Dashboard',
+        '@ModelServing',
+        '@SettingsCI',
+        '@KServeCI',
+        '@ModelServingCI',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -43,49 +58,51 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
         // TODO: Remove extended timeout once '/servingruntimes' performance is optimized - RHOAIENG-15914
         // Current workaround for ODH page loading performance issues
         cy.log('⚠️ Note: RHOAIENG-15914 may cause intermittent failures at this step ⚠️');
-        return cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
+        return cy.wrap(servingRuntimeTemplates.navigate(), { timeout: 100000 });
       });
 
       cy.log('Navigation successful | Searching for Add button');
-      servingRuntimes.findAddButton().should('exist').and('be.visible').click();
+      servingRuntimeTemplates.findAddButton().should('exist').and('be.visible').click();
 
       cy.step('Select API Protocol');
-      servingRuntimes.findSelectAPIProtocolButton().click();
-      servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+      servingRuntimeTemplates.findSelectAPIProtocolButton().click();
+      servingRuntimeTemplates.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
 
       cy.step('Select Model Types');
-      servingRuntimes.findSelectModelTypes().click();
-      servingRuntimes.findPredictiveModelOption().click();
+      servingRuntimeTemplates.findSelectModelTypes().click();
+      servingRuntimeTemplates.findPredictiveModelOption().click();
 
       cy.step('Upload a Single-Model Serving runtime yaml file');
-      const singleModelYaml = getSingleModelPath();
-      servingRuntimes.uploadYaml(singleModelYaml);
+      servingRuntimeTemplates.uploadYaml(renderedRuntimeYamlPath);
 
       cy.step('Click to save and verify that creation was successful');
-      servingRuntimes
+      servingRuntimeTemplates
         .findSubmitButton()
         .should('be.enabled')
         .click()
         .then(() => {
-          cy.url().should('match', /\/serving-runtimes$/, { timeout: 30000 });
+          cy.url().should('match', /\/serving-runtime-templates$/, { timeout: 30000 });
         });
 
       // Edit the created model serving platform and delete
       cy.step(`Verify the model ${modelServingSingleName} has been created`);
       cy.contains(metadataSingleDisplayName).should('be.visible');
-      servingRuntimes
+      servingRuntimeTemplates
         .getRowById(modelServingSingleName)
         .find()
         .within(() => {
-          servingRuntimes.findEditModel().click();
+          servingRuntimeTemplates.findEditModel().click();
         });
-      servingRuntimes.findDeleteModel().click();
+      servingRuntimeTemplates.findDeleteModel().click();
 
-      servingRuntimes.findDeleteModal().should('be.visible').type(metadataSingleDisplayName);
+      servingRuntimeTemplates
+        .findDeleteModal()
+        .should('be.visible')
+        .type(metadataSingleDisplayName);
 
       cy.step(`Delete the model ${modelServingSingleName}`);
-      servingRuntimes.findDeleteModelServingButton().click();
-      servingRuntimes.getRowById(modelServingSingleName).find().should('not.exist');
+      servingRuntimeTemplates.findDeleteModelServingButton().click();
+      servingRuntimeTemplates.getRowById(modelServingSingleName).find().should('not.exist');
     },
   );
 });
