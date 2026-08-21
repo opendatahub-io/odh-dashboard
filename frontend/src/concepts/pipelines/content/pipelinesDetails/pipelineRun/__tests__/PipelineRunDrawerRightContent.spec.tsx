@@ -8,6 +8,11 @@ import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelin
 import { PipelineTask } from '#~/concepts/pipelines/topology';
 import { Artifact } from '#~/third_party/mlmd';
 
+jest.mock('#~/components/markdown/MarkdownComponent', () => ({
+  __esModule: true,
+  default: ({ data }: { data: string }) => <div data-testid="mock-markdown">{data}</div>,
+}));
+
 const artifactTask: PipelineTask = {
   type: 'artifact',
   name: 'metrics',
