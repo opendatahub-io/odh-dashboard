@@ -150,12 +150,12 @@ describe('Subscription Management Page / Overview Tab', () => {
     // Check warning icon for 0 policies
     overviewTabPage.findModelRows().eq(0).findByTestId('no-policies-warning').should('exist');
     overviewTabPage.findModelRows().eq(0).findByTestId('no-policies-warning').click();
-    cy.contains('Configuration warning').should('be.visible');
+    cy.contains('No authorization policies').should('be.visible');
 
     // Check warning icon for 0 subscriptions
     overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').should('exist');
     overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').click();
-    cy.contains('Configuration warning').should('be.visible');
+    cy.contains('No subscriptions').should('be.visible');
 
     // Check the phase modal contains the correct information
     overviewTabPage.findPhaseLabelInRow(1).click();
