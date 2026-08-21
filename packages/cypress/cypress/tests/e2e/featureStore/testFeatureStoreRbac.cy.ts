@@ -1,14 +1,18 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
 import type { FeatureStoreTestData } from '../../../types';
-import { createFeatureStoreCR } from '../../../utils/oc_commands/featureStoreResources';
+import {
+  applyFeastPermissionViaSdk,
+  createFeatureStoreCR,
+} from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 
 describe('Verify RBAC scoped Feature Store discovery by namespace access', () => {
   let testData: FeatureStoreTestData;
@@ -49,10 +53,27 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
         .then(() => {
           cy.step(`Create namespace: ${projectName}`);
           createCleanProject(projectName);
+
+          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
+            const ocUser = whoami.stdout.trim();
+            if (ocUser) {
+              return addUserToProject(projectName, ocUser, 'admin').then(() =>
+                addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin'),
+              );
+            }
+            return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+          });
         })
         .then(() => {
           cy.step(`Apply FeatureStore CR in namespace: ${projectName}`);
+          createRegistryStep(projectName);
           createFeatureStoreCR(projectName, testData.feastInstanceName);
+        })
+        .then(() => {
+          return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
+            name: 'feast-auth',
+            namespaces: [projectName],
+          });
         });
     });
   });
@@ -64,6 +85,9 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
     }
     cy.step('Restore admin oc session for cleanup');
     ensureAdminOcSession();
+
+    cy.step(`Removing S3 registry files for: ${projectName}`);
+    deleteFeastRegistryFiles(projectName);
 
     cy.step(`Delete namespace: ${projectName}`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });

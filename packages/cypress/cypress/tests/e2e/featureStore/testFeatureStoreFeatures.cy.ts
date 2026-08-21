@@ -2,12 +2,14 @@ import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { shouldHaveTotalCount } from '../../../utils/featureStoreUtils';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../utils/projectChecker';
 import type { FeatureStoreTestData } from '../../../types';
 import {
+  applyFeastPermissionViaSdk,
   createFeatureStoreCR,
   createRouteAndGetUrl,
+  createSavedDatasetViaSdk,
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -17,6 +19,8 @@ import {
 } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
 describe('Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
@@ -69,36 +73,73 @@ describe('Feature Store Page Validation', () => {
         .then(() => {
           cy.log(`Creating Namespace: ${projectName}`);
           createCleanProject(projectName);
+
+          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+          // in the permitted namespace. Grant both the oc CLI user (REST count calls)
+          // and the dashboard login user (UI) admin on this project.
+          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
+            const ocUser = whoami.stdout.trim();
+            if (ocUser) {
+              return addUserToProject(projectName, ocUser, 'admin').then(() =>
+                addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin'),
+              );
+            }
+            return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
+          });
+        })
+        .then(() => {
+          createRegistryStep(projectName);
           createFeatureStoreCR(projectName, testData.feastInstanceName);
         })
         .then(() => {
-          // Create route and fetch counts for the Feast instance
           return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
-            return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
-              (metricsCounts) => {
-                metricsFeatureCount = metricsCounts.featureCount;
-                metricsEntityCount = metricsCounts.entityCount;
-                metricsDatasetCount = metricsCounts.datasetCount;
-                metricsDataSourceCount = metricsCounts.dataSourceCount;
-                metricsFeatureViewCount = metricsCounts.featureViewCount;
-                metricsFeatureServiceCount = metricsCounts.featureServiceCount;
+            const buckets =
+              (Cypress.env('AWS_PIPELINES') as typeof AWS_BUCKETS | undefined) ?? AWS_BUCKETS;
+            const { NAME: awsBucketName } = buckets.BUCKET_1;
+            if (!awsBucketName) {
+              throw new Error(
+                'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml before running E2E.',
+              );
+            }
 
-                return getAllFeatureStoreCounts(routeUrl, testData.feastCreditScoringProject).then(
-                  (listCounts) => {
-                    featureCount = listCounts.featureCount;
-                    entityCount = listCounts.entityCount;
-                    datasetCount = listCounts.datasetCount;
-                    dataSourceCount = listCounts.dataSourceCount;
-                    featureViewCount = listCounts.featureViewCount;
-                    featureServiceCount = listCounts.featureServiceCount;
+            return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
+              name: 'feast-auth',
+              namespaces: [projectName],
+            }).then(() => {
+              return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {
+                name: testData.datasetName,
+                project: testData.feastCreditScoringProject,
+                storagePath: `s3://${awsBucketName}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
+                featureServiceName: testData.featureServiceName,
+              }).then(() => {
+                return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
+                  (metricsCounts) => {
+                    metricsFeatureCount = metricsCounts.featureCount;
+                    metricsEntityCount = metricsCounts.entityCount;
+                    metricsDatasetCount = metricsCounts.datasetCount;
+                    metricsDataSourceCount = metricsCounts.dataSourceCount;
+                    metricsFeatureViewCount = metricsCounts.featureViewCount;
+                    metricsFeatureServiceCount = metricsCounts.featureServiceCount;
 
-                    cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
-                    cy.log(`List counts: ${JSON.stringify(listCounts)}`);
-                    return cy.wrap({ metricsCounts, listCounts });
+                    return getAllFeatureStoreCounts(
+                      routeUrl,
+                      testData.feastCreditScoringProject,
+                    ).then((listCounts) => {
+                      featureCount = listCounts.featureCount;
+                      entityCount = listCounts.entityCount;
+                      datasetCount = listCounts.datasetCount;
+                      dataSourceCount = listCounts.dataSourceCount;
+                      featureViewCount = listCounts.featureViewCount;
+                      featureServiceCount = listCounts.featureServiceCount;
+
+                      cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
+                      cy.log(`List counts: ${JSON.stringify(listCounts)}`);
+                      return cy.wrap({ metricsCounts, listCounts });
+                    });
                   },
                 );
-              },
-            );
+              });
+            });
           });
         });
     });
@@ -109,6 +150,9 @@ describe('Feature Store Page Validation', () => {
       cy.log('Skipping cleanup: Tests were skipped');
       return;
     }
+
+    cy.log(`Removing S3 registry files for: ${projectName}`);
+    deleteFeastRegistryFiles(projectName);
 
     cy.log(`Deleting Namespace: ${projectName}`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
