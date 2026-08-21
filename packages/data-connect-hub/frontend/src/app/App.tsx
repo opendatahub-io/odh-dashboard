@@ -40,14 +40,14 @@ const App: React.FC = () => {
     () =>
       configSettings && userSettings
         ? {
-            config: configSettings!,
-            user: userSettings!,
+            config: configSettings,
+            user: userSettings,
           }
         : null,
     [configSettings, userSettings],
   );
 
-  const error = configError || namespacesLoadError || initializationError;
+  const error = configError ?? namespacesLoadError ?? initializationError;
 
   const sidebar = <PageSidebar isSidebarOpen={false} />;
 
@@ -61,9 +61,9 @@ const App: React.FC = () => {
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
                 <p>
-                  {configError?.message ||
-                    namespacesLoadError?.message ||
-                    initializationError?.message ||
+                  {configError?.message ??
+                    namespacesLoadError?.message ??
+                    initializationError?.message ??
                     'Unknown error occurred during startup'}
                 </p>
                 <p>Logging out and logging back in may solve the issue</p>
