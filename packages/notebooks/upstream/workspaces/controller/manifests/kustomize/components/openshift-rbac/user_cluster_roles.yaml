@@ -1,0 +1,57 @@
+---
+# OpenShift user ClusterRoles for Workspaces (same pattern as odh-notebook-controller).
+# Aggregates workspace permissions into the built-in admin/edit/view ClusterRoles so
+# namespace members with standard OpenShift project roles can access workspaces CRs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspaces-admin
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-workspaces-admin: "true"
+rules: []
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspaces-edit
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-workspaces-admin: "true"
+rules:
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - workspaces
+      - workspaces/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - deletecollection
+      - patch
+      - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspaces-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - workspaces
+      - workspaces/status
+    verbs:
+      - get
+      - list
+      - watch
