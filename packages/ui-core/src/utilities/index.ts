@@ -9,5 +9,12 @@ export {
   resolveSelectPopperAppendTo,
   useModalOverflowUnlock,
 } from './useModalOverflowUnlock';
+export { useMenuPopperInModal } from './useMenuPopperInModal';
+export type {
+  MenuPopperAppendTo,
+  MenuPopperProps,
+  UseMenuPopperInModalOptions,
+} from './useMenuPopperInModal';
+export { encodeOptionIdForDom, createOptionElementId } from './optionElementIds';
 export { BrowserStorageContext, useBrowserStorage } from '../hooks/useBrowserStorage';
 export type { BrowserStorageContextType, SetBrowserStorageHook } from '../hooks/useBrowserStorage';

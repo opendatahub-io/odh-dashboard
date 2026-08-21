@@ -18,8 +18,11 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import DefaultValueTextRenderer from '@odh-dashboard/ui-core/components/connectionTypes/DefaultValueTextRenderer';
+import { useMenuPopperInModal } from '#~/utilities/useModalOverflowUnlock';
 import { DropdownField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
+
+import './DropdownFormField.scss';
 
 const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   id,
@@ -33,6 +36,16 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
 }) => {
   const isPreview = mode === 'preview';
   const [isOpen, setIsOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
+  const focusMenuToggle = () => {
+    queueMicrotask(() => {
+      menuToggleRef.current?.querySelector('button')?.focus();
+    });
+  };
+  const listboxId = React.useId();
+  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef, undefined, {
+    onEscapeClose: () => setIsOpen(false),
+  });
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
   const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
@@ -66,6 +79,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
       <Select
         isOpen={isOpen}
         shouldFocusToggleOnSelect
+        popperProps={popperProps}
         onSelect={
           isPreview || !onChange
             ? undefined
@@ -84,35 +98,39 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
                 if (!isMulti) {
                   setIsOpen(false);
                 }
+                focusMenuToggle();
               }
         }
         onOpenChange={(open) => setIsOpen(open)}
         toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            id={id}
-            data-testid={dataTestId}
-            isFullWidth
-            onClick={() => {
-              setIsOpen((open) => !open);
-            }}
-            isExpanded={isOpen}
-            isDisabled={!hasValidOption}
-            status={error ? 'danger' : undefined}
-          >
-            <>
-              {menuToggleText()}
-              {isMulti && (
-                <Badge className="pf-v6-u-ml-xs">
-                  {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
-                  selected
-                </Badge>
-              )}
-            </>
-          </MenuToggle>
+          <div ref={menuToggleRef} className="odh-dropdown-form-field__toggle-anchor">
+            <MenuToggle
+              innerRef={toggleRef}
+              id={id}
+              data-testid={dataTestId}
+              isFullWidth
+              {...(isOpen ? { 'aria-controls': listboxId } : {})}
+              onClick={() => {
+                setIsOpen((open) => !open);
+              }}
+              isExpanded={isOpen}
+              isDisabled={!hasValidOption}
+              status={error ? 'danger' : undefined}
+            >
+              <>
+                {menuToggleText()}
+                {isMulti && (
+                  <Badge className="pf-v6-u-ml-xs">
+                    {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
+                    selected
+                  </Badge>
+                )}
+              </>
+            </MenuToggle>
+          </div>
         )}
       >
-        <SelectList isAriaMultiselectable={isMulti}>
+        <SelectList id={listboxId} isAriaMultiselectable={isMulti}>
           {field.properties.items?.map(
             (item, index) =>
               (item.value || item.label) && (

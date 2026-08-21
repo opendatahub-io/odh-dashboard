@@ -103,9 +103,9 @@ describe('ConnectionsFormSection', () => {
     );
 
     expect(result.getByRole('radio', { name: 'Existing connection' })).toBeChecked();
-    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(result.getByRole('combobox', { name: 'Connection' })).toHaveValue('');
 
-    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('button', { name: 'Connection' }).click());
     await act(async () => result.getByRole('option', { name: 's3-connection Type: s3' }).click());
     expect(mockSetData).toHaveBeenLastCalledWith('storage', {
       type: InferenceServiceStorageType.EXISTING_STORAGE,
@@ -152,7 +152,7 @@ describe('ConnectionsFormSection', () => {
 
     expect(result.getByRole('radio', { name: 'Existing connection' })).toBeChecked();
 
-    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('s3-connection');
+    expect(result.getByRole('combobox', { name: 'Connection' })).toHaveValue('s3-connection');
     expect(result.getByRole('textbox', { name: 'folder-path' })).toHaveValue('models/fraud');
   });
 
@@ -180,9 +180,9 @@ describe('ConnectionsFormSection', () => {
     );
 
     expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
-    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(result.getByRole('combobox', { name: 'Connection type' })).toHaveValue('');
 
-    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('button', { name: 'Connection type' }).click());
     await act(async () => result.getByRole('option', { name: /s3/ }).click());
 
     expect(result.getByRole('textbox', { name: 'Connection name' })).toHaveValue('');
@@ -245,9 +245,9 @@ describe('ConnectionsFormSection', () => {
     );
 
     expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
-    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(result.getByRole('combobox', { name: 'Connection type' })).toHaveValue('');
 
-    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('button', { name: 'Connection type' }).click());
     await act(async () => result.getByRole('option', { name: /oci/ }).click());
 
     expect(result.getByRole('textbox', { name: 'Connection name' })).toHaveValue('');
@@ -282,9 +282,9 @@ describe('ConnectionsFormSection', () => {
     );
 
     expect(result.getByRole('radio', { name: 'Create connection' })).toBeChecked();
-    expect(result.getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(result.getByRole('combobox', { name: 'Connection type' })).toHaveValue('');
 
-    await act(async () => result.getByRole('button', { name: 'Typeahead menu toggle' }).click());
+    await act(async () => result.getByRole('button', { name: 'Connection type' }).click());
     await act(async () => result.getByRole('option', { name: /oci/ }).click());
     await act(async () =>
       fireEvent.change(result.getByRole('textbox', { name: 'Connection name' }), {

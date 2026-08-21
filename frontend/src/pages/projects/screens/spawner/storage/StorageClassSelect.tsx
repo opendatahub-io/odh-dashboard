@@ -147,7 +147,8 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         }}
         isDisabled={disableStorageClassSelect || shouldShowDefaultOnly}
         placeholder="Select storage class"
-        popperProps={{ appendTo: menuAppendTo }}
+        ariaLabel="Storage class"
+        popperProps={menuAppendTo !== undefined ? { appendTo: menuAppendTo } : undefined}
         toggleProps={{ status: validated ? validatedToToggleStatus[validated] : undefined }}
         previewDescription={false}
         isScrollable
