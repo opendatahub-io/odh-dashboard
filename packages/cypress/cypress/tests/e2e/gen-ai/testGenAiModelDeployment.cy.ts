@@ -5,7 +5,7 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { startPortForward, waitForResource } from '../../../utils/oc_commands/baseCommands';
+import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
