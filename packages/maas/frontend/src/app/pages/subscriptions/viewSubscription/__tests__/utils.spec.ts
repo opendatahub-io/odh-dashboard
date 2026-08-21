@@ -46,6 +46,11 @@ describe('formatTokenLimits', () => {
     expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual(['1,000,000 / 24 hours']);
   });
 
+  it('formats large window time values with locale separators', () => {
+    const refs = [makeRef('model-a', [{ limit: 3000, window: '2000h' }])];
+    expect(formatTokenLimits(refs, Namespace, 'model-a')).toEqual(['3,000 / 2,000 hours']);
+  });
+
   it('returns an empty array when namespace does not match', () => {
     const refs = [makeRef('model-a', [{ limit: 1000, window: '1h' }])];
     expect(formatTokenLimits(refs, 'other-namespace', 'model-a')).toEqual([]);
