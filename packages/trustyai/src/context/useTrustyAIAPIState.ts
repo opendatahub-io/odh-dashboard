@@ -1,5 +1,5 @@
 import React from 'react';
-import useAPIState from '@odh-dashboard/internal/concepts/proxy/useAPIState';
+import useAPIState from './useAPIState';
 import type { APIState, ExplainabilityAPI } from '../types';
 import {
   createDirRequest,

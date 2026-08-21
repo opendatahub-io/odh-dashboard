@@ -1,10 +1,10 @@
 import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { proxyCREATE, proxyDELETE, proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { handleTrustyAIFailures } from './errorUtils';
+import { proxyCREATE, proxyDELETE, proxyGET } from './proxyUtils';
 import type {
-  BaseMetricRequest,
   BaseMetricCreationResponse,
   BaseMetricListResponse,
+  BaseMetricRequest,
 } from '../types';
 
 export const getAllBiasRequests =

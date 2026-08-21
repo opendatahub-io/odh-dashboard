@@ -4,9 +4,9 @@ import type { TrustyAPIState } from './useTrustyAIAPIState';
 import useTrustyAINamespaceCR from './useTrustyAINamespaceCR';
 import useTrustyAIAPIState from './useTrustyAIAPIState';
 import useFetchContextData from './useFetchContextData';
-import type { TrustyAIContextData, TrustyStatusStates } from '../types';
-import { TrustyInstallState } from '../types';
 import { getTrustyStatusState } from '../utilities/utils';
+import { TrustyInstallState } from '../types';
+import type { TrustyAIContextData, TrustyStatusStates } from '../types';
 
 const DEFAULT_TRUSTY_CONTEXT_DATA: TrustyAIContextData = {
   refresh: () => Promise.resolve(),
