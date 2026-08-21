@@ -19,6 +19,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import type { WBStorageClassesTestData } from '../../../../types';
 import { AccessMode } from '../../../../types';
 import { selectNotebookImageWithBackendFallback } from '../../../../utils/oc_commands/imageStreams';
+import { waitForProjectActive } from '../../../../utils/oc_commands/project';
 import { loadWBStorageClassesFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
@@ -96,6 +97,7 @@ describe('Workbench Storage Classes Tests', () => {
 
         cy.step('Provisioning project');
         provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+        waitForProjectActive(projectName);
       });
   });
 
@@ -114,8 +116,7 @@ describe('Workbench Storage Classes Tests', () => {
 
     cy.step(`Navigate to the Project list tab and search for ${projectName}`);
     projectListPage.navigate();
-    projectListPage.filterProjectByName(projectName);
-    projectListPage.findProjectLink(projectName).click();
+    projectListPage.openFilteredProject(projectName);
   });
 
   it(
