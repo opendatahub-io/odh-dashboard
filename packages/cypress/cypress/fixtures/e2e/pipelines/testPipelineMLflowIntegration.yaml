@@ -1,0 +1,17 @@
+# testPipelineMLflowIntegration.cy.ts Test Data #
+projectNamePrefix: "test-pipelines-mlflow-integration"
+dspaSecretName: dashboard-mlflow-dspa-secret
+pipelineName: test-mlflow-base-pipeline
+pipelineDescription: "Iris pipeline without any MLflow calls in its code"
+experimentName: "Default"
+mlflowExperimentName: test-mlflow-pipeline-integration-experiment
+run1:
+  name: test-mlflow-base-run-1
+  description: "Iris pipeline run 1 - creates a new MLflow experiment"
+  neighbors: "1"
+  standardScaler: "true"
+run2:
+  name: test-mlflow-base-run-2
+  description: "Iris pipeline run 2 - reuses the MLflow experiment from run 1"
+  neighbors: "2"
+  standardScaler: "false"
