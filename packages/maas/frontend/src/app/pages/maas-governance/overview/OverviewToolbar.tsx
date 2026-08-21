@@ -35,7 +35,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-model-name-filter-input"
           inputProps={{
             onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.MODEL,
               });
             },
@@ -52,7 +52,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-project-name-filter-input"
           inputProps={{
             onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.PROJECT,
               });
             },
@@ -69,7 +69,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-group-name-filter-input"
           inputProps={{
             onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.GROUP,
               });
             },
@@ -86,7 +86,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-subscription-name-filter-input"
           inputProps={{
             onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.SUBSCRIPTION,
               });
             },
@@ -103,7 +103,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-policy-name-filter-input"
           inputProps={{
             onBlur: () => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.POLICY,
               });
             },

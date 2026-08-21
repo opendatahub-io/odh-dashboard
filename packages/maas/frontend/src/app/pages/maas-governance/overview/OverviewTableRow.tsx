@@ -13,7 +13,7 @@ import {
   convertStringToPopoverViewedStatus,
   EventTrackingPopoverType,
   MaaSEvents,
-  SubscriptionManagementStatusPopoverViewedProperties,
+  MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
@@ -30,11 +30,11 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
     onShow={() => {
-      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
         popoverType: EventTrackingPopoverType.WARNING,
         status: 'configuration-warning',
         location: PhaseLabelLocation.OVERVIEW,
-      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
     }}
     headerContent="No subscriptions"
     bodyContent={
@@ -58,11 +58,11 @@ const NoSubscriptionsWarning: React.FC = () => (
 const NoPoliciesWarning: React.FC = () => (
   <Popover
     onShow={() => {
-      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
         popoverType: EventTrackingPopoverType.WARNING,
         status: 'configuration-warning',
         location: PhaseLabelLocation.OVERVIEW,
-      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
     }}
     headerContent="Configuration warning"
     bodyContent={
@@ -139,11 +139,11 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             resourceType={PhaseResourceType.MODEL}
             resourceName={row.modelDetails.displayName ?? row.id}
             onClick={() => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
                 popoverType: EventTrackingPopoverType.STATUS,
                 status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
                 location: PhaseLabelLocation.OVERVIEW,
-              } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+              } satisfies MaaSGovernanceStatusPopoverViewedProperties);
             }}
           />
         </Td>

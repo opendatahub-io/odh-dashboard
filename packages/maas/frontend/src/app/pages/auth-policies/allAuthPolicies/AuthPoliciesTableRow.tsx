@@ -9,7 +9,7 @@ import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import {
   getAuthPolicyEditUrl,
   getAuthPolicyViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import { usePolicyAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -25,7 +25,7 @@ import {
   MaaSEvents,
   EventTrackingPopoverType,
   convertStringToPopoverViewedStatus,
-  SubscriptionManagementStatusPopoverViewedProperties,
+  MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -130,11 +130,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {
-          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
             popoverType: EventTrackingPopoverType.STATUS,
             status: convertStringToPopoverViewedStatus(authPolicy.phase),
             location: PhaseLabelLocation.POLICIES_TAB,
-          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+          } satisfies MaaSGovernanceStatusPopoverViewedProperties);
         }}
       />
     </Td>
