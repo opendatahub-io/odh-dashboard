@@ -3,6 +3,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { pnpmWebpackResolveAliases } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
@@ -43,6 +44,9 @@ module.exports = (env) => ({
                 loader: 'ts-loader',
                 options: {
                   transpileOnly: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
+                  },
                 },
               },
         ],
@@ -245,6 +249,7 @@ module.exports = (env) => ({
     alias: {
       '~': path.resolve(SRC_DIR),
       '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

@@ -8,6 +8,10 @@ const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
 const { getPluginPackageDetails } = require('./discoverPluginPackages');
 const { getExtensionChunksFilter, getPluginChunkName } = require('./pluginChunking');
+const {
+  isVendorCss,
+  patternFlyFontIncludes,
+} = require('../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -17,6 +21,7 @@ const SRC_DIR = process.env._ODH_SRC_DIR;
 const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
+const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../node_modules');
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
@@ -36,7 +41,7 @@ const pluginPackageDetails = getPluginPackageDetails();
 if (pluginPackageDetails.length === 0) {
   console.warn(
     'Warning: No plugin packages discovered. The pluginChunks splitChunks group will have no effect. ' +
-      'Check that workspace packages have ./extensions exports and that npm query is working.',
+      'Check that workspace packages have ./extensions exports and that workspace discovery is working.',
   );
 }
 
@@ -67,6 +72,8 @@ module.exports = (env) => ({
           COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, '../packages'),
           path.resolve(RELATIVE_DIRNAME, '../plugins'),
+          path.resolve(RELATIVE_DIRNAME, 'node_modules/@odh-dashboard'),
+          path.resolve(ROOT_NODE_MODULES, '@odh-dashboard'),
         ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
@@ -88,21 +95,7 @@ module.exports = (env) => ({
       },
       {
         test: /\.(svg|ttf|eot|woff|woff2)$/,
-        include: [
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/fonts',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/pficon',
-          ),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
-        ],
+        include: patternFlyFontIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES),
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
@@ -185,11 +178,22 @@ module.exports = (env) => ({
       },
       {
         test: /\.css$/i,
+        include: [SRC_DIR, COMMON_DIR],
         use: [
           env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
         ],
       },
+      ...(env === 'development'
+        ? [
+            {
+              test: /\.css$/i,
+              include: (resourcePath) =>
+                isVendorCss(resourcePath, RELATIVE_DIRNAME, ROOT_NODE_MODULES),
+              use: ['style-loader', 'css-loader'],
+            },
+          ]
+        : []),
       {
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
@@ -290,7 +294,7 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
-    symlinks: true,
+    symlinks: false,
     cacheWithContext: false,
   },
 });

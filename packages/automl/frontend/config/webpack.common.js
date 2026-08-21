@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
+const { pnpmWebpackResolveAliases } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
@@ -49,6 +50,9 @@ module.exports = (env) => ({
                 loader: 'ts-loader',
                 options: {
                   transpileOnly: true,
+                  compilerOptions: {
+                    rootDir: path.resolve(RELATIVE_DIRNAME, '../../..'),
+                  },
                 },
               },
         ],
@@ -250,6 +254,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

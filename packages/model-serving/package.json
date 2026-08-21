@@ -79,22 +79,22 @@
     "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/hardware-profiles": "*",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-registry": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/trustyai": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/hardware-profiles": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/model-registry": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/trustyai": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "lodash-es": "^4.18.1",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk": "^5",

@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  ISSUE_TITLE: 'Weekly security audit: npm + Go findings'
+  ISSUE_TITLE: 'Weekly security audit: pnpm + Go findings'
   GOVULNCHECK_VERSION: v1.6.0
 
 jobs:
@@ -53,60 +53,65 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Prod npm audit (high/critical)
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: "22"
+
+      - name: Prod pnpm audit (high/critical)
         id: prod
         working-directory: ${{ matrix.dir }}
         env:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
           set +e
-          npm audit --omit=dev --audit-level=high --package-lock-only --json > /tmp/audit-prod.json 2>/tmp/audit-prod.err
+          pnpm audit --prod --audit-level=high --json > /tmp/audit-prod.json 2>/tmp/audit-prod.err
           rc=$?
           set -e
           if [ -s /tmp/audit-prod.err ]; then
-            echo "[info] npm audit stderr (prod):" && cat /tmp/audit-prod.err
+            echo "[info] pnpm audit stderr (prod):" && cat /tmp/audit-prod.err
           fi
           SAFE_DIR=$("$GITHUB_WORKSPACE/scripts/security-audit/encode-audit-path.sh" "$AUDIT_DIR")
           OUT="$GITHUB_WORKSPACE/summary-prod-${SAFE_DIR}.json"
-          # npm: 0 = clean, 1 = vulns found; other / error JSON = scanner failure.
+          # pnpm: 0 = clean, 1 = vulns found; other / error JSON = scanner failure.
           if ! jq empty /tmp/audit-prod.json 2>/dev/null; then
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
-              "npm audit produced invalid JSON (exit $rc)" \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+              "pnpm audit produced invalid JSON (exit $rc)" \
               > "$OUT"
           elif [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
-              "npm audit failed (exit $rc)" \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+              "pnpm audit failed (exit $rc)" \
               > "$OUT"
           else
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" prod /tmp/audit-prod.json \
               > "$OUT"
           fi
 
-      - name: DevDep npm audit (informational)
+      - name: DevDep pnpm audit (informational)
         id: devdep
         working-directory: ${{ matrix.dir }}
         env:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
           set +e
-          npm audit --audit-level=moderate --package-lock-only --json > /tmp/audit-dev.json 2>/tmp/audit-dev.err
+          pnpm audit --audit-level=moderate --json > /tmp/audit-dev.json 2>/tmp/audit-dev.err
           rc=$?
           set -e
           if [ -s /tmp/audit-dev.err ]; then
-            echo "[info] npm audit stderr (devdep):" && cat /tmp/audit-dev.err
+            echo "[info] pnpm audit stderr (devdep):" && cat /tmp/audit-dev.err
           fi
           SAFE_DIR=$("$GITHUB_WORKSPACE/scripts/security-audit/encode-audit-path.sh" "$AUDIT_DIR")
           OUT="$GITHUB_WORKSPACE/summary-devdep-${SAFE_DIR}.json"
           if ! jq empty /tmp/audit-dev.json 2>/dev/null; then
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
-              "npm audit (devDep) produced invalid JSON (exit $rc)" \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+              "pnpm audit (devDep) produced invalid JSON (exit $rc)" \
               > "$OUT"
           elif [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
-              "npm audit (devDep) failed (exit $rc)" \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+              "pnpm audit (devDep) failed (exit $rc)" \
               > "$OUT"
           else
-            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-npm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
+            "$GITHUB_WORKSPACE/scripts/security-audit/summarize-pnpm-audit.sh" "$AUDIT_DIR" devdep /tmp/audit-dev.json \
               > "$OUT"
           fi
 

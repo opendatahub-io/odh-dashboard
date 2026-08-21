@@ -8,6 +8,7 @@ const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dot
 
 setupDotenvFilesForEnv({ env: 'production' });
 const webpackCommon = require('./webpack.common.js');
+const { patternFlyCssIncludes } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
@@ -50,12 +51,7 @@ module.exports = merge(
       rules: [
         {
           test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-          ],
+          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
           use: [MiniCssExtractPlugin.loader, 'css-loader'],
         },
       ],
