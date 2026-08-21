@@ -34,8 +34,8 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
         );
         const uriConnectionReplacements: DataConnectionUriReplacements = {
           NAMESPACE: projectName,
-          MODEL_URI: Buffer.from('https://example.com/model').toString('base64'),
-          CONNECTION_NAME: 'test-uri-secret',
+          MODEL_URI: Buffer.from(testData.uriConnectionModelUri).toString('base64'),
+          CONNECTION_NAME: testData.uriConnectionName,
         };
         createDataConnectionUri(uriConnectionReplacements);
       },
@@ -65,7 +65,7 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
         .findExistingConnectionSelect()
         .should('not.have.class', 'pf-m-disabled')
         .click();
-      modelServingWizard.findExistingConnectionSelectOption('test-uri-secret').click();
+      modelServingWizard.findExistingConnectionSelectOption(testData.uriConnectionName).click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Configure deployment');

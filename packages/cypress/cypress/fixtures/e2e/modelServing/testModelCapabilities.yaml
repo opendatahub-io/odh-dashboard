@@ -6,6 +6,8 @@ resourceType: 'InferenceService'
 
 # Test Data Connection
 awsBucket: 'BUCKET_1'
+uriConnectionName: 'test-uri-secret'
+uriConnectionModelUri: 'https://example.com/model'
 
 # Model Capabilities Test Data
 wellKnownCapabilities:

@@ -362,6 +362,8 @@ export type ModelCapabilitiesTestData = DataScienceProjectData & {
   customCapabilities: string[];
   modelName: string;
   awsBucket: 'BUCKET_1' | 'BUCKET_3';
+  uriConnectionName: string;
+  uriConnectionModelUri: string;
 };
 
 export type NotebookImageData = {
