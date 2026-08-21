@@ -509,7 +509,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization policy">
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>

@@ -415,7 +415,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.enabled');
       modelServingWizard.findTokenAuthenticationCheckbox().click();
       modelServingWizard.findTokenWarningAlert().should('exist');
-      modelServingWizard.findRuntimeArgsCheckbox().click();
       modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizard.findEnvVariablesCheckbox().click();
       modelServingWizard.findAddVariableButton().click();
@@ -572,7 +571,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
       modelServingWizardEdit.findTokenAuthenticationCheckbox().click();
       modelServingWizardEdit.findTokenAuthenticationCheckbox().should('not.be.checked');
-      modelServingWizardEdit.findRuntimeArgsCheckbox().click();
       modelServingWizardEdit.findRuntimeArgsTextBox().type('--arg=value1');
       modelServingWizardEdit.findEnvVariableName('0').clear().type('MY_ENV');
       modelServingWizardEdit.findEnvVariableValue('0').clear().type('MY_VALUE');

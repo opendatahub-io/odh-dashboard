@@ -1,12 +1,12 @@
+import { llmAcceleratorConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 import {
   llmAcceleratorConfigsIntercept,
   interceptLlmAcceleratorConfigCreate,
   interceptLlmAcceleratorConfigUpdate,
   interceptLlmAcceleratorConfigDelete,
 } from './llmAcceleratorConfigsUtils';
-import { llmAcceleratorConfigurations } from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
-import { asProductAdminUser } from '../../../utils/mockUsers';
-import { deleteModal } from '../../../pages/components/DeleteModal';
 
 describe('LLM accelerator configurations CRUD operations', () => {
   beforeEach(() => {
@@ -79,6 +79,20 @@ describe('LLM accelerator configurations CRUD operations', () => {
       llmAcceleratorConfigurations
         .findNameInput()
         .should('have.value', 'Copy of vLLM CUDA Accelerator');
+    });
+
+    it('should return to the accelerator list on cancel from add', () => {
+      llmAcceleratorConfigurations.findAddButton().click();
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/add',
+      );
+      llmAcceleratorConfigurations.findCancelButton().click();
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
+      );
+      llmAcceleratorConfigurations.getRowByName('vllm-cuda').find().should('exist');
     });
   });
 

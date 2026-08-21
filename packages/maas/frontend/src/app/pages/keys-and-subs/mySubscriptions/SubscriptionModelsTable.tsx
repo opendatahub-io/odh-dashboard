@@ -13,21 +13,19 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
-import { formatWindow } from '~/app/utilities/rateLimits';
 import {
   MaaSEvents,
   ModelIdCopiedProperties,
   ModelInfoContext,
   ModelInfoViewedProperties,
 } from '~/app/types/event-tracking';
+import { formatTokenRateLimitLine } from '~/app/utilities/rateLimits';
 
 export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   if (!limits || limits.length === 0) {
     return '—';
   }
-  return limits
-    .map((l) => `${l.limit.toLocaleString('en-US')} / ${formatWindow(l.window)}`)
-    .join(', ');
+  return limits.map((l) => formatTokenRateLimitLine(l.limit, l.window)).join(', ');
 };
 
 export const ModelInfoPopover: React.FC<{

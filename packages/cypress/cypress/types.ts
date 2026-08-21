@@ -357,6 +357,15 @@ export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   replaceTargetString: string;
 };
 
+export type ModelCapabilitiesTestData = DataScienceProjectData & {
+  wellKnownCapabilities: string[];
+  customCapabilities: string[];
+  modelName: string;
+  awsBucket: 'BUCKET_1' | 'BUCKET_3';
+  uriConnectionName: string;
+  uriConnectionModelUri: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -812,6 +821,8 @@ export type ModelAsAServiceTestData = {
     revoked: string;
   };
   apiKeyCount: number;
+  apiVersion: string;
+  kind: string;
 };
 
 export enum ApiKeyStatus {

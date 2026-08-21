@@ -4,14 +4,16 @@ import {
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { servingRuntimeTemplates } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/servingRuntimeTemplates';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '@odh-dashboard/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
+import { TemplateModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { customServingRuntimesIntercept } from './customServingRuntimesUtils';
-import { servingRuntimeTemplates } from '../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
-import { deleteModal } from '../../../pages/components/DeleteModal';
-import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
-import { pageNotfound } from '../../../pages/pageNotFound';
-import { TemplateModel } from '../../../utils/models';
 
-// const addfilePath = './cypress/fixtures/resources/modelServing/mock-custom-serving-runtime-add.yaml';
 const editfilePath =
   './cypress/fixtures/resources/modelServing/mock-custom-serving-runtime-edit.yaml';
 
@@ -65,83 +67,100 @@ describe('Custom serving runtimes', () => {
       .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
   });
 
-  // I have no idea why this isn't passing in the CI, it passes locally
-  // it('should add a new single model serving runtime', () => {
-  //   cy.interceptOdh(
-  //     'POST /api/servingRuntimes/',
-  //     { query: { dryRun: 'All' } },
-  //     mockServingRuntimeK8sResource({}),
-  //   ).as('createSingleModelServingRuntime');
+  it('should return to the serving runtime templates list on cancel from add', () => {
+    servingRuntimeTemplates.findAddButton().click();
+    servingRuntimeTemplates.findAppTitle().should('contain', 'Add serving runtime');
+    servingRuntimeTemplates.findCancelButton().click();
+    // Back on the templates tab, not General settings.
+    cy.url().should(
+      'include',
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates',
+    );
+    servingRuntimeTemplates.getRowById('template-1').find().should('exist');
+  });
 
-  //   cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
-  //     'createTemplate',
-  //   );
+  it('should add a new single model serving runtime', () => {
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
+    ).as('createSingleModelServingRuntime');
+    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+      'createTemplate',
+    );
 
-  //   servingRuntimeTemplates.findAddButton().click();
-  //   servingRuntimeTemplates.findAppTitle().should('contain', 'Add serving runtime');
+    servingRuntimeTemplates.findAddButton().click();
+    servingRuntimeTemplates.findAppTitle().should('contain', 'Add serving runtime');
 
-  //   servingRuntimeTemplates.findSubmitButton().should('be.disabled');
-  //   servingRuntimeTemplates.shouldDisplayAPIProtocolValues([
-  //     ServingRuntimeAPIProtocol.REST,
-  //     ServingRuntimeAPIProtocol.GRPC,
-  //   ]);
-  //   servingRuntimeTemplates.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
-  //   servingRuntimeTemplates.findSelectModelTypeButton().click();
-  //   servingRuntimeTemplates.selectModelType('Predictive model');
-  //   servingRuntimeTemplates.findStartFromScratchButton().click();
-  //   servingRuntimeTemplates.uploadYaml(addfilePath);
-  //   servingRuntimeTemplates.getDashboardCodeEditor().findInput().should('not.be.empty');
+    servingRuntimeTemplates.findSubmitButton().should('be.disabled');
+    servingRuntimeTemplates.shouldDisplayAPIProtocolValues([
+      ServingRuntimeAPIProtocol.REST,
+      ServingRuntimeAPIProtocol.GRPC,
+    ]);
+    servingRuntimeTemplates.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+    servingRuntimeTemplates.findSelectModelTypeButton().click();
+    servingRuntimeTemplates.selectModelType('Predictive model');
 
-  //   // Wait for form validation to complete
-  //   servingRuntimeTemplates.findSubmitButton().should('be.enabled');
-  //   servingRuntimeTemplates.findSubmitButton().click();
-  //   cy.wait('@createSingleModelServingRuntime').then((interception) => {
-  //     expect(interception.request.url).to.include('?dryRun=All');
-  //     expect(interception.request.body).to.containSubset({
-  //       metadata: {
-  //         name: 'template-new',
-  //         annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-  //         namespace: 'opendatahub',
-  //       },
-  //     });
-  //   });
+    // Drive Monaco via the model-backed setValue (Buffer to hidden file input) —
+    // not startFromScratch + fixture upload + DOM .view-lines assertion, which was
+    // the flaky path. Gate readiness on the submit button enabling.
+    servingRuntimeTemplates.getDashboardCodeEditor()
+      .setValue(`apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: template-new
+  annotations:
+    openshift.io/display-name: New OVMS Server
+spec:
+  supportedModelFormats:
+    - autoSelect: true
+      name: openvino_ir
+      version: opset1
+  containers:
+    - name: ovms
+      image: quay.io/opendatahub/openvino_model_server:latest`);
 
-  //   cy.wait('@createTemplate').then((interception) => {
-  //     expect(interception.request.body).to.containSubset({
-  //       metadata: {
-  //         annotations: {
-  //           'opendatahub.io/modelServingSupport': '["single"]',
-  //           'opendatahub.io/apiProtocol': 'REST',
-  //         },
-  //       },
-  //       objects: [
-  //         {
-  //           metadata: {
-  //             name: 'template-new',
-  //             annotations: { 'openshift.io/display-name': 'New OVMS Server' },
-  //             labels: { 'opendatahub.io/dashboard': 'true' },
-  //           },
-  //         },
-  //       ],
-  //     });
-  //   });
+    servingRuntimeTemplates.findSubmitButton().should('be.enabled').click();
 
-  //   servingRuntimeTemplates.findAppTitle().should('contain', 'Serving runtimes');
+    cy.wait('@createSingleModelServingRuntime').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'template-new',
+          annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+          namespace: 'opendatahub',
+        },
+      });
+    });
+    cy.wait('@createTemplate').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/modelServingSupport': '["single"]',
+            'opendatahub.io/apiProtocol': 'REST',
+          },
+        },
+      });
+    });
 
-  //   cy.wsK8s(
-  //     'ADDED',
-  //     TemplateModel,
-  //     mockServingRuntimeTemplateK8sResource({
-  //       name: 'template-new',
-  //       displayName: 'New OVMS Server',
-  //       platforms: [ServingRuntimePlatform.SINGLE],
-  //       apiProtocol: ServingRuntimeAPIProtocol.REST,
-  //     }),
-  //   );
+    // Returned to the templates tab; wait for the list to mount/subscribe before
+    // pushing the websocket event so the new row is not missed.
+    cy.findByTestId('app-tab-page-title').should('contain', 'Model deployment settings');
+    servingRuntimeTemplates.getRowById('template-1').find().should('exist');
 
-  //   servingRuntimeTemplates.getRowById('template-new').find().should('exist');
-  //   servingRuntimeTemplates.getRowById('template-new').shouldBeSingleModel(true);
-  // });
+    cy.wsK8s(
+      'ADDED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-new',
+        displayName: 'New OVMS Server',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+      }),
+    );
+
+    servingRuntimeTemplates.getRowById('template-new').find().should('exist');
+  });
 
   it('should duplicate a serving runtime', () => {
     cy.interceptOdh(
