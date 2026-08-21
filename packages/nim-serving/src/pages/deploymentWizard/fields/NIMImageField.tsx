@@ -94,6 +94,15 @@ type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 export const getImageOptionKey = (image: NIMImageFieldValue): string =>
   `${image.repository}:${image.tag}`;
 
+export const isNIMImageSelectionLocked = (
+  isEditing: boolean | undefined,
+  value: NIMImageFieldValue | undefined,
+  existingOptionNotFound: boolean,
+): boolean => {
+  const canReselectImage = !value || !value.repository || !value.tag || existingOptionNotFound;
+  return !!isEditing && !canReselectImage;
+};
+
 export const toNIMImageFieldValue = (image: string): NIMImageFieldValue => {
   const [host, namespace, name, tag] = parseImageString(image);
   return { repository: formatImageString([host, namespace, name, '']), tag };
@@ -169,10 +178,15 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   );
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
+  const isImageSelectionLocked = isNIMImageSelectionLocked(
+    isEditing,
+    value,
+    existingOptionNotFound,
+  );
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
-      if (typeof key !== 'string' || isEditing) {
+      if (typeof key !== 'string' || isImageSelectionLocked) {
         return;
       }
       const selected = options.find((opt) => String(opt.value) === key);
@@ -180,7 +194,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         onChange({ repository: selected.repository, tag: selected.tag });
       }
     },
-    [options, onChange, isEditing],
+    [options, onChange, isImageSelectionLocked],
   );
 
   const projectName = externalData?.data.nimImages.projectName;
@@ -230,14 +244,14 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         selectOptions={options}
         selected={selectedKey}
         isScrollable
-        isDisabled={isEditing || isDisabled}
+        isDisabled={isImageSelectionLocked || isDisabled}
         onSelect={onSelect}
-        placeholder={isEditing ? selectedKey : 'Select NVIDIA NIM image'}
+        placeholder="Select NVIDIA NIM image"
         noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
         isCreatable={false}
-        allowClear={!isEditing}
+        allowClear={!isImageSelectionLocked}
         onClearSelection={() => {
-          if (!isEditing) {
+          if (!isImageSelectionLocked) {
             onChange({ repository: '', tag: '' });
           }
         }}
