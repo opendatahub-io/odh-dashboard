@@ -64,6 +64,7 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
               data-testid={`validated-configuration-arguments-popover-content-${optionSlug}`}
               className="pf-v6-u-font-family-monospace pf-v6-u-white-space-pre-wrap"
             >
+              <br />
               {formattedArgs}
             </pre>
           }

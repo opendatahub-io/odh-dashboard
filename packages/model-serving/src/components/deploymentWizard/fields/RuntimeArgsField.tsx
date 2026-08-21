@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Button,
-  Checkbox,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -68,11 +67,6 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
   allowCreate = true,
   predefinedArgs,
 }) => {
-  const handleCheckboxChange = (event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    const newData = { ...data, enabled: checked };
-    onChange?.(newData);
-  };
-
   const handleTextAreaChange = (_e: React.FormEvent<HTMLTextAreaElement>, textValue: string) => {
     const newData = { ...data, args: textValue.split('\n') };
     onChange?.(newData);
@@ -80,16 +74,11 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
 
   return (
     <Stack hasGutter>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Checkbox
-            id="runtime-args-checkbox"
-            label="Add custom runtime arguments"
-            isChecked={data.enabled}
-            isDisabled={!allowCreate}
-            onChange={handleCheckboxChange}
-            data-testid="runtime-args-checkbox"
-          />
+          <span className="pf-v6-u-font-weight-bold" data-testid="runtime-args-label">
+            Additional runtime arguments
+          </span>
           <Popover
             bodyContent={
               <div>
@@ -134,26 +123,25 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
         </Popover>
       </div>
 
-      {data.enabled && (
-        <Stack>
-          <TextArea
-            id="runtime-args-textarea"
-            data-testid="runtime-args-textarea"
-            placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
-            value={data.args.join('\n')}
-            onChange={handleTextAreaChange}
-            autoResize
-          />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                {`Overwriting the runtime's predefined listening port or
-                 model location will likely result in a failed deployment.`}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-        </Stack>
-      )}
+      <Stack>
+        <TextArea
+          id="runtime-args-textarea"
+          data-testid="runtime-args-textarea"
+          placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
+          value={data.args.join('\n')}
+          onChange={handleTextAreaChange}
+          isDisabled={!allowCreate}
+          autoResize
+        />
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              {`Overwriting the runtime's predefined listening port or
+               model location will likely result in a failed deployment.`}
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      </Stack>
     </Stack>
   );
 };
