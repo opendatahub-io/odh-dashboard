@@ -3,9 +3,11 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -47,10 +49,14 @@ type moduleProxyServiceEntry struct {
 }
 
 const (
-	coreBffEntryName = "coreBff"
-	clusterDNSFmt    = "%s.%s.svc.cluster.local:%d"
-	schemeHostFmt    = "%s://%s"
+	coreBffEntryName       = "coreBff"
+	clusterDNSFmt          = "%s.%s.svc.cluster.local:%d"
+	schemeHostFmt          = "%s://%s"
+	maxFederationConfigLen = 1_048_576 // 1 MiB
 )
+
+// rfc1123Label matches a valid RFC 1123 DNS label: lowercase alphanumeric and hyphens, 1-63 chars.
+var rfc1123Label = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
 // reservedBFFPrefixes are path prefixes already registered on the BFF mux.
 // Module proxy paths must not collide with these to prevent http.ServeMux panics.
@@ -63,6 +69,7 @@ var reservedBFFPrefixes = []string{
 	HealthCheckPath,
 	OpenAPIPath,
 	SwaggerUIPath,
+	PathPrefix + "/",
 }
 
 type moduleProxyHandler struct {
@@ -76,9 +83,19 @@ func parseFederationConfig(filePath string) ([]moduleFederationEntry, error) {
 		return nil, nil
 	}
 
-	data, err := os.ReadFile(filePath)
+	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+	}
+	defer f.Close()
+
+	limited := io.LimitReader(f, maxFederationConfigLen+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read federation config %s: %w", filePath, err)
+	}
+	if len(data) > maxFederationConfigLen {
+		return nil, fmt.Errorf("federation config %s exceeds maximum size of %d bytes", filePath, maxFederationConfigLen)
 	}
 
 	var entries []moduleFederationEntry
@@ -144,6 +161,22 @@ func normalizeFederationEntries(entries []moduleFederationEntry) ([]normalizedPr
 
 // validateProxyEntries rejects duplicate paths, reserved-route collisions, and invalid service refs.
 func validateProxyEntries(entries []normalizedProxyEntry) error {
+	if err := validateProxyPaths(entries); err != nil {
+		return err
+	}
+	return validateServiceRefs(entries)
+}
+
+func validateProxyPaths(entries []normalizedProxyEntry) error {
+	for _, e := range entries {
+		if e.service.Path == "" {
+			return fmt.Errorf("entry %s has empty proxy path", e.entryName)
+		}
+		if !strings.HasPrefix(e.service.Path, "/") {
+			return fmt.Errorf("entry %s has non-rooted proxy path %s (must start with /)", e.entryName, e.service.Path)
+		}
+	}
+
 	seen := make(map[string]string)
 	for _, e := range entries {
 		if prev, ok := seen[e.service.Path]; ok {
@@ -160,25 +193,88 @@ func validateProxyEntries(entries []normalizedProxyEntry) error {
 			if strings.HasPrefix(pathWithSlash, reserved) || strings.HasPrefix(reserved, pathWithSlash) {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s", e.service.Path, e.entryName, reserved)
 			}
-			if strings.HasPrefix(prefixedPath, reserved) || strings.HasPrefix(reserved, prefixedPath) {
+			if reserved != PathPrefix+"/" && (strings.HasPrefix(prefixedPath, reserved) || strings.HasPrefix(reserved, prefixedPath)) {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s (via %s prefix)", e.service.Path, e.entryName, reserved, PathPrefix)
 			}
 		}
 	}
 
+	return nil
+}
+
+func validateServiceRefs(entries []normalizedProxyEntry) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
 		}
+		if !rfc1123Label.MatchString(e.service.Service.Name) {
+			return fmt.Errorf("entry %s has invalid service name %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Name)
+		}
 		if e.service.Service.Namespace == "" {
 			return fmt.Errorf("entry %s has empty service namespace", e.entryName)
+		}
+		if !rfc1123Label.MatchString(e.service.Service.Namespace) {
+			return fmt.Errorf("entry %s has invalid service namespace %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Namespace)
 		}
 		if e.service.Service.Port == 0 {
 			return fmt.Errorf("entry %s has zero service port", e.entryName)
 		}
+
+		if e.service.Authorize {
+			for k := range e.service.Headers {
+				if strings.EqualFold(k, constants.HeaderAuthorization) {
+					return fmt.Errorf("entry %s sets a custom Authorization header while authorize is enabled; these conflict", e.entryName)
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+// buildModuleProxyConfig creates a ProxyConfig for a normalized proxy entry.
+func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *url.URL, allowHTTP, insecureSkipVerify, ssrfValidate bool) proxy.ProxyConfig {
+	proxyPath := entry.service.Path
+	pathRewrite := entry.service.PathRewrite
+
+	cfg := proxy.ProxyConfig{
+		TargetURL:          targetURL,
+		RootCAs:            app.rootCAs,
+		InsecureSkipVerify: insecureSkipVerify,
+		AllowHTTP:          allowHTTP,
+		PathRewriteFn: func(r *http.Request) string {
+			return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
+		},
+		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
+		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),
+		SSRFValidateTarget: ssrfValidate,
+		Logger:             app.logger,
+	}
+
+	if ssrfValidate {
+		cfg.SSRFAllowedHosts = []string{targetURL.Hostname()}
+	}
+
+	if entry.service.Authorize {
+		cfg.AuthHeaderFn = func(r *http.Request) string {
+			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+			if !ok || identity == nil {
+				return ""
+			}
+			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
+		}
+	}
+
+	if len(entry.service.Headers) > 0 {
+		headers := entry.service.Headers
+		cfg.SetOutboundHeadersFn = func(_ *http.Request, outH http.Header) {
+			for k, v := range headers {
+				outH.Set(k, v)
+			}
+		}
+	}
+
+	return cfg
 }
 
 func (app *App) initModuleProxies() error {
@@ -202,8 +298,18 @@ func (app *App) initModuleProxies() error {
 		return err
 	}
 
+	handlers, err := app.buildModuleProxyHandlers(normalized)
+	if err != nil {
+		return err
+	}
+
+	app.moduleProxies = handlers
+	return nil
+}
+
+func (app *App) buildModuleProxyHandlers(entries []normalizedProxyEntry) ([]moduleProxyHandler, error) {
 	var handlers []moduleProxyHandler
-	for _, entry := range normalized {
+	for _, entry := range entries {
 		scheme := "https"
 		if !entry.service.TLS {
 			scheme = "http"
@@ -215,62 +321,25 @@ func (app *App) initModuleProxies() error {
 		)
 		targetURL, err := url.Parse(fmt.Sprintf(schemeHostFmt, scheme, targetHost))
 		if err != nil {
-			return fmt.Errorf("failed to parse target URL for entry %s: %w", entry.entryName, err)
+			return nil, fmt.Errorf("failed to parse target URL for entry %s: %w", entry.entryName, err)
 		}
 
 		allowHTTP := !entry.service.TLS || app.config.DevMode || app.config.MockK8Client
 		insecureSkipVerify := app.config.InsecureSkipVerify && (app.config.DevMode || app.config.MockK8Client)
 
-		proxyPath := entry.service.Path
-		pathRewrite := entry.service.PathRewrite
-
-		cfg := proxy.ProxyConfig{
-			TargetURL:          targetURL,
-			RootCAs:            app.rootCAs,
-			InsecureSkipVerify: insecureSkipVerify,
-			AllowHTTP:          allowHTTP,
-			PathRewriteFn: func(r *http.Request) string {
-				return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
-			},
-			StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
-			ModifyResponse:     ssrf.NewRedirectValidator(app.logger),
-			SSRFValidateTarget: true,
-			SSRFAllowedHosts:   []string{targetURL.Hostname()},
-			Logger:             app.logger,
-		}
-
-		if entry.service.Authorize {
-			cfg.AuthHeaderFn = func(r *http.Request) string {
-				identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-				if !ok || identity == nil {
-					return ""
-				}
-				return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
-			}
-		}
-
-		if len(entry.service.Headers) > 0 {
-			headers := entry.service.Headers
-			cfg.SetOutboundHeadersFn = func(_ *http.Request, outH http.Header) {
-				for k, v := range headers {
-					outH.Set(k, v)
-				}
-			}
-		}
+		cfg := app.buildModuleProxyConfig(entry, targetURL, allowHTTP, insecureSkipVerify, true)
 
 		rp, err := proxy.NewReverseProxy(cfg)
 		if err != nil {
-			return fmt.Errorf("failed to create module proxy for entry %s path %s: %w", entry.entryName, proxyPath, err)
+			return nil, fmt.Errorf("failed to create module proxy for entry %s path %s: %w", entry.entryName, entry.service.Path, err)
 		}
 
 		handlers = append(handlers, moduleProxyHandler{
-			path:    proxyPath,
+			path:    entry.service.Path,
 			handler: rp,
 		})
 	}
-
-	app.moduleProxies = handlers
-	return nil
+	return handlers, nil
 }
 
 func (app *App) registerModuleProxies(mux *http.ServeMux) {

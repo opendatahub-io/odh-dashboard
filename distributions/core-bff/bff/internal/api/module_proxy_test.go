@@ -7,14 +7,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +21,7 @@ func TestParseFederationConfig(t *testing.T) {
 		name      string
 		setup     func(t *testing.T) string
 		wantNil   bool
+		wantCount int
 		wantErr   bool
 		errSubstr string
 	}{
@@ -61,6 +59,22 @@ func TestParseFederationConfig(t *testing.T) {
 				require.NoError(t, os.WriteFile(p, []byte(`[]`), 0600))
 				return p
 			},
+			wantCount: 0,
+		},
+		{
+			name: "file exceeding max size returns error",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				p := filepath.Join(dir, "large.json")
+				data := make([]byte, maxFederationConfigLen+1)
+				for i := range data {
+					data[i] = 'x'
+				}
+				require.NoError(t, os.WriteFile(p, data, 0600))
+				return p
+			},
+			wantErr:   true,
+			errSubstr: "exceeds maximum size",
 		},
 		{
 			name: "valid JSON with multiple entries",
@@ -102,6 +116,7 @@ func TestParseFederationConfig(t *testing.T) {
 				require.NoError(t, os.WriteFile(p, data, 0600))
 				return p
 			},
+			wantCount: 2,
 		},
 	}
 
@@ -119,9 +134,59 @@ func TestParseFederationConfig(t *testing.T) {
 			require.NoError(t, err)
 			if tt.wantNil {
 				assert.Nil(t, entries)
+				return
 			}
+			require.Len(t, entries, tt.wantCount)
 		})
 	}
+
+	// Verify parsed field mapping for the multi-entry case.
+	t.Run("multi-entry fields are mapped correctly", func(t *testing.T) {
+		entries := []moduleFederationEntry{
+			{
+				Name:      "genAi",
+				Authorize: true,
+				TLS:       true,
+				ProxyService: []moduleProxyServiceEntry{
+					{
+						Authorize:   true,
+						Path:        "/gen-ai/api",
+						PathRewrite: "/api",
+						TLS:         true,
+						Service:     moduleServiceRef{Name: "gen-ai-bff", Namespace: "redhat-ods-apps", Port: 8443},
+					},
+				},
+			},
+			{
+				Name: "maas",
+				Proxy: []moduleProxyRoute{
+					{Path: "/maas/api", PathRewrite: "/api"},
+				},
+				Service: &moduleServiceRef{Name: "maas-bff", Namespace: "redhat-ods-apps", Port: 9443},
+			},
+		}
+		data, err := json.Marshal(entries)
+		require.NoError(t, err)
+		dir := t.TempDir()
+		p := filepath.Join(dir, "config.json")
+		require.NoError(t, os.WriteFile(p, data, 0600))
+
+		parsed, err := parseFederationConfig(p)
+		require.NoError(t, err)
+		require.Len(t, parsed, 2)
+
+		assert.Equal(t, "genAi", parsed[0].Name)
+		assert.True(t, parsed[0].Authorize)
+		require.Len(t, parsed[0].ProxyService, 1)
+		assert.Equal(t, "/gen-ai/api", parsed[0].ProxyService[0].Path)
+		assert.Equal(t, int32(8443), parsed[0].ProxyService[0].Service.Port)
+
+		assert.Equal(t, "maas", parsed[1].Name)
+		require.Len(t, parsed[1].Proxy, 1)
+		assert.Equal(t, "/maas/api", parsed[1].Proxy[0].Path)
+		require.NotNil(t, parsed[1].Service)
+		assert.Equal(t, int32(9443), parsed[1].Service.Port)
+	})
 }
 
 func TestNormalizeFederationEntries(t *testing.T) {
@@ -301,6 +366,30 @@ func TestValidateProxyEntries(t *testing.T) {
 		errSubstr string
 	}{
 		{
+			name: "empty proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "emptyPath", service: moduleProxyServiceEntry{Path: "", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "empty proxy path",
+		},
+		{
+			name: "non-rooted proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "noSlash", service: moduleProxyServiceEntry{Path: "gen-ai/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "non-rooted proxy path",
+		},
+		{
+			name: "module path /core-bff/api collides with reserved prefix",
+			entries: []normalizedProxyEntry{
+				{entryName: "selfCollide", service: moduleProxyServiceEntry{Path: "/core-bff/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "collides with reserved BFF route",
+		},
+		{
 			name: "duplicate proxy paths rejected",
 			entries: []normalizedProxyEntry{
 				{entryName: "modA", service: moduleProxyServiceEntry{Path: "/shared/api", Service: moduleServiceRef{Name: "a", Namespace: "ns", Port: 443}}},
@@ -348,6 +437,57 @@ func TestValidateProxyEntries(t *testing.T) {
 			},
 			wantErr:   true,
 			errSubstr: "zero service port",
+		},
+		{
+			name: "invalid RFC 1123 service name rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badName", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "UPPER_CASE", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service name",
+		},
+		{
+			name: "invalid RFC 1123 service namespace rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badNs", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "has spaces", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service namespace",
+		},
+		{
+			name: "authorize with custom Authorization header rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "authConflict", service: moduleProxyServiceEntry{
+					Authorize: true, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"authorization": "Bearer static-token"},
+				}},
+			},
+			wantErr:   true,
+			errSubstr: "custom Authorization header while authorize is enabled",
+		},
+		{
+			name: "authorize with custom Authorization header case-insensitive",
+			entries: []normalizedProxyEntry{
+				{entryName: "authConflict", service: moduleProxyServiceEntry{
+					Authorize: true, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"AUTHORIZATION": "Bearer static-token"},
+				}},
+			},
+			wantErr:   true,
+			errSubstr: "custom Authorization header while authorize is enabled",
+		},
+		{
+			name: "non-authorized route with Authorization header allowed",
+			entries: []normalizedProxyEntry{
+				{entryName: "staticAuth", service: moduleProxyServiceEntry{
+					Authorize: false, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"Authorization": "Bearer static-token"},
+				}},
+			},
+			wantErr: false,
 		},
 		{
 			name: "valid entries pass",
@@ -868,55 +1008,14 @@ func createTestProxy(t *testing.T, app *App, backendURL, proxyPath, pathRewrite 
 
 	entry := normalized[0]
 
-	// Override to point at test backend
-	cfg := buildModuleProxyConfig(app, entry, backendURL)
+	targetURL, err := url.Parse(backendURL)
+	require.NoError(t, err)
+
+	cfg := app.buildModuleProxyConfig(entry, targetURL, true, false, false)
 
 	rp, err := proxy.NewReverseProxy(cfg)
 	require.NoError(t, err)
 	return rp
-}
-
-// buildModuleProxyConfig creates a ProxyConfig for testing, targeting the given backendURL.
-func buildModuleProxyConfig(app *App, entry normalizedProxyEntry, backendURL string) proxy.ProxyConfig {
-	targetURL, _ := url.Parse(backendURL)
-
-	proxyPath := entry.service.Path
-	pathRewrite := entry.service.PathRewrite
-
-	cfg := proxy.ProxyConfig{
-		TargetURL:          targetURL,
-		RootCAs:            app.rootCAs,
-		InsecureSkipVerify: false,
-		AllowHTTP:          true,
-		PathRewriteFn: func(r *http.Request) string {
-			return pathRewrite + strings.TrimPrefix(r.URL.Path, proxyPath)
-		},
-		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
-		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),
-		SSRFValidateTarget: false,
-		Logger:             app.logger,
-	}
-
-	if entry.service.Authorize {
-		cfg.AuthHeaderFn = func(r *http.Request) string {
-			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-			if !ok || identity == nil {
-				return ""
-			}
-			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
-		}
-	}
-
-	if len(entry.service.Headers) > 0 {
-		headers := entry.service.Headers
-		cfg.SetOutboundHeadersFn = func(_ *http.Request, outH http.Header) {
-			for k, v := range headers {
-				outH.Set(k, v)
-			}
-		}
-	}
-
-	return cfg
 }
 
 func writeTempConfig(t *testing.T, entries []moduleFederationEntry) string {
