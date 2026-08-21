@@ -22,22 +22,16 @@ import (
 // endpoint and credentials, and proxies the request directly to the upstream model.
 // Returns the upstream response unchanged (transparent proxy).
 //
-// Auth is required: the user's JWT arrives via the x-forwarded-access-token
-// header (forwarded by OGX).
+// Auth is required: OGX forwards the user's JWT via Authorization: Bearer
+// (from passthrough_api_key in X-OGX-Provider-Data). AttachNamespaceFromPath
+// and RequireAccessToService middleware run before this handler.
 func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
-	namespace := ps.ByName("namespace")
-	if namespace == "" {
-		app.badRequestResponse(w, r, errors.New("missing namespace in path"))
-		return
-	}
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
-	r = r.WithContext(ctx)
-
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil || identity.Token == "" {
+	// Defense-in-depth: middleware enforces auth, but verify identity is present.
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))
 		return
 	}

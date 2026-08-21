@@ -791,35 +791,42 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getProviderData retrieves provider data (auth tokens) for models.
-// If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
-// backing one of those stores and injects its URL and secret. Returns an error if the
-// passthrough embedding lookup fails so the handler can fail closed.
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) (map[string]interface{}, error) {
-	var providerData map[string]interface{}
-
-	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
-		// Inference custom endpoints are always remote::openai
-		if apiKey := app.getCustomEndpointSecret(ctx, modelID); apiKey != "" {
-			providerData = map[string]interface{}{"openai_api_key": apiKey}
-		}
-	} else if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
-		providerData = maasData
-	} else {
-		providerData = app.getUserJWTProviderData(ctx, modelID)
+// getProviderData retrieves provider data for OGX requests.
+// All models route through the genai-bff-proxy passthrough provider. Provider data
+// includes the user JWT (as passthrough_api_key) for auth, plus model-specific
+// credentials that OGX forwards to the BFF proxy via X-OGX-Provider-Data.
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, _ []string) (map[string]interface{}, error) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil || identity.Token == "" {
+		return nil, nil
 	}
 
-	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
-	passthroughURL, passthroughKey, err := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs)
-	if err != nil {
-		return nil, err
+	providerData := map[string]interface{}{
+		"passthrough_api_key": identity.Token,
 	}
-	if passthroughURL != "" || passthroughKey != "" {
-		if providerData == nil {
-			providerData = make(map[string]interface{})
+
+	// For MaaS models, pre-fetch the ephemeral token and include it in provider data.
+	// OGX forwards this to the BFF proxy so it doesn't need to call the MaaS BFF again.
+	// Strip the passthrough provider prefix before checking for maas- prefix, since the
+	// model ID from the frontend includes the full OGX-style ID (e.g. "genai-bff-proxy/maas-...").
+	modelIDForCheck := strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
+	isMaaS := modelSourceType == string(models.ModelSourceTypeMaaS) ||
+		strings.HasPrefix(modelIDForCheck, constants.MaaSProviderPrefix)
+	if isMaaS && app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
+		namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Kubernetes client for MaaS token: %w", err)
 		}
-		providerData["passthrough_url"] = passthroughURL
-		providerData["passthrough_api_key"] = passthroughKey
+
+		// Strip maas- prefix to get raw MaaS model ID for token request
+		maasModelID := strings.TrimPrefix(modelIDForCheck, constants.MaaSProviderPrefix)
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, subscription)
+		if token != "" {
+			providerData["maas_ephemeral_api_token"] = token
+		} else {
+			app.logger.Warn("Failed to pre-fetch MaaS token for provider data", "model", modelID)
+		}
 	}
 
 	return providerData, nil
@@ -874,16 +881,16 @@ func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[
 	}
 }
 
-// getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
+// getMaaSProviderData retrieves provider data for MaaS models.
+// When passthrough is enabled (GATEWAY_DOMAIN set), MaaS models route through the
+// genai-bff-proxy provider — only the user JWT is needed (as passthrough_api_key).
+// The BFF proxy resolves the MaaS ephemeral token internally.
+// When passthrough is disabled (legacy), the ephemeral token is fetched here and sent
+// directly as maas_ephemeral_api_token.
 func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscription string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		return nil
-	}
-
-	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
 		return nil
 	}
 
@@ -894,21 +901,33 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscri
 		return nil
 	}
 
-	// Get Kubernetes client
+	// When passthrough is enabled, the BFF proxy handles MaaS token resolution.
+	// Just pass the user JWT so OGX forwards it to the proxy via Authorization: Bearer.
+	if app.config.GatewayDomain != "" {
+		app.logger.Debug("MaaS model via passthrough — sending user JWT", "model", modelID)
+		return map[string]interface{}{
+			"passthrough_api_key": identity.Token,
+		}
+	}
+
+	// Legacy path: fetch ephemeral token and pass it directly to OGX
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return nil
+	}
+
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		return nil
 	}
 
-	app.logger.Debug("Detected MaaS model", "model", modelID, "subscription", subscription)
+	app.logger.Debug("Detected MaaS model (legacy path)", "model", modelID, "subscription", subscription)
 
-	// Get or generate MaaS token
 	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, subscription)
 	if token == "" {
 		return nil
 	}
 
-	// Inject token as provider data
 	app.logger.Debug("Injected MaaS provider data", "model", modelID)
 	return map[string]interface{}{
 		"maas_ephemeral_api_token": token,

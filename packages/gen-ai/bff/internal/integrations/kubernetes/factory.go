@@ -97,7 +97,19 @@ func buildSAClient(logger *slog.Logger) (client.Client, error) {
 
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
 	raw := httpHeader.Get(f.Header)
+
+	// Fallback: when the primary header (e.g. x-forwarded-access-token) is absent,
+	// try the Authorization header with Bearer prefix. OGX's remote::passthrough
+	// provider sends the user JWT this way on proxy endpoints.
 	if raw == "" {
+		if auth := httpHeader.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+			raw = auth
+			// Use "Bearer " as the effective prefix for this request
+			token := strings.TrimPrefix(raw, "Bearer ")
+			return &integrations.RequestIdentity{
+				Token: strings.TrimSpace(token),
+			}, nil
+		}
 		return nil, fmt.Errorf("missing required Header: %s", f.Header)
 	}
 

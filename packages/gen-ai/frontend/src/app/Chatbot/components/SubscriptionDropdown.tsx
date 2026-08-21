@@ -20,15 +20,6 @@ interface SubscriptionDropdownProps {
   className?: string;
 }
 
-const isValidSubscription = (s: unknown): s is SubscriptionInfo =>
-  s != null &&
-  typeof s === 'object' &&
-  'name' in s &&
-  typeof s.name === 'string' &&
-  s.name.trim() !== '' &&
-  (!('displayName' in s) || s.displayName == null || typeof s.displayName === 'string') &&
-  (!('description' in s) || s.description == null || typeof s.description === 'string');
-
 const DEFAULT_HELP_TEXT =
   'Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints.';
 
@@ -52,11 +43,12 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
       return [];
     }
-    const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
-    const subs = matchingModel?.subscriptions;
-    // Validate each subscription has the required name field before returning
-    return Array.isArray(subs) ? subs.filter(isValidSubscription) : [];
+    const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
+    // Strip "maas-" prefix added by the passthrough models handler so the ID
+    // matches what the MaaS catalog returns (e.g. "publishers/llm/models/gemini-proxy").
+    const maasModelId = rawId.startsWith('maas-') ? rawId.slice(5) : rawId;
+    const matchingModel = maasModels.find((m) => m.id === maasModelId);
+    return matchingModel?.subscriptions ?? [];
   }, [selectedModel, isMaaSModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
@@ -110,7 +102,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
-            isFullWidth
+            style={{ width: '100%' }}
             data-testid="subscription-selector-toggle"
           >
             {toggleLabel}

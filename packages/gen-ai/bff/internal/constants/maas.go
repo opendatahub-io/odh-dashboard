@@ -15,4 +15,8 @@ const (
 
 	// MaaSReturnAllModelsHeader is the header name for requesting enriched model details from MaaS BFF
 	MaaSReturnAllModelsHeader = "X-MaaS-Return-All-Models"
+
+	// MaaSEphemeralTokenHeader is the HTTP header used to forward the pre-fetched MaaS
+	// ephemeral API token from OGX to the BFF proxy (via forward_headers config).
+	MaaSEphemeralTokenHeader = "X-MaaS-Ephemeral-Token"
 )

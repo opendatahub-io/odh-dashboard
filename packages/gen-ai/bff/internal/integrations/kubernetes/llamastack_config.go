@@ -398,19 +398,25 @@ func EmptyConfig() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-// NewPassthroughProvider creates a remote::passthrough provider entry that enables
-// OGX to dynamically discover models via the BFF's /v1/models endpoint.
+// NewPassthroughProvider creates a remote::passthrough provider entry.
+// OGX's Responses API resolves models per-request via this provider — no
+// model registration in registered_resources is needed. The BFF proxy at
+// baseURL handles routing to the actual upstream endpoint and credentials.
 //
-// refresh_models: true causes OGX to call GET /v1/models so new models
-// appear in the routing table for /v1/chat/completions.
+// forward_headers maps X-OGX-Provider-Data JSON keys to outbound HTTP headers.
+// OGX reads these keys from the provider data and forwards them as headers to the
+// passthrough endpoint. This allows per-request credentials (e.g. MaaS tokens)
+// to flow through OGX without OGX needing to understand them.
 func NewPassthroughProvider(providerID, baseURL string) Provider {
 	return Provider{
 		ProviderID:   providerID,
 		ProviderType: constants.PassthroughProviderType,
 		Config: map[string]interface{}{
-			"base_url":       baseURL,
-			"api_key":        "",
-			"refresh_models": true,
+			"base_url": baseURL,
+			"api_key":  "",
+			"forward_headers": map[string]interface{}{
+				"maas_ephemeral_api_token": constants.MaaSEphemeralTokenHeader,
+			},
 		},
 	}
 }

@@ -1559,7 +1559,12 @@ func TestNewPassthroughProvider(t *testing.T) {
 	assert.Equal(t, "remote::passthrough", provider.ProviderType)
 	assert.Equal(t, "https://apps.cluster.example.com/api/v1/genai-proxy/ns/my-ns", provider.Config["base_url"])
 	assert.Equal(t, "", provider.Config["api_key"], "api_key should be empty string")
-	assert.Equal(t, true, provider.Config["refresh_models"])
+	assert.Nil(t, provider.Config["refresh_models"], "refresh_models should not be set")
+
+	// forward_headers maps provider data keys to outbound HTTP headers
+	fh, ok := provider.Config["forward_headers"].(map[string]interface{})
+	assert.True(t, ok, "forward_headers should be a map")
+	assert.Equal(t, "X-MaaS-Ephemeral-Token", fh["maas_ephemeral_api_token"])
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
