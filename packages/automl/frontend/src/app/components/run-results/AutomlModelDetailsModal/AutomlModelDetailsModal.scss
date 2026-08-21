@@ -506,11 +506,6 @@
     display: block !important;
   }
 
-  /* Elements not needed in the print container */
-  .odh-autox-print-hide-element {
-    display: none;
-  }
-
   .automl-print-header {
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
