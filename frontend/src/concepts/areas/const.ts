@@ -32,14 +32,13 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  modelDeploymentSettings: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimWizard: false,
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  notebooksV2: false,
+  workbenchesV2: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -159,10 +158,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
-  },
-  [SupportedArea.MODEL_DEPLOYMENT_SETTINGS]: {
-    featureFlags: ['modelDeploymentSettings'],
-    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
@@ -308,7 +303,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.PLUGIN_NOTEBOOKS]: {
-    featureFlags: ['notebooksV2'],
+    featureFlags: ['workbenchesV2'],
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],

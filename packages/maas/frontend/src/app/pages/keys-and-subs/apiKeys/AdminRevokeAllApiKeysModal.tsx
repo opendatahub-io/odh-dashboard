@@ -21,11 +21,18 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
+import {
+  ApiKeyBulkRevokeMode,
+  ApiKeysBulkRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -55,6 +62,24 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
   const [hasSearched, setHasSearched] = React.useState(false);
 
   const activeKeys = apiKeys.filter((key) => key.status === 'active');
+
+  const handleClose = React.useCallback(
+    (revoked: boolean) => {
+      if (revoking) {
+        return;
+      }
+      if (!revoked) {
+        fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+          outcome: TrackingOutcome.cancel,
+          bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
+          keyCount: activeKeys.length,
+          isAdmin: true,
+        } satisfies ApiKeysBulkRevokedProperties);
+      }
+      onClose(revoked);
+    },
+    [activeKeys.length, onClose, revoking],
+  );
 
   const handleSearch = React.useCallback(async () => {
     const trimmed = username.trim();
@@ -87,18 +112,34 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
 
     try {
       await bulkRevokeApiKeys()({}, searchedUsername);
+      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
+        keyCount: activeKeys.length,
+        isAdmin: true,
+      } satisfies ApiKeysBulkRevokedProperties);
       notification.success(`All active keys for "${searchedUsername}" revoked`);
       onClose(true);
     } catch (err) {
-      setRevokeError(err instanceof Error ? err : new Error('Failed to revoke API keys'));
+      const message = err instanceof Error ? err.message : 'Failed to revoke API keys';
+      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: message,
+        bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
+        keyCount: activeKeys.length,
+        isAdmin: true,
+      } satisfies ApiKeysBulkRevokedProperties);
+      setRevokeError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
-  }, [notification, onClose, searchedUsername]);
+  }, [notification, onClose, searchedUsername, activeKeys.length]);
 
   return (
     <Modal
       isOpen
-      onClose={() => onClose(false)}
+      onClose={() => handleClose(false)}
       variant="medium"
       data-testid="admin-revoke-all-api-keys-modal"
       elementToFocus="#admin-revoke-username-input"
@@ -249,7 +290,8 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
         </Button>
         <Button
           variant="link"
-          onClick={() => onClose(false)}
+          isDisabled={revoking}
+          onClick={() => handleClose(false)}
           data-testid="cancel-admin-revoke-button"
         >
           Cancel

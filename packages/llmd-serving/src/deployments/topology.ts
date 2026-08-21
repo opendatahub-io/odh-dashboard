@@ -1,4 +1,5 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -117,10 +118,13 @@ export const applyTopologyConfig = (
 export const preDeployTopologyConfig = async (
   fieldData: CustomTopologyConfigFieldData,
   wizardState: WizardFormData['state'],
-  deployment: LLMdDeployment,
+  deployment: DeploymentHookPayloadFor<LLMdDeployment>,
   existingDeployment?: LLMdDeployment,
   dryRun?: boolean,
-): Promise<LLMdDeployment> => {
+): Promise<DeploymentHookPayloadFor<LLMdDeployment>> => {
+  if (!deployment.model) {
+    return deployment;
+  }
   const { namespace } = deployment.model.metadata;
 
   const prevTopologyConfigName =

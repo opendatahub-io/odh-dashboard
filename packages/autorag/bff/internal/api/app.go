@@ -28,20 +28,22 @@ import (
 )
 
 const (
-	Version              = "1.0.0"
-	PathPrefix           = "/autorag"
-	ApiPathPrefix        = "/api/v1"
-	HealthCheckPath      = "/healthcheck"
-	UserPath             = ApiPathPrefix + "/user"
-	NamespacePath        = ApiPathPrefix + "/namespaces"
-	SecretsPath          = ApiPathPrefix + "/secrets"
-	SecretPath           = ApiPathPrefix + "/secret/:name"
-	S3FilePath           = ApiPathPrefix + "/s3/files/:key"
-	S3FilesPath          = ApiPathPrefix + "/s3/files"
-	OGXModelsPath        = ApiPathPrefix + "/ogx/models"
-	OGXVectorStoresPath  = ApiPathPrefix + "/ogx/vector-stores"
-	PipelineRunsPath     = ApiPathPrefix + "/pipeline-runs"
-	ManagedPipelinesPath = ApiPathPrefix + "/managed-pipelines/enable"
+	Version                  = "1.0.0"
+	PathPrefix               = "/autorag"
+	ApiPathPrefix            = "/api/v1"
+	HealthCheckPath          = "/healthcheck"
+	UserPath                 = ApiPathPrefix + "/user"
+	NamespacePath            = ApiPathPrefix + "/namespaces"
+	SecretsPath              = ApiPathPrefix + "/secrets"
+	SecretPath               = ApiPathPrefix + "/secret/:name"
+	S3FilePath               = ApiPathPrefix + "/s3/files/:key"
+	S3FilesPath              = ApiPathPrefix + "/s3/files"
+	OGXModelsPath            = ApiPathPrefix + "/ogx/models"
+	OGXVectorStoresPath      = ApiPathPrefix + "/ogx/vector-stores"
+	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
+	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
+	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
+	ManagedPipelinesPath     = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -249,6 +251,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			logger: logger,
 			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
 				AutoRAGPipelineName:    cfg.AutoRAGPipelineNamePrefix,
+				IndexingPipelineName:   cfg.IndexingPipelineNamePrefix,
 				DefaultPipelineVersion: cfg.PipelineVersionSuffix,
 			}),
 		},
@@ -295,6 +298,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.RetryPipelineRunHandler)))
 	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.DeletePipelineRunHandler)))
 
+	// Indexing pipeline runs
+	apiRouter.POST(IndexingPipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.CreateIndexingPipelineRunHandler)))
+
 	// S3 operations — credentials resolved from explicit secretName query parameter.
 	apiRouter.GET(S3FilePath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FileHandler)))
 	apiRouter.GET(S3FilesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FilesHandler)))
@@ -305,7 +311,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(OGXModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXModelsHandler)))
 	apiRouter.GET(OGXVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXVectorStoresHandler)))
 
-	// Managed pipelines — enable AutoRAG pipeline definitions on an existing DSPA
+	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
+	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 
 	// App Router

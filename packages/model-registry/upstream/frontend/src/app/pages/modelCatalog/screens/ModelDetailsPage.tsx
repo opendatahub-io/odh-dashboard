@@ -40,6 +40,8 @@ import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
@@ -53,6 +55,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
+  const { trackSimpleEvent } = useUserInteraction();
   const state = useCatalogModel(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
@@ -71,6 +74,15 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
+
+  const handleValidatedLabelClicked = React.useCallback(() => {
+    if (!model) {
+      return;
+    }
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_LABEL_CLICKED, {
+      modelName: getModelName(model.name),
+    });
+  }, [model, trackSimpleEvent]);
 
   const registerButtonTooltip = (
     headerContent: string,
@@ -183,6 +195,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                           isClickable
                           status="success"
                           icon={<CheckCircleIcon />}
+                          onClick={handleValidatedLabelClicked}
                         >
                           Validated
                         </Label>

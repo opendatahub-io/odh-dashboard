@@ -32,8 +32,6 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
 
-// Simplify GlobalProjectSettings to two buttons that either select a new namespace
-// or clear the current one, avoiding the need to stand up ProjectsContext/ProjectSelector.
 jest.mock('#~/pages/clusterSettings/GlobalProjectSettings', () => ({
   __esModule: true,
   default: ({ setSelectedNamespace }: { setSelectedNamespace: (ns: string) => void }) => (

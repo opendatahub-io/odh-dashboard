@@ -1,5 +1,6 @@
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
@@ -16,9 +17,22 @@ import {
   LocalQueueModel,
   PodModel,
   ProjectModel,
+  SelfSubjectAccessReviewModel,
   WorkloadModel,
 } from '../../../../utils/models';
 import { workbenchPage, workbenchStatusModal } from '../../../../pages/workbench';
+
+const mockCanViewClusterQueue = (allowed = true) =>
+  cy.interceptK8s(
+    'POST',
+    SelfSubjectAccessReviewModel,
+    mockSelfSubjectAccessReview({
+      group: ClusterQueueModel.apiGroup,
+      resource: ClusterQueueModel.plural,
+      verb: 'get',
+      allowed,
+    }),
+  );
 
 const notebookWithKueueQueue = mockNotebookK8sResource({
   lastImageSelection: 'test-imagestream:1.2',
@@ -61,6 +75,7 @@ const mockNotebookEvents = [
 
 const initKueueEnabledForStatusModal = () => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
+  mockCanViewClusterQueue();
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
@@ -96,6 +111,7 @@ const initKueueWorkloadStatus = (
   opts?: { evictionReason?: string },
 ) => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
+  mockCanViewClusterQueue();
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),

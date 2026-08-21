@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -51,6 +52,14 @@ func main() {
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
 
+	// ─── Data Registry API ────────────────────────────────────────
+	flag.StringVar(&cfg.DataRegistryAPIURL, "data-registry-api-url", getEnvAsString("DATA_REGISTRY_API_URL", ""),
+		"Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
+	flag.StringVar(&cfg.DataRegistryConfigMapName, "data-registry-configmap-name", getEnvAsString("DATA_REGISTRY_CONFIGMAP_NAME", config.DefaultDataRegistryConfigMapName),
+		"Name of the ConfigMap (in the pod's namespace) holding the Data Registry API URL")
+	flag.StringVar(&cfg.DataRegistryConfigMapKey, "data-registry-configmap-key", getEnvAsString("DATA_REGISTRY_CONFIGMAP_KEY", config.DefaultDataRegistryConfigMapKey),
+		"Key within the Data Registry ConfigMap holding the API URL")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
@@ -67,6 +76,10 @@ func main() {
 	// Ensure the deprecated boolean fields are consistent with the new deployment mode
 	cfg.StandaloneMode = cfg.DeploymentMode.IsStandaloneMode()
 	cfg.FederatedPlatform = cfg.DeploymentMode.IsFederatedMode()
+
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
+		os.Exit(1)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
@@ -139,4 +152,24 @@ func main() {
 
 	logger.Info("server stopped")
 	os.Exit(0)
+}
+
+func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+
+	if certFile != "" {
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used when TLS certificates are mounted",
+			"cert_file", certFile,
+			"insecure_skip_verify", insecureSkipVerify,
+			"fix", "Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var",
+		)
+		return errors.New("InsecureSkipVerify cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
+	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
+		"use_case", "local development only - NEVER use in production",
+	)
+	return nil
 }

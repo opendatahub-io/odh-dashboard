@@ -13,7 +13,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       id: PLUGIN_NOTEBOOKS,
       reliantAreas,
-      devFlags: ['Notebooks Plugin'],
+      featureFlags: ['workbenchesV2'],
     },
   },
   {

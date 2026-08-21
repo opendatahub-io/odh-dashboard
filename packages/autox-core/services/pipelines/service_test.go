@@ -644,7 +644,39 @@ func TestService_EnsurePipeline(t *testing.T) {
 // --- DiscoverNamedPipelines ---
 
 func TestService_DiscoverNamedPipelines(t *testing.T) {
-	t.Run("discovers multiple pipelines with version fallback", func(t *testing.T) {
+	t.Run("prefers exact default version display name", func(t *testing.T) {
+		client := &mockPipelineClient{
+			listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+				return &PipelinesResponse{
+					Pipelines: []Pipeline{{PipelineID: "p1", DisplayName: "pipeline-a"}},
+				}, nil
+			},
+			listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+				return &PipelineVersionsResponse{
+					PipelineVersions: []PipelineVersion{
+						{PipelineVersionID: "v-newest", DisplayName: "3.6.0", CreatedAt: "2026-08-01T00:00:00Z"},
+						{PipelineVersionID: "v-preferred", DisplayName: "3.5.0", CreatedAt: "2026-01-01T00:00:00Z"},
+					},
+				}, nil
+			},
+		}
+		svc := newTestServiceWithMock(client)
+
+		result, err := svc.DiscoverNamedPipelines(testCtx(), "test-ns", "3.5.0", map[string]string{
+			"type-a": "pipeline-a",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result["type-a"] == nil {
+			t.Fatal("expected type-a to be discovered")
+		}
+		if result["type-a"].PipelineVersionID != "v-preferred" {
+			t.Errorf("expected preferred version 3.5.0, got %q", result["type-a"].PipelineVersionID)
+		}
+	})
+
+	t.Run("falls back to most recently created version", func(t *testing.T) {
 		client := &mockPipelineClient{
 			listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
 				return &PipelinesResponse{
@@ -694,7 +726,7 @@ func TestService_DiscoverNamedPipelines(t *testing.T) {
 			},
 			listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
 				return &PipelineVersionsResponse{
-					PipelineVersions: []PipelineVersion{{PipelineVersionID: "v1", DisplayName: "pipe-1.0"}},
+					PipelineVersions: []PipelineVersion{{PipelineVersionID: "v1", DisplayName: "1.0"}},
 				}, nil
 			},
 		}

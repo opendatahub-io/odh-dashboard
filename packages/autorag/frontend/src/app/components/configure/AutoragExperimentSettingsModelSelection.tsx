@@ -1,10 +1,14 @@
 import {
+  CodeBlock,
+  CodeBlockCode,
   Content,
   Flex,
   Label,
   Pagination,
   Popover,
   Spinner,
+  Stack,
+  StackItem,
   Tab,
   TabAction,
   TabContentBody,
@@ -47,8 +51,32 @@ const MODEL_TABS: ModelTab[] = [
   },
 ];
 
-const MODEL_CATALOG_HELP_TEXT =
+const MODEL_CATALOG_HELP_INTRO =
   'To verify model details, including language support, view the models in the Model catalog.';
+
+const MODEL_TOOL_CALL_PARSER_HELP =
+  'For multilingual AutoRAG setups, you must enable a tool-call parser on the model server. To ensure tooling functions correctly, redeploy the model with:';
+
+/** Runtime args to enable tool calling; full deploy command varies by model. */
+const MODEL_TOOL_CALL_PARSER_ARGS = '--enable-auto-tool-choice --tool-call-parser=mistral';
+
+const ModelsToTestHelpContent: React.FC = () => (
+  <Stack hasGutter>
+    <StackItem>
+      <Content component="p">{MODEL_CATALOG_HELP_INTRO}</Content>
+    </StackItem>
+    <StackItem>
+      <Content component="p">{MODEL_TOOL_CALL_PARSER_HELP}</Content>
+    </StackItem>
+    <StackItem>
+      <CodeBlock>
+        <CodeBlockCode data-testid="models-to-test-tool-call-parser-args">
+          {MODEL_TOOL_CALL_PARSER_ARGS}
+        </CodeBlockCode>
+      </CodeBlock>
+    </StackItem>
+  </Stack>
+);
 
 const DEFAULT_PER_PAGE = 5;
 
@@ -140,7 +168,11 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             </span>
             <span className="pf-v6-screen-reader">required</span>
           </Flex>
-          <Popover bodyContent={MODEL_CATALOG_HELP_TEXT} aria-label="Models to test help">
+          <Popover
+            bodyContent={<ModelsToTestHelpContent />}
+            aria-label="Models to test help"
+            maxWidth="30rem"
+          >
             <DashboardPopupIconButton
               aria-label="More info for models to test"
               icon={<OutlinedQuestionCircleIcon />}

@@ -12,6 +12,7 @@ import {
   formatDate,
   formatDurationCompact,
   isTerminalState,
+  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 
 describe('getEvaluationName', () => {
@@ -524,5 +525,31 @@ describe('getFailedBenchmarkCount', () => {
 
   it('should count all when every benchmark has failed', () => {
     expect(getFailedBenchmarkCount([{ status: 'failed' }, { status: 'failed' }])).toBe(2);
+  });
+});
+
+describe('normalizeThreshold', () => {
+  it('should convert 0–1 decimal to percentage', () => {
+    expect(normalizeThreshold(0.38)).toBe(38);
+  });
+
+  it('should convert 0.5 to 50', () => {
+    expect(normalizeThreshold(0.5)).toBe(50);
+  });
+
+  it('should use value as-is when already a percentage scale', () => {
+    expect(normalizeThreshold(38)).toBe(38);
+  });
+
+  it('should use value as-is for large percentage values', () => {
+    expect(normalizeThreshold(80)).toBe(80);
+  });
+
+  it('should handle 0', () => {
+    expect(normalizeThreshold(0)).toBe(0);
+  });
+
+  it('should round fractional results', () => {
+    expect(normalizeThreshold(0.333)).toBe(33);
   });
 });

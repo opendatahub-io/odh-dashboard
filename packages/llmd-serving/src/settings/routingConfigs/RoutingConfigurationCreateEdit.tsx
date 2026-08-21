@@ -20,7 +20,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
@@ -33,6 +33,7 @@ import K8sNameDescriptionField, {
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { RoutingConfigContext } from './RoutingConfigContext';
+import { ROUTING_CONFIGS_TAB_PATH } from './paths';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
@@ -53,6 +54,10 @@ import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
+import {
+  fireRoutingConfigCreated,
+  fireRoutingConfigUpdated,
+} from '../../tracking/llmdTrackingConstants';
 
 const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
 const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
@@ -80,9 +85,9 @@ const buildRouterSamplesUrl = (topology: TopologyType): string =>
 
 const RoutingConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
-  listPath: string;
   isDuplicate: boolean;
-}> = ({ sourceConfig, listPath, isDuplicate }) => {
+}> = ({ sourceConfig, isDuplicate }) => {
+  const listPath = ROUTING_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { configName } = useParams<{ configName?: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
@@ -317,8 +322,20 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
+        fireRoutingConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          topologyType: selectedTopology,
+        });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
+        fireRoutingConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: selectedTopology,
+        });
       }
       navigate(listPath);
     } catch (e) {
@@ -328,6 +345,21 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
         err.message,
       );
+      if (isEditMode) {
+        fireRoutingConfigUpdated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          topologyType: selectedTopology,
+        });
+      } else {
+        fireRoutingConfigCreated({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          mode: isDuplicate ? 'duplicate' : 'create',
+          configSource,
+          topologyType: selectedTopology,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -430,7 +462,17 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             variant="link"
             data-testid="cancel-routing-config-button"
             isDisabled={loading}
-            onClick={() => navigate(listPath)}
+            onClick={() => {
+              if (isEditMode) {
+                fireRoutingConfigUpdated({ outcome: TrackingOutcome.cancel });
+              } else {
+                fireRoutingConfigCreated({
+                  outcome: TrackingOutcome.cancel,
+                  mode: isDuplicate ? 'duplicate' : 'create',
+                });
+              }
+              navigate(listPath);
+            }}
           >
             Cancel
           </Button>
@@ -441,25 +483,14 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 };
 
 type RoutingConfigurationCreateEditProps = {
-  /**
-   * Absolute path of the configurations list this form returns to. Passed
-   * explicitly because the form is mounted both under the standalone list route
-   * and as a top-level breakout route, and route-relative `..` resolves
-   * differently in the two.
-   *
-   * After RHOAIENG-80077 removes the standalone page the breakout route is the
-   * only mount, so this could collapse to ROUTING_CONFIGS_TAB_PATH.
-   * https://issues.redhat.com/browse/RHOAIENG-80077
-   */
-  listPath: string;
   /** True when mounted at the duplicate route. */
   isDuplicate?: boolean;
 };
 
 const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditProps> = ({
-  listPath,
   isDuplicate = false,
 }) => {
+  const listPath = ROUTING_CONFIGS_TAB_PATH;
   const { configName } = useParams<{ configName?: string }>();
   const { configs } = React.useContext(RoutingConfigContext);
 
@@ -515,11 +546,7 @@ const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditPro
   }
 
   return (
-    <RoutingConfigurationCreateEditInner
-      listPath={listPath}
-      isDuplicate={isDuplicate}
-      sourceConfig={sourceConfig}
-    />
+    <RoutingConfigurationCreateEditInner isDuplicate={isDuplicate} sourceConfig={sourceConfig} />
   );
 };
 

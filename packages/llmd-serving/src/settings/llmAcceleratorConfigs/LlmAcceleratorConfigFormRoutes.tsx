@@ -30,12 +30,9 @@ const LlmAcceleratorConfigFormRoutes: React.FC = () => {
     <LlmInferenceServiceConfigAccessGate>
       <LlmAcceleratorConfigContextProvider>
         {isEdit || isDuplicate ? (
-          <LlmAcceleratorConfigFormByName
-            mode={isEdit ? 'edit' : 'duplicate'}
-            listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH}
-          />
+          <LlmAcceleratorConfigFormByName mode={isEdit ? 'edit' : 'duplicate'} />
         ) : (
-          <LlmAcceleratorConfigAddForm mode="add" listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH} />
+          <LlmAcceleratorConfigAddForm mode="add" />
         )}
       </LlmAcceleratorConfigContextProvider>
     </LlmInferenceServiceConfigAccessGate>

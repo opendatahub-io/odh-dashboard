@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HostApiContext } from '../HostApiContext';
+import { HostApiInfraContext } from '../HostApiInfraContext';
 import type { SecretOps } from '../types';
 
 export const useSecretOps = (): SecretOps => {
@@ -9,7 +9,7 @@ export const useSecretOps = (): SecretOps => {
     deleteSecret,
     patchSecretWithOwnerReference,
     patchSecretWithProtocolAnnotation,
-  } = React.useContext(HostApiContext);
+  } = React.useContext(HostApiInfraContext);
   return React.useMemo(
     () => ({
       createSecret,

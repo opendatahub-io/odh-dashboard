@@ -125,6 +125,19 @@ describe('FeatureStoreTableRow', () => {
     expect(screen.queryByText('Primary')).not.toBeInTheDocument();
   });
 
+  it('should open Primary help popover on keyboard input', async () => {
+    renderRow({ isUILabeled: true });
+    const helpButton = screen.getByTestId('primary-label-help');
+    expect(helpButton).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    helpButton.focus();
+    await user.keyboard('{Enter}');
+    await waitFor(() => {
+      expect(screen.getByText(/primary feature store whose registry/i)).toBeInTheDocument();
+    });
+  });
+
   it('should show version as dash when not available', () => {
     const fs: FeatureStoreKind = {
       ...baseFeatureStore,

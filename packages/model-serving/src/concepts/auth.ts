@@ -6,7 +6,7 @@ import useFetch, {
   type FetchStateObject,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiInfra } from '@odh-dashboard/plugin-core/host-api';
 import type { Deployment } from '../../extension-points';
 
 const getModelServingRuntimeName = (namespace: string): string => `model-server-${namespace}`;
@@ -46,7 +46,7 @@ const useDeploymentSecrets = (
   namespace?: string,
   fetchOptions?: Partial<FetchOptions>,
 ): FetchStateObject<SecretKind[]> => {
-  const { getSecretsByLabel } = useHostApi();
+  const { getSecretsByLabel } = useHostApiInfra();
 
   const fetchSecrets = React.useCallback(() => {
     if (!namespace) {

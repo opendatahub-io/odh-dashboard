@@ -6,8 +6,9 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  PageSection,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, WrenchIcon } from '@patternfly/react-icons';
 import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import McpDeploymentsPage from './McpDeploymentsPage';
@@ -30,6 +31,16 @@ const McpDeploymentsCoreLoader: React.FC = () => {
       <Bullseye>
         <Spinner aria-label="Loading projects" />
       </Bullseye>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <PageSection hasBodyWrapper={false}>
+        <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
+          <EmptyStateBody>To view MCP deployments, first create a project.</EmptyStateBody>
+        </EmptyState>
+      </PageSection>
     );
   }
 

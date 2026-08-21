@@ -24,6 +24,7 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   convertStringToPopoverViewedStatus,
+  EventTrackingEditSource,
   MaaSEvents,
   SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
@@ -45,7 +46,12 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.LIST_KEBAB,
+    },
+  };
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
   const { affectedModels, overviewLoaded } = useSubscriptionAffectedModels(subscription);
 

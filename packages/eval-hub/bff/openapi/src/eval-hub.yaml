@@ -180,6 +180,35 @@ paths:
       summary: List Collections
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/collections/{id}:
+    summary: Get a single benchmark collection
+    description: >-
+      Retrieves a single benchmark collection by its resource ID from the
+      EvalHub control plane. Returns the collection with its benchmarks,
+      tags, and metadata.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollection
+      summary: Get Collection by ID
+      description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -1282,9 +1311,12 @@ components:
 
     CollectionResource:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
+          minLength: 1
           example: 'collection-001'
         tenant:
           type: string
@@ -1348,11 +1380,15 @@ components:
 
     Collection:
       type: object
+      required:
+        - resource
+        - name
       properties:
         resource:
           $ref: '#/components/schemas/CollectionResource'
         name:
           type: string
+          minLength: 1
           example: 'Open LLM Leaderboard v2'
         category:
           type: string
@@ -1814,6 +1850,32 @@ components:
                       provider_id: 'lm_evaluation_harness'
                       weight: 1
 
+    CollectionResponse:
+      description: A single benchmark collection from EvalHub
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Collection'
+          example:
+            data:
+              resource:
+                id: 'collection-001'
+              name: 'Open LLM Leaderboard v2'
+              category: 'General'
+              description: 'Comprehensive evaluation suite for general-purpose language models.'
+              tags:
+                - 'Comprehensive'
+                - 'Industry Standard'
+              benchmarks:
+                - id: 'arc_challenge'
+                  provider_id: 'lm_evaluation_harness'
+                  weight: 1
+
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues
       content:
@@ -2010,6 +2072,14 @@ components:
         type: string
       required: false
       description: Tags to search for
+    collectionId:
+      in: path
+      name: id
+      schema:
+        type: string
+      required: true
+      description: Unique identifier for the benchmark collection
+      example: 'collection-001'
     evaluationJobId:
       in: path
       name: id
@@ -2066,12 +2136,13 @@ components:
       in: query
       name: pageSize
       schema:
-        type: string
+        type: integer
+        format: int32
       required: false
       description: Number of entities in each page
       examples:
         pageSize:
-          value: '100'
+          value: 100
     nextPageToken:
       in: query
       name: nextPageToken
