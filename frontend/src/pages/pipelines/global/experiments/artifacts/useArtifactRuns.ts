@@ -31,6 +31,32 @@ const isPipelineRunKF = (value: unknown): value is PipelineRunKF => {
   return 'run_id' in value && !('code' in value);
 };
 
+const boundRecord = <T>(prev: Record<string, T>, keep: Set<string>): Record<string, T> => {
+  let changed = false;
+  const next: Record<string, T> = {};
+  for (const key of Object.keys(prev)) {
+    if (keep.has(key)) {
+      next[key] = prev[key];
+    } else {
+      changed = true;
+    }
+  }
+  return changed ? next : prev;
+};
+
+const boundSet = (prev: Set<string>, keep: Set<string>): Set<string> => {
+  let changed = false;
+  const next = new Set<string>();
+  for (const id of prev) {
+    if (keep.has(id)) {
+      next.add(id);
+    } else {
+      changed = true;
+    }
+  }
+  return changed ? next : prev;
+};
+
 /**
  * Fetch pipeline runs for all artifacts, deduplicating requests by run ID.
  * Returns a cache of runs keyed by run ID.
@@ -51,23 +77,23 @@ export const useArtifactRuns = (
   const inFlightRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
-    if (!artifacts?.length) {
-      return;
-    }
-
-    // Create AbortController for cleanup on unmount or when artifacts/api change
-    const abortController = new AbortController();
-    // Capture current in-flight ref for cleanup (before async work mutates it)
-    const inFlightSet = inFlightRef.current;
-
-    // Extract unique run IDs from all artifacts
+    // Extract unique run IDs from the current artifact set
     const runIds = new Set<string>();
-    artifacts.forEach((artifact) => {
+    artifacts?.forEach((artifact) => {
       const runId = extractRunIdFromUri(artifact.getUri());
       if (runId) {
         runIds.add(runId);
       }
     });
+
+    // Drop cached runs/errors/loading that are no longer referenced (pagination, filters)
+    setRuns((prev) => boundRecord(prev, runIds));
+    setErrors((prev) => boundRecord(prev, runIds));
+    setLoading((prev) => boundSet(prev, runIds));
+
+    if (runIds.size === 0) {
+      return;
+    }
 
     // Fetch runs that we don't have cached AND aren't already in-flight
     // Note: We read runs/errors state but don't include them in deps to avoid infinite loops.
@@ -98,6 +124,11 @@ export const useArtifactRuns = (
     if (runIdsToFetch.length === 0) {
       return;
     }
+
+    // Create AbortController for cleanup on unmount or when artifacts/api change
+    const abortController = new AbortController();
+    // Capture current in-flight ref for cleanup (before async work mutates it)
+    const inFlightSet = inFlightRef.current;
 
     // Mark as in-flight and loading
     runIdsToFetch.forEach((id) => inFlightSet.add(id));
@@ -144,17 +175,17 @@ export const useArtifactRuns = (
         }
       });
 
-      setRuns((prev) => ({ ...prev, ...newRuns }));
+      setRuns((prev) => boundRecord({ ...prev, ...newRuns }, runIds));
       setErrors((prev) => {
         // Remove errors for runs that were successfully fetched on retry
         const next = { ...prev, ...newErrors };
         Object.keys(newRuns).forEach((id) => delete next[id]);
-        return next;
+        return boundRecord(next, runIds);
       });
       setLoading((prev) => {
         const next = new Set(prev);
         runIdsToFetch.forEach((id) => next.delete(id));
-        return next;
+        return boundSet(next, runIds);
       });
     });
 
