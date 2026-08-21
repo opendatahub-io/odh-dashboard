@@ -1,3 +1,5 @@
+export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+
 export {
   ContainerResourceAttributes,
   SchedulingType,

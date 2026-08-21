@@ -4,8 +4,7 @@ import {
   k8sGetResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { kindApiVersion } from '@odh-dashboard/k8s-core';
+import { applyK8sAPIOptions, kindApiVersion } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions, TrustyAIKind } from '@odh-dashboard/k8s-core';
 import { TrustyAIApplicationsModel } from './model';
 import { TRUSTYAI_DEFINITION_NAME } from '../const';
