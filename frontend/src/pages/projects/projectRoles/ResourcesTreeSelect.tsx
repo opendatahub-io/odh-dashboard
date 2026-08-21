@@ -4,7 +4,11 @@ import {
   GroupSelectionOptions,
   SelectionOptions,
 } from '#~/components/MultiSelection';
-import { RESOURCE_CATEGORIES, ALL_RESOURCES_WILDCARD } from './resourceCategories';
+import {
+  RESOURCE_CATEGORIES,
+  ALL_RESOURCES_WILDCARD,
+  buildResourceToApiGroupMap,
+} from './resourceCategories';
 import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import {
   ALL_CATEGORY_PREFIX,
@@ -61,8 +65,22 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     });
   }, [apiResourcesData.resources, discoveredResourceNames.size]);
 
+  const resourceToApiGroupMap = React.useMemo(
+    () => buildResourceToApiGroupMap(apiResourcesData.resources),
+    [apiResourcesData.resources],
+  );
+
   const allCategories = React.useMemo(() => {
-    const categories = [...availableCategories];
+    const resolveApiGroup = (name: string, fallback: string): string =>
+      resourceToApiGroupMap.get(name) ?? fallback;
+
+    const categories = availableCategories.map((category) => ({
+      ...category,
+      resources: category.resources.map((r) => ({
+        ...r,
+        apiGroup: resolveApiGroup(r.name, r.apiGroup),
+      })),
+    }));
     if (otherResources.length > 0) {
       categories.push({
         id: 'other',
@@ -70,12 +88,12 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
         resources: otherResources.map((r) => ({
           name: r.name,
           label: r.name,
-          apiGroup: r.apiGroup,
+          apiGroup: resolveApiGroup(r.name, r.apiGroup),
         })),
       });
     }
     return categories;
-  }, [availableCategories, otherResources]);
+  }, [availableCategories, otherResources, resourceToApiGroupMap]);
 
   const filteredCategories = React.useMemo(() => {
     if (

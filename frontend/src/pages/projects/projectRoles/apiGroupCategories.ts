@@ -15,7 +15,11 @@ export const API_GROUP_CATEGORIES: ApiGroupCategory[] = [
     id: 'core',
     label: 'Core',
     groups: [
-      { name: '', label: 'core', description: 'Pods, services, configmaps, namespaces, events' },
+      {
+        name: '',
+        label: 'core',
+        description: 'Pods, services, configmaps, PVCs, namespaces, events',
+      },
     ],
   },
   {

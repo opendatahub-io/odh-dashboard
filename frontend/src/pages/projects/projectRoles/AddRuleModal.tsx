@@ -8,7 +8,7 @@ import ApiGroupsTreeSelect from './ApiGroupsTreeSelect';
 import useApiResources, { type ApiResourcesData } from './useApiResources';
 import type { RuleEntry } from './types';
 import { normalizeVerbs } from './ruleModalUtils';
-import { ALL_RESOURCES_WILDCARD, RESOURCE_CATEGORIES } from './resourceCategories';
+import { ALL_RESOURCES_WILDCARD, buildResourceToApiGroupMap } from './resourceCategories';
 import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 
 const EMPTY_API_RESOURCES_DATA: ApiResourcesData = { apiGroups: [], resources: [] };
@@ -40,20 +40,10 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
 
   const resolvedApiResourcesData = apiResourcesLoaded ? apiResourcesData : EMPTY_API_RESOURCES_DATA;
 
-  const resourceToApiGroupMap = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const category of RESOURCE_CATEGORIES) {
-      for (const r of category.resources) {
-        map.set(r.name, r.apiGroup);
-      }
-    }
-    for (const r of resolvedApiResourcesData.resources) {
-      if (!map.has(r.name)) {
-        map.set(r.name, r.apiGroup);
-      }
-    }
-    return map;
-  }, [resolvedApiResourcesData.resources]);
+  const resourceToApiGroupMap = React.useMemo(
+    () => buildResourceToApiGroupMap(resolvedApiResourcesData.resources),
+    [resolvedApiResourcesData.resources],
+  );
 
   const handleResourcesChange = React.useCallback(
     (newResources: string[]) => {

@@ -668,11 +668,35 @@ describe('ResourcesTreeSelect', () => {
       expect(screen.getByText('Core')).toBeInTheDocument();
       expect(screen.getByText('Pods')).toBeInTheDocument();
       expect(screen.getByText('Services')).toBeInTheDocument();
-      expect(screen.getByText('Storage')).toBeInTheDocument();
       expect(screen.getByText('Persistent volumes')).toBeInTheDocument();
+      expect(screen.getByText('Cluster storage (persistentvolumeclaims)')).toBeInTheDocument();
+      expect(screen.queryByText('Storage')).not.toBeInTheDocument();
+      expect(screen.queryByText('Storage classes')).not.toBeInTheDocument();
       expect(screen.queryByText('Deployments')).not.toBeInTheDocument();
       expect(screen.queryByText('Networking')).not.toBeInTheDocument();
       expect(screen.queryByText('RBAC')).not.toBeInTheDocument();
+    });
+
+    it('should show only storage.k8s.io resources when that API group is selected', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['storage.k8s.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Storage')).toBeInTheDocument();
+      expect(screen.getByText('Storage classes')).toBeInTheDocument();
+      expect(screen.queryByText('Persistent volumes')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Cluster storage (persistentvolumeclaims)'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Core')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
     });
 
     it('should show resources from multiple selected API groups', async () => {
