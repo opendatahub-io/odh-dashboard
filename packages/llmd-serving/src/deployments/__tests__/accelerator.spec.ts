@@ -1,5 +1,5 @@
 import { applyAcceleratorConfig, extractAcceleratorConfig } from '../accelerator';
-import { ACCELERATOR_CONFIG_DEFAULT } from '../../wizardFields/AcceleratorConfigField';
+import { ACCELERATOR_CONFIG_DEFAULT } from '../../const';
 import {
   ACCELERATOR_CONFIG_REF_ANNOTATION,
   type LLMdDeployment,

@@ -4,13 +4,13 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import {
   AcceleratorConfigFieldWizardField,
   AcceleratorConfigFieldComponent,
-  ACCELERATOR_CONFIG_DEFAULT,
   useAcceleratorConfigData,
 } from '../AcceleratorConfigField';
 import {
   LLMD_DEPLOYMENT_METHOD_KEY,
   SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
 } from '../deploymentMethodField';
+import { ACCELERATOR_CONFIG_DEFAULT } from '../../const';
 import { TopologyType, type LLMInferenceServiceConfigKind } from '../../types';
 import {
   useFetchLLMInferenceServiceConfig,
@@ -159,6 +159,60 @@ describe('AcceleratorConfigFieldComponent radio behavior', () => {
       selectedConfig: ACCELERATOR_CONFIG_DEFAULT,
       autoSelect: false,
     });
+  });
+});
+
+describe('AcceleratorConfigFieldComponent edit configRef resolution', () => {
+  const rocm = makeConfig('rocm', '["amd.com/gpu"]');
+
+  const renderWithConfigs = (
+    value: React.ComponentProps<typeof AcceleratorConfigFieldComponent>['value'],
+    configs: LLMInferenceServiceConfigKind[],
+  ) => {
+    const onChange = jest.fn();
+    render(
+      <AcceleratorConfigFieldComponent
+        id="accelerator-config"
+        value={value}
+        onChange={onChange}
+        externalData={{ data: { configs }, loaded: true }}
+        dependencies={{ topologyFieldData: { topologyType: TopologyType.SINGLE_NODE } }}
+        isEditing={false}
+      />,
+    );
+    return onChange;
+  };
+
+  it('lists accelerator configs when no topology field is present (llmdTemplates off)', () => {
+    // Regression: with the topology field absent the deployment is implicitly single-node, so
+    // single-node configs must still be selectable. Previously visibleConfigs was empty here, so the
+    // Manual dropdown only offered the built-in option in the vLLMDeploymentOnMaaS-on/llmdTemplates-off combo.
+    const onChange = jest.fn();
+    render(
+      <AcceleratorConfigFieldComponent
+        id="accelerator-config"
+        value={{ selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false }}
+        onChange={onChange}
+        externalData={{ data: { configs: [rocm] }, loaded: true }}
+        dependencies={{}}
+        isEditing={false}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('serving-runtime-template-selection-toggle'));
+    expect(screen.getByTestId(`servingRuntime ${rocm.metadata.name}`)).toBeInTheDocument();
+  });
+
+  it('resolves a configRef into the referenced config on edit', () => {
+    const onChange = renderWithConfigs({ configRef: 'rocm' }, [rocm]);
+    expect(onChange).toHaveBeenCalledWith({ selectedConfig: rocm });
+  });
+
+  it('clears an unresolvable configRef', () => {
+    // The project-namespace copy was deleted/renamed/unreadable, so the ref can't resolve to a
+    // config. (Robustly falling back to a representable state when this happens on edit is deferred
+    // to a follow-up that fixes the pattern across the llm-d config fields uniformly.)
+    const onChange = renderWithConfigs({ configRef: 'missing-copy' }, [rocm]);
+    expect(onChange).toHaveBeenCalledWith({ configRef: undefined });
   });
 });
 

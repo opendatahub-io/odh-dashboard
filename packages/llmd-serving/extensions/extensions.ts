@@ -267,7 +267,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
     flags: {
       required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
-  },
+  } satisfies WizardFieldDeploymentFunctionsExtension<CustomTopologyConfigFieldData, LLMdDeployment>,
   // ─── Router config ──────────────────────────────────────────────────
   {
     type: 'model-serving.deployment/wizard-field',
@@ -345,7 +345,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
       postDeploy: null,
     },
     flags: { required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS] },
-  },
+  } satisfies WizardFieldDeploymentFunctionsExtension<AcceleratorConfigFieldData, LLMdDeployment>,
 ];
 
 const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<

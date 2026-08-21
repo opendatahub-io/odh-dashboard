@@ -2,10 +2,8 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/f
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { applyConfigRef, createLocalConfigName, preDeployConfigCopy } from './configs';
 import { ACCELERATOR_CONFIG_REF_ANNOTATION, type LLMdDeployment } from '../types';
-import {
-  ACCELERATOR_CONFIG_DEFAULT,
-  type AcceleratorConfigFieldData,
-} from '../wizardFields/AcceleratorConfigField';
+import { ACCELERATOR_CONFIG_DEFAULT } from '../const';
+import type { AcceleratorConfigFieldData } from '../wizardFields/AcceleratorConfigField';
 
 const isSentinel = (c: unknown): boolean => c === ACCELERATOR_CONFIG_DEFAULT;
 

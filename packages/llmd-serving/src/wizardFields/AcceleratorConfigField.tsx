@@ -30,9 +30,7 @@ import {
   useFetchLLMInferenceServiceConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { ACCELERATOR_CONFIG_FIELD_ID } from '../const';
-
-export const ACCELERATOR_CONFIG_DEFAULT = 'default' as const;
+import { ACCELERATOR_CONFIG_FIELD_ID, ACCELERATOR_CONFIG_DEFAULT } from '../const';
 
 // Synthetic "no override / use the built-in image" option surfaced in the Manual selection list.
 // Its `name` doubles as the sentinel we persist (ACCELERATOR_CONFIG_DEFAULT); it carries no
@@ -183,11 +181,12 @@ const configSupportsTopology = (
   config: LLMInferenceServiceConfigKind,
   topologyType?: TopologyType,
 ): boolean => {
-  if (topologyType === TopologyType.SINGLE_NODE) {
+  // An absent topology field (LLMD_TOPOLOGY_CONFIGS off) means the deployment is implicitly
+  // single-node — same as isActive treats it — so all single-node configs are visible. Without this,
+  // visibleConfigs would be empty in the vLLMDeploymentOnMaaS-on / llmdTemplates-off combination and
+  // no accelerator config could be selected.
+  if (topologyType === TopologyType.SINGLE_NODE || !topologyType) {
     return true;
-  }
-  if (!topologyType) {
-    return false;
   }
   return getConfigSupportedTopologies(config).includes(topologyType);
 };

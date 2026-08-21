@@ -112,6 +112,49 @@ describe('preDeployConfigCopy', () => {
     expect(createSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('creates the new copy before deleting the old one', async () => {
+    const order: string[] = [];
+    createSpy.mockImplementation(async () => {
+      order.push('create');
+      return {} as LLMInferenceServiceConfigKind;
+    });
+    deleteSpy.mockImplementation(async () => {
+      order.push('delete');
+      return {} as never;
+    });
+    await preDeployConfigCopy(
+      { annotationKey: ANN },
+      { selectedConfig: makeConfig('accel-b') },
+      withAnnotation('my-deployment-accel-b'),
+      withAnnotation('my-deployment-accel-a'),
+    );
+    expect(order).toEqual(['create', 'delete']);
+  });
+
+  it('does not delete the old copy when creating the new one fails', async () => {
+    // A non-409 create failure must leave the previous copy intact so the deployment never ends up
+    // referencing a config that was already deleted.
+    createSpy.mockRejectedValue(
+      new K8sStatusError({
+        apiVersion: 'v1',
+        kind: 'Status',
+        status: 'Failure',
+        code: 500,
+        message: 'server error',
+        reason: 'InternalError',
+      }),
+    );
+    await expect(
+      preDeployConfigCopy(
+        { annotationKey: ANN },
+        { selectedConfig: makeConfig('accel-b') },
+        withAnnotation('my-deployment-accel-b'),
+        withAnnotation('my-deployment-accel-a'),
+      ),
+    ).rejects.toThrow();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
   it('does not clone for a sentinel selection', async () => {
     await preDeployConfigCopy(
       { annotationKey: ANN, isSentinel: (c) => c === 'default' },
