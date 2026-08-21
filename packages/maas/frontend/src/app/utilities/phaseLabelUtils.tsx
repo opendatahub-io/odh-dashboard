@@ -271,9 +271,11 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
     case PhaseStatus.UNAVAILABLE:
       return 'Inference not serving';
     case PhaseStatus.FAILED:
-      return 'Gateway not found';
+      return 'Model setup failed';
     case PhaseStatus.PENDING:
-      return 'Awaiting subscription';
+      return 'Awaiting governance pairing';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -282,9 +284,13 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
 const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
+    case PhaseStatus.PENDING:
+      return 'Setting up subscription';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -293,9 +299,13 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
 const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
+    case PhaseStatus.PENDING:
+      return 'Setting up policy';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -326,11 +336,14 @@ export const getModalAlertProps = (
   const phaseProps = getPhaseProps(phase);
   const alertContent = getModalTitleAndChildren(phase, resourceType);
   const hasAlertBody = !!alertContent?.children;
+  // Pending models (overview tab only) use the same Ready-condition JSON as
+  // degraded/failed so operators can inspect governance pairing status.
   const showApiDetails =
     (phase === PhaseStatus.FAILED ||
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
-      phase === PhaseStatus.DEGRADED) &&
+      phase === PhaseStatus.DEGRADED ||
+      (phase === PhaseStatus.PENDING && resourceType === PhaseResourceType.MODEL)) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -461,7 +474,7 @@ const getAlertContentForAuthPolicy = (
       return {
         title: 'Policy degraded',
         children:
-          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced',
+          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced.',
       };
     case PhaseStatus.FAILED:
       return {

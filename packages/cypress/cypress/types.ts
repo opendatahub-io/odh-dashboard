@@ -340,6 +340,32 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+export type AcceleratorTestData = DataScienceProjectData & {
+  unsupportedAcceleratorConfigFixturePath: string;
+  acceleratorConfigName: string;
+  version: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
+export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
+  servingRuntimeId: string;
+  servingRuntimeDisplayName: string;
+  unsupportedServingRuntimeYamlFixturePath: string;
+  apiProtocol: string;
+  replaceSourceString: string;
+  replaceTargetString: string;
+};
+
+export type ModelCapabilitiesTestData = DataScienceProjectData & {
+  wellKnownCapabilities: string[];
+  customCapabilities: string[];
+  modelName: string;
+  awsBucket: 'BUCKET_1' | 'BUCKET_3';
+  uriConnectionName: string;
+  uriConnectionModelUri: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -680,6 +706,7 @@ export type GenAiTestData = {
 
 export type CustomEndpointTestData = {
   modelId: string;
+  modelType: string;
   displayName: string;
   endpointUrl: string;
   testMessage: string;
@@ -692,11 +719,33 @@ export type CustomEndpointTestData = {
     commitMessage: string;
     testMessageWithPrompt: string;
   };
+  prompt2: {
+    name: string;
+    template: string;
+    commitMessage: string;
+  };
   rag: {
     fileName: string;
     fixturePath: string;
     testQuestion: string;
     expectedContentFragment: string;
+  };
+  guardrails: {
+    safeMessage: string;
+    maliciousMessage: string;
+  };
+  agent: {
+    name: string;
+    description: string;
+  };
+  mcp: {
+    configMapName: string;
+    namespace: string;
+    serverKey: string;
+    serverName: string;
+    image: string;
+    serverDescription: string;
+    testQuestion: string;
   };
 };
 
@@ -735,6 +784,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId3: string;
   toolCallingLabel: string;
   toolCallingArg: string;
+  /** Catalog card title of a model that has servingConfig tool-calling args. */
+  toolCallingModelName: string;
 };
 
 export type ModelAsAServiceTestData = {

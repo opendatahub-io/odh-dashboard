@@ -5,6 +5,26 @@ class McpDeploymentTableRow extends TableRow {
     return this.find().findByTestId('mcp-deployment-server');
   }
 
+  findServerRegistry(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-server-registry');
+  }
+
+  findServerCatalog(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-server-catalog');
+  }
+
+  findServerNone(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-server-none');
+  }
+
+  findRegisteredVersionLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-registered-version-link');
+  }
+
+  findRegisteredVersionNone(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('mcp-deployment-registered-version-none');
+  }
+
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('mcp-deployment-name');
   }
@@ -53,6 +73,10 @@ class McpDeploymentDeleteModal {
 
   findErrorAlert() {
     return this.find().findByTestId('delete-modal-error-message-alert');
+  }
+
+  findCascadeCleanupAlert() {
+    return this.find().findByTestId('cascade-cleanup-alert');
   }
 
   shouldBeVisible() {

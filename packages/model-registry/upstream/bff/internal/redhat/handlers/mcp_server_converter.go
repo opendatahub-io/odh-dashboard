@@ -53,6 +53,13 @@ func overrideMcpServerConverter(app *api.App, _ func() httprouter.Handle) httpro
 			ContainerImage: containerImage,
 		})
 
+		if server.DisplayName != nil && *server.DisplayName != "" {
+			if result.MCPServer.Metadata.Annotations == nil {
+				result.MCPServer.Metadata.Annotations = make(map[string]string)
+			}
+			result.MCPServer.Metadata.Annotations["openshift.io/display-name"] = *server.DisplayName
+		}
+
 		envelope := MCPServerEnvelope{
 			Data: result.MCPServer,
 		}

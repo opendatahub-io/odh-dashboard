@@ -1,10 +1,28 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
+import { ModelDeploymentMode } from '~/app/types/event-tracking';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
+import {
+  fireMaaSPublishTrackingEvent,
+  markMaaSPublishSubmitAttempted,
+} from './maasPublishTracking';
 
 const LLMINFERENCESERVICE_KIND = 'LLMInferenceService';
 const MODEL_CAPABILITIES_ANNOTATION = 'opendatahub.io/model-capabilities';
+
+const getDeploymentMode = (existingDeployment?: LLMdDeployment): ModelDeploymentMode =>
+  existingDeployment ? ModelDeploymentMode.EDIT : ModelDeploymentMode.CREATE;
+
+const trackingOverrides = (
+  fieldData: MaaSFieldValue,
+  existingDeployment?: LLMdDeployment,
+): { addedAsMaas: boolean; mode: ModelDeploymentMode } => ({
+  addedAsMaas: fieldData.isChecked === true,
+  mode: getDeploymentMode(existingDeployment),
+});
 
 /** Parse the JSON-string-array annotation value from a K8s object's annotations. Returns undefined when absent or malformed. */
 const parseModelCapabilities = (annotations?: Record<string, string>): string[] | undefined => {
@@ -33,15 +51,20 @@ const parseModelCapabilities = (annotations?: Record<string, string>): string[] 
 export const preDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
   wizardState: WizardFormData['state'],
-  deployment: LLMdDeployment,
+  deployment: DeploymentHookPayloadFor<LLMdDeployment>,
   existingDeployment?: LLMdDeployment,
   dryRun?: boolean,
-): Promise<LLMdDeployment> => {
+): Promise<DeploymentHookPayloadFor<LLMdDeployment>> => {
+  markMaaSPublishSubmitAttempted();
+
   if (typeof fieldData.isChecked !== 'boolean') {
     return deployment;
   }
   const { isChecked } = fieldData;
   const { model: modelResource } = deployment;
+  if (!modelResource) {
+    return deployment;
+  }
   const { name, namespace: modelNamespace } = modelResource.metadata;
   const namespace = wizardState.project.projectName ?? modelNamespace;
   if (!name || !namespace) {
@@ -51,52 +74,58 @@ export const preDeployMaaSModelRef = async (
   const displayName = modelResource.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = modelResource.metadata.annotations?.['openshift.io/description'] ?? '';
   const modelCapabilities = parseModelCapabilities(modelResource.metadata.annotations);
+  const overrides = trackingOverrides(fieldData, existingDeployment);
 
   // real run is done in postDeploy
   if (!dryRun) {
     return deployment;
   }
 
-  if (existingDeployment) {
-    if (!isChecked) {
-      try {
-        await deleteMaaSModelRef(namespace, name, '', true)({});
-      } catch (err) {
-        // Tolerate 404 — the MaaSModelRef may have been cleaned up already
-        const message = err instanceof Error ? err.message : String(err);
-        if (!message.includes('not found') && !message.includes('404')) {
-          throw err;
+  try {
+    if (existingDeployment) {
+      if (!isChecked) {
+        try {
+          await deleteMaaSModelRef(namespace, name, '', true)({});
+        } catch (err) {
+          // Tolerate 404 — the MaaSModelRef may have been cleaned up already
+          const message = err instanceof Error ? err.message : String(err);
+          if (!message.includes('not found') && !message.includes('404')) {
+            throw err;
+          }
         }
-      }
-    } else {
-      try {
-        await updateMaaSModelRef(
-          namespace,
-          name,
-          { modelRef, displayName, description, modelCapabilities },
-          '',
-          true,
-        )({});
-      } catch (err) {
-        // If the MaaSModelRef was somehow removed externally, dry-run the create instead
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.includes('not found') || message.includes('404')) {
-          await createMaaSModelRef(
+      } else {
+        try {
+          await updateMaaSModelRef(
+            namespace,
+            name,
+            { modelRef, displayName, description, modelCapabilities },
             '',
-            { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
             true,
           )({});
-        } else {
-          throw err;
+        } catch (err) {
+          // If the MaaSModelRef was somehow removed externally, dry-run the create instead
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.includes('not found') || message.includes('404')) {
+            await createMaaSModelRef(
+              '',
+              { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
+              true,
+            )({});
+          } else {
+            throw err;
+          }
         }
       }
+    } else if (isChecked) {
+      await createMaaSModelRef(
+        '',
+        { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
+        true,
+      )({});
     }
-  } else if (isChecked) {
-    await createMaaSModelRef(
-      '',
-      { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
-      true,
-    )({});
+  } catch (err) {
+    fireMaaSPublishTrackingEvent(TrackingOutcome.submit, false, overrides);
+    throw err;
   }
   return deployment;
 };
@@ -116,25 +145,35 @@ export const preDeployMaaSModelRef = async (
  */
 export const postDeployMaaSModelRef = async (
   fieldData: MaaSFieldValue,
-  deployedModel: LLMdDeployment,
+  deployedModel: DeploymentHookPayloadFor<LLMdDeployment>,
   existingDeployment?: LLMdDeployment,
   dryRun?: boolean,
 ): Promise<void> => {
+  // Dryrun is done in preDeploy
+  if (dryRun || !deployedModel.model) {
+    return;
+  }
+
+  // Deploy succeeded while this field was active; record before any early return so
   const { name, namespace, uid } = deployedModel.model.metadata;
   if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
     return;
   }
+
+  // Deploy succeeded while this field was active; record before side effects so
+  // wizard exit cleanup does not emit cancel.
+  fireMaaSPublishTrackingEvent(
+    TrackingOutcome.submit,
+    true,
+    trackingOverrides(fieldData, existingDeployment),
+  );
+
   const { isChecked } = fieldData;
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName =
     deployedModel.model.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = deployedModel.model.metadata.annotations?.['openshift.io/description'] ?? '';
   const modelCapabilities = parseModelCapabilities(deployedModel.model.metadata.annotations);
-
-  // Dryrun is done in preDeploy
-  if (dryRun) {
-    return;
-  }
 
   if (existingDeployment) {
     if (!isChecked) {

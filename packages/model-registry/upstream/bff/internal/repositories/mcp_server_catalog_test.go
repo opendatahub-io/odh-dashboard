@@ -162,7 +162,7 @@ func TestGetMcpServersTools_Success(t *testing.T) {
 	mockClient.On("GET", "/mcp_servers/server-1/tools").Return([]byte(toolsJSON), nil)
 
 	repo := McpServerCatalog{}
-	result, err := repo.GetMcpServersTools(mockClient, "server-1")
+	result, err := repo.GetMcpServersTools(mockClient, "server-1", url.Values{})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -180,10 +180,29 @@ func TestGetMcpServersTools_ClientError(t *testing.T) {
 	mockClient.On("GET", "/mcp_servers/bad/tools").Return([]byte(nil), expectedErr)
 
 	repo := McpServerCatalog{}
-	result, err := repo.GetMcpServersTools(mockClient, "bad")
+	result, err := repo.GetMcpServersTools(mockClient, "bad", url.Values{})
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "fetching")
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetMcpServersTools_ForwardsPaginationParams(t *testing.T) {
+	mockClient := &mocks.MockHTTPClient{}
+	toolsJSON := `{"size": 1, "pageSize": 100, "nextPageToken": "tok", "items": [{"name": "query", "accessType": "read_only"}]}`
+	mockClient.On("GET", "/mcp_servers/server-1/tools?nextPageToken=tok&pageSize=100").Return([]byte(toolsJSON), nil)
+
+	repo := McpServerCatalog{}
+	pageValues := url.Values{}
+	pageValues.Set("pageSize", "100")
+	pageValues.Set("nextPageToken", "tok")
+	pageValues.Set("namespace", "ignored-by-filter")
+	result, err := repo.GetMcpServersTools(mockClient, "server-1", pageValues)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "tok", result.NextPageToken)
+	assert.Equal(t, int32(100), result.PageSize)
 	mockClient.AssertExpectations(t)
 }

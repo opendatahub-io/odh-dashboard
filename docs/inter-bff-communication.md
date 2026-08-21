@@ -122,6 +122,19 @@ Inter-BFF calls forward the user's authentication token from the original reques
 
 The calling BFF extracts the token from the incoming request's `RequestIdentity` context and forwards it to the target BFF.
 
+Not every target BFF implements `internal` on its own server side -- check the target's
+`internal/config/environment.go` before setting `BFF_<TARGET>_AUTH_METHOD=internal`. For
+example, the MLflow BFF currently only accepts `disabled`/`user_token` and exits at startup
+on any other value, so calls to it must use `user_token`.
+
+> **Security note on `internal` auth**: a BFF running `AuthMethod=internal` trusts the
+> `kubeflow-userid`/`kubeflow-groups` header values on incoming requests verbatim -- there's
+> no signature or cryptographic verification of who set them. This is only safe behind a
+> trusted network boundary (e.g. Istio's `RequestAuthentication`/`AuthorizationPolicy` in
+> Kubeflow deployments) that strips any client-supplied versions of these headers before
+> re-injecting verified ones. Don't enable `internal` auth -- on either side of an inter-BFF
+> call -- without that boundary in place; use `user_token` otherwise.
+
 ### TLS Configuration
 
 | Environment | `TLS_ENABLED` | Notes |
@@ -483,6 +496,16 @@ if err != nil {
 - Verify `BFF_<TARGET>_AUTH_TOKEN_HEADER` header name
 - For ODH/RHOAI: use `x-forwarded-access-token` (no prefix)
 - For standard Bearer: use `Authorization` with `Bearer ` prefix
+- If the **calling** BFF itself runs with `AuthMethod=internal` (see the BFF's own
+  `--auth-method`/`AUTH_METHOD`, distinct from `BFF_<TARGET>_AUTH_METHOD`), incoming
+  requests aren't required to carry a user bearer token, so `identity.Token` can be empty
+  regardless of the target's configured auth method. If the target expects
+  `BFF_<TARGET>_AUTH_METHOD=user_token` (the default) in that case, inter-BFF calls will
+  fail authentication. Don't "fix" this by switching the target to `internal` auth unless
+  you've confirmed the trust boundary described above already applies to it -- that trades
+  a failed inter-BFF call for a spoofable-identity vulnerability. Absent that boundary,
+  treat the failure as expected and make sure best-effort call sites degrade gracefully
+  rather than block the caller's own response
 
 ### TLS Errors
 

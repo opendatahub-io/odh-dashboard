@@ -27,6 +27,10 @@ import {
   getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
+import {
+  fireAutoragPatternsCompared,
+  fireAutoragPatternDetailsDownloadInitiated,
+} from '~/app/utilities/tracking';
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
@@ -50,6 +54,7 @@ export type PatternDetailsModalProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
+  onRunIndexingPipeline?: (patternName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -76,6 +81,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onSaveNotebook,
   onTryPattern,
   onViewCode,
+  onRunIndexingPipeline,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
   const [isPrinting, setIsPrinting] = React.useState(false);
@@ -90,20 +96,26 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   const rankMap = React.useMemo(() => computePatternRankMap(patterns), [patterns]);
 
   // Primary pattern evaluation results
-  const { data: primaryEvaluationResults, isLoading: primaryEvaluationLoading } =
-    usePatternEvaluationResults(namespace, ragPatternsBasePath, data.name, isOpen);
+  const {
+    data: primaryEvaluationResults,
+    isLoading: primaryEvaluationLoading,
+    isError: primaryEvaluationError,
+  } = usePatternEvaluationResults(namespace, ragPatternsBasePath, data.name, isOpen);
 
   // Comparison pattern evaluation results
   const comparisonPatternData =
     comparisonEnabled && comparisonPatternIndex !== null ? patterns[comparisonPatternIndex] : null;
 
-  const { data: comparisonEvaluationResults, isLoading: comparisonEvaluationLoading } =
-    usePatternEvaluationResults(
-      namespace,
-      ragPatternsBasePath,
-      comparisonPatternData?.name ?? '',
-      isOpen && !!comparisonPatternData,
-    );
+  const {
+    data: comparisonEvaluationResults,
+    isLoading: comparisonEvaluationLoading,
+    isError: comparisonEvaluationError,
+  } = usePatternEvaluationResults(
+    namespace,
+    ragPatternsBasePath,
+    comparisonPatternData?.name ?? '',
+    isOpen && !!comparisonPatternData,
+  );
 
   // Reset state when modal opens
   const prevIsOpen = React.useRef(false);
@@ -129,9 +141,11 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     };
   }, [isPrinting]);
 
-  // Build tab list
+  // Build tab list — keep the tab visible on error so activeTabKey stays consistent
   const showSampleQA =
-    primaryEvaluationLoading || (primaryEvaluationResults && primaryEvaluationResults.length > 0);
+    primaryEvaluationLoading ||
+    primaryEvaluationError ||
+    (primaryEvaluationResults && primaryEvaluationResults.length > 0);
   const settingsKeys = React.useMemo(() => new Set(Object.keys(data.settings)), [data.settings]);
   const visibleTabs = React.useMemo(
     () => getVisibleTabs(settingsKeys, !!showSampleQA),
@@ -157,8 +171,9 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
       rank,
       evaluationResults: primaryEvaluationResults || undefined,
       isEvaluationLoading: primaryEvaluationLoading,
+      isEvaluationError: primaryEvaluationError,
     }),
-    [data, rank, primaryEvaluationResults, primaryEvaluationLoading],
+    [data, rank, primaryEvaluationResults, primaryEvaluationLoading, primaryEvaluationError],
   );
 
   const comparisonBundle: PatternDataBundle | null = React.useMemo(() => {
@@ -170,6 +185,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
       rank: rankMap[comparisonPatternData.name] ?? 0,
       evaluationResults: comparisonEvaluationResults || undefined,
       isEvaluationLoading: comparisonEvaluationLoading,
+      isEvaluationError: comparisonEvaluationError,
     };
   }, [
     comparisonEnabled,
@@ -177,6 +193,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     rankMap,
     comparisonEvaluationResults,
     comparisonEvaluationLoading,
+    comparisonEvaluationError,
   ]);
 
   const handleToggleComparison = React.useCallback(() => {
@@ -205,7 +222,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             rank={rank}
             optimizedMetric={optimizedMetric}
             onPatternChange={onPatternChange}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireAutoragPatternDetailsDownloadInitiated();
+              setIsPrinting(true);
+            }}
             onSaveNotebook={onSaveNotebook}
             onTryPattern={
               onTryPattern
@@ -220,6 +240,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 ? (patternName) => {
                     onClose();
                     onViewCode(patternName);
+                  }
+                : undefined
+            }
+            onRunIndexingPipeline={
+              onRunIndexingPipeline
+                ? (patternName) => {
+                    onClose();
+                    onRunIndexingPipeline(patternName);
                   }
                 : undefined
             }
@@ -298,6 +326,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                           label="Compare patterns"
                           isChecked={comparisonEnabled}
                           onChange={handleToggleComparison}
+                          isDisabled={
+                            activeTabKey === SAMPLE_QA_KEY &&
+                            (primaryEvaluationError || comparisonEvaluationError)
+                          }
                           data-testid="compare-patterns-toggle"
                         />
                       </FlexItem>
@@ -325,7 +357,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           </Flex>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={onClose} data-testid="pattern-details-close">
+          <Button variant="link" onClick={onClose} data-testid="pattern-details-close">
             Close
           </Button>
         </ModalFooter>
@@ -342,6 +374,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         excludePatternIndex={selectedIndex}
         optimizedMetric={optimizedMetric ?? ''}
         onSelectPattern={(index) => {
+          const comparisonPattern = patterns[index];
+          const primaryRank = rankMap[data.name] ?? rank;
+          const comparisonRank = rankMap[comparisonPattern.name] ?? 0;
+          fireAutoragPatternsCompared(
+            comparisonEnabled ? 'changed' : 'initial',
+            comparisonRank - primaryRank,
+            getOptimizedScore(comparisonPattern) - getOptimizedScore(data),
+          );
           setComparisonPatternIndex(index);
           setComparisonEnabled(true);
         }}

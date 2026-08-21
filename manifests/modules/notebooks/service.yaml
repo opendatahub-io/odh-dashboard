@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: odh-dashboard-notebooks-ui
+spec:
+  selector:
+    deployment: notebooks-ui
+  ports:
+    - name: notebooks-ui
+      protocol: TCP
+      port: 9043
+      targetPort: 9043

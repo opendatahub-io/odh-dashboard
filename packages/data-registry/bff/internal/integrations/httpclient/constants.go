@@ -1,3 +1,3 @@
-package mrserver
+package httpclient
 
 const ClientServiceComponentSelector = "client-server"

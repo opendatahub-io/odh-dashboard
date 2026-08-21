@@ -1,15 +1,6 @@
 import React from 'react';
-import ApplicationsPage from '~/app/components/ApplicationsPage';
+import DataRegistryPage from './DataRegistryPage';
 
-const MainPage: React.FC = () => (
-  <ApplicationsPage
-    title="Main Page"
-    description={<p>Welcome to the Main Page</p>}
-    empty
-    loaded
-    provideChildrenPadding
-    removeChildrenTopPadding
-  />
-);
+const MainPage: React.FC = () => <DataRegistryPage />;
 
 export default MainPage;

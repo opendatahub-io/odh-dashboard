@@ -23,7 +23,148 @@ export const MaaSEvents = {
   EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED: 'External Models Provider Labels Expanded',
   EXTERNAL_MODELS_INFO_POPOVER_VIEWED: 'External Models Info Popover Viewed',
   EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED: 'External Model Provider Detail Viewed',
+  SUBSCRIPTION_CREATED: 'Subscription Created',
+  SUBSCRIPTION_UPDATED: 'Subscription Updated',
+  SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED: 'Subscription Token Limits Configured',
+  AUTH_POLICY_CREATED: 'Auth Policy Created',
+  AUTH_POLICY_UPDATED: 'Auth Policy Updated',
+  MODEL_AS_MAAS_PUBLISHED: 'Model as Maas Published',
+  // Consumer API keys hub / subscriptions tab
+  API_KEY_CREATED: 'API Key Created',
+  API_KEY_CREATION_SUBSCRIPTION_BROWSED: 'API Key Creation Subscription Browsed',
+  API_KEY_COPIED: 'API Key Copied',
+  API_KEY_REVOKED: 'API Key Revoked',
+  API_KEYS_BULK_REVOKED: 'API Keys Bulk Revoked',
+  MY_SUBSCRIPTIONS_GROUPBY_CHANGED: 'My Subscriptions GroupBy Changed',
+  MY_SUBSCRIPTIONS_DETAIL_NAVIGATED: 'My Subscriptions Detail Navigated',
+  MY_SUBSCRIPTION_MODEL_ID_COPIED: 'My Subscription Model ID Copied',
+  MY_SUBSCRIPTION_MODEL_INFO_VIEWED: 'My Subscriptions Model Info Viewed',
+  MY_SUBSCRIPTIONS_ROW_EXPANDED: 'My Subscriptions Row Expanded',
+  API_KEYS_STATUS_FILTER_APPLIED: 'API Keys Status Filter Applied',
+  API_KEYS_SEARCH_APPLIED: 'API Keys Search Applied',
 };
+
+export type ModelAsMaasPublishedProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  source: PublishedAsMaasSource;
+  addedAsMaas: boolean;
+  mode: ModelDeploymentMode;
+};
+
+export enum PublishedAsMaasSource {
+  MODEL_DEPLOYMENT_WIZARD = 'deployment_wizard',
+}
+
+export enum ModelDeploymentMode {
+  CREATE = 'create',
+  EDIT = 'edit',
+}
+
+export type AuthPolicyUpdatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  hasDescription: boolean;
+  hasMatchingSubscription?: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyUpdatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyUpdatedCancelProperties = {
+  outcome: TrackingOutcome;
+  editSource?: EventTrackingEditSource;
+};
+
+export type AuthPolicyCreatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  modelCountAvailable: number;
+  hasDescription: boolean;
+  hasMatchingSubscription?: boolean;
+  prefillSource: EventTrackingPrefillSource;
+};
+
+export type AuthPolicyCreatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+};
+
+export type AuthPolicyCreatedCancelProperties = {
+  outcome: TrackingOutcome;
+};
+
+export type SubscriptionCreatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  modelCountAvailable: number;
+  hasDescription: boolean;
+  hasMatchingPolicy: boolean;
+  priority: number;
+  prefillSource?: EventTrackingPrefillSource;
+};
+
+export type SubscriptionCreatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+};
+
+export type SubscriptionCreatedCancelProperties = {
+  outcome: TrackingOutcome;
+  modelCount: number;
+  modelCountWoLimit: number;
+};
+export type SubscriptionUpdatedSuccessProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  groupCount: number;
+  modelCount: number;
+  hasDescription: boolean;
+  hasMatchingPolicy?: boolean;
+  priority: number;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionUpdatedErrorProperties = {
+  outcome: TrackingOutcome;
+  success: boolean;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionUpdatedCancelProperties = {
+  outcome: TrackingOutcome;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionTokenLimitsConfiguredCancelProperties = {
+  outcome: TrackingOutcome;
+};
+
+export type SubscriptionTokenLimitsConfiguredSuccessProperties = {
+  outcome: TrackingOutcome;
+  limitCount: number;
+};
+
+export enum EventTrackingPrefillSource {
+  MODEL = 'model',
+  GROUP = 'group',
+  NONE = 'none',
+}
+
+export enum EventTrackingEditSource {
+  LIST_KEBAB = 'list-kebab',
+  DETAIL_KEBAB = 'detail-kebab',
+}
 
 export type MaaSResourceDeletedProperties = {
   resourceType: EventTrackingResourceType;
@@ -217,6 +358,110 @@ const enum ExternalModelProviderType {
   VERTEX = 'vertex',
   OTHER = 'other',
 }
+
+// --- Consumer API keys / subscriptions tab ---
+
+export enum ApiKeyCreateInitiatedFrom {
+  API_KEYS_TOOLBAR = 'api_keys_toolbar',
+  SUBSCRIPTION_DETAIL = 'subscription_detail',
+}
+
+export enum ApiKeyRevokeInitiatedFrom {
+  API_KEYS_TABLE = 'api_keys_table',
+  SUBSCRIPTION_DETAIL = 'subscription_detail',
+}
+
+export enum ApiKeyBulkRevokeMode {
+  ALL_MY_KEYS = 'all_my_keys',
+  ALL_FOR_USER = 'all_for_user',
+}
+
+export enum MySubscriptionsGrouping {
+  SUBSCRIPTION = 'subscription',
+  MODEL = 'model',
+}
+
+export enum SubscriptionDetailNavLocation {
+  LIST_ROW = 'list_row',
+  EXPANDED_NESTED_ROW = 'expanded_nested_row',
+  API_KEYS_TABLE = 'api_keys_table',
+}
+
+export enum ModelInfoContext {
+  LIST_SUBSCRIPTION_VIEW = 'list_subscription_view',
+  LIST_MODEL_VIEW = 'list_model_view',
+  DETAIL_PAGE = 'detail_page',
+}
+
+export type ApiKeyCreatedProperties = {
+  outcome: TrackingOutcome;
+  success?: boolean;
+  error?: string;
+  expiresIn: string;
+  modelCount: number;
+  initiatedFrom: ApiKeyCreateInitiatedFrom;
+};
+
+export type ApiKeyCreationSubscriptionBrowsedProperties = {
+  subscriptionIndex: number;
+  modelCount: number;
+  initiatedFrom: ApiKeyCreateInitiatedFrom;
+};
+
+export type ApiKeyCopiedProperties = {
+  copied: boolean;
+  initiatedFrom: ApiKeyCreateInitiatedFrom;
+};
+
+export type ApiKeyRevokedProperties = {
+  outcome: TrackingOutcome;
+  success?: boolean;
+  error?: string;
+  initiatedFrom: ApiKeyRevokeInitiatedFrom;
+};
+
+export type ApiKeysBulkRevokedProperties = {
+  outcome: TrackingOutcome;
+  success?: boolean;
+  error?: string;
+  bulkMode: ApiKeyBulkRevokeMode;
+  keyCount: number;
+  isAdmin: boolean;
+};
+
+export type MySubscriptionsGroupByChangedProperties = {
+  selectedGrouping: MySubscriptionsGrouping;
+};
+
+export type SubscriptionDetailNavigatedProperties = {
+  currentView: MySubscriptionsGrouping;
+  location: SubscriptionDetailNavLocation;
+};
+
+export type ModelIdCopiedProperties = {
+  modelIdFrom: ModelInfoContext;
+};
+
+export type ModelInfoViewedProperties = {
+  context: ModelInfoContext;
+};
+
+export type MySubscriptionsRowExpandedProperties = {
+  currentView: MySubscriptionsGrouping;
+  nestedItemCount: number;
+  expanded: boolean;
+};
+
+export type ApiKeysStatusFilterAppliedProperties = {
+  selectedStatuses: string;
+  selectedCount: number;
+};
+
+export type ApiKeysSearchAppliedProperties = {
+  hasQuery: boolean;
+  resultCount: number;
+  isAdmin: true;
+};
 
 export const convertPhaseResourceTypeToEventTrackingResourceType = (
   resourceType: string,

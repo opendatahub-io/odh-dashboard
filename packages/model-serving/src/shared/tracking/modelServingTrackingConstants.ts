@@ -5,6 +5,9 @@ export type TrackEventFn = (
 
 export enum ModelServingTrackingEvent {
   DEPLOY_METHOD_SELECTED = 'Model Serving Deploy Method Selected',
+  CAPABILITY_ADDED = 'Deployment Capability Added',
+  CAPABILITY_REMOVED = 'Deployment Capability Removed',
+  CAPABILITY_MENU_OPENED = 'Deployment Capability Menu Opened',
 }
 
 export type DeployMethodSelectedProperties = {

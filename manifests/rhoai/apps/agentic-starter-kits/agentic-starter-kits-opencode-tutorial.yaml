@@ -1,0 +1,15 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-opencode-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Use the OpenCode agent harness with platform services'
+  description: >-
+    Run the OpenCode agent harness on OpenShift AI with the RH AI Inference
+    stack. Supports web UI and headless CLI modes, with optional MLflow
+    tracing.
+  url: 'https://red.ht/4xy6lWC'
+  appName: agentic-starter-kits

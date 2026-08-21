@@ -9,3 +9,4 @@ resources:
   - automl
   - autorag
   - agent-ops
+  - notebooks

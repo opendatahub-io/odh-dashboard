@@ -4,6 +4,7 @@
  * Automatically splits test directories based on file size:
  * - Files > 15KB get individual test groups
  * - Smaller files are grouped together
+ * - Package tests with large combined size are split the same way
  * - New test files are automatically picked up and will use the existing build mechanism
  */
 
@@ -195,7 +196,7 @@ function generateCentralTestGroups() {
 }
 
 /**
- * Discover package-based cypress tests using npm query
+ * Discover package-based cypress tests using npm query and split by file size
  */
 function generatePackageTestGroups() {
   try {
@@ -228,15 +229,109 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      // Check for .cy.ts files
-      const hasTests = findTestFiles(testPath);
+      const pkgPrefix = `pkg-${pkgRelPath.replace(/\//g, '-')}`;
+      const mockedPattern = pkg.cypress.mocked;
+      // Extract test base dir from glob: "tests/mocked/**/*.cy.ts" -> "tests/mocked"
+      const testBaseDir = mockedPattern.replace(/\/?\*\*\/\*\.cy\.ts$/, '');
+      const fullTestBaseDir = path.join('packages', pkgRelPath, testBaseDir);
 
-      if (hasTests.length > 0) {
+      const testFilePaths = findTestFiles(fullTestBaseDir);
+
+      if (testFilePaths.length === 0) {
+        continue;
+      }
+
+      // Get file info with sizes
+      const allFiles = testFilePaths.map((filePath) => {
+        const stats = fs.statSync(filePath);
+        const relPath = path.relative(fullTestBaseDir, filePath);
+        return {
+          name: path.basename(filePath, '.cy.ts'),
+          size: stats.size,
+          relPath,
+          dir: path.dirname(relPath),
+        };
+      });
+
+      const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
+
+      // Small packages: keep as a single group
+      if (totalSize <= GROUP_SIZE_THRESHOLD) {
         groups.push({
-          name: `pkg-${pkgRelPath.replace(/\//g, '-')}`,
-          spec: `${pkgRelPath}/${pkg.cypress.mocked}`,
+          name: pkgPrefix,
+          spec: `${pkgRelPath}/${mockedPattern}`,
+          size: totalSize,
+          count: allFiles.length,
           strategy: 'package',
         });
+        continue;
+      }
+
+      // Large packages: split by directory, then by file size (same as central tests)
+      const filesByDir = {};
+      for (const file of allFiles) {
+        if (!filesByDir[file.dir]) {
+          filesByDir[file.dir] = [];
+        }
+        filesByDir[file.dir].push(file);
+      }
+
+      for (const [dir, files] of Object.entries(filesByDir)) {
+        const sorted = [...files].toSorted((a, b) => b.size - a.size);
+        const largeFiles = sorted.filter((f) => f.size > SIZE_THRESHOLD);
+        const smallFiles = sorted.filter((f) => f.size <= SIZE_THRESHOLD);
+
+        for (const file of largeFiles) {
+          groups.push({
+            name: `${pkgPrefix}/${dir}/${file.name}`,
+            spec: `${pkgRelPath}/${testBaseDir}/${file.relPath}`,
+            size: file.size,
+            strategy: 'package-individual',
+          });
+        }
+
+        if (smallFiles.length > 0) {
+          const smallTotal = smallFiles.reduce((sum, f) => sum + f.size, 0);
+
+          if (smallTotal > GROUP_SIZE_THRESHOLD && smallFiles.length >= 2) {
+            const numBins = Math.ceil(smallTotal / GROUP_SIZE_THRESHOLD);
+            const bins = balancedSplit(smallFiles, numBins);
+
+            for (let i = 0; i < bins.length; i++) {
+              const suffix = bins.length === 1 ? 'other' : `other-${i + 1}`;
+              const binFiles = bins[i].files;
+              const spec =
+                binFiles.length === 1
+                  ? `${pkgRelPath}/${testBaseDir}/${binFiles[0].relPath}`
+                  : `${pkgRelPath}/${testBaseDir}/${dir}/{${binFiles
+                      .map((f) => f.name)
+                      .join(',')}}.cy.ts`;
+
+              groups.push({
+                name: `${pkgPrefix}/${dir}/${suffix}`,
+                spec,
+                size: bins[i].totalSize,
+                count: binFiles.length,
+                strategy: 'package-grouped',
+              });
+            }
+          } else {
+            const spec =
+              smallFiles.length === 1
+                ? `${pkgRelPath}/${testBaseDir}/${smallFiles[0].relPath}`
+                : `${pkgRelPath}/${testBaseDir}/${dir}/{${smallFiles
+                    .map((f) => f.name)
+                    .join(',')}}.cy.ts`;
+
+            groups.push({
+              name: `${pkgPrefix}/${dir}/other`,
+              spec,
+              size: smallTotal,
+              count: smallFiles.length,
+              strategy: 'package-grouped',
+            });
+          }
+        }
       }
     }
 
@@ -301,9 +396,13 @@ function main() {
   console.error(`\n📊 Test Matrix Summary:`);
   console.error(`   Total groups: ${allGroups.length}`);
 
-  const individual = allGroups.filter((g) => g.strategy === 'individual');
-  const grouped = allGroups.filter((g) => g.strategy === 'grouped');
-  const packages = allGroups.filter((g) => g.strategy === 'package');
+  const individual = allGroups.filter(
+    (g) => g.strategy === 'individual' || g.strategy === 'package-individual',
+  );
+  const grouped = allGroups.filter(
+    (g) => g.strategy === 'grouped' || g.strategy === 'package-grouped',
+  );
+  const unsplitPackages = allGroups.filter((g) => g.strategy === 'package');
 
   if (individual.length > 0) {
     console.error(`   Individual files (>${SIZE_THRESHOLD / 1024}KB): ${individual.length}`);
@@ -312,8 +411,8 @@ function main() {
     const totalFiles = grouped.reduce((sum, g) => sum + (g.count || 0), 0);
     console.error(`   Grouped files: ${totalFiles} files in ${grouped.length} groups`);
   }
-  if (packages.length > 0) {
-    console.error(`   Package tests: ${packages.length}`);
+  if (unsplitPackages.length > 0) {
+    console.error(`   Package tests (unsplit): ${unsplitPackages.length}`);
   }
 
   // Output JSON for GitHub Actions

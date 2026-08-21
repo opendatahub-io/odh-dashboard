@@ -3,12 +3,24 @@ import {
   AnalyticsContext,
   type AnalyticsAPI,
 } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
-import { fireFormTrackingEvent } from './segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+  fireLinkTrackingEvent,
+  fireSimpleTrackingEvent,
+  firePageEvent,
+  fireIdentifyEvent,
+} from './segmentIOUtils';
 
 export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = React.useMemo<AnalyticsAPI>(
     () => ({
       fireFormTrackingEvent,
+      fireMiscTrackingEvent,
+      fireLinkTrackingEvent,
+      fireSimpleTrackingEvent,
+      firePageEvent,
+      fireIdentifyEvent,
     }),
     [],
   );

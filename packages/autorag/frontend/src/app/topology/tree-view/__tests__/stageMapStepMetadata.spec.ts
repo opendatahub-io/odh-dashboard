@@ -2,6 +2,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   getStageMapDetails,
   getStageDescriptionFromMap,
+  isBranchStepNodeId,
   parseStageMapNodeId,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
 
@@ -69,6 +70,22 @@ describe('parseStageMapNodeId', () => {
       stepId: 'chunking',
       branchIndex: 1,
     });
+    expect(parseStageMapNodeId('rag_optimization__branch-0__step__chunking')).toEqual({
+      type: 'branch_step',
+      componentId: 'rag_optimization',
+      stepId: 'chunking',
+      branchIndex: 0,
+    });
+  });
+
+  it('detects branch steps via branch-first node IDs', () => {
+    expect(isBranchStepNodeId('rag_optimization__branch-0__step__chunking')).toBe(true);
+  });
+
+  it('treats branch corridor steps as status-only spine glyphs', () => {
+    const branchId = 'rag_optimization__step__chunking__branch-0';
+    expect(isBranchStepNodeId(branchId)).toBe(true);
+    expect(isBranchStepNodeId('rag_optimization__optimize_templates')).toBe(false);
   });
 
   it('parses branch pattern nodes', () => {

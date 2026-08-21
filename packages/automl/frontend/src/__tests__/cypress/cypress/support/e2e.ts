@@ -14,39 +14,9 @@
 // ***********************************************************
 
 import '@cypress/code-coverage/support';
-import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import 'cypress-mochawesome-reporter/register';
 import './commands';
-import { mockNamespace } from '~/__mocks__/mockNamespace';
-import { CLIENT_API_VERSION } from './commands/api';
 
 Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
-});
-
-beforeEach(() => {
-  if (Cypress.env('MOCK')) {
-    // fallback: return 404 for all api requests
-    cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
-
-    cy.interceptApi(
-      'GET /api/:apiVersion/user',
-      {
-        path: {
-          apiVersion: CLIENT_API_VERSION,
-        },
-      },
-      mockUserSettings({}),
-    );
-
-    cy.interceptApi(
-      'GET /api/:apiVersion/namespaces',
-      {
-        path: {
-          apiVersion: CLIENT_API_VERSION,
-        },
-      },
-      [mockNamespace({})],
-    );
-  }
 });
