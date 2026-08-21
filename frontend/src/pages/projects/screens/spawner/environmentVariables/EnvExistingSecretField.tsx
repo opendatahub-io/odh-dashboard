@@ -165,7 +165,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
                   onChange={handleTextInputChange}
                   autoComplete="off"
                   innerRef={textInputRef}
-                  placeholder="Search secrets"
+                  placeholder="Select secrets"
                   role="combobox"
                   isExpanded={isOpen}
                   data-testid="env-existing-secret-search"
@@ -193,7 +193,10 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           <SelectList data-testid="env-existing-secret-list">
             {filteredSecrets.length === 0 ? (
               <SelectOption isDisabled data-testid="env-existing-secret-no-results">
-                No results found. Adjust your filter and try again.
+                <div>No results found.</div>
+                <Content component="small" className="pf-v6-u-text-color-subtle">
+                  Adjust your filter and try again.
+                </Content>
               </SelectOption>
             ) : (
               filteredSecrets.map((secret: ExistingSecretMetadata) => {
@@ -228,21 +231,20 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
             variant="warning"
             isInline
             isPlain
-            title={
-              collisions.length === 1
-                ? `${collisions[0].key} is defined in both ${collisions[0].sources.join(' and ')}.`
-                : 'Key name collisions across attached secrets'
-            }
+            title="Resolve key name collisions"
             data-testid="env-collision-warning"
           >
-            <p>Choose one and deselect the duplicate key to resolve the collision.</p>
-            {collisions.length > 1
-              ? collisions.map((c) => (
-                  <div key={c.key}>
-                    <strong>{c.key}</strong> is defined in both {c.sources.join(' and ')}.
-                  </div>
-                ))
-              : null}
+            <p>
+              The following keys are defined more than once across the selected secrets. To
+              continue, deselect secrets that contain duplicate key names.
+            </p>
+            {collisions.map((c) => (
+              <div key={c.key}>
+                <strong>{c.key}</strong>
+                <br />
+                Defined in secrets: {c.sources.join(', ')}
+              </div>
+            ))}
           </Alert>
         </StackItem>
       ) : null}

@@ -116,7 +116,7 @@ describe('Workbench page', () => {
     //add Config Map  key/ value environment variable
     let environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
     environmentVariableField.selectEnvironmentVariableType('Config Map');
-    environmentVariableField.selectEnvDataType('Key / value');
+    environmentVariableField.selectEnvDataType('Create');
 
     environmentVariableField.findAnotherKeyValuePairButton().click();
     let keyValuePairField = environmentVariableField.getKeyValuePair(0);
@@ -129,7 +129,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findAddVariableButton().click();
     environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(1);
     environmentVariableField.selectEnvironmentVariableType('Secret');
-    environmentVariableField.selectEnvDataType('Key / value');
+    environmentVariableField.selectEnvDataType('Create');
     keyValuePairField = environmentVariableField.getKeyValuePair(0);
     keyValuePairField.findKeyInput().fill('test-key');
     keyValuePairField.findValueInput().fill('test-value');

@@ -180,7 +180,7 @@ describe('ExistingSecretKeyPicker', () => {
   });
 
   it('should show filter input when secret has more than 10 keys', () => {
-    const manyKeys = Array.from({ length: 12 }, (_, i) => `key-${i}`);
+    const manyKeys = Array.from({ length: 12 }, (_, i) => `KEY_${i}`);
     const largeSecret: ExistingSecretMetadata[] = [{ name: 'large-secret', keys: manyKeys }];
     const selectedRefs: ExistingSecretRef[] = [
       { secretName: 'large-secret', selectedKeys: manyKeys },
@@ -201,7 +201,7 @@ describe('ExistingSecretKeyPicker', () => {
   });
 
   it('should filter visible keys when filter is typed', () => {
-    const manyKeys = Array.from({ length: 12 }, (_, i) => `key-${i}`);
+    const manyKeys = Array.from({ length: 12 }, (_, i) => `KEY_${i}`);
     const largeSecret: ExistingSecretMetadata[] = [{ name: 'large-secret', keys: manyKeys }];
     const selectedRefs: ExistingSecretRef[] = [
       { secretName: 'large-secret', selectedKeys: manyKeys },
@@ -219,14 +219,14 @@ describe('ExistingSecretKeyPicker', () => {
     expandSection('large-secret');
 
     const filterInput = screen.getByTestId('key-filter-large-secret');
-    fireEvent.change(filterInput, { target: { value: 'key-1' } });
+    fireEvent.change(filterInput, { target: { value: 'KEY_1' } });
 
-    // Should show key-1, key-10, key-11 (matching 'key-1')
-    expect(screen.getByTestId('key-checkbox-large-secret-key-1')).toBeInTheDocument();
-    expect(screen.getByTestId('key-checkbox-large-secret-key-10')).toBeInTheDocument();
-    expect(screen.getByTestId('key-checkbox-large-secret-key-11')).toBeInTheDocument();
-    // key-2 should not be visible
-    expect(screen.queryByTestId('key-checkbox-large-secret-key-2')).not.toBeInTheDocument();
+    // Should show KEY_1, KEY_10, KEY_11 (matching 'KEY_1')
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_1')).toBeInTheDocument();
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_10')).toBeInTheDocument();
+    expect(screen.getByTestId('key-checkbox-large-secret-KEY_11')).toBeInTheDocument();
+    // KEY_2 should not be visible
+    expect(screen.queryByTestId('key-checkbox-large-secret-KEY_2')).not.toBeInTheDocument();
   });
 
   it('should show deleted secret alert for a secret not in availableSecrets', () => {
@@ -363,7 +363,9 @@ describe('ExistingSecretKeyPicker', () => {
 
       const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
       expect(alert).toHaveTextContent('1 previously selected key was not found in this secret');
-      expect(alert).toHaveTextContent('Missing: password');
+      expect(alert).toHaveTextContent(
+        'Missing: password. Key no longer exists. To continue, remove it.',
+      );
     });
 
     it('should show plural message for multiple missing keys', () => {
@@ -385,7 +387,9 @@ describe('ExistingSecretKeyPicker', () => {
 
       const alert = screen.getByTestId('env-missing-keys-alert-db-secret');
       expect(alert).toHaveTextContent('2 previously selected keys were not found in this secret');
-      expect(alert).toHaveTextContent('Missing: username, password');
+      expect(alert).toHaveTextContent(
+        'Missing: username, password. Keys no longer exist. To continue, remove them.',
+      );
     });
 
     it('should remove missing keys when "Remove missing keys" is clicked', () => {
@@ -428,6 +432,118 @@ describe('ExistingSecretKeyPicker', () => {
 
       expect(screen.queryByTestId('env-missing-keys-alert-db-secret')).not.toBeInTheDocument();
       expect(screen.queryByTestId('missing-keys-icon-db-secret')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('empty secret detection', () => {
+    it('should show warning alert when a secret has no keys', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('secret-key-section-empty-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('env-empty-secret-alert-empty-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-secret-icon-empty-secret')).toBeInTheDocument();
+    });
+
+    it('should show empty secret message without a remove action', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-empty-secret-alert-empty-secret');
+      expect(alert).toHaveTextContent('This secret has no keys.');
+      expect(alert).toHaveTextContent(
+        'No environment variables will be set from this secret. If this is unexpected, contact your administrator.',
+      );
+      expect(screen.queryByTestId('remove-deleted-ref-empty-secret')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('remove-unavailable-ref-empty-secret')).not.toBeInTheDocument();
+    });
+
+    it('should not show key count badge for empty secret', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [{ secretName: 'empty-secret', selectedKeys: [] }];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('key-count-badge-empty-secret')).not.toBeInTheDocument();
+    });
+
+    it('should prefer empty secret alert over missing keys when secret has no keys', () => {
+      const emptySecrets: ExistingSecretMetadata[] = [{ name: 'empty-secret', keys: [] }];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'empty-secret', selectedKeys: ['stale-key'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={emptySecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('env-empty-secret-alert-empty-secret')).toBeInTheDocument();
+      expect(screen.queryByTestId('env-missing-keys-alert-empty-secret')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('missing-keys-icon-empty-secret')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('expandable section auto-expand', () => {
+    it('should expand when a secret becomes all-keys-unavailable after mount', () => {
+      const usableSecrets: ExistingSecretMetadata[] = [{ name: 'bad-secret', keys: ['username'] }];
+      const unavailableSecrets: ExistingSecretMetadata[] = [
+        { name: 'bad-secret', keys: ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'bad-secret', selectedKeys: ['username'] },
+      ];
+      const onUpdate = jest.fn();
+
+      const { rerender } = render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={usableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-all-unavailable-alert-bad-secret')).not.toBeInTheDocument();
+
+      rerender(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={unavailableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('env-all-unavailable-alert-bad-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('remove-unavailable-ref-bad-secret')).toBeInTheDocument();
     });
   });
 
