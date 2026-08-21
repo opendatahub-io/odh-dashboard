@@ -336,11 +336,14 @@ export const getModalAlertProps = (
   const phaseProps = getPhaseProps(phase);
   const alertContent = getModalTitleAndChildren(phase, resourceType);
   const hasAlertBody = !!alertContent?.children;
+  // Pending models (overview tab only) use the same Ready-condition JSON as
+  // degraded/failed so operators can inspect governance pairing status.
   const showApiDetails =
     (phase === PhaseStatus.FAILED ||
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
-      phase === PhaseStatus.DEGRADED) &&
+      phase === PhaseStatus.DEGRADED ||
+      (phase === PhaseStatus.PENDING && resourceType === PhaseResourceType.MODEL)) &&
     (!!reason || !!statusMessage);
 
   return {
