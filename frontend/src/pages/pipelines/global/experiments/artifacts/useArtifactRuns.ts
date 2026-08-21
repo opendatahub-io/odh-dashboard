@@ -22,13 +22,16 @@ export const isGrpcNotFoundError = (value: unknown): value is GrpcNotFoundError 
   return typeof value.code === 'number' && value.code === 5 && typeof value.message === 'string';
 };
 
-// Type guard to verify response is a valid PipelineRunKF and not a gRPC error
-const isPipelineRunKF = (value: unknown): value is PipelineRunKF => {
+// Type guard to verify response is a valid PipelineRunKF and not a gRPC error.
+// Checks runtime types of fields ArtifactRunCell renders (run_id, display_name).
+export const isPipelineRunKF = (value: unknown): value is PipelineRunKF => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
-  // PipelineRunKF has run_id, gRPC errors have code
-  return 'run_id' in value && !('code' in value);
+  if (!('run_id' in value) || !('display_name' in value) || 'code' in value) {
+    return false;
+  }
+  return typeof value.run_id === 'string' && typeof value.display_name === 'string';
 };
 
 const boundRecord = <T>(prev: Record<string, T>, keep: Set<string>): Record<string, T> => {
@@ -146,9 +149,9 @@ export const useArtifactRuns = (
               const error = new PipelineAPIError(response.message, 404);
               return { runId, run: null, error };
             }
-            // Verify response is a valid PipelineRunKF before caching
+            // Verify response is a valid PipelineRunKF for the requested run before caching
             // (some gRPC errors with other codes might also bypass handlePipelineFailures)
-            if (!isPipelineRunKF(response)) {
+            if (!isPipelineRunKF(response) || response.run_id !== runId) {
               return { runId, run: null, error: new Error('Invalid response from pipeline API') };
             }
             return { runId, run: response, error: null };

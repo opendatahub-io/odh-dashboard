@@ -168,4 +168,21 @@ describe('ArtifactRunCell', () => {
       '/develop-train/pipelines/runs/test-namespace/runs/a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d',
     );
   });
+
+  it('should show run ID when cached run is malformed', () => {
+    const runId = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
+    const mockArtifact = {
+      getUri: jest.fn(() => `s3://bucket/pipeline/${runId}/task/artifact`),
+    } as unknown as Artifact;
+
+    const malformedRun = {
+      run_id: 123,
+      display_name: { name: 'bad' },
+    } as unknown as PipelineRunKF;
+
+    const { container } = mockRenderWithContext(mockArtifact, { [runId]: malformedRun });
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(container.textContent).toContain(runId);
+  });
 });

@@ -7,6 +7,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { buildMockRunKF } from '#~/__mocks__/mockRunKF';
 import {
   isGrpcNotFoundError,
+  isPipelineRunKF,
   useArtifactRuns,
 } from '#~/pages/pipelines/global/experiments/artifacts/useArtifactRuns';
 
@@ -47,6 +48,27 @@ describe('useArtifactRuns gRPC error detection', () => {
     const grpcCancelled = { code: 1, message: 'cancelled', details: [] };
 
     expect(isGrpcNotFoundError(grpcCancelled)).toBe(false);
+  });
+});
+
+describe('isPipelineRunKF', () => {
+  it('should accept a run with string run_id and display_name', () => {
+    expect(
+      isPipelineRunKF({
+        run_id: RUN_A,
+        display_name: 'Test Run',
+      }),
+    ).toBe(true);
+  });
+
+  it('should reject a gRPC error object', () => {
+    expect(isPipelineRunKF({ code: 5, message: 'Run not found' })).toBe(false);
+  });
+
+  it('should reject a run with a non-string run_id or display_name', () => {
+    expect(isPipelineRunKF({ run_id: 123, display_name: 'Test Run' })).toBe(false);
+    expect(isPipelineRunKF({ run_id: RUN_A, display_name: { name: 'Test Run' } })).toBe(false);
+    expect(isPipelineRunKF({ run_id: RUN_A })).toBe(false);
   });
 });
 
@@ -117,5 +139,20 @@ describe('useArtifactRuns', () => {
     expect(renderResult.result.current.runs).toEqual({});
     expect(renderResult.result.current.errors).toEqual({});
     expect(renderResult.result.current.loading.size).toBe(0);
+  });
+
+  it('should reject a response whose run_id does not match the requested run', async () => {
+    mockGetPipelineRun.mockResolvedValue(
+      buildMockRunKF({ run_id: RUN_B, display_name: 'Wrong run' }),
+    );
+
+    const renderResult = testHook(useArtifactRuns)([artifactWithRun(RUN_A)]);
+    await waitFor(() => {
+      expect(renderResult.result.current.errors[RUN_A]).toBeDefined();
+    });
+    expect(renderResult.result.current.errors[RUN_A].message).toBe(
+      'Invalid response from pipeline API',
+    );
+    expect(renderResult.result.current.runs[RUN_A]).toBeUndefined();
   });
 });

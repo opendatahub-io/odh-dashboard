@@ -7,6 +7,7 @@ import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
 import { getGenericErrorCode } from '#~/api/errorUtils';
 import { useArtifactRunsCache } from './ArtifactRunsContext';
 import { extractRunIdFromUri } from './utils';
+import { isPipelineRunKF } from './useArtifactRuns';
 
 type ArtifactRunCellProps = {
   artifact: Artifact;
@@ -44,6 +45,9 @@ const ArtifactRunCell: React.FC<ArtifactRunCellProps> = ({ artifact }) => {
     // Not yet fetched (first render before useEffect populates loading)
     // Show skeleton to avoid flash of "—" on initial mount
     return <Skeleton />;
+  }
+  if (!isPipelineRunKF(run) || run.run_id !== runId) {
+    return <Truncate content={runId} tooltipPosition="top" />;
   }
 
   const displayName = run.display_name || runId;
