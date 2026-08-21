@@ -11,8 +11,8 @@ be rejected.**
 
 ### 1. Contract First
 
-Describe every capability in `api/openapi/mod-arch.yaml` (or a new file under `api/openapi/`). All
-request/response objects must be documented before coding.
+Describe every capability in `bff/openapi/src/` (see [`data-registry.yaml`](bff/openapi/src/data-registry.yaml)
+for this module's own contract). All request/response objects must be documented before coding.
 
 ### 2. BFF Stub Second
 
@@ -35,12 +35,13 @@ BFF against a real cluster or the manifests in `manifests/`.
 
 ```text
 mod-arch-starter/
-├── api/
-│   └── openapi/
-│       └── mod-arch.yaml        # OpenAPI specification (contract-first)
 ├── bff/                         # Go Backend-for-Frontend
 │   ├── cmd/
 │   │   └── main.go              # Application entrypoint and wiring
+│   ├── openapi/
+│   │   └── src/
+│   │       ├── data-registry.yaml      # BFF's own OpenAPI spec (contract-first)
+│   │       └── data-registry-api.yaml  # Vendored upstream Data Registry API contract
 │   ├── internal/
 │   │   ├── api/                 # HTTP handlers
 │   │   ├── config/              # Configuration management
@@ -170,10 +171,21 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ---
 
-## API Contract Rules (`api/`)
+## API Contract Rules (`bff/openapi/`)
+
+The BFF's own contract lives at [`bff/openapi/src/data-registry.yaml`](bff/openapi/src/data-registry.yaml)
+(the older `api/openapi/mod-arch.yaml`-derived contract has been retired). The vendored upstream
+Data Registry API contract that the proxy routes forward to lives alongside it at
+[`bff/openapi/src/data-registry-api.yaml`](bff/openapi/src/data-registry-api.yaml).
 
 - One OpenAPI document per module capability
-- Reference shared schemas to avoid drift
+- Reference shared schemas to avoid drift — proxy route schemas in `data-registry.yaml` are
+  cross-file `$ref`s into `data-registry-api.yaml` rather than duplicated, since the BFF relays
+  those responses verbatim
+- **Exception to the dashboard's error envelope**: proxy route success and error bodies are passed
+  through byte-for-byte from the upstream Iceberg REST Catalog, not wrapped in the dashboard's
+  `BffErrorEnvelope`. Only the BFF-native routes (`/healthcheck`, `/api/v1/user`,
+  `/api/v1/namespaces`) use the standard envelope
 - Add examples for every schema and response so mock servers can generate useful data
 - After updating the spec, regenerate clients/types for both Go and TypeScript if your workflow
   requires them
@@ -186,7 +198,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | GET    | `/healthcheck`       | Liveness probe                       |
 | GET    | `/api/v1/user`       | Returns authenticated user info      |
 | GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
-| \*     | `/api/v1/*` (catchall) | Data Registry API proxy — see [bff/README.md](bff/README.md#data-registry-api-proxy) |
+| \*     | `/api/v1/*` (catchall) | Data Registry API proxy — see [bff/README.md](bff/README.md#data-registry-api-proxy) and [`bff/openapi/src/data-registry.yaml`](bff/openapi/src/data-registry.yaml) |
 
 ---
 
@@ -433,5 +445,6 @@ npx mod-arch-installer my-module --flavor kubeflow
 - [Frontend Dev Setup](frontend/docs/dev-setup.md)
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)
-- [OpenAPI Spec](api/openapi/mod-arch.yaml) -
-  [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/mod-arch-library/main/mod-arch-starter/api/openapi/mod-arch.yaml)
+- [OpenAPI Spec](bff/openapi/src/data-registry.yaml) — the BFF's own contract
+- [Vendored Data Registry API Contract](bff/openapi/src/data-registry-api.yaml) — the upstream
+  contract the proxy routes forward to
