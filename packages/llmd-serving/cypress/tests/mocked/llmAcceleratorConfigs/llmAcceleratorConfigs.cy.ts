@@ -1,14 +1,17 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
+  llmAcceleratorConfigurations,
+  unsupportedStatusAcceptanceModal,
+} from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import {
+  asProductAdminUser,
+  asProjectAdminUser,
+} from '@odh-dashboard/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
+import {
   llmAcceleratorConfigsIntercept,
   interceptLlmAcceleratorConfigPatch,
 } from './llmAcceleratorConfigsUtils';
-import {
-  llmAcceleratorConfigurations,
-  unsupportedStatusAcceptanceModal,
-} from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
-import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
-import { pageNotfound } from '../../../pages/pageNotFound';
 
 it('LLM accelerator configurations should not be available for non product admins', () => {
   asProjectAdminUser();

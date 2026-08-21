@@ -1,11 +1,11 @@
+import { servingRuntimeTemplates } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/servingRuntimeTemplates';
+import { unsupportedStatusAcceptanceModal } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import {
   customServingRuntimesIntercept,
   interceptTemplatePatch,
   interceptDashboardConfigPatch,
 } from './customServingRuntimesUtils';
-import { servingRuntimeTemplates } from '../../../pages/modelDeploymentSettings/servingRuntimeTemplates';
-import { unsupportedStatusAcceptanceModal } from '../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
-import { asProductAdminUser } from '../../../utils/mockUsers';
 
 describe('Custom serving runtimes — unsupported resource handling', () => {
   beforeEach(() => {
