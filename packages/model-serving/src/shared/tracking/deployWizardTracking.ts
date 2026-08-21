@@ -101,7 +101,7 @@ export const getDeployWizardEntryPoint = (
   return 'deployments_list';
 };
 
-/** Analytics-only gate for `hasValidatedArgumentsSection` — do not use for UI visibility. */
+/** used this for segment tracking. */
 export const isShowValidatedArgumentsSection = (
   navState: DeployWizardNavState,
   validatedConfigurations?: ValidatedConfiguration[],

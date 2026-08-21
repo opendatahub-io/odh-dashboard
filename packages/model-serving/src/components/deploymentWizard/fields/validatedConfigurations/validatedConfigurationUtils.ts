@@ -4,7 +4,7 @@ import type {
   ValidatedConfigurationOption,
 } from '../../../../shared/types/form-data';
 
-/** Product UI gate: render validated-configuration cards when at least one option exists. */
+/** render validated-configuration cards when at least one option exists. */
 export const hasValidatedConfigurationOptions = (
   configurations: ValidatedConfiguration[] | undefined,
 ): boolean => Boolean(configurations?.some((configuration) => configuration.options.length > 0));

@@ -39,13 +39,11 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
-  const isEdit = !!existingDeployment;
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
   const { fireModelDeployedTracking } = useModelDeployedTracking(
     formState,
     initialWizardData,
     deployMethod?.properties.platform,
-    isEdit,
   );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
@@ -121,14 +119,21 @@ export const useModelDeploymentSubmit = (
           runPostDeploy,
         );
 
-        await fireModelDeployedTracking('submit', true);
-
+        try {
+          await fireModelDeployedTracking('submit', true);
+        } catch {
+          // Telemetry must not block navigation after a successful deploy.
+        }
         exitWizardOnSubmit();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         setSubmitError(error instanceof Error ? error : new Error(errorMessage));
 
-        await fireModelDeployedTracking('submit', false, errorMessage);
+        try {
+          await fireModelDeployedTracking('submit', false, errorMessage);
+        } catch {
+          // Telemetry must not mask the deploy failure shown to the user.
+        }
       } finally {
         setIsLoading(false);
       }
