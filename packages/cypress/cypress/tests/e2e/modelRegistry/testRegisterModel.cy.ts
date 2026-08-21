@@ -356,7 +356,9 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelTransferJobPodStarted(ociJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
+      cy.url({ timeout: 30000 })
+        .should('include', `/ai-hub/models/registry/${registryName}`)
+        .and('not.include', '/register');
 
       // Terminal state of the transfer job (success/failure) is environment-dependent
       // and not validated here. A dedicated test with a controlled backend is more appropriate.
@@ -459,7 +461,9 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelTransferJobPodStarted(ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
+      cy.url({ timeout: 30000 })
+        .should('include', `/ai-hub/models/registry/${registryName}`)
+        .and('not.include', '/register');
     },
   );
 
