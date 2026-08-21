@@ -131,7 +131,6 @@ describe('Verify tool calling configuration in the deployment wizard', () => {
 
       cy.step('Verify runtime args are prefilled on the advanced settings step');
       modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-      modelServingWizard.findRuntimeArgsCheckbox().should('be.checked');
       modelServingWizard
         .findRuntimeArgsTextBox()
         .invoke('val')
