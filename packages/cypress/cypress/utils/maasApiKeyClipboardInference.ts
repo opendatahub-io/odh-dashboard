@@ -34,7 +34,7 @@ const parseMaaSModelsListResponse = (body: unknown): { id: string }[] => {
  * Stubs `navigator.clipboard.writeText` with a stub aliased as `clipboardWrite`.
  * Call after the dialog is open and before clicking the copy button.
  */
-export const stubClipboardWriteTextForApiKeyModal = (copiedAliasName?: string): void => {
+export const stubClipboard = (copiedAliasName?: string): void => {
   cy.window().then((win) => {
     if (copiedAliasName) {
       const copied: string[] = [];
