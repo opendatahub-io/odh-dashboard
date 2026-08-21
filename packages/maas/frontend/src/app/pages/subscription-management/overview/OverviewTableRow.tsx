@@ -29,6 +29,7 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
+    data-testid="no-subscriptions-warning-popover"
     onShow={() => {
       fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
         popoverType: EventTrackingPopoverType.WARNING,
@@ -57,6 +58,7 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
+    data-testid="no-policies-warning-popover"
     onShow={() => {
       fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
         popoverType: EventTrackingPopoverType.WARNING,
