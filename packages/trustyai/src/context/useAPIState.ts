@@ -14,12 +14,13 @@ const useAPIState = <T>(
   const apiState = React.useMemo<APIState<T>>(() => {
     let path = hostPath;
     if (!path) {
+      // TODO: we need to figure out maybe a stopgap or something
       path = '';
     }
     const api = createAPI(path);
 
     return {
-      apiAvailable: !!hostPath,
+      apiAvailable: !!path,
       api,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
