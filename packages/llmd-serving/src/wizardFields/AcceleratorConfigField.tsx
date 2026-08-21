@@ -237,7 +237,12 @@ export const AcceleratorConfigFieldComponent: AcceleratorConfigFieldType['compon
       return;
     }
     const resolved = configs.find((c) => c.metadata.name === configRef);
-    onChange(resolved ? { selectedConfig: resolved } : { configRef: undefined });
+    // If the referenced project-namespace copy can't be resolved (deleted/renamed/unreadable), fall
+    // back to the built-in sentinel rather than leaving selectedConfig undefined — otherwise the
+    // schema (which requires a representable selection) would fail permanently and block the edit.
+    onChange(
+      resolved ? { selectedConfig: resolved } : { selectedConfig: ACCELERATOR_CONFIG_DEFAULT },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configRef, isLoaded, existingSelection, configs]);
 
@@ -354,12 +359,16 @@ export const AcceleratorConfigFieldWizardField: AcceleratorConfigFieldType = {
         : { selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false };
     },
     validationSchema: z.object({
-      selectedConfig: z.union([
-        z.custom<LLMInferenceServiceConfigKind>(
-          (val) => typeof val === 'object' && val !== null && 'kind' in val,
-        ),
-        z.literal(ACCELERATOR_CONFIG_DEFAULT),
-      ]),
+      // Optional to allow the transient edit state where configRef is present but not yet resolved
+      // into a concrete selectedConfig (see the resolution effect in the component).
+      selectedConfig: z
+        .union([
+          z.custom<LLMInferenceServiceConfigKind>(
+            (val) => typeof val === 'object' && val !== null && 'kind' in val,
+          ),
+          z.literal(ACCELERATOR_CONFIG_DEFAULT),
+        ])
+        .optional(),
       configRef: z.string().optional(),
       autoSelect: z.boolean().optional(),
     }),

@@ -144,18 +144,13 @@ export const preDeployConfigCopy = async (
   const prevName = existingDeployment?.model.metadata.annotations?.[options.annotationKey];
   const newName = deployment.model.metadata.annotations?.[options.annotationKey];
 
-  if (prevName && prevName !== newName) {
-    await deleteLLMInferenceServiceConfig(prevName, namespace, { dryRun }).catch((e: unknown) => {
-      // Don't block if not found. It could be in the global namespace by accident
-      if (getGenericErrorCode(e) !== 404) {
-        throw e;
-      }
-    });
-  }
-
   const config = fieldData.selectedConfig;
   const isRealConfig =
     config !== undefined && typeof config !== 'string' && !options.isSentinel?.(config);
+
+  // Create the new local copy BEFORE deleting the previous one, so a failed create never leaves the
+  // deployment referencing a config we already removed. Delete-on-switch happens only after the new
+  // copy exists (or when switching to a sentinel, which has nothing to create).
   if (isRealConfig && newName) {
     const copy = cleanlyDuplicateConfig(config, {
       name: newName,
@@ -165,6 +160,15 @@ export const preDeployConfigCopy = async (
     await createLLMInferenceServiceConfig(copy, { dryRun }).catch((e: unknown) => {
       // Don't block if it already exists
       if (getGenericErrorCode(e) !== 409) {
+        throw e;
+      }
+    });
+  }
+
+  if (prevName && prevName !== newName) {
+    await deleteLLMInferenceServiceConfig(prevName, namespace, { dryRun }).catch((e: unknown) => {
+      // Don't block if not found. It could be in the global namespace by accident
+      if (getGenericErrorCode(e) !== 404) {
         throw e;
       }
     });

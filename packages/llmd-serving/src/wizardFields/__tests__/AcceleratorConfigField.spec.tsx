@@ -162,6 +162,41 @@ describe('AcceleratorConfigFieldComponent radio behavior', () => {
   });
 });
 
+describe('AcceleratorConfigFieldComponent edit configRef resolution', () => {
+  const rocm = makeConfig('rocm', '["amd.com/gpu"]');
+
+  const renderWithConfigs = (
+    value: React.ComponentProps<typeof AcceleratorConfigFieldComponent>['value'],
+    configs: LLMInferenceServiceConfigKind[],
+  ) => {
+    const onChange = jest.fn();
+    render(
+      <AcceleratorConfigFieldComponent
+        id="accelerator-config"
+        value={value}
+        onChange={onChange}
+        externalData={{ data: { configs }, loaded: true }}
+        dependencies={{ topologyFieldData: { topologyType: TopologyType.SINGLE_NODE } }}
+        isEditing={false}
+      />,
+    );
+    return onChange;
+  };
+
+  it('resolves a configRef into the referenced config on edit', () => {
+    const onChange = renderWithConfigs({ configRef: 'rocm' }, [rocm]);
+    expect(onChange).toHaveBeenCalledWith({ selectedConfig: rocm });
+  });
+
+  it('falls back to the built-in sentinel when the configRef cannot be resolved', () => {
+    // The project-namespace copy was deleted/renamed/unreadable. Falling back to the sentinel keeps
+    // the field data representable so schema validation passes and the edit wizard can proceed,
+    // rather than leaving selectedConfig undefined (which would block the step permanently).
+    const onChange = renderWithConfigs({ configRef: 'missing-copy' }, [rocm]);
+    expect(onChange).toHaveBeenCalledWith({ selectedConfig: ACCELERATOR_CONFIG_DEFAULT });
+  });
+});
+
 describe('useAcceleratorConfigData', () => {
   const mockProject = { projectName: 'my-project', setProjectName: jest.fn() };
 
