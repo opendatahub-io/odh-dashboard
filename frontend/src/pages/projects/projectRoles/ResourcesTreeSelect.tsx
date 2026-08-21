@@ -9,7 +9,7 @@ import {
   ALL_RESOURCES_WILDCARD,
   buildResourceToApiGroupMap,
 } from './resourceCategories';
-import { ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
+import { ALL_API_GROUPS_WILDCARD, API_GROUP_CATEGORIES } from './apiGroupCategories';
 import {
   ALL_CATEGORY_PREFIX,
   createCategoryFilter,
@@ -23,6 +23,7 @@ type ResourcesTreeSelectProps = {
   selectedResources: string[];
   onSelectedResourcesChange: (resources: string[]) => void;
   apiResourcesData: ApiResourcesData;
+  /** User-selected API groups only. Auto-added groups must not be passed here. */
   filterByApiGroups?: string[];
 };
 
@@ -95,7 +96,19 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     return categories;
   }, [availableCategories, otherResources, resourceToApiGroupMap]);
 
+  const knownApiGroups = React.useMemo(() => {
+    const groups = new Set(apiResourcesData.apiGroups);
+    for (const category of API_GROUP_CATEGORIES) {
+      for (const group of category.groups) {
+        groups.add(group.name);
+      }
+    }
+    return groups;
+  }, [apiResourcesData.apiGroups]);
+
   const filteredCategories = React.useMemo(() => {
+    // Empty / * show the full catalog. Known groups narrow the list. Custom typed
+    // groups have no catalog entries — ignore them so the tree is not emptied.
     if (
       !filterByApiGroups ||
       filterByApiGroups.length === 0 ||
@@ -103,14 +116,18 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     ) {
       return allCategories;
     }
-    const allowedGroups = new Set(filterByApiGroups);
+    const knownSelectedGroups = filterByApiGroups.filter((g) => knownApiGroups.has(g));
+    if (knownSelectedGroups.length === 0) {
+      return allCategories;
+    }
+    const allowedGroups = new Set(knownSelectedGroups);
     return allCategories
       .map((category) => ({
         ...category,
         resources: category.resources.filter((r) => allowedGroups.has(r.apiGroup)),
       }))
       .filter((category) => category.resources.length > 0);
-  }, [allCategories, filterByApiGroups]);
+  }, [allCategories, filterByApiGroups, knownApiGroups]);
 
   const renderedResourceNames = React.useMemo(
     () => new Set(filteredCategories.flatMap((c) => c.resources.map((r) => r.name))),

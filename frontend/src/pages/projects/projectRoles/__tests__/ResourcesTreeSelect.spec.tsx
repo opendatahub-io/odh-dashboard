@@ -719,6 +719,40 @@ describe('ResourcesTreeSelect', () => {
       expect(screen.queryByText('Pods')).not.toBeInTheDocument();
     });
 
+    it('should not hide the resource tree when only a custom API group is selected', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['custom.example.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('All resources')).toBeInTheDocument();
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Pods')).toBeInTheDocument();
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+    });
+
+    it('should still filter to known groups when mixed with a custom API group', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['apps', 'custom.example.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Deployments')).toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+    });
+
     it('should always show the "All resources" wildcard option regardless of filter', async () => {
       render(
         <ResourcesTreeSelect

@@ -78,15 +78,83 @@ describe('AddRuleModal orchestration', () => {
   };
 
   describe('filterByApiGroups prop forwarding', () => {
-    it('should pass selectedApiGroups as filterByApiGroups to ResourcesTreeSelect', () => {
-      renderModal({ id: 'r1', apiGroups: ['apps'], resources: [], verbs: [] });
+    it('should not filter Resource types until the user selects an API group', () => {
+      renderModal();
+
+      expect(capturedResourcesProps.filterByApiGroups).toEqual([]);
+    });
+
+    it('should not filter when an existing rule already has API groups', () => {
+      renderModal({ id: 'r1', apiGroups: ['apps'], resources: ['deployments'], verbs: [] });
+
+      expect(capturedResourcesProps.filterByApiGroups).toEqual([]);
+    });
+
+    it('should filter Resource types when the user selects an API group', () => {
+      renderModal();
+
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['apps']);
+      });
 
       expect(capturedResourcesProps.filterByApiGroups).toEqual(['apps']);
     });
 
-    it('should pass empty array when no API groups are selected', () => {
+    it('should keep the API group filter after a matching resource is selected', () => {
       renderModal();
 
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['apps']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['deployments']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toContain('apps');
+      expect(capturedResourcesProps.filterByApiGroups).toEqual(['apps']);
+    });
+
+    it('should not filter when an API group is only auto-added from a resource', () => {
+      renderModal();
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['notebooks']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toContain('kubeflow.org');
+      expect(capturedResourcesProps.filterByApiGroups).toEqual([]);
+    });
+
+    it('should not widen the resource filter when a resource auto-adds another API group', () => {
+      renderModal();
+
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['apps']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['notebooks']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(
+        expect.arrayContaining(['apps', 'kubeflow.org']),
+      );
+      expect(capturedResourcesProps.filterByApiGroups).toEqual(['apps']);
+    });
+
+    it('should clear the resource filter when the last resource for an explicit API group is removed', () => {
+      renderModal();
+
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['apps']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['deployments']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange([]);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual([]);
       expect(capturedResourcesProps.filterByApiGroups).toEqual([]);
     });
   });
@@ -134,6 +202,16 @@ describe('AddRuleModal orchestration', () => {
       expect(capturedApiGroupsProps.selectedApiGroups).toEqual([]);
     });
 
+    it('should not auto-add a concrete API group when All API groups is selected', () => {
+      renderModal({ id: 'r1', apiGroups: ['*'], resources: [], verbs: [] });
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['pods']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(['*']);
+    });
+
     it('should not auto-populate for custom resources with unknown API group', () => {
       renderModal();
 
@@ -152,6 +230,84 @@ describe('AddRuleModal orchestration', () => {
       });
 
       expect(capturedApiGroupsProps.selectedApiGroups).toContain('');
+    });
+
+    it('should remove an API group when its last mapped resource is removed', () => {
+      renderModal({ id: 'r1', apiGroups: [''], resources: ['pods'], verbs: [] });
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange([]);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual([]);
+    });
+
+    it('should keep an API group when another resource from that group remains', () => {
+      renderModal({ id: 'r1', apiGroups: [''], resources: ['pods', 'services'], verbs: [] });
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['services']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(['']);
+    });
+
+    it('should replace the API group when the last resource is swapped to another group', () => {
+      renderModal({ id: 'r1', apiGroups: [''], resources: ['pods'], verbs: [] });
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['jobs']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(['batch']);
+    });
+
+    it('should keep a custom-typed API group when only a custom resource is selected', () => {
+      renderModal({
+        id: 'r1',
+        apiGroups: ['custom.example.io'],
+        resources: [],
+        verbs: [],
+      });
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['mywidgets']);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(['custom.example.io']);
+    });
+
+    it('should drop auto-added API groups when All resources is cleared', () => {
+      renderModal();
+
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['notebooks']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['*']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange([]);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual([]);
+    });
+
+    it('should keep an explicit API group filter when All resources is cleared', () => {
+      renderModal();
+
+      act(() => {
+        capturedApiGroupsProps.onSelectedApiGroupsChange(['apps']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange(['*']);
+      });
+      act(() => {
+        capturedResourcesProps.onSelectedResourcesChange([]);
+      });
+
+      expect(capturedApiGroupsProps.selectedApiGroups).toEqual(['apps']);
+      expect(capturedResourcesProps.filterByApiGroups).toEqual(['apps']);
     });
   });
 
@@ -288,6 +444,27 @@ describe('AddRuleModal orchestration', () => {
       renderModal();
 
       expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+    });
+
+    it('should save only the API groups wildcard when extra groups are also selected', () => {
+      renderModal({
+        id: 'r1',
+        apiGroups: ['*', ''],
+        resources: ['pods'],
+        verbs: ['get'],
+      });
+
+      act(() => {
+        screen.getByTestId('modal-submit-button').click();
+      });
+
+      expect(mockOnSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiGroups: ['*'],
+          resources: ['pods'],
+          verbs: ['get'],
+        }),
+      );
     });
   });
 });

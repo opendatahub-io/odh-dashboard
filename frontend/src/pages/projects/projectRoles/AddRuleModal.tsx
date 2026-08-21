@@ -38,6 +38,12 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     () => existingRule?.verbs ?? [],
   );
 
+  // selectedApiGroups: chips + YAML (user-selected and auto-added from resources).
+  // explicitApiGroups: groups chosen in the API groups field this session. Drives
+  // Resource types filtering. Starts empty in add and edit so loaded groups do not
+  // lock the list; auto-adding (notebooks → kubeflow.org) also must not lock it.
+  const [explicitApiGroups, setExplicitApiGroups] = React.useState<string[]>([]);
+
   const resolvedApiResourcesData = apiResourcesLoaded ? apiResourcesData : EMPTY_API_RESOURCES_DATA;
 
   const resourceToApiGroupMap = React.useMemo(
@@ -49,31 +55,70 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
     (newResources: string[]) => {
       setSelectedResources(newResources);
 
-      if (newResources.includes(ALL_RESOURCES_WILDCARD)) {
+      // Wildcards mean "all"; do not add or strip concrete API groups.
+      if (
+        newResources.includes(ALL_RESOURCES_WILDCARD) ||
+        selectedApiGroups.includes(ALL_API_GROUPS_WILDCARD)
+      ) {
         return;
       }
 
       const addedResources = newResources.filter((r) => !selectedResources.includes(r));
+      const removedResources = selectedResources.filter((r) => !newResources.includes(r));
       const groupsToAdd = new Set<string>();
+      const groupsToRemove = new Set<string>();
 
       for (const resource of addedResources) {
         const apiGroup = resourceToApiGroupMap.get(resource);
-        if (apiGroup !== undefined && !selectedApiGroups.includes(apiGroup)) {
+        if (apiGroup !== undefined) {
           groupsToAdd.add(apiGroup);
         }
       }
 
-      if (groupsToAdd.size > 0) {
-        setSelectedApiGroups((prev) => [...prev, ...groupsToAdd]);
+      // Drop a group only when no remaining mapped resource still needs it (cascade up).
+      for (const resource of removedResources) {
+        const apiGroup = resourceToApiGroupMap.get(resource);
+        if (apiGroup === undefined) {
+          continue;
+        }
+        const stillNeeded = newResources.some((r) => resourceToApiGroupMap.get(r) === apiGroup);
+        if (!stillNeeded) {
+          groupsToRemove.add(apiGroup);
+        }
+      }
+
+      // All resources → empty does not yield a mapped removal (`*` is not in the map).
+      const clearAutoAddedGroups = newResources.length === 0;
+      if (groupsToAdd.size === 0 && groupsToRemove.size === 0 && !clearAutoAddedGroups) {
+        return;
+      }
+
+      setSelectedApiGroups((prev) => {
+        let next = prev.filter((g) => !groupsToRemove.has(g));
+        for (const g of groupsToAdd) {
+          if (!next.includes(g)) {
+            next.push(g);
+          }
+        }
+        if (clearAutoAddedGroups) {
+          next = next.filter((g) => explicitApiGroups.includes(g));
+        }
+        return next;
+      });
+      if (groupsToRemove.size > 0) {
+        setExplicitApiGroups((prev) => prev.filter((g) => !groupsToRemove.has(g)));
       }
     },
-    [selectedResources, selectedApiGroups, resourceToApiGroupMap],
+    [selectedResources, selectedApiGroups, explicitApiGroups, resourceToApiGroupMap],
   );
 
   const handleApiGroupsChange = React.useCallback(
     (newApiGroups: string[]) => {
       setSelectedApiGroups(newApiGroups);
+      // Touching this field turns on resource filtering for the current group selection.
+      setExplicitApiGroups(newApiGroups);
 
+      // `*` on either field does not orphan concrete selections.
       if (newApiGroups.includes(ALL_API_GROUPS_WILDCARD)) {
         return;
       }
@@ -87,6 +132,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
         return;
       }
 
+      // Drop mapped resources that no longer have an API group (custom names stay).
       const allGroupsWereSelected = selectedApiGroups.includes(ALL_API_GROUPS_WILDCARD);
       const allowedGroups = new Set(newApiGroups);
       const orphanedResources = selectedResources.filter((r) => {
@@ -113,14 +159,18 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
   const isEdit = !!existingRule;
 
   const handleSave = React.useCallback(() => {
+    // `*` already covers every value; drop extras so YAML stays `["*"]`.
     const resources = selectedResources.includes(ALL_RESOURCES_WILDCARD)
       ? [ALL_RESOURCES_WILDCARD]
       : [...selectedResources];
+    const apiGroups = selectedApiGroups.includes(ALL_API_GROUPS_WILDCARD)
+      ? [ALL_API_GROUPS_WILDCARD]
+      : [...selectedApiGroups];
     const verbs = normalizeVerbs(selectedVerbs);
 
     onSave({
       id: existingRule?.id ?? getUniqueId('rule'),
-      apiGroups: [...selectedApiGroups],
+      apiGroups,
       resources,
       verbs,
       ...(existingRule?.resourceNames ? { resourceNames: existingRule.resourceNames } : {}),
@@ -161,7 +211,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
             fieldId="rule-api-groups"
             isRequired
             labelHelp={
-              <FieldGroupHelpLabelIcon content="API groups organize Kubernetes resources by functionality. Selecting an API group filters the Resource types list to show only resources in that group." />
+              <FieldGroupHelpLabelIcon content="Select an API group to narrow the resource types list. Choosing a resource type also adds its API group." />
             }
           >
             <ApiGroupsTreeSelect
@@ -175,13 +225,14 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
             fieldId="rule-resource-types"
             isRequired
             labelHelp={
-              <FieldGroupHelpLabelIcon content="Specify the Kubernetes resource types this rule applies to. You can select from discovered resources or type a custom resource name." />
+              <FieldGroupHelpLabelIcon content="Search or select resource types, or type a custom name. If you selected API groups, only matching resources are listed." />
             }
           >
             <ResourcesTreeSelect
               selectedResources={selectedResources}
               onSelectedResourcesChange={handleResourcesChange}
-              filterByApiGroups={selectedApiGroups}
+              // Filter only from API groups the user picked, not auto-added groups.
+              filterByApiGroups={explicitApiGroups}
               apiResourcesData={resolvedApiResourcesData}
             />
           </FormGroup>
