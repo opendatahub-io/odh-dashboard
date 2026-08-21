@@ -38,13 +38,11 @@ const NoSubscriptionsWarning: React.FC = () => (
     }}
     headerContent="No subscriptions"
     bodyContent={
-      <div>
-        <p className="pf-v6-u-ml-md">
-          This model cannot be called through the MaaS API gateway because it is not included in any
-          subscriptions. Create a subscription that includes this model and at least 1 group, or add
-          this model to an existing subscription from the <b>Subscriptions</b> tab.
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it is not included in any
+        subscriptions. Create a subscription that includes this model and at least 1 group, or add
+        this model to an existing subscription from the <b>Subscriptions</b> tab.
+      </p>
     }
   >
     <Button
