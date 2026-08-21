@@ -129,9 +129,10 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
           id="runtime-args-textarea"
           data-testid="runtime-args-textarea"
           placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
-          value={data.args.join('\n')}
+          value={`${data.args.join('\n')}\n`}
           onChange={handleTextAreaChange}
           isDisabled={!allowCreate}
+          rows={4}
           autoResize
         />
         <FormHelperText>
