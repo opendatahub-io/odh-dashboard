@@ -25,8 +25,8 @@ export class PipelineAPIError extends Error {
     super(message);
     this.name = 'PipelineAPIError';
     // Ensure status is always a number for getGenericErrorCode compatibility
-    const numStatus = typeof status === 'string' ? Number(status) : status;
-    this.response = { status: Number.isNaN(numStatus) ? 500 : numStatus };
+    const numStatus = typeof status === 'string' ? Number.parseInt(status, 10) : status;
+    this.response = { status: Number.isInteger(numStatus) ? numStatus : 500 };
   }
 }
 
