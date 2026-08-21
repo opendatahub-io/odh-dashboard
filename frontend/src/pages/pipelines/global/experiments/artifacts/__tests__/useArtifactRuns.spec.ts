@@ -155,4 +155,24 @@ describe('useArtifactRuns', () => {
     );
     expect(renderResult.result.current.runs[RUN_A]).toBeUndefined();
   });
+
+  it('should remove aborted run IDs from loading when artifacts change', async () => {
+    mockGetPipelineRun.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
+
+    const renderResult = testHook(useArtifactRuns)([artifactWithRun(RUN_A)]);
+    await waitFor(() => {
+      expect(renderResult.result.current.loading.has(RUN_A)).toBe(true);
+    });
+
+    renderResult.rerender([artifactWithRun(RUN_B)]);
+
+    expect(renderResult.result.current.loading.has(RUN_A)).toBe(false);
+    await waitFor(() => {
+      expect(renderResult.result.current.loading.has(RUN_B)).toBe(true);
+    });
+  });
 });

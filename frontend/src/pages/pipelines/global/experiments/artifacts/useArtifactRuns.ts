@@ -195,8 +195,13 @@ export const useArtifactRuns = (
     // Cleanup: abort ongoing fetches when component unmounts or dependencies change
     return () => {
       abortController.abort();
-      // Clean up in-flight tracking for aborted requests
+      // Clean up in-flight and loading tracking for aborted requests
       runIdsToFetch.forEach((id) => inFlightSet.delete(id));
+      setLoading((prev) => {
+        const next = new Set(prev);
+        runIdsToFetch.forEach((id) => next.delete(id));
+        return next;
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artifacts, api]);
