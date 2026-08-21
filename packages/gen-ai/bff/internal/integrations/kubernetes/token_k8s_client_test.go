@@ -374,8 +374,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		}
 		require.NotNil(t, passthrough, "passthrough provider must be present")
 		assert.Equal(t, constants.PassthroughProviderID, passthrough.ProviderID)
-		assert.Equal(t, "https://apps.cluster.example.com/api/v1/genai-proxy/ns/my-namespace", passthrough.Config["base_url"])
-		assert.Equal(t, true, passthrough.Config["refresh_models"])
+		assert.Equal(t, "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-namespace", passthrough.Config["base_url"])
 	})
 
 	t.Run("should NOT add passthrough provider when GatewayDomain is empty", func(t *testing.T) {

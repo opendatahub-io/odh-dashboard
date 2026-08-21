@@ -25,22 +25,16 @@ import (
 //
 // Streaming (stream:true) is handled by a separate endpoint (RHOAIENG-79575).
 //
-// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data →
-// forward_headers → x-forwarded-access-token header.
+// Auth is required: OGX forwards the user's JWT via Authorization: Bearer
+// (from passthrough_api_key in X-OGX-Provider-Data). AttachNamespaceFromPath
+// and RequireAccessToService middleware run before this handler.
 func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
-	namespace := ps.ByName("namespace")
-	if namespace == "" {
-		app.badRequestResponse(w, r, errors.New("missing namespace in path"))
-		return
-	}
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
-	r = r.WithContext(ctx)
-
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil || identity.Token == "" {
+	// Defense-in-depth: middleware enforces auth, but verify identity is present.
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))
 		return
 	}
@@ -86,13 +80,13 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		app.badRequestResponse(w, r, errors.New("messages must be a JSON array"))
 		return
 	}
-	if reqBody.Stream != nil && *reqBody.Stream {
-		app.badRequestResponse(w, r, errors.New("streaming is not supported on this endpoint; use the streaming endpoint instead"))
-		return
-	}
+	isStreaming := reqBody.Stream != nil && *reqBody.Stream
+
+	// Extract pre-fetched MaaS token from provider data (forwarded by OGX).
+	maasToken := extractMaaSTokenFromProviderData(r)
 
 	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace)
+	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasToken)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isProxyInfraError(resolveErr) {
@@ -103,14 +97,19 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Strip provider prefix from model ID in the proxied body.
-	// Use json.RawMessage-based rewrite to preserve numeric precision.
+	// Strip provider prefix and MaaS prefix from model ID in the proxied body.
+	// OGX may or may not strip the provider prefix before forwarding. Handle both:
+	//   "genai-bff-proxy/maas-publishers/llm/models/x" → "publishers/llm/models/x"
+	//   "maas-publishers/llm/models/x"                 → "publishers/llm/models/x"
 	upstreamBody := body
-	if strings.Contains(reqBody.Model, "/") {
-		bareModel := reqBody.Model[strings.Index(reqBody.Model, "/")+1:]
+	upstreamModel := reqBody.Model
+	passthroughPrefix := constants.PassthroughProviderID + "/"
+	upstreamModel = strings.TrimPrefix(upstreamModel, passthroughPrefix)
+	upstreamModel = strings.TrimPrefix(upstreamModel, constants.MaaSProviderPrefix)
+	if upstreamModel != reqBody.Model {
 		var bodyMap map[string]json.RawMessage
 		if err := json.Unmarshal(body, &bodyMap); err == nil {
-			quotedModel, _ := json.Marshal(bareModel)
+			quotedModel, _ := json.Marshal(upstreamModel)
 			bodyMap["model"] = quotedModel
 			if rewritten, err := json.Marshal(bodyMap); err == nil {
 				upstreamBody = rewritten
@@ -158,27 +157,6 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 	defer resp.Body.Close()
 
-	// Forward the upstream response unchanged (transparent proxy).
-	// Limit read to 10MB to prevent memory exhaustion from malicious/faulty upstreams.
-	// If the response exceeds the limit, return 502 instead of silently truncating.
-	const maxResponseBytes int64 = 10 * 1024 * 1024
-	limitedReader := io.LimitReader(resp.Body, maxResponseBytes+1)
-	respBody, err := io.ReadAll(limitedReader)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
-		return
-	}
-	if int64(len(respBody)) > maxResponseBytes {
-		app.errorResponse(w, r, &integrations.HTTPError{
-			StatusCode: http.StatusBadGateway,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "502",
-				Message: "upstream response too large (exceeds 10MB limit)",
-			},
-		})
-		return
-	}
-
 	// Copy upstream response headers, excluding hop-by-hop headers (RFC 7230 §6.1)
 	// and framing headers invalidated by buffering.
 	hopByHop := map[string]bool{
@@ -201,12 +179,53 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	_, _ = w.Write(respBody)
+
+	if isStreaming {
+		flusher, canFlush := w.(http.Flusher)
+		buf := make([]byte, 4096)
+		for {
+			n, readErr := resp.Body.Read(buf)
+			if n > 0 {
+				if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+					return
+				}
+				if canFlush {
+					flusher.Flush()
+				}
+			}
+			if readErr != nil {
+				break
+			}
+		}
+	} else {
+		// Forward the upstream response unchanged (transparent proxy).
+		// Limit read to 10MB to prevent memory exhaustion from malicious/faulty upstreams.
+		// If the response exceeds the limit, return 502 instead of silently truncating.
+		const maxResponseBytes int64 = 10 * 1024 * 1024
+		limitedReader := io.LimitReader(resp.Body, maxResponseBytes+1)
+		respBody, err := io.ReadAll(limitedReader)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
+			return
+		}
+		if int64(len(respBody)) > maxResponseBytes {
+			app.errorResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusBadGateway,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "502",
+					Message: "upstream response too large (exceeds 10MB limit)",
+				},
+			})
+			return
+		}
+		_, _ = w.Write(respBody)
+	}
 }
 
 // resolveProxyModelEndpoint resolves a model ID to its upstream endpoint URL and API key.
-// Reuses the same resolution logic as the embeddings handler.
-func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace string) (baseURL, apiKey string, err error) {
+// maasToken is an optional pre-fetched MaaS ephemeral token (from X-OGX-Provider-Data);
+// if non-empty, it's used directly instead of calling the MaaS BFF for a new token.
+func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasToken string) (baseURL, apiKey string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", fmt.Errorf("missing RequestIdentity in context")
@@ -217,6 +236,13 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 		return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
 	}
 
+	// Strip passthrough provider prefix if present. OGX may forward the full
+	// provider-qualified ID (e.g., "genai-bff-proxy/maas-model") to this handler.
+	passthroughPrefix := constants.PassthroughProviderID + "/"
+	if strings.HasPrefix(modelID, passthroughPrefix) {
+		modelID = strings.TrimPrefix(modelID, passthroughPrefix)
+	}
+
 	// Resolution priority:
 	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 	// 2. Custom endpoint (provider-qualified with "/") → ConfigMap + Secret
@@ -225,17 +251,27 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", &proxyInfraError{msg: "MaaS is not available"}
 		}
+		// Strip "maas-" prefix to get the raw MaaS model ID (e.g. "publishers/llm/models/gemini-proxy")
+		// used by the MaaS BFF catalog.
+		maasModelID := strings.TrimPrefix(modelID, constants.MaaSProviderPrefix)
+
 		maasHeaders := map[string]string{constants.MaaSReturnAllModelsHeader: "true"}
 		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 
-		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, modelID)
+		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, maasModelID)
 		if urlErr != nil {
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
-		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, "")
+
+		// Use pre-fetched MaaS token from provider data if available (forwarded by OGX
+		// via X-OGX-Provider-Data). Falls back to fetching a new token directly.
+		token := maasToken
 		if token == "" {
-			return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
+			token = app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, "")
+		}
+		if token == "" {
+			return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
 		}
 		return inferenceURL, token, nil
 	}
@@ -290,4 +326,11 @@ func isProxyInfraError(err error) bool {
 		return true
 	}
 	return strings.Contains(err.Error(), "failed to get Kubernetes client")
+}
+
+// extractMaaSTokenFromProviderData reads the pre-fetched MaaS ephemeral token
+// from the request header. OGX's forward_headers config maps the
+// maas_ephemeral_api_token provider data key to this header.
+func extractMaaSTokenFromProviderData(r *http.Request) string {
+	return r.Header.Get(constants.MaaSEphemeralTokenHeader)
 }
