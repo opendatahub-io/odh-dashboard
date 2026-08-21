@@ -48,7 +48,7 @@ class PipelinesGlobal {
     cy.findByRole('menuitem', { name }).click();
   }
 
-  findImportPipelineButton(timeout = 60000) {
+  findImportPipelineButton(timeout?: number) {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 

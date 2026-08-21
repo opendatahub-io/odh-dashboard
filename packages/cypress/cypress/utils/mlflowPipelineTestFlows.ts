@@ -5,6 +5,7 @@ import {
   pipelineDetails,
   pipelineImportModal,
   pipelinesGlobal,
+  pipelineRunsGlobal,
   createRunPage,
   activeRunsTable,
 } from '../pages/pipelines';
@@ -100,7 +101,7 @@ export const importMlflowPipelineFromFile = (
   description: string,
   yamlPath: string,
 ): void => {
-  pipelinesGlobal.findImportPipelineButton().click();
+  pipelinesGlobal.findImportPipelineButton(MLFLOW_UI_TIMEOUT_MS).click();
   pipelineImportModal.findPipelineNameInput().type(name);
   pipelineImportModal.findPipelineDescriptionInput().type(description);
   pipelineImportModal.findUploadPipelineRadio().click();
@@ -131,15 +132,16 @@ export const createMlflowRunFromPipelineDetails = (
  * run's Argo workflow via oc until Succeeded.
  */
 export const waitForMlflowRunSucceeded = (projectName: string, timeout: number): void => {
-  cy.location('pathname', { timeout: MLFLOW_UI_TIMEOUT_MS }).should((pathname) => {
-    const runId = pathname.split('/').filter(Boolean).pop() ?? '';
-    expect(runId, `run details URL, got ${pathname}`).to.not.eq('create');
-    expect(runId.length, `run details URL, got ${pathname}`).to.be.greaterThan(0);
-  });
-  cy.location('pathname').then((pathname) => {
-    const runId = pathname.split('/').filter(Boolean).pop() ?? '';
-    waitForKfpRunSucceeded(projectName, runId, timeout);
-  });
+  cy.location('pathname', { timeout: MLFLOW_UI_TIMEOUT_MS })
+    .should((pathname) => {
+      const runId = pathname.split('/').filter(Boolean).pop() ?? '';
+      expect(runId, `run details URL, got ${pathname}`).to.not.eq('create');
+      expect(runId.length, `run details URL, got ${pathname}`).to.be.greaterThan(0);
+    })
+    .then((pathname) => {
+      const runId = pathname.split('/').filter(Boolean).pop() ?? '';
+      waitForKfpRunSucceeded(projectName, runId, timeout);
+    });
 };
 
 /** Assert that submitting the compare-runs action redirected to the MLflow compare-runs page. */
@@ -177,7 +179,7 @@ export const waitForMlflowExperimentLink = (runName: string, timeout = 60000): v
  * Wait for the compare-runs button to link to MLflow.
  */
 export const waitForMlflowCompareRunsButton = (timeout = 180000): void => {
-  cy.findByTestId('compare-runs-button', { timeout }).should(($btn) => {
+  pipelineRunsGlobal.findCompareRunsButton(timeout).should(($btn) => {
     const href = $btn.closest('a').attr('href') ?? $btn.attr('href') ?? '';
     expect(href, 'compare-runs-button href').to.include('/mlflow/');
   });

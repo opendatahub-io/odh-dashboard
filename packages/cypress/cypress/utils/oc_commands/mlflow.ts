@@ -10,7 +10,7 @@ const UI_POLL_CONFIG = {
   pollIntervalMs: 5000,
 } as const;
 
-const assertNamespace = (namespace: string): string => {
+export const assertNamespace = (namespace: string): string => {
   if (!K8S_NAMESPACE_RE.test(namespace)) {
     throw new Error(`Invalid namespace: ${namespace}`);
   }
@@ -473,12 +473,13 @@ export const waitForMlflowBffConfigured = (timeoutMs = 60000): Cypress.Chainable
 
 export const waitForDspaWebhookReady = (
   projectName: string,
-  timeout = '600s',
-): Cypress.Chainable<CommandLineResult> =>
-  cy
-    .exec(`oc wait --for=condition=WebhookReady dspa/dspa -n ${projectName} --timeout=${timeout}`, {
+  timeout: number,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = assertNamespace(projectName);
+  return cy
+    .exec(`oc wait --for=condition=WebhookReady dspa/dspa -n ${ns} --timeout=${timeout}ms`, {
       failOnNonZeroExit: false,
-      timeout: 610000,
+      timeout,
     })
     .then((result) => {
       if (result.exitCode !== 0) {
@@ -488,6 +489,7 @@ export const waitForDspaWebhookReady = (
       }
       return result;
     });
+};
 
 /**
  * DSPA condition Ready can flip True before the API server pod is Ready.
@@ -497,13 +499,13 @@ export const waitForDspaWebhookReady = (
  */
 export const waitForDspaApiServerPodReady = (
   projectName: string,
-  timeout = '300s',
+  timeout: number,
 ): Cypress.Chainable<CommandLineResult> => {
-  const timeoutMs = (Number.parseInt(timeout, 10) || 300) * 1000 + 10000;
+  const ns = assertNamespace(projectName);
   return cy
     .exec(
-      `oc wait --for=condition=Ready pod -l app=ds-pipeline-dspa -n ${projectName} --timeout=${timeout}`,
-      { failOnNonZeroExit: false, timeout: timeoutMs },
+      `oc wait --for=condition=Ready pod -l app=ds-pipeline-dspa -n ${ns} --timeout=${timeout}ms`,
+      { failOnNonZeroExit: false, timeout },
     )
     .then((result) => {
       if (result.exitCode !== 0) {

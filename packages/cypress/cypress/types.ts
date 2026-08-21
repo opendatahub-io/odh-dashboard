@@ -68,9 +68,9 @@ export type DspaReplacements = {
   AWS_REGION: string;
   AWS_S3_HOST: string;
   AWS_S3_SCHEME: string;
-  MLFLOW_INTEGRATION_MODE?: string;
-  MLFLOW_INJECT_USER_ENV_VARS?: string;
-  PIPELINE_STORE?: string;
+  MLFLOW_INTEGRATION_MODE: string;
+  MLFLOW_INJECT_USER_ENV_VARS: string;
+  PIPELINE_STORE: string;
 };
 
 export type StorageClassConfig = {

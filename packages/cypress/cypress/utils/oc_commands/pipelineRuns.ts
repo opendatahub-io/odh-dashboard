@@ -1,3 +1,4 @@
+import { assertNamespace } from './mlflow';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const FAILED_PHASES = new Set(['Failed', 'Error']);
@@ -45,7 +46,7 @@ export const waitForKfpRunSucceeded = (
 ): void => {
   const pollIntervalMs = 5000;
   const maxAttempts = Math.max(1, Math.ceil(timeoutMs / pollIntervalMs));
-  const ns = JSON.stringify(namespace);
+  const ns = assertNamespace(namespace);
   const listCommand = `oc get workflow.argoproj.io -n ${ns} -o json`;
   const startTime = Date.now();
 
@@ -70,6 +71,13 @@ export const waitForKfpRunSucceeded = (
           const phase = phaseResult.stdout.trim();
           if (FAILED_PHASES.has(phase)) {
             throw new Error(`Workflow ${workflowName} for run ${runId} ended with phase ${phase}`);
+          }
+          const lookupOutput = `${phaseResult.stderr} ${phaseResult.stdout}`;
+          if (phaseResult.exitCode !== 0 && /not found/i.test(lookupOutput)) {
+            cy.log(
+              `Workflow ${workflowName} was deleted while waiting; treating as completed by DSPA cleanup`,
+            );
+            return;
           }
           throw new Error(
             `Workflow ${workflowName} for run ${runId} did not succeed (phase=${

@@ -10,7 +10,7 @@ import {
 import { provisionProjectForPipelines } from '../../../utils/pipelines';
 import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { getIrisPipelinePath } from '../../../utils/fileImportUtils';
-import { createOpenShiftConfigMap } from '../../../utils/oc_commands/configmap';
+import { createDsPipelineCustomEnvVarsConfigMap } from '../../../utils/oc_commands/configmap';
 import {
   disableMlflowFeatures,
   enableMlflowFeatures,
@@ -35,9 +35,19 @@ import type { MlflowPipelineIntegrationTestData } from '../../../types';
 
 const uuid = generateTestUUID();
 const awsBucket = 'BUCKET_2' as const;
-const tags = ['@Pipelines', '@MLflow', '@Dashboard', '@NonConcurrent'] as const;
+const tags = [
+  '@Smoke',
+  '@SmokeSet4',
+  '@Pipelines',
+  '@MLflow',
+  '@MLflowIntegration',
+  '@Dashboard',
+  '@NonConcurrent',
+] as const;
 
 const BASE_RUN_TIMEOUT_MS = 240000;
+const DSPA_READY_TIMEOUT_MS = 600000;
+const DSPA_POD_TIMEOUT_MS = 310000;
 
 describe(
   'An admin user can configure MLflow experiment tracking for a pipeline server',
@@ -59,17 +69,10 @@ describe(
             integrationMode: 'AUTODETECT',
             pipelineStore: 'kubernetes',
           });
-          createOpenShiftConfigMap(
-            'ds-pipeline-custom-env-vars',
-            projectName,
-            Object.fromEntries([
-              ['pip_index_url', Cypress.env('PIP_INDEX_URL')],
-              ['pip_trusted_host', Cypress.env('PIP_TRUSTED_HOST')],
-            ]),
-          );
-          waitForDspaReady(projectName);
-          waitForDspaWebhookReady(projectName);
-          waitForDspaApiServerPodReady(projectName);
+          createDsPipelineCustomEnvVarsConfigMap(projectName);
+          waitForDspaReady(projectName, DSPA_READY_TIMEOUT_MS);
+          waitForDspaWebhookReady(projectName, DSPA_READY_TIMEOUT_MS);
+          waitForDspaApiServerPodReady(projectName, DSPA_POD_TIMEOUT_MS);
         },
       );
     });
@@ -90,9 +93,9 @@ describe(
       projectListPage.findProjectLink(projectName).click();
 
       cy.step('Wait for the pipeline server (DSPA) and MLflow webhook to be ready');
-      waitForDspaReady(projectName);
-      waitForDspaWebhookReady(projectName);
-      waitForDspaApiServerPodReady(projectName);
+      waitForDspaReady(projectName, DSPA_READY_TIMEOUT_MS);
+      waitForDspaWebhookReady(projectName, DSPA_READY_TIMEOUT_MS);
+      waitForDspaApiServerPodReady(projectName, DSPA_POD_TIMEOUT_MS);
 
       cy.step('Ensure Import Pipeline button is loaded');
       projectDetails.ensureImportPipelineButtonLoaded();
