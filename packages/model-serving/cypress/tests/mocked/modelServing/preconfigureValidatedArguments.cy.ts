@@ -262,7 +262,6 @@ describe('Preconfigure deployment validated arguments', () => {
 
     navigateToAdvancedOptions();
 
-    modelServingWizard.findRuntimeArgsCheckbox().should('be.checked');
     modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
 
     modelServingWizard.findNextButton().should('be.enabled').click();

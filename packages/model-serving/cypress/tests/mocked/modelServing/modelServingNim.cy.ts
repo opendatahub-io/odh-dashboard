@@ -462,7 +462,6 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizardEdit.findServiceAccountNameInput().should('have.value', 'my-existing-sa');
-    modelServingWizardEdit.findRuntimeArgsCheckbox().should('be.checked');
     modelServingWizardEdit
       .findRuntimeArgsTextBox()
       .should('have.value', '--verbose\n--log-level=debug');

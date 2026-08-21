@@ -1329,6 +1329,11 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
 
+  /**
+   * @deprecated RuntimeArgsField no longer has a checkbox - textarea is always visible.
+   * State is determined by whether args array has content: args.some((a) => a.trim().length > 0)
+   * Use findRuntimeArgsTextBox() to interact with the field.
+   */
   findRuntimeArgsCheckbox() {
     return cy.findByTestId('runtime-args-checkbox');
   }
