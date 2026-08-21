@@ -7,7 +7,7 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
-import { llmdTopologySettingsPage } from '@odh-dashboard/cypress/cypress/pages/llmdTopologySettings';
+import { topologyConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/topologyConfigurations';
 
 const mockPreInstalledConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'preinstalled-single-node',
@@ -65,58 +65,52 @@ describe('LLMD Topology Admin Settings', () => {
   describe('tab visibility', () => {
     it('should show topology configurations tab when flags enabled', () => {
       initIntercepts();
-      llmdTopologySettingsPage.visit();
-      llmdTopologySettingsPage
-        .findTabPageTitle()
-        .should('contain.text', 'Model deployment settings');
-      llmdTopologySettingsPage.findTab().should('exist');
-      llmdTopologySettingsPage.findTable().should('exist');
+      topologyConfigurations.visit();
+      topologyConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
+      topologyConfigurations.findTab().should('exist');
+      topologyConfigurations.findTable().should('exist');
     });
   });
 
   describe('empty state', () => {
     it('should show empty state when no topology configurations exist', () => {
       initIntercepts({ configs: [] });
-      llmdTopologySettingsPage.visit(false);
-      llmdTopologySettingsPage
-        .findTabPageTitle()
-        .should('contain.text', 'Model deployment settings');
-      llmdTopologySettingsPage.findTab().should('exist');
-      llmdTopologySettingsPage.findEmptyState().should('exist');
-      llmdTopologySettingsPage
+      topologyConfigurations.visit(false);
+      topologyConfigurations.findTabPageTitle().should('contain.text', 'Model deployment settings');
+      topologyConfigurations.findTab().should('exist');
+      topologyConfigurations.findEmptyState().should('exist');
+      topologyConfigurations
         .findEmptyState()
         .should('contain.text', 'No llm-d topology configurations');
-      llmdTopologySettingsPage.findEmptyStateAddButton().should('exist');
-      llmdTopologySettingsPage.findEmptyStateDropdownToggle().should('exist');
+      topologyConfigurations.findEmptyStateAddButton().should('exist');
+      topologyConfigurations.findEmptyStateDropdownToggle().should('exist');
     });
 
     it('should navigate to add page from empty state button', () => {
       initIntercepts({ configs: [] });
-      llmdTopologySettingsPage.visit(false);
-      llmdTopologySettingsPage.findEmptyStateAddButton().click();
+      topologyConfigurations.visit(false);
+      topologyConfigurations.findEmptyStateAddButton().click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/add/workload-single-node',
       );
       // The form actually mounted (URL + missing tab chrome alone don't prove it).
-      llmdTopologySettingsPage.findAppTitle().should('have.text', 'Add Single node configuration');
+      topologyConfigurations.findAppTitle().should('have.text', 'Add Single node configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
-      llmdTopologySettingsPage.findTab().should('not.exist');
+      topologyConfigurations.findTabPageTitle().should('not.exist');
+      topologyConfigurations.findTab().should('not.exist');
     });
 
     it('should show dropdown with other topology types in empty state', () => {
       initIntercepts({ configs: [] });
-      llmdTopologySettingsPage.visit(false);
-      llmdTopologySettingsPage.findEmptyStateDropdownToggle().click();
-      llmdTopologySettingsPage
+      topologyConfigurations.visit(false);
+      topologyConfigurations.findEmptyStateDropdownToggle().click();
+      topologyConfigurations
         .findEmptyStateDropdownItem('workload-multi-node-data-parallel')
         .should('exist');
-      llmdTopologySettingsPage
-        .findEmptyStateDropdownItem('workload-single-node-pd')
-        .should('exist');
-      llmdTopologySettingsPage
+      topologyConfigurations.findEmptyStateDropdownItem('workload-single-node-pd').should('exist');
+      topologyConfigurations
         .findEmptyStateDropdownItem('workload-multi-node-data-parallel-pd')
         .should('exist');
     });
@@ -125,28 +119,28 @@ describe('LLMD Topology Admin Settings', () => {
   describe('configurations table', () => {
     beforeEach(() => {
       initIntercepts();
-      llmdTopologySettingsPage.visit();
+      topologyConfigurations.visit();
     });
 
     it('should list topology configs with correct columns', () => {
-      llmdTopologySettingsPage.getRow('preinstalled-single-node').find().should('exist');
-      llmdTopologySettingsPage
+      topologyConfigurations.getRow('preinstalled-single-node').find().should('exist');
+      topologyConfigurations
         .getRow('preinstalled-single-node')
         .find()
         .should('contain.text', 'Pre-installed Single Node');
 
-      llmdTopologySettingsPage.getRow('user-multi-node').find().should('exist');
-      llmdTopologySettingsPage
+      topologyConfigurations.getRow('user-multi-node').find().should('exist');
+      topologyConfigurations
         .getRow('user-multi-node')
         .find()
         .should('contain.text', 'User Multi-node Config');
 
-      llmdTopologySettingsPage.getRow('disabled-config').find().should('exist');
+      topologyConfigurations.getRow('disabled-config').find().should('exist');
     });
 
     it('should show pre-installed badge on well-known configs', () => {
-      llmdTopologySettingsPage.getRow('preinstalled-single-node').shouldHavePreInstalledLabel(true);
-      llmdTopologySettingsPage.getRow('user-multi-node').shouldHavePreInstalledLabel(false);
+      topologyConfigurations.getRow('preinstalled-single-node').shouldHavePreInstalledLabel(true);
+      topologyConfigurations.getRow('user-multi-node').shouldHavePreInstalledLabel(false);
     });
 
     it('should toggle enabled state via switch', () => {
@@ -166,49 +160,49 @@ describe('LLMD Topology Admin Settings', () => {
         patchedConfig,
       ).as('patchConfig');
 
-      llmdTopologySettingsPage.getRow('user-multi-node').findEnabledSwitch().click();
+      topologyConfigurations.getRow('user-multi-node').findEnabledSwitch().click();
       cy.wait('@patchConfig');
     });
 
     it('should hide delete action for pre-installed configs', () => {
-      llmdTopologySettingsPage
+      topologyConfigurations
         .getRow('preinstalled-single-node')
         .findKebabAction('Delete', false)
         .should('not.exist');
     });
 
     it('should show delete action for user-created configs', () => {
-      llmdTopologySettingsPage.getRow('user-multi-node').findKebabAction('Delete');
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Delete');
     });
 
     it('should navigate to edit form as a full-page breakout route', () => {
-      llmdTopologySettingsPage.getRow('user-multi-node').findKebabAction('Edit').click();
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Edit').click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/edit/user-multi-node',
       );
       // The form actually mounted (URL + missing tab chrome alone don't prove it).
-      llmdTopologySettingsPage.findAppTitle().should('have.text', 'Edit User Multi-node Config');
+      topologyConfigurations.findAppTitle().should('have.text', 'Edit User Multi-node Config');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
-      llmdTopologySettingsPage.findTab().should('not.exist');
+      topologyConfigurations.findTabPageTitle().should('not.exist');
+      topologyConfigurations.findTab().should('not.exist');
     });
 
     it('should navigate to duplicate form as a full-page breakout route', () => {
-      llmdTopologySettingsPage.getRow('user-multi-node').findKebabAction('Duplicate').click();
+      topologyConfigurations.getRow('user-multi-node').findKebabAction('Duplicate').click();
       cy.url().should(
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/duplicate/user-multi-node',
       );
       // The form actually mounted (URL + missing tab chrome alone don't prove it).
-      llmdTopologySettingsPage
+      topologyConfigurations
         .findAppTitle()
         .should('have.text', 'Duplicate llm-d topology configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
-      llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
-      llmdTopologySettingsPage.findTab().should('not.exist');
+      topologyConfigurations.findTabPageTitle().should('not.exist');
+      topologyConfigurations.findTab().should('not.exist');
     });
   });
 });

@@ -1,5 +1,5 @@
-import { appChrome } from './appChrome';
-import { DashboardCodeEditor } from './components/DashboardCodeEditor';
+import { appChrome } from '../appChrome';
+import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
 
 class LlmAcceleratorConfigRow {
   constructor(public readonly name: string) {}
@@ -80,7 +80,7 @@ class UnsupportedStatusAcceptanceModal {
   }
 }
 
-class LlmAcceleratorConfigs {
+class LlmAcceleratorConfigurations {
   visit(wait = true) {
     cy.visitWithLogin(
       '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
@@ -163,5 +163,5 @@ class LlmAcceleratorConfigs {
   }
 }
 
-export const llmAcceleratorConfigs = new LlmAcceleratorConfigs();
+export const llmAcceleratorConfigurations = new LlmAcceleratorConfigurations();
 export const unsupportedStatusAcceptanceModal = new UnsupportedStatusAcceptanceModal();
