@@ -56,8 +56,6 @@ export const ModelRegistryModel: K8sModelCommon = {
   plural: 'modelregistries',
 };
 
-export { TrustyAIApplicationsModel } from '@odh-dashboard/trustyai/api/model';
-
 export const FeatureStoreModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'feast.dev',

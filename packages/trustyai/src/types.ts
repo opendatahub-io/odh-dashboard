@@ -71,6 +71,7 @@ export const TRUSTY_CR_NOT_AVAILABLE_STATES = [
 
 // ─── DB types ────────────────────────────────────────────────────────────────
 
+/** Structure matches K8s Secret structure */
 export type TrustyDBData = {
   databaseKind: string;
   databaseUsername: string;
