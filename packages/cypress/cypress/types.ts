@@ -215,6 +215,8 @@ export type WBStorageClassesTestData = {
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
+  dualAccessProvisioner?: string;
+  multiAccessProvisioner?: string;
 };
 
 export type ClusterStorageAccessModesTestData = {
