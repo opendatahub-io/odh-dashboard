@@ -86,7 +86,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
             }
           }}
         >
-          <Truncate content={uri} position="middle" trailingNumChars={30} />
+          <Truncate content={uri} position="middle" trailingNumChars={25} />
         </Button>
       </FlexItem>
       {!isDownloadableOnly && (
