@@ -62,6 +62,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
     "type-check": "tsc --noEmit"
   },
   "e2eCiTags": [
@@ -78,6 +79,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
