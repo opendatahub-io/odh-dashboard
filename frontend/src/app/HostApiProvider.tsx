@@ -28,8 +28,6 @@ import {
   getDashboardConfigTemplateOrder,
   getDashboardConfigTemplateDisablement,
 } from '#~/api/k8s/dashboardConfig';
-import { useModelServingMetrics } from '#~/api/prometheus/serving';
-import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -78,10 +76,6 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
       useServingConnections,
       getDashboardConfigTemplateOrder,
       getDashboardConfigTemplateDisablement,
-      useModelServingMetrics:
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- bridge uses generic string params; concrete enum types are structurally compatible
-        useModelServingMetrics as unknown as HostApiServices['useModelServingMetrics'],
-      useServingPlatformStatuses,
       isProjectNIMSupported,
       createProject: (displayName: string, description: string, k8sName?: string) =>
         createProject(username, displayName, description, k8sName),
