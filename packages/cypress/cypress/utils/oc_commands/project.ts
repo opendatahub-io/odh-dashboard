@@ -167,6 +167,31 @@ export const waitForUserProjectAccess = (
     },
   );
 
+/**
+ * Wait until a project's status.phase is Active.
+ * The dashboard project list only includes Active projects; oc get can succeed
+ * before that. This is not the same as waitForUserProjectAccess (RBAC via --as).
+ *
+ * @param projectName OpenShift Project name
+ * @param timeout Timeout in milliseconds (default: 60000)
+ */
+export const waitForProjectActive = (
+  projectName: string,
+  timeout = 60000,
+): Cypress.Chainable<CommandLineResult> => {
+  const timeoutSeconds = Math.max(1, Math.ceil(timeout / 1000));
+  const waitCmd = `oc wait --for=jsonpath='{.status.phase}'=Active project/${projectName} --timeout=${timeoutSeconds}s`;
+
+  cy.log(`Waiting for project ${projectName} to become Active`);
+  return cy.exec(waitCmd, { failOnNonZeroExit: false, timeout: timeout + 10000 }).then((result) => {
+    if (result.exitCode !== 0) {
+      const maskedStderr = maskSensitiveInfo(result.stderr || '');
+      throw new Error(`Project ${projectName} did not become Active: ${maskedStderr}`);
+    }
+    return result;
+  });
+};
+
 export const patchInferenceServiceFinalizers = (
   projectName: string,
 ): Cypress.Chainable<CommandLineResult> => {

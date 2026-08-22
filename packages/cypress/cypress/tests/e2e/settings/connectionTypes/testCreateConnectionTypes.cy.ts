@@ -13,7 +13,10 @@ import { loadOOTBConnectionTypesFixture } from '../../../../utils/dataLoader';
 import type { OOTBConnectionTypesData } from '../../../../types';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import {
+  deleteOpenShiftProject,
+  waitForProjectActive,
+} from '../../../../utils/oc_commands/project';
 import { deleteConnectionTypeByName } from '../../../../utils/oc_commands/connectionTypes';
 import { modelServingWizard, modelServingGlobal } from '../../../../pages/modelServing';
 
@@ -59,6 +62,7 @@ describe('Verify Connection Type Creation', () => {
       }
       cy.log(`Loaded project name: ${projectName}`);
       createCleanProject(projectName);
+      waitForProjectActive(projectName);
     }),
   );
 
@@ -169,8 +173,7 @@ describe('Verify Connection Type Creation', () => {
       // Project navigation
       cy.step(`Navigate to the Connections tab and validate the connection type is available`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.openFilteredProject(projectName);
       projectDetails.findSectionTab('connections').click();
       connectionsPage.findCreateConnectionButton().click();
       addConnectionModal.findConnectionTypeDropdown().click();
@@ -192,8 +195,7 @@ describe('Verify Connection Type Creation', () => {
 
       cy.step(`Navigate to the Connections tab and validate the connection type is not available`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.openFilteredProject(projectName);
       projectDetails.findSectionTab('connections').click();
       connectionsPage.findCreateConnectionButton().click();
       addConnectionModal.findConnectionTypeDropdown().click();
@@ -236,8 +238,7 @@ describe('Verify Connection Type Creation', () => {
       // Project navigation
       cy.step(`Navigate to the Deployments tab and validate the connection type is available`);
       projectListPage.visit();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.openFilteredProject(projectName);
       projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
@@ -263,8 +264,7 @@ describe('Verify Connection Type Creation', () => {
 
       cy.step(`Navigate to the Deployments tab and validate the connection type is not available`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.openFilteredProject(projectName);
       projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.selectSingleServingModelButtonIfExists();
       modelServingGlobal.findDeployModelButton().click();
