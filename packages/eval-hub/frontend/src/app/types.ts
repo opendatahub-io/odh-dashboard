@@ -178,6 +178,7 @@ type S3DataRef = {
 };
 
 type TestDataRef = {
+  type?: 'data_set' | 'pre_recorded_data';
   s3?: S3DataRef;
 };
 
@@ -430,7 +431,7 @@ export type CreateEvaluationJobRequest = {
   description?: string;
   tags?: string[];
   model: {
-    url: string;
+    url?: string;
     name: string;
     parameters?: Record<string, unknown>;
     auth?: {

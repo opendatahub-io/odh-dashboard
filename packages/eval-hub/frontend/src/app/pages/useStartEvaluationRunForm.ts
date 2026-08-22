@@ -326,6 +326,16 @@ export function useStartEvaluationRunForm({
     return undefined;
   }, [sourceMode, datasetUrl]);
 
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (accessToken.trim() === '') {
+      return 'S3 secret name is required.';
+    }
+    return undefined;
+  }, [sourceMode, accessToken]);
+
   // ── Overall form validity ───────────────────────────────────────────
 
   const isValid = React.useMemo(() => {
@@ -344,7 +354,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -356,6 +366,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     sourceName,
   ]);
 
@@ -655,6 +666,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,

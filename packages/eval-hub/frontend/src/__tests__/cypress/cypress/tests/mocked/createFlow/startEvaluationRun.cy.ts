@@ -540,7 +540,26 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should submit with pre-recorded responses fields', () => {
+  it('should not show validate connection button for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
+    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
+  });
+
+  it('should require S3 secret name for pre-recorded mode', () => {
+    navigateToBenchmarkStart();
+
+    selectSourceMode('Pre-recorded responses');
+    startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
+    startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
+    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+
+    startEvaluationRunPage.findAccessTokenInput().type('my-s3-secret');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
+  });
+
+  it('should submit with parsed S3 bucket/key and type in payload', () => {
     const createdJob = mockEvaluationJob({
       id: 'new-eval-003',
       name: 'prerecorded-eval',
@@ -555,12 +574,22 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
 
     selectSourceMode('Pre-recorded responses');
     startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
-    startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
+    startEvaluationRunPage.findDatasetUrlInput().type('s3://my-bucket/path/to/dataset.jsonl');
+    startEvaluationRunPage.findAccessTokenInput().type('my-s3-secret');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createPrerecordedJob').then((interception) => {
       expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
+      expect(interception.request.body.model).to.not.have.property('url');
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'my-bucket',
+          key: 'path/to/dataset.jsonl',
+          secret_ref: 'my-s3-secret',
+        },
+      });
     });
   });
 });
