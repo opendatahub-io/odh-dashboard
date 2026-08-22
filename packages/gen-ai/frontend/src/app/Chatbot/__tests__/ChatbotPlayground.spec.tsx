@@ -11,6 +11,7 @@ const mockDeleteFileById = jest.fn().mockResolvedValue(undefined);
 const mockRefreshFiles = jest.fn().mockResolvedValue(undefined);
 const mockOnShowErrorAlert = jest.fn();
 const mockHandleMessageSend = jest.fn().mockResolvedValue(undefined);
+const mockChatbotSettingsPanelProps = jest.fn();
 
 let mockFilesWithSettings: Array<{
   id: string;
@@ -409,7 +410,10 @@ jest.mock('~/app/Chatbot/sourceUpload/ChatbotSourceSettingsModal', () => ({
 jest.mock('~/app/Chatbot/components/ChatbotSettingsPanel', () => {
   const React = require('react');
   return {
-    ChatbotSettingsPanel: () => React.createElement('div', { 'data-testid': 'settings-panel' }),
+    ChatbotSettingsPanel: (props: unknown) => {
+      mockChatbotSettingsPanelProps(props);
+      return React.createElement('div', { 'data-testid': 'settings-panel' });
+    },
   };
 });
 
@@ -1141,5 +1145,71 @@ describe('ChatbotPlayground — compare mode attachments', () => {
     await triggerDocumentUpload([createFile('doc.pdf')]);
 
     expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ChatbotPlayground — "Try in playground" from a vector store', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    uuidCounter = 0;
+    mockFilesWithSettings = [];
+    mockFileManagementFiles = [];
+
+    act(() => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
+    });
+  });
+
+  const renderPlaygroundWithRouteState = (state: Record<string, unknown>) =>
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/gen-ai-studio/playground/test-ns', state }]}>
+        <ChatbotPlayground
+          isViewCodeModalOpen={false}
+          setIsViewCodeModalOpen={jest.fn()}
+          isNewChatModalOpen={false}
+          setIsNewChatModalOpen={jest.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+  it('enables RAG against the selected vector store', () => {
+    renderPlaygroundWithRouteState({
+      vectorStoreId: 'vs-test-1',
+      openSettingsToTab: 'knowledge',
+    });
+
+    const config = useChatbotConfigStore.getState().getConfiguration(DEFAULT_CONFIG_ID);
+    expect(config?.knowledgeMode).toBe('external');
+    expect(config?.selectedVectorStoreId).toBe('vs-test-1');
+    expect(config?.isRagEnabled).toBe(true);
+  });
+
+  it('opens the settings panel to the Knowledge tab', () => {
+    renderPlaygroundWithRouteState({
+      vectorStoreId: 'vs-test-1',
+      openSettingsToTab: 'knowledge',
+    });
+
+    const lastCallProps = mockChatbotSettingsPanelProps.mock.calls.at(-1)?.[0] as {
+      activeTabKey: number | string;
+    };
+    expect(lastCallProps.activeTabKey).toBe(2);
+  });
+
+  it('does not change knowledge configuration when no vector store is passed via route state', () => {
+    renderPlaygroundWithRouteState({});
+
+    const config = useChatbotConfigStore.getState().getConfiguration(DEFAULT_CONFIG_ID);
+    expect(config?.knowledgeMode).toBe(DEFAULT_CONFIGURATION.knowledgeMode);
+    expect(config?.selectedVectorStoreId).toBe(DEFAULT_CONFIGURATION.selectedVectorStoreId);
+    expect(config?.isRagEnabled).toBe(DEFAULT_CONFIGURATION.isRagEnabled);
   });
 });
