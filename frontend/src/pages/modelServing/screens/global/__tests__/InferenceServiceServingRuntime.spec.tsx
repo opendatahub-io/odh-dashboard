@@ -70,4 +70,13 @@ describe('InferenceServiceServingRuntime', () => {
 
     await findByText('Template removed');
   });
+
+  it('should pass the serving runtime namespace to useTemplateByName', () => {
+    const mockRuntime = mockServingRuntimeK8sResource({ namespace: 'my-project' });
+    useTemplateByNameMock.mockReturnValue([undefined, true, undefined]);
+
+    render(<InferenceServiceServingRuntime servingRuntime={mockRuntime} />);
+
+    expect(useTemplateByNameMock).toHaveBeenCalledWith('ovms', 'my-project');
+  });
 });
