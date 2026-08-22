@@ -324,11 +324,22 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		require.NotNil(t, cfg.Server.Auth, "Auth should be set when RBAC flag is enabled")
 		require.NotNil(t, cfg.Server.Auth.ProviderConfig)
 		assert.Equal(t, "kubernetes", cfg.Server.Auth.ProviderConfig.Type)
-		assert.Len(t, cfg.Server.Auth.AccessPolicy, 2)
+		require.Len(t, cfg.Server.Auth.AccessPolicy, 3, "expected 3 access policy rules")
 
-		// Verify access policies
-		assert.Contains(t, result, "user with admin in roles")
-		assert.Contains(t, result, "user with system:authenticated in roles")
+		// Rule 1: owner has full CRUD
+		assert.Equal(t, "user is owner", cfg.Server.Auth.AccessPolicy[0].When)
+		require.NotNil(t, cfg.Server.Auth.AccessPolicy[0].Permit)
+		assert.ElementsMatch(t, []string{"create", "read", "update", "delete"}, cfg.Server.Auth.AccessPolicy[0].Permit.Actions)
+
+		// Rule 2: any authenticated user can create new resources
+		assert.Empty(t, cfg.Server.Auth.AccessPolicy[1].When, "create rule should have no condition")
+		require.NotNil(t, cfg.Server.Auth.AccessPolicy[1].Permit)
+		assert.Equal(t, []string{"create"}, cfg.Server.Auth.AccessPolicy[1].Permit.Actions)
+
+		// Rule 3: unowned resources readable by everyone
+		assert.Equal(t, "resource is unowned", cfg.Server.Auth.AccessPolicy[2].When)
+		require.NotNil(t, cfg.Server.Auth.AccessPolicy[2].Permit)
+		assert.Equal(t, []string{"read"}, cfg.Server.Auth.AccessPolicy[2].Permit.Actions)
 	})
 
 	t.Run("default EnvConfig should have RBAC disabled", func(t *testing.T) {

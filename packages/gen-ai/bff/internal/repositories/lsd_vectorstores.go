@@ -46,6 +46,18 @@ func (r *VectorStoresRepository) CreateVectorStore(ctx context.Context, params l
 	return client.CreateVectorStore(ctx, params)
 }
 
+// RetrieveVectorStore retrieves a single vector store by ID.
+// Used for ownership validation before mutating operations (defense-in-depth).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
+func (r *VectorStoresRepository) RetrieveVectorStore(ctx context.Context, vectorStoreID string) (*openai.VectorStore, error) {
+	client, err := helper.GetContextLlamaStackClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.RetrieveVectorStore(ctx, vectorStoreID)
+}
+
 // DeleteVectorStore deletes a vector store by ID.
 // The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
