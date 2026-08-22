@@ -67,8 +67,8 @@ export const verifyMcpServerCRExists = (
 };
 
 /**
- * Polls until an MCPServer CR in the given namespace reaches the Running phase.
- * Running phase maps to "Available" in the UI.
+ * Polls until an MCPServer CR in the given namespace has a Ready condition
+ * with status=True and reason=Available (Kubernetes-style Conditions model).
  *
  * @param projectName The namespace containing the MCPServer CR
  */
@@ -77,14 +77,14 @@ export const waitForMcpDeploymentAvailable = (
 ): Cypress.Chainable<Cypress.Exec> => {
   cy.log(`Waiting for MCP deployment to become Available in namespace: ${projectName}`);
   return pollUntilSuccess(
-    `oc get mcpserver -n ${projectName} -o jsonpath='{.items[0].status.phase}' | grep -q Running`,
+    `oc get mcpserver -n ${projectName} -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' | grep -q True`,
     `MCP deployment to become Available in ${projectName}`,
     { maxAttempts: 60, pollIntervalMs: 5000 },
   );
 };
 
 /**
- * Verifies the MCPServer CR exists then polls until it reaches the Running phase.
+ * Verifies the MCPServer CR exists then polls until it reaches Ready=True.
  *
  * @param projectName The namespace containing the MCPServer CR
  * @param deploymentName The name of the MCPServer CR
