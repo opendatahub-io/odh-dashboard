@@ -5,7 +5,8 @@ import { mockModArchResponse } from 'mod-arch-core';
 import type { RoleBindingKind } from '../../../shared/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
-export { MODEL_REGISTRY_API_VERSION };
+const CLIENT_API_VERSION = 'v1';
+export { MODEL_REGISTRY_API_VERSION, CLIENT_API_VERSION };
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -13,9 +14,7 @@ type SuccessErrorResponse = {
 };
 
 type ApiResponse<V = SuccessErrorResponse> =
-  | V
-  | GenericStaticResponse<string, V>
-  | RouteHandlerController;
+  V | GenericStaticResponse<string, V> | RouteHandlerController;
 
 type Replacement<R extends string = string> = Record<R, string | undefined>;
 type Query<Q extends string = string> = Record<Q, string>;
