@@ -50,15 +50,32 @@ const resolveEffectivePhase = (
 };
 
 const phaseLabel = (phase: string): React.ReactNode => {
+  const testId = `status-badge-${phase.toLowerCase()}`;
   switch (phase) {
     case 'Ready':
-      return <Label color="green">Ready</Label>;
+      return (
+        <Label color="green" data-testid={testId}>
+          Ready
+        </Label>
+      );
     case 'Failed':
-      return <Label color="red">Failed</Label>;
+      return (
+        <Label color="red" data-testid={testId}>
+          Failed
+        </Label>
+      );
     case 'Installing':
-      return <Label color="blue">Installing</Label>;
+      return (
+        <Label color="blue" data-testid={testId}>
+          Installing
+        </Label>
+      );
     default:
-      return <Label color="purple">{phase}</Label>;
+      return (
+        <Label color="purple" data-testid={testId}>
+          {phase}
+        </Label>
+      );
   }
 };
 
@@ -217,18 +234,16 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
             : '-'}
         </Td>
         <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'Delete',
-                isDisabled: !canDelete,
-                tooltipProps: !canDelete
-                  ? { content: 'You do not have permission to delete feature stores.' }
-                  : undefined,
-                onClick: () => onDelete(fs),
-              },
-            ]}
-          />
+          {canDelete && (
+            <ActionsColumn
+              items={[
+                {
+                  title: 'Delete',
+                  onClick: () => onDelete(fs),
+                },
+              ]}
+            />
+          )}
         </Td>
       </Tr>
       {isExpanded && (
