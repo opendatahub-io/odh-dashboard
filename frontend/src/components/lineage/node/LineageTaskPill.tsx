@@ -29,6 +29,14 @@ import { DagreLayoutOptions, TOP_TO_BOTTOM } from '@patternfly/react-topology/di
 
 const STATUS_ICON_SIZE = 16;
 
+const getPillAccentPath = (offsetX: number, height: number, accentWidth: number): string => {
+  const radius = height / 2;
+  const rightX = offsetX + accentWidth;
+  return `M ${offsetX + radius} 0 H ${rightX} V ${height} H ${
+    offsetX + radius
+  } A ${radius} ${radius} 0 0 1 ${offsetX + radius} 0 Z`;
+};
+
 /**
  * Calculates pill dimensions based on text size and other parameters
  */
@@ -169,6 +177,8 @@ export interface LineageTaskPillProps {
   hideContextMenuKebab?: boolean;
   shadowCount?: number;
   shadowOffset?: number;
+  pillBackgroundColor?: string;
+  pillAccentColor?: string;
   x?: number;
   y?: number;
 }
@@ -221,6 +231,8 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     hideContextMenuKebab,
     shadowCount = 0,
     shadowOffset = 8,
+    pillBackgroundColor,
+    pillAccentColor,
     x = 0,
     y = 0,
   }) => {
@@ -363,6 +375,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             cx={statusBackgroundRadius}
             cy={statusBackgroundRadius}
             r={statusBackgroundRadius}
+            fill={pillAccentColor}
           />
           {hiddenDetailsShownStatuses.includes(status) ? (
             <g transform="translate(4, 4)">
@@ -439,8 +452,22 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
           height={dimensions.height}
           rx={dimensions.height / 2}
           className={css(styles.topologyPipelinesPillBackground)}
+          fill={pillBackgroundColor}
           filter={filter}
+          {...(pillBackgroundColor ? { 'data-testid': 'lineage-pill-background' } : {})}
         />
+        {pillAccentColor && (
+          <path
+            d={getPillAccentPath(
+              dimensions.offsetX,
+              dimensions.height,
+              dimensions.statusStartX + statusIconSize + paddingX,
+            )}
+            fill={pillAccentColor}
+            filter={filter}
+            data-testid="lineage-pill-accent"
+          />
+        )}
         <g transform={`translate(${dimensions.textStartX}, ${paddingY + textHeight / 2 + 1})`}>
           {element.getLabel() !== label && !disableTooltip ? (
             <Tooltip triggerRef={nameLabelTriggerRef} content={element.getLabel()}>

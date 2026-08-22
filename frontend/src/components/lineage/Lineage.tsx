@@ -31,6 +31,7 @@ const LineageInner: React.FC<LineageProps> = ({
   componentFactory,
   popoverComponent: PopoverComponent,
   toolbarComponent: ToolbarComponent,
+  legendComponent: LegendComponent,
   autoResetOnDataChange = false,
 }) => {
   const controller = useLineageController('lineage-graph', componentFactory);
@@ -233,6 +234,8 @@ const LineageInner: React.FC<LineageProps> = ({
             <VisualizationSurface state={{ selectedIds, highlightedIds }} />
           </VisualizationProvider>
         </TopologyView>
+
+        {LegendComponent && <LegendComponent />}
 
         {PopoverComponent && (
           <PopoverComponent
