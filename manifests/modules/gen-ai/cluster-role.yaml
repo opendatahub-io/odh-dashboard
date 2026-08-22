@@ -19,6 +19,14 @@ rules:
       - watch
     resources:
       - ingresses
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
   # OTel Collector — create/manage the gen-ai-trace-collector CR for per-namespace trace routing
   - apiGroups:
       - opentelemetry.io
