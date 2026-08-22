@@ -1382,7 +1382,42 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 //  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
 //     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
 //     on port 4318, so we must use otlp_proto_http explicitly.
-//
+
+// existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
+// whether it already contains a remote::passthrough inference provider. Returns
+// false (conservatively) on any read/parse error so the caller falls through to
+// the legacy "already exists" error path.
+func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Context, server *ogxapi.OGXServer, namespace string) bool {
+	if server.Spec.OverrideConfig == nil {
+		return false
+	}
+	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace)
+}
+
+// existingServerHasPassthroughFromConfigMap reads the named ConfigMap and checks
+// whether it contains a remote::passthrough inference provider in its config YAML.
+// Extracted for testability (avoids OGXServer CRD dependency in unit tests).
+func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx context.Context, cmName, cmKey, namespace string) bool {
+	var cm corev1.ConfigMap
+	if err := kc.Client.Get(ctx, types.NamespacedName{
+		Name:      cmName,
+		Namespace: namespace,
+	}, &cm); err != nil {
+		kc.Logger.Debug("could not read OGXServer ConfigMap for passthrough detection", "error", err)
+		return false
+	}
+	configYAML, ok := cm.Data[cmKey]
+	if !ok {
+		return false
+	}
+	var config LlamaStackConfig
+	if err := config.FromYAML(configYAML); err != nil {
+		kc.Logger.Debug("could not parse OGXServer config for passthrough detection", "error", err)
+		return false
+	}
+	return config.HasPassthroughProvider()
+}
+
 // We can later use the simpler entrypoint command if the OGX image fixes the
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
 //
@@ -1435,6 +1470,20 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	if len(existingList.Items) > 0 {
+		// Zero-restart path: if the existing OGXServer already has a passthrough
+		// provider, new models are discoverable without any CR or ConfigMap update.
+		// OGX's Responses API resolves models per-request via the passthrough provider,
+		// so newly added models (ISVCs, MaaS, custom endpoints) are immediately
+		// available without OGX knowing about them in its model registry.
+		existing := &existingList.Items[0]
+		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
+			if len(vectorStores) > 0 {
+				return nil, fmt.Errorf("cannot install vector stores through the zero-restart path; manage vector stores separately via the vector stores API")
+			}
+			kc.Logger.Info("OGXServer exists with passthrough provider; new models resolved per-request via Responses API (zero-restart)",
+				"namespace", namespace, "server", existing.Name)
+			return existing, nil
+		}
 		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
@@ -1918,57 +1967,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		config.VectorStores.DefaultProviderID = ""
 	}
 
-	// Create a map of MaaS models for efficient lookup (only call ListModels once)
-	maasModelsMap := make(map[string]*models.MaaSModel)
-	if bffClient != nil {
-		// Check if we have any MaaS models first
-		hasMaaSModels := false
-		for _, model := range installModels {
-			if model.ModelSourceType == models.ModelSourceTypeMaaS {
-				hasMaaSModels = true
-				break
-			}
-		}
-
-		if hasMaaSModels {
-			if userAuthToken == "" {
-				return "", fmt.Errorf("user auth token is required to list MaaS models")
-			}
-
-			// Call MaaS BFF /models endpoint using BFF client
-			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
-			// Note: MaaS BFF determines namespace scope via the forwarded authentication token
-			// (x-forwarded-access-token header), not via query parameters
-			var bffResponse models.MaaSBFFModelsResponse
-			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
-			if err != nil {
-				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
-				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
-			}
-
-			// Extract models from envelope-wrapped response and convert to MaaSModel format
-			bffModels := bffResponse.Data.Data
-
-			// Create map for efficient lookup, converting from BFF model to MaaSModel
-			for i := range bffModels {
-				bffModel := &bffModels[i]
-				// Convert MaaSBFFModel to MaaSModel
-				maasModel := &models.MaaSModel{
-					ID:      bffModel.ID,
-					Object:  bffModel.Object,
-					Created: bffModel.Created,
-					OwnedBy: bffModel.OwnedBy,
-					Ready:   bffModel.Ready,
-					URL:     bffModel.URL,
-				}
-				maasModelsMap[maasModel.ID] = maasModel
-			}
-
-			kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
-		}
-	}
-
-	// Add the default embedding model
+	// Add the default embedding model (required for vector stores — OGX's vector store
+	// path lacks per-request model resolution, so embedding models must be static).
 	defaultEmbeddingModel := constants.DefaultEmbeddingModel()
 	embeddingModel := NewEmbeddingModel(
 		defaultEmbeddingModel.ModelID,
@@ -1978,89 +1978,143 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	)
 	config.AddModel(embeddingModel)
 
-	// Pre-fetch the external models ConfigMap once if any external models are present
-	var externalModelsConfig *models.ExternalModelsConfig
-	for _, model := range installModels {
-		if models.IsExternalModelSource(model.ModelSourceType) {
-			cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+	// When passthrough is enabled, inference models are NOT registered in OGX's config.
+	// OGX's Responses API resolves models per-request, bypassing the model registry
+	// entirely — it forwards inference to the sole configured passthrough provider,
+	// and the BFF proxy handles routing to the actual model endpoint.
+	//
+	// When passthrough is disabled (legacy/local-dev), models are registered with
+	// individual providers (remote::vllm, remote::custom_endpoint, etc.) as before.
+	if kc.EnvConfig.GatewayDomain == "" {
+		// Legacy path: register each model with its own provider in OGX config.
+		maasModelsMap := make(map[string]*models.MaaSModel)
+		if bffClient != nil {
+			hasMaaSModels := false
+			for _, model := range installModels {
+				if model.ModelSourceType == models.ModelSourceTypeMaaS {
+					hasMaaSModels = true
+					break
 				}
-				return "", fmt.Errorf("failed to get external models ConfigMap: %w", err)
 			}
-			externalModelsConfig = cfg
-			kc.Logger.Debug("loaded external models ConfigMap", "namespace", namespace)
-			break
+
+			if hasMaaSModels {
+				if userAuthToken == "" {
+					return "", fmt.Errorf("user auth token is required to list MaaS models")
+				}
+
+				// Call MaaS BFF /models endpoint using BFF client
+				// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
+				// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+				// (x-forwarded-access-token header), not via query parameters
+				var bffResponse models.MaaSBFFModelsResponse
+				err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+				if err != nil {
+					kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
+					return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
+				}
+
+				bffModels := bffResponse.Data.Data
+				for i := range bffModels {
+					bffModel := &bffModels[i]
+					maasModel := &models.MaaSModel{
+						ID:      bffModel.ID,
+						Object:  bffModel.Object,
+						Created: bffModel.Created,
+						OwnedBy: bffModel.OwnedBy,
+						Ready:   bffModel.Ready,
+						URL:     bffModel.URL,
+					}
+					maasModelsMap[maasModel.ID] = maasModel
+				}
+				kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
+			}
 		}
-	}
 
-	for i, model := range installModels {
-		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-
-		// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
-		if model.ModelType == string(models.ModelTypeTranscription) {
-			kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
-			continue
+		var externalModelsConfig *models.ExternalModelsConfig
+		for _, model := range installModels {
+			if models.IsExternalModelSource(model.ModelSourceType) {
+				cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+					}
+					return "", fmt.Errorf("failed to get external models ConfigMap: %w", err)
+				}
+				externalModelsConfig = cfg
+				kc.Logger.Debug("loaded external models ConfigMap", "namespace", namespace)
+				break
+			}
 		}
 
-		if model.ModelSourceType == models.ModelSourceTypeMaaS {
-			// Handle MaaS models using the pre-loaded map
-			maasModel, exists := maasModelsMap[model.ModelName]
-			if !exists {
-				kc.Logger.Error("MaaS model not found in map", "model", model.ModelName)
-				return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
+		for i, model := range installModels {
+			kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+
+			// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
+			if model.ModelType == string(models.ModelTypeTranscription) {
+				kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
+				continue
 			}
 
-			// Check if model is ready
-			if !maasModel.Ready {
-				kc.Logger.Error("MaaS model is not ready", "model", model.ModelName, "modelID", maasModel.ID)
-				return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
-			}
+			if model.ModelSourceType == models.ModelSourceTypeMaaS {
+				// Handle MaaS models using the pre-loaded map
+				maasModel, exists := maasModelsMap[model.ModelName]
+				if !exists {
+					kc.Logger.Error("MaaS model not found in map", "model", model.ModelName)
+					return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
+				}
 
-			// Create provider and model for MaaS model
-			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
-			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			resolvedMaaSType := model.ModelType
-			if resolvedMaaSType == "" {
-				resolvedMaaSType = "llm"
-			}
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
-			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
-		} else if models.IsExternalModelSource(model.ModelSourceType) {
-			// Handle external models from ConfigMap
-			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-			extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
-			if err != nil {
-				kc.Logger.Error("failed to get external model details", "model", model.ModelName, "error", err)
-				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
-			}
+				// Check if model is ready
+				if !maasModel.Ready {
+					kc.Logger.Error("MaaS model is not ready", "model", model.ModelName, "modelID", maasModel.ID)
+					return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
+				}
 
-			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-			resolvedExtType := model.ModelType
-			if resolvedExtType == "" {
-				resolvedExtType = extDetails.modelType
-			}
-			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
-			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
-		} else {
-			// Handle regular cluster models (InferenceService/LLMInferenceService)
-			kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-			details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
-			if err != nil {
-				kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "error", err)
-				return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
-			}
+				// Create provider and model for MaaS model
+				providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
+				endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
+				resolvedMaaSType := model.ModelType
+				if resolvedMaaSType == "" {
+					resolvedMaaSType = "llm"
+				}
+				config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
+				kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
+			} else if models.IsExternalModelSource(model.ModelSourceType) {
+				// Handle external models from ConfigMap
+				kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+				extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
+				if err != nil {
+					kc.Logger.Error("failed to get external model details", "model", model.ModelName, "error", err)
+					return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
+				}
 
-			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
+				// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
+				resolvedExtType := model.ModelType
+				if resolvedExtType == "" {
+					resolvedExtType = extDetails.modelType
+				}
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+				kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
+			} else {
+				// Handle regular cluster models (InferenceService/LLMInferenceService)
+				kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+				details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
+				if err != nil {
+					kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "error", err)
+					return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
+				}
 
-			resolvedClusterType := model.ModelType
-			if resolvedClusterType == "" {
-				resolvedClusterType = details.modelType
+				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
+
+				resolvedClusterType := model.ModelType
+				if resolvedClusterType == "" {
+					resolvedClusterType = details.modelType
+				}
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
+				kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
 			}
-			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
-			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
 		}
+	} else {
+		kc.Logger.Info("Passthrough enabled — skipping individual model registration (Responses API resolves per-request)")
 	}
 
 	// Vector stores processing happens here after all the model providers above have been processed.
@@ -2138,6 +2192,27 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 	// Ensure storage field is present before serialization (defensive check)
 	config.EnsureStorageField()
+
+	// Add remote::passthrough provider for inference routing through the BFF proxy.
+	// OGX's Responses API resolves models per-request — it forwards inference to the
+	// sole passthrough provider without requiring models in registered_resources.
+	// The BFF proxy then resolves the actual upstream endpoint and credentials.
+	//
+	// URL format: https://<gateway-domain>/gen-ai/api/v1/genai-proxy/ns/<namespace>
+	// Note: remote::passthrough appends /v1 to base_url automatically, so
+	// OGX calls .../genai-proxy/ns/<ns>/v1/models, /v1/chat/completions, etc.
+	// The /gen-ai prefix is required because external traffic arrives at the
+	// Node.js dashboard first, which proxies /gen-ai/* to the Go BFF.
+	if kc.EnvConfig.GatewayDomain != "" {
+		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
+			kc.EnvConfig.GatewayDomain, constants.PathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
+		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		config.AddInferenceProvider(passthroughProvider)
+		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
+			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
+	} else {
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured)")
+	}
 
 	// Optionally enable RBAC authentication using Kubernetes auth provider.
 	// Gated behind ENABLE_LLAMASTACK_RBAC env var / --enable-llamastack-rbac flag

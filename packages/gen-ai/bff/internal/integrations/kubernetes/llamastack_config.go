@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
@@ -395,6 +396,42 @@ func NewInferenceProvider(providerID string, url string) Provider {
 // EmptyConfig returns an empty configuration map
 func EmptyConfig() map[string]interface{} {
 	return map[string]interface{}{}
+}
+
+// NewPassthroughProvider creates a remote::passthrough provider entry.
+// OGX's Responses API resolves models per-request via this provider — no
+// model registration in registered_resources is needed. The BFF proxy at
+// baseURL handles routing to the actual upstream endpoint and credentials.
+//
+// forward_headers maps X-OGX-Provider-Data JSON keys to outbound HTTP headers.
+// OGX reads these keys from the provider data and forwards them as headers to the
+// passthrough endpoint. This allows per-request credentials (e.g. MaaS tokens)
+// to flow through OGX without OGX needing to understand them.
+func NewPassthroughProvider(providerID, baseURL string) Provider {
+	return Provider{
+		ProviderID:   providerID,
+		ProviderType: constants.PassthroughProviderType,
+		Config: map[string]interface{}{
+			"base_url": baseURL,
+			"api_key":  "",
+			"forward_headers": map[string]interface{}{
+				"maas_ephemeral_api_token": constants.MaaSEphemeralTokenHeader,
+			},
+		},
+	}
+}
+
+// HasPassthroughProvider returns true if the config already contains a
+// remote::passthrough inference provider. Used to detect whether subsequent
+// model installs can skip OGXServer CR updates (zero-restart path).
+func (c *LlamaStackConfig) HasPassthroughProvider() bool {
+	for _, p := range c.Providers.Inference {
+		if p.ProviderType == constants.PassthroughProviderType &&
+			p.ProviderID == constants.PassthroughProviderID {
+			return true
+		}
+	}
+	return false
 }
 
 // NewSentenceTransformerProvider creates a new sentence transformer provider
