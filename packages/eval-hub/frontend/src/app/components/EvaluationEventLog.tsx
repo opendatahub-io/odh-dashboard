@@ -25,6 +25,7 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   FilterIcon,
+  InfoCircleIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
@@ -37,7 +38,9 @@ import {
 import './EvaluationEventLog.scss';
 
 const ALL_BENCHMARKS = 'all';
-const LOG_VIEWER_TAIL_LINES = 1000;
+const LOG_VIEWER_TAIL_LINES = 500;
+const LOG_DOWNLOAD_MAX_LINES = 10_000;
+const LOG_DOWNLOAD_MAX_LINES_DISPLAY = LOG_DOWNLOAD_MAX_LINES.toLocaleString();
 
 type LogLevelFilter = 'all' | 'warnings' | 'errors';
 
@@ -312,10 +315,12 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     setDownloading(true);
     setDownloadError(undefined);
     try {
+      // eslint-disable-next-line camelcase
+      const downloadParams = { tail_lines: LOG_DOWNLOAD_MAX_LINES };
       const fetcher =
         benchmarkIndex != null
-          ? getEvaluationJobBenchmarkLogs('', namespace, jobId, benchmarkIndex)
-          : getEvaluationJobLogs('', namespace, jobId);
+          ? getEvaluationJobBenchmarkLogs('', namespace, jobId, benchmarkIndex, downloadParams)
+          : getEvaluationJobLogs('', namespace, jobId, downloadParams);
       const fullLogs = await fetcher(controller.signal);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const bmSuffix = benchmarkIndex != null ? `-benchmark-${benchmarkIndex}` : '';
@@ -326,13 +331,40 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
       }
       setDownloadError(err instanceof Error ? err : new Error(String(err)));
     } finally {
-      setDownloading(false);
+      if (downloadAbortRef.current === controller) {
+        setDownloading(false);
+      }
     }
   }, [namespace, jobId, evaluationName, benchmarkIndex]);
 
   React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
 
+  const scrollToBottomOnNextLoad = React.useRef(false);
+
+  const handleRefresh = React.useCallback(() => {
+    scrollToBottomOnNextLoad.current = true;
+    refresh();
+  }, [refresh]);
+
   React.useEffect(() => {
+    if (!logsLoaded) {
+      return;
+    }
+    if (scrollToBottomOnNextLoad.current) {
+      scrollToBottomOnNextLoad.current = false;
+      if (logs) {
+        requestAnimationFrame(() => {
+          const el = logContainerRef.current;
+          if (el && el.scrollHeight > el.clientHeight) {
+            el.scrollTo(0, el.scrollHeight);
+          }
+        });
+      }
+    }
+  }, [logs, logsLoaded]);
+
+  React.useEffect(() => {
+    scrollToBottomOnNextLoad.current = false;
     if (typeof logContainerRef.current?.scrollTo === 'function') {
       logContainerRef.current.scrollTo(0, 0);
     }
@@ -359,7 +391,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
 
     const emptyNotice: LogEntry = {
       raw: '',
-      message: `No ${logLevelFilter === 'errors' ? 'error' : 'warning or error'} logs in this section.`,
+      message: `No ${logLevelFilter === 'errors' ? 'error' : 'warning or error'} logs${isSingleBenchmark ? '' : ' in this section'}.`,
       isSectionHeader: false,
       isEmptyFilterNotice: true,
     };
@@ -435,7 +467,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
             </FlexItem>
           ) : null}
           <FlexItem>
-            <Tooltip content={`Filter: ${LOG_LEVEL_FILTER_LABELS[logLevelFilter]}`}>
+            <Tooltip content={`Log level: ${LOG_LEVEL_FILTER_LABELS[logLevelFilter]}`}>
               <Dropdown
                 isOpen={isLogLevelFilterOpen}
                 onOpenChange={setIsLogLevelFilterOpen}
@@ -459,21 +491,57 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                 )}
               >
                 <DropdownList>
-                  {(['all', 'warnings', 'errors'] as const).map((value) => (
-                    <DropdownItem key={value} value={value} isSelected={logLevelFilter === value}>
-                      {LOG_LEVEL_FILTER_LABELS[value]}
-                    </DropdownItem>
-                  ))}
+                  <DropdownItem key="all" value="all" isSelected={logLevelFilter === 'all'}>
+                    <span className="evalhub-log-filter__icons">
+                      <Icon status="info" isInline>
+                        <InfoCircleIcon />
+                      </Icon>
+                      <Icon status="warning" isInline>
+                        <ExclamationTriangleIcon />
+                      </Icon>
+                      <Icon status="danger" isInline>
+                        <ExclamationCircleIcon />
+                      </Icon>
+                    </span>
+                    {LOG_LEVEL_FILTER_LABELS.all}
+                  </DropdownItem>
+                  <DropdownItem
+                    key="warnings"
+                    value="warnings"
+                    isSelected={logLevelFilter === 'warnings'}
+                  >
+                    <span className="evalhub-log-filter__icons">
+                      <Icon status="warning" isInline>
+                        <ExclamationTriangleIcon />
+                      </Icon>
+                      <Icon status="danger" isInline>
+                        <ExclamationCircleIcon />
+                      </Icon>
+                    </span>
+                    {LOG_LEVEL_FILTER_LABELS.warnings}
+                  </DropdownItem>
+                  <DropdownItem
+                    key="errors"
+                    value="errors"
+                    isSelected={logLevelFilter === 'errors'}
+                  >
+                    <span className="evalhub-log-filter__icons">
+                      <Icon status="danger" isInline>
+                        <ExclamationCircleIcon />
+                      </Icon>
+                    </span>
+                    {LOG_LEVEL_FILTER_LABELS.errors}
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </Tooltip>
           </FlexItem>
           <FlexItem>
-            <Tooltip content="Refresh logs">
+            <Tooltip content="Refresh log">
               <Button
                 variant="plain"
-                aria-label="Refresh logs"
-                onClick={refresh}
+                aria-label="Refresh log"
+                onClick={handleRefresh}
                 data-testid="refresh-logs-button"
               >
                 <SyncAltIcon />
@@ -481,17 +549,21 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
             </Tooltip>
           </FlexItem>
           <FlexItem align={{ default: 'alignRight' }}>
-            <Button
-              variant="link"
-              aria-label="Download log"
-              onClick={handleDownload}
-              isDisabled={!logsLoaded || !hasLogContent || downloading}
-              isLoading={downloading}
-              data-testid="download-logs-button"
-              icon={<DownloadIcon />}
+            <Tooltip
+              content={`Only the ${LOG_DOWNLOAD_MAX_LINES_DISPLAY} most recent lines of the log file can be downloaded`}
             >
-              Download log
-            </Button>
+              <Button
+                variant="link"
+                aria-label="Download log"
+                onClick={handleDownload}
+                isDisabled={!logsLoaded || !hasLogContent || downloading}
+                isLoading={downloading}
+                data-testid="download-logs-button"
+                icon={<DownloadIcon />}
+              >
+                Download log
+              </Button>
+            </Tooltip>
           </FlexItem>
         </Flex>
       </StackItem>
@@ -571,22 +643,48 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
               Logs may have expired after pod cleanup.
             </Alert>
           ) : (
-            filteredLogEntries.map((entry, i, arr) => {
-              if (entry.isEmptyFilterNotice) {
-                return (
-                  <div
-                    key={i}
-                    className="evalhub-log-viewer__row evalhub-log-viewer__row--empty-filter"
-                    data-testid="log-filter-empty-notice"
-                  >
-                    <div className="evalhub-log-viewer__cell--full">{entry.message}</div>
-                  </div>
-                );
-              }
-              const hideBorder =
-                i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
-              return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;
-            })
+            <>
+              {filteredLogEntries.map((entry, i, arr) => {
+                if (entry.isEmptyFilterNotice) {
+                  return (
+                    <div
+                      key={i}
+                      className="evalhub-log-viewer__row evalhub-log-viewer__row--empty-filter"
+                      data-testid="log-filter-empty-notice"
+                    >
+                      <div className="evalhub-log-viewer__cell--full">{entry.message}</div>
+                    </div>
+                  );
+                }
+                const hideBorder =
+                  i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
+                return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;
+              })}
+              <Alert
+                className="evalhub-log-viewer__tail-notice"
+                variant="info"
+                isInline
+                title={`Only the ${LOG_VIEWER_TAIL_LINES} most recent messages are displayed`}
+                data-testid="log-tail-notice"
+                actionLinks={
+                  <>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={handleDownload}
+                      isDisabled={downloading}
+                    >
+                      Download full log (up to {LOG_DOWNLOAD_MAX_LINES_DISPLAY} lines)
+                    </Button>
+                    {isInProgress ? (
+                      <Button variant="link" isInline onClick={handleRefresh}>
+                        Refresh for newer messages
+                      </Button>
+                    ) : null}
+                  </>
+                }
+              />
+            </>
           )}
         </div>
       </StackItem>

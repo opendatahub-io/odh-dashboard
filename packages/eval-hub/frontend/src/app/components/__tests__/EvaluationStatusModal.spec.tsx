@@ -193,7 +193,9 @@ describe('EvaluationStatusModal download', () => {
     fireEvent.click(screen.getByTestId('download-logs-button'));
 
     await waitFor(() => {
-      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001');
+      expect(mockGetEvaluationJobLogs).toHaveBeenCalledWith('', 'test-ns', 'eval-job-001', {
+        tail_lines: 10_000,
+      });
     });
   });
 
@@ -220,6 +222,7 @@ describe('EvaluationStatusModal download', () => {
         'test-ns',
         'eval-job-001',
         0,
+        { tail_lines: 10_000 },
       );
     });
   });
@@ -858,7 +861,7 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Errors only'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No error logs in this section.');
+    expect(notice).toHaveTextContent('No error logs.');
   });
 
   it('should use correct empty notice message for warnings filter', () => {
@@ -876,7 +879,7 @@ describe('EvaluationStatusModal log level filter', () => {
     fireEvent.click(screen.getByText('Warnings and errors'));
 
     const notice = screen.getByTestId('log-filter-empty-notice');
-    expect(notice).toHaveTextContent('No warning or error logs in this section.');
+    expect(notice).toHaveTextContent('No warning or error logs.');
   });
 
   it('should not show empty notice for sections that have matching entries', () => {
@@ -920,7 +923,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
       'test-ns',
       'eval-job-001',
       undefined,
-      1000,
+      500,
     );
   });
 
@@ -945,7 +948,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     fireEvent.click(screen.getByTestId('benchmark-log-selector'));
     fireEvent.click(screen.getByText('bm-a'));
 
-    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 500);
   });
 
   it('should hide the benchmark selector when there is only one benchmark', () => {
