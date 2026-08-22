@@ -214,7 +214,10 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   return (
-    <MessageBox position="top">
+    // RHOAIENG-58995: move the scrollbar to the panel's outer edge. Opt-in prop added in
+    // https://github.com/patternfly/chatbot/pull/868 (PF-4513); safe here since Playground
+    // is always embedded, which is the only mode this CSS targets.
+    <MessageBox position="top" hasOuterScrollbar>
       {showWelcomePrompt &&
         messagesHook.messages.length === 0 &&
         (welcomeContent ?? (
