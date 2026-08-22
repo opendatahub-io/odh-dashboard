@@ -4,16 +4,10 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   // --- LM Evaluation Harness benchmarks ---
 
   // ACLUE: Ancient Chinese Language Understanding Evaluation
-  aclue_ancient_chinese_culture: 'https://huggingface.co/datasets/tyousei/aclue',
+  aclue_ancient_chinese_culture: 'https://huggingface.co/datasets/tyouisen/aclue',
 
   // ARC: AI2 Reasoning Challenge
   arc_easy: 'https://huggingface.co/datasets/allenai/ai2_arc',
-
-  // AraDiCE: individual sub-benchmarks that differ from the ArabicMMLU prefix
-  AraDiCE_openbookqa_eng: 'https://huggingface.co/datasets/allenai/openbookqa',
-  AraDiCE_piqa_lev: 'https://huggingface.co/datasets/ybisk/piqa',
-  AraDiCE_truthfulqa_mc1_lev: 'https://huggingface.co/datasets/truthfulqa/truthful_qa',
-  AraDiCE_winogrande_eng: 'https://huggingface.co/datasets/allenai/winogrande',
 
   // Arabic MT: individual benchmarks that map to distinct datasets
   arabic_mt_boolq_light: 'https://huggingface.co/datasets/google/boolq',
@@ -35,7 +29,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
     'https://huggingface.co/datasets/HuggingFaceH4/hhh_alignment',
 
   // CareQA: Healthcare QA from Spanish MIR exams
-  careqa_open_perplexity: 'https://huggingface.co/datasets/BigAction/CareQA',
+  careqa_open_perplexity: 'https://huggingface.co/datasets/HPAI-BSC/CareQA',
 
   // C-Eval: Chinese evaluation suite
   'ceval-valid_college_programming': 'https://huggingface.co/datasets/ceval/ceval-exam',
@@ -44,7 +38,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   copa_ar: 'https://huggingface.co/datasets/cambridgeltl/xcopa',
 
   // COPAL-ID: Indonesian colloquial COPA
-  copal_id_colloquial: 'https://huggingface.co/datasets/haryoaw/COPAL-ID',
+  copal_id_colloquial: 'https://huggingface.co/datasets/haryoaw/COPAL',
 
   // CrowS-Pairs: Social bias measurement
   crows_pairs_english: 'https://huggingface.co/datasets/nyu-mll/crows_pairs',
@@ -59,10 +53,10 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   ethics_cm: 'https://huggingface.co/datasets/hendrycks/ethics',
 
   // EusReading: Reading comprehension in Basque
-  eus_reading: 'https://huggingface.co/datasets/HiTZ/eus_reading',
+  eus_reading: 'https://huggingface.co/datasets/HiTZ/EusReading',
 
   // GSM8K: Grade School Math (platinum = error-corrected variant)
-  gsm8k_platinum_cot_llama: 'https://huggingface.co/datasets/openai/gsm8k',
+  gsm8k_platinum_cot_llama: 'https://huggingface.co/datasets/madrylab/gsm8k-platinum',
 
   // HellaSwag (Arabic)
   hellaswag_ar: 'https://huggingface.co/datasets/Rowan/hellaswag',
@@ -83,7 +77,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   mmlu_cot_llama: 'https://huggingface.co/datasets/cais/mmlu',
 
   // Paloma: Perplexity across 546 domains
-  paloma_wikitext_103: 'https://huggingface.co/datasets/Salesforce/wikitext',
+  paloma_wikitext_103: 'https://huggingface.co/datasets/allenai/paloma',
 
   // Qasper: Information-seeking QA over research papers
   qasper_freeform: 'https://huggingface.co/datasets/allenai/qasper',
@@ -95,10 +89,10 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   scrolls_qasper: 'https://huggingface.co/datasets/tau/scrolls',
 
   // TinyTruthfulQA
-  tinyTruthfulQA: 'https://huggingface.co/datasets/truthfulqa/truthful_qa',
+  tinyTruthfulQA: 'https://huggingface.co/datasets/tinyBenchmarks/tinyTruthfulQA',
 
   // ToxiGen: Machine-generated toxicity dataset
-  toxigen: 'https://huggingface.co/datasets/microsoft/toxigen',
+  toxigen: 'https://huggingface.co/datasets/toxigen/toxigen-data',
 
   // TruthfulQA MC1 (standalone)
   truthfulqa_mc1: 'https://huggingface.co/datasets/truthfulqa/truthful_qa',
@@ -107,7 +101,7 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
   wikitext: 'https://huggingface.co/datasets/Salesforce/wikitext',
 
   // Winogender: Gender bias in coreference
-  winogender: 'https://huggingface.co/datasets/super_glue',
+  winogender: 'https://huggingface.co/datasets/oskarvanderwal/winogender',
 
   // --- Open LLM Leaderboard task wrappers ---
   leaderboard_bbh: 'https://huggingface.co/datasets/lukaemon/bbh',
@@ -125,8 +119,8 @@ const EXACT_BENCHMARK_DATASETS: Record<string, string> = {
  * one parent dataset. Ordered longest-prefix-first for correct matching.
  */
 const PREFIX_BENCHMARK_DATASETS: [string, string][] = [
-  // AraDiCE: ArabicMMLU variants
-  ['AraDiCE_ArabicMMLU', 'https://huggingface.co/datasets/MBZUAI/ArabicMMLU'],
+  // AraDiCE: all AraDiCE benchmark variants (BoolQ, OpenBookQA, PIQA, TruthfulQA, Winogrande, ArabicMMLU)
+  ['AraDiCE', 'https://huggingface.co/datasets/QCRI/AraDiCE'],
 
   // AfriXNLI / IrokoBench: African language NLI
   ['afrixnli', 'https://huggingface.co/datasets/masakhane/afrixnli'],
@@ -153,7 +147,7 @@ const PREFIX_BENCHMARK_DATASETS: [string, string][] = [
   ['cmmlu_', 'https://huggingface.co/datasets/haonan-li/cmmlu'],
 
   // CodeXGLUE: Code-to-text generation
-  ['code2text_', 'https://huggingface.co/datasets/code_x_glue_ct_code_to_text'],
+  ['code2text_', 'https://huggingface.co/datasets/google/code_x_glue_ct_code_to_text'],
 
   // Global MMLU
   ['global_mmlu_full_', 'https://huggingface.co/datasets/CohereForAI/Global-MMLU'],
@@ -165,10 +159,10 @@ const PREFIX_BENCHMARK_DATASETS: [string, string][] = [
   ['lambada_', 'https://huggingface.co/datasets/EleutherAI/lambada_openai'],
 
   // MRCR: Multi-Round Coreference Resolution
-  ['mrcr', 'https://huggingface.co/datasets/google/mrcr'],
+  ['mrcr', 'https://huggingface.co/datasets/openai/mrcr'],
 
   // NorTruthfulQA: Norwegian TruthfulQA
-  ['nortruthfulqa_', 'https://huggingface.co/datasets/NorMistral/NorTruthfulQA'],
+  ['nortruthfulqa_', 'https://huggingface.co/datasets/ltg/nortruthfulqa_mc'],
 
   // The Pile: A large-scale diverse language modeling dataset
   ['pile_', 'https://huggingface.co/datasets/EleutherAI/pile'],
