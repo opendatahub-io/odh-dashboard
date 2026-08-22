@@ -6,8 +6,8 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 import localExtensions from '../extensions';
 
-// Package portal extension modules use package-local `~/` imports that Jest/tsc
-// cannot resolve from this distribution. Fixtures mirror the (type, id) contract.
+// Package extension modules use package-local `~/` imports that Jest/tsc cannot
+// resolve from this distribution. Fixtures mirror the (type, id) contract.
 const mockGenAiExtensions: Extension[] = [
   {
     type: 'app.navigation/section',
@@ -62,6 +62,37 @@ const mockMaasExtensions: Extension[] = [
   },
   {
     type: 'app.navigation/href',
+    flags: { required: ['modelAsService', 'ADMIN_USER'] },
+    properties: {
+      id: 'maas-subscription-management-view',
+      title: 'MaaS governance',
+      href: '/maas/maas-governance',
+      section: 'settings',
+      path: '/maas/maas-governance/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    flags: { required: ['modelAsService'] },
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['modelAsService'], disallowed: ['mySubscriptions'] },
+    properties: {
+      id: 'maas-tokens-view',
+      title: 'API keys',
+      href: '/maas/tokens',
+      section: 'gen-ai-studio',
+      path: '/maas/tokens/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
     flags: { required: ['modelAsService'] },
     properties: {
       id: 'maas-tokens-subscriptions-view',
@@ -101,6 +132,7 @@ describe('MaaS Consumer Portal extensions', () => {
   const enablePortalFlags = (store: PluginStore): void => {
     store.setFeatureFlags({
       modelAsService: true,
+      mySubscriptions: true,
       genAiStudio: true,
       'plugin-gen-ai': true,
       chatPlayground: true,
