@@ -49,7 +49,14 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
       return [];
     }
     const mappedNames = new Set(API_GROUP_CATEGORIES.flatMap((c) => c.groups.map((g) => g.name)));
-    return apiResourcesData.apiGroups.filter((g) => !mappedNames.has(g));
+    const seen = new Set<string>();
+    return apiResourcesData.apiGroups.filter((g) => {
+      if (mappedNames.has(g) || g === '' || seen.has(g)) {
+        return false;
+      }
+      seen.add(g);
+      return true;
+    });
   }, [apiResourcesData.apiGroups, discoveredApiGroups.size]);
 
   const allCategories = React.useMemo(() => {

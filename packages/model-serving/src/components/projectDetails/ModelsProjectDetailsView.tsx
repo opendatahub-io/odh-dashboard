@@ -61,7 +61,7 @@ const ModelsProjectDetailsView: React.FC<{
       loadError={deploymentsErrors?.[0]}
       actions={
         hasModels && activePlatform
-          ? [<DeployButton key="deploy-button" project={project} variant="secondary" />]
+          ? [<DeployButton key="deploy-button" project={project} variant="secondary" fromProject />]
           : undefined
       }
       labels={[

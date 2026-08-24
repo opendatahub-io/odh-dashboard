@@ -73,6 +73,12 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-modules
+  - path: notebooks-rbac-patch.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: notebooks-ui-cluster-rolebinding
   - path: pdb.yaml
     target:
       group: policy
