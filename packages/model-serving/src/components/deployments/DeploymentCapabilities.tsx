@@ -39,7 +39,11 @@ const DeploymentCapabilities: React.FC<DeploymentCapabilitiesProps> = ({
       ))}
       {overflowCount > 0 && (
         <Tooltip content={capabilities.map(normalizeModelCapability).join(', ')}>
-          <Label isCompact variant="overflow">{`+${overflowCount}`}</Label>
+          <Label
+            isCompact
+            variant="overflow"
+            data-testid="capability-overflow-label"
+          >{`+${overflowCount}`}</Label>
         </Tooltip>
       )}
     </LabelGroup>

@@ -64,7 +64,8 @@ type NavigateOptions<T extends AppRouteKey> = CommonNavigateOptions &
  * </Link>
  */
 export function buildPath<T extends AppRouteKey>(to: T, params?: RouteParamsMap[T]): string {
-  return generatePath(AppRoutePaths[to], params as RouteParamsMap[T]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return generatePath(AppRoutePaths[to], params as any);
 }
 
 /**

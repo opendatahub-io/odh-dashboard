@@ -7,11 +7,11 @@ export enum OverviewFilterOptions {
 }
 
 export const overviewFilterOptions = {
-  [OverviewFilterOptions.modelName]: 'Model name',
+  [OverviewFilterOptions.modelName]: 'Model',
   [OverviewFilterOptions.project]: 'Project',
-  [OverviewFilterOptions.groupName]: 'Group name',
-  [OverviewFilterOptions.subscriptionName]: 'Subscription name',
-  [OverviewFilterOptions.authPolicyName]: 'Authorization policy name',
+  [OverviewFilterOptions.groupName]: 'Group',
+  [OverviewFilterOptions.subscriptionName]: 'Subscription',
+  [OverviewFilterOptions.authPolicyName]: 'Authorization policy',
 };
 
 export type OverviewFilterDataType = Record<

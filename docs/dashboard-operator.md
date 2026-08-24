@@ -483,6 +483,40 @@ make generate && make manifests
 
 For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md).
 
+## Chaos Validation (operator-chaos)
+
+The operator integrates [operator-chaos](https://github.com/opendatahub-io/operator-chaos) for shift-left resilience validation. The knowledge model (`chaos/knowledge/dashboard.yaml`) describes all managed resources and their steady-state expectations. Experiment files (`chaos/experiments/*.yaml`) define chaos scenarios (pod-kill, network-partition, PDB-block) that run during pre-release qualification.
+
+### Local Usage
+
+```bash
+cd dashboard-operator
+
+# Validate knowledge model + all experiments
+make chaos-validate
+
+# Download the operator-chaos CLI only
+make operator-chaos
+```
+
+### CI
+
+The `Chaos Validation` workflow (`.github/workflows/operator-chaos.yml`) runs on PRs that touch `chaos/`, `manifests/`, `dashboard-operator/{internal,api,config,cmd}/`, or `dashboard-operator/Makefile`. It validates the knowledge model, runs preflight checks, detects breaking changes against the base branch, and simulates upgrades with `--dry-run`. Breaking-change detection and upgrade simulation are skipped when the base branch has no `chaos/knowledge` directory (first-time integration).
+
+### Maintenance
+
+Update `chaos/knowledge/dashboard.yaml` when:
+- A managed resource is added, removed, or renamed (Deployment, Service, ConfigMap, etc.)
+- The expected replica count or labels change
+- The ingress resource kind or apiVersion changes
+
+Update `chaos/experiments/*.yaml` when:
+- A new chaos scenario is needed for a resource type
+- Recovery timeouts or blast radius parameters need adjustment
+- The target workload selector changes
+
+The `operator-chaos` CLI version is pinned in `dashboard-operator/Makefile` (`OPERATOR_CHAOS_VERSION`). The CI workflow reads this value, so bumping the version in the Makefile is sufficient.
+
 ## Cluster Deployment
 
 ### Standalone (Helm)

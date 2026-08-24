@@ -3,10 +3,10 @@ kind: ServingRuntime
 metadata:
   annotations:
     opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
-    openshift.io/display-name: Cypress Single ServingRuntime for KServe
+    openshift.io/display-name: {{SERVING_RUNTIME_DISPLAY_NAME}}
   labels:
     opendatahub.io/dashboard: "true"
-  name: single-cypress-vllm-runtime
+  name: {{SERVING_RUNTIME_NAME}}
 spec:
   annotations:
     prometheus.io/path: /metrics

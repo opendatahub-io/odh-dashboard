@@ -12,6 +12,8 @@ import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns
 import { PipelineRunArtifactSelect } from '#~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+import MarkdownComponent from '#~/components/markdown/MarkdownComponent';
+import '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactVisualization.scss';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;
@@ -24,6 +26,7 @@ export type MarkdownAndTitle = {
   title: string;
   config: string;
   fileSize?: number;
+  markdownContent?: string;
 };
 
 const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
@@ -33,6 +36,7 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   isEmpty,
 }) => {
   const [expandedGraph, setExpandedGraph] = React.useState<MarkdownAndTitle | undefined>(undefined);
+
   if (!isLoaded) {
     return (
       <Bullseye>
@@ -52,12 +56,17 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   const renderMarkdownWithSize = (config: MarkdownAndTitle) => (
     <Stack hasGutter>
       <StackItem>
-        <iframe
-          sandbox="allow-scripts"
-          data-testid="markdown-compare"
-          src={config.config}
-          title="markdown view"
-        />
+        {config.markdownContent ? (
+          <MarkdownComponent data={config.markdownContent} dataTestId="markdown-compare" />
+        ) : (
+          <iframe
+            className="odh-artifact-visualization__iframe pf-v6-u-w-100"
+            sandbox="allow-scripts"
+            data-testid="markdown-compare"
+            src={config.config}
+            title="markdown view"
+          />
+        )}
       </StackItem>
     </Stack>
   );
