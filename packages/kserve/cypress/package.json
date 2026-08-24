@@ -12,12 +12,12 @@
     "mocked": "tests/mocked/**/*.cy.ts"
   },
   "devDependencies": {
-    "@odh-dashboard/cypress": "*",
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/cypress": "workspace:*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/model-serving": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
     "@types/chai-subset": "^1.3.5",
     "cypress-plugin-steps": "^1.1.1"
   }
