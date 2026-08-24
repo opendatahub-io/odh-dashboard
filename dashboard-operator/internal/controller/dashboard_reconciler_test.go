@@ -185,7 +185,7 @@ func TestReconcile(t *testing.T) {
 			wantModuleCount: registrySize,
 		},
 		{
-			name:       "module statuses populated — all modules deployed by default",
+			name:       "module statuses populated — all modules not deployed when no manifests present",
 			generation: 1,
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
@@ -209,6 +209,7 @@ func TestReconcile(t *testing.T) {
 				"automl":        v1alpha1.ModulePhaseNotDeployed,
 				"autorag":       v1alpha1.ModulePhaseNotDeployed,
 				"agentOps":      v1alpha1.ModulePhaseNotDeployed,
+				"notebooks":     v1alpha1.ModulePhaseNotDeployed,
 			},
 		},
 		{
