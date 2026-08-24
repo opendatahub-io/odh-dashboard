@@ -523,24 +523,34 @@ export const getMlflowTrackingUrl = (): Cypress.Chainable<string> => {
 };
 
 /**
- * Get the namespace and name of a running MLflow tracking-server pod.
- * The operator may deploy the tracking server in a different namespace than
- * the CR (e.g. opendatahub vs redhat-ods-applications), so we search across
- * all namespaces using the tracking-server label.
+ * Get the namespace and name of a running MLflow BFF pod.
+ * Resolves the namespace from the mlflow-bff deployment, then selects a
+ * Running pod owned by that deployment instead of picking the first
+ * app=mlflow pod across all namespaces.
  */
 const getMlflowPodInfo = (): Cypress.Chainable<{ namespace: string; name: string }> =>
   cy
     .exec(
-      `oc get pods -A -l app=mlflow --field-selector=status.phase=Running --no-headers 2>/dev/null | head -1`,
+      `oc get deployment mlflow-bff -A --no-headers -o custom-columns=NS:.metadata.namespace 2>/dev/null`,
       { failOnNonZeroExit: false },
     )
     .then((result) => {
-      const line = result.stdout.trim();
-      if (!line) {
-        throw new Error('No running MLflow tracking pod found (label app=mlflow) in any namespace');
+      const ns = result.stdout.trim().split('\n')[0]?.trim();
+      if (!ns) {
+        throw new Error('No mlflow-bff deployment found in any namespace');
       }
-      const parts = line.split(/\s+/);
-      return { namespace: parts[0], name: parts[1] };
+      return cy
+        .exec(
+          `oc get pods -n ${ns} -l app=mlflow --field-selector=status.phase=Running --no-headers 2>/dev/null | head -1 | awk '{print $1}'`,
+          { failOnNonZeroExit: false },
+        )
+        .then((podResult) => {
+          const podName = podResult.stdout.trim();
+          if (!podName) {
+            throw new Error(`No running MLflow pod found (label app=mlflow) in namespace ${ns}`);
+          }
+          return { namespace: ns, name: podName };
+        });
     });
 
 /**
