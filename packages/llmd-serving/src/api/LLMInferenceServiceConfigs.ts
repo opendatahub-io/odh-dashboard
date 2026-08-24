@@ -175,6 +175,10 @@ export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
     throw new ConfigInUseError();
   }
 
+  // Kubernetes does not support transactional delete: a new LLMInferenceService referencing
+  // this config could be created between the reference check above and the delete below.
+  // The KServe llmisvcconfig-finalizer is the backstop for that race; the post-delete
+  // isDeletionPendingDueToReferences check surfaces the blocked state in the UI.
   const result = await k8sDeleteResource<LLMInferenceServiceConfigKind, K8sStatus>(
     applyK8sAPIOptions(
       {

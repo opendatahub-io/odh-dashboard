@@ -21,6 +21,14 @@ jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
   default: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/userSSAR', () => {
+  const actual = jest.requireActual('@odh-dashboard/internal/concepts/userSSAR');
+  return {
+    ...actual,
+    useKebabAccessAllowed: (actions: unknown[]) => actions,
+  };
+});
+
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
   deleteLlmInferenceServiceConfigIfUnreferenced: jest.fn(),
