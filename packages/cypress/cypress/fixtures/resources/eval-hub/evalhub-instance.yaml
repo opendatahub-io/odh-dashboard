@@ -1,8 +1,8 @@
-# EvalHub instance for E2E / fresh clusters. Operator requires spec.database (sqlite or postgresql).
+# EvalHub instance for E2E tests. Applied in a per-test UUID namespace.
+# Operator requires spec.database (sqlite or postgresql).
 # Some RHOAI CRD builds require spec.database.secret even when type is sqlite; the placeholder Secret
 # below satisfies admission; the operator only mounts this Secret for postgresql (see TrustyAI operator).
 # Secret name must stay aligned with EVALHUB_E2E_DB_SECRET_NAME in cypress/utils/oc_commands/evalHubInstance.ts.
-# Applied in APPLICATIONS_NAMESPACE (e.g. redhat-ods-applications). Use postgresql + secret for prod-like installs.
 ---
 apiVersion: v1
 kind: Secret
@@ -14,23 +14,19 @@ stringData:
   placeholder: e2e-sqlite
 type: Opaque
 ---
-# When MLflow tracking is required for CreateEvaluationJob, set MLFLOW_TRACKING_URI to the in-cluster
-# MLflow service (same convention as RHOAI: Service/mlflow in applications namespace). The TrustyAI
-# operator may not inject this after the MLflow CR is created later; set explicitly or restart EvalHub
-# once MLflow exists if jobs fail with message_code mlflow_required_for_experiment.
-# For each evaluation namespace (e.g. test-eval), TrustyAI expects RoleBindings created by the
-# operator — mirror evalhub-odh for `redhat-ods-applications:evalhub-service`:
-# - trustyai-service-operator-evalhub-job-config (ConfigMaps for jobs)
-# - trustyai-service-operator-evalhub-jobs-writer (batch/jobs)
-# - trustyai-service-operator-evalhub-mlflow-access (MLflow experiments API)
-# and (once SA exists) bind trustyai-service-operator-evalhub-mlflow-jobs-access to the tenant's
-# evalhub-*-job SA. Manual `test-eval`: `oc create rolebinding ...` for each ClusterRole above.
+# Set MLFLOW_TRACKING_URI explicitly: the operator may not inject this if the MLflow CR is created
+# after EvalHub starts. Without it, jobs fail with message_code mlflow_required_for_experiment.
 apiVersion: trustyai.opendatahub.io/v1alpha1
 kind: EvalHub
 metadata:
   name: evalhub
 spec:
   replicas: 1
+  # tenancy: single — the EvalHub service only serves its own namespace (no cross-namespace propagation).
+  # Each test run gets a fully isolated EvalHub instance alongside its vLLM model and evaluation jobs
+  # in the same UUID namespace. The namespace is deleted after the test, cleaning up all resources
+  # automatically without touching any shared cluster state.
+  tenancy: single
   database:
     type: sqlite
     secret: evalhub-e2e-database-credentials
