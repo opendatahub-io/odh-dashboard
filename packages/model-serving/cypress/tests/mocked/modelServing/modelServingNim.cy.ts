@@ -429,7 +429,6 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit
       .findModelLocationSelect()
       .should('contain.text', ModelLocationSelectOption.NIM)
-      .find('button')
       .should('be.disabled');
     modelServingWizardEdit.nim
       .findImageSelect()
