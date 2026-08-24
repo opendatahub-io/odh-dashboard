@@ -5,9 +5,8 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
-import { Label } from '@patternfly/react-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
 import {
   initialModelServingFilterData,
@@ -17,30 +16,9 @@ import {
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {
   isModelServingDeploymentsTableExtension,
-  isModelServingPlatformExtension,
   type Deployment,
   type DeploymentsTableColumn,
 } from '../../../extension-points';
-
-const ProjectCell: React.FC<{ deployment: Deployment; projects: ProjectKind[] }> = ({
-  deployment,
-  projects,
-}) => {
-  const platformLabels = useExtensions(isModelServingPlatformExtension);
-  const platform = platformLabels.find(
-    (p) => p.properties.id === deployment.modelServingPlatformId,
-  );
-  return (
-    <>
-      {namespaceToProjectDisplayName(deployment.model.metadata.namespace, projects)}{' '}
-      {platform && platformLabels.length > 1 && (
-        <Label data-testid="serving-platform-label" isCompact>
-          {platform.properties.enableCardText.enabledText}
-        </Label>
-      )}
-    </>
-  );
-};
 
 const projectColumn = (projects: ProjectKind[]): DeploymentsTableColumn => ({
   field: 'project',
@@ -49,9 +27,8 @@ const projectColumn = (projects: ProjectKind[]): DeploymentsTableColumn => ({
     namespaceToProjectDisplayName(deploymentA.model.metadata.namespace, projects).localeCompare(
       namespaceToProjectDisplayName(deploymentB.model.metadata.namespace, projects),
     ),
-  cellRenderer: (deployment: Deployment) => (
-    <ProjectCell deployment={deployment} projects={projects} />
-  ),
+  cellRenderer: (deployment: Deployment) =>
+    namespaceToProjectDisplayName(deployment.model.metadata.namespace, projects),
 });
 
 // Removed model registry-specific logic - should be passed as customColumns prop
