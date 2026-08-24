@@ -12,9 +12,23 @@ env:
   DO_NOT_TRACK: 1
   # Check if the PR is a draft to disable coverage reporting/upload
   IS_DRAFT: ${{ github.event.pull_request.draft }}
+  # Workspace-scoped turbo cache paths only. Avoid **/.turbo — with pnpm that glob
+  # can traverse node_modules/.pnpm and hang Post Cache turbo uploads.
+  TURBO_CACHE_PATHS: |
+    .turbo
+    backend/.turbo
+    frontend/.turbo
+    frontend/src/.turbo
+    packages/*/.turbo
+    packages/*/*/.turbo
+    packages/*/*/*/.turbo
+    packages/*/*/*/*/.turbo
+    distributions/*/.turbo
+    distributions/*/*/.turbo
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup pnpm and install dependencies
@@ -31,6 +45,7 @@ jobs:
   Quality-Gate:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: true
       matrix:
@@ -44,8 +59,7 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: ${{ env.TURBO_CACHE_PATHS }}
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
@@ -60,6 +74,7 @@ jobs:
   Unit-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
@@ -72,8 +87,7 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: ${{ env.TURBO_CACHE_PATHS }}
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
@@ -113,6 +127,7 @@ jobs:
   Get-Test-Groups:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
@@ -139,6 +154,7 @@ jobs:
   Contract-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
@@ -158,6 +174,7 @@ jobs:
             packages/mlflow/bff/go.sum
             distributions/core-bff/bff/go.sum
       - name: Install uv
+        timeout-minutes: 5
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Module caches
         uses: ./.github/actions/module-caches
@@ -214,6 +231,7 @@ jobs:
   Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -232,6 +250,7 @@ jobs:
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: read
     strategy:
@@ -257,6 +276,7 @@ jobs:
   Cypress-Mock-Tests:
     needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       actions: read
       contents: read
@@ -327,6 +347,7 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: read
@@ -341,7 +362,6 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
-<<<<<<< HEAD
       - name: Install nyc for coverage merge
         if: env.IS_DRAFT != 'true'
         run: pnpm add -D nyc
@@ -412,6 +432,7 @@ jobs:
   Tests:
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - Quality-Gate
       - Unit-Tests
