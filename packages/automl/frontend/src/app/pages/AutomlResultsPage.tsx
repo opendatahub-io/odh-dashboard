@@ -10,12 +10,12 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
@@ -302,7 +302,7 @@ function AutomlResultsPage(): React.JSX.Element {
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoML" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )

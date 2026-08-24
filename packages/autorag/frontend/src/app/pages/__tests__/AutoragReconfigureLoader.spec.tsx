@@ -65,9 +65,9 @@ jest.mock('~/app/components/common/AutoragHeader/AutoragHeader', () => ({
   default: () => <span>AutoRAG</span>,
 }));
 
-jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-run">Invalid Run</div>,
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
 }));
 
 jest.mock('~/app/components/empty-states/InvalidProject', () => ({

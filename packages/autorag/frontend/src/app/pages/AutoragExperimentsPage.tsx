@@ -1,4 +1,5 @@
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { NoProjects } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -8,10 +9,12 @@ import AutoragExperiments, {
   type AutoragExperimentsListStatus,
 } from '~/app/components/experiments/AutoragExperiments';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import NoProjects from '~/app/components/empty-states/NoProjects';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
 import { autoragConfigurePathname, autoragExperimentsPathname } from '~/app/utilities/routes';
+
+const NoProjectsIcon = () => <img src={emptyStateImage} alt="AutoRAG Infrastructure" />;
 
 function AutoragExperimentsPage(): React.JSX.Element {
   usePreferredNamespaceRedirect();
@@ -91,7 +94,7 @@ function AutoragExperimentsPage(): React.JSX.Element {
       empty={showEmpty}
       emptyStatePage={
         noNamespaces ? (
-          <NoProjects />
+          <NoProjects productName="AutoRAG" icon={NoProjectsIcon} />
         ) : (
           <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
         )

@@ -30,8 +30,17 @@ Stateless, hookless, fully controlled via props. Fulfills exactly one
 visual/interaction task. Gets all of its data from props — never calls a hook or
 fetches data itself. Lives in `components/primitive/`.
 
+"Hookless" means no data-fetching or business-logic hooks (no React Query, no
+`use*Results`/`use*Context`, etc.) — a primitive's rendered output must be fully
+determined by its props. Framework-level hooks that don't fetch or own business
+data are fine: `useNavigate`/`useParams` for routing side effects, or `useState`
+for purely-local UI state (e.g. a modal's own open/checked state) that a primitive
+doesn't need to expose to callers. If a hook fetches data or reads shared
+app/business state, the component is a **feature**, not a primitive.
+
 Examples: `ManageColumnsModal`, `StopRunModal`, `DeleteRunModal`,
-`PipelineVisualization`, tree-view leaf components.
+`PipelineVisualization`, `NoProjects` (navigates via `useNavigate` but takes its
+route as a prop), tree-view leaf components.
 
 Why: a component with zero hooks and zero business logic is trivially portable —
 to another team, to `@odh-dashboard/ui-core`, to `mod-arch-shared`, or to PatternFly

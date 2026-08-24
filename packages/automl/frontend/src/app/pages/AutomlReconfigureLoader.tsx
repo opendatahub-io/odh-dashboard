@@ -3,10 +3,10 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -134,7 +134,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
         empty
         emptyStatePage={
           invalidPipelineRunId ? (
-            <InvalidPipelineRun />
+            <InvalidPipelineRun productName="AutoML" />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
           )

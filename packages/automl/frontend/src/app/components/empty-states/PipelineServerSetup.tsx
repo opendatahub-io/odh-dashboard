@@ -7,9 +7,14 @@
  *
  * TODO: This component is near-identical to the AutoRAG PipelineServerSetup.
  * Extract into a shared pipeline-setup package as part of the autox deduplication effort
- * (also applies to EnableManagedPipelinesModal, PipelineServerStarting, and BFF handlers).
+ * (also applies to the BFF handlers) once the shared api/hooks layer for pipelines exists
+ * in @odh-dashboard/autox-core/ui.
  */
 import { ConfigurePipelinesServerModal } from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
+import {
+  EnableManagedPipelinesModal,
+  PipelineServerStarting,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
 import { Alert, Button } from '@patternfly/react-core';
@@ -21,8 +26,6 @@ import {
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
-import EnableManagedPipelinesModal from './EnableManagedPipelinesModal';
-import PipelineServerStarting from './PipelineServerStarting';
 
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 120_000;
@@ -201,6 +204,7 @@ function PipelineServerSetup({
         />
         {isModalOpen ? (
           <EnableManagedPipelinesModal
+            productName="AutoML"
             onConfirm={() => {
               setIsModalOpen(false);
               handleEnable();

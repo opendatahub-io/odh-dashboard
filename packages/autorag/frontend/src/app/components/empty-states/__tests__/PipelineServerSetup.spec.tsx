@@ -29,7 +29,8 @@ jest.mock(
   }),
 );
 
-jest.mock('~/app/components/empty-states/EnableManagedPipelinesModal', () => {
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => {
+  const actual = jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive');
   const MockEnableManagedPipelinesModal = ({
     onConfirm,
     onClose,
@@ -47,7 +48,7 @@ jest.mock('~/app/components/empty-states/EnableManagedPipelinesModal', () => {
     </div>
   );
   MockEnableManagedPipelinesModal.displayName = 'MockEnableManagedPipelinesModal';
-  return { __esModule: true, default: MockEnableManagedPipelinesModal };
+  return { ...actual, EnableManagedPipelinesModal: MockEnableManagedPipelinesModal };
 });
 
 jest.mock('~/app/api/pipelines', () => ({

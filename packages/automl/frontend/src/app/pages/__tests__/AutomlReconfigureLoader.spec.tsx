@@ -54,9 +54,9 @@ jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
   default: () => <span>AutoML</span>,
 }));
 
-jest.mock('~/app/components/empty-states/InvalidPipelineRun', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-run">Invalid Run</div>,
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+  InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
 }));
 
 jest.mock('~/app/components/empty-states/InvalidProject', () => ({

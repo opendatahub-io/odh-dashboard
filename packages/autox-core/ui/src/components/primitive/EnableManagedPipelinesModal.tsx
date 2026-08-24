@@ -4,11 +4,13 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import ManagedPipelinesSettingsSection from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/ManagedPipelinesSettingsSection';
 
 type EnableManagedPipelinesModalProps = {
+  productName: string;
   onConfirm: () => void;
   onClose: () => void;
 };
 
 const EnableManagedPipelinesModal: React.FC<EnableManagedPipelinesModalProps> = ({
+  productName,
   onConfirm,
   onClose,
 }) => {
@@ -16,7 +18,7 @@ const EnableManagedPipelinesModal: React.FC<EnableManagedPipelinesModalProps> = 
 
   return (
     <Modal variant="small" isOpen onClose={onClose}>
-      <ModalHeader title="Enable AutoRAG pipelines" />
+      <ModalHeader title={`Enable ${productName} pipelines`} />
       <ModalBody>
         <p>
           Enabling managed pipelines will restart the pipeline server, which may interrupt any
@@ -32,7 +34,7 @@ const EnableManagedPipelinesModal: React.FC<EnableManagedPipelinesModalProps> = 
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter
-          submitLabel="Enable AutoRAG pipelines"
+          submitLabel={`Enable ${productName} pipelines`}
           onSubmit={onConfirm}
           isSubmitDisabled={!enableManagedPipelines}
           onCancel={onClose}

@@ -21,6 +21,7 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "classnames": "^2.5.1",
     "es-toolkit": "^1.44.0",
     "lodash-es": "^4.18.1"

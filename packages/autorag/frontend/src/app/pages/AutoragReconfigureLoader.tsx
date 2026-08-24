@@ -1,4 +1,5 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +8,6 @@ import { useParams } from 'react-router';
 import { getSecrets } from '~/app/api/k8s';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -161,7 +161,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
         empty
         emptyStatePage={
           invalidPipelineRunId ? (
-            <InvalidPipelineRun />
+            <InvalidPipelineRun productName="AutoRAG" />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
           )

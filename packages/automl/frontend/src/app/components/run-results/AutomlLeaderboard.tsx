@@ -32,9 +32,11 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import AutomlRunInProgress from '~/app/components/empty-states/AutomlRunInProgress';
+import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { automlExperimentsPathname } from '~/app/utilities/routes';
 import {
   formatMetricName,
   formatMetricValue,
@@ -45,6 +47,8 @@ import {
 import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utilities/tracking';
 import ManageColumnsModal from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
+
+const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
 
 type LeaderboardEntry = {
   rank: number;
@@ -791,7 +795,14 @@ function AutomlLeaderboard({
     if (!namespace) {
       return null;
     }
-    return <AutomlRunInProgress namespace={namespace} />;
+    return (
+      <RunInProgress
+        productName="AutoML"
+        icon={RunInProgressIcon}
+        viewRunsRoute={`${automlExperimentsPathname}/${namespace}`}
+        data-testid="automl-run-in-progress"
+      />
+    );
   }
 
   // Show loading state with 5 rows and 8 columns

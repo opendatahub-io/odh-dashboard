@@ -11,10 +11,10 @@ import { PRESET_FASTER } from '~/app/utilities/const';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 // Mock empty state component
-jest.mock('~/app/components/empty-states/AutomlRunInProgress', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="run-in-progress">Pipeline running in namespace: {namespace}</div>
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+  RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
+    <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
 
@@ -625,7 +625,11 @@ describe('AutomlLeaderboard component', () => {
         namespace: 'my-project',
       });
 
-      expect(screen.getByText('Pipeline running in namespace: my-project')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Pipeline running, view runs at: /develop-train/automl/experiments/my-project',
+        ),
+      ).toBeInTheDocument();
     });
   });
 

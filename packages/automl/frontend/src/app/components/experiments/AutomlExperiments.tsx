@@ -2,9 +2,10 @@ import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
@@ -190,6 +191,9 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
     return (
       <EmptyExperimentsState
         createExperimentRoute={`${automlConfigurePathname}/${effectiveNamespace}`}
+        title="Create an AutoML optimization run"
+        description="Test different model configurations to find the best-performing solution for classification, regression, and time series problems."
+        iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
         dataTestId="empty-experiments-state"
       />
     );

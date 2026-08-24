@@ -10,12 +10,12 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
@@ -442,7 +442,7 @@ function AutoragResultsPage(): React.JSX.Element {
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoRAG" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )

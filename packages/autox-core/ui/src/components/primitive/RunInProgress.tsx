@@ -7,23 +7,30 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import emptyStateImage from '~/app/bgimages/empty-state.svg';
 
-interface AutoragRunInProgressProps {
-  namespace: string;
+interface RunInProgressProps {
+  productName: string;
+  /** Empty-state icon, e.g. `() => <img src={emptyStateImage} alt="Run in progress" />`. */
+  icon: React.ComponentType;
+  /** Route the "View my {productName} runs" button navigates to. */
+  viewRunsRoute: string;
+  'data-testid'?: string;
 }
 
-const EmptyStateImageIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
-
-function AutoragRunInProgress({ namespace }: AutoragRunInProgressProps): React.JSX.Element {
+function RunInProgress({
+  productName,
+  icon,
+  viewRunsRoute,
+  'data-testid': testId = 'run-in-progress',
+}: RunInProgressProps): React.JSX.Element {
   const navigate = useNavigate();
 
   return (
     <EmptyState
-      data-testid="autorag-run-in-progress"
-      titleText="Your AutoRAG run is currently in progress"
+      titleText={`Your ${productName} run is currently in progress`}
       headingLevel="h4"
-      icon={EmptyStateImageIcon}
+      icon={icon}
+      data-testid={testId}
     >
       <EmptyStateBody>
         Please check back soon for your run results. Runs can take some time to complete.
@@ -33,10 +40,10 @@ function AutoragRunInProgress({ namespace }: AutoragRunInProgressProps): React.J
           <Button
             variant="primary"
             onClick={() => {
-              navigate(`/gen-ai-studio/autorag/experiments/${namespace}`);
+              navigate(viewRunsRoute);
             }}
           >
-            View my AutoRAG runs
+            View my {productName} runs
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>
@@ -44,4 +51,4 @@ function AutoragRunInProgress({ namespace }: AutoragRunInProgressProps): React.J
   );
 }
 
-export default AutoragRunInProgress;
+export default RunInProgress;

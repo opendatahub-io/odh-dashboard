@@ -19,10 +19,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock empty state component
-jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="run-in-progress">Pipeline running in namespace: {namespace}</div>
+jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+  RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
+    <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
 

@@ -2,23 +2,26 @@ import '@testing-library/jest-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
+import EmptyExperimentsState from '../EmptyExperimentsState';
 
 describe('EmptyExperimentsState', () => {
   it('renders Empty State B', () => {
     render(
       <MemoryRouter>
-        <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
+        <EmptyExperimentsState
+          createExperimentRoute="/automl/create/my-namespace"
+          title="Create an AutoML optimization run"
+          description="Test different model configurations to find the best-performing solution."
+          iconImage="icon.svg"
+        />
       </MemoryRouter>,
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Create an AutoRAG optimization run' }),
+      screen.getByRole('heading', { name: 'Create an AutoML optimization run' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Test different retrieval and model configurations to find the best-performing setup.',
-      ),
+      screen.getByText('Test different model configurations to find the best-performing solution.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-run-button')).toHaveTextContent('Create run');
   });
@@ -26,7 +29,12 @@ describe('EmptyExperimentsState', () => {
   it('should use default data-testid when not provided', () => {
     render(
       <MemoryRouter>
-        <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
+        <EmptyExperimentsState
+          createExperimentRoute="/automl/create/my-namespace"
+          title="title"
+          description="description"
+          iconImage="icon.svg"
+        />
       </MemoryRouter>,
     );
 
@@ -37,7 +45,10 @@ describe('EmptyExperimentsState', () => {
     render(
       <MemoryRouter>
         <EmptyExperimentsState
-          createExperimentRoute="/autorag/create/my-namespace"
+          createExperimentRoute="/automl/create/my-namespace"
+          title="title"
+          description="description"
+          iconImage="icon.svg"
           dataTestId="custom-empty-state"
         />
       </MemoryRouter>,
@@ -49,11 +60,16 @@ describe('EmptyExperimentsState', () => {
   it('should render link to create route', () => {
     render(
       <MemoryRouter>
-        <EmptyExperimentsState createExperimentRoute="/autorag/create/my-namespace" />
+        <EmptyExperimentsState
+          createExperimentRoute="/automl/create/my-namespace"
+          title="title"
+          description="description"
+          iconImage="icon.svg"
+        />
       </MemoryRouter>,
     );
 
     const createButton = screen.getByTestId('create-run-button');
-    expect(createButton.closest('a')).toHaveAttribute('href', '/autorag/create/my-namespace');
+    expect(createButton.closest('a')).toHaveAttribute('href', '/automl/create/my-namespace');
   });
 });

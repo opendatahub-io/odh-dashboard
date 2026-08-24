@@ -14,6 +14,12 @@ module.exports = {
     // Single React instance when testing components that use @odh-dashboard/internal
     '^react$': '<rootDir>/../../../node_modules/react',
     '^react-dom$': '<rootDir>/../../../node_modules/react-dom',
+    // Single react-router instance: this package's own react-router(-dom) install can
+    // resolve to a different (nested) copy than @odh-dashboard/autox-core, which has no
+    // node_modules of its own and always resolves to the root install. Mismatched copies
+    // mean a <MemoryRouter> from one and a <Link>/useNavigate from the other share no context.
+    '^react-router$': '<rootDir>/../../../node_modules/react-router',
+    '^react-router-dom$': '<rootDir>/../../../node_modules/react-router-dom',
     // Resolve @odh-dashboard/internal's #~/ imports to main frontend src
     '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',

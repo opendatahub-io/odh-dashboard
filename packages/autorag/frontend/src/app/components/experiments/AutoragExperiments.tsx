@@ -1,10 +1,11 @@
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
-import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
@@ -190,6 +191,9 @@ function AutoragExperiments({
     return (
       <EmptyExperimentsState
         createExperimentRoute={`${autoragConfigurePathname}/${effectiveNamespace}`}
+        title="Create an AutoRAG optimization run"
+        description="Test different retrieval and model configurations to find the best-performing setup."
+        iconImage={typedEmptyImage(ProjectObjectType.pipeline)}
         dataTestId="empty-experiments-state"
       />
     );
