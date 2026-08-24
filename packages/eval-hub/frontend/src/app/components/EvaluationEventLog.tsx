@@ -391,7 +391,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
 
     const emptyNotice: LogEntry = {
       raw: '',
-      message: `No ${logLevelFilter === 'errors' ? 'error' : 'warning or error'} logs${isSingleBenchmark ? '' : ' in this section'}.`,
+      message: `No messages match the specified filter${isSingleBenchmark ? '' : ' in this section'}.`,
       isSectionHeader: false,
       isEmptyFilterNotice: true,
     };
