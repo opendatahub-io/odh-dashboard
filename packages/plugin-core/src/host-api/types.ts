@@ -59,7 +59,7 @@ export type HostApiCoreServices = {
   /** Fire a tracking event with arbitrary properties. */
   trackEvent: (
     eventName: string,
-    properties: Record<string, string | number | boolean | undefined>,
+    properties: Record<string, string | number | boolean | string[] | undefined>,
   ) => void;
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */

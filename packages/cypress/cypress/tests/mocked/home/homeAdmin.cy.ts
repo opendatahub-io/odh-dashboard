@@ -1,11 +1,27 @@
 import { mockDocs } from '@odh-dashboard/internal/__mocks__/mockDocs';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
 import { mockQuickStarts } from '@odh-dashboard/internal/__mocks__/mockQuickStarts';
-import { customServingRuntimesIntercept } from '../customServingRuntimes/customServingRuntimesUtils';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { notebookImageSettings } from '../../../pages/notebookImageSettings';
 import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { homePage } from '../../../pages/home/home';
 import { verifyRelativeURL } from '../../../utils/url';
+import { ProjectModel, TemplateModel } from '../../../utils/models';
+
+const customServingRuntimesIntercept = (): void => {
+  cy.interceptK8sList(
+    TemplateModel,
+    mockK8sResourceList([mockServingRuntimeTemplateK8sResource({ name: 'template-1' })]),
+  );
+  cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+  cy.interceptOdh(
+    'GET /api/templates/:namespace',
+    { path: { namespace: 'opendatahub' } },
+    mockK8sResourceList([mockServingRuntimeTemplateK8sResource({ name: 'template-1' })]),
+  );
+};
 
 describe('Home page Admin section', () => {
   beforeEach(() => {

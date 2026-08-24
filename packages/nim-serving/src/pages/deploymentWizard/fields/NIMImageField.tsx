@@ -12,7 +12,12 @@ import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hoo
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
-import { getImageRepository, normalizeVersion } from '../../../api/images/utils';
+import {
+  formatImageString,
+  getImageRepository,
+  normalizeVersion,
+  parseImageString,
+} from '../../../api/images/utils';
 import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
 
 export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
@@ -86,11 +91,20 @@ const nimImageFieldSchema = z.object({
 
 type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 
-const getImageOptionKey = (image: NIMImageFieldValue): string => `${image.repository}:${image.tag}`;
+export const getImageOptionKey = (image: NIMImageFieldValue): string =>
+  `${image.repository}:${image.tag}`;
 
-const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
-  const seen = new Set<string | number>();
-  return images.flatMap((image) => {
+export const toNIMImageFieldValue = (image: string): NIMImageFieldValue => {
+  const [host, namespace, name, tag] = parseImageString(image);
+  return { repository: formatImageString([host, namespace, name, '']), tag };
+};
+
+const getNIMImageOptions = (
+  images: NIMImage[],
+  existingSelection?: NIMImageFieldValue,
+): { options: NIMImageOption[]; existingOptionNotFound: boolean } => {
+  const seen = new Set<string>();
+  const result = images.flatMap((image) => {
     if (!image.namespace) {
       return [];
     }
@@ -110,6 +124,23 @@ const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
       return acc;
     }, []);
   });
+
+  let existingOptionNotFound = false;
+  // Add the existing value if it's not found in the list
+  if (
+    existingSelection?.repository &&
+    existingSelection.tag &&
+    !seen.has(getImageOptionKey(existingSelection))
+  ) {
+    existingOptionNotFound = true;
+    result.unshift({
+      value: getImageOptionKey(existingSelection),
+      content: getImageOptionKey(existingSelection),
+      repository: existingSelection.repository,
+      tag: existingSelection.tag,
+    });
+  }
+  return { options: result, existingOptionNotFound };
 };
 
 type NIMImageFieldComponentProps = {
@@ -132,16 +163,12 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [externalData?.data.nimImages.images],
   );
 
-  const options: NIMImageOption[] = React.useMemo(() => getNIMImageOptions(images), [images]);
+  const { options, existingOptionNotFound } = React.useMemo(
+    () => getNIMImageOptions(images, value),
+    [images, value],
+  );
 
-  const selectedKey = React.useMemo(() => {
-    if (!value?.repository) {
-      return '';
-    }
-    const currentKey = getImageOptionKey(value);
-    const matched = options.find((opt) => String(opt.value) === currentKey);
-    return matched ? String(matched.value) : currentKey;
-  }, [value, options]);
+  const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
@@ -219,6 +246,13 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         <HelperText>
           <HelperTextItem variant="error">
             There was a problem fetching the NIM models. Please try again later.
+          </HelperTextItem>
+        </HelperText>
+      )}
+      {existingOptionNotFound && !externalData.loadError && (
+        <HelperText>
+          <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
+            The existing NIM image was not found. The deployment may not work as expected.
           </HelperTextItem>
         </HelperText>
       )}

@@ -39,7 +39,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
+    cy.findByTestId('app-tab-page-title').invoke('text').should('match', /Model/);
     cy.testA11y();
   }
 
@@ -800,6 +800,10 @@ class InferenceServiceRow extends ModelServingRow {
     return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
   }
 
+  findCapabilityOverflowLabel() {
+    return this.findCapabilitiesCell().findByTestId('capability-overflow-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
@@ -960,6 +964,10 @@ class ModelServingWizard extends Wizard {
 
   findPreconfigureProjectSelectorOption(name: string) {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  findValidatedArgumentsSection() {
+    return this.findValidatedConfigurationSection('args');
   }
 
   findValidatedConfigurationSection(forField: string) {
@@ -1321,10 +1329,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
 
-  findRuntimeArgsCheckbox() {
-    return cy.findByTestId('runtime-args-checkbox');
-  }
-
   findRuntimeArgsTextBox() {
     return cy.findByTestId('runtime-args-textarea');
   }
@@ -1399,6 +1403,10 @@ class ModelServingWizard extends Wizard {
     return this;
   }
 
+  findCustomCapabilityError() {
+    return cy.findByTestId('custom-capability-error');
+  }
+
   removeCapability(capability: string) {
     this.findCapabilityLabel(capability).findByLabelText(`Close ${capability}`).click();
     return this;
@@ -1464,6 +1472,10 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findExitDeploymentDiscardButton() {
+    return cy.findByTestId('exit-deployment-discard-button');
   }
 
   findGatewaySelect() {

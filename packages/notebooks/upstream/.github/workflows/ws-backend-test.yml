@@ -11,6 +11,7 @@ on:
       - v*-branch
   pull_request:
     paths:
+      - .github/workflows/ws-backend-test.yml
       - releasing/version/VERSION
       - workspaces/backend/**
       ## NOTE: we also test on changes to the controller as the backend depends on the controller
@@ -85,3 +86,11 @@ jobs:
       - name: Run unit tests
         working-directory: workspaces/backend
         run: make test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        if: "!cancelled()"
+        with:
+          files: workspaces/backend/cover.out
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -42,7 +42,12 @@ import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
@@ -52,6 +57,13 @@ import {
   UserSubscription,
 } from '~/app/types/subscriptions';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  ApiKeyCreateInitiatedFrom,
+  ApiKeyCopiedProperties,
+  ApiKeyCreatedProperties,
+  ApiKeyCreationSubscriptionBrowsedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
 
@@ -100,9 +112,14 @@ type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
   initialSubscription?: UserSubscription;
+  initiatedFrom: ApiKeyCreateInitiatedFrom;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialSubscription }) => {
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
+  onClose,
+  initialSubscription,
+  initiatedFrom,
+}) => {
   const canLockSubscription = Boolean(initialSubscription);
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts) => (canLockSubscription ? Promise.resolve([]) : listUserSubscriptions()(opts)),
@@ -124,12 +141,17 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
 
+  const sortedSubscriptions = React.useMemo(
+    () => subscriptions.toSorted((a, b) => b.priority - a.priority),
+    [subscriptions],
+  );
+
   const selectedSubscription = React.useMemo(
     () =>
       canLockSubscription
         ? initialSubscription
-        : subscriptions.find((s) => s.subscription_id_header === formData.subscription),
-    [canLockSubscription, initialSubscription, subscriptions, formData.subscription],
+        : sortedSubscriptions.find((s) => s.subscription_id_header === formData.subscription),
+    [canLockSubscription, initialSubscription, sortedSubscriptions, formData.subscription],
   );
 
   const toDescriptionModelCount = (description: string, modelCount: number) =>
@@ -149,20 +171,18 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
         },
       ];
     }
-    return subscriptions
-      .toSorted((a, b) => b.priority - a.priority)
-      .map<TypeaheadSelectOption>((sub) => ({
-        value: sub.subscription_id_header,
-        content: sub.display_name || sub.subscription_id_header,
-        description: (
-          <TruncatedText
-            maxLines={2}
-            content={toDescriptionModelCount(sub.subscription_description, sub.model_refs.length)}
-          />
-        ),
-        'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
-      }));
-  }, [canLockSubscription, initialSubscription, subscriptions]);
+    return sortedSubscriptions.map<TypeaheadSelectOption>((sub) => ({
+      value: sub.subscription_id_header,
+      content: sub.display_name || sub.subscription_id_header,
+      description: (
+        <TruncatedText
+          maxLines={2}
+          content={toDescriptionModelCount(sub.subscription_description, sub.model_refs.length)}
+        />
+      ),
+      'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
+    }));
+  }, [canLockSubscription, initialSubscription, sortedSubscriptions]);
 
   const modelRefSummaries = React.useMemo<MaaSModelRefSummary[]>(
     () =>
@@ -203,6 +223,56 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
     return selectedOption?.expiresIn;
   };
 
+  const getCreateTrackingProps = (outcome: TrackingOutcome, success?: boolean, err?: string) =>
+    ({
+      outcome,
+      ...(success !== undefined && { success }),
+      ...(err !== undefined && { error: err }),
+      expiresIn: getExpiresIn() ?? formData.expirationOption,
+      modelCount: selectedSubscription?.model_refs.length ?? 0,
+      initiatedFrom,
+    }) satisfies ApiKeyCreatedProperties;
+
+  const [isTokenVisible, setIsTokenVisible] = React.useState(false);
+  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
+  const hasCopiedKey = React.useRef(false);
+
+  const fireKeyCopiedEvent = (copied: boolean) => {
+    fireMiscTrackingEvent(MaaSEvents.API_KEY_COPIED, {
+      copied,
+      initiatedFrom,
+    } satisfies ApiKeyCopiedProperties);
+  };
+
+  const handleClose = (created?: boolean) => {
+    if (!createdToken) {
+      fireFormTrackingEvent(
+        MaaSEvents.API_KEY_CREATED,
+        getCreateTrackingProps(TrackingOutcome.cancel),
+      );
+    } else if (!hasCopiedKey.current) {
+      fireKeyCopiedEvent(false);
+    }
+    onClose(created ?? Boolean(createdToken));
+  };
+
+  const handleSubscriptionSelect = (_e: unknown, value: string | number | undefined) => {
+    const subscriptionId = String(value);
+    setFormData({ ...formData, subscription: subscriptionId });
+    if (!canLockSubscription) {
+      const subscriptionIndex = sortedSubscriptions.findIndex(
+        (s) => s.subscription_id_header === subscriptionId,
+      );
+      if (subscriptionIndex >= 0) {
+        fireMiscTrackingEvent(MaaSEvents.API_KEY_CREATION_SUBSCRIPTION_BROWSED, {
+          subscriptionIndex,
+          modelCount: sortedSubscriptions[subscriptionIndex].model_refs.length,
+          initiatedFrom,
+        } satisfies ApiKeyCreationSubscriptionBrowsedProperties);
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     setIsCreating(true);
     setError(undefined);
@@ -218,10 +288,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
         },
       );
 
+      fireFormTrackingEvent(
+        MaaSEvents.API_KEY_CREATED,
+        getCreateTrackingProps(TrackingOutcome.submit, true),
+      );
       setCreatedToken(response.key);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create API key';
-      setError(new Error(formatApiKeyError(msg)));
+      const formatted = formatApiKeyError(msg);
+      fireFormTrackingEvent(
+        MaaSEvents.API_KEY_CREATED,
+        getCreateTrackingProps(TrackingOutcome.submit, false, formatted),
+      );
+      setError(new Error(formatted));
     } finally {
       setIsCreating(false);
     }
@@ -230,12 +309,10 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
   const expirationLabel =
     formData.expirationOption === 'custom' ? `${formData.customDays} days` : selectedOption?.label;
 
-  const [isTokenVisible, setIsTokenVisible] = React.useState(false);
-  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={() => onClose()}>
+    <Modal variant={ModalVariant.medium} isOpen onClose={() => handleClose()}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -294,6 +371,8 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
                         onClick={() => {
                           if (createdToken) {
                             navigator.clipboard.writeText(createdToken);
+                            hasCopiedKey.current = true;
+                            fireKeyCopiedEvent(true);
                           }
                           setIsCopyTipCopied(true);
                         }}
@@ -421,9 +500,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
                     id="api-key-subscription"
                     selectOptions={subscriptionSelectOptions}
                     selected={formData.subscription}
-                    onSelect={(_e, value) =>
-                      setFormData({ ...formData, subscription: String(value) })
-                    }
+                    onSelect={handleSubscriptionSelect}
                     isDisabled={
                       canLockSubscription || !subscriptionsLoaded || subscriptions.length === 0
                     }
@@ -552,7 +629,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
           <Button
             key="close"
             variant="primary"
-            onClick={() => onClose(true)}
+            onClick={() => handleClose(true)}
             data-testid="close-api-key-button"
           >
             Close
@@ -584,7 +661,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
               >
                 Create API key
               </Button>
-              <Button key="cancel" variant="link" onClick={() => onClose()} isDisabled={isCreating}>
+              <Button
+                key="cancel"
+                variant="link"
+                onClick={() => handleClose()}
+                isDisabled={isCreating}
+              >
                 Cancel
               </Button>
             </StackItem>

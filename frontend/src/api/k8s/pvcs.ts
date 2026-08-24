@@ -6,6 +6,7 @@ import {
   k8sListResourceItems,
   K8sStatus,
   k8sUpdateResource,
+  QueryParams,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { KnownLabels, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
@@ -78,12 +79,15 @@ export const assemblePvc = (
   };
 };
 
-export const getDashboardPvcs = (projectName: string): Promise<PersistentVolumeClaimKind[]> =>
+export const getDashboardPvcs = (
+  projectName: string,
+  queryParams: null | QueryParams = { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+): Promise<PersistentVolumeClaimKind[]> =>
   k8sListResourceItems<PersistentVolumeClaimKind>({
     model: PVCModel,
     queryOptions: {
       ns: projectName,
-      queryParams: { labelSelector: LABEL_SELECTOR_DASHBOARD_RESOURCE },
+      queryParams: queryParams ?? undefined,
     },
   });
 

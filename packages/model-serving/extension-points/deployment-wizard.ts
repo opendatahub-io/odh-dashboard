@@ -19,6 +19,16 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    /**
+     * Whether this extension is active for the given deployment. When multiple form-data
+     * extensions share a `platform`, the active one with the highest `priority` wins.
+     * Evaluated at extraction time from an existing deployment, so it must not rely on wizard state.
+     */
+    isActive: CodeRef<(deployment: D) => boolean> | true;
+    /**
+     * Priority among active extensions WITH the same `platform`. Higher number wins.
+     */
+    priority: number | 0;
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
