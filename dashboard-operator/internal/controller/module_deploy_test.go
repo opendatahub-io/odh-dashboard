@@ -106,6 +106,38 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 	assert.True(t, names["modelRegistry"], "deployed module must be included")
 }
 
+func TestBuildFederationConfigMap_NotebooksTLSFalse(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	statuses := allDeployedStatuses()
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	data := cm.Data["module-federation-config.json"]
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(data), &entries))
+
+	for _, entry := range entries {
+		name, _ := entry["name"].(string)
+		tls, _ := entry["tls"].(bool)
+		switch name {
+		case "notebooks":
+			assert.False(t, tls, "notebooks must have tls=false (workbenches BFF serves plain HTTP)")
+		case "modelRegistry", "genAi", "mlflow", "maas", "evalHub", "automl", "autorag", "agentOps":
+			assert.True(t, tls, "%s must have tls=true", name)
+		}
+	}
+}
+
 func TestBuildFederationConfigMap_NoEnabledField(t *testing.T) {
 	s := testScheme(t)
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
