@@ -170,5 +170,76 @@ describe('EvaluationEventLog', () => {
       const scrollToBottomCalls = scrollToSpy.mock.calls.filter(([, y]: [number, number]) => y > 0);
       expect(scrollToBottomCalls).toHaveLength(0);
     });
+
+    it('should cancel a queued scroll-to-bottom frame when benchmark changes', () => {
+      const rafSpy = jest.spyOn(window, 'requestAnimationFrame').mockReturnValue(42);
+      const cafSpy = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(jest.fn());
+
+      mockUseEvaluationJobLogs.mockReturnValue({
+        logs: '',
+        loaded: false,
+        error: undefined,
+        refresh: mockRefresh,
+      });
+
+      const { rerender } = render(
+        <EvaluationEventLog
+          namespace="test-ns"
+          jobId="job-123"
+          evaluationName="eval-test"
+          benchmarks={defaultBenchmarks}
+          isInProgress
+          state="running"
+        />,
+      );
+
+      // Load initial logs
+      mockUseEvaluationJobLogs.mockReturnValue({
+        logs: '2026-01-01 10:00:00 - main - INFO - Initial log',
+        loaded: true,
+        error: undefined,
+        refresh: mockRefresh,
+      });
+      rerender(
+        <EvaluationEventLog
+          namespace="test-ns"
+          jobId="job-123"
+          evaluationName="eval-test"
+          benchmarks={defaultBenchmarks}
+          isInProgress
+          state="running"
+        />,
+      );
+
+      // Refresh to set scrollToBottomOnNextLoad, then reload logs to queue the rAF
+      fireEvent.click(screen.getByTestId('refresh-logs-button'));
+      mockUseEvaluationJobLogs.mockReturnValue({
+        logs: '2026-01-01 10:00:01 - main - INFO - After refresh',
+        loaded: true,
+        error: undefined,
+        refresh: mockRefresh,
+      });
+      rerender(
+        <EvaluationEventLog
+          namespace="test-ns"
+          jobId="job-123"
+          evaluationName="eval-test"
+          benchmarks={defaultBenchmarks}
+          isInProgress
+          state="running"
+        />,
+      );
+
+      expect(rafSpy).toHaveBeenCalled();
+
+      // Switch benchmark before the frame fires
+      fireEvent.click(screen.getByTestId('benchmark-log-selector'));
+      fireEvent.click(screen.getByText('benchmark-beta'));
+
+      expect(cafSpy).toHaveBeenCalledWith(42);
+
+      rafSpy.mockRestore();
+      cafSpy.mockRestore();
+    });
   });
 });

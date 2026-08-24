@@ -340,6 +340,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
 
   const scrollToBottomOnNextLoad = React.useRef(false);
+  const scrollRafRef = React.useRef(0);
 
   const handleRefresh = React.useCallback(() => {
     scrollToBottomOnNextLoad.current = true;
@@ -353,7 +354,8 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     if (scrollToBottomOnNextLoad.current) {
       scrollToBottomOnNextLoad.current = false;
       if (logs) {
-        requestAnimationFrame(() => {
+        scrollRafRef.current = requestAnimationFrame(() => {
+          scrollRafRef.current = 0;
           const el = logContainerRef.current;
           if (el && el.scrollHeight > el.clientHeight) {
             el.scrollTo(0, el.scrollHeight);
@@ -363,8 +365,17 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
     }
   }, [logs, logsLoaded]);
 
+  React.useEffect(
+    () => () => {
+      cancelAnimationFrame(scrollRafRef.current);
+    },
+    [],
+  );
+
   React.useEffect(() => {
     scrollToBottomOnNextLoad.current = false;
+    cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = 0;
     if (typeof logContainerRef.current?.scrollTo === 'function') {
       logContainerRef.current.scrollTo(0, 0);
     }
