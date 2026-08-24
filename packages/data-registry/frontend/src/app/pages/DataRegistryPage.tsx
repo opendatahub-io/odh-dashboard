@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   PageSection,
-  Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -17,6 +16,11 @@ import {
 import { OutlinedFolderIcon } from '@patternfly/react-icons';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useCollections } from '~/app/hooks/useCollections';
+import { useAssets } from '~/app/hooks/useAssets';
+import { useLabels } from '~/app/hooks/useLabels';
+import RegistryTable from '~/app/components/RegistryTable';
+import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -26,6 +30,7 @@ const DataRegistryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProject = searchParams.get('project') || '';
   const [isProjectOpen, setIsProjectOpen] = React.useState(false);
+  const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
 
   const [namespaces, namespacesLoaded, namespacesError] = useNamespaces();
 
@@ -40,6 +45,20 @@ const DataRegistryPage: React.FC = () => {
   );
 
   const selectedProject = projects.some((p) => p.name === requestedProject) ? requestedProject : '';
+
+  const [assets, assetsLoaded, assetsError, assetsRefresh, collectionNames] =
+    useAssets(selectedProject);
+  const [collections, collectionsLoaded, collectionsError, collectionsRefresh] = useCollections(
+    selectedProject,
+    assets,
+    collectionNames,
+  );
+  const [labels] = useLabels(selectedProject);
+
+  const handleRefresh = React.useCallback(() => {
+    assetsRefresh();
+    collectionsRefresh();
+  }, [assetsRefresh, collectionsRefresh]);
 
   const handleProjectSelect = React.useCallback(
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
@@ -136,13 +155,26 @@ const DataRegistryPage: React.FC = () => {
           </EmptyState>
         </PageSection>
       ) : (
-        <PageSection hasBodyWrapper={false} isFilled>
-          <Content>
-            <Content component="p">
-              Browsing data assets in <strong>{selectedProject}</strong>
-            </Content>
-          </Content>
-        </PageSection>
+        <>
+          <RegistryTable
+            assets={assets}
+            loaded={assetsLoaded && collectionsLoaded}
+            error={assetsError}
+            labels={labels}
+            onManageCollections={() => {
+              if (!collectionsError) {
+                setIsCollectionsModalOpen(true);
+              }
+            }}
+          />
+          <ManageCollectionsModal
+            isOpen={isCollectionsModalOpen}
+            onClose={() => setIsCollectionsModalOpen(false)}
+            project={selectedProject}
+            collections={collections}
+            onRefresh={handleRefresh}
+          />
+        </>
       )}
     </>
   );
