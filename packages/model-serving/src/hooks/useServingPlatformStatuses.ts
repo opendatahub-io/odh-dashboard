@@ -4,10 +4,10 @@ import {
   SupportedArea,
   useIsAreaAvailable,
 } from '@odh-dashboard/plugin-core/areas';
+import type { ServingPlatformStatuses } from '@odh-dashboard/model-serving/shared/types';
 import { useIsNIMAvailable } from './useIsNIMAvailable';
-import type { ServingPlatformStatuses } from '../shared/types';
 
-export type { ServingPlatformStatuses } from '../shared/types';
+export type { ServingPlatformStatuses } from '@odh-dashboard/model-serving/shared/types';
 
 const useServingPlatformStatuses = (
   shouldRefreshNimAvailability = false,
