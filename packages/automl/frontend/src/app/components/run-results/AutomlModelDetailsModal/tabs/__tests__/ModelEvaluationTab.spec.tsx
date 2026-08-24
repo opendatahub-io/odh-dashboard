@@ -74,6 +74,14 @@ describe('ModelEvaluationTab', () => {
     expect(screen.getByText('Holdout score')).toBeInTheDocument();
   });
 
+  it('should not truncate evaluation table headers', () => {
+    const model = buildModel({ accuracy: 0.8 });
+    render(<ModelEvaluationTab {...defaultProps} model={model} />);
+
+    expect(screen.getByRole('columnheader', { name: 'Measures' })).toHaveClass('pf-m-nowrap');
+    expect(screen.getByRole('columnheader', { name: 'Holdout score' })).toHaveClass('pf-m-nowrap');
+  });
+
   it('should handle string metric values', () => {
     const model = buildModel({ accuracy: '0.750' });
     render(<ModelEvaluationTab {...defaultProps} model={model} />);

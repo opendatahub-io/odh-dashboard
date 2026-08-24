@@ -25,8 +25,9 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
     >
       <Thead>
         <Tr>
-          <Th>Measures</Th>
-          <Th>Holdout score</Th>
+          {/* PF thead truncates by default (1px max-width + ellipsis). */}
+          <Th modifier="nowrap">Measures</Th>
+          <Th modifier="nowrap">Holdout score</Th>
         </Tr>
       </Thead>
       <Tbody>
