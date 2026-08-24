@@ -542,8 +542,157 @@ describe('ExistingSecretKeyPicker', () => {
         />,
       );
 
-      expect(screen.getByTestId('env-all-unavailable-alert-bad-secret')).toBeInTheDocument();
-      expect(screen.getByTestId('remove-unavailable-ref-bad-secret')).toBeInTheDocument();
+      expect(screen.getByTestId('env-all-unavailable-alert-bad-secret')).toBeVisible();
+      expect(screen.getByTestId('remove-unavailable-ref-bad-secret')).toBeVisible();
+    });
+  });
+
+  describe('all keys unavailable', () => {
+    const unavailableSecrets: ExistingSecretMetadata[] = [
+      { name: 'bad-secret', keys: ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'] },
+    ];
+    const selectedRefs: ExistingSecretRef[] = [
+      { secretName: 'bad-secret', selectedKeys: ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'] },
+    ];
+
+    it('should show danger alert with correct title text', () => {
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={unavailableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-all-unavailable-alert-bad-secret');
+      expect(alert).toBeVisible();
+      expect(alert).toHaveTextContent(
+        'None of the keys in this secret can be used as environment variables. To continue, remove it.',
+      );
+    });
+
+    it('should show unavailable-icon in the section header', () => {
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={unavailableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.getByTestId('unavailable-icon-bad-secret')).toBeInTheDocument();
+    });
+
+    it('should not show key count badge', () => {
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={unavailableSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(screen.queryByTestId('key-count-badge-bad-secret')).not.toBeInTheDocument();
+    });
+
+    it('should remove the ref when "Remove secret" is clicked', () => {
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={[...selectedRefs, { secretName: 'db-secret', selectedKeys: ['username'] }]}
+          availableSecrets={[...unavailableSecrets, ...availableSecrets]}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('remove-unavailable-ref-bad-secret'));
+
+      expect(onUpdate).toHaveBeenCalledWith([
+        { secretName: 'db-secret', selectedKeys: ['username'] },
+      ]);
+    });
+  });
+
+  describe('some keys unavailable', () => {
+    it('should show warning alert when secret has a mix of valid and invalid keys', () => {
+      const mixedSecrets: ExistingSecretMetadata[] = [
+        { name: 'mixed-secret', keys: ['VALID_KEY', 'key-with-hyphens', 'ANOTHER_VALID'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'mixed-secret', selectedKeys: ['VALID_KEY', 'ANOTHER_VALID'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={mixedSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expandSection('mixed-secret');
+
+      const alert = screen.getByTestId('env-unavailable-keys-alert-mixed-secret');
+      expect(alert).toBeVisible();
+      expect(alert).toHaveTextContent(
+        '1 key in this secret cannot be used as environment variables',
+      );
+      expect(alert).toHaveTextContent('Unavailable: key-with-hyphens');
+    });
+
+    it('should show plural message for multiple unavailable keys', () => {
+      const mixedSecrets: ExistingSecretMetadata[] = [
+        { name: 'mixed-secret', keys: ['VALID_KEY', 'key-with-hyphens', '123-bad'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'mixed-secret', selectedKeys: ['VALID_KEY'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={mixedSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      const alert = screen.getByTestId('env-unavailable-keys-alert-mixed-secret');
+      expect(alert).toHaveTextContent(
+        '2 keys in this secret cannot be used as environment variables',
+      );
+      expect(alert).toHaveTextContent('Unavailable: key-with-hyphens, 123-bad');
+    });
+
+    it('should suppress unavailable warning when hasMissingKeys is true', () => {
+      const mixedSecrets: ExistingSecretMetadata[] = [
+        { name: 'mixed-secret', keys: ['VALID_KEY', 'key-with-hyphens'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'mixed-secret', selectedKeys: ['VALID_KEY', 'gone-key'] },
+      ];
+      const onUpdate = jest.fn();
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={mixedSecrets}
+          onUpdate={onUpdate}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('env-unavailable-keys-alert-mixed-secret'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('env-missing-keys-alert-mixed-secret')).toBeInTheDocument();
     });
   });
 

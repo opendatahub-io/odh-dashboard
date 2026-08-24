@@ -4,8 +4,6 @@ import {
   Badge,
   Button,
   Content,
-  ContentVariants,
-  FormGroup,
   MenuToggle,
   MenuToggleElement,
   // eslint-disable-next-line no-restricted-imports -- typeahead multi-select requires Select directly
@@ -123,19 +121,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
   const collidingKeySet = React.useMemo(() => getCollidingKeySet(collisions), [collisions]);
 
-  const availableSecrets = secrets.filter((s) => !usedSecretNames.has(s.name));
-  const hasSecrets = availableSecrets.length > 0;
-
-  if (!hasSecrets && secrets.length > 0 && existingSecretRefs.length === 0) {
-    return (
-      <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-all-used">
-          All secrets in this project are already attached in other variables.
-        </Content>
-      </FormGroup>
-    );
-  }
-
   const selectedCount = existingSecretRefs.length;
 
   return (
@@ -236,7 +221,8 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           >
             <p>
               The following keys are defined more than once across the selected secrets. To
-              continue, deselect secrets that contain duplicate key names.
+              continue, deselect the duplicate keys in the key pickers below, or remove a secret
+              containing the duplicate.
             </p>
             {collisions.map((c) => (
               <div key={c.key}>

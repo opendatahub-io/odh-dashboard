@@ -25,24 +25,6 @@ describe('EnvExistingSecretField', () => {
     jest.clearAllMocks();
   });
 
-  describe('all-used state', () => {
-    it('should show message when all secrets are already attached elsewhere', () => {
-      render(
-        <EnvExistingSecretField
-          existingSecretRefs={[]}
-          onUpdate={jest.fn()}
-          usedSecretNames={new Set(['db-credentials', 'api-key-secret', 'tls-cert'])}
-          existingSecretsData={mockExistingSecretsData()}
-        />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-all-used')).toBeInTheDocument();
-      expect(screen.getByTestId('env-existing-secret-all-used')).toHaveTextContent(
-        'All secrets in this project are already attached in other variables.',
-      );
-    });
-  });
-
   describe('with available secrets', () => {
     const loadedSecretsData = mockExistingSecretsData();
 
