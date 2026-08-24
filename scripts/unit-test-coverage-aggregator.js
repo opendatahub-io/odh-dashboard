@@ -289,13 +289,16 @@ function main() {
     );
   }
 
+  const repoRoot = path.resolve(__dirname, '..');
+
   // Parse the JSON output and extract paths
   let packagePaths = [];
   try {
     const workspacePackages = JSON.parse(workspacePackagesResult);
     for (const pkg of workspacePackages) {
-      if (pkg.path && pkg.path.length > 0) {
-        packagePaths.push(pkg.path);
+      const workspacePath = pkg.location ?? pkg.path;
+      if (workspacePath && workspacePath.length > 0) {
+        packagePaths.push(workspacePath === '.' ? repoRoot : path.resolve(repoRoot, workspacePath));
       }
     }
   } catch (error) {

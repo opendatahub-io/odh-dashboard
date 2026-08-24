@@ -215,8 +215,13 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      const pkgRelPath = pkg.path?.replace(/^packages\//, '');
-      if (!pkgRelPath) {
+      const workspacePath = pkg.location ?? pkg.path;
+      if (!workspacePath?.startsWith('packages/')) {
+        continue;
+      }
+
+      const pkgRelPath = workspacePath.replace(/^packages\//, '');
+      if (!pkgRelPath || pkgRelPath === '.') {
         continue;
       }
 

@@ -124,12 +124,12 @@ RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm use --delete-prefix $NODE_VERSION && \
     echo 'export PATH=$PATH' >> '$USER_HOME/.bashrc'"
 
-# Populate npm cache - use npm ci then remove node_modules
+# Populate pnpm store from the workspace lockfile, then remove node_modules
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm use $NODE_VERSION && \
-    npm ci && \
-    rm -rf node_modules && \
-    npm cache verify"
+    npm install -g pnpm@11.22.0 && \
+    pnpm install --frozen-lockfile && \
+    rm -rf node_modules"
 
 # Install Cypress and additional NodeJS packages globally
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
