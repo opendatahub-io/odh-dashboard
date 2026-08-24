@@ -173,10 +173,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
-          # Default **/*requirements*.txt glob traverses pnpm node_modules and hangs.
-          # Only cache the Llama Stack requirements used by gen-ai contract tests.
-          cache-dependency-glob: |
-            packages/gen-ai/bff/testdata/llamastack/requirements.txt
+          # Contract tests only need the uv binary on PATH; disable dependency cache
+          # scanning (default **/*requirements*.txt glob traverses pnpm node_modules).
+          enable-cache: false
       - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
