@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import {
   AcceleratorConfigFieldWizardField,
@@ -200,6 +200,34 @@ describe('AcceleratorConfigFieldComponent edit configRef resolution', () => {
     );
     fireEvent.click(screen.getByTestId('serving-runtime-template-selection-toggle'));
     expect(screen.getByTestId(`servingRuntime ${rocm.metadata.name}`)).toBeInTheDocument();
+  });
+
+  it('labels a config from the deployment project namespace as project-scoped', () => {
+    // The local copy created at deploy time lives in the deployment's project namespace and is folded
+    // into the list on edit; it must render under the project-scoped group, not global.
+    const localCopy: LLMInferenceServiceConfigKind = {
+      ...makeConfig('my-deployment-rocm'),
+      metadata: { name: 'my-deployment-rocm', namespace: 'my-project', labels: {} },
+    };
+    const onChange = jest.fn();
+    render(
+      <AcceleratorConfigFieldComponent
+        id="accelerator-config"
+        value={{ selectedConfig: localCopy, autoSelect: false }}
+        onChange={onChange}
+        externalData={{ data: { configs: [localCopy] }, loaded: true }}
+        dependencies={{
+          topologyFieldData: { topologyType: TopologyType.SINGLE_NODE },
+          project: { projectName: 'my-project', setProjectName: jest.fn() },
+        }}
+        isEditing={false}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('serving-runtime-template-selection-toggle'));
+    const menuItem = screen.getByTestId('servingRuntime my-deployment-rocm');
+    expect(within(screen.getByTestId('project-scoped-serving-runtimes')).getByTestId(
+      'servingRuntime my-deployment-rocm',
+    )).toBe(menuItem);
   });
 
   it('resolves a configRef into the referenced config on edit', () => {

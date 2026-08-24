@@ -163,9 +163,13 @@ const suggestConfig = (
 
 // Map an accelerator config to a ModelServerOption (mirrors LlmConfigOptionsField so the shared
 // ModelServerTemplateSelectField renders version labels + hardware-profile compatibility labels).
+// A config living in the deployment's own project namespace (the local copy folded in on edit) is
+// marked project-scoped so the dropdown groups/labels it correctly; dashboard admin configs are left
+// unscoped (rendered as global).
 const toModelServerOption = (
   config: LLMInferenceServiceConfigKind,
   hardwareProfile?: HardwareProfileKind,
+  projectName?: string,
 ): ModelServerOption => ({
   name: config.metadata.name,
   namespace: config.metadata.namespace,
@@ -173,6 +177,7 @@ const toModelServerOption = (
   version: config.metadata.annotations?.[RUNTIME_VERSION_ANNOTATION],
   template: config,
   compatibleWithHardwareProfile: isConfigCompatible(config, hardwareProfile),
+  scope: projectName && config.metadata.namespace === projectName ? 'project' : undefined,
 });
 
 // --- Visibility ---
@@ -208,6 +213,7 @@ export const AcceleratorConfigFieldComponent: AcceleratorConfigFieldType['compon
 }) => {
   const topologyType = dependencies?.topologyFieldData?.topologyType;
   const hardwareProfile = dependencies?.hardwareProfile;
+  const projectName = dependencies?.project?.projectName;
   const configs = React.useMemo(() => externalData?.data.configs ?? [], [externalData?.data]);
   const isLoaded = externalData?.loaded ?? false;
 
@@ -221,9 +227,9 @@ export const AcceleratorConfigFieldComponent: AcceleratorConfigFieldType['compon
   const options: ModelServerOption[] = React.useMemo(
     () => [
       BUILT_IN_IMAGE_OPTION,
-      ...visibleConfigs.map((c) => toModelServerOption(c, hardwareProfile)),
+      ...visibleConfigs.map((c) => toModelServerOption(c, hardwareProfile, projectName)),
     ],
-    [visibleConfigs, hardwareProfile],
+    [visibleConfigs, hardwareProfile, projectName],
   );
 
   // Resolve configRef from the edit extractor into a real selectedConfig once configs load.
@@ -244,14 +250,14 @@ export const AcceleratorConfigFieldComponent: AcceleratorConfigFieldType['compon
     [visibleConfigs, hardwareProfile],
   );
   const suggestionOption = React.useMemo(
-    () => (suggestion ? toModelServerOption(suggestion, hardwareProfile) : undefined),
-    [suggestion, hardwareProfile],
+    () => (suggestion ? toModelServerOption(suggestion, hardwareProfile, projectName) : undefined),
+    [suggestion, hardwareProfile, projectName],
   );
 
   const autoSelect = value?.autoSelect ?? false;
   const selection: ModelServerOption =
     existingSelection && existingSelection !== ACCELERATOR_CONFIG_DEFAULT
-      ? toModelServerOption(existingSelection, hardwareProfile)
+      ? toModelServerOption(existingSelection, hardwareProfile, projectName)
       : BUILT_IN_IMAGE_OPTION;
 
   const modelServerData: ModelServerSelectFieldData = {
