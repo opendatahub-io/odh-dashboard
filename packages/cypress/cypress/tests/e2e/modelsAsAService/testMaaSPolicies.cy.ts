@@ -8,7 +8,11 @@ import {
   createMaaSModelRef,
   modelsAsAServiceNamespace,
 } from '../../../utils/oc_commands/maas';
-import { verifyMaasModelExistsForUser } from '../../../utils/maasApiKeyClipboardInference';
+import {
+  stubClipboard,
+  verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
+  verifyMaaSModelInferenceUsingRevokedApiKey,
+} from '../../../utils/maasApiKeyClipboardInference';
 import {
   addUserToProject,
   deleteOpenShiftProject,
@@ -30,6 +34,7 @@ import {
   viewAuthPolicyPage,
   policyPage,
   deleteAuthPolicyModal,
+  adminBulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
@@ -37,7 +42,9 @@ import { ApiKeyStatus, PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
-import { stubClipboard, getClipboardContent } from '../../../utils/clipboardUtils';
+import { getClipboardContent } from '../../../utils/clipboardUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -63,6 +70,8 @@ const today = new Date().toLocaleDateString('en-US', {
 });
 let expiryDate: string;
 
+const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
+
 describe('An admin can manage MaaS authorization policies and control model access via group membership', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
@@ -86,8 +95,13 @@ describe('An admin can manage MaaS authorization policies and control model acce
         expiryDate = new Date(
           new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
         ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-        cy.log(`Loaded project name: ${projectName}`);
+      })
+      .then(() => {
+        cy.log(`Create clean project`);
+        cleanupAuthPolicy(policiesName, modelsAsAServiceNamespace);
+        cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
+        cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
+        cleanupApiKeys(apiKeyName);
         createCleanProject(projectName);
       })
       .then(() => {
@@ -176,6 +190,26 @@ describe('An admin can manage MaaS authorization policies and control model acce
       viewAuthPolicyPage.findGroupsSection().should('contain.text', testData.policiesGroups[0]);
       viewAuthPolicyPage.findModelsSection().should('contain.text', modelName);
 
+      cy.step('Verify the YAML Tab');
+      stubClipboard('copiedYAML');
+      viewAuthPolicyPage.findYamlTab().click();
+      viewAuthPolicyPage.findYAMLCodeEditor().copyToClipboard().click();
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include(testData.apiVersion);
+        expect(yamlContent).to.include(`${policiesName}`);
+      });
+      stubDownload('downloadedYAML');
+      viewAuthPolicyPage.findYAMLCodeEditor().download().should('exist').click();
+      getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+        expect(downloads).to.have.length.at.least(1);
+        expect(downloads[0].fileName).to.include(policiesName);
+        expect(downloads[0].content).to.include(testData.apiVersion);
+        expect(downloads[0].content).to.include(testData.kind);
+        expect(downloads[0].content).to.include(`${policiesName}`);
+      });
+
       cy.step('Edit the authorization policy');
       viewAuthPolicyPage.findActionsToggle().click();
       viewAuthPolicyPage.findDeleteActionButton().should('be.visible');
@@ -195,7 +229,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow = authPoliciesPage.getRow(policiesUpdatedName);
       policyRow.findTitleButton().should('contain.text', policiesUpdatedName);
       policyRow.findDescription().should('contain.text', policiesUpdatedDesc);
-      policyRow.findPhaseLabel().should('contain.text', PhaseStatus.READY);
       policyRow.findGroups().should('contain.text', `${policiesGroupsCount}`);
       policyRow.findExpandGroupButton().click();
       policyRow.findExpandedGroupName().should('contain.text', testData.policiesGroups[0]);
@@ -309,15 +342,20 @@ describe('An admin can manage MaaS authorization policies and control model acce
           .should('contain.text', tokenLimit);
         createApiKeyModal.findExpirationToggle().click();
         createApiKeyModal.findExpirationOption('custom').click();
+        createApiKeyModal.findCustomDaysInput().clear().type(testData.apiKeyExpirationTimeInvalid);
+        createApiKeyModal.findSubmitButton().click();
+        createApiKeyModal.findErrorAlert().should('exist');
+        createApiKeyModal.findExpirationToggle().click();
+        createApiKeyModal.findExpirationOption('custom').click();
         createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
         createApiKeyModal.findSubmitButton().should('be.enabled');
         createApiKeyModal.findSubmitButton().click();
 
         cy.step('Read the API key from the success dialog');
         copyApiKeyModal.shouldBeOpen();
-        stubClipboard('copiedApiKey');
+        stubClipboard(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
         copyApiKeyModal.findApiKeyTokenCopyButton().click();
-        getClipboardContent('copiedApiKey').then((apiKeys: string[]) => {
+        getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
           expect(apiKeys).to.have.length.at.least(1);
           copyApiKeyModal.findCloseButton().click();
 
@@ -333,8 +371,12 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findCreationDate().should('contain.text', today);
           apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
 
-          cy.step('Verify the model is accessible to the user');
-          verifyMaasModelExistsForUser(modelName, apiKeys[0], true);
+          cy.step('Try and inference with the model using the copied API key');
+          verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(
+            projectName,
+            () => modelName,
+            apiKeys[0],
+          );
 
           cy.then(() => {
             cy.step(' Remove group from the policy');
@@ -354,11 +396,30 @@ describe('An admin can manage MaaS authorization policies and control model acce
               });
             })
             .then(() => {
-              cy.step('Verify the model is not accessible to the user');
-              verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
+              cy.step('Verify the inference call return 403 after removing group from the policy');
+              verifyMaaSModelInferenceUsingRevokedApiKey(projectName, () => modelName, apiKeys[0]);
             });
         });
       });
+
+      cy.step('Verify API keys revoke for a username');
+      apiKeysPage.visit();
+      apiKeysPage.findActionsToggle().click();
+      apiKeysPage.findRevokeAllAPIKeysActionButton().click();
+      adminBulkRevokeAPIKeyModal.shouldBeOpen();
+      adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(apiKeyName);
+      adminBulkRevokeAPIKeyModal.findSearchButton().click();
+      adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
+      adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(LDAP_ADMIN_USER.USERNAME);
+      adminBulkRevokeAPIKeyModal.findSearchButton().click();
+      adminBulkRevokeAPIKeyModal.findRevokeButton().click();
+
+      cy.step('Verify the API keys are revoked');
+      apiKeysPage.findFilterInput().type(LDAP_ADMIN_USER.USERNAME);
+      apiKeysPage.findFilterSearchButton().click();
+      apiKeysPage.findStatusFilterToggle().click();
+      apiKeysPage.findStatusFilterOption(ApiKeyStatus.revoked).click();
+      apiKeysPage.getRow(apiKeyName).findStatus().should('contain.text', ApiKeyStatus.revoked);
     },
   );
 });

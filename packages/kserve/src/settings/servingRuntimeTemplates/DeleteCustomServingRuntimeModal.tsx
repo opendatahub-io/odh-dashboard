@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getTemplateEnabled,
@@ -11,6 +12,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { deleteTemplateBackend } from '@odh-dashboard/internal/services/templateService';
 import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
+import { fireServingRuntimeTemplateDeleted } from './tracking/servingRuntimeTemplateTracking';
 
 type DeleteCustomServingRuntimeModalProps = {
   template: TemplateKind;
@@ -42,7 +44,10 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
   return (
     <DeleteModal
       title="Delete serving runtime?"
-      onClose={() => onBeforeClose(false)}
+      onClose={() => {
+        fireServingRuntimeTemplateDeleted({ outcome: TrackingOutcome.cancel });
+        onBeforeClose(false);
+      }}
       submitButtonLabel="Delete serving runtime"
       onDelete={() => {
         setIsDeleting(true);
@@ -65,9 +70,14 @@ const DeleteCustomServingRuntimeModal: React.FC<DeleteCustomServingRuntimeModalP
           deleteTemplateBackend(template.metadata.name, template.metadata.namespace),
         ])
           .then(() => {
+            fireServingRuntimeTemplateDeleted({ outcome: TrackingOutcome.submit, success: true });
             onBeforeClose(true);
           })
           .catch((e) => {
+            fireServingRuntimeTemplateDeleted({
+              outcome: TrackingOutcome.submit,
+              success: false,
+            });
             setError(e);
             setIsDeleting(false);
           });

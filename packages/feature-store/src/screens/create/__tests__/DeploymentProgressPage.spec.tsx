@@ -4,10 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DeploymentProgressPage from '../DeploymentProgressPage';
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
+jest.mock('../../../routes', () => ({
+  featureStoreManageRoute: () => '/settings/environment-setup/feature-stores',
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -65,20 +63,12 @@ describe('DeploymentProgressPage', () => {
     useWatchMock.mockReturnValue(mockDeploymentStatus);
   });
 
-  it('renders default state with status card, progress bar, and "Back to overview" button', () => {
+  it('renders default state with status card, progress bar, and in-progress text', () => {
     renderPage();
     expect(screen.getByTestId('deployment-status-card')).toBeInTheDocument();
     expect(screen.getByTestId('deployment-status-card')).toHaveTextContent('Pending');
     expect(screen.getByTestId('deployment-progress-bar')).toBeInTheDocument();
-    expect(screen.getByTestId('go-to-feature-store')).toHaveTextContent('Back to overview');
     expect(screen.getByText('Deployment in progress')).toBeInTheDocument();
-  });
-
-  it('navigates to overview on button click', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await user.click(screen.getByTestId('go-to-feature-store'));
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('feature-store/overview'));
   });
 
   it.each([
@@ -92,7 +82,7 @@ describe('DeploymentProgressPage', () => {
     expect(screen.getByTestId('deployment-status-card')).toHaveTextContent(expectedLabel);
   });
 
-  it('shows success state with "Go to feature store" button and no progress text', () => {
+  it('shows success alert with ready message and no progress text', () => {
     const useWatchMock = jest.requireMock('../../../hooks/useWatchFeatureStoreDeployment').default;
     useWatchMock.mockReturnValue({
       ...mockDeploymentStatus,
@@ -102,11 +92,13 @@ describe('DeploymentProgressPage', () => {
     });
     renderPage();
     expect(screen.getByTestId('deployment-success-alert')).toBeInTheDocument();
-    expect(screen.getByTestId('go-to-feature-store')).toHaveTextContent('Go to feature store');
+    expect(screen.getByTestId('deployment-success-alert')).toHaveTextContent(
+      'This feature store is ready. Open it from Feature stores.',
+    );
     expect(screen.queryByText('Deployment in progress')).not.toBeInTheDocument();
   });
 
-  it('shows failed alert when deployment fails', () => {
+  it('shows failed alert with delete guidance when deployment fails', () => {
     const useWatchMock = jest.requireMock('../../../hooks/useWatchFeatureStoreDeployment').default;
     useWatchMock.mockReturnValue({
       ...mockDeploymentStatus,
@@ -116,6 +108,23 @@ describe('DeploymentProgressPage', () => {
     });
     renderPage();
     expect(screen.getByTestId('deployment-failed-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('deployment-failed-alert')).toHaveTextContent(
+      'Delete this feature store, then create it again',
+    );
+  });
+
+  it.each([
+    ['default (pending)', {}],
+    ['success', { phase: 'Ready', isComplete: true, loaded: true }],
+    ['failed', { phase: 'Failed', isFailed: true, loaded: true }],
+  ])('shows "Go to Feature stores" secondary link in %s state', (_label, overrides) => {
+    const useWatchMock = jest.requireMock('../../../hooks/useWatchFeatureStoreDeployment').default;
+    useWatchMock.mockReturnValue({ ...mockDeploymentStatus, ...overrides });
+    renderPage();
+    const link = screen.getByTestId('go-to-feature-stores-btn');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveTextContent('Go to Feature stores');
+    expect(link.closest('a')).toHaveAttribute('href', '/settings/environment-setup/feature-stores');
   });
 
   it('shows Failed status when operator phase is Pending but conditions indicate failure', () => {

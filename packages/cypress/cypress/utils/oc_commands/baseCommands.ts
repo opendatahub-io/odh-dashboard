@@ -60,6 +60,9 @@ export const execWithOutput = (
         return cy.wrap({ exitCode: 0, stdout: '', stderr: '' });
       }
       cy.log(`Command exit code: ${result.exitCode}`);
+      if (result.exitCode !== 0) {
+        cy.log(`Command stderr: ${result.stderr || result.stdout}`);
+      }
       return cy.wrap(result);
     });
 };

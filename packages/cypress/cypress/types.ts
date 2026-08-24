@@ -66,6 +66,11 @@ export type DspaReplacements = {
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
   AWS_REGION: string;
+  AWS_S3_HOST: string;
+  AWS_S3_SCHEME: string;
+  MLFLOW_INTEGRATION_MODE: string;
+  MLFLOW_INJECT_USER_ENV_VARS: string;
+  PIPELINE_STORE: string;
 };
 
 export type StorageClassConfig = {
@@ -355,6 +360,15 @@ export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
   apiProtocol: string;
   replaceSourceString: string;
   replaceTargetString: string;
+};
+
+export type ModelCapabilitiesTestData = DataScienceProjectData & {
+  wellKnownCapabilities: string[];
+  customCapabilities: string[];
+  modelName: string;
+  awsBucket: 'BUCKET_1' | 'BUCKET_3';
+  uriConnectionName: string;
+  uriConnectionModelUri: string;
 };
 
 export type NotebookImageData = {
@@ -729,6 +743,15 @@ export type CustomEndpointTestData = {
     name: string;
     description: string;
   };
+  mcp: {
+    configMapName: string;
+    namespace: string;
+    serverKey: string;
+    serverName: string;
+    image: string;
+    serverDescription: string;
+    testQuestion: string;
+  };
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
@@ -766,6 +789,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId3: string;
   toolCallingLabel: string;
   toolCallingArg: string;
+  /** Catalog card title of a model that has servingConfig tool-calling args. */
+  toolCallingModelName: string;
 };
 
 export type ModelAsAServiceTestData = {
@@ -801,6 +826,8 @@ export type ModelAsAServiceTestData = {
     revoked: string;
   };
   apiKeyCount: number;
+  apiVersion: string;
+  kind: string;
 };
 
 export enum ApiKeyStatus {
@@ -947,4 +974,22 @@ export type AgentRuntimesTestData = {
   filterOptionStatus: string;
   statusPending: string;
   statusReady: string;
+};
+
+export type MlflowIrisRunData = {
+  name: string;
+  description: string;
+  neighbors: string;
+  standardScaler: 'true' | 'false';
+};
+
+export type MlflowPipelineIntegrationTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  pipelineName: string;
+  pipelineDescription: string;
+  experimentName: string;
+  mlflowExperimentName: string;
+  run1: MlflowIrisRunData;
+  run2: MlflowIrisRunData;
 };

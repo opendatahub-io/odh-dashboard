@@ -206,7 +206,29 @@ describe('useExistingFeatureStores', () => {
     expect(listFeatureStoresMock).not.toHaveBeenCalled();
   });
 
-  it('should poll for updates at regular intervals', async () => {
+  it('should poll for updates at regular intervals when poll is enabled', async () => {
+    listFeatureStoresMock.mockResolvedValue([makeStore('store-1', 'ns-1', 'proj-1')]);
+
+    const { result } = renderHook(() => useExistingFeatureStores({ poll: true }), {
+      wrapper: createWrapper([makeProject('ns-1')]),
+    });
+
+    await waitFor(() => {
+      expect(result.current.loaded).toBe(true);
+    });
+
+    expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(30000);
+    });
+
+    await waitFor(() => {
+      expect(listFeatureStoresMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('should not poll when poll option is not set', async () => {
     listFeatureStoresMock.mockResolvedValue([makeStore('store-1', 'ns-1', 'proj-1')]);
 
     const { result } = renderHook(() => useExistingFeatureStores(), {
@@ -218,6 +240,41 @@ describe('useExistingFeatureStores', () => {
     });
 
     expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(30000);
+    });
+
+    expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not start a new poll while a request is still pending', async () => {
+    let resolveFirst: ((value: FeatureStoreKind[]) => void) | undefined;
+    listFeatureStoresMock.mockImplementationOnce(
+      () =>
+        new Promise<FeatureStoreKind[]>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+
+    renderHook(() => useExistingFeatureStores({ poll: true }), {
+      wrapper: createWrapper([makeProject('ns-1')]),
+    });
+
+    expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(90000);
+    });
+
+    expect(listFeatureStoresMock).toHaveBeenCalledTimes(1);
+    expect(resolveFirst).toBeDefined();
+
+    listFeatureStoresMock.mockResolvedValueOnce([makeStore('store-2', 'ns-1', 'proj-2')]);
+
+    await act(async () => {
+      resolveFirst?.([makeStore('store-1', 'ns-1', 'proj-1')]);
+    });
 
     act(() => {
       jest.advanceTimersByTime(30000);

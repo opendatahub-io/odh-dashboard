@@ -13,6 +13,10 @@ export class NIMWizardFields extends SubComponentBase {
     cy.findByRole('option', { name: new RegExp(escapedName) }).click();
   }
 
+  findImageNotFoundWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findScope().findByTestId('nim-image-not-found-warning');
+  }
+
   findStorageModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('nim-storage-mode-select');
   }

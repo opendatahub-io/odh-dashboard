@@ -43,11 +43,6 @@ spec:
           protocol: TCP
     - to:
         - namespaceSelector: {}
-      ports:
-        - port: 8321
-          protocol: TCP
-        - port: 8443
-          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

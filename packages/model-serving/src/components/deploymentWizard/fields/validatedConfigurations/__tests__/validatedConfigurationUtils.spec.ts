@@ -6,12 +6,32 @@ import {
   buildRuntimeArgsFromValidatedSelections,
   formatValidatedOptionValueForDisplay,
   getValidatedArgCommentHeader,
+  hasValidatedConfigurationOptions,
   mergeValidatedOptionIntoArgs,
   optionValueToArgLines,
   removeValidatedOptionFromArgs,
   slugifyValidatedOptionTitle,
   toRuntimeArgsFieldData,
 } from '../validatedConfigurationUtils';
+
+describe('hasValidatedConfigurationOptions', () => {
+  it('should return false when configurations are missing or empty', () => {
+    expect(hasValidatedConfigurationOptions(undefined)).toBe(false);
+    expect(hasValidatedConfigurationOptions([])).toBe(false);
+  });
+
+  it('should return false when every configuration has no options', () => {
+    expect(
+      hasValidatedConfigurationOptions([
+        { ...mockToolCallingValidatedConfiguration(), options: [] },
+      ]),
+    ).toBe(false);
+  });
+
+  it('should return true when at least one configuration has options', () => {
+    expect(hasValidatedConfigurationOptions([mockToolCallingValidatedConfiguration()])).toBe(true);
+  });
+});
 
 describe('formatValidatedOptionValueForDisplay', () => {
   it('should format multi-line CLI args with line continuations', () => {

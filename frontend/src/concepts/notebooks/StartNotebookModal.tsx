@@ -50,6 +50,8 @@ import {
 } from '@patternfly/react-icons';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { ClusterQueueModel } from '#~/api/models/kueue';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
@@ -193,7 +195,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const inProgress = isStarting || isStopping;
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
-  const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
+  const [canViewClusterQueue] = useAccessReview(
+    { group: ClusterQueueModel.apiGroup, resource: ClusterQueueModel.plural, verb: 'get' },
+    Boolean(isKueueFeatureEnabled && isProjectKueueEnabled),
+  );
+  const showResourcesTab = Boolean(
+    isKueueFeatureEnabled && isProjectKueueEnabled && canViewClusterQueue,
+  );
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
   const kueueTrackingInput = React.useMemo(
@@ -225,7 +233,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [showResourcesTab, activeTab]);
   const localQueueName = notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
   const clusterQueueName = getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
-  const shouldShowResources = Boolean(isProjectKueueEnabled && localQueueName && clusterQueueName);
+  const shouldShowResources = Boolean(
+    showResourcesTab && isProjectKueueEnabled && localQueueName && clusterQueueName,
+  );
   const {
     clusterQueue,
     loaded: clusterQueueLoaded,

@@ -15,7 +15,7 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
@@ -71,7 +71,7 @@ type AutoragConfigurePageProps = {
   initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
-  /** When reconfiguring, the display name of the source run (used in the page title). */
+  /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
   sourceRunName?: string;
 };
 
@@ -431,8 +431,20 @@ function AutoragConfigurePage({
             homePath={getRedirectPath(namespace)}
             onHomeNavigate={handleHomeNavigate}
           >
+            {fromResultsPage && sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link
+                  to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
+                  }
+                >
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              Experiment configurations
+              {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
           </ExperimentContextBreadcrumb>
         )

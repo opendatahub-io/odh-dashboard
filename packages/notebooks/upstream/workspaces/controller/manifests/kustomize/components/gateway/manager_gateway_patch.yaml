@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-controller
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: USE_KUBE_GATEWAY
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-config
+              key: USE_KUBE_GATEWAY
+        - name: KUBE_GATEWAY_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-config
+              key: KUBE_GATEWAY_NAME
+        - name: KUBE_GATEWAY_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-config
+              key: KUBE_GATEWAY_NAMESPACE
+        - name: CLUSTER_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-config
+              key: CLUSTER_DOMAIN
+        - name: KUBE_RBAC_PROXY_IMAGE
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-config
+              key: KUBE_RBAC_PROXY_IMAGE
+
