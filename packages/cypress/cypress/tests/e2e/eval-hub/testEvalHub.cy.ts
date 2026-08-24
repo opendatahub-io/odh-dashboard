@@ -120,7 +120,7 @@ describe('Eval Hub E2E', () => {
   it(
     'Eval Hub: start inference evaluation and see it complete',
     {
-      tags: ['@EvalHub', '@NonConcurrent', '@Featureflagged'],
+      tags: ['@EvalHub', '@EvalHubCI', '@NonConcurrent', '@Featureflagged'],
     },
     () => {
       const extraParams = additionalBenchmarkParams.trim();
