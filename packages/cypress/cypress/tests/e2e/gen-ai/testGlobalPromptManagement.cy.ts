@@ -80,7 +80,9 @@ const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
         } catch {
           // Field absent or malformed — treat as empty
         }
-        originalGlobalMLflowNamespaces[ns] = existing;
+        if (!(ns in originalGlobalMLflowNamespaces)) {
+          originalGlobalMLflowNamespaces[ns] = existing;
+        }
         const merged = [...new Set([...existing, ...namespaces])];
         mergedValues[ns] = merged;
         const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: merged } });
@@ -104,14 +106,16 @@ const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
 
 const restoreGlobalMLflowNamespaces = (): void => {
   getOdhDashboardConfigs().then((configs) => {
-    for (const { namespace: ns, name } of configs) {
-      const original = originalGlobalMLflowNamespaces[ns] || [];
+    const saved = configs.filter(({ namespace: ns }) => ns in originalGlobalMLflowNamespaces);
+
+    for (const { namespace: ns, name } of saved) {
+      const original = originalGlobalMLflowNamespaces[ns] ?? [];
       const patchContent = JSON.stringify({ spec: { globalMLflowNamespaces: original } });
       patchOpenShiftResource('OdhDashboardConfig', name, patchContent, ns);
     }
 
-    for (const { namespace: ns, name } of configs) {
-      const expected = JSON.stringify(originalGlobalMLflowNamespaces[ns] || []);
+    for (const { namespace: ns, name } of saved) {
+      const expected = JSON.stringify(originalGlobalMLflowNamespaces[ns] ?? []);
       pollUntilSuccess(
         `oc get OdhDashboardConfig ${name} -n ${ns} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == ${expected}'`,
         `globalMLflowNamespaces to be restored in ${ns}`,
