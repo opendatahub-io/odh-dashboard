@@ -15,7 +15,7 @@ import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
-  subscriptionManagementPage,
+  maasGovernancePage,
   overviewTabPage,
   phaseModal,
   createSubscriptionPage,
@@ -128,7 +128,7 @@ describe('MaaS Governance Overview tab', () => {
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to MaaS governance Overview tab');
-      subscriptionManagementPage.visit('overview');
+      maasGovernancePage.visit('overview');
       overviewTabPage.findTable().should('exist');
 
       cy.step('Filter to the test model and validate the overview row');
