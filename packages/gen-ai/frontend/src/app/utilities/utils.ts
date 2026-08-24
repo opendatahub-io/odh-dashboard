@@ -76,7 +76,11 @@ export const isPlaygroundModelMatchForAIModel = (
   playgroundModel: LlamaModel,
   aiModel: AIModel,
 ): boolean => {
-  if (playgroundModel.modelId !== aiModel.model_id) {
+  // For passthrough MaaS models, modelId has a "maas-" prefix that the AIModel doesn't.
+  const playgroundModelId = playgroundModel.modelId.startsWith('maas-')
+    ? playgroundModel.modelId.slice(5)
+    : playgroundModel.modelId;
+  if (playgroundModelId !== aiModel.model_id) {
     return false;
   }
   return aiModel.model_source_type === 'maas'
@@ -86,11 +90,17 @@ export const isPlaygroundModelMatchForAIModel = (
 
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
-  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+
+  // The genai-bff-proxy passthrough provider prefix is an OGX routing detail, not a meaningful
+  // distinction for users. Strip it (and the maas- model prefix) for display.
+  const isPassthrough = providerId === 'genai-bff-proxy';
+  const lookupId = isPassthrough && id.startsWith('maas-') ? id.slice(5) : id;
+
+  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === lookupId);
   if (!enabledModel) {
-    return modelId;
+    return isPassthrough ? lookupId : modelId;
   }
-  if (!providerId) {
+  if (!providerId || isPassthrough) {
     return enabledModel.display_name;
   }
   return `${providerId}/${enabledModel.display_name}`;
