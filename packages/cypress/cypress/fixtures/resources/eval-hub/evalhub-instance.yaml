@@ -14,13 +14,17 @@ stringData:
   placeholder: e2e-sqlite
 type: Opaque
 ---
-# Set MLFLOW_TRACKING_URI explicitly: the operator may not inject this if the MLflow CR is created
-# after EvalHub starts. Without it, jobs fail with message_code mlflow_required_for_experiment.
-# For each evaluation namespace, TrustyAI expects RoleBindings created by the operator:
+# When MLflow tracking is required for CreateEvaluationJob, set MLFLOW_TRACKING_URI to the in-cluster
+# MLflow service (same convention as RHOAI: Service/mlflow in applications namespace). The TrustyAI
+# operator may not inject this after the MLflow CR is created later; set explicitly or restart EvalHub
+# once MLflow exists if jobs fail with message_code mlflow_required_for_experiment.
+# For each evaluation namespace (e.g. test-eval), TrustyAI expects RoleBindings created by the
+# operator — mirror evalhub-odh for `redhat-ods-applications:evalhub-service`:
 # - trustyai-service-operator-evalhub-job-config (ConfigMaps for jobs)
 # - trustyai-service-operator-evalhub-jobs-writer (batch/jobs)
 # - trustyai-service-operator-evalhub-mlflow-access (MLflow experiments API)
-# These are provisioned automatically when the namespace is labelled evalhub.trustyai.opendatahub.io/tenant.
+# and (once SA exists) bind trustyai-service-operator-evalhub-mlflow-jobs-access to the tenant's
+# evalhub-*-job SA. Manual `test-eval`: `oc create rolebinding ...` for each ClusterRole above.
 apiVersion: trustyai.opendatahub.io/v1alpha1
 kind: EvalHub
 metadata:
