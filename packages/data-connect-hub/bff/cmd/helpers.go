@@ -37,7 +37,8 @@ func parseLevel(s string) slog.Level {
 	var level slog.Level
 	err := level.UnmarshalText([]byte(s))
 	if err != nil {
-		panic(fmt.Errorf("invalid log level: %s, valid levels are: error, warn, info, debug", s))
+		fmt.Fprintf(os.Stderr, "invalid log level %q — valid values: error, warn, info, debug\n", s)
+		os.Exit(1)
 	}
 	return level
 }

@@ -84,7 +84,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
           <EmptyState
             headingLevel="h1"
             icon={ExclamationCircleIcon}
-            titleText={errorMessage !== undefined ? errorMessage : 'Error loading components'}
+            titleText={errorMessage ?? 'Error loading components'}
             variant={EmptyStateVariant.lg}
             data-id="error-empty-state"
           >
@@ -96,7 +96,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
 
     if (!loaded) {
       return (
-        loadingContent || (
+        loadingContent ?? (
           <PageSection hasBodyWrapper={false} isFilled>
             <EmptyState
               headingLevel="h1"
@@ -112,18 +112,18 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     }
 
     if (empty) {
-      return !emptyStatePage ? (
-        <PageSection hasBodyWrapper={false} isFilled>
-          <EmptyState
-            headingLevel="h1"
-            icon={QuestionCircleIcon}
-            titleText={emptyMessage !== undefined ? emptyMessage : 'No Components Found'}
-            variant={EmptyStateVariant.lg}
-            data-id="empty-empty-state"
-          />
-        </PageSection>
-      ) : (
-        emptyStatePage
+      return (
+        emptyStatePage ?? (
+          <PageSection hasBodyWrapper={false} isFilled>
+            <EmptyState
+              headingLevel="h1"
+              icon={QuestionCircleIcon}
+              titleText={emptyMessage ?? 'No Components Found'}
+              variant={EmptyStateVariant.lg}
+              data-id="empty-empty-state"
+            />
+          </PageSection>
+        )
       );
     }
 
@@ -132,7 +132,7 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
         <PageSection
           hasBodyWrapper={false}
           isFilled
-          style={removeChildrenTopPadding ? { paddingTop: 0 } : undefined}
+          className={removeChildrenTopPadding ? 'pf-v6-u-pt-0' : ''}
         >
           {children}
         </PageSection>
