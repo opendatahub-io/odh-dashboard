@@ -465,4 +465,82 @@ describe('MultiSelection', () => {
       expect.arrayContaining([expect.objectContaining({ id: 1, selected: true })]),
     );
   });
+
+  it('should close an open menu when another MultiSelection opens', async () => {
+    render(
+      <>
+        <MultiSelection
+          id="select-a"
+          ariaLabel="Select A"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+        <MultiSelection
+          id="select-b"
+          ariaLabel="Select B"
+          value={defaultOptions}
+          setValue={jest.fn()}
+        />
+      </>,
+    );
+
+    const first = screen.getByRole('combobox', { name: 'Select A' });
+    const second = screen.getByRole('combobox', { name: 'Select B' });
+
+    await act(async () => {
+      fireEvent.keyDown(first, { key: 'ArrowDown' });
+    });
+    expect(first).toHaveAttribute('aria-expanded', 'true');
+
+    await act(async () => {
+      fireEvent.keyDown(second, { key: 'ArrowDown' });
+    });
+
+    expect(first).toHaveAttribute('aria-expanded', 'false');
+    expect(second).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('should keep selections when another MultiSelection opens', async () => {
+    const Harness: React.FC = () => {
+      const [firstValue, setFirstValue] = React.useState(defaultOptions);
+      const [secondValue, setSecondValue] = React.useState(defaultOptions);
+      return (
+        <>
+          <MultiSelection
+            id="select-a"
+            ariaLabel="Select A"
+            value={firstValue}
+            setValue={setFirstValue}
+          />
+          <MultiSelection
+            id="select-b"
+            ariaLabel="Select B"
+            value={secondValue}
+            setValue={setSecondValue}
+          />
+        </>
+      );
+    };
+
+    render(<Harness />);
+
+    const first = screen.getByRole('combobox', { name: 'Select A' });
+    const second = screen.getByRole('combobox', { name: 'Select B' });
+
+    await act(async () => {
+      fireEvent.keyDown(first, { key: 'ArrowDown' });
+    });
+    await act(async () => {
+      fireEvent.keyDown(first, { key: 'Enter' });
+    });
+
+    expect(screen.getByRole('button', { name: 'Remove Connection 1' })).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(second, { key: 'ArrowDown' });
+    });
+
+    expect(first).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Remove Connection 1' })).toBeInTheDocument();
+  });
 });
