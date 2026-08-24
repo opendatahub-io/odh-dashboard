@@ -2,17 +2,22 @@
 // We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 
+function resolvePositivePollInterval(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
 function getFastPollIntervalFromWindow(): number | undefined {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  const value = Reflect.get(window, 'FAST_POLL_INTERVAL');
-  return typeof value === 'number' ? value : undefined;
+  return resolvePositivePollInterval(Reflect.get(window, 'FAST_POLL_INTERVAL'));
 }
 
 const FAST_POLL_INTERVAL =
-  getFastPollIntervalFromWindow() || Number(process.env.FAST_POLL_INTERVAL) || 3000;
+  getFastPollIntervalFromWindow() ??
+  resolvePositivePollInterval(Number(process.env.FAST_POLL_INTERVAL)) ??
+  3000;
 
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME ?? '';
 
