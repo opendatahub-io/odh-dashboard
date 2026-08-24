@@ -1,5 +1,16 @@
+const path = require('path');
 const { execSync } = require('child_process');
 const { WORKSPACE_QUERY_SCRIPT } = require('../../scripts/workspace-query-path');
+
+const REPO_ROOT = path.resolve(__dirname, '../..');
+
+function resolvePackageLocation(packagePath) {
+  if (!packagePath || packagePath === '.') {
+    return REPO_ROOT;
+  }
+
+  return path.isAbsolute(packagePath) ? packagePath : path.resolve(REPO_ROOT, packagePath);
+}
 
 // Avoids running workspace query multiple times within the same rspack build process,
 // since both discoverPluginPackages() and getPluginPackageDetails() need this data.
@@ -109,7 +120,7 @@ function getPluginPackageDetails() {
     .map((pkg) => ({
       name: pkg.name,
       shortName: pkg.name.replace(/^@[^/]+\//, ''),
-      location: pkg.path,
+      location: resolvePackageLocation(pkg.path),
     }));
 }
 
