@@ -32,7 +32,9 @@ name: Cypress e2e Test
 #   3. Auto-detected from PR changes (always additive):
 #      Turbo detects changed packages → reads "e2eCiTags" from package.json
 #      Git diff detects changed frontend sub-areas → inline mapping resolves tags
-#      All auto-detected tags are consolidated into ONE additional matrix job
+#      When ≤8 auto-detected tags: consolidated into ONE additional matrix job
+#      When >8 auto-detected tags: wide change fallback — drops regression +
+#        auto-detect shards, runs @Smoke and @Sanity as two separate jobs instead
 #
 #      To add auto-detection for a package:
 #        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
@@ -41,7 +43,7 @@ name: Cypress e2e Test
 #
 # LIMITS:
 #   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
-#   - Auto-detected tags are consolidated into 1 job (no limit needed)
+#   - Auto-detected tags: ≤8 → 1 job; >8 → fallback to @Smoke + @Sanity (2 jobs)
 #   - 10 runners shared across 30+ devs
 #
 # REQUIRED SECRETS:
@@ -585,7 +587,8 @@ jobs:
         run: |
           # Configuration
           MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
-          
+          MAX_AUTO_TAGS=8   # Above this, fall back to @Smoke + @Sanity instead
+
           # Defaults
           TAGS=""
           SOURCE="default"
@@ -595,7 +598,7 @@ jobs:
             echo "⏭️ Skipping default @ci-dashboard-regression-tags (skip_default=true)"
           fi
           EXTRA_COUNT=0
-          AUTO_DETECTED_ENTRY=""
+          WIDE_CHANGE_FALLBACK=false
 
           # Priority 1: Manual input (workflow_dispatch)
           if [[ -n "$INPUT_ADDITIONAL_TAGS" ]]; then
@@ -660,36 +663,52 @@ jobs:
             FILTERED_AUTO=$(echo "$FILTERED_AUTO" | xargs)
 
             if [[ -n "$FILTERED_AUTO" ]]; then
-              # Consolidate remaining auto-detected tags into a single matrix entry
-              # Cypress grep treats space-separated tags as OR, so one job covers all areas
-              AUTO_DETECTED_ENTRY="$FILTERED_AUTO"
-              if [[ "$SOURCE" == "default" ]]; then
-                SOURCE="auto-detected"
+              AUTO_TAG_COUNT=$(echo "$FILTERED_AUTO" | wc -w | tr -d ' ')
+
+              if [[ $AUTO_TAG_COUNT -gt $MAX_AUTO_TAGS ]]; then
+                # Wide change: too many tags to run in one job within the timeout.
+                # Fall back to @Smoke + @Sanity (2 separate jobs) and drop regression.
+                WIDE_CHANGE_FALLBACK=true
+                TAGS=""
+                SOURCE="auto-detected-fallback"
+                echo "⚠️  $AUTO_TAG_COUNT auto-detected tags exceeds limit of $MAX_AUTO_TAGS"
+                echo "🔄 Wide-change fallback: replacing all shards with @Smoke + @Sanity"
               else
-                SOURCE="$SOURCE+auto-detected"
+                # Consolidate into a single matrix entry (fits within timeout)
+                # Cypress grep treats space-separated tags as OR, so one job covers all areas
+                AUTO_DETECTED_ENTRY="$FILTERED_AUTO"
+                if [[ "$SOURCE" == "default" ]]; then
+                  SOURCE="auto-detected"
+                else
+                  SOURCE="$SOURCE+auto-detected"
+                fi
+                echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY"
               fi
-              echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY"
             else
               echo "ℹ️  All auto-detected tags already covered by manual/label tags"
             fi
           fi
 
-          # Convert to JSON matrix (deduplicated)
-          if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY" ]]; then
-            echo "❌ No tags to run. Provide additional_tags or disable skip options."
-            exit 1
-          fi
-          MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
-            sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
+          # Build the JSON matrix
+          if [[ "$WIDE_CHANGE_FALLBACK" == "true" ]]; then
+            # Wide change: @Smoke and @Sanity as two separate jobs
+            MATRIX='["@Smoke","@Sanity"]'
+          else
+            if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY" ]]; then
+              echo "❌ No tags to run. Provide additional_tags or disable skip options."
+              exit 1
+            fi
+            MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
+              sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
 
-          # Append the consolidated auto-detected entry as a single matrix item
-          if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
-            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+            if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
+              MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+            fi
           fi
-          
+
           # Ensure compact JSON for GitHub Actions output
           MATRIX=$(echo "$MATRIX" | jq -c '.')
-          
+
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
           echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
