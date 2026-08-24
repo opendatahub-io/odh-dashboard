@@ -86,7 +86,9 @@ function listWorkspacePackagesFromManifest(root) {
   return [...packageDirs].toSorted().map((absPath) => {
     const pkg = JSON.parse(fs.readFileSync(path.join(absPath, 'package.json'), 'utf8'));
     const relativePath = path.relative(root, absPath) || '.';
-    return { ...pkg, name: pkg.name, path: relativePath };
+    // `path` and `location` are repo-relative (npm query `.location`).
+    // Callers that need absolute paths (e.g. rspack chunk grouping) must resolve from repo root.
+    return { ...pkg, name: pkg.name, path: relativePath, location: relativePath };
   });
 }
 
