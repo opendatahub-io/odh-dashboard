@@ -3,6 +3,11 @@
     display: flex;
     flex-direction: column;
     overflow-y: hidden;
+
+    > .pf-v6-l-stack {
+      flex: 1;
+      min-height: 0;
+    }
   }
 
   &--full-height {
@@ -56,6 +61,11 @@
   &--events-log {
     display: flex;
     flex-direction: column;
+
+    > .pf-v6-l-stack {
+      flex: 1;
+      min-height: 0;
+    }
   }
 }
 
