@@ -40,11 +40,14 @@ export function setupTenantAndDeployModel(
   td: EvalHubTestData,
   hwProfileName: string,
 ): void {
-  cy.step('Wait for operator to reconcile EvalHub resources');
-  // With tenancy: single the EvalHub CR lives in this namespace, so the operator provisions
-  // RBAC here directly. SA and Role names are derived from the CR name + namespace.
+  cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
+  cy.exec(
+    `oc label namespace ${ns} opendatahub.io/generated-namespace=true evalhub.trustyai.opendatahub.io/tenant= --overwrite`,
+  );
+
+  cy.step('Wait for operator to reconcile tenant resources');
   pollUntilSuccess(
-    `oc -n ${ns} get sa evalhub-${ns}-job -o name`,
+    `oc -n ${ns} get sa evalhub-redhat-ods-applications-job -o name`,
     'operator-provisioned ServiceAccount',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
@@ -54,8 +57,8 @@ export function setupTenantAndDeployModel(
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
   pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-${ns}-job-access-role -o name`,
-    'operator-provisioned job access Role',
+    `oc -n ${ns} get role evalhub-redhat-ods-applications-job-access-role -o name`,
+    'operator-provisioned status-events Role',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
 

@@ -8,7 +8,9 @@ import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProf
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
-  createEvalHubCr,
+  deleteEvalHubCr,
+  deleteEvalHubE2eDatabaseSecret,
+  ensureEvalHubCrReady,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
@@ -20,15 +22,21 @@ import { evaluationsPage } from '../../../pages/evaluations';
 import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
 
 /**
- * Live-cluster Eval Hub E2E. Creates an ephemeral per-test namespace containing the EvalHub CR
- * (tenancy: single), a vLLM-served model, and all evaluation jobs. The namespace is deleted after
- * the test — no shared cluster resources are created or torn down.
+ * Live-cluster Eval Hub E2E. Ensures EvalHub + MLflow CRs are Ready, creates an ephemeral
+ * OpenShift project with a vLLM-served model, then drives the Evaluations UI to submit an
+ * inference evaluation and verify it completes.
+ *
+ * @NonConcurrent: EvalHub CR is a singleton in APPLICATIONS_NAMESPACE. Two concurrent runs
+ * that both need to create it will conflict on teardown — the first to finish deletes the CR
+ * while the second is still running. Remove this tag once EvalHub is pre-deployed on the CI
+ * cluster (making ensureEvalHubCrReady a no-op create).
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
   const uuid = Cypress.env('EVAL_HUB_UUID') || generateTestUUID();
   Cypress.env('EVAL_HUB_UUID', uuid);
-  let testNamespace = '';
+  let evaluationTenantProject = '';
+  let evalHubCrName = 'evalhub';
   let hardwareProfileName = '';
   let inferenceServiceName = '';
   let evalHubInstanceYamlPath = '';
@@ -41,17 +49,18 @@ describe('Eval Hub E2E', () => {
     ensureAdminOcSession();
     cy.fixture('e2e/eval-hub/testEvalHub.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as EvalHubTestData;
+      evalHubCrName = testData.evalHubCrName;
       hardwareProfileName = testData.hardwareProfileName;
       evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
       mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
       benchmarkCardTitle = testData.benchmarkCardTitle;
       additionalBenchmarkParams = testData.additionalBenchmarkParams;
       projectNamePrefix = testData.projectNamePrefix;
-      testNamespace = `${testData.projectNamePrefix}-${uuid}`;
+      evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
     });
 
     cy.then(() => {
-      cy.step('Ensure MLflow CR is Available (prerequisite for EvalHub)');
+      cy.step('Ensure MLflow CR is Available (must be ready before EvalHub)');
       return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
         if (created) {
           Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
@@ -60,22 +69,26 @@ describe('Eval Hub E2E', () => {
     });
 
     cy.then(() => {
+      cy.step('Ensure EvalHub CR is Ready');
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
+        if (created) {
+          Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
+        }
+      });
+    });
+
+    cy.then(() => {
       const tracked: string[] = Cypress.env('EVAL_HUB_CREATED_PROJECTS') || [];
-      tracked.push(testNamespace);
+      tracked.push(evaluationTenantProject);
       Cypress.env('EVAL_HUB_CREATED_PROJECTS', tracked);
-      cy.step(`Create ephemeral project ${testNamespace}`);
-      createCleanProject(testNamespace);
+      cy.step(`Create ephemeral project ${evaluationTenantProject}`);
+      createCleanProject(evaluationTenantProject);
     });
 
     cy.then(() => {
-      cy.step('Create EvalHub CR (tenancy: single) in test namespace');
-      return createEvalHubCr(testNamespace, evalHubInstanceYamlPath);
-    });
-
-    cy.then(() => {
-      addUserToProject(testNamespace, LDAP_ADMIN_USER.USERNAME, 'admin');
-      setupTenantAndDeployModel(testNamespace, testData, hardwareProfileName);
-      grantEvalHubTenantAccess(testNamespace, LDAP_ADMIN_USER.USERNAME);
+      addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
+      setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+      grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
       inferenceServiceName = testData.inferenceServiceName;
       cy.log(`InferenceService: ${inferenceServiceName}`);
     });
@@ -88,13 +101,19 @@ describe('Eval Hub E2E', () => {
       ...new Set((Cypress.env('EVAL_HUB_CREATED_PROJECTS') || []) as string[]),
     ];
     projectsToDelete.forEach((project) => {
-      cy.step(`Delete test namespace ${project}`);
+      cy.step(`Delete tenant project ${project}`);
       deleteOpenShiftProject(project, { wait: false, ignoreNotFound: true });
     });
 
     if (hardwareProfileName) {
       cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
       cleanupHardwareProfiles(hardwareProfileName);
+    }
+
+    if (Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST')) {
+      cy.step(`Delete EvalHub CR ${evalHubCrName} created by this suite`);
+      deleteEvalHubCr(evalHubCrName);
+      deleteEvalHubE2eDatabaseSecret();
     }
 
     if (Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
@@ -107,15 +126,21 @@ describe('Eval Hub E2E', () => {
     'Eval Hub: start inference evaluation and see it complete',
     {
       retries: { runMode: 0, openMode: 0 },
-      tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
+      tags: ['@EvalHub', '@EvalHubCI', '@NonConcurrent', '@Featureflagged'],
     },
     () => {
       const extraParams = additionalBenchmarkParams.trim();
-      const evaluationRunName = `e2e-eval-${testNamespace.replace(`${projectNamePrefix}-`, '')}`;
+      const evaluationRunName = `e2e-eval-${evaluationTenantProject.replace(
+        `${projectNamePrefix}-`,
+        '',
+      )}`;
 
       cy.step('Log into the application and open Evaluations page');
-      cy.visitWithLogin(evaluationsPage.pathWithLmEvalDevFlags(testNamespace), LDAP_ADMIN_USER);
-      evaluationsPage.assertEvaluationsShellVisible(testNamespace);
+      cy.visitWithLogin(
+        evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
+        LDAP_ADMIN_USER,
+      );
+      evaluationsPage.assertEvaluationsShellVisible(evaluationTenantProject);
 
       cy.step('Create new evaluation → single benchmark');
       evalHubEvaluationFlow.openCreateEvaluationFromList();
@@ -149,7 +174,7 @@ describe('Eval Hub E2E', () => {
       evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
 
       cy.step('Wait for evaluation job to complete on backend');
-      waitForEvaluationJobComplete(testNamespace);
+      waitForEvaluationJobComplete(evaluationTenantProject);
 
       cy.step('Verify evaluation shows completed in UI');
       evaluationsPage.assertEvaluationCompleteInUI(evaluationRunName);
