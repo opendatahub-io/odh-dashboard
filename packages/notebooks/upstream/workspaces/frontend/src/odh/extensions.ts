@@ -1,18 +1,19 @@
+/* eslint-disable @cspell/spellchecker */
 import type {
   AreaExtension,
   NavExtension,
+  ProjectDetailsTab,
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const reliantAreas = ['workbenches'];
-const PLUGIN_NOTEBOOKS = 'notebooks-plugin';
+// This must match SupportedArea.NOTEBOOKS_V2 in frontend/src/concepts/areas/types.ts
+const PLUGIN_NOTEBOOKS = 'plugin-notebooks';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetailsTab)[] = [
   {
     type: 'app.area',
     properties: {
       id: PLUGIN_NOTEBOOKS,
-      reliantAreas,
       featureFlags: ['workbenchesV2'],
     },
   },
@@ -22,26 +23,11 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [PLUGIN_NOTEBOOKS],
     },
     properties: {
-      id: 'notebooks-kf-workspaces',
-      title: 'Workspaces',
-      href: '/notebooks/workspaces',
-      section: 'ai-hub',
-      path: '/notebooks/workspaces/*',
-      group: '1_aihub',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [PLUGIN_NOTEBOOKS],
-    },
-    properties: {
       id: 'notebooks-kf-workspacekinds',
-      title: 'Workspace Kinds',
+      title: 'Workbench templates (Dev Preview)',
       href: '/notebooks/workspacekinds',
-      section: 'ai-hub',
+      section: 'settings-environment-setup',
       path: '/notebooks/workspacekinds/*',
-      group: '1_aihub',
     },
   },
   {
@@ -52,6 +38,17 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/notebooks/*',
       component: () => import('./NotebooksWrapper'),
+    },
+  },
+  {
+    type: 'app.project-details/tab',
+    properties: {
+      id: 'workbenches-v2',
+      title: 'Workbenches v2 (Dev Preview)',
+      component: () => import('./WorkspacesProjectDetailsTab'),
+    },
+    flags: {
+      required: [PLUGIN_NOTEBOOKS],
     },
   },
 ];
