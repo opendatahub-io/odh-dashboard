@@ -3,6 +3,7 @@ import {
   k8sCreateResource,
   k8sPatchResource,
   k8sUpdateResource,
+  k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
@@ -94,3 +95,16 @@ export const useWatchLLMInferenceService = (
     opts,
   );
 };
+
+export const listLLMInferenceServices = (namespace: string): Promise<LLMInferenceServiceKind[]> =>
+  k8sListResourceItems<LLMInferenceServiceKind>({
+    model: LLMInferenceServiceModel,
+    queryOptions: { ns: namespace },
+  });
+
+/** Lists LLMInferenceService resources cluster-wide (requires cluster list permission). */
+export const listAllLLMInferenceServices = (): Promise<LLMInferenceServiceKind[]> =>
+  k8sListResourceItems<LLMInferenceServiceKind>({
+    model: LLMInferenceServiceModel,
+    queryOptions: {},
+  });

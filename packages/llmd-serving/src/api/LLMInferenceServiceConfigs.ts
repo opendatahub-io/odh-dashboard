@@ -15,6 +15,7 @@ import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { listAllLLMInferenceServices } from './LLMInferenceService';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
@@ -22,6 +23,21 @@ import {
   ConfigType,
   type LLMInferenceServiceConfigKind,
 } from '../types';
+import {
+  CONFIG_IN_USE_ERROR_MESSAGE,
+  isConfigInUse,
+  isDeletionPendingDueToReferences,
+  type LlmConfigRefType,
+} from '../utils';
+
+export class ConfigInUseError extends Error {
+  constructor(message = CONFIG_IN_USE_ERROR_MESSAGE) {
+    super(message);
+    this.name = 'ConfigInUseError';
+  }
+}
+
+export type DeleteLlmInferenceServiceConfigOutcome = 'deleted' | 'blocked-pending';
 
 export const createLLMInferenceServiceConfig = (
   llmInferenceServiceConfig: LLMInferenceServiceConfigKind,
@@ -137,6 +153,56 @@ export const deleteLLMInferenceServiceConfig = (
       opts,
     ),
   );
+
+export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
+  configName: string,
+  namespace: string,
+  refType: LlmConfigRefType,
+  opts?: K8sAPIOptions,
+): Promise<DeleteLlmInferenceServiceConfigOutcome> => {
+  const config = await getLLMInferenceServiceConfig(configName, namespace, opts);
+
+  const deployments = await listAllLLMInferenceServices().catch((e: unknown) => {
+    // Users without cluster-wide list permission can still delete; rely on the
+    // KServe finalizer to block deletion when the config is still referenced.
+    if (getGenericErrorCode(e) === 403) {
+      return null;
+    }
+    throw e;
+  });
+
+  if (isConfigInUse(config, deployments, configName, refType)) {
+    throw new ConfigInUseError();
+  }
+
+  const result = await k8sDeleteResource<LLMInferenceServiceConfigKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: LLMInferenceServiceConfigModel,
+        queryOptions: { name: configName, ns: namespace },
+      },
+      opts,
+    ),
+  );
+
+  if (isDeletionPendingDueToReferences(result, deployments, configName, refType)) {
+    return 'blocked-pending';
+  }
+
+  // Delete may return a Status object instead of the updated resource; re-fetch to detect
+  // a terminating config blocked by the KServe finalizer while still referenced.
+  const refreshedConfig = await getLLMInferenceServiceConfig(configName, namespace, opts).catch(
+    () => null,
+  );
+  if (
+    refreshedConfig &&
+    isDeletionPendingDueToReferences(refreshedConfig, deployments, configName, refType)
+  ) {
+    return 'blocked-pending';
+  }
+
+  return 'deleted';
+};
 
 /**
  * @returns Template versions of the LLMInferenceServiceConfigKind[] (filtered on 'opendatahub.io/config-type=accelerator')
