@@ -369,7 +369,6 @@ const EvaluationResultsPage: React.FC = () => {
                   job.status.state === 'pending' ||
                   job.status.state === 'stopping'
                 }
-                state={job.status.state}
               />
             </React.Suspense>
           </ModalBody>

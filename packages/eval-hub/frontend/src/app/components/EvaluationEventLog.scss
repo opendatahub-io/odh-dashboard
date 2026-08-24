@@ -1,15 +1,11 @@
 // Log viewer
 .evalhub-log-viewer {
-  max-height: 42vh;
+  height: 100%;
   overflow: auto;
+}
 
-  &--running {
-    max-height: 48vh;
-  }
-
-  &--completed {
-    max-height: 52vh;
-  }
+.evalhub-event-log__log-item {
+  min-height: 0;
 }
 
 .evalhub-log-viewer__row {

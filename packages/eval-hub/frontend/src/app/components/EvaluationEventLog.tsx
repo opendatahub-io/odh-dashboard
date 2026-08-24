@@ -269,7 +269,6 @@ type EvaluationEventLogProps = {
   evaluationName: string;
   benchmarks: EventLogBenchmark[];
   isInProgress: boolean;
-  state: string;
   activeBenchmarkIndex?: number;
 };
 
@@ -279,7 +278,6 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   evaluationName,
   benchmarks,
   isInProgress,
-  state,
   activeBenchmarkIndex,
 }) => {
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(
@@ -427,13 +425,6 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
 
   const hasLogContent =
     logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
-
-  let logViewerClassName = 'evalhub-log-viewer';
-  if (state === 'completed') {
-    logViewerClassName += ' evalhub-log-viewer--completed';
-  } else if (isInProgress) {
-    logViewerClassName += ' evalhub-log-viewer--running';
-  }
 
   return (
     <Stack hasGutter>
@@ -591,10 +582,10 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
           </Alert>
         </StackItem>
       ) : null}
-      <StackItem>
+      <StackItem isFilled className="evalhub-event-log__log-item">
         <div
           ref={logContainerRef}
-          className={logViewerClassName}
+          className="evalhub-log-viewer"
           data-testid="log-content"
           role="log"
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex

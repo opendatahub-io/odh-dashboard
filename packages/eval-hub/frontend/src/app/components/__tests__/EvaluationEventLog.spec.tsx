@@ -36,7 +36,6 @@ const renderComponent = (props: Partial<React.ComponentProps<typeof EvaluationEv
       evaluationName="eval-test"
       benchmarks={props.benchmarks ?? defaultBenchmarks}
       isInProgress={props.isInProgress ?? true}
-      state={props.state ?? 'running'}
       {...props}
     />,
   );
@@ -99,7 +98,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
@@ -118,7 +116,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
@@ -160,7 +157,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
@@ -189,7 +185,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
@@ -207,7 +202,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
@@ -226,7 +220,6 @@ describe('EvaluationEventLog', () => {
           evaluationName="eval-test"
           benchmarks={defaultBenchmarks}
           isInProgress
-          state="running"
         />,
       );
 
