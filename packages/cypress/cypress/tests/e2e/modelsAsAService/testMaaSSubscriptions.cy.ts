@@ -106,7 +106,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
           limit: '1,000',
-          window: '1000',
+          window: '1,000',
           unit: 'hour',
         };
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
