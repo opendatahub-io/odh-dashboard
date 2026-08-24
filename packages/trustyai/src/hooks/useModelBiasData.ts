@@ -1,14 +1,14 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
-import { TrustyStatusStates } from '#~/concepts/trustyai/types';
-import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
+import type { BiasMetricConfig, TrustyStatusStates } from '../types';
+import { TrustyAIContext } from '../context/TrustyAIContext';
 
 export type ModelBiasData = {
   biasMetricConfigs: BiasMetricConfig[];
   statusState: TrustyStatusStates;
   refresh: () => Promise<unknown>;
 };
+
 export const useModelBiasData = (): ModelBiasData => {
   const { inferenceService } = useParams();
 
