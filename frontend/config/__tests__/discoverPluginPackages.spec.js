@@ -103,6 +103,32 @@ describe('getPluginPackageDetails', () => {
     ]);
   });
 
+  it('should resolve repo-relative workspace paths to absolute locations', () => {
+    const packages = [
+      {
+        name: '@odh-dashboard/kserve',
+        path: 'packages/kserve',
+        exports: { './extensions': './extensions.ts' },
+      },
+    ];
+
+    jest.doMock('child_process', () => ({
+      execSync: jest.fn().mockReturnValue(JSON.stringify(packages)),
+    }));
+
+    const path = require('path');
+    const { getPluginPackageDetails } = require('../discoverPluginPackages');
+    const result = getPluginPackageDetails();
+
+    expect(result).toEqual([
+      {
+        name: '@odh-dashboard/kserve',
+        shortName: 'kserve',
+        location: path.resolve(__dirname, '../../../packages/kserve'),
+      },
+    ]);
+  });
+
   it('should skip packages with missing path and warn', () => {
     const packages = [
       {
