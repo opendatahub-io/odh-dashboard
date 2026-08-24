@@ -6,7 +6,11 @@ import {
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
-import { waitForResource } from '../../../utils/oc_commands/baseCommands';
+import {
+  waitForResource,
+  patchOpenShiftResource,
+  pollUntilSuccess,
+} from '../../../utils/oc_commands/baseCommands';
 import {
   enablePromptManagementFeatures,
   disablePromptManagementFeatures,
@@ -14,12 +18,9 @@ import {
 } from '../../../utils/oc_commands/mlflow';
 import {
   createGenAiPromptViaAPI,
-  setGlobalMLflowNamespaces,
-  clearGlobalMLflowNamespaces,
   forceDashboardConfigRefresh,
   deployGenAiModel,
   cleanupServingRuntimeTemplate,
-  waitForGlobalPromptsInBFF,
 } from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -34,6 +35,101 @@ import {
 } from '../../../pages/chatbotPromptManagement';
 import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
+
+const getOdhDashboardConfigNamespaces = (): Cypress.Chainable<string[]> =>
+  cy
+    .exec(`oc get OdhDashboardConfig -A -o jsonpath='{.items[*].metadata.namespace}'`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      const namespaces = result.stdout.replace(/'/g, '').trim().split(/\s+/).filter(Boolean);
+      if (namespaces.length > 0) {
+        return namespaces;
+      }
+      return [Cypress.env('APPLICATIONS_NAMESPACE') as string];
+    });
+
+const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
+  const patchContent = JSON.stringify({
+    spec: { globalMLflowNamespaces: namespaces },
+  });
+  const expected = JSON.stringify(namespaces);
+
+  getOdhDashboardConfigNamespaces().then((configNamespaces) => {
+    for (const ns of configNamespaces) {
+      patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, ns);
+    }
+
+    cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
+    for (const ns of configNamespaces) {
+      pollUntilSuccess(
+        `oc get OdhDashboardConfig odh-dashboard-config -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+        `globalMLflowNamespaces to be set in ${ns}`,
+        { maxAttempts: 30, pollIntervalMs: 2000 },
+      );
+    }
+  });
+};
+
+const clearGlobalMLflowNamespaces = (): void => {
+  const patchContent = JSON.stringify({
+    spec: { globalMLflowNamespaces: [] },
+  });
+
+  getOdhDashboardConfigNamespaces().then((configNamespaces) => {
+    for (const ns of configNamespaces) {
+      patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, ns);
+    }
+
+    for (const ns of configNamespaces) {
+      pollUntilSuccess(
+        `oc get OdhDashboardConfig odh-dashboard-config -n ${ns} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == []'`,
+        `globalMLflowNamespaces to be cleared in ${ns}`,
+        { maxAttempts: 15, pollIntervalMs: 2000 },
+      );
+    }
+  });
+};
+
+const waitForGlobalPromptsInBFF = (
+  projectNamespace: string,
+  expectedPromptName: string,
+  maxAttempts = 15,
+  pollIntervalMs = 3000,
+): void => {
+  const check = (attemptNumber: number): void => {
+    cy.request({
+      url: `/gen-ai/api/v1/mlflow/prompts?namespace=${encodeURIComponent(projectNamespace)}`,
+      failOnStatusCode: false,
+    }).then((response) => {
+      const body = response.body || {};
+      const prompts: { name?: string; scope?: { type?: string } }[] =
+        body.data?.prompts || body.prompts || [];
+      const found = prompts.some(
+        (p) => p.name === expectedPromptName && p.scope?.type === 'global',
+      );
+
+      if (found) {
+        cy.log(`Global prompt "${expectedPromptName}" discovered by BFF`);
+        return;
+      }
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `MLflow BFF did not return global prompt "${expectedPromptName}" after ${maxAttempts} attempts ` +
+            `(status=${response.status}, prompts=${prompts.length})`,
+        );
+      }
+
+      cy.log(`Waiting for BFF global prompt (attempt ${attemptNumber}/${maxAttempts})`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step('Wait for MLflow BFF to discover global namespace and prompt');
+  check(1);
+};
 
 const GLOBAL_PROMPT_TEMPLATE = 'You are a global template for summarization tasks.';
 const GLOBAL_PROMPT_COMMIT = 'Initial global prompt version';
