@@ -26,53 +26,93 @@ Primitive -> Feature (autox-core) -> Feature (product) -> Layout -> Page
 
 ### Primitive
 
-Stateless, hookless, fully controlled via props. Fulfills exactly one
-visual/interaction task. Gets all of its data from props — never calls a hook or
-fetches data itself. Lives in `components/primitive/`.
+Stateless, fully controlled via props, with **no business logic, no business
+concepts, and no business terminology** — not even in prop names, hardcoded
+strings, or imports. Fulfills exactly one visual/interaction task. Lives in
+`components/primitive/`.
 
-"Hookless" means no data-fetching or business-logic hooks (no React Query, no
-`use*Results`/`use*Context`, etc.) — a primitive's rendered output must be fully
-determined by its props. Framework-level hooks that don't fetch or own business
-data are fine: `useNavigate`/`useParams` for routing side effects, or `useState`
-for purely-local UI state (e.g. a modal's own open/checked state) that a primitive
-doesn't need to expose to callers. If a hook fetches data or reads shared
-app/business state, the component is a **feature**, not a primitive.
+The litmus test: could this be contributed to PatternFly today, as-is? If a
+reviewer with zero knowledge of AutoML/AutoRAG/Experiments/Pipelines couldn't
+understand what the component does purely from reading its code, it is not a
+primitive.
 
-Examples: `ManageColumnsModal`, `StopRunModal`, `DeleteRunModal`,
-`PipelineVisualization`, `NoProjects` (navigates via `useNavigate` but takes its
-route as a prop), tree-view leaf components.
+Concretely, a primitive must **not**:
 
-Why: a component with zero hooks and zero business logic is trivially portable —
-to another team, to `@odh-dashboard/ui-core`, to `mod-arch-shared`, or to PatternFly
-itself — without anyone needing to untangle it from AutoX-specific data-fetching
-first.
+- Hardcode any AutoX-domain word (Experiment, Pipeline Run, Project, Managed
+  Pipelines, etc.) into rendered text, prop names, or type names.
+- Import anything from `@odh-dashboard/internal/concepts/*` or any other
+  domain-specific internal module.
+- Fetch data or read shared app/business state via a hook.
+
+A primitive **may**:
+
+- Use framework-level hooks that don't fetch or own business data —
+  `useNavigate`/`useParams` for routing side effects the caller controls via a
+  route string prop, or `useState` for purely local UI state (e.g. a modal's
+  own open/checked state) that doesn't need to be exposed to callers.
+- Depend on `@odh-dashboard/ui-core` — the dashboard's own generic component
+  library is the same class of portable, zero-vocabulary dependency a
+  primitive here is allowed to build on (e.g. `DashboardModalFooter`,
+  `EmptyDetailsView`).
+
+Examples: `ActionableEmptyState` (icon + title + body + one action button —
+backs domain wrappers like `NoProjects`/`RunInProgress`), `SpinnerEmptyState`
+(spinner + title + description + footer slot — backs `PipelineServerStarting`),
+`ConfirmationModal` (modal shell with a submit/cancel footer — backs
+`EnableManagedPipelinesModal`), tree-view leaf components.
+
+Why: a component with zero business vocabulary and zero business logic is
+trivially portable — to another team, to `@odh-dashboard/ui-core`, to
+`mod-arch-shared`, or to PatternFly itself — without anyone needing to untangle
+it from AutoX-specific concepts first. A component parameterized only by
+`productName` (e.g. an old `InvalidExperiment` that still hardcoded "Experiment
+not found") is **not** portable in this sense: the domain concept ("Experiment")
+is still baked in, only the product name varies. That component belongs in
+Feature (autox-core) instead — see below.
 
 ### Feature (autox-core)
 
-Combines primitives with product-agnostic business logic and hooks. Fulfills
-exactly one business need. Gets its data from its own hooks, not from props.
+Combines primitives with shared AutoX business logic and/or vocabulary
+(Experiment, Project, Pipeline Run, Managed Pipelines, etc.), reused across
+AutoML and AutoRAG. Fulfills exactly one business need. Lives in
+`components/feature/`.
 
-Product-specific customization is injected through exactly two mechanisms, both
-supplied by a product-feature wrapper:
+Hooks are optional here, not a defining trait. Use a hook (React Query, etc.)
+when the component genuinely needs to fetch data or own shared state. Plenty of
+legitimate features are purely presentational domain wrappers around a
+primitive with no hooks beyond routing — e.g. `RunInProgress` calls
+`useNavigate` only to wire `ActionableEmptyState`'s action button to a
+caller-supplied route. What makes a component a feature rather than a
+primitive is the AutoX vocabulary it carries, not whether it owns a
+data-fetching hook.
 
+Product-specific customization is injected through one of these, supplied by a
+product-feature wrapper or a page:
+
+- **Plain data props** (e.g. `productName: string`, an icon component, a route
+  string) — the right choice for features with no data-fetching hook of their
+  own; there's no hook to bypass.
 - **Strategy object** — a plain data/behavior parameterization (e.g. a `resolveStatuses`
   function, an icon map, a set of stage-id vocabulary) passed as a prop.
 - **Named slot / render-prop** — a `React.ReactNode` or render-callback prop for
   injecting product-specific UI into a fixed layout position.
 
-An autox-core feature must never receive fully-resolved product data as a plain
-prop in place of calling its own hook — that would silently violate "features get
-data from hooks" and make the component's data-fetching behavior inconsistent
-depending on who's calling it. If a product needs to supply different data, it does
-so by giving the feature a different strategy object, not by pre-fetching on its
-behalf.
+For features that *do* own data via a hook, that feature must never receive
+fully-resolved product data as a plain prop in place of calling its own hook —
+that would silently make the component's data-fetching behavior inconsistent
+depending on who's calling it. If a product needs to supply different data to a
+hook-owning feature, it does so via a strategy object, not by pre-fetching on
+its behalf.
 
-Lives in `components/feature/`.
-
-Examples: `TopologyVis` (tree view + stage-status resolution behind a strategy
-object), `Leaderboard` (`SortableLeaderboardTable`; column definitions/formatters
-via strategy), `PipelineRunsTable` (column set/actions hook via strategy),
-`ConnectionModal`.
+Examples: `InvalidExperiment`/`InvalidPipelineRun`/`NoProjects`/`RunInProgress`
+(domain-vocabulary wrappers around `ActionableEmptyState`, no data hooks),
+`PipelineServerStarting` (wraps `SpinnerEmptyState`, imports
+`pipelinesBaseRoute`), `EnableManagedPipelinesModal` (wraps `ConfirmationModal`,
+imports `ManagedPipelinesSettingsSection`), `EmptyExperimentsState` (wraps
+ui-core's `EmptyDetailsView`), `TopologyVis` (tree view + stage-status
+resolution behind a strategy object), `Leaderboard` (`SortableLeaderboardTable`;
+column definitions/formatters via strategy), `PipelineRunsTable` (column
+set/actions hook via strategy), `ConnectionModal`.
 
 ### Feature (product — automl/autorag)
 
@@ -130,10 +170,11 @@ sufficient before reaching for the next one:
 (`TableBase`, `ApplicationsPage`, tracking helpers, etc.).
 
 For this extraction, everything pulled out of automl/autorag lands in
-`autox-core/ui` first — **including** pieces that happen to have zero AutoX-specific
-vocabulary (e.g. `ManageColumnsModal`, the `UIError` framework). Promoting those
-further into `ui-core`/`mod-arch-shared` is an intentionally **deferred** follow-up,
-not part of this effort, to keep the migration boundary simple. If you're adding a
+`autox-core/ui` first — **including** pieces that turn out to pass the Primitive
+litmus test above (e.g. the `UIError` framework, and any `components/primitive/`
+entry such as `ActionableEmptyState`). Promoting those further into
+`ui-core`/`mod-arch-shared` is an intentionally **deferred** follow-up, not part
+of this effort, to keep the migration boundary simple. If you're adding a
 brand-new primitive with no AutoX-specific vocabulary going forward, consider
 whether it belongs directly in `ui-core` instead of here.
 
@@ -150,8 +191,8 @@ in either consumer.
 
 ```
 import { ResultsLayout } from '@odh-dashboard/autox-core/ui/layouts';
-import { Leaderboard } from '@odh-dashboard/autox-core/ui/components/feature';
-import { StopRunModal } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { Leaderboard, RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ActionableEmptyState } from '@odh-dashboard/autox-core/ui/components/primitive';
 ```
 
 ## Rollout Approach
