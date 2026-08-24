@@ -1,13 +1,18 @@
 import React from 'react';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
-import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
-import useTrustyAINamespaceCR from '#~/concepts/trustyai/useTrustyAINamespaceCR';
-import useTrustyAIAPIState, { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
-import { TrustyAIContextData } from '#~/concepts/trustyai/context/types';
-import { DEFAULT_TRUSTY_CONTEXT_DATA } from '#~/concepts/trustyai/context/const';
-import useFetchContextData from '#~/concepts/trustyai/context/useFetchContextData';
-import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
-import { TrustyStatusStates } from '#~/concepts/trustyai/types';
+import type { TrustyAPIState } from './useTrustyAIAPIState';
+import useTrustyAINamespaceCR from './useTrustyAINamespaceCR';
+import useTrustyAIAPIState from './useTrustyAIAPIState';
+import useFetchContextData from './useFetchContextData';
+import { getTrustyStatusState } from '../utilities/utils';
+import { TrustyInstallState } from '../types';
+import type { TrustyAIContextData, TrustyStatusStates } from '../types';
+
+const DEFAULT_TRUSTY_CONTEXT_DATA: TrustyAIContextData = {
+  refresh: () => Promise.resolve(),
+  biasMetricConfigs: [],
+  loaded: false,
+};
 
 type TrustyAIContextProps = {
   namespace: string;
@@ -37,7 +42,7 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   namespace,
 }) => {
   const crState = useTrustyAINamespaceCR(namespace);
-  const [trustyNamespaceCR, crLoaded, , refreshCR] = crState;
+  const [trustyNamespaceCR, , , refreshCR] = crState;
   const statusState = useDeepCompareMemoize(getTrustyStatusState(crState));
 
   const taisName = trustyNamespaceCR?.metadata.name;
@@ -53,24 +58,13 @@ export const TrustyAIContextProvider: React.FC<TrustyAIContextProviderProps> = (
   const contextValue = React.useMemo(
     () => ({
       namespace,
-      hasCR: !!trustyNamespaceCR,
-      crInitializing: !crLoaded,
       statusState,
       refreshState,
       refreshAPIState,
       apiState,
       data,
     }),
-    [
-      namespace,
-      trustyNamespaceCR,
-      crLoaded,
-      statusState,
-      refreshState,
-      refreshAPIState,
-      apiState,
-      data,
-    ],
+    [namespace, statusState, refreshState, refreshAPIState, apiState, data],
   );
 
   return <TrustyAIContext.Provider value={contextValue}>{children}</TrustyAIContext.Provider>;

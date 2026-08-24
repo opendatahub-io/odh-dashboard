@@ -1,7 +1,7 @@
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
-import { TRUSTY_CR_NOT_AVAILABLE_STATES } from '#~/concepts/trustyai/types';
+import { TRUSTY_CR_NOT_AVAILABLE_STATES } from '../types';
+import { TrustyAIContext } from '../context/TrustyAIContext';
 
 const useDoesTrustyAICRExist = (): boolean[] => {
   const trustyAIAreaAvailable = useIsAreaAvailable(SupportedArea.TRUSTY_AI).status;

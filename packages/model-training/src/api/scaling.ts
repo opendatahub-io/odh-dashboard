@@ -1,6 +1,5 @@
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { applyK8sAPIOptions, K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { TrainJobKind } from '../k8sTypes';
 
