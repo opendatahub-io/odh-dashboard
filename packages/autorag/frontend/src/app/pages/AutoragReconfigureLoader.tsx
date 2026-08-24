@@ -1,5 +1,5 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';

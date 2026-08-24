@@ -1,12 +1,6 @@
-import {
-  Button,
-  EmptyState,
-  EmptyStateActions,
-  EmptyStateBody,
-  EmptyStateFooter,
-} from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ActionableEmptyState } from '../primitive';
 
 interface RunInProgressProps {
   productName: string;
@@ -26,28 +20,16 @@ function RunInProgress({
   const navigate = useNavigate();
 
   return (
-    <EmptyState
+    <ActionableEmptyState
       titleText={`Your ${productName} run is currently in progress`}
-      headingLevel="h4"
       icon={icon}
+      body="Please check back soon for your run results. Runs can take some time to complete."
+      action={{
+        label: `View my ${productName} runs`,
+        onClick: () => navigate(viewRunsRoute),
+      }}
       data-testid={testId}
-    >
-      <EmptyStateBody>
-        Please check back soon for your run results. Runs can take some time to complete.
-      </EmptyStateBody>
-      <EmptyStateFooter>
-        <EmptyStateActions>
-          <Button
-            variant="primary"
-            onClick={() => {
-              navigate(viewRunsRoute);
-            }}
-          >
-            View my {productName} runs
-          </Button>
-        </EmptyStateActions>
-      </EmptyStateFooter>
-    </EmptyState>
+    />
   );
 }
 

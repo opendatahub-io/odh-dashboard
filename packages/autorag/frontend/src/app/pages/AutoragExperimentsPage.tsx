@@ -1,5 +1,5 @@
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
-import { NoProjects } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { NoProjects } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';

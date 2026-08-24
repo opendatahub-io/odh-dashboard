@@ -14,7 +14,7 @@ import { ConfigurePipelinesServerModal } from '@odh-dashboard/internal/concepts/
 import {
   EnableManagedPipelinesModal,
   PipelineServerStarting,
-} from '@odh-dashboard/autox-core/ui/components/primitive';
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
 import { Alert, Button } from '@patternfly/react-core';

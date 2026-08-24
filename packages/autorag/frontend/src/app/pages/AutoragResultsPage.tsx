@@ -10,7 +10,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';

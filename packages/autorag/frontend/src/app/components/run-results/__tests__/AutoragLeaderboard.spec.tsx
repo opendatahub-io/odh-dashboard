@@ -19,8 +19,8 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock empty state component
-jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
-  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
   RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
     <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),

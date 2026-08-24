@@ -1,5 +1,5 @@
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { Alert, Spinner } from '@patternfly/react-core';

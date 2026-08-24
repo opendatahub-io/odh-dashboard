@@ -65,8 +65,8 @@ jest.mock('~/app/components/common/AutoragHeader/AutoragHeader', () => ({
   default: () => <span>AutoRAG</span>,
 }));
 
-jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
-  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
   InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
 }));
 

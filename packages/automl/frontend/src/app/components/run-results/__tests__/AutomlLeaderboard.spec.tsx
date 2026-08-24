@@ -11,8 +11,8 @@ import { PRESET_FASTER } from '~/app/utilities/const';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 // Mock empty state component
-jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
-  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
   RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
     <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),

@@ -104,8 +104,8 @@ jest.mock('~/app/components/run-results/AutomlResults', () => ({
   },
 }));
 
-jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => ({
-  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive'),
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
   InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
 }));
 

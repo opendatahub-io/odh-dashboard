@@ -29,8 +29,8 @@ jest.mock(
   }),
 );
 
-jest.mock('@odh-dashboard/autox-core/ui/components/primitive', () => {
-  const actual = jest.requireActual('@odh-dashboard/autox-core/ui/components/primitive');
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
+  const actual = jest.requireActual('@odh-dashboard/autox-core/ui/components/feature');
   const MockEnableManagedPipelinesModal = ({
     onConfirm,
     onClose,

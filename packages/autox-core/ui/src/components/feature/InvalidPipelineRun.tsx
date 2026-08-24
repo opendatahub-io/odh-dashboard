@@ -1,5 +1,5 @@
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import * as React from 'react';
+import { ActionableEmptyState } from '../primitive';
 
 interface InvalidPipelineRunProps {
   productName: string;
@@ -7,9 +7,10 @@ interface InvalidPipelineRunProps {
 
 function InvalidPipelineRun({ productName }: InvalidPipelineRunProps): React.JSX.Element {
   return (
-    <EmptyState titleText="Run not found" headingLevel="h4">
-      <EmptyStateBody>The {productName} pipeline run was not found.</EmptyStateBody>
-    </EmptyState>
+    <ActionableEmptyState
+      titleText="Run not found"
+      body={`The ${productName} pipeline run was not found.`}
+    />
   );
 }
 

@@ -3,7 +3,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
-import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
 import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
