@@ -6,7 +6,7 @@ import {
 } from '../../../utils/oc_commands/maas';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
-  stubClipboardWriteTextForApiKeyModal,
+  stubClipboard,
   verifyMaaSModelInferenceUsingRevokedApiKey,
   verifyMaasModelExistsForUser,
 } from '../../../utils/maasApiKeyClipboardInference';
@@ -57,6 +57,8 @@ import {
   cleanupLLMInferenceService,
 } from '../../../utils/oc_commands/modelServing';
 import { getClipboardContent } from '../../../utils/clipboardUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
 
 const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 
@@ -419,6 +421,27 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .and('contain.text', projectName)
         .and('contain.text', tokenRateLimit.limit.toString());
 
+      cy.step('Verify the YAML Tab');
+      stubClipboard('copiedYAML');
+      viewSubscriptionPage.findYamlTab().click();
+      viewSubscriptionPage.findYAMLCodeEditor().copyToClipboard().click();
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include(testData.apiVersion);
+        expect(yamlContent).to.include(testData.kind);
+        expect(yamlContent).to.include(`${subscriptionName}`);
+      });
+      stubDownload('downloadedYAML');
+      viewSubscriptionPage.findYAMLCodeEditor().download().should('exist').click();
+      getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+        expect(downloads).to.have.length.at.least(1);
+        expect(downloads[0].fileName).to.include(`${subscriptionName}`);
+        expect(downloads[0].content).to.include(testData.apiVersion);
+        expect(downloads[0].content).to.include(testData.kind);
+        expect(downloads[0].content).to.include(`${subscriptionName}`);
+      });
+
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
       cy.url().should('include', '/maas/maas-governance/subscriptions');
 
@@ -458,7 +481,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Read the API key from the success dialog');
       copyApiKeyModal.shouldBeOpen();
-      stubClipboardWriteTextForApiKeyModal(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
+      stubClipboard(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
         expect(apiKeys).to.have.length.at.least(1);

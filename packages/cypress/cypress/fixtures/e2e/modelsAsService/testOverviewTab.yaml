@@ -1,0 +1,21 @@
+## testOverviewTab.cy.ts E2E fixture ##
+# model serving
+projectResourceName: 'test-maas-overview-tab'
+singleModelName: 'test-maas-overview-model'
+singleModelDescription: 'Model for testing MaaS'
+connectionNameSuffix: '-connection'
+modelLocationURI: 'hf://facebook/opt-125m'
+# Subscriptions
+subscriptionName: 'test-maas-overview-sub'
+subscriptionDescription: 'Cypress test: MaaS subscription for overview tab'
+subscriptionGroups: ['rhods-admins', 'rhods-users']
+#Authorization Policies
+policiesName: 'test-maas-overview-policy'
+policiesDescription: 'Cypress test: MaaS authorization policy for overview tab'
+policiesGroups: ['rhods-admins', 'rhods-users']
+tokenRateLimit:
+  limit: '1,000'
+  window: '1'
+  unit: hour
+phase: 'Active'
+
