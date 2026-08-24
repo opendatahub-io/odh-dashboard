@@ -1,6 +1,21 @@
 import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { mergeRequestInit } from '@odh-dashboard/k8s-core';
 
+/**
+ * Thrown when a proxy call receives a transient HTTP error (e.g. 502/503) from the
+ * upstream server. This typically happens during TrustyAI startup when the route exists
+ * but the backend is not yet ready.
+ */
+export class ProxyTransientError extends Error {
+  public status: number;
+
+  constructor(status: number) {
+    super(`Received transient ${status} response from TrustyAI server`);
+    this.name = 'ProxyTransientError';
+    this.status = status;
+  }
+}
+
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;
   parseJSON?: boolean;
@@ -42,14 +57,18 @@ const callProxyJSON = <T>(
     ...(contentType && { headers: { 'Content-Type': contentType } }),
     method,
     body: requestData,
-  }).then((response) =>
-    response.text().then((fetchedData) => {
+  }).then((response) => {
+    if (response.status === 502 || response.status === 503) {
+      throw new ProxyTransientError(response.status);
+    }
+
+    return response.text().then((fetchedData) => {
       if (parseJSON) {
         return JSON.parse(fetchedData);
       }
       return fetchedData;
-    }),
-  );
+    });
+  });
 };
 
 export const proxyGET = <T>(

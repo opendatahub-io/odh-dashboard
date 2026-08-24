@@ -24,13 +24,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/api/apiMergeUtils', () => ({
-  applyK8sAPIOptions: jest.fn((opts: object) => opts),
-}));
-
 jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
+  applyK8sAPIOptions: jest.fn((opts: object) => opts),
   kindApiVersion: jest.fn(() => 'feast.dev/v1'),
-  isValidK8sName: jest.requireActual('@odh-dashboard/k8s-core').isValidK8sName,
 }));
 
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource);

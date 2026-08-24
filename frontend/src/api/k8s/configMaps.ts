@@ -6,10 +6,9 @@ import {
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { ConfigMapKind, K8sAPIOptions } from '#~/k8sTypes';
 import { ConfigMapModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const CONFIGMAP_PREFIX = 'configmap-';
 

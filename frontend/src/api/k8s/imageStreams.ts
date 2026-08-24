@@ -8,9 +8,13 @@ import {
   k8sUpdateResource,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels, kindApiVersion, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  KnownLabels,
+  kindApiVersion,
+  translateDisplayNameForK8s,
+  applyK8sAPIOptions,
+} from '@odh-dashboard/k8s-core';
 import { ImageStreamKind, K8sAPIOptions } from '#~/k8sTypes';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils.ts';
 import { ImageStreamModel } from '#~/api/models';
 import {
   buildLabelSelector,
