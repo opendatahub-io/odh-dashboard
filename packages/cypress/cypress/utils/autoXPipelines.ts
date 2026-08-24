@@ -76,6 +76,9 @@ export const provisionProjectForAutoX = (
     AWS_REGION: bucketConfig.REGION,
     AWS_S3_HOST: host,
     AWS_S3_SCHEME: scheme,
+    MLFLOW_INTEGRATION_MODE: 'DISABLED',
+    MLFLOW_INJECT_USER_ENV_VARS: 'false',
+    PIPELINE_STORE: 'database',
   };
   createDSPA(dspaReplacements, 'resources/yaml/autox_dspa.yaml');
 };

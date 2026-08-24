@@ -12,14 +12,22 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { bulkRevokeApiKeys } from '~/app/api/api-keys';
 import useUser from '~/app/hooks/useUser';
+import {
+  ApiKeyBulkRevokeMode,
+  ApiKeysBulkRevokedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
+  keyCount: number;
 };
 
-const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }) => {
+const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, keyCount }) => {
   const { userId } = useUser();
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
@@ -33,17 +41,39 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }
 
     try {
       await bulkRevokeApiKeys()({}, userId);
+      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
+        keyCount,
+        isAdmin: false,
+      } satisfies ApiKeysBulkRevokedProperties);
       onClose(true);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to revoke API keys'));
+      const message = err instanceof Error ? err.message : 'Failed to revoke API keys';
+      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: message,
+        bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
+        keyCount,
+        isAdmin: false,
+      } satisfies ApiKeysBulkRevokedProperties);
+      setError(err instanceof Error ? err : new Error(message));
       setRevoking(false);
     }
-  }, [onClose, userId]);
+  }, [onClose, userId, keyCount]);
 
   const onBeforeClose = (revoked: boolean) => {
     if (revoked) {
       handleRevoke();
     } else {
+      fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
+        outcome: TrackingOutcome.cancel,
+        bulkMode: ApiKeyBulkRevokeMode.ALL_MY_KEYS,
+        keyCount,
+        isAdmin: false,
+      } satisfies ApiKeysBulkRevokedProperties);
       onClose(false);
     }
   };

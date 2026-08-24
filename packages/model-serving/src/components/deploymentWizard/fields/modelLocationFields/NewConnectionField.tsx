@@ -10,7 +10,7 @@ import type {
   ConnectionTypeDataField,
   ConnectionTypeValueType,
 } from '@odh-dashboard/k8s-core';
-import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../../../shared/types/form-data';
@@ -30,6 +30,7 @@ const NewConnectionField: React.FC<Props> = ({
   modelLocationData,
   connectionType,
 }) => {
+  const { ConnectionTypeFormFields } = useHostApi();
   const connectionValues = React.useMemo(() => {
     if (!modelLocationData) return {};
     return modelLocationData.fieldValues;

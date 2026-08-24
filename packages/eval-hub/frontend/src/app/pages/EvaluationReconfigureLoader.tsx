@@ -13,7 +13,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
-import { getCollections } from '~/app/api/k8s';
+import { getCollection } from '~/app/api/k8s';
 import { evaluationsBaseRoute } from '~/app/routes';
 import extractReconfigureData from '~/app/utils/extractReconfigureData';
 import type { Collection } from '~/app/types';
@@ -34,14 +34,7 @@ const EvaluationReconfigureLoader: React.FC = () => {
       if (!namespace || !collectionId || !needsCollectionFetch) {
         return Promise.reject(new NotReadyError('Collection fetch not needed'));
       }
-      // TODO: RHOAIENG-84697 — use direct GET /collections/{id} once the BFF endpoint exists
-      return getCollections('', { namespace })(opts).then((response) => {
-        const match = response.items.find((c) => c.resource.id === collectionId);
-        if (!match) {
-          throw new Error(`Collection "${collectionId}" not found`);
-        }
-        return match;
-      });
+      return getCollection('', namespace, collectionId)(opts);
     },
     [namespace, collectionId, needsCollectionFetch],
   );

@@ -32,6 +32,7 @@ import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
   EventTrackingContext,
 } from '~/app/types/event-tracking';
@@ -48,7 +49,12 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('subscriptions');
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.DETAIL_KEBAB,
+    },
+  };
 
   return (
     <>

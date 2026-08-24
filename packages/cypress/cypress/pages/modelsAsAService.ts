@@ -1468,12 +1468,36 @@ class OverviewTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
+  findModelPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label');
+  }
+
   findModelSubscriptions(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Subscriptions"]');
   }
 
+  findModelSubscriptionsWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-subscriptions-warning');
+  }
+
   findModelAuthorizationPolicies(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Authorization policies"]');
+  }
+
+  findModelPoliciesWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-policies-warning');
+  }
+
+  findKebabToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findCreateSubscriptionKebabAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Create subscription' });
+  }
+
+  findCreatePolicyKebabAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Create authorization policy' });
   }
 }
 
@@ -1530,6 +1554,55 @@ class OverviewTabPage {
     name: string,
   ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
     return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
+  }
+
+  findExpandableItemName(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId('expandable-item-name');
+  }
+
+  findExpandableItemPhase(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId('phase-label');
+  }
+
+  findExpandableItemTokenLimits(
+    rowIndex: number,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId(
+      'expandable-item-token-limits',
+    );
+  }
+
+  findExpandableItemGroupChip(
+    rowIndex: number,
+    itemName: string,
+    group: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, itemName).findByTestId(`group-chip-${group}`);
+  }
+
+  shouldExpandableItemInRowBeExpanded(rowIndex: number, name: string, expanded = true): void {
+    const chain = this.findExpandableItemInRow(rowIndex, name);
+    if (expanded) {
+      chain.should('have.class', 'pf-m-expanded');
+    } else {
+      chain.should('not.have.class', 'pf-m-expanded');
+    }
+  }
+
+  shouldGroupChipsBeHighlighted(
+    group: string,
+    rowIndex: number,
+    highlighted = true,
+    expectedCount?: number,
+  ): void {
+    const chips = this.findGroupChips(group, rowIndex);
+    if (expectedCount !== undefined) {
+      chips.should('have.length', expectedCount);
+    }
+    chips.each(($chip) => {
+      cy.wrap($chip).should(highlighted ? 'have.class' : 'not.have.class', 'pf-m-blue');
+    });
   }
 
   expandExpandableItemInRow(rowIndex: number, name: string): void {

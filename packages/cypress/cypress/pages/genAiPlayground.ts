@@ -144,8 +144,8 @@ class GenAiPlayground {
     return cy.findByTestId('create-endpoint-button');
   }
 
-  findEmptyStateCreateEndpointButton() {
-    return cy.findByTestId('empty-state-secondary-action-button');
+  findEmptyStateCreateEndpointButton(options?: { timeout?: number }) {
+    return cy.findByTestId('empty-state-secondary-action-button', options);
   }
 
   findCreateExternalModelModal() {
@@ -180,8 +180,8 @@ class GenAiPlayground {
     return cy.findByTestId('create-external-model-submit-button');
   }
 
-  findAiModelsTable() {
-    return cy.findByTestId('ai-models-table');
+  findAiModelsTable(options?: { timeout?: number }) {
+    return cy.findByTestId('ai-models-table', options);
   }
 
   findModelActionsKebab(modelName: string) {
@@ -492,6 +492,47 @@ class GenAiPlayground {
 
   findAgentUnsavedIndicator() {
     return cy.findByTestId('agent-unsaved-indicator');
+  }
+
+  // MCP methods
+  findMCPTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-mcp');
+  }
+
+  findMCPServersTable(options?: { timeout?: number }) {
+    return cy.findByTestId('mcp-servers-panel-table', options);
+  }
+
+  findMCPServerRow(serverName: string) {
+    return this.findMCPServersTable({ timeout: 30000 }).contains('tr', serverName);
+  }
+
+  findMCPServerCheckbox(serverName: string) {
+    // Prefix selector is safe — scoped to a single <tr> via findMCPServerRow
+    return this.findMCPServerRow(serverName)
+      .find('[data-testid^="mcp-server-checkbox-"]')
+      .find('input[type="checkbox"]');
+  }
+
+  selectMCPServer(serverName: string) {
+    return this.findMCPServerCheckbox(serverName).then(($checkbox) => {
+      if (!$checkbox.is(':checked')) {
+        cy.wrap($checkbox).check({ force: true });
+      }
+    });
+  }
+
+  findMCPSuccessModal(options?: { timeout?: number }) {
+    return cy.findByTestId('mcp-server-success-modal', options);
+  }
+
+  findMCPSuccessModalSaveButton() {
+    return this.findMCPSuccessModal().findByTestId('modal-submit-button');
+  }
+
+  closeMCPSuccessModal() {
+    this.findMCPSuccessModalSaveButton().should('be.visible').click();
+    cy.findByTestId('mcp-server-success-modal').should('not.exist');
   }
 }
 

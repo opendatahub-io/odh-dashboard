@@ -13,6 +13,10 @@ export class NIMWizardFields extends SubComponentBase {
     cy.findByRole('option', { name: new RegExp(escapedName) }).click();
   }
 
+  findImageNotFoundWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findScope().findByTestId('nim-image-not-found-warning');
+  }
+
   findStorageModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('nim-storage-mode-select');
   }
@@ -31,6 +35,12 @@ export class NIMWizardFields extends SubComponentBase {
 
   findStorageSizeInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     return this.findScope().findByTestId('nim-storage-size-input').find('input');
+  }
+
+  /** PF NumberInput is controlled — use select-all instead of clear().type() to avoid stale values. */
+  setStorageSizeGi(sizeGi: number): void {
+    this.findStorageSizeInput().type(`{selectall}${sizeGi}`);
+    this.findStorageSizeInput().should('have.value', String(sizeGi));
   }
 
   findExistingPVCSelect(): Cypress.Chainable<JQuery<HTMLElement>> {

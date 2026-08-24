@@ -251,12 +251,12 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 15 | `npm run validate:ports` passes | Phase 5 |
 | 16 | `npm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
-| 18 | Standalone manifests in `manifests/modules/<name>/` | Phase 6 |
-| 19 | Module registered in operator module registry | Phase 7 |
-| 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
+| — | Standalone manifests in `manifests/modules/<name>/` | `/konflux-onboarding` |
+| — | Module registered in operator module registry | `/konflux-onboarding` |
+| — | RELATED_IMAGE entry in Helm chart `values.yaml` | `/konflux-onboarding` |
 
 ## Troubleshooting
 
@@ -294,35 +294,20 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 ## Standalone Deployment Manifests
 
-> **Primary mode**: Standalone deployment is the primary and recommended deployment topology. Sidecar mode is deprecated.
+> Standalone manifests and operator registration are created by `/konflux-onboarding`, not this skill. They are deferred because the operator deploys the module image, which must be buildable first (via OpenShift CI) — otherwise the pod enters ImagePullBackOff.
 
-The module-onboarding skill creates standalone deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
-
-### Required files
-
-| File | Purpose |
-|------|---------|
-| `deployment.yaml` | Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount |
-| `service.yaml` | Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`) |
-| `networkpolicy.yaml` | NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication) |
-| `service-account.yaml` | Dedicated ServiceAccount for SA isolation |
-| `cluster-role.yaml` | Module-specific ClusterRole |
-| `cluster-role-binding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
-| `kustomization.yaml` | Kustomize entry referencing all resources |
-| `params.env` | Kustomize parameter defaults (image reference) |
+See the `/konflux-onboarding` skill for the full standalone manifest and operator registration steps.
 
 ### Reference existing modules
 
-Use the following existing module manifests as patterns:
+Use the following existing module manifests as patterns when creating manifests (via `/konflux-onboarding`):
 
 - `manifests/modules/gen-ai/` — Gen AI module (has BFF)
 - `manifests/modules/model-registry/` — Model Registry module (has BFF)
 
-Copy the structure from the closest matching existing module and adapt the names, ports, and RBAC rules for the new module.
-
 ## Operator Registration Reference
 
-The module-onboarding skill registers the module in the dashboard-operator during Phase 7. This section documents the files and patterns involved.
+Operator registration is handled by `/konflux-onboarding` after CI/CD is set up. This section documents the files and patterns involved for reference.
 
 ### Files modified
 

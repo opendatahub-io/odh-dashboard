@@ -1,27 +1,36 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { fetchS3File } from '~/app/hooks/queries';
+import { z } from 'zod';
+import { fetchS3Json } from '~/app/hooks/queries';
 import type {
   AutoRAGEvaluationResult,
   AutoRAGEvaluationMetricResult,
 } from '~/app/types/autoragPattern';
 
-export type RawEvaluationResult = {
-  question: string;
-  correct_answers: string[]; // eslint-disable-line camelcase
-  question_id?: string; // eslint-disable-line camelcase
-  answer: string;
-  answer_contexts: { text: string; document_id: string }[]; // eslint-disable-line camelcase
-} & ({ metrics: AutoRAGEvaluationMetricResult[] } | { scores: Record<string, number> });
+const rawEvaluationResultSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+  question_id: z.string().optional(), // eslint-disable-line camelcase
+  correct_answers: z.array(z.string()), // eslint-disable-line camelcase
+  answer_contexts: z.array(z.object({ text: z.string(), document_id: z.string() })), // eslint-disable-line camelcase
+  metrics: z
+    .array(z.object({ name: z.string(), evaluator: z.string(), score: z.number() }))
+    .optional(),
+  scores: z.record(z.string(), z.number()).optional(),
+});
+
+const evaluationResultsSchema = z.array(rawEvaluationResultSchema);
+
+export type RawEvaluationResult = z.infer<typeof rawEvaluationResultSchema>;
 
 export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
   const metrics: AutoRAGEvaluationMetricResult[] =
-    'metrics' in raw && Array.isArray(raw.metrics)
+    raw.metrics && raw.metrics.length > 0
       ? raw.metrics
-      : 'scores' in raw && typeof raw.scores === 'object'
+      : raw.scores
         ? Object.entries(raw.scores).map(([name, score]) => ({
             name,
             evaluator: 'unitxt',
-            score: typeof score === 'number' ? score : NaN,
+            score,
           }))
         : [];
 
@@ -66,16 +75,11 @@ export function usePatternEvaluationResults(
         throw new Error('namespace and evaluation results key are required');
       }
 
-      const blob = await fetchS3File(namespace, key, { signal });
-      const text = await blob.text();
-      const parsed: unknown = JSON.parse(text);
-
-      if (!Array.isArray(parsed)) {
-        throw new Error(`Invalid evaluation results: expected array, got ${typeof parsed}`);
-      }
-
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return (parsed as RawEvaluationResult[]).map(normalizeEvaluationResult);
+      const results = await fetchS3Json(namespace, key, {
+        signal,
+        schema: evaluationResultsSchema,
+      });
+      return results.map(normalizeEvaluationResult);
     },
     enabled: enabled && Boolean(namespace && key),
     retry: false,

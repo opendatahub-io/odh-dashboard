@@ -6,9 +6,9 @@ import {
 } from '../../../utils/oc_commands/maas';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
-  stubClipboardWriteTextForApiKeyModal,
-  verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
+  stubClipboard,
   verifyMaaSModelInferenceUsingRevokedApiKey,
+  verifyMaasModelExistsForUser,
 } from '../../../utils/maasApiKeyClipboardInference';
 import {
   addUserToProject,
@@ -56,6 +56,11 @@ import {
   checkLLMInferenceServiceState,
   cleanupLLMInferenceService,
 } from '../../../utils/oc_commands/modelServing';
+import { getClipboardContent } from '../../../utils/clipboardUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
+
+const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 
 let testData: ModelAsAServiceTestData;
 let projectName: string;
@@ -416,6 +421,27 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .and('contain.text', projectName)
         .and('contain.text', tokenRateLimit.limit.toString());
 
+      cy.step('Verify the YAML Tab');
+      stubClipboard('copiedYAML');
+      viewSubscriptionPage.findYamlTab().click();
+      viewSubscriptionPage.findYAMLCodeEditor().copyToClipboard().click();
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include(testData.apiVersion);
+        expect(yamlContent).to.include(testData.kind);
+        expect(yamlContent).to.include(`${subscriptionName}`);
+      });
+      stubDownload('downloadedYAML');
+      viewSubscriptionPage.findYAMLCodeEditor().download().should('exist').click();
+      getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+        expect(downloads).to.have.length.at.least(1);
+        expect(downloads[0].fileName).to.include(`${subscriptionName}`);
+        expect(downloads[0].content).to.include(testData.apiVersion);
+        expect(downloads[0].content).to.include(testData.kind);
+        expect(downloads[0].content).to.include(`${subscriptionName}`);
+      });
+
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
       cy.url().should('include', '/maas/maas-governance/subscriptions');
 
@@ -455,27 +481,35 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Read the API key from the success dialog');
       copyApiKeyModal.shouldBeOpen();
-      stubClipboardWriteTextForApiKeyModal();
+      stubClipboard(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(projectName, () => resourceName);
+      getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
+        expect(apiKeys).to.have.length.at.least(1);
+        copyApiKeyModal.findCloseButton().click();
 
-      cy.step('Revoke the API key');
-      copyApiKeyModal.findCloseButton().click();
-      apiKeysPage.findColumnSortButton('Name').click();
+        cy.step('Verify the model is accessible to the user');
+        verifyMaasModelExistsForUser(modelName, apiKeys[0], true);
 
-      // Filter by the admin username to find the API key, there could be a lot of keys
-      apiKeysPage.findFilterInput().find('input').type(LDAP_ADMIN_USER.USERNAME);
-      apiKeysPage.findFilterSearchButton().click();
-      apiKeysPage.findRevokeActionsButton(apiKeyName).click();
+        cy.step('Revoke the API key');
+        apiKeysPage.visit();
+        apiKeysPage.findColumnSortButton('Name').click();
 
-      revokeAPIKeyModal.shouldBeOpen();
-      revokeAPIKeyModal.findRevokeButton().should('be.disabled');
-      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(apiKeyName);
-      revokeAPIKeyModal.findRevokeButton().should('be.enabled');
-      revokeAPIKeyModal.findRevokeButton().click();
+        // Filter by the admin username to find the API key, there could be a lot of keys
+        apiKeysPage.findFilterInput().find('input').type(LDAP_ADMIN_USER.USERNAME);
+        apiKeysPage.findFilterSearchButton().click();
+        apiKeysPage.findRevokeActionsButton(apiKeyName).click();
 
-      cy.step('Try and inference with the model using the revoked API key');
-      verifyMaaSModelInferenceUsingRevokedApiKey(projectName, () => resourceName);
+        revokeAPIKeyModal.shouldBeOpen();
+        revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+        revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(apiKeyName);
+        revokeAPIKeyModal.findRevokeButton().should('be.enabled');
+        revokeAPIKeyModal.findRevokeButton().click();
+
+        cy.step('Try and inference with the model using the revoked API key');
+        cy.then(() => {
+          verifyMaaSModelInferenceUsingRevokedApiKey(projectName, () => resourceName, apiKeys[0]);
+        });
+      });
     },
   );
 });

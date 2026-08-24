@@ -1,0 +1,58 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Placeholder namespace: workbenches-operator rewrites this via patchKustomizeNamespace
+# (APPLICATIONS_NAMESPACE or platform default). For manual deploy, make deploy-gateway
+# substitutes NAMESPACE (default: redhat-ods-applications).
+namespace: opendatahub
+
+resources:
+- ../../base
+
+components:
+- ../../components/gateway
+- ../../components/openshift-rbac
+- ../../components/openshift-webhook
+- ../../components/common
+
+configMapGenerator:
+- envs:
+  - params.env
+  name: kubeflow-workspaces-gateway-config
+
+replacements:
+- source:
+    fieldPath: metadata.namespace
+    kind: ServiceAccount
+    name: workspaces-controller
+  targets:
+  - fieldPaths:
+    - subjects.[kind=ServiceAccount].namespace
+    select:
+      kind: ClusterRoleBinding
+      name: workspaces-manager-rolebinding
+  - fieldPaths:
+    - subjects.[kind=ServiceAccount].namespace
+    select:
+      kind: RoleBinding
+      name: workspaces-leader-election-rolebinding
+- source:
+    fieldPath: data.WORKBENCH_CONTROLLER_IMAGE
+    kind: ConfigMap
+    name: kubeflow-workspaces-gateway-config
+    version: v1
+  targets:
+  - fieldPaths:
+    - spec.template.spec.containers.[name=manager].image
+    select:
+      kind: Deployment
+      name: workspaces-controller
+
+patches:
+- patch: |-
+    # OpenShift SCC: allow the platform to assign UID (restricted-v2 / nonroot-v2).
+    - op: remove
+      path: /spec/template/spec/containers/0/securityContext/runAsUser
+  target:
+    kind: Deployment
+    name: workspaces-controller

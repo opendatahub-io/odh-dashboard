@@ -30,8 +30,8 @@ import SupportIcon from './icons/header-icons/SupportIcon';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from './components/FeatureStoreObjectIcon';
 
-const CreateFeatureStoreLink = (props: React.ComponentProps<'a'>) => (
-  <Link {...props} to="/develop-train/feature-store/create" />
+const ManageFeatureStoresLink = (props: React.ComponentProps<'a'>) => (
+  <Link {...props} to="/settings/environment-setup/feature-stores" />
 );
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
@@ -89,16 +89,16 @@ const FeatureStoreContent: React.FC<{
     let action: React.ReactNode;
 
     if (showAdminUI) {
-      title = 'No feature stores yet';
-      description = <>To get started, create a feature store.</>;
+      title = 'No feature stores';
+      description = <>Create a feature store to get started.</>;
       icon = () => <CogIcon />;
       action = (
         <Button
           variant="primary"
-          component={CreateFeatureStoreLink}
-          data-testid="create-feature-store-btn"
+          component={ManageFeatureStoresLink}
+          data-testid="go-to-feature-stores-btn"
         >
-          Create feature store
+          Go to Feature stores
         </Button>
       );
     } else if (isAdmin) {

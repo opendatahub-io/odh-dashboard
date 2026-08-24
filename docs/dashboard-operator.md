@@ -9,7 +9,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 ## CRD Design
 
 **Kind**: `Dashboard`
-**Group**: `dashboard.opendatahub.io`
+**Group**: `components.platform.opendatahub.io`
 **Version**: `v1alpha1`
 **Scope**: Cluster (not namespaced)
 **Singleton**: Enforced via CEL validation (`metadata.name == 'default-dashboard'`)
@@ -23,7 +23,9 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `deploymentMode` | `Sidecar\|Standalone` | Deployment topology for BFF modules (default: Sidecar) |
+| `deploymentMode` | `Sidecar\|Standalone` | Deployment topology for BFF modules (default: Sidecar; **standalone is the recommended mode** -- sidecar is deprecated and will be removed) |
+
+> **Deprecation notice**: Sidecar deployment mode is deprecated. Standalone mode is the primary deployment topology for all new modules. Sidecar support will be removed in a future release.
 
 ### Status Fields
 
@@ -117,7 +119,7 @@ Each module has its own kustomize package under `manifests/modules/<slug>/` cont
 - `networkpolicy.yaml` -- NetworkPolicy for inter-BFF egress
 - `service-account.yaml` -- Dedicated ServiceAccount
 - `cluster-role.yaml` + `cluster-role-binding.yaml` -- Module-specific RBAC
-- `params.yaml` -- Kustomize parameter defaults
+- `params.env` -- Kustomize parameter defaults
 
 The eight registered modules and their manifest directories:
 
@@ -481,6 +483,40 @@ make generate && make manifests
 
 For details on envtest integration tests — what they are, how to write them, and how to debug failures — see [envtest Integration Tests](envtest-integration-tests.md).
 
+## Chaos Validation (operator-chaos)
+
+The operator integrates [operator-chaos](https://github.com/opendatahub-io/operator-chaos) for shift-left resilience validation. The knowledge model (`chaos/knowledge/dashboard.yaml`) describes all managed resources and their steady-state expectations. Experiment files (`chaos/experiments/*.yaml`) define chaos scenarios (pod-kill, network-partition, PDB-block) that run during pre-release qualification.
+
+### Local Usage
+
+```bash
+cd dashboard-operator
+
+# Validate knowledge model + all experiments
+make chaos-validate
+
+# Download the operator-chaos CLI only
+make operator-chaos
+```
+
+### CI
+
+The `Chaos Validation` workflow (`.github/workflows/operator-chaos.yml`) runs on PRs that touch `chaos/`, `manifests/`, `dashboard-operator/{internal,api,config,cmd}/`, or `dashboard-operator/Makefile`. It validates the knowledge model, runs preflight checks, detects breaking changes against the base branch, and simulates upgrades with `--dry-run`. Breaking-change detection and upgrade simulation are skipped when the base branch has no `chaos/knowledge` directory (first-time integration).
+
+### Maintenance
+
+Update `chaos/knowledge/dashboard.yaml` when:
+- A managed resource is added, removed, or renamed (Deployment, Service, ConfigMap, etc.)
+- The expected replica count or labels change
+- The ingress resource kind or apiVersion changes
+
+Update `chaos/experiments/*.yaml` when:
+- A new chaos scenario is needed for a resource type
+- Recovery timeouts or blast radius parameters need adjustment
+- The target workload selector changes
+
+The `operator-chaos` CLI version is pinned in `dashboard-operator/Makefile` (`OPERATOR_CHAOS_VERSION`). The CI workflow reads this value, so bumping the version in the Makefile is sufficient.
+
 ## Cluster Deployment
 
 ### Standalone (Helm)
@@ -499,14 +535,15 @@ helm install dashboard charts/dashboard/ \
   --set image.repository=quay.io/<your-registry>/odh-dashboard-operator \
   --set image.tag=dev
 
-# Create the Dashboard CR (sidecar mode, the default)
+# Create the Dashboard CR (standalone mode, recommended)
 cat <<EOF | oc apply -f -
-apiVersion: dashboard.opendatahub.io/v1alpha1
+apiVersion: components.platform.opendatahub.io/v1alpha1
 kind: Dashboard
 metadata:
   name: default-dashboard
 spec:
   managementState: Managed
+  deploymentMode: Standalone
   gateway:
     domain: ""
   components:
@@ -514,15 +551,14 @@ spec:
       managementState: Managed
 EOF
 
-# Or create the Dashboard CR in standalone mode
+# Or create the Dashboard CR in sidecar mode (deprecated)
 cat <<EOF | oc apply -f -
-apiVersion: dashboard.opendatahub.io/v1alpha1
+apiVersion: components.platform.opendatahub.io/v1alpha1
 kind: Dashboard
 metadata:
   name: default-dashboard
 spec:
   managementState: Managed
-  deploymentMode: Standalone
   gateway:
     domain: ""
   components:
@@ -557,7 +593,7 @@ All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operato
 | Standalone overlay | `/odh/standalone` | `/rhoai/standalone` |
 | Section title | "OpenShift Open Data Hub" | "OpenShift Self Managed Services" |
 | Image sources | `quay.io/opendatahub/` | `quay.io/redhat-ai-dev/` (via Konflux) |
-| CRD group | `dashboard.opendatahub.io` | Same |
+| CRD group | `components.platform.opendatahub.io` | Same |
 
 ## Troubleshooting
 
@@ -574,7 +610,7 @@ If a CR was created with the wrong name (e.g., `default` instead of `default-das
 
 ```bash
 # Temporarily remove CEL validation from CRD
-oc patch crd dashboards.dashboard.opendatahub.io --type=json \
+oc patch crd dashboards.components.platform.opendatahub.io --type=json \
   -p='[{"op":"remove","path":"/spec/versions/0/schema/openAPIV3Schema/x-kubernetes-validations"}]'
 
 # Remove finalizer and delete

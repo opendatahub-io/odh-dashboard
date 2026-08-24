@@ -546,6 +546,48 @@ export const validateInferenceServiceTolerations = (
   });
 };
 
+const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
+
+/**
+ * Verifies a runtime arg was applied via VLLM_ADDITIONAL_ARGS on an LLMInferenceService.
+ */
+export const verifyLLMInferenceServiceRuntimeArgs = (
+  namespace: string,
+  llmInferenceServiceName: string,
+  expectedArg: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc get LLMInferenceService ${llmInferenceServiceName} -n ${namespace} -o json`;
+  cy.log(`Executing command: ${ocCommand}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `LLMInferenceService "${llmInferenceServiceName}" not found in namespace "${namespace}": ${result.stderr}`,
+      );
+    }
+
+    const env: { name: string; value?: string }[] =
+      JSON.parse(result.stdout).spec?.template?.containers?.find(
+        (container: { name: string }) => container.name === 'main',
+      )?.env ?? [];
+    const additionalArgs = env.find((entry) => entry.name === VLLM_ADDITIONAL_ARGS)?.value;
+    const args =
+      typeof additionalArgs === 'string' ? additionalArgs.split(' ').filter(Boolean) : [];
+
+    if (!args.includes(expectedArg)) {
+      throw new Error(
+        `Expected runtime arg "${expectedArg}" on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(
+          args,
+        )}`,
+      );
+    }
+
+    cy.log(
+      `✅ Verified runtime arg "${expectedArg}" on LLMInferenceService "${llmInferenceServiceName}"`,
+    );
+  });
+};
+
 export const verifyS3CopyCompleted = (
   podName: string,
   namespace: string,
