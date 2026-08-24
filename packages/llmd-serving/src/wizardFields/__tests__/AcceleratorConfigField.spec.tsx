@@ -225,9 +225,11 @@ describe('AcceleratorConfigFieldComponent edit configRef resolution', () => {
     );
     fireEvent.click(screen.getByTestId('serving-runtime-template-selection-toggle'));
     const menuItem = screen.getByTestId('servingRuntime my-deployment-rocm');
-    expect(within(screen.getByTestId('project-scoped-serving-runtimes')).getByTestId(
-      'servingRuntime my-deployment-rocm',
-    )).toBe(menuItem);
+    expect(
+      within(screen.getByTestId('project-scoped-serving-runtimes')).getByTestId(
+        'servingRuntime my-deployment-rocm',
+      ),
+    ).toBe(menuItem);
   });
 
   it('resolves a configRef into the referenced config on edit', () => {
