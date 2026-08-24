@@ -1114,19 +1114,6 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 		return "", ""
 	}
 
-	if !strings.Contains(modelID, "/") {
-		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
-		return "", ""
-	}
-
-	parts := strings.SplitN(modelID, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", ""
-	}
-
-	providerPrefix := parts[0]
-	actualModelID := parts[1]
-
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
@@ -1140,15 +1127,32 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 	}
 
 	var foundModel *models.RegisteredModel
-	for i := range externalModelsConfig.RegisteredResources.Models {
-		m := &externalModelsConfig.RegisteredResources.Models[i]
-		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
-			foundModel = m
-			break
+
+	if strings.Contains(modelID, "/") {
+		// Provider-qualified form: "endpoint-1/gpt-4o"
+		parts := strings.SplitN(modelID, "/", 2)
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			for i := range externalModelsConfig.RegisteredResources.Models {
+				m := &externalModelsConfig.RegisteredResources.Models[i]
+				if m.ProviderID == parts[0] && m.ModelID == parts[1] {
+					foundModel = m
+					break
+				}
+			}
+		}
+	} else {
+		// Bare model ID (e.g. "gpt-4o") — search all registered models by ModelID.
+		// OGX strips the provider prefix before forwarding to the passthrough handler.
+		for i := range externalModelsConfig.RegisteredResources.Models {
+			m := &externalModelsConfig.RegisteredResources.Models[i]
+			if m.ModelID == modelID {
+				foundModel = m
+				break
+			}
 		}
 	}
+
 	if foundModel == nil {
-		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID)
 		return "", ""
 	}
 
@@ -1160,12 +1164,12 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 		}
 	}
 	if foundProvider == nil {
-		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID)
+		app.logger.Warn("Provider not found for custom endpoint model", "model", foundModel.ModelID, "providerID", foundModel.ProviderID)
 		return "", ""
 	}
 
 	baseURL = foundProvider.Config.BaseURL
-	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, foundModel.ModelID)
 	return baseURL, apiKey
 }
 

@@ -217,12 +217,12 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 		return inferenceURL, token, nil
 	}
 
-	// Try custom endpoint for provider-qualified IDs (contains "/")
-	if strings.Contains(modelID, "/") {
-		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
-		if extURL != "" {
-			return extURL, extKey, nil
-		}
+	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
+	// provider-qualified (e.g. "endpoint-1/gpt-4o"). OGX strips the provider prefix
+	// before forwarding to the passthrough handler.
+	extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+	if extURL != "" {
+		return extURL, extKey, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)

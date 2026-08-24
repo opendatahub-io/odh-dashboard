@@ -245,7 +245,7 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 
 	// Resolution priority:
 	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
-	// 2. Custom endpoint (provider-qualified with "/") → ConfigMap + Secret
+	// 2. Custom endpoint → ConfigMap + Secret (tried for all IDs, not just slash-qualified)
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
 	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
@@ -276,12 +276,11 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 		return inferenceURL, token, nil
 	}
 
-	// Try custom endpoint for provider-qualified IDs (contains "/")
-	if strings.Contains(modelID, "/") {
-		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
-		if extURL != "" {
-			return extURL, extKey, nil
-		}
+	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
+	// provider-qualified (e.g. "openai/gpt-4o"). Check the ConfigMap for either form.
+	extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+	if extURL != "" {
+		return extURL, extKey, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
