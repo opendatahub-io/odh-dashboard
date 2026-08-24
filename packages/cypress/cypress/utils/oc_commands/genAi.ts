@@ -242,42 +242,144 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
 };
 
 /**
+ * Discover all namespaces that contain an OdhDashboardConfig named
+ * `odh-dashboard-config`. Falls back to APPLICATIONS_NAMESPACE when
+ * the cluster-wide query returns nothing.
+ */
+const getOdhDashboardConfigNamespaces = (): Cypress.Chainable<string[]> =>
+  cy
+    .exec(`oc get OdhDashboardConfig -A -o jsonpath='{.items[*].metadata.namespace}'`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      const namespaces = result.stdout.replace(/'/g, '').trim().split(/\s+/).filter(Boolean);
+      if (namespaces.length > 0) {
+        return namespaces;
+      }
+      return [Cypress.env('APPLICATIONS_NAMESPACE') as string];
+    });
+
+/**
  * Set globalMLflowNamespaces in OdhDashboardConfig so the MLflow BFF
  * treats prompts from those namespaces as global / read-only.
+ *
+ * Patches every OdhDashboardConfig instance on the cluster so the
+ * setting takes effect regardless of which namespace the MLflow BFF
+ * reads its config from.
  *
  * @param namespaces - Array of namespace names to mark as global.
  */
 export const setGlobalMLflowNamespaces = (namespaces: string[]): void => {
-  const appNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
     spec: { globalMLflowNamespaces: namespaces },
   });
-  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, appNamespace);
-
-  cy.step('Wait for globalMLflowNamespaces to be confirmed in config');
   const expected = JSON.stringify(namespaces);
-  pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${appNamespace} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
-    'globalMLflowNamespaces to be set',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
+
+  getOdhDashboardConfigNamespaces().then((configNamespaces) => {
+    for (const ns of configNamespaces) {
+      patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, ns);
+    }
+
+    cy.step('Wait for globalMLflowNamespaces to be confirmed in all config instances');
+    for (const ns of configNamespaces) {
+      pollUntilSuccess(
+        `oc get OdhDashboardConfig odh-dashboard-config -n ${ns} -o json | jq -e '.spec.globalMLflowNamespaces == ${expected}'`,
+        `globalMLflowNamespaces to be set in ${ns}`,
+        { maxAttempts: 30, pollIntervalMs: 2000 },
+      );
+    }
+  });
 };
 
 /**
  * Clear globalMLflowNamespaces from OdhDashboardConfig (revert to default).
+ * Clears every instance on the cluster, mirroring setGlobalMLflowNamespaces.
  */
 export const clearGlobalMLflowNamespaces = (): void => {
-  const appNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
   const patchContent = JSON.stringify({
     spec: { globalMLflowNamespaces: [] },
   });
-  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, appNamespace);
 
-  pollUntilSuccess(
-    `oc get OdhDashboardConfig odh-dashboard-config -n ${appNamespace} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == []'`,
-    'globalMLflowNamespaces to be cleared',
-    { maxAttempts: 15, pollIntervalMs: 2000 },
-  );
+  getOdhDashboardConfigNamespaces().then((configNamespaces) => {
+    for (const ns of configNamespaces) {
+      patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, ns);
+    }
+
+    for (const ns of configNamespaces) {
+      pollUntilSuccess(
+        `oc get OdhDashboardConfig odh-dashboard-config -n ${ns} -o json | jq -e '(.spec.globalMLflowNamespaces // []) == []'`,
+        `globalMLflowNamespaces to be cleared in ${ns}`,
+        { maxAttempts: 15, pollIntervalMs: 2000 },
+      );
+    }
+  });
+};
+
+/**
+ * Poll the Gen AI BFF prompt listing endpoint until global prompts appear.
+ * The MLflow BFF polls OdhDashboardConfig every 30s for global namespaces,
+ * so after patching the config there is a window where the BFF cache is stale
+ * and global prompts are not included in listings.
+ */
+export const waitForGlobalPromptsInBFF = (
+  projectNamespace: string,
+  expectedPromptName: string,
+  maxAttempts = 15,
+  pollIntervalMs = 3000,
+): void => {
+  const startTime = Date.now();
+
+  const check = (attemptNumber: number): void => {
+    cy.request({
+      url: `/gen-ai/api/v1/mlflow/prompts?namespace=${encodeURIComponent(projectNamespace)}`,
+      failOnStatusCode: false,
+    }).then((response) => {
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      const bffUnavailable = response.headers['x-mlflow-bff-unavailable'];
+      const bffError = response.headers['x-mlflow-bff-error'];
+      const body = response.body || {};
+      const prompts: { name?: string; scope?: { type?: string } }[] =
+        body.data?.prompts || body.prompts || [];
+      const found = prompts.some(
+        (p) => p.name === expectedPromptName && p.scope?.type === 'global',
+      );
+
+      if (found) {
+        cy.log(`Global prompt "${expectedPromptName}" discovered by BFF (after ${elapsedTime}s)`);
+        return;
+      }
+
+      const debugInfo = [
+        `status=${response.status}`,
+        `prompts=${prompts.length}`,
+        bffUnavailable ? 'MLflow-BFF-Unavailable' : '',
+        bffError ? 'MLflow-BFF-Error' : '',
+        prompts.length > 0
+          ? `names=[${prompts.map((p) => `${p.name ?? '?'}(${p.scope?.type ?? '?'})`).join(',')}]`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      if (attemptNumber >= maxAttempts) {
+        throw new Error(
+          `MLflow BFF did not return global prompt "${expectedPromptName}" after ${maxAttempts} attempts (${elapsedTime}s). ` +
+            `Last response: ${debugInfo}. ` +
+            `Body keys: ${JSON.stringify(Object.keys(body))}. ` +
+            `The MLflow BFF polls OdhDashboardConfig every 30s for global namespaces.`,
+        );
+      }
+
+      cy.log(
+        `Waiting for BFF to discover global prompt (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s, ${debugInfo})`,
+      );
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
+    });
+  };
+
+  cy.step('Wait for MLflow BFF to discover global namespace and prompt');
+  check(1);
 };
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

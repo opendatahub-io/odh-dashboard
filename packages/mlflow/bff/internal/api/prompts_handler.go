@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -175,6 +178,16 @@ func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, n
 				failed = append(failed, ns)
 				mu.Unlock()
 				return
+			}
+
+			// MLflow OSS search indexing bug: registered-models/search with tag
+			// filters can permanently return empty when a RegisteredModel and its
+			// first ModelVersion are created in rapid succession (<50ms). Try an
+			// unfiltered search and apply the is_prompt tag check in code.
+			if len(resp.Prompts) == 0 {
+				if fallback := app.listPromptsUnfilteredSearch(ctx, token, ns, nameFilter); len(fallback) > 0 {
+					resp.Prompts = fallback
+				}
 			}
 
 			for i := range resp.Prompts {
@@ -465,4 +478,130 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// listPromptsUnfilteredSearch works around the MLflow OSS search indexing bug.
+// It calls registered-models/search WITHOUT the is_prompt tag filter, then
+// filters the results in code. Only used as a fallback when the SDK's
+// tag-filtered search returns empty for a global namespace.
+func (app *App) listPromptsUnfilteredSearch(ctx context.Context, token, namespace, nameFilter string) []models.Prompt {
+	if app.mlflowTrackingURL == "" {
+		return nil
+	}
+
+	u, err := url.Parse(app.mlflowTrackingURL + "/api/2.0/mlflow/registered-models/search")
+	if err != nil {
+		return nil
+	}
+
+	q := u.Query()
+	q.Set("max_results", "100")
+	if nameFilter != "" {
+		q.Set("filter", fmt.Sprintf("name LIKE '%s%%'", nameFilter))
+	}
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("X-MLFLOW-WORKSPACE", namespace)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		RootCAs:            app.rootCAs,
+		InsecureSkipVerify: app.config.InsecureSkipVerify, // #nosec G402
+		MinVersion:         tls.VersionTLS12,
+	}
+	httpClient := &http.Client{Transport: transport, Timeout: 10 * time.Second}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		app.logger.Debug("Search fallback HTTP request failed",
+			slog.String("namespace", namespace), slog.Any("error", err))
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		app.logger.Debug("Search fallback returned non-200",
+			slog.String("namespace", namespace), slog.Int("status", resp.StatusCode))
+		return nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+
+	var searchResp unfilteredSearchResponse
+	if err := json.Unmarshal(body, &searchResp); err != nil {
+		app.logger.Debug("Search fallback failed to parse response",
+			slog.String("namespace", namespace), slog.Any("error", err))
+		return nil
+	}
+
+	var prompts []models.Prompt
+	for _, rm := range searchResp.RegisteredModels {
+		if !rm.hasTag("mlflow.prompt.is_prompt", "true") {
+			continue
+		}
+		p := models.Prompt{
+			Name:        rm.Name,
+			Description: rm.Description,
+		}
+		if rm.CreationTimestamp > 0 {
+			p.CreationTimestamp = time.UnixMilli(rm.CreationTimestamp)
+		}
+		if len(rm.LatestVersions) > 0 {
+			maxVer := 0
+			for _, lv := range rm.LatestVersions {
+				if v, _ := strconv.Atoi(lv.Version); v > maxVer {
+					maxVer = v
+				}
+			}
+			p.LatestVersion = maxVer
+		}
+		prompts = append(prompts, p)
+	}
+
+	if len(prompts) > 0 {
+		app.logger.Info("Search fallback discovered prompts in global namespace",
+			slog.String("namespace", namespace), slog.Int("count", len(prompts)))
+	}
+
+	return prompts
+}
+
+type unfilteredSearchResponse struct {
+	RegisteredModels []unfilteredRegisteredModel `json:"registered_models"`
+}
+
+type unfilteredRegisteredModel struct {
+	Name             string                        `json:"name"`
+	Description      string                        `json:"description"`
+	CreationTimestamp int64                         `json:"creation_timestamp"`
+	Tags             []unfilteredRegisteredModelTag `json:"tags"`
+	LatestVersions   []unfilteredModelVersion       `json:"latest_versions"`
+}
+
+type unfilteredRegisteredModelTag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type unfilteredModelVersion struct {
+	Version string `json:"version"`
+}
+
+func (rm *unfilteredRegisteredModel) hasTag(key, value string) bool {
+	for _, tag := range rm.Tags {
+		if tag.Key == key && tag.Value == value {
+			return true
+		}
+	}
+	return false
 }

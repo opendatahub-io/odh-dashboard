@@ -276,7 +276,7 @@ const waitForNavItemInSidebar = (navLabel: string, url = '/'): Cypress.Chainable
 const waitForMlflowTrackingPodReady = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
   const ns = assertNamespace(namespace);
   return pollUntilSuccess(
-    `oc wait --for=condition=Available deployment/mlflow -n ${ns} --timeout=0`,
+    `oc wait --for=condition=Available deployment/mlflow-bff -n ${ns} --timeout=0`,
     'MLflow tracking server deployment to be Available',
     { maxAttempts: 60, pollIntervalMs: 5000 },
   );
@@ -523,26 +523,25 @@ export const getMlflowTrackingUrl = (): Cypress.Chainable<string> => {
 };
 
 /**
- * Get the name of a running MLflow tracking-server pod in the applications namespace.
- * Uses the tracking-server label to avoid matching operator, database, or minio pods.
+ * Get the namespace and name of a running MLflow tracking-server pod.
+ * The operator may deploy the tracking server in a different namespace than
+ * the CR (e.g. opendatahub vs redhat-ods-applications), so we search across
+ * all namespaces using the tracking-server label.
  */
-const getMlflowPodName = (): Cypress.Chainable<string> => {
-  const namespace = getApplicationsNamespace();
-  return cy
+const getMlflowPodInfo = (): Cypress.Chainable<{ namespace: string; name: string }> =>
+  cy
     .exec(
-      `oc get pods -n ${namespace} -l app=mlflow -o jsonpath="{.items[0].metadata.name}" --field-selector=status.phase=Running`,
+      `oc get pods -A -l app=mlflow --field-selector=status.phase=Running --no-headers 2>/dev/null | head -1`,
       { failOnNonZeroExit: false },
     )
     .then((result) => {
-      const podName = result.stdout.replace(/"/g, '').trim();
-      if (!podName) {
-        throw new Error(
-          `No running MLflow tracking pod found (label app=mlflow) in namespace ${namespace}`,
-        );
+      const line = result.stdout.trim();
+      if (!line) {
+        throw new Error('No running MLflow tracking pod found (label app=mlflow) in any namespace');
       }
-      return podName;
+      const parts = line.split(/\s+/);
+      return { namespace: parts[0], name: parts[1] };
     });
-};
 
 /**
  * Execute a curl command inside the MLflow pod against the tracking server.
@@ -553,15 +552,14 @@ const execCurlInMlflowPod = (
   workspace: string,
   method: 'POST' | 'DELETE' = 'POST',
 ): Cypress.Chainable<string> => {
-  const namespace = getApplicationsNamespace();
   const bodyJson = JSON.stringify(body);
   const escapedBody = bodyJson.replace(/'/g, "'\\''");
-  return getMlflowPodName().then((podName) => {
+  return getMlflowPodInfo().then(({ namespace: podNs, name: podName }) => {
     const ns = assertNamespace(workspace);
     const cmd = [
       `printf '%s' '${escapedBody}'`,
       '|',
-      `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
+      `oc exec -n ${podNs} -i ${podName} -c mlflow --`,
       `curl -sk -X ${method} 'https://localhost:8443/mlflow${endpoint}'`,
       `-H 'Content-Type: application/json'`,
       `-H "Authorization: Bearer $(oc whoami -t)"`,
@@ -580,15 +578,14 @@ const execGetInMlflowPod = (
   queryParams: Record<string, string>,
   workspace: string,
 ): Cypress.Chainable<string> => {
-  const namespace = getApplicationsNamespace();
   const qs = Object.entries(queryParams)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
   const url = `https://localhost:8443/mlflow${endpoint}${qs ? `?${qs}` : ''}`;
-  return getMlflowPodName().then((podName) => {
+  return getMlflowPodInfo().then(({ namespace: podNs, name: podName }) => {
     const ns = assertNamespace(workspace);
     const cmd = [
-      `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
+      `oc exec -n ${podNs} -i ${podName} -c mlflow --`,
       `curl -sk '${url}'`,
       `-H "Authorization: Bearer $(oc whoami -t)"`,
       `-H 'X-MLFLOW-WORKSPACE: ${ns}'`,
