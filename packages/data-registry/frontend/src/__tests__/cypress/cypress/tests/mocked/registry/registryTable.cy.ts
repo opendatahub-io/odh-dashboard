@@ -3,7 +3,7 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
-const REGISTRY_API = '/_mf/dataRegistry/api/v1';
+const REGISTRY_API = '/data-registry/api/v1';
 
 const mockCollectionsResponse = {
   namespaces: [['analytics'], ['default']],

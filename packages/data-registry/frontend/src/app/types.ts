@@ -8,7 +8,7 @@ export type K8sCondition = {
   status: string;
   reason?: string;
   message?: string;
-  lastProbeTime?: string | null;
+  lastProbeTime?: string;
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
@@ -44,21 +44,21 @@ export type ConnectionRef = { type: 'dch'; id: string } | { type: 'rhai'; secret
 export type AssetResponse = {
   name: string;
   asset_type: string;
-  uuid?: string | null;
-  format?: string | null;
-  location?: string | null;
-  content_type?: string | null;
-  columns?: SchemaField[] | null;
-  collection?: string | null;
+  uuid?: string;
+  format?: string;
+  location?: string;
+  content_type?: string;
+  columns?: SchemaField[];
+  collection?: string;
   connection_ref?: ConnectionRef | null;
-  owner?: string | null;
-  description?: string | null;
-  labels?: string[] | null;
-  properties?: Record<string, string> | null;
-  registered_by?: string | null;
-  updated_by?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  owner?: string;
+  description?: string;
+  labels?: string[];
+  properties?: Record<string, string>;
+  registered_by?: string;
+  updated_by?: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type AssetListResponse = {
@@ -71,10 +71,10 @@ export type VolumeInfo = {
   'schema-name': string;
   'volume-type': string;
   'storage-location': string;
-  comment?: string | null;
-  owner?: string | null;
-  'created-at'?: string | null;
-  'updated-at'?: string | null;
+  comment?: string;
+  owner?: string;
+  'created-at'?: string;
+  'updated-at'?: string;
   properties?: Record<string, string>;
   config?: Record<string, string>;
 };

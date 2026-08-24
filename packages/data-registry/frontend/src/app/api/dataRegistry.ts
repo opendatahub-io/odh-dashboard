@@ -6,9 +6,9 @@ import {
   CreateNamespaceRequest,
   LabelListResponse,
 } from '~/app/types';
+import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
-// In federated mode: browser → dashboard backend → DR webpack (9103) → BFF (8080) → Feast
-const registryUrl = (path: string) => `/_mf/dataRegistry/api/v1${path}`;
+const registryUrl = (path: string) => `${URL_PREFIX}/api/${BFF_API_VERSION}${path}`;
 
 class ApiError extends Error {
   status: number;
@@ -28,7 +28,7 @@ const fetchJSON = async <T>(url: string): Promise<T> => {
   return response.json();
 };
 
-const fetchWithBody = async <T>(url: string, method: string, body?: unknown): Promise<T | void> => {
+const fetchRequest = async (url: string, method: string, body?: unknown): Promise<Response> => {
   const response = await fetch(url, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
@@ -38,10 +38,7 @@ const fetchWithBody = async <T>(url: string, method: string, body?: unknown): Pr
     const text = await response.text();
     throw new ApiError(response.status, `API error ${response.status}: ${text}`);
   }
-  if (response.status === 204) {
-    return undefined;
-  }
-  return response.json();
+  return response;
 };
 
 // Collections (namespaces)
@@ -58,20 +55,13 @@ export const createCollection = async (
   project: string,
   data: CreateNamespaceRequest,
 ): Promise<NamespaceResponse> => {
-  const result = await fetchWithBody<NamespaceResponse>(
-    registryUrl(`/${project}/namespaces`),
-    'POST',
-    data,
-  );
-  // POST always returns a body (not 204)
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return result as NamespaceResponse;
+  const response = await fetchRequest(registryUrl(`/${project}/namespaces`), 'POST', data);
+  return response.json();
 };
 
-export const deleteCollection = (project: string, collection: string): Promise<void> =>
-  fetchWithBody(registryUrl(`/${project}/namespaces/${collection}`), 'DELETE').then(
-    () => undefined,
-  );
+export const deleteCollection = async (project: string, collection: string): Promise<void> => {
+  await fetchRequest(registryUrl(`/${project}/namespaces/${collection}`), 'DELETE');
+};
 
 export { ApiError };
 

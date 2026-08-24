@@ -17,6 +17,7 @@ export const useLabels = (project: string): [string[], boolean, Error | undefine
     }
 
     let cancelled = false;
+    setLabels([]);
     setLoaded(false);
     setError(undefined);
 

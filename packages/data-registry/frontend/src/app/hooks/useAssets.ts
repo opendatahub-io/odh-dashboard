@@ -59,6 +59,8 @@ export const useAssets = (
     }
 
     let cancelled = false;
+    setAssets([]);
+    setCollectionNames([]);
     setLoaded(false);
     setError(undefined);
 

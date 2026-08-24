@@ -33,6 +33,7 @@ export const useCollections = (
     }
 
     let cancelled = false;
+    setRawCollections([]);
     setLoaded(false);
     setError(undefined);
 
