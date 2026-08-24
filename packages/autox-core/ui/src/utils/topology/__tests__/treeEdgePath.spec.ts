@@ -1,4 +1,4 @@
-import { buildTreeEdgePath } from '~/app/topology/tree-view/treeEdgePath';
+import { buildTreeEdgePath } from '../treeEdgePath';
 
 describe('buildTreeEdgePath', () => {
   it('draws a horizontal line between side-centers of aligned nodes', () => {
