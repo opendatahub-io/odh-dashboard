@@ -114,6 +114,21 @@ func TestHandleMLflowClientErrorAPIErrorServerError(t *testing.T) {
 	assert.Contains(t, errResp.Error.Message, "MLflow server error")
 }
 
+func TestHandleMLflowClientErrorAPIErrorServiceUnavailableSanitizesMessage(t *testing.T) {
+	app := newTestAppWithRepos()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
+	rr := httptest.NewRecorder()
+
+	apiErr := &sdkmlflow.APIError{StatusCode: http.StatusServiceUnavailable, Message: "upstream details"}
+	app.handleMLflowClientError(rr, req, apiErr)
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	var errResp HTTPError
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Equal(t, "service_unavailable", errResp.Error.Code)
+	assert.Equal(t, "MLflow server error", errResp.Error.Message)
+}
+
 func TestHandleMLflowClientErrorAPIErrorZeroStatusCode(t *testing.T) {
 	app := newTestAppWithRepos()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/experiments", nil)
@@ -214,4 +229,18 @@ func TestHandleMLflowClientErrorWrappedURLError(t *testing.T) {
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
 	assert.Equal(t, "service_unavailable", errResp.Error.Code)
 	assert.Contains(t, errResp.Error.Message, "not reachable")
+}
+
+func TestAPIErrorCodeForStatus(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "bad_request", apiErrorCodeForStatus(http.StatusBadRequest))
+	assert.Equal(t, "unauthorized", apiErrorCodeForStatus(http.StatusUnauthorized))
+	assert.Equal(t, "forbidden", apiErrorCodeForStatus(http.StatusForbidden))
+	assert.Equal(t, "not_found", apiErrorCodeForStatus(http.StatusNotFound))
+	assert.Equal(t, "conflict", apiErrorCodeForStatus(http.StatusConflict))
+	assert.Equal(t, "service_unavailable", apiErrorCodeForStatus(http.StatusServiceUnavailable))
+	assert.Equal(t, "service_unavailable", apiErrorCodeForStatus(http.StatusBadGateway))
+	assert.Equal(t, "service_unavailable", apiErrorCodeForStatus(http.StatusInternalServerError))
+	assert.Equal(t, "bad_request", apiErrorCodeForStatus(http.StatusTooManyRequests))
 }

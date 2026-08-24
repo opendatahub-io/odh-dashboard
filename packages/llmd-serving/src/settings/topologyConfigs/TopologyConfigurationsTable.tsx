@@ -12,7 +12,7 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { Table, SortableData } from '@odh-dashboard/ui-core';
+import { Table, SortableData, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
@@ -28,6 +28,7 @@ import {
 } from '../../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+import { fireTopologyConfigDeleted } from '../../tracking/llmdTrackingConstants';
 
 const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
   const type = getConfigTopologyType(config);
@@ -120,6 +121,7 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
       },
     })
       .then(() => {
+        fireTopologyConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
         setDeleteConfig(undefined);
       })
       .catch((e: unknown) => {
@@ -127,6 +129,10 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
           'Error deleting configuration',
           e instanceof Error ? e.message : 'Unknown error',
         );
+        fireTopologyConfigDeleted({
+          outcome: TrackingOutcome.submit,
+          success: false,
+        });
       })
       .finally(() => {
         setIsDeleting(false);
@@ -210,6 +216,7 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
         <DeleteModal
           title="Delete llm-d topology configuration?"
           onClose={() => {
+            fireTopologyConfigDeleted({ outcome: TrackingOutcome.cancel });
             setDeleteConfig(undefined);
             setIsDeleting(false);
           }}

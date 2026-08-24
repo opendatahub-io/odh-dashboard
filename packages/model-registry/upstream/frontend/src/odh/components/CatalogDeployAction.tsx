@@ -49,13 +49,16 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
     () => ({
       modelName: model.name,
       modelUri: uri,
+      catalogModelId: [decodedParams.sourceId || model.source_id, model.name]
+        .filter(Boolean)
+        .join('/'),
       returnRouteValue: '/ai-hub/models/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
       ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
     }),
-    [model, uri, cancelReturnRoute, isToolCallingEnabled],
+    [model, uri, cancelReturnRoute, isToolCallingEnabled, decodedParams.sourceId],
   );
 
   const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(

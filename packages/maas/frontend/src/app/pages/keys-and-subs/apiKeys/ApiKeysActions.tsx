@@ -58,7 +58,7 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, isMaasAdmi
         (isMaasAdmin ? (
           <AdminRevokeAllApiKeysModal onClose={handleRevokeClose} />
         ) : (
-          <RevokeAllApiKeysModal onClose={handleRevokeClose} />
+          <RevokeAllApiKeysModal onClose={handleRevokeClose} keyCount={apiKeyCount} />
         ))}
     </>
   );

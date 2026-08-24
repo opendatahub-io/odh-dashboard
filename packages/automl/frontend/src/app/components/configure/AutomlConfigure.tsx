@@ -106,6 +106,8 @@ import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
 
+const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
+
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
@@ -1220,10 +1222,10 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
-        disabledPaths={[
-          '/autogluon-tabular-training-pipeline',
-          '/autogluon-timeseries-training-pipeline',
-        ]}
+        disabledPaths={{
+          '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+          '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+        }}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}

@@ -8,9 +8,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
+import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   useModelServingClusterSettings,
@@ -105,7 +104,6 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   externalData,
   isEditing,
 }) => {
-  const { trackEvent } = useHostApiCore();
   const options = externalData?.data.options ?? [];
 
   return (
@@ -130,7 +128,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
               description={opt.description}
               isChecked={value?.method === opt.key}
               onChange={() => {
-                fireDeployMethodSelected(trackEvent, {
+                fireDeployMethodSelected({
                   deploymentMethod: opt.key,
                   previousDeploymentMethod: value?.method,
                 });

@@ -186,18 +186,53 @@ describe('Catalog Source Configs Table', () => {
 
   describe('Enable toggle functionality', () => {
     it('should disable the source when toggle is clicked', () => {
-      cy.intercept('PATCH', '/model-registry/api/v1/settings/model_catalog/source_configs/*', {
-        statusCode: 200,
-        body: {
-          data: mockYamlCatalogSourceConfig({ id: 'source_2', isDefault: false }),
+      const availableSource = mockCatalogSource({
+        id: 'hf-google',
+        name: 'HuggingFace Google',
+        status: 'available',
+      });
+      setupMocks([availableSource], {
+        catalogs: [defaultYamlSource, huggingFaceSource, customYamlSource],
+      });
+
+      cy.intercept(
+        'PATCH',
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/settings/model_catalog/source_configs/*`,
+        {
+          statusCode: 200,
+          body: {
+            data: mockYamlCatalogSourceConfig({ id: 'hf-google', enabled: false }),
+          },
         },
-      }).as('manageToggle');
+      ).as('manageToggle');
+
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
-      row.findEnableToggle().should('exist').and('be.checked');
 
+      row.shouldHaveValidationStatus('Ready');
+
+      // After toggle, configs refresh should return hf-google as disabled
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: {
+          catalogs: [
+            defaultYamlSource,
+            mockHuggingFaceCatalogSourceConfig({
+              id: 'hf-google',
+              name: 'HuggingFace Google',
+              isDefault: false,
+              enabled: false,
+              allowedOrganization: 'Google',
+              includedModels: ['model1', 'model2'],
+            }),
+            customYamlSource,
+          ],
+        },
+      });
+
+      row.findEnableToggle().should('exist').and('be.checked');
       row.toggleEnable();
+
       cy.wait('@manageToggle').then((interception) => {
         expect(interception.request.body).to.eql({
           data: {
@@ -205,21 +240,49 @@ describe('Catalog Source Configs Table', () => {
           },
         });
       });
+
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
     });
 
     it('should enable the source when toggle is clicked', () => {
-      cy.intercept('PATCH', '/model-registry/api/v1/settings/model_catalog/source_configs/*', {
-        statusCode: 200,
-        body: {
-          data: mockYamlCatalogSourceConfig({ id: 'source_2', isDefault: false }),
+      cy.intercept(
+        'PATCH',
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/settings/model_catalog/source_configs/*`,
+        {
+          statusCode: 200,
+          body: {
+            data: mockYamlCatalogSourceConfig({ id: 'custom-yaml', enabled: true }),
+          },
         },
-      }).as('manageToggle');
+      ).as('manageToggle');
+
       modelCatalogSettings.visit();
+
       const row = modelCatalogSettings.getRow('Custom YAML');
       row.findName().should('be.visible');
-      row.findEnableToggle().should('exist').and('not.be.checked');
 
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
+
+      // After toggle, configs refresh should return custom-yaml as enabled
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: {
+          catalogs: [
+            defaultYamlSource,
+            huggingFaceSource,
+            mockYamlCatalogSourceConfig({
+              id: 'custom-yaml',
+              name: 'Custom YAML',
+              isDefault: false,
+              enabled: true,
+              excludedModels: ['excluded-model'],
+            }),
+          ],
+        },
+      });
+
+      row.findEnableToggle().should('exist').and('not.be.checked');
       row.toggleEnable();
+
       cy.wait('@manageToggle').then((interception) => {
         expect(interception.request.body).to.eql({
           data: {
@@ -227,6 +290,8 @@ describe('Catalog Source Configs Table', () => {
           },
         });
       });
+
+      row.shouldHaveValidationStatus('Starting');
     });
 
     it('should show error, if the patch call to toggle fails', () => {
@@ -563,6 +628,91 @@ describe('Catalog Source Configs Table', () => {
         .findByRole('button', { name: 'Close' })
         .click();
       cy.findByTestId('catalog-source-status-error-modal').should('not.exist');
+    });
+  });
+
+  describe('Sources refresh after mutations', () => {
+    it('should refresh catalog sources after toggling enable/disable', () => {
+      cy.intercept(
+        'PATCH',
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/settings/model_catalog/source_configs/*`,
+        {
+          statusCode: 200,
+          body: {
+            data: mockYamlCatalogSourceConfig({ id: 'custom-yaml', enabled: true }),
+          },
+        },
+      ).as('toggleSource');
+
+      modelCatalogSettings.visit();
+
+      const row = modelCatalogSettings.getRow('Custom YAML');
+      row.findName().should('be.visible');
+
+      row.shouldHaveValidationStatus(EMPTY_CUSTOM_PROPERTY_VALUE);
+
+      // After toggle, configs refresh should return custom-yaml as enabled
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: {
+          catalogs: [
+            defaultYamlSource,
+            huggingFaceSource,
+            mockYamlCatalogSourceConfig({
+              id: 'custom-yaml',
+              name: 'Custom YAML',
+              isDefault: false,
+              enabled: true,
+              excludedModels: ['excluded-model'],
+            }),
+          ],
+        },
+      });
+
+      row.toggleEnable();
+
+      cy.wait('@toggleSource');
+
+      row.shouldHaveValidationStatus('Starting');
+    });
+
+    it('should refresh catalog sources after deleting a source', () => {
+      cy.intercept(
+        'DELETE',
+        `/model-registry/api/${MODEL_CATALOG_API_VERSION}/settings/model_catalog/source_configs/*`,
+        { statusCode: 200, body: {} },
+      ).as('deleteSource');
+
+      const availableSource = mockCatalogSource({
+        id: 'hf-google',
+        name: 'HuggingFace Google',
+        status: 'available',
+      });
+      setupMocks([availableSource], {
+        catalogs: [defaultYamlSource, huggingFaceSource, customYamlSource],
+      });
+
+      modelCatalogSettings.visit();
+
+      const row = modelCatalogSettings.getRow('HuggingFace Google');
+
+      row.shouldHaveValidationStatus('Ready');
+
+      // After delete, configs refresh should return without hf-google
+      cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs', {
+        data: { catalogs: [defaultYamlSource, customYamlSource] },
+      });
+
+      row.findKebab().click();
+      cy.findByRole('menuitem', { name: 'Delete source' }).click();
+
+      deleteSourceModal.shouldBeOpen();
+      deleteSourceModal.typeConfirmation('HuggingFace Google');
+      deleteSourceModal.findDeleteButton().click();
+
+      cy.wait('@deleteSource');
+
+      // Assert row was removed after delete (table had 3 rows, now has 2)
+      modelCatalogSettings.findRows().should('have.length', 2);
     });
   });
 });
@@ -1133,5 +1283,46 @@ describe('Manage Source Page', () => {
         },
       });
     });
+  });
+
+  it('should refresh catalog sources after saving a source', () => {
+    cy.intercept('GET', '/model-registry/api/v1/settings/model_catalog/source_configs/**', {
+      data: mockYamlCatalogSourceConfig({
+        id: 'source_2',
+        name: 'Source 2',
+        isDefault: false,
+        includedModels: [],
+        excludedModels: [],
+        enabled: false,
+        yaml: 'models:\n  - name: model1',
+      }),
+    });
+
+    cy.intercept(
+      'PATCH',
+      `/model-registry/api/${MODEL_CATALOG_API_VERSION}/settings/model_catalog/source_configs/*`,
+      {
+        statusCode: 200,
+        body: {
+          data: mockYamlCatalogSourceConfig({ id: 'source_2', isDefault: false, enabled: false }),
+        },
+      },
+    ).as('saveSource');
+
+    manageSourcePage.visitManageSource('source_2');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/model_catalog/sources',
+      {
+        path: { apiVersion: MODEL_CATALOG_API_VERSION },
+      },
+      mockCatalogSourceList({ items: [] }),
+    ).as('sourcesRefresh');
+
+    manageSourcePage.findSubmitButton().should('be.enabled');
+    manageSourcePage.findSubmitButton().click();
+
+    cy.wait('@saveSource');
+    cy.wait('@sourcesRefresh');
   });
 });

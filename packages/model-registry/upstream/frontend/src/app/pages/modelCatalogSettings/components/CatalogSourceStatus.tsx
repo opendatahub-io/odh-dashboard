@@ -11,9 +11,8 @@ type CatalogSourceStatusProps = {
 };
 
 const CatalogSourceStatus: React.FC<CatalogSourceStatusProps> = ({ catalogSourceConfig }) => {
-  const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } = React.useContext(
-    ModelCatalogSettingsContext,
-  );
+  const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError, pendingSourceIds } =
+    React.useContext(ModelCatalogSettingsContext);
   const [isErrorModalOpen, setIsErrorModalOpen] = React.useState(false);
 
   // Don't render status for default sources
@@ -30,11 +29,6 @@ const CatalogSourceStatus: React.FC<CatalogSourceStatusProps> = ({ catalogSource
     return <Spinner size="md" data-testid={`source-status-loading-${catalogSourceConfig.id}`} />;
   }
 
-  // Find the matching source from the catalog sources list
-  const matchingSource = catalogSources?.items?.find(
-    (source) => source.id === catalogSourceConfig.id,
-  );
-
   const startingOrUnknownLabel = (
     <Label
       color="grey"
@@ -44,6 +38,16 @@ const CatalogSourceStatus: React.FC<CatalogSourceStatusProps> = ({ catalogSource
     >
       {catalogSourcesLoadError ? 'Unknown' : 'Starting'}
     </Label>
+  );
+
+  // Show "Starting" for sources with a pending mutation (optimistic update)
+  if (pendingSourceIds.has(catalogSourceConfig.id)) {
+    return startingOrUnknownLabel;
+  }
+
+  // Find the matching source from the catalog sources list
+  const matchingSource = catalogSources?.items?.find(
+    (source) => source.id === catalogSourceConfig.id,
   );
 
   if (!matchingSource || !matchingSource.status) {

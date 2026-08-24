@@ -187,6 +187,7 @@ export type PatternDataBundle = {
   rank: number;
   evaluationResults?: AutoRAGEvaluationResult[];
   isEvaluationLoading: boolean;
+  isEvaluationError: boolean;
 };
 
 /**

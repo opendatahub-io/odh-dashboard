@@ -7,6 +7,8 @@ import {
   CardTitle,
   Content,
   ContentVariants,
+  EmptyState,
+  EmptyStateBody,
   ExpandableSection,
   Flex,
   FlexItem,
@@ -16,7 +18,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
 import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
@@ -153,6 +155,22 @@ const SampleQATab: React.FC<TabContentProps> = ({
     (comparisonPattern && comparisonPattern.isEvaluationLoading)
   ) {
     return <Skeleton screenreaderText="Loading evaluation results" />;
+  }
+
+  if (primaryPattern.isEvaluationError || comparisonPattern?.isEvaluationError) {
+    return (
+      <EmptyState
+        status="danger"
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        titleText="Could not load evaluation results"
+        data-testid="sample-qa-error-state"
+      >
+        <EmptyStateBody>
+          The evaluation results file could not be read. It may be malformed or unavailable.
+        </EmptyStateBody>
+      </EmptyState>
+    );
   }
 
   if (!comparisonPattern) {

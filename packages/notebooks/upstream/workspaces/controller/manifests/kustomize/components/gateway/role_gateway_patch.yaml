@@ -1,0 +1,57 @@
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - gateway.networking.k8s.io
+    resources:
+    - httproutes
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - clusterrolebindings
+    verbs:
+    - create
+    - delete
+    - get
+# ReferenceGrant permissions for cross-namespace HTTPRoute backend references
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - gateway.networking.k8s.io
+    resources:
+    - referencegrants
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch

@@ -1140,9 +1140,11 @@ func ExtractStatusFromInferenceService(isvc *kservev1beta1.InferenceService) str
 	return "Stop"
 }
 
-// EnsureV1Suffix ensures that the URL ends with /v1 suffix
-// This function is exported for testing purposes
+// EnsureV1Suffix ensures that the URL ends with /v1 suffix.
+// Trailing slashes are stripped before checking/appending to avoid double-slash URLs.
+// This function is exported for testing purposes.
 func EnsureV1Suffix(url string) string {
+	url = strings.TrimRight(url, "/")
 	if !strings.HasSuffix(url, "/v1") {
 		return url + "/v1"
 	}
@@ -2552,18 +2554,59 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
 }
 
+// Address name types from the KServe LLMInferenceService status contract.
+// See: https://kserve.github.io/website/docs/next/model-serving/generative-inference/llmisvc/llmisvc-status#statusaddresses
+const (
+	addressNameGatewayInternal = "gateway-internal"
+	addressNameInternal        = "internal"
+)
+
 // extractEndpointFromLLMInferenceService extracts the internal endpoint URL from LLMInferenceService
-// using the standard KServe status.addresses field. This replaces the previous workaround that
-// manually discovered K8s services and constructed URLs, which bypassed llm-d gateway routing.
+// using the standard KServe status.addresses field.
+//
+// Selection priority (per KServe status contract):
+//  1. First "gateway-internal" address (path-based routing, cluster-local gateway URL)
+//  2. First "internal" address (private IP / internal hostname, no gateway)
+//  3. First address with an internal cluster host (unnamed fallback)
+//  4. Singular status.address as last resort
 func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(_ context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, error) {
+	var internalCandidate, anyInternalCandidate string
+
 	for _, addr := range llmSvc.Status.Addresses {
-		if addr.URL != nil && isInternalClusterHost(addr.URL.Host) {
-			u := addr.URL.String()
-			kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses",
+		if addr.URL == nil || !isInternalClusterHost(addr.URL.Host) {
+			continue
+		}
+
+		u := addr.URL.String()
+
+		if addr.Name != nil && *addr.Name == addressNameGatewayInternal {
+			kc.Logger.Debug("extracted gateway-internal URL from LLMInferenceService status.addresses",
 				"llmServiceName", llmSvc.Name,
 				"endpoint", EnsureV1Suffix(u))
 			return EnsureV1Suffix(u), nil
 		}
+
+		if addr.Name != nil && *addr.Name == addressNameInternal && internalCandidate == "" {
+			internalCandidate = u
+		}
+
+		if anyInternalCandidate == "" {
+			anyInternalCandidate = u
+		}
+	}
+
+	if internalCandidate != "" {
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses",
+			"llmServiceName", llmSvc.Name,
+			"endpoint", EnsureV1Suffix(internalCandidate))
+		return EnsureV1Suffix(internalCandidate), nil
+	}
+
+	if anyInternalCandidate != "" {
+		kc.Logger.Debug("extracted internal URL from LLMInferenceService status.addresses (fallback)",
+			"llmServiceName", llmSvc.Name,
+			"endpoint", EnsureV1Suffix(anyInternalCandidate))
+		return EnsureV1Suffix(anyInternalCandidate), nil
 	}
 
 	if llmSvc.Status.Address != nil && llmSvc.Status.Address.URL != nil && isInternalClusterHost(llmSvc.Status.Address.URL.Host) {

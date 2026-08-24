@@ -1,0 +1,36 @@
+apiVersion: chaos.operatorchaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: dashboard-pod-kill
+spec:
+  tier: 1
+  target:
+    operator: dashboard
+    component: odh-dashboard
+    resource: Deployment/odh-dashboard
+  steadyState:
+    checks:
+      - type: conditionTrue
+        apiVersion: apps/v1
+        kind: Deployment
+        name: odh-dashboard
+        namespace: opendatahub
+        conditionType: Available
+    timeout: "30s"
+  injection:
+    type: PodKill
+    parameters:
+      labelSelector: deployment=odh-dashboard
+    count: 1
+    ttl: "300s"
+  hypothesis:
+    description: >-
+      When one odh-dashboard pod is killed, the remaining replica should
+      continue serving traffic. Kubernetes should recreate the killed pod
+      within the recovery timeout and the deployment should return to 2/2
+      ready replicas.
+    recoveryTimeout: 120s
+  blastRadius:
+    maxPodsAffected: 1
+    allowedNamespaces:
+      - opendatahub
