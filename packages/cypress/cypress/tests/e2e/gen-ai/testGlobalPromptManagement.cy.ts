@@ -45,6 +45,11 @@ const getOdhDashboardConfigs = (): Cypress.Chainable<ConfigInstance[]> =>
       { failOnNonZeroExit: false },
     )
     .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to list OdhDashboardConfig resources: ${result.stderr || result.stdout}`,
+        );
+      }
       const lines = result.stdout.replace(/'/g, '').trim().split('\n').filter(Boolean);
       if (lines.length > 0) {
         return lines.map((line) => {
