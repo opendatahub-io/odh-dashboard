@@ -98,8 +98,10 @@ export const isNIMImageSelectionLocked = (
   isEditing: boolean | undefined,
   value: NIMImageFieldValue | undefined,
   existingOptionNotFound: boolean,
+  isReselectionUnlocked = false,
 ): boolean => {
-  const canReselectImage = !value || !value.repository || !value.tag || existingOptionNotFound;
+  const canReselectImage =
+    !value || !value.repository || !value.tag || existingOptionNotFound || isReselectionUnlocked;
   return !!isEditing && !canReselectImage;
 };
 
@@ -177,11 +179,19 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [images, value],
   );
 
+  const [isReselectionUnlocked, setIsReselectionUnlocked] = React.useState(false);
+  React.useEffect(() => {
+    if (isEditing && existingOptionNotFound) {
+      setIsReselectionUnlocked(true);
+    }
+  }, [isEditing, existingOptionNotFound]);
+
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,
     existingOptionNotFound,
+    isReselectionUnlocked,
   );
 
   const onSelect = React.useCallback(

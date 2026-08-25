@@ -29,16 +29,14 @@ import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocatio
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
-import { isEditingNimModelLocation, shouldHideNimModelLocationOption } from '../utils';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import {
+  isModelLocationFieldOverride,
   isModelLocationType,
   ModelLocationData,
   ModelLocationType,
 } from '../../../shared/types/form-data';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-
-const NIM_EDIT_LOCATION_DISABLED_TOOLTIP =
-  'Model location cannot be changed when editing an NVIDIA NIM deployment.';
 
 // Component
 
@@ -70,9 +68,33 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
 }) => {
   const isEditing = wizardState.initialData?.isEditing ?? false;
   const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
-  const isEditingNimDeployment = isEditingNimModelLocation(isEditing, modelLocation);
-  const isEditingNonNimDeployment = shouldHideNimModelLocationOption(isEditing, modelLocation);
-  const isLocationSelectDisabled = modelLocationData?.disableInputFields || isEditingNimDeployment;
+  const modelLocationOverrides = useWizardFieldOverrides(isModelLocationFieldOverride);
+  const hiddenLocationKeys = React.useMemo(
+    () =>
+      new Set(
+        modelLocationOverrides
+          .filter(
+            (override) =>
+              override.hideOptionWhenEditingOtherLocation &&
+              isEditing &&
+              modelLocation &&
+              modelLocation !== override.locationKey,
+          )
+          .map((override) => override.locationKey),
+      ),
+    [modelLocationOverrides, isEditing, modelLocation],
+  );
+  const editingLocationOverride = React.useMemo(
+    () =>
+      modelLocationOverrides.find(
+        (override) =>
+          override.disableWhenEditing && isEditing && modelLocation === override.locationKey,
+      ),
+    [modelLocationOverrides, isEditing, modelLocation],
+  );
+  const isLocationSelectDisabled =
+    modelLocationData?.disableInputFields || !!editingLocationOverride;
+  const locationDisabledTooltip = editingLocationOverride?.disabledTooltip;
 
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
   // Filtered types for the dropdown so only enabled types are shown
@@ -166,7 +188,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     if (uriConnectionTypes.length > 0 || hasURISelected) {
       options.push({ key: uriOption.key, label: uriOption.label });
     }
-    if (isNimWizardEnabled && !isEditingNonNimDeployment) {
+    if (isNimWizardEnabled && !hiddenLocationKeys.has(NIMModelLocationOption.key)) {
       options.push(NIMModelLocationOption);
     }
     return options;
@@ -178,7 +200,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     uriConnectionTypes.length,
     selectedOption?.key,
     isNimWizardEnabled,
-    isEditingNonNimDeployment,
+    hiddenLocationKeys,
   ]);
 
   const selectOptions = React.useMemo(() => {
@@ -268,8 +290,8 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
         </FormHelperText>
         <Stack hasGutter>
           <StackItem>
-            {isEditingNimDeployment ? (
-              <Tooltip content={NIM_EDIT_LOCATION_DISABLED_TOOLTIP}>
+            {locationDisabledTooltip ? (
+              <Tooltip content={locationDisabledTooltip}>
                 <span>{modelLocationSelect}</span>
               </Tooltip>
             ) : (

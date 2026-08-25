@@ -12,10 +12,26 @@ import type {
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
+import {
+  ModelLocationData,
+  ModelLocationType,
+  type ModelLocationFieldOverride,
+} from '../../../../shared/types/form-data';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
+import { useWizardFieldOverrides } from '../../dynamicFormUtils';
+import { NIMModelLocationOption } from '../modelLocationFields/NIMModelLocation';
+
+const nimModelLocationOverride: ModelLocationFieldOverride = {
+  id: 'modelLocation',
+  type: 'modifier',
+  isActive: () => true,
+  locationKey: NIMModelLocationOption.key,
+  disableWhenEditing: true,
+  disabledTooltip: 'Model location cannot be changed when editing an NVIDIA NIM deployment.',
+  hideOptionWhenEditingOtherLocation: true,
+};
 
 const modelLocationSchema = z.object({
   modelLocationData: z.custom<ModelLocationData>((val) => {
@@ -29,6 +45,11 @@ jest.mock('@patternfly/react-core', () => ({
   useWizardContext: jest.fn(),
   useWizardFooter: jest.fn(),
 }));
+jest.mock('../../dynamicFormUtils', () => ({
+  ...jest.requireActual('../../dynamicFormUtils'),
+  useWizardFieldOverrides: jest.fn(() => []),
+}));
+const mockUseWizardFieldOverrides = jest.mocked(useWizardFieldOverrides);
 const mockUseWizardContext = useWizardContext as jest.MockedFunction<typeof useWizardContext>;
 const mockUseWizardFooter = useWizardFooter as jest.MockedFunction<typeof useWizardFooter>;
 const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
@@ -468,6 +489,7 @@ describe('ModelLocationSelectField', () => {
     } as unknown as UseModelDeploymentWizardState;
     beforeEach(() => {
       jest.clearAllMocks();
+      mockUseWizardFieldOverrides.mockReturnValue([]);
     });
     it('should render with default props', () => {
       render(
@@ -983,6 +1005,7 @@ describe('ModelLocationSelectField', () => {
     });
     it('should disable model location select when editing a NIM deployment', () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      mockUseWizardFieldOverrides.mockReturnValue([nimModelLocationOverride]);
       render(
         <ModelLocationSelectField
           wizardState={{
@@ -1003,6 +1026,7 @@ describe('ModelLocationSelectField', () => {
     });
     it('should hide NVIDIA NIM option when editing a non-NIM deployment', async () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      mockUseWizardFieldOverrides.mockReturnValue([nimModelLocationOverride]);
       render(
         <ModelLocationSelectField
           wizardState={{

@@ -278,13 +278,3 @@ export const shouldShowPreconfigureStep = (
 ): boolean =>
   !project ||
   (!existingData?.isEditing && (existingData?.validatedConfigurations?.length ?? 0) > 0);
-
-export const isEditingNimModelLocation = (
-  isEditing: boolean | undefined,
-  modelLocation?: ModelLocationData['type'],
-): boolean => !!isEditing && modelLocation === ModelLocationType.NIM;
-
-export const shouldHideNimModelLocationOption = (
-  isEditing: boolean | undefined,
-  modelLocation?: ModelLocationData['type'],
-): boolean => !!isEditing && !!modelLocation && modelLocation !== ModelLocationType.NIM;
