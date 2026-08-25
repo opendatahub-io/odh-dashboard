@@ -20,7 +20,7 @@ import (
 //   - logger: The slog logger instance
 //   - k8sFactory: The Kubernetes client factory (can be a mock)
 //   - repos: The repositories container (can be nil, will create default if nil)
-func NewTestApp( //nolint:unused
+func NewTestApp(
 	cfg config.EnvConfig,
 	logger *slog.Logger,
 	k8sFactory k8s.KubernetesClientFactory,
