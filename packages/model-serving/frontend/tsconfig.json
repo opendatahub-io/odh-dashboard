@@ -19,8 +19,8 @@
     "baseUrl": "./src",
     "paths": {
       "~/*": ["./*"],
-      "@odh-dashboard/internal/*": ["../../../frontend/src/*"],
-      "#~/*": ["../../../frontend/src/*"]
+      "@odh-dashboard/internal/*": ["../../../../frontend/src/*"],
+      "#~/*": ["../../../../frontend/src/*"]
     },
     "importHelpers": true,
     "skipLibCheck": true,
