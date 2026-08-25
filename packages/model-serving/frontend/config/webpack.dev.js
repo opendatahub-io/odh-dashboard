@@ -29,16 +29,17 @@ const BASE_PATH = PUBLIC_PATH;
 
 const getProxyHeaders = () => {
   if (AUTH_METHOD === 'user_token') {
+    if (!['localhost', '127.0.0.1', '::1'].includes(HOST)) {
+      throw new Error('AUTH_METHOD=user_token requires a loopback HOST');
+    }
+
     try {
       const token = execSync(
         "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
       )
         .toString()
         .trim();
-      const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-        .toString()
-        .trim();
-      console.info('Logged in as user:', username);
+      console.info('Kubernetes authentication configured');
       return {
         Authorization: `Bearer ${token}`,
         'x-forwarded-access-token': token,
