@@ -39,6 +39,10 @@ const getProxyHeaders = () => {
       )
         .toString()
         .trim();
+      if (!token) {
+        console.error('Failed to get Kubernetes token: kubectl returned an empty token');
+        return {};
+      }
       console.info('Kubernetes authentication configured');
       return {
         Authorization: `Bearer ${token}`,
