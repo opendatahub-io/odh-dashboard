@@ -37,10 +37,9 @@ import {
   adminBulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
+import type { ModelAsAServiceTestData } from '../../../types';
 import { ApiKeyStatus, PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
-import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { getClipboardContent } from '../../../utils/clipboardUtils';
 
@@ -49,7 +48,6 @@ let testData: ModelAsAServiceTestData;
 let projectName: string;
 let modelName: string;
 let llmInferenceserviceYamlFixturePath: string;
-let modelURI: string;
 let subscriptionName: string;
 let subscriptionDescription: string;
 let subscriptionGroups: string[];
@@ -79,8 +77,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
         llmInferenceserviceYamlFixturePath =
-          'resources/modelsAsService/llmInferenceserviceWithMaasEnabled.yaml';
-        modelURI = testData.modelLocationURI;
+          'resources/modelsAsService/llmInferenceServiceSimulatorPremium.yaml';
         policiesName = `${testData.policiesName}-${uuid}`;
         policiesDescription = testData.policiesDescription;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
@@ -115,16 +112,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
       })
       .then(() => {
         cy.log('Create LLMInferenceService with MaaS enabled and create MaaSModelRef');
-        const dataConnectionReplacements: DataConnectionUriReplacements = {
-          NAMESPACE: projectName,
-          MODEL_URI: Buffer.from(modelURI).toString('base64'),
-          CONNECTION_NAME: `${modelName}-connection`,
-        };
-        createDataConnectionUri(dataConnectionReplacements);
         createLLMInferenceServiceWithMaaSEnabled(
           projectName,
           modelName,
-          dataConnectionReplacements.CONNECTION_NAME,
           llmInferenceserviceYamlFixturePath,
         );
         checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
@@ -145,7 +135,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   it(
     ' Verify Authorization Policy Create, View, Edit and  Delete Operations',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', 'MaaSCI'],
     },
     () => {
       cy.step('Log into the application as admin');
