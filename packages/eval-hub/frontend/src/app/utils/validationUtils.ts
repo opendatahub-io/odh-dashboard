@@ -25,6 +25,7 @@ export const getUrlValidationError = (url: string): string | undefined => {
 export const getUserFriendlyConnectionError = (
   errorCode: string | undefined,
   sourceMode: SourceMode,
+  serverMessage?: string,
 ): string => {
   switch (errorCode) {
     case 'CONNECTION_FAILED':
@@ -38,6 +39,6 @@ export const getUserFriendlyConnectionError = (
     case 'FORBIDDEN':
       return 'Access denied \u2014 insufficient permissions.';
     default:
-      return 'Connection verification failed.';
+      return serverMessage || 'Connection verification failed.';
   }
 };

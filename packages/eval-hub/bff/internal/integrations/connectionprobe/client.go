@@ -145,6 +145,17 @@ func NewConnectionProbeClient(
 	}
 
 	internal := isInternalHost(baseURL)
+
+	// Auto-upgrade http:// to https:// for cluster-internal hosts — KServe endpoints
+	// use service-serving TLS certificates and reject plain HTTP connections.
+	if internal {
+		if parsedURL, err := url.Parse(baseURL); err == nil && parsedURL.Scheme == "http" {
+			parsedURL.Scheme = "https"
+			baseURL = parsedURL.String()
+			logger.Info("Auto-upgraded internal endpoint from http to https", slog.String("url", baseURL))
+		}
+	}
+
 	allowHTTP := opts.AllowHTTP || opts.SkipSSRFValidation || internal
 	if err := validateBaseURL(baseURL, allowHTTP); err != nil {
 		return nil, err

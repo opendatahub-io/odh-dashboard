@@ -89,13 +89,19 @@ export const useConnectionValidation = ({
         return;
       }
       let errorCode: string | undefined;
+      let serverMessage: string | undefined;
       if (err && typeof err === 'object' && 'error' in err) {
         const inner = (err as Record<string, unknown>).error; // eslint-disable-line @typescript-eslint/consistent-type-assertions
-        if (inner && typeof inner === 'object' && 'code' in inner) {
-          errorCode = String((inner as Record<string, unknown>).code); // eslint-disable-line @typescript-eslint/consistent-type-assertions
+        if (inner && typeof inner === 'object') {
+          if ('code' in inner) {
+            errorCode = String((inner as Record<string, unknown>).code); // eslint-disable-line @typescript-eslint/consistent-type-assertions
+          }
+          if ('message' in inner) {
+            serverMessage = String((inner as Record<string, unknown>).message); // eslint-disable-line @typescript-eslint/consistent-type-assertions
+          }
         }
       }
-      const errorMessage = getUserFriendlyConnectionError(errorCode, sourceMode);
+      const errorMessage = getUserFriendlyConnectionError(errorCode, sourceMode, serverMessage);
       setConnectionValidation({
         status: 'error',
         message: errorMessage,

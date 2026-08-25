@@ -104,4 +104,22 @@ describe('getUserFriendlyConnectionError', () => {
       'Connection verification failed.',
     );
   });
+
+  it('should return server message for unknown error code when provided', () => {
+    expect(
+      getUserFriendlyConnectionError('UNKNOWN', 'model', 'failed to resolve secret "my-secret"'),
+    ).toBe('failed to resolve secret "my-secret"');
+  });
+
+  it('should return server message for undefined error code when provided', () => {
+    expect(getUserFriendlyConnectionError(undefined, 'model', 'some server error')).toBe(
+      'some server error',
+    );
+  });
+
+  it('should prefer mapped message over server message for known error codes', () => {
+    expect(getUserFriendlyConnectionError('TIMEOUT', 'model', 'raw timeout details')).toBe(
+      'Connection timed out. The endpoint is not responding.',
+    );
+  });
 });
