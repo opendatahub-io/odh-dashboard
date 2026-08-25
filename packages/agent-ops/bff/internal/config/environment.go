@@ -131,6 +131,13 @@ type EnvConfig struct {
 	OpenShellOIDCAudience string
 	OpenShellOIDCScope    string
 
+	// OpenShellOIDCSharedSession indicates OpenShell's IdP is the SAME as the
+	// dashboard's (shared Keycloak), so Token B can be obtained via silent OIDC
+	// (prompt=none) with zero clicks. Default false: OpenShell is a SEPARATE,
+	// required provider — the browser must perform an explicit sign-in. RHOAI does
+	// not need a shared IdP, so the honest double-auth demo requires this login.
+	OpenShellOIDCSharedSession bool
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

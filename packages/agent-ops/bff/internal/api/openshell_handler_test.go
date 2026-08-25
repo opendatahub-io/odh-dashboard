@@ -47,6 +47,24 @@ func TestOpenShellAuthConfigHandler(t *testing.T) {
 		assert.Equal(t, "https://keycloak/realms/openshell", got.Issuer)
 		assert.Equal(t, "openshell-dashboard", got.ClientID)
 		assert.Equal(t, "openshell-gateway", got.Audience)
+		// Default: OpenShell is a separate provider — no shared session.
+		assert.False(t, got.SharedSession)
+	})
+
+	t.Run("advertises sharedSession when the IdP is shared", func(t *testing.T) {
+		app := newTestApp(config.EnvConfig{
+			OpenShellBFFURL:            "https://openshell-bff.svc:8080",
+			OpenShellOIDCIssuer:        "https://keycloak/realms/openshell",
+			OpenShellOIDCClientID:      "openshell-dashboard",
+			OpenShellOIDCSharedSession: true,
+		})
+		rr := httptest.NewRecorder()
+		app.OpenShellAuthConfigHandler(rr, httptest.NewRequest(http.MethodGet, OpenShellAuthConfigPath, nil))
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		var got openShellAuthConfig
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+		assert.True(t, got.SharedSession)
 	})
 }
 

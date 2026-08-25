@@ -22,6 +22,7 @@ import {
   connectOpenShell,
   disconnectOpenShell,
   getOpenShellToken,
+  initOpenShellConnection,
   subscribeOpenShellConnection,
   OPENSHELL_SESSION_EXPIRED_EVENT,
   type OpenShellConnectionState,
@@ -56,11 +57,13 @@ export const OpenShellConnectionProvider: React.FC<{ children: React.ReactNode }
   });
 
   React.useEffect(() => {
-    // Supply Token B to the OpenShell package on every request (silent-first).
+    // Supply Token B to the OpenShell package on every request.
     setAuthTokenGetter(getOpenShellToken);
     const unsubscribe = subscribeOpenShellConnection(setState);
-    // Kick a silent connect attempt on mount (zero-click when SSO is live).
-    void getOpenShellToken();
+    // Establish connection state without forcing a login: resume a session or
+    // (only for a shared IdP) attempt silent SSO. For a separate provider this
+    // leaves the connect gate visible for an explicit OpenShell sign-in.
+    void initOpenShellConnection();
 
     // A second-service session expiry must not tear down the RHOAI context;
     // reflect it inline and attempt a silent reconnect.
@@ -182,7 +185,7 @@ export const OpenShellConnectGate: React.FC<{ children: React.ReactNode }> = ({ 
         <EmptyStateBody>
           {unconfigured
             ? 'This deployment has no OpenShell service configured. You can still manage the agent sandboxes in your own projects.'
-            : 'OpenShell is a separate service. Connect to view its workspaces, sandboxes, and providers. If single sign-on is available this is instant.'}
+            : 'OpenShell is a separate service with its own sign-in, distinct from your RHOAI login. Sign in to view its workspaces, sandboxes, and providers.'}
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>

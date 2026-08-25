@@ -28,6 +28,10 @@ export type OpenShellConnectionState = {
 
 type OpenShellAuthConfig = {
   configured: boolean;
+  // When true, OpenShell shares the dashboard IdP so Token B can be obtained via
+  // silent OIDC (prompt=none). When false (default), OpenShell is a separate
+  // provider requiring an explicit sign-in.
+  sharedSession?: boolean;
   issuer?: string;
   clientId?: string;
   audience?: string;
@@ -47,6 +51,9 @@ export const OIDC_CALLBACK_PATH = `${OPENSHELL_HOME}/oidc/callback`;
 export const OIDC_SILENT_CALLBACK_PATH = `${OPENSHELL_HOME}/oidc/silent-callback`;
 
 let managerPromise: Promise<UserManager | null> | null = null;
+// Whether OpenShell shares the dashboard IdP (silent SSO possible). Default
+// false: OpenShell is a separate provider requiring an explicit sign-in.
+let sharedSession = false;
 let state: OpenShellConnectionState = { status: 'idle', username: null, error: null };
 const listeners = new Set<(s: OpenShellConnectionState) => void>();
 
@@ -95,6 +102,7 @@ const buildManager = async (): Promise<UserManager | null> => {
     setState({ status: 'unconfigured' });
     return null;
   }
+  sharedSession = cfg.sharedSession ?? false;
   const { origin } = window.location;
   const manager = new UserManager({
     authority: cfg.issuer,
@@ -127,9 +135,10 @@ const getManager = (): Promise<UserManager | null> => {
 };
 
 /**
- * Per-request token provider for setAuthTokenGetter. Returns a fresh Token B,
- * refreshing silently when expired. Returns null when OpenShell is not
- * configured or no SSO session is available (falls back to no-auth / gate).
+ * Per-request token provider for setAuthTokenGetter. Returns a fresh Token B.
+ * An expired-but-resumable session is refreshed via its refresh token (works for
+ * a separate provider too). With no session it only attempts silent SSO when the
+ * IdP is shared; otherwise it returns null and the user must explicitly connect.
  */
 export const getOpenShellToken = async (): Promise<string | null> => {
   const manager = await getManager();
@@ -137,7 +146,20 @@ export const getOpenShellToken = async (): Promise<string | null> => {
     return null;
   }
   let user = await manager.getUser();
-  if (!user || user.expired) {
+  if (user && !user.expired) {
+    return user.access_token ?? null;
+  }
+
+  if (user) {
+    // Expired but resumable — refresh silently via the refresh token.
+    try {
+      user = await manager.signinSilent();
+    } catch {
+      setState({ status: 'disconnected', username: null });
+      return null;
+    }
+  } else if (sharedSession) {
+    // No session, but a shared IdP allows silent SSO (prompt=none).
     try {
       setState({ status: 'connecting' });
       user = await manager.signinSilent();
@@ -145,28 +167,59 @@ export const getOpenShellToken = async (): Promise<string | null> => {
       setState({ status: 'disconnected' });
       return null;
     }
+  } else {
+    // Separate provider: no implicit session — require an explicit connect.
+    return null;
   }
+
   if (user) {
     setState({ status: 'connected', username: usernameOf(user), error: null });
   }
   return user?.access_token ?? null;
 };
 
-/** Interactive connect: try silent first, fall back to a redirect login. */
+/**
+ * Establish connection state on mount WITHOUT forcing a login: resume an
+ * existing session, try silent SSO only when the IdP is shared, otherwise leave
+ * disconnected so the connect gate is shown (explicit double-auth sign-in).
+ */
+export const initOpenShellConnection = async (): Promise<void> => {
+  const manager = await getManager();
+  if (!manager) {
+    return; // 'unconfigured' already set
+  }
+  const user = await manager.getUser();
+  if (user && !user.expired) {
+    setState({ status: 'connected', username: usernameOf(user), error: null });
+    return;
+  }
+  if (user || sharedSession) {
+    await getOpenShellToken(); // resume via refresh token, or silent SSO
+    return;
+  }
+  setState({ status: 'disconnected', username: null });
+};
+
+/**
+ * Interactive connect. For a shared IdP, try silent first (may be zero-click);
+ * for a separate provider, go straight to the explicit redirect sign-in.
+ */
 export const connectOpenShell = async (): Promise<void> => {
   const manager = await getManager();
   if (!manager) {
     return;
   }
   setState({ status: 'connecting' });
-  try {
-    const user = await manager.signinSilent();
-    if (user) {
-      setState({ status: 'connected', username: usernameOf(user), error: null });
-      return;
+  if (sharedSession) {
+    try {
+      const user = await manager.signinSilent();
+      if (user) {
+        setState({ status: 'connected', username: usernameOf(user), error: null });
+        return;
+      }
+    } catch {
+      // fall through to interactive redirect
     }
-  } catch {
-    // fall through to interactive redirect
   }
   await manager.signinRedirect();
 };

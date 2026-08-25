@@ -70,6 +70,9 @@ func main() {
 	flag.StringVar(&cfg.OpenShellOIDCScope, "openshell-oidc-scope",
 		getEnvAsString("OPENSHELL_OIDC_SCOPE", "openid profile"),
 		"OIDC scope for the OpenShell browser silent-OIDC flow")
+	flag.BoolVar(&cfg.OpenShellOIDCSharedSession, "openshell-oidc-shared-session",
+		getEnvAsBool("OPENSHELL_OIDC_SHARED_SESSION", false),
+		"Whether OpenShell shares the dashboard IdP (enables silent OIDC/SSO). Default false: require an explicit OpenShell sign-in.")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")

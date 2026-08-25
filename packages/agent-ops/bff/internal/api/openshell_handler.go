@@ -33,11 +33,14 @@ const (
 type openShellAuthConfig struct {
 	// Configured is true only when both the proxy target and the OIDC issuer are
 	// set — i.e. the double-auth data plane is wired.
-	Configured bool   `json:"configured"`
-	Issuer     string `json:"issuer,omitempty"`
-	ClientID   string `json:"clientId,omitempty"`
-	Audience   string `json:"audience,omitempty"`
-	Scope      string `json:"scope,omitempty"`
+	Configured bool `json:"configured"`
+	// SharedSession is true when OpenShell shares the dashboard IdP (silent OIDC
+	// possible). When false, the browser must perform an explicit OpenShell login.
+	SharedSession bool   `json:"sharedSession"`
+	Issuer        string `json:"issuer,omitempty"`
+	ClientID      string `json:"clientId,omitempty"`
+	Audience      string `json:"audience,omitempty"`
+	Scope         string `json:"scope,omitempty"`
 }
 
 // OpenShellAuthConfigHandler serves the browser's OIDC client config. It never
@@ -46,10 +49,11 @@ func (app *App) OpenShellAuthConfigHandler(w http.ResponseWriter, r *http.Reques
 	cfg := openShellAuthConfig{
 		Configured: strings.TrimSpace(app.config.OpenShellBFFURL) != "" &&
 			strings.TrimSpace(app.config.OpenShellOIDCIssuer) != "",
-		Issuer:   app.config.OpenShellOIDCIssuer,
-		ClientID: app.config.OpenShellOIDCClientID,
-		Audience: app.config.OpenShellOIDCAudience,
-		Scope:    app.config.OpenShellOIDCScope,
+		SharedSession: app.config.OpenShellOIDCSharedSession,
+		Issuer:        app.config.OpenShellOIDCIssuer,
+		ClientID:      app.config.OpenShellOIDCClientID,
+		Audience:      app.config.OpenShellOIDCAudience,
+		Scope:         app.config.OpenShellOIDCScope,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(cfg); err != nil {
