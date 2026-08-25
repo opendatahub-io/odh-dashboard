@@ -391,7 +391,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			Name:        name,
 			RemoteEntry: "/remoteEntry.js",
 			Authorize:   true,
-			TLS:         true,
+			TLS:         mod.TLS,
 			Proxy:       moduleProxyPaths[name],
 			Service: &serviceRef{
 				Name:      svcName,

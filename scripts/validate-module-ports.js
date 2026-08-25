@@ -7,7 +7,7 @@
  *    Must be unique so multiple federated modules can run simultaneously.
  *
  * 2. Production service ports (federation-configmap.yaml "service.port")
- *    Must be unique because all BFF sidecars run in the same pod.
+ *    Must be unique across all module services.
  */
 
 const { execSync } = require('child_process');

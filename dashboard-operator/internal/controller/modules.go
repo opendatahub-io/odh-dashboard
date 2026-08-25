@@ -19,6 +19,7 @@ type ModuleDefinition struct {
 	RequiredDSCComponents   []string
 	InterModuleDependencies []string
 	ManifestSlug            string
+	TLS                     bool
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
@@ -27,34 +28,40 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
 		RequiredDSCComponents: []string{"modelregistry"},
 		ManifestSlug:          "model-registry",
+		TLS:                   true,
 	},
 	"genAi": {
 		Name: "genAi", ContainerName: "gen-ai-ui", Port: 8143,
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
 		ManifestSlug: "gen-ai",
+		TLS:          true,
 	},
 	"mlflow": {
 		Name: "mlflow", ContainerName: "mlflow-ui", Port: 8343,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
 		RequiredDSCComponents: []string{"mlflowoperator"},
 		ManifestSlug:          "mlflow",
+		TLS:                   true,
 	},
 	"maas": {
 		Name: "maas", ContainerName: "maas-ui", Port: 8243,
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
 		ManifestSlug: "maas",
+		TLS:          true,
 	},
 	"evalHub": {
 		Name: "evalHub", ContainerName: "eval-hub-ui", Port: 8543,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
 		RequiredDSCComponents: []string{"trustyai"},
 		ManifestSlug:          "eval-hub",
+		TLS:                   true,
 	},
 	"automl": {
 		Name: "automl", ContainerName: "automl-ui", Port: 8643,
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
 		RequiredDSCComponents: []string{"aipipelines"},
 		ManifestSlug:          "automl",
+		TLS:                   true,
 	},
 	"autorag": {
 		Name: "autorag", ContainerName: "autorag-ui", Port: 8743,
@@ -62,16 +69,19 @@ var moduleRegistry = map[string]ModuleDefinition{
 		RequiredDSCComponents:   []string{"aipipelines"},
 		InterModuleDependencies: []string{"genAi"},
 		ManifestSlug:            "autorag",
+		TLS:                     true,
 	},
 	"agentOps": {
 		Name: "agentOps", ContainerName: "agent-ops-ui", Port: 8843,
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 		ManifestSlug: "agent-ops",
+		TLS:          true,
 	},
 	"notebooks": {
 		Name: "notebooks", ContainerName: "notebooks-ui", Port: 9043,
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE",
 		ManifestSlug: "notebooks",
+		TLS:          false,
 	},
 }
 

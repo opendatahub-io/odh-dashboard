@@ -44,12 +44,6 @@ kustomize edit set namespace <DESTINATION NAMESPACE>
 kustomize build odh | oc apply -f -
 ```
 
-For standalone mode (BFF modules as independent pods managed by the dashboard-operator):
-
-```markdown
-kustomize build odh/standalone | oc apply -f -
-```
-
 ## Testing Changes
 
 One way to test changes locally is to generate the full structure before your changes, and then again after your changes. Do this from the `/manifests` folder to make use of the git-ignore file.

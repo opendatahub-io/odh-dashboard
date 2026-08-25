@@ -26,7 +26,7 @@
     "distributions/base",
     "distributions/core-bff",
     "distributions/rhaii",
-    "distributions/maas-customer-portal",
+    "distributions/maas-consumer-portal",
     "packages/model-serving/cypress",
     "packages/kserve/cypress",
     "packages/llmd-serving/cypress"
