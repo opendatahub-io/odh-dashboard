@@ -106,7 +106,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
           limit: '1,000',
-          window: '1000',
+          window: '1,000',
           unit: 'hour',
         };
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
@@ -292,7 +292,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
       editRateLimitsModal.findTimeInput(0).clear();
-      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window);
+      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window.toString());
       editRateLimitsModal.findSaveButton().click();
 
       // Verify the auth policy checkbox is checked by default
@@ -354,7 +354,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
       editRateLimitsModal.findTimeInput(0).clear();
-      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window);
+      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window.toString());
       editRateLimitsModal.findSaveButton().click();
 
       // Verify the auth policy checkbox is checked by default
