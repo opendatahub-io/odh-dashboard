@@ -3,15 +3,28 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/internal/__mocks__/mockValidatedConfigurations';
 import { PreconfigureDeploymentStepContent } from '../PreconfigureDeploymentStep';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
+import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',
   displayName: 'Test Project',
 });
+
+const CATALOG_NAV_STATE = {
+  fromCatalog: true,
+  catalogModelId: 'test-catalog-model',
+};
 
 const createProjectsContextValue = () => ({
   projects: [mockProject],
@@ -34,17 +47,27 @@ const mockWizardStateWithoutProject = (setProjectName = jest.fn()) => {
   return state;
 };
 
+const renderStep = (
+  wizardState: ReturnType<typeof mockDeploymentWizardState>,
+  locationState: object = {},
+) =>
+  render(
+    <MemoryRouter initialEntries={[{ pathname: '/', state: locationState }]}>
+      <ProjectsContext.Provider value={createProjectsContextValue()}>
+        <PreconfigureDeploymentStepContent wizardState={wizardState} />
+      </ProjectsContext.Provider>
+    </MemoryRouter>,
+  );
+
 describe('PreconfigureDeploymentStep', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render the description text', () => {
     const wizardState = mockWizardStateWithoutProject();
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState);
 
     expect(
       screen.getByText('Choose from the below options to configure your deployment.'),
@@ -54,13 +77,7 @@ describe('PreconfigureDeploymentStep', () => {
   it('should render a project selector when no initial project is set', () => {
     const wizardState = mockWizardStateWithoutProject();
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState);
 
     expect(screen.getByTestId('project-selector-toggle')).toBeInTheDocument();
   });
@@ -69,13 +86,7 @@ describe('PreconfigureDeploymentStep', () => {
     const mockSetProjectName = jest.fn();
     const wizardState = mockWizardStateWithoutProject(mockSetProjectName);
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState);
 
     fireEvent.click(screen.getByTestId('project-selector-toggle'));
     fireEvent.click(screen.getByText('Test Project'));
@@ -86,13 +97,7 @@ describe('PreconfigureDeploymentStep', () => {
   it('should render a disabled text input when initial project is set', () => {
     const wizardState = mockDeploymentWizardState();
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState);
 
     const input = screen.getByTestId('preconfigure-project-name');
     expect(input).toBeDisabled();
@@ -102,18 +107,12 @@ describe('PreconfigureDeploymentStep', () => {
   it('should not render validated arguments when validatedConfigurations is empty', () => {
     const wizardState = mockWizardStateWithoutProject();
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState, CATALOG_NAV_STATE);
 
     expect(screen.queryByTestId('validated-configuration-section-args')).not.toBeInTheDocument();
   });
 
-  it('should render validated arguments section when validatedConfigurations is provided', () => {
+  it('should render validated arguments when configs have options regardless of catalog nav state', () => {
     const wizardState = mockDeploymentWizardState({
       initialData: {
         validatedConfigurations: [mockToolCallingValidatedConfiguration()],
@@ -127,13 +126,26 @@ describe('PreconfigureDeploymentStep', () => {
       },
     });
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState);
+
+    expect(screen.getByTestId('validated-configuration-section-args')).toBeInTheDocument();
+  });
+
+  it('should render validated arguments section when validatedConfigurations is provided from catalog', () => {
+    const wizardState = mockDeploymentWizardState({
+      initialData: {
+        validatedConfigurations: [mockToolCallingValidatedConfiguration()],
+      },
+      state: {
+        project: {
+          initialProjectName: undefined,
+          projectName: undefined,
+          setProjectName: jest.fn(),
+        },
+      },
+    });
+
+    renderStep(wizardState, CATALOG_NAV_STATE);
 
     expect(screen.getByTestId('validated-configuration-section-args')).toBeInTheDocument();
     expect(screen.getByText('Validated arguments')).toBeInTheDocument();
@@ -170,13 +182,7 @@ describe('PreconfigureDeploymentStep', () => {
       },
     });
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState, CATALOG_NAV_STATE);
 
     fireEvent.click(screen.getByTestId('validated-configuration-option-checkbox-tool-calling'));
 
@@ -196,6 +202,17 @@ describe('PreconfigureDeploymentStep', () => {
         '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
       ],
     });
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED,
+      {
+        configurationName: 'Tool calling',
+        configurationIcon: 'tool-calling',
+        isSelected: true,
+        catalogModelId: 'test-catalog-model',
+        entryPoint: 'model_details',
+        hasValidatedArgumentsSection: true,
+      },
+    );
   });
 
   it('should remove validated runtime args when unchecking a configuration', () => {
@@ -233,13 +250,7 @@ describe('PreconfigureDeploymentStep', () => {
       },
     });
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState, CATALOG_NAV_STATE);
 
     fireEvent.click(screen.getByTestId('validated-configuration-option-checkbox-tool-calling'));
 
@@ -248,6 +259,50 @@ describe('PreconfigureDeploymentStep', () => {
       enabled: true,
       args: ['--user-arg'],
     });
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      ModelServingTrackingEvent.VALIDATED_ARGUMENT_SELECTED,
+      expect.objectContaining({ isSelected: false, configurationName: 'Tool calling' }),
+    );
+  });
+
+  it('should fire viewed tracking when View arguments is clicked', () => {
+    const wizardState = mockDeploymentWizardState({
+      initialData: {
+        validatedConfigurations: [mockToolCallingValidatedConfiguration()],
+      },
+      state: {
+        project: {
+          initialProjectName: undefined,
+          projectName: undefined,
+          setProjectName: jest.fn(),
+        },
+      },
+    });
+
+    renderStep(wizardState, CATALOG_NAV_STATE);
+
+    const viewArgumentsButton = screen.getByTestId(
+      'validated-configuration-view-arguments-tool-calling',
+    );
+    fireEvent.click(viewArgumentsButton);
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED,
+      {
+        configurationName: 'Tool calling',
+        catalogModelId: 'test-catalog-model',
+        entryPoint: 'model_details',
+        hasValidatedArgumentsSection: true,
+      },
+    );
+
+    fireEvent.click(viewArgumentsButton);
+
+    expect(
+      mockFireMiscTrackingEvent.mock.calls.filter(
+        ([eventName]) => eventName === ModelServingTrackingEvent.VALIDATED_ARGUMENTS_VIEWED,
+      ),
+    ).toHaveLength(1);
   });
 
   it('should not render any card when validatedConfigurations has no options for a field', () => {
@@ -272,13 +327,7 @@ describe('PreconfigureDeploymentStep', () => {
       },
     });
 
-    render(
-      <MemoryRouter>
-        <ProjectsContext.Provider value={createProjectsContextValue()}>
-          <PreconfigureDeploymentStepContent wizardState={wizardState} />
-        </ProjectsContext.Provider>
-      </MemoryRouter>,
-    );
+    renderStep(wizardState, CATALOG_NAV_STATE);
 
     expect(
       screen.queryByTestId('validated-configuration-option-tool-calling'),

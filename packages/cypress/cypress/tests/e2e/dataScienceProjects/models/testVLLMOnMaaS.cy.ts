@@ -131,6 +131,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
         });
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
         .findGlobalScopedTemplateOption(llmInferenceServiceConfigDisplayName)

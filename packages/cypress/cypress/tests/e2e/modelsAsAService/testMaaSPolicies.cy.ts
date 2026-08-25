@@ -9,7 +9,7 @@ import {
   modelsAsAServiceNamespace,
 } from '../../../utils/oc_commands/maas';
 import {
-  stubClipboardWriteTextForApiKeyModal,
+  stubClipboard,
   verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
   verifyMaaSModelInferenceUsingRevokedApiKey,
 } from '../../../utils/maasApiKeyClipboardInference';
@@ -42,6 +42,8 @@ import { ApiKeyStatus, PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { getClipboardContent } from '../../../utils/clipboardUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -178,6 +180,26 @@ describe('An admin can manage MaaS authorization policies and control model acce
       viewAuthPolicyPage.findGroupsSection().should('contain.text', testData.policiesGroups[0]);
       viewAuthPolicyPage.findModelsSection().should('contain.text', modelName);
 
+      cy.step('Verify the YAML Tab');
+      stubClipboard('copiedYAML');
+      viewAuthPolicyPage.findYamlTab().click();
+      viewAuthPolicyPage.findYAMLCodeEditor().copyToClipboard().click();
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include(testData.apiVersion);
+        expect(yamlContent).to.include(`${policiesName}`);
+      });
+      stubDownload('downloadedYAML');
+      viewAuthPolicyPage.findYAMLCodeEditor().download().should('exist').click();
+      getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+        expect(downloads).to.have.length.at.least(1);
+        expect(downloads[0].fileName).to.include(policiesName);
+        expect(downloads[0].content).to.include(testData.apiVersion);
+        expect(downloads[0].content).to.include(testData.kind);
+        expect(downloads[0].content).to.include(`${policiesName}`);
+      });
+
       cy.step('Edit the authorization policy');
       viewAuthPolicyPage.findActionsToggle().click();
       viewAuthPolicyPage.findDeleteActionButton().should('be.visible');
@@ -250,7 +272,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
       editRateLimitsModal.findTimeInput(0).clear();
-      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window);
+      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window.toString());
       editRateLimitsModal.findUnitDropdown(0).click();
       cy.findByText(tokenRateLimit.unit).should('be.visible').click();
       editRateLimitsModal.findSaveButton().click();
@@ -321,7 +343,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
 
         cy.step('Read the API key from the success dialog');
         copyApiKeyModal.shouldBeOpen();
-        stubClipboardWriteTextForApiKeyModal(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
+        stubClipboard(CLIPBOARD_WRITE_TEXT_STUB_ALIAS);
         copyApiKeyModal.findApiKeyTokenCopyButton().click();
         getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
           expect(apiKeys).to.have.length.at.least(1);

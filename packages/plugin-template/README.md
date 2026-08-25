@@ -4,7 +4,7 @@ Starter template for creating new modular packages in the ODH Dashboard monorepo
 
 ## Purpose
 
-Provides a ready-to-use scaffold for adding a new feature package. Includes pre-configured TypeScript, ESLint, Jest, a Dockerfile for the BFF sidecar, and Module Federation entry point wiring.
+Provides a ready-to-use scaffold for adding a new feature package. Includes pre-configured TypeScript, ESLint, Jest, a Dockerfile for the BFF, and Module Federation entry point wiring.
 
 ## Creating a New Package
 

@@ -10,8 +10,8 @@ class PipelineImportModal extends Modal {
     super('Import pipeline');
   }
 
-  find() {
-    return cy.findByTestId('import-pipeline-modal');
+  find(options?: { timeout?: number }) {
+    return cy.findByTestId('import-pipeline-modal', options);
   }
 
   findPipelineNameInput() {
@@ -72,6 +72,15 @@ class PipelineImportModal extends Modal {
 
   findImportModalError() {
     return this.find().findByTestId('error-message-alert');
+  }
+
+  /**
+   * After submit the dialog is still open. Fail immediately if an import error
+   * is shown, then wait for the dialog to close.
+   */
+  shouldCloseWithoutError(timeout = 60000): void {
+    this.findImportModalError().should('not.exist');
+    this.find({ timeout }).should('not.exist');
   }
 
   mockCreatePipelineAndVersion(params: CreatePipelineAndVersionKFData, namespace: string) {

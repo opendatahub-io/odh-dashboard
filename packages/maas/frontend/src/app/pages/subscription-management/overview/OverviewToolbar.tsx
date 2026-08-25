@@ -29,8 +29,8 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
         <SearchInput
           {...props}
           style={{ minWidth: '350px' }}
-          aria-label="Filter by model name, model ID, or description"
-          placeholder="Filter by model name, model ID, or description"
+          aria-label="Filter by model name, ID, or description"
+          placeholder="Filter by model name, ID, or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-model-name-filter-input"
           inputProps={{

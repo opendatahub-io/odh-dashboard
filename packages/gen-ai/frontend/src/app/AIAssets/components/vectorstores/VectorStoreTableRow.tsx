@@ -133,7 +133,10 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
                     assetId: store.vector_store_id,
                   });
                   navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                    state: { vectorStoreId: store.vector_store_id },
+                    state: {
+                      vectorStoreId: store.vector_store_id,
+                      openSettingsToTab: 'knowledge',
+                    },
                   });
                 }}
               >

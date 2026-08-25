@@ -144,6 +144,55 @@ describe('AboutBenchmarkResultPopover', () => {
     expect(screen.getByText('Toxicity Score; lower is better.')).toBeInTheDocument();
   });
 
+  describe('providerDirection fallback logic', () => {
+    it('should use provider lower_is_better when provider metric matches the displayed metric', () => {
+      // Job says higher is better; provider says lower is better for the same metric — provider wins.
+      const provider: Provider = {
+        ...mockProvider,
+        benchmarks: [
+          {
+            id: 'default-benchmark',
+            name: 'Default Benchmark',
+            // eslint-disable-next-line camelcase
+            primary_score: { metric: 'acc_norm', lower_is_better: true },
+          },
+        ],
+      };
+      renderPopover({}, provider);
+      fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+      expect(screen.getByText('Acc Norm · Lower is better')).toBeInTheDocument();
+    });
+
+    it('should fall back to job config direction when provider metric does not match', () => {
+      // Job displays acc_norm; provider primary_score is for a different metric — job config wins.
+      const provider: Provider = {
+        ...mockProvider,
+        benchmarks: [
+          {
+            id: 'default-benchmark',
+            name: 'Default Benchmark',
+            // eslint-disable-next-line camelcase
+            primary_score: { metric: 'bias_score', lower_is_better: true },
+          },
+        ],
+      };
+      renderPopover({}, provider);
+      fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+      // Job benchmarkConfig has lower_is_better: false for acc_norm
+      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+    });
+
+    it('should fall back to job config direction when provider benchmark has no primary_score', () => {
+      const provider: Provider = {
+        ...mockProvider,
+        benchmarks: [{ id: 'default-benchmark', name: 'Default Benchmark' }],
+      };
+      renderPopover({}, provider);
+      fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+    });
+  });
+
   it('should render nothing when no primary metric is available', () => {
     const job = mockEvaluationJob({ benchmarkId: 'no-metric-benchmark' });
     job.benchmarks = [{ id: 'no-metric-benchmark' }];

@@ -1053,16 +1053,29 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
-      # The e2e job checks out the PR SHA, then downloads test-variables.yml.
-      # Run the mask script from the default branch, not from the PR workspace.
-      - name: Checkout trusted credential tools
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          path: ${{ runner.temp }}/trusted-credential-tools
-          persist-credentials: false
-          sparse-checkout: .github/scripts/mask-cypress-test-secrets.sh
-          sparse-checkout-cone-mode: false
+      # Fetch the mask script from the default branch into RUNNER_TEMP so a
+      # malicious PR cannot replace it. Do not use actions/checkout with a
+      # path under RUNNER_TEMP — checkout requires the destination to be
+      # under GITHUB_WORKSPACE, which fails on these self-hosted runners.
+      - name: Fetch trusted credential mask script
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DEST_DIR="${{ runner.temp }}/trusted-credential-tools"
+          mkdir -p "$DEST_DIR"
+          DEST="$DEST_DIR/mask-cypress-test-secrets.sh"
+          API_URL="https://api.github.com/repos/${{ github.repository }}/contents/.github/scripts/mask-cypress-test-secrets.sh?ref=${{ github.event.repository.default_branch }}"
+          HTTP_CODE=$(curl -sS -L -o "$DEST" -w "%{http_code}" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL" || true)
+          if [[ "$HTTP_CODE" != "200" || ! -s "$DEST" ]]; then
+            echo "⚠️ Trusted mask script not available from default branch (HTTP ${HTTP_CODE:-failed}); skipping Actions masks"
+            rm -f "$DEST"
+          else
+            echo "✅ Fetched mask script from ${{ github.event.repository.default_branch }}"
+          fi
 
       - name: Module caches
         uses: ./.github/actions/module-caches
@@ -1088,11 +1101,11 @@ jobs:
                         "${{ secrets.GITLAB_TEST_VARS_URL }}" \
             -o ${{ github.workspace }}/packages/cypress/test-variables.yml
           echo "✅ Downloaded test configuration"
-          MASK_SCRIPT="${{ runner.temp }}/trusted-credential-tools/.github/scripts/mask-cypress-test-secrets.sh"
+          MASK_SCRIPT="${{ runner.temp }}/trusted-credential-tools/mask-cypress-test-secrets.sh"
           if [[ -f "$MASK_SCRIPT" ]]; then
             bash "$MASK_SCRIPT" "${{ github.workspace }}/packages/cypress/test-variables.yml"
           else
-            echo "⚠️ Trusted mask script not on default branch yet; skipping Actions masks"
+            echo "⚠️ Trusted mask script not available; skipping Actions masks"
           fi
 
       - name: Login to OpenShift cluster
