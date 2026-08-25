@@ -1,4 +1,4 @@
-import { EvaluationJob } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -159,6 +159,31 @@ export const formatDuration = (startStr?: string, endStr?: string): string | nul
   }
 };
 
+export const formatDurationCompact = (startStr?: string, endStr?: string): string | null => {
+  if (!startStr || !endStr) {
+    return null;
+  }
+  try {
+    const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+    if (ms <= 0 || !Number.isFinite(ms)) {
+      return null;
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    }
+    return seconds > 0 ? `${seconds}s` : '< 1s';
+  } catch {
+    return null;
+  }
+};
+
 export const formatDate = (dateStr?: string): string => {
   if (!dateStr) {
     return '-';
@@ -177,6 +202,25 @@ export const formatDate = (dateStr?: string): string => {
   }
 };
 
+const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
+  'completed',
+  'failed',
+  'cancelled',
+  'stopped',
+  'partially_failed',
+]);
+
+export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
+
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
   job.status.state === 'completed';
+
+export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
+  benchmarks.filter((bm) => bm.status === 'failed').length;
+
+// Different benchmark providers use different scoring scales — most use 0–1 decimal fractions,
+// but some (e.g. Open LLM Leaderboard v2) use a 0–100 percentage scale. Thresholds > 1 are
+// already in percentage form; thresholds ≤ 1 are multiplied by 100 to match the slider range.
+export const normalizeThreshold = (threshold: number): number =>
+  threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);

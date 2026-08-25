@@ -60,7 +60,7 @@ describe('translateStageStatus', () => {
     ['completed', RunStatus.Succeeded],
     ['started', RunStatus.InProgress],
     ['failed', RunStatus.Failed],
-    ['skipped', RunStatus.Skipped],
+    ['skipped', RunStatus.Pending],
   ])('should map %s to %s', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -69,7 +69,7 @@ describe('translateStageStatus', () => {
     [' FAILED ', RunStatus.Failed],
     ['COMPLETED', RunStatus.Succeeded],
     ['  Started  ', RunStatus.InProgress],
-    ['SKIPPED', RunStatus.Skipped],
+    ['SKIPPED', RunStatus.Pending],
   ])('should normalize uppercase/whitespace-padded %j', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -241,7 +241,7 @@ describe('resolveStageRunStatus', () => {
       RunStatus.Failed,
     );
     expect(resolveStageRunStatus(stage({ status: 'skipped' }), undefined, 'CANCELED')).toBe(
-      RunStatus.Skipped,
+      RunStatus.Pending,
     );
   });
 
@@ -267,7 +267,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'FAILED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Failed);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should not leave running-task-backed stages active on a canceled run', () => {
@@ -280,7 +280,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'CANCELED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Cancelled);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Cancelled);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should not leave inline started stages active on a failed run', () => {
@@ -292,7 +292,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Failed);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should mark unresolved stages failed when a partial inline map uses terminal run fallback', () => {
@@ -330,7 +330,7 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
   it('should show all stages in progress when the component has no inline stage statuses', () => {
@@ -363,8 +363,8 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('optimize_templates')).toBe(RunStatus.Pending);
-    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+    expect(statuses.get('optimize_templates')).toBe(RunStatus.InProgress);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
   });
 });
 
@@ -383,7 +383,7 @@ describe('promoteWaitingFrontierToInProgress', () => {
     },
   });
 
-  it('promotes the entire waiting chain after a completed predecessor while the run is active', () => {
+  it('promotes only the next waiting frontier after a completed predecessor while the run is active', () => {
     const nodes = [
       makeNode('comp__a', RunStatus.Succeeded),
       makeNode('comp__b', RunStatus.Pending, ['comp__a']),
@@ -395,8 +395,8 @@ describe('promoteWaitingFrontierToInProgress', () => {
     expect(promoted[0].data?.runStatus).toBe(RunStatus.Succeeded);
     expect(promoted[1].data?.runStatus).toBe(RunStatus.InProgress);
     expect(promoted[1].data?.activeIconVariant).toBe('sync');
-    expect(promoted[2].data?.runStatus).toBe(RunStatus.InProgress);
-    expect(promoted[2].data?.activeIconVariant).toBe('pulse');
+    expect(promoted[2].data?.runStatus).toBe(RunStatus.Pending);
+    expect(promoted[2].data?.activeIconVariant).toBeUndefined();
   });
 
   it('does not expand promotion into a later component', () => {

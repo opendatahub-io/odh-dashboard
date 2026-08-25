@@ -8,12 +8,15 @@ import {
   ResourceNameTooltip,
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { getDisplayNameFromK8sResource, SchedulingType } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import {
+  useHardwareProfileBindingState,
+  MODEL_SERVING_VISIBILITY,
+} from '@odh-dashboard/hardware-profiles/shared';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import UnderlinedTruncateButton from '@odh-dashboard/internal/components/UnderlinedTruncateButton';
-import useDebouncedTrueValue from '@odh-dashboard/internal/utilities/useDebouncedTrueValue';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,
@@ -23,12 +26,16 @@ import {
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
+import DeploymentCapabilities from '../DeploymentCapabilities';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
 import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
 import ModelServingStopModal from '../ModelServingStopModal';
 import DeploymentStatusModal from '../DeploymentStatusModal';
-import { useDeploymentExtension } from '../../../concepts/extensionUtils';
+import {
+  useDeploymentExtension,
+  useResolvedDeploymentExtension,
+} from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
@@ -49,6 +56,7 @@ export const DeploymentRow: React.FC<{
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedToggle?: boolean;
+  showCapabilities?: boolean;
   servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
 }> = ({
   deployment,
@@ -56,6 +64,7 @@ export const DeploymentRow: React.FC<{
   onDelete,
   rowIndex,
   showExpandedToggle,
+  showCapabilities,
   servingDetailsEntry,
 }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
@@ -76,38 +85,31 @@ export const DeploymentRow: React.FC<{
   const { namespace } = deployment.model.metadata;
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
-  // Anomaly = Kueue manages this namespace but no Workload CR was correlated to this deployment
-  // (i.e. Kueue isn't actually scheduling it). Checking the IS's own queue label isn't reliable:
-  // the label of record lives on the child Deployment's pod template, not necessarily the IS,
-  // and a present label doesn't guarantee correlation actually succeeded (e.g. RBAC or
-  // multi-pod-role gaps). Skip the check entirely while stopped/stopping — no pods, no Workload
-  // CRs, by design — so it isn't a scheduling anomaly.
+  const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
+    useHardwareProfileBindingState(deployment.model, MODEL_SERVING_VISIBILITY);
   const isStoppedOrStopping = Boolean(
     deployment.status?.stoppedStates?.isStopped || deployment.status?.stoppedStates?.isStopping,
   );
-  const isKueueAnomalyCandidate =
+  const hardwareProfile = bindingStateInfo?.profile;
+  const directQueueName = deployment.model.metadata.labels?.[KUEUE_QUEUE_LABEL];
+  const hasLocalQueueAssigned = hardwareProfile
+    ? hardwareProfile.spec.scheduling?.type === SchedulingType.QUEUE &&
+      Boolean(hardwareProfile.spec.scheduling.kueue?.localQueueName)
+    : Boolean(directQueueName);
+  const showKueueAnomalyIndicator =
     isKueueFeatureEnabled &&
     isProjectKueueEnabled &&
     !isStoppedOrStopping &&
-    deployment.status?.kueueStatus === null;
-  // The Workload/Pod correlation above is built from 3 independent watch streams that don't
-  // update atomically, so `isKueueAnomalyCandidate` can blip `true` transiently (deploy,
-  // rolling update, scale event) even when Kueue is scheduling this deployment correctly.
-  // Debounce so only a sustained mismatch surfaces as a warning.
-  const showKueueAnomalyIndicator = useDebouncedTrueValue(isKueueAnomalyCandidate);
+    bindingStateLoaded &&
+    !bindingStateLoadError &&
+    !hasLocalQueueAssigned;
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
   const statusSubtitle = getDeploymentStatusSubtitle(deployment.status);
 
-  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+  const [formDataExtension, formDataResolved] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
-  );
-  const formDataExtension = React.useMemo(
-    () =>
-      formDataExtensions.find(
-        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
-      ) ?? null,
-    [formDataExtensions, deployment.modelServingPlatformId],
+    deployment,
   );
   const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
   const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
@@ -205,10 +207,20 @@ export const DeploymentRow: React.FC<{
           />
         </Td>
         {formDataResolved ? (
-          <DeploymentHardwareProfileCell deployment={deployment} />
+          <DeploymentHardwareProfileCell
+            deployment={deployment}
+            bindingStateInfo={bindingStateInfo}
+            bindingStateLoaded={bindingStateLoaded}
+            bindingStateLoadError={bindingStateLoadError}
+          />
         ) : (
           <Td dataLabel="Hardware profile">
             <Spinner size="md" />
+          </Td>
+        )}
+        {showCapabilities && (
+          <Td dataLabel="Capabilities">
+            <DeploymentCapabilities deployment={deployment} />
           </Td>
         )}
         <Td dataLabel="Last deployed">

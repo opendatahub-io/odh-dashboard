@@ -9,11 +9,18 @@ import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAf
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
-import { MaaSEvents } from '~/app/types/event-tracking';
 import {
   getAuthPolicyViewUrl,
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+} from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -109,6 +116,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                     state={linkState}
                     className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
                     onClick={onLinkClick}
+                    data-testid="expandable-item-name"
                   >
                     {displayName ?? name}
                   </Link>
@@ -132,10 +140,10 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                       fireMiscTrackingEvent(
                         MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
                         {
-                          popoverType: 'status',
-                          status: phase,
+                          popoverType: EventTrackingPopoverType.STATUS,
+                          status: convertStringToPopoverViewedStatus(phase),
                           location: PhaseLabelLocation.OVERVIEW,
-                        },
+                        } satisfies SubscriptionManagementStatusPopoverViewedProperties,
                       );
                     }}
                   />
@@ -215,6 +223,7 @@ type SubscriptionsSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -225,6 +234,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     subscriptions.length > 0 &&
@@ -244,7 +254,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
       {subscriptions.length === 0 ? (
         <SectionEmptyState
           title="No subscriptions"
-          subtitle="No rate limits configured for this model."
+          subtitle="To make this model callable through the MaaS API gateway and to configure rate limits, add this model to a subscription."
         />
       ) : (
         subscriptions.map((sub, index) => {
@@ -256,6 +266,13 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               name={sub.name}
               displayName={sub.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: sub.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               returnTo={returnTo}
               phase={sub.phase}
@@ -276,7 +293,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               lastTransitionTime={sub.lastTransitionTime}
               resourceUrl={getSubscriptionViewUrl(sub.name)}
             >
-              <Content className="pf-v6-u-mb-sm">
+              <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
                 {formatTokenLimits(sub.tokenRateLimits ?? [])}
               </Content>
@@ -284,6 +301,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 groups={sub.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -301,6 +319,7 @@ type PoliciesSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -311,6 +330,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     policies.length > 0 &&
@@ -330,7 +350,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
       {policies.length === 0 ? (
         <SectionEmptyState
           title="No authorization policies"
-          subtitle="Access is denied by default."
+          subtitle="To authorize users to access this model, create and assign an authorization policy."
         />
       ) : (
         policies.map((policy, index) => {
@@ -342,6 +362,13 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               name={policy.name}
               displayName={policy.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: policy.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
@@ -366,6 +393,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                 groups={policy.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -397,6 +425,22 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   const togglePolicy = React.useCallback(
     (name: string) => setExpandedPolicies((prev) => toggleExpandedItem(prev, name)),
     [],
+  );
+
+  const onGroupSelect = React.useCallback(
+    (group: string) => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_GROUP_LABEL_SELECTED, {
+        subsCountPerModel: subscriptions.length,
+        policyCountPerModel: policies.length,
+        subsCountWithSelectedGroup: subscriptions.filter((sub) =>
+          (sub.groups ?? []).includes(group),
+        ).length,
+        policyCountWithSelectedGroup: policies.filter((policy) =>
+          (policy.groups ?? []).includes(group),
+        ).length,
+      });
+    },
+    [subscriptions, policies],
   );
 
   const toggleAllSubs = React.useCallback(() => {
@@ -444,6 +488,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
       <GridItem span={6}>
@@ -455,6 +500,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
     </Grid>

@@ -16,6 +16,7 @@ import {
   OutlinedQuestionCircleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { FeatureStoreKind, FeastOnlineStore, FeastOfflineStore } from '../../k8sTypes';
@@ -182,15 +183,23 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
           {isUILabeled && (
             <>
               {' '}
-              <Popover bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store.">
-                <Label color="blue" isCompact isClickable icon={<OutlinedQuestionCircleIcon />}>
-                  Primary
-                </Label>
+              <Label color="blue" isCompact>
+                Primary
+              </Label>{' '}
+              <Popover
+                aria-label="Primary feature store help"
+                bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store."
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="Primary feature store help"
+                  data-testid="primary-label-help"
+                />
               </Popover>
             </>
           )}
         </Td>
-        <Td dataLabel="Namespace">{fs.metadata.namespace}</Td>
+        <Td dataLabel="Project">{fs.metadata.namespace}</Td>
         <Td dataLabel="Status">
           {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
         </Td>

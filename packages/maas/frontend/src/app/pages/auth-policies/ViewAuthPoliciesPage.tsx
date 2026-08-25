@@ -10,7 +10,10 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -24,7 +27,9 @@ import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
@@ -47,7 +52,9 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('auth-policies');
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = returnTo
+    ? { state: { returnTo, editSource: EventTrackingEditSource.DETAIL_KEBAB } }
+    : undefined;
 
   return (
     <>
@@ -130,9 +137,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
       {loaded && policyInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Policy detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"

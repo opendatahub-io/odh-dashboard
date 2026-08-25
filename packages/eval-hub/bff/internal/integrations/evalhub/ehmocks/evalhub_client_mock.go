@@ -2,16 +2,26 @@ package ehmocks
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
 // MockEvalHubClient provides canned responses for development and testing.
-type MockEvalHubClient struct{}
+type MockEvalHubClient struct {
+	collectionOverrides map[string]*evalhub.Collection
+}
 
 func NewMockEvalHubClient() *MockEvalHubClient {
 	return &MockEvalHubClient{}
+}
+
+func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
+	if m.collectionOverrides == nil {
+		m.collectionOverrides = make(map[string]*evalhub.Collection)
+	}
+	m.collectionOverrides[id] = c
 }
 
 func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
@@ -344,6 +354,19 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
+func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	if c, ok := m.collectionOverrides[id]; ok {
+		return c, nil
+	}
+	collections := mockCollections()
+	for i := range collections {
+		if collections[i].Resource.ID == id {
+			return &collections[i], nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
 	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
 	for i := range jobs {
@@ -379,6 +402,14 @@ func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req
 
 func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ string, _ bool) error {
 	return nil
+}
+
+func (m *MockEvalHubClient) GetEvaluationJobLogs(_ context.Context, id string, _ string, _ evalhub.GetJobLogsParams) (string, error) {
+	return fmt.Sprintf("=== Logs for job %s ===\n[2026-03-01T09:00:00Z] Starting evaluation...\n[2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.\n", id), nil
+}
+
+func (m *MockEvalHubClient) GetEvaluationJobBenchmarkLogs(_ context.Context, id string, benchmarkIndex int, _ string, _ evalhub.GetJobLogsParams) (string, error) {
+	return fmt.Sprintf("=== Logs for job %s benchmark %d ===\n[2026-03-01T09:01:00Z] Running benchmark...\n[2026-03-01T09:05:00Z] Benchmark completed.\n", id, benchmarkIndex), nil
 }
 
 func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {

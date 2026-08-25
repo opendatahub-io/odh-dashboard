@@ -1,7 +1,7 @@
 class FeatureStoreManagePage {
   visit() {
     cy.visitWithLogin(
-      '/develop-train/feature-store/manage?devFeatureFlags=Feature+store+plugin%3Dtrue',
+      '/settings/environment-setup/feature-stores?devFeatureFlags=Feature+store+plugin%3Dtrue',
     );
     this.wait();
   }

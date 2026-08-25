@@ -58,6 +58,7 @@ export const useResourcesSection = (): React.ReactNode => {
               titleText="Error loading learning resources"
               variant={EmptyStateVariant.lg}
               data-id="error-empty-state"
+              data-testid="error-empty-state"
             >
               <EmptyStateBody>{loadError.message}</EmptyStateBody>
             </EmptyState>

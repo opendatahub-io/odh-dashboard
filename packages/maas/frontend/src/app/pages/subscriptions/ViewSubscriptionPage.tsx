@@ -10,7 +10,10 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -29,7 +32,9 @@ import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -44,7 +49,12 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('subscriptions');
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.DETAIL_KEBAB,
+    },
+  };
 
   return (
     <>
@@ -139,9 +149,17 @@ const ViewSubscriptionPage: React.FC = () => {
       {loaded && subscriptionInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Subscription detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"

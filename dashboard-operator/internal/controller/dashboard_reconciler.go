@@ -228,17 +228,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	mode := dashboard.Spec.DeploymentMode
+	var result ctrl.Result
+	var err error
+	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
+		result, err = r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	} else {
+		result, err = r.reconcileStandalone(ctx, dashboard, cm, cfg)
+	}
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
 func (r *DashboardReconciler) reconcileSidecar(
@@ -317,11 +332,26 @@ func (r *DashboardReconciler) reconcileSidecar(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
+
 	r.reconcileObservability(ctx, dashboard, cm)
 
 	url, requeueAfter, err := r.reconcileURL(ctx, dashboard, cm)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+	// reconcileURL overwrites Degraded on success; restore the RBAC failure so it
+	// is not silently cleared while cross-namespace grants are still broken.
+	if rbacErr != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
 	}
 
 	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
@@ -507,7 +537,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
 	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
-	// Persist module statuses now so early returns from steps 6-8 don't leave
+	// Persist module statuses now so early returns from steps 6-9 don't leave
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	for name, next := range nextStatuses {
 		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
@@ -520,10 +550,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 	dashboard.Status.ModuleStatuses = nextStatuses
 
-	// Step 6: Deploy observability
+	// Step 6: Reconcile cross-namespace RBAC (notebooks, model-registry)
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
+
+	// Step 7: Deploy observability
 	r.reconcileObservability(ctx, dashboard, cm)
 
-	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
+	// Step 8: Build and deploy federation ConfigMap (critical for standalone routing)
 	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
 	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
@@ -538,13 +577,21 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
-	// Step 8: URL extraction + degraded condition
+	// Step 9: URL extraction + degraded condition
 	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
 	if urlErr != nil {
 		return ctrl.Result{}, urlErr
 	}
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
+	}
+	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
+	// restore the RBAC failure so it is not silently cleared while cross-namespace
+	// grants are still broken.
+	if rbacErr != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
 	}
 
 	if requeueAfter > 0 {
@@ -686,6 +733,10 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
 
+	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
+	}
+
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
 	}
@@ -694,6 +745,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {

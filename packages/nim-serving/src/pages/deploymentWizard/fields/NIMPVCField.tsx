@@ -131,7 +131,8 @@ const useNIMPVCExternalData = (dependencies?: {
     }
     const [scList, pvcList] = await Promise.all([
       getStorageClasses(),
-      getDashboardPvcs(projectName),
+      // Don't filter out PVCs without a `opendatahub.io/dashboard=true`, old modal NIMs didn't add it
+      getDashboardPvcs(projectName, null),
     ]);
 
     return {
@@ -185,19 +186,13 @@ type SubPathFieldProps = {
   subPath: string;
   onSubPathChange: (val: string) => void;
   isDisabled?: boolean;
-  idSuffix?: string;
 };
 
-const SubPathField: React.FC<SubPathFieldProps> = ({
-  subPath,
-  onSubPathChange,
-  isDisabled,
-  idSuffix = '',
-}) => (
-  <FormGroup label="Subpath" fieldId={`nim-subpath${idSuffix}`}>
+const SubPathField: React.FC<SubPathFieldProps> = ({ subPath, onSubPathChange, isDisabled }) => (
+  <FormGroup label="Subpath" fieldId="nim-subpath">
     <TextInput
-      id={`nim-subpath${idSuffix}`}
-      data-testid={`nim-subpath${idSuffix}-input`}
+      id="nim-subpath"
+      data-testid="nim-subpath-input"
       value={subPath}
       onChange={(_event, val) => onSubPathChange(val)}
       placeholder="/"
@@ -389,7 +384,6 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             subPath={fieldValue.subPath}
             onSubPathChange={(val) => updateField({ subPath: val })}
             isDisabled={isDisabled}
-            idSuffix="-existing"
           />
         </>
       )}

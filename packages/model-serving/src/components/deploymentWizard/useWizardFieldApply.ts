@@ -23,7 +23,7 @@ export const useWizardFieldApply = (
   wizardState: WizardFormData['state'],
   navSourceMetadata?: K8sResourceCommon['metadata'],
 ): {
-  applyFieldData: (deployment: Deployment) => Deployment;
+  applyAllFieldDataFn: (deployment: Deployment) => Deployment;
   applyExtensionsLoaded: boolean;
   applyExtensionErrors: Error[];
 } => {
@@ -48,7 +48,7 @@ export const useWizardFieldApply = (
     return applyExtensions.filter((ext) => activeFields.has(ext.properties.fieldId));
   }, [applyExtensions, activeFields]);
 
-  const applyFieldData = React.useCallback(
+  const applyAllFieldDataFn = React.useCallback(
     (deployment: Deployment): Deployment => {
       let result = deployment;
 
@@ -86,12 +86,12 @@ export const useWizardFieldApply = (
 
   return React.useMemo(
     () => ({
-      applyFieldData,
+      applyAllFieldDataFn,
       applyExtensionsLoaded,
       applyExtensionErrors: applyExtensionErrors.filter(
         (error): error is Error => error instanceof Error,
       ),
     }),
-    [applyFieldData, applyExtensionsLoaded, applyExtensionErrors],
+    [applyAllFieldDataFn, applyExtensionsLoaded, applyExtensionErrors],
   );
 };

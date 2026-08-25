@@ -292,6 +292,7 @@ const deployLLMInferenceServiceConfig = async (
  */
 export const deployLLMdDeployment = async (
   wizardData: WizardFormData['state'],
+  externalData: Record<string, { loaded: boolean; loadError?: Error; data: unknown }>,
   projectName: string,
   existingDeployment?: LLMdDeployment,
   modelResource?: LLMdDeployment['model'],

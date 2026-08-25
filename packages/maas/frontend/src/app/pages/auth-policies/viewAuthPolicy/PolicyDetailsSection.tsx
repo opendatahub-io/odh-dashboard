@@ -17,7 +17,12 @@ import {
   PhaseLabelLocation,
   PhaseResourceType,
 } from '~/app/utilities/phaseLabelUtils';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+  convertStringToPopoverViewedStatus,
+} from '~/app/types/event-tracking';
 
 type PolicyDetailsSectionProps = {
   policy: MaaSAuthPolicy;
@@ -54,10 +59,10 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy, mod
               affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
                 fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                  popoverType: 'status',
-                  status: policy.phase,
+                  popoverType: EventTrackingPopoverType.STATUS,
+                  status: convertStringToPopoverViewedStatus(policy.phase),
                   location: PhaseLabelLocation.DETAIL_PAGE,
-                });
+                } satisfies SubscriptionManagementStatusPopoverViewedProperties);
               }}
             />
           </DescriptionListDescription>

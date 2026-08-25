@@ -13,6 +13,12 @@ jest.mock('@odh-dashboard/internal/concepts/userSSAR/utils', () => ({
   verbModelAccess: jest.fn((...args: unknown[]) => args),
 }));
 jest.mock('../../../hooks/useExistingFeatureStores');
+jest.mock('../../../components/FeatureStoreObjectIcon', () => ({
+  __esModule: true,
+  default: ({ title }: { title: React.ReactNode }) => (
+    <span data-testid="title-with-icon">{title}</span>
+  ),
+}));
 jest.mock('@odh-dashboard/ui-core', () => ({
   ApplicationsPage: ({
     children,
@@ -114,7 +120,9 @@ describe('FeatureStoreListPage', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('empty-feature-stores')).toBeInTheDocument();
-    expect(screen.getByText('No feature stores yet')).toBeInTheDocument();
+    expect(screen.getByTestId('no-available-feature-stores')).toHaveTextContent(
+      'No feature stores yet',
+    );
   });
 
   it('should show create button in empty state when user has create permission', () => {
@@ -254,6 +262,94 @@ describe('FeatureStoreListPage', () => {
     await user.click(getByTestId('confirm-delete'));
     expect(refreshMock).toHaveBeenCalled();
     expect(screen.queryByTestId('delete-modal')).not.toBeInTheDocument();
+  });
+
+  it('should filter stores by name', async () => {
+    const stores = [makeStore('alpha-store', 'ns-1'), makeStore('beta-store', 'ns-2')];
+    useExistingFeatureStoresMock.mockReturnValue({
+      featureStores: stores,
+      loaded: true,
+      error: undefined,
+      existingProjectNames: ['alpha-store', 'beta-store'],
+      existingResourceNames: ['alpha-store', 'beta-store'],
+      hasUILabeledStore: false,
+      primaryStore: undefined,
+      refresh: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <FeatureStoreListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('row-alpha-store')).toBeInTheDocument();
+    expect(screen.getByTestId('row-beta-store')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    const filterInput = screen.getByRole('textbox', { name: 'Filter by name or project' });
+    await user.type(filterInput, 'alpha');
+
+    expect(screen.getByTestId('row-alpha-store')).toBeInTheDocument();
+    expect(screen.queryByTestId('row-beta-store')).not.toBeInTheDocument();
+  });
+
+  it('should filter stores by project (namespace)', async () => {
+    const stores = [makeStore('store-a', 'project-one'), makeStore('store-b', 'project-two')];
+    useExistingFeatureStoresMock.mockReturnValue({
+      featureStores: stores,
+      loaded: true,
+      error: undefined,
+      existingProjectNames: ['store-a', 'store-b'],
+      existingResourceNames: ['store-a', 'store-b'],
+      hasUILabeledStore: false,
+      primaryStore: undefined,
+      refresh: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <FeatureStoreListPage />
+      </MemoryRouter>,
+    );
+
+    const user = userEvent.setup();
+    const filterInput = screen.getByRole('textbox', { name: 'Filter by name or project' });
+    await user.type(filterInput, 'project-two');
+
+    expect(screen.queryByTestId('row-store-a')).not.toBeInTheDocument();
+    expect(screen.getByTestId('row-store-b')).toBeInTheDocument();
+  });
+
+  it('should show all stores when filter is cleared', async () => {
+    const stores = [makeStore('alpha-store', 'ns-1'), makeStore('beta-store', 'ns-2')];
+    useExistingFeatureStoresMock.mockReturnValue({
+      featureStores: stores,
+      loaded: true,
+      error: undefined,
+      existingProjectNames: ['alpha-store', 'beta-store'],
+      existingResourceNames: ['alpha-store', 'beta-store'],
+      hasUILabeledStore: false,
+      primaryStore: undefined,
+      refresh: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <FeatureStoreListPage />
+      </MemoryRouter>,
+    );
+
+    const user = userEvent.setup();
+    const filterInput = screen.getByRole('textbox', { name: 'Filter by name or project' });
+    await user.type(filterInput, 'alpha');
+
+    expect(screen.queryByTestId('row-beta-store')).not.toBeInTheDocument();
+
+    await user.clear(filterInput);
+
+    expect(screen.getByTestId('row-alpha-store')).toBeInTheDocument();
+    expect(screen.getByTestId('row-beta-store')).toBeInTheDocument();
   });
 
   it('should close delete modal without refresh on cancel', async () => {

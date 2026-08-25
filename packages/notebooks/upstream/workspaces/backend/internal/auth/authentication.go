@@ -32,6 +32,7 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 	// create an upstream `requestHeaderAuthRequestHandler` to extract user and groups from the request headers
 	requestHeaderAuthenticator, err := headerrequest.New(
 		[]string{useridHeader},
+		nil,
 		[]string{groupsHeader},
 		nil,
 	)
@@ -39,12 +40,9 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 		return nil, fmt.Errorf("failed to create request header authenticator: %w", err)
 	}
 
-	// if the user id prefix is empty, return the upstream authenticator as is
-	if useridPrefix == "" {
-		return requestHeaderAuthenticator, nil
-	}
-
-	// wrap the upstream authenticator to trim the user prefix from the user id
+	// wrap the upstream authenticator to:
+	// 1. trim the user prefix from the user id (if configured)
+	// 2. ensure system:authenticated group is always present for authenticated users
 	requestAuthenticator := authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
 		response, ok, err := requestHeaderAuthenticator.AuthenticateRequest(req)
 		if err != nil {
@@ -56,11 +54,30 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 			return response, ok, nil
 		}
 
-		// trim the user id prefix from the username
+		// get existing groups and ensure system:authenticated is included
+		// this is required for RBAC bindings that use the system:authenticated group
+		groups := response.User.GetGroups()
+		hasSystemAuthenticated := false
+		for _, g := range groups {
+			if g == "system:authenticated" {
+				hasSystemAuthenticated = true
+				break
+			}
+		}
+		if !hasSystemAuthenticated {
+			groups = append(groups, "system:authenticated")
+		}
+
+		// trim the user id prefix from the username (if configured)
+		username := response.User.GetName()
+		if useridPrefix != "" {
+			username = strings.TrimPrefix(username, useridPrefix)
+		}
+
 		return &authenticator.Response{
 			User: &user.DefaultInfo{
-				Name:   strings.TrimPrefix(response.User.GetName(), useridPrefix),
-				Groups: response.User.GetGroups(),
+				Name:   username,
+				Groups: groups,
 				Extra:  response.User.GetExtra(),
 			},
 		}, true, nil

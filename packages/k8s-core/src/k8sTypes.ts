@@ -138,6 +138,7 @@ export type SupportedModelFormats = {
   name: string;
   version?: string;
   autoSelect?: boolean;
+  priority?: number;
 };
 
 export type ProjectKind = K8sResourceCommon & {
@@ -321,8 +322,7 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
-  modelDeploymentSettings?: boolean;
-  notebooksV2?: boolean;
+  workbenchesV2?: boolean;
   dataRegistry?: boolean;
 };
 

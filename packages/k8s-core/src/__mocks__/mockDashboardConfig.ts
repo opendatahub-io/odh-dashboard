@@ -52,6 +52,7 @@ export type MockDashboardConfigType = {
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
+  workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   toolCalling?: boolean;
@@ -72,7 +73,6 @@ export type MockDashboardConfigType = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
-  modelDeploymentSettings?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -83,6 +83,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
+  workbenchesV2 = false,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -146,7 +147,6 @@ export const mockDashboardConfig = ({
   gpuaas = true,
   connectionTest = false,
   modelCapabilities = false,
-  modelDeploymentSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -277,6 +277,7 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
+      workbenchesV2,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -343,7 +344,6 @@ export const mockDashboardConfig = ({
       gpuaas,
       connectionTest,
       modelCapabilities,
-      modelDeploymentSettings,
     },
     notebookController: {
       enabled: !disableNotebookController,

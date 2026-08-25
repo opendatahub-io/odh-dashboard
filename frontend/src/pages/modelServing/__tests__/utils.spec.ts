@@ -38,7 +38,19 @@ import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 
 jest.mock('#~/api', () => ({
-  ...jest.requireActual('#~/api'),
+  assembleSecretSA: jest.fn(),
+  deleteSecret: jest.fn(),
+  generateRoleInferenceService: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
+  generateRoleBindingServiceAccount: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
+  replaceSecret: jest.fn(),
+  assembleServiceAccount: jest.fn((name: string, namespace: string) => ({
+    metadata: { name, namespace },
+  })),
+  addOwnerReference: jest.fn((resource: unknown) => resource),
   getServiceAccount: jest.fn(),
   createServiceAccount: jest.fn(),
   getRoleBinding: jest.fn(),

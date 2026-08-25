@@ -1,13 +1,11 @@
-// Distribution-owned extensions: flat nav items (replacing gen-ai's nested
-// section), root and /maas redirects, and a user dropdown in the masthead.
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   RouteExtension,
-  HrefNavItemExtension,
   MastheadToolbarItemExtension,
+  SuppressExtension,
+  PatchExtension,
+  NavPatch,
 } from '@odh-dashboard/plugin-core/extension-points';
-
-const ADMIN_USER = 'ADMIN_USER';
 
 const extensions: Extension[] = [
   // Root redirect
@@ -39,59 +37,40 @@ const extensions: Extension[] = [
     },
   } satisfies MastheadToolbarItemExtension,
 
-  // Flat nav items (no section = top level)
+  // Suppress the gen-ai-studio nav section (items flattened via app.patch below)
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: ['chatPlayground'],
-    },
+    type: 'app.suppress',
     properties: {
-      id: 'flat-playground',
-      title: 'Playground',
-      href: '/gen-ai-studio/playground',
-      path: '/gen-ai-studio/playground/*',
-      group: '2_playground',
+      targetType: 'app.navigation/section',
+      targetId: 'gen-ai-studio',
     },
-  } satisfies HrefNavItemExtension,
+  } satisfies SuppressExtension,
+
+  // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: ['plugin-gen-ai'],
-    },
+    type: 'app.patch',
     properties: {
-      id: 'flat-ai-assets',
-      title: 'AI asset endpoints',
-      href: '/gen-ai-studio/assets',
-      path: '/gen-ai-studio/assets/*',
-      group: '3_ai_assets',
+      targetType: 'app.navigation/href',
+      targetId: 'maas-tokens-subscriptions-view',
+      patch: { section: null, group: '1_api_keys' },
     },
-  } satisfies HrefNavItemExtension,
+  } satisfies PatchExtension<NavPatch>,
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: ['modelAsService'],
-    },
+    type: 'app.patch',
     properties: {
-      id: 'flat-api-keys',
-      title: 'API keys',
-      href: '/maas/keys-and-subs',
-      path: '/maas/keys-and-subs/*',
-      group: '1_api_keys',
+      targetType: 'app.navigation/href',
+      targetId: 'chat-playground',
+      patch: { section: null, group: '2_playground', label: null },
     },
-  } satisfies HrefNavItemExtension,
+  } satisfies PatchExtension<NavPatch>,
   {
-    type: 'app.navigation/href',
-    flags: {
-      required: ['modelAsService', ADMIN_USER],
-    },
+    type: 'app.patch',
     properties: {
-      id: 'flat-governance',
-      title: 'MaaS governance',
-      href: '/maas/maas-governance',
-      path: '/maas/maas-governance/*',
-      group: '9_governance',
+      targetType: 'app.navigation/href',
+      targetId: 'ai-assets',
+      patch: { section: null, group: '3_ai_assets', label: null },
     },
-  } satisfies HrefNavItemExtension,
+  } satisfies PatchExtension<NavPatch>,
 ];
 
 export default extensions;

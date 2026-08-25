@@ -178,72 +178,9 @@ describe('Test Connection - Modal', () => {
   });
 });
 
+// CONVERTED to Jest: ConnectionTestStatusLabel.spec.tsx
+
 describe('Test Connection - Table', () => {
-  it('should show Not tested status for connections without test annotations', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([mockSecretK8sResource({ name: 'conn-1', displayName: 'Connection 1' })]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Connection 1')
-      .findStatusCell()
-      .findByTestId('connection-test-label-not-tested')
-      .should('exist');
-  });
-
-  it('should show Verified status with timestamp for tested connections', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockSecretK8sResource({
-          name: 'conn-verified',
-          displayName: 'Verified Connection',
-          annotations: {
-            'opendatahub.io/connection-test-status': 'verified',
-            'opendatahub.io/connection-test-timestamp': '2024-06-15T10:30:00Z',
-            'opendatahub.io/connection-test-message': 'Connection is reachable',
-          },
-        }),
-      ]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Verified Connection')
-      .findStatusCell()
-      .findByTestId('connection-test-label-verified')
-      .should('exist');
-  });
-
-  it('should show Failed status with timestamp for failed connections', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockSecretK8sResource({
-          name: 'conn-failed',
-          displayName: 'Failed Connection',
-          annotations: {
-            'opendatahub.io/connection-test-status': 'failed',
-            'opendatahub.io/connection-test-timestamp': '2024-06-15T11:00:00Z',
-            'opendatahub.io/connection-test-message': 'Connection refused',
-          },
-        }),
-      ]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Failed Connection')
-      .findStatusCell()
-      .findByTestId('connection-test-label-failed')
-      .should('exist');
-  });
-
   it('should show Test connection in the kebab menu', () => {
     initIntercepts();
     cy.interceptK8sList(

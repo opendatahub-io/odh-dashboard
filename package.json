@@ -27,7 +27,9 @@
     "distributions/core-bff",
     "distributions/rhaii",
     "distributions/maas-customer-portal",
-    "packages/model-serving/cypress"
+    "packages/model-serving/cypress",
+    "packages/kserve/cypress",
+    "packages/llmd-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",
@@ -94,8 +96,8 @@
   "devDependencies": {
     "@module-federation/enhanced": "^0.24.1",
     "@odh-dashboard/eslint-config": "*",
-    "@rspack/cli": "2.1.7",
-    "@rspack/core": "2.1.7",
+    "@rspack/cli": "2.1.10",
+    "@rspack/core": "2.1.10",
     "@rspack/dev-server": "^2.1.0",
     "@types/node": "^22.19.19",
     "@types/react": "^18.3.31",
@@ -149,8 +151,8 @@
     "axios": "^1.17.0",
     "shell-quote": ">=1.8.4",
     "webpack": "5.104.1",
-    "@rspack/core": "2.1.7",
-    "@rspack/cli": "2.1.7",
+    "@rspack/core": "2.1.10",
+    "@rspack/cli": "2.1.10",
     "serialize-javascript": ">=7.0.5",
     "fast-uri": ">=3.1.4 <4.0.0",
     "koa": ">=3.1.2",

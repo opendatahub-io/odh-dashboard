@@ -1,10 +1,11 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
+import * as tracking from '~/app/utilities/tracking';
 
 const TEST_PROJECT = 'my-project';
 
@@ -12,7 +13,13 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   createSecret: jest.fn(),
 }));
 
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual('~/app/utilities/tracking'),
+  fireAutomlS3ConnectionCreated: jest.fn(),
+}));
+
 const createSecretMock = jest.mocked(secretsApi.createSecret);
+const fireAutomlS3ConnectionCreatedMock = jest.mocked(tracking.fireAutomlS3ConnectionCreated);
 
 describe('AutomlConnectionModal', () => {
   const onCloseMock = jest.fn();
@@ -327,7 +334,9 @@ describe('AutomlConnectionModal', () => {
 
   it('should not call onClose with true when createSecret rejects', async () => {
     const user = userEvent.setup();
-    createSecretMock.mockRejectedValueOnce(new Error('API error'));
+    createSecretMock.mockRejectedValueOnce(
+      new Error('AWS_SECRET_ACCESS_KEY=super-secret-value; endpoint=internal-proxy.svc:8443'),
+    );
 
     render(
       <AutomlConnectionModal
@@ -358,5 +367,152 @@ describe('AutomlConnectionModal', () => {
     expect(createSecretMock).toHaveBeenCalled();
     expect(onSubmitMock).not.toHaveBeenCalled();
     expect(onCloseMock).not.toHaveBeenCalledWith(true);
+    // Analytics must only ever see the fixed, allowlisted failure category — never the raw
+    // Error.message, which may contain credentials, tenant identifiers, or internal endpoints.
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledTimes(1);
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, error: tracking.AUTOML_FAILURE_CATEGORY }),
+    );
+    const allCallArgs = JSON.stringify(fireAutomlS3ConnectionCreatedMock.mock.calls);
+    expect(allCallArgs).not.toContain('super-secret-value');
+    expect(allCallArgs).not.toContain('internal-proxy.svc');
+  });
+
+  it('should report success once createSecret resolves, even if onSubmit later rejects', async () => {
+    const user = userEvent.setup();
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+
+    const addButton = screen.getByRole('button', { name: 'Add connection' });
+    await user.click(addButton);
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).toHaveBeenCalled();
+    // The Secret was created successfully, so the creation event must report success even
+    // though the later onSubmit call failed. It must not be called with success: false.
+    expect(fireAutomlS3ConnectionCreatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true }),
+    );
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ success: false }),
+    );
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should not emit a conflicting cancel event when Cancel is clicked after onSubmit rejects', async () => {
+    const user = userEvent.setup();
+    onSubmitMock.mockRejectedValueOnce(new Error('onSubmit error'));
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+    await user.click(screen.getByRole('button', { name: 'Add connection' }));
+
+    expect(await screen.findByText('onSubmit error')).toBeInTheDocument();
+    fireAutomlS3ConnectionCreatedMock.mockClear();
+
+    // The Secret was already reported as created (success: true) above. Cancelling now, after
+    // the async onSubmit failed, must not emit a second, conflicting cancel event for the same
+    // creation attempt.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+    expect(onCloseMock).toHaveBeenCalledWith();
+    expect(onCloseMock).not.toHaveBeenCalledWith(true);
+  });
+
+  it('should block close attempts (Cancel and Escape) while createSecret is still pending', async () => {
+    const user = userEvent.setup();
+    let resolveCreateSecret: (() => void) | undefined;
+    createSecretMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreateSecret = () => resolve({} as Awaited<ReturnType<typeof createSecretMock>>);
+      }),
+    );
+
+    render(
+      <AutomlConnectionModal
+        project={TEST_PROJECT}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'the only type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'short text 1',
+                envVar: 'env',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Connection name' }), 'my-conn');
+    await user.click(screen.getByRole('button', { name: 'Add connection' }));
+
+    expect(createSecretMock).toHaveBeenCalled();
+    expect(onSubmitMock).not.toHaveBeenCalled();
+
+    // Creation is still pending — a Cancel click must not close the modal or fire a cancel
+    // event, since the Secret may still be created out from under a closed modal.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Escape must be blocked the same way, since it reaches the same close handler.
+    await user.keyboard('{Escape}');
+    expect(onCloseMock).not.toHaveBeenCalled();
+    expect(fireAutomlS3ConnectionCreatedMock).not.toHaveBeenCalled();
+
+    // Once creation resolves, the normal flow proceeds and the modal is allowed to close.
+    resolveCreateSecret?.();
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
   });
 });

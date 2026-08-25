@@ -46,12 +46,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     return null;
   }
 
-  const benchmarkStatus = job.status.benchmarks?.find(
-    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
-  );
-  const passStatus =
-    result.test?.pass ??
-    (benchmarkStatus?.status == null ? null : benchmarkStatus.status === 'completed');
+  const passStatus = result.test?.pass ?? null;
   const metricKeys = result.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : '-');

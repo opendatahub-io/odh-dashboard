@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { NIMWizardFields } from './modelServing/NIMWizardFields';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
@@ -38,7 +39,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
+    cy.findByTestId('app-tab-page-title').invoke('text').should('match', /Model/);
     cy.testA11y();
   }
 
@@ -787,6 +788,22 @@ class InferenceServiceRow extends ModelServingRow {
     return this.find().findByTestId('model-status-text').should('include.text', label);
   }
 
+  findCapabilitiesCell() {
+    return this.find().find('[data-label="Capabilities"]');
+  }
+
+  findCapabilitiesGroup() {
+    return this.findCapabilitiesCell().findByTestId('deployment-capabilities');
+  }
+
+  findCapabilityLabels() {
+    return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
+  }
+
+  findCapabilityOverflowLabel() {
+    return this.findCapabilitiesCell().findByTestId('capability-overflow-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
@@ -923,6 +940,8 @@ class ModelServingSection {
 }
 
 class ModelServingWizard extends Wizard {
+  nim = new NIMWizardFields();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }
@@ -945,6 +964,10 @@ class ModelServingWizard extends Wizard {
 
   findPreconfigureProjectSelectorOption(name: string) {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  findValidatedArgumentsSection() {
+    return this.findValidatedConfigurationSection('args');
   }
 
   findValidatedConfigurationSection(forField: string) {
@@ -1306,10 +1329,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
 
-  findRuntimeArgsCheckbox() {
-    return cy.findByTestId('runtime-args-checkbox');
-  }
-
   findRuntimeArgsTextBox() {
     return cy.findByTestId('runtime-args-textarea');
   }
@@ -1384,6 +1403,10 @@ class ModelServingWizard extends Wizard {
     return this;
   }
 
+  findCustomCapabilityError() {
+    return cy.findByTestId('custom-capability-error');
+  }
+
   removeCapability(capability: string) {
     this.findCapabilityLabel(capability).findByLabelText(`Close ${capability}`).click();
     return this;
@@ -1449,6 +1472,10 @@ class ModelServingWizard extends Wizard {
 
   findDiscardButton() {
     return cy.findByRole('button', { name: 'Discard' });
+  }
+
+  findExitDeploymentDiscardButton() {
+    return cy.findByTestId('exit-deployment-discard-button');
   }
 
   findGatewaySelect() {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { ModelServingContext } from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
@@ -14,14 +14,16 @@ const ModelMetricsPathWrapper: React.FC<ModelMetricsPathWrapperProps> = ({ child
     namespace: string;
     inferenceService: string;
   }>();
+  const { contexts } = useHostApi();
   const {
     inferenceServices: {
       data: { items: models },
       loaded,
     },
-  } = React.useContext(ModelServingContext);
+  } = React.useContext(contexts.ModelServingContext);
   const inferenceService = models.find(
-    (model) => model.metadata.name === modelName && model.metadata.namespace === projectName,
+    (model: InferenceServiceKind) =>
+      model.metadata.name === modelName && model.metadata.namespace === projectName,
   );
   if (!loaded) {
     return (

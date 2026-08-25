@@ -21,7 +21,11 @@ import {
   EventTrackingExpandedSection,
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -42,7 +46,9 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = returnTo
+    ? { state: { returnTo, editSource: EventTrackingEditSource.LIST_KEBAB } }
+    : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
   const { affectedModels, overviewLoaded } = usePolicyAffectedModels(authPolicy);
 
@@ -125,10 +131,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         returnTo={returnTo}
         onClick={() => {
           fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-            popoverType: 'status',
-            status: authPolicy.phase,
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(authPolicy.phase),
             location: PhaseLabelLocation.POLICIES_TAB,
-          });
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
         }}
       />
     </Td>

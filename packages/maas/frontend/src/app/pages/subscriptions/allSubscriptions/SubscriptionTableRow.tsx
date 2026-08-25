@@ -20,9 +20,13 @@ import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
 import {
   EventTrackingExpandedSection,
+  EventTrackingPopoverType,
   EventTrackingResourceType,
   EventTrackingSource,
+  convertStringToPopoverViewedStatus,
+  EventTrackingEditSource,
   MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
 
@@ -42,7 +46,12 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.LIST_KEBAB,
+    },
+  };
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
   const { affectedModels, overviewLoaded } = useSubscriptionAffectedModels(subscription);
 
@@ -129,10 +138,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         returnTo={returnTo}
         onClick={() => {
           fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-            popoverType: 'status',
-            status: subscription.phase,
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(subscription.phase),
             location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
-          });
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
         }}
       />
     </Td>

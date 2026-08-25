@@ -9,7 +9,12 @@ import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  convertStringToPopoverViewedStatus,
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+} from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -24,36 +29,27 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
-    headerContent="Configuration warning"
+    data-testid="no-subscriptions-warning-popover"
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
+    headerContent="No subscriptions"
     bodyContent={
-      <div>
-        <p>
-          This model has no subscriptions. Without a subscription, no token rate limits are
-          configured and the model cannot be called through the MaaS API gateway.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <strong>How to fix this:</strong>
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Create a new subscription that includes this model and at least one group.
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Or add this model to an existing subscription from the Subscriptions tab.
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it is not included in any
+        subscriptions. Create a subscription that includes this model and at least 1 group, or add
+        this model to an existing subscription from the <b>Subscriptions</b> tab.
+      </p>
     }
   >
     <Button
       variant="plain"
       data-testid="no-subscriptions-warning"
       aria-label="No subscriptions warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-subscriptions',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -62,39 +58,28 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
-    headerContent="Configuration warning"
+    data-testid="no-policies-warning-popover"
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
+    headerContent="No authorization policies"
     bodyContent={
-      <div>
-        <p>
-          This model has no authorization policies. Without a policy, the MaaS gateway will deny all
-          access to this model -- even if a subscription exists.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <strong>How to fix this:</strong>
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Create a new authorization policy that includes this model and at least one group.
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Or add this model to an existing policy from the Authorization policies tab.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <em>Both a subscription and a policy are required for a group to access a model.</em>
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it does not have an
+        authorization policy. Both a subscription and a policy are required for a group to access a
+        model. Create a policy that includes this model and at least 1 group, or add this model to
+        an existing policy from the <b>Authorization policies</b> tab.
+      </p>
     }
   >
     <Button
       variant="plain"
       data-testid="no-policies-warning"
       aria-label="No authorization policies warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-policies',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -145,10 +130,10 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             resourceName={row.modelDetails.displayName ?? row.id}
             onClick={() => {
               fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                popoverType: 'status',
-                status: row.modelDetails.phase,
+                popoverType: EventTrackingPopoverType.STATUS,
+                status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
                 location: PhaseLabelLocation.OVERVIEW,
-              });
+              } satisfies SubscriptionManagementStatusPopoverViewedProperties);
             }}
           />
         </Td>
