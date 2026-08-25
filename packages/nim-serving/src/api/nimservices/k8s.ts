@@ -1,11 +1,10 @@
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   k8sCreateResource,
   k8sPatchResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 import type {
   EnvironmentVariablesFieldData,

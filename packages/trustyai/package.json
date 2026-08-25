@@ -1,15 +1,34 @@
 {
   "private": true,
   "name": "@odh-dashboard/trustyai",
-  "description": "TrustyAI/explainability shared types — bias metrics, metric configs, and install state",
+  "description": "TrustyAI/explainability — types, context, hooks, and API layer for bias metrics",
   "version": "0.0.0",
   "exports": {
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./const": "./src/const.ts",
+    "./context": "./src/context/TrustyAIContext.tsx",
+    "./hooks/useModelBiasData": "./src/hooks/useModelBiasData.ts",
+    "./hooks/useDoesTrustyAICRExist": "./src/hooks/useDoesTrustyAICRExist.ts",
+    "./utilities/utils": "./src/utilities/utils.ts",
+    "./api/k8s": "./src/api/k8s.ts",
+    "./api/model": "./src/api/model.ts",
+    "./api/custom": "./src/api/custom.ts",
+    "./context/useTrustyAINamespaceCR": "./src/context/useTrustyAINamespaceCR.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "react": "^18",
+    "react-router-dom": "^7"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

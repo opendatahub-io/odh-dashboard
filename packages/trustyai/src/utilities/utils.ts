@@ -1,10 +1,13 @@
 import { getConditionForType } from '@odh-dashboard/k8s-core';
-import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { type BiasMetricConfig, TrustyInstallState } from '@odh-dashboard/trustyai/types';
-import { BaseMetricListResponse } from '#~/api';
-import { TrustyStatusStates } from '#~/concepts/trustyai/types';
-import { TrustyAIKind } from '#~/k8sTypes';
-import { UseTrustyBrowserStorage } from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
+import type { TrustyAIKind } from '@odh-dashboard/k8s-core';
+import type { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { TrustyInstallState } from '../types';
+import type { BiasMetricConfig, BaseMetricListResponse, TrustyStatusStates } from '../types';
+
+export type UseTrustyBrowserStorage = {
+  showSuccess: boolean;
+  onDismissSuccess: () => void;
+};
 
 export const formatListResponse = (x: BaseMetricListResponse): BiasMetricConfig[] =>
   x.requests.map((m) => ({

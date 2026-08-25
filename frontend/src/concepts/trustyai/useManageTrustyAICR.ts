@@ -1,16 +1,11 @@
 import React from 'react';
-import useTrustyAINamespaceCR from '#~/concepts/trustyai/useTrustyAINamespaceCR';
-import {
-  assembleSecret,
-  createSecret,
-  createTrustyAICR,
-  deleteSecret,
-  deleteTrustyAICR,
-} from '#~/api';
-import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
-import { TRUSTYAI_SECRET_NAME } from '#~/concepts/trustyai/const';
+import type { TrustyDBData, TrustyStatusStates } from '@odh-dashboard/trustyai/types';
+import { TRUSTYAI_SECRET_NAME } from '@odh-dashboard/trustyai/const';
+import { getTrustyStatusState } from '@odh-dashboard/trustyai/utilities/utils';
+import { createTrustyAICR, deleteTrustyAICR } from '@odh-dashboard/trustyai/api/k8s';
+import useTrustyAINamespaceCR from '@odh-dashboard/trustyai/context/useTrustyAINamespaceCR';
+import { assembleSecret, createSecret, deleteSecret } from '#~/api';
 import useTrustyBrowserStorage from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
-import { TrustyDBData, TrustyStatusStates } from './types';
 
 export type UseManageTrustyAICRReturnType = {
   statusState: TrustyStatusStates;

@@ -1,15 +1,11 @@
 // Log viewer
 .evalhub-log-viewer {
-  max-height: 46vh;
+  height: 100%;
   overflow: auto;
+}
 
-  &--running {
-    max-height: 52vh;
-  }
-
-  &--completed {
-    max-height: 54vh;
-  }
+.evalhub-event-log__log-item {
+  min-height: 0;
 }
 
 .evalhub-log-viewer__row {
@@ -51,6 +47,7 @@
     color: var(--pf-t--global--text--color--subtle);
     font-style: italic;
   }
+
 }
 
 %evalhub-log-cell {
@@ -92,4 +89,18 @@
 
 .evalhub-log-viewer__alert {
   margin-top: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-log-filter__icons {
+  display: inline-flex;
+  width: 3.6em;
+  gap: var(--pf-t--global--spacer--xs);
+  justify-content: flex-end;
+  margin-right: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-log-viewer__tail-notice {
+  margin: var(--pf-t--global--spacer--md);
+
+  --pf-v6-c-alert__title--FontWeight: var(--pf-t--global--font--weight--body--default);
 }
