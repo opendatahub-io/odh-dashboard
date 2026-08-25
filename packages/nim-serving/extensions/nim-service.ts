@@ -196,6 +196,8 @@ const extensions: (
     type: 'model-serving.deployment/form-data',
     properties: {
       platform: NIM_SERVICE_ID,
+      isActive: true,
+      priority: 0,
       hardwareProfilePaths: () =>
         import('../src/pages/deploymentWizard/extractNIMFormData').then(
           (m) => m.NIM_SERVICE_HARDWARE_PROFILE_PATHS,

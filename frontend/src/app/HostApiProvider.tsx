@@ -8,6 +8,7 @@ import {
   type HostApiInfraServices,
 } from '@odh-dashboard/plugin-core/host-api';
 import { useDashboardNamespace } from '#~/redux/selectors/project';
+import { useUser } from '#~/redux/selectors';
 import { checkAccess } from '#~/api/checkAccess';
 import {
   getSecretsByLabel,
@@ -31,7 +32,11 @@ import { useModelServingMetrics } from '#~/api/prometheus/serving';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { registeredModelDeploymentsRoute } from '#~/routes/modelRegistry/registeredModels';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ModelServingContextProvider, {
+  ModelServingContext,
+} from '#~/pages/modelServing/ModelServingContext';
+import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 
 type HostApiProviderProps = {
   children: React.ReactNode;
@@ -39,6 +44,7 @@ type HostApiProviderProps = {
 
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
+  const { username } = useUser();
 
   const core = React.useMemo<HostApiCoreServices>(
     () => ({
@@ -77,9 +83,16 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
         useModelServingMetrics as unknown as HostApiServices['useModelServingMetrics'],
       useServingPlatformStatuses,
       isProjectNIMSupported,
-      registeredModelDeploymentsRoute,
+      createProject: (displayName: string, description: string, k8sName?: string) =>
+        createProject(username, displayName, description, k8sName),
+      ConnectionTypeFormFields,
+      contexts: {
+        ProjectDetailsContext,
+        ModelServingContext,
+        ModelServingContextProvider,
+      },
     }),
-    [],
+    [username],
   );
 
   return (

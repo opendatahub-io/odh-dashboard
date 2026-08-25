@@ -33,3 +33,29 @@ export const createOpenShiftConfigMap = (
     return result;
   });
 };
+
+/**
+ * ConfigMap the iris pip-index pipeline mounts as PIP_INDEX_URL / PIP_TRUSTED_HOST.
+ * No-op when those Cypress env vars are unset.
+ */
+export const createDsPipelineCustomEnvVarsConfigMap = (
+  namespace: string,
+): Cypress.Chainable<CommandLineResult> | undefined => {
+  const entries: [string, string][] = [];
+  const pipIndexUrl = Cypress.env('PIP_INDEX_URL') as string | undefined;
+  const pipTrustedHost = Cypress.env('PIP_TRUSTED_HOST') as string | undefined;
+  if (pipIndexUrl) {
+    entries.push(['pip_index_url', pipIndexUrl]);
+  }
+  if (pipTrustedHost) {
+    entries.push(['pip_trusted_host', pipTrustedHost]);
+  }
+  if (entries.length === 0) {
+    return undefined;
+  }
+  return createOpenShiftConfigMap(
+    'ds-pipeline-custom-env-vars',
+    namespace,
+    Object.fromEntries(entries),
+  );
+};

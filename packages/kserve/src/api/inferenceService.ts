@@ -5,7 +5,7 @@ import {
   k8sPatchResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/index';
 import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 

@@ -49,6 +49,7 @@ type EvalHubClientInterface interface {
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
+	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
@@ -582,6 +583,23 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	return *resp, nil
 }
 
+// GetCollection retrieves a single benchmark collection by ID.
+// The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
+func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[Collection](c, ctx, path, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "GetCollection")
+	}
+	return resp, nil
+}
+
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
 // limit controls page size (1-100); offset controls pagination start index.
 // Passing 0 for both uses the upstream defaults (limit=50, offset=0).
@@ -669,6 +687,8 @@ func tenantHeaders(namespace string) (map[string]string, error) {
 // get performs a typed GET request against the EvalHub API, using the same
 // HTTP client and TLS configuration that the openai.Client was initialised with.
 // extraHeaders is an optional map of additional HTTP headers to include in the request.
+const maxGetResponseSize = 50 * 1024 * 1024 // 50 MiB — accommodates paginated list responses
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
@@ -688,9 +708,12 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > maxGetResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

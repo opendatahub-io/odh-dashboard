@@ -18,7 +18,7 @@
     "branch": "main",
     "src": "",
     "target": "upstream",
-    "commit": "00d7ec5e34d24c838a564ccd98790be6aa7fdb91"
+    "commit": "88f318c4e1346bdd9b5d6acda208411bc344ccbd"
   },
   "module-federation": {
     "name": "notebooks",
@@ -27,7 +27,7 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/workspaces/api",
+        "path": "/notebooks/api",
         "pathRewrite": "/api"
       }
     ],
@@ -36,8 +36,8 @@
       "port": 9105
     },
     "service": {
-      "name": "odh-dashboard",
-      "port": 8343
+      "name": "odh-dashboard-notebooks-ui",
+      "port": 9043
     }
   },
   "devDependencies": {

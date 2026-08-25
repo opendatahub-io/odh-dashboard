@@ -9,10 +9,13 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { kindApiVersion, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  kindApiVersion,
+  translateDisplayNameForK8s,
+  applyK8sAPIOptions,
+} from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { HardwareProfileModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { DisplayNameAnnotation } from '#~/types.ts';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>

@@ -89,6 +89,9 @@ const normalizeOptionId = (optionId: number | string): string => String(optionId
 const getOptionTestId = (name: string) =>
   `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
 
+/** Close function of the MultiSelection that currently has an open menu. Opening another closes it. */
+let exclusiveOpenCloseRef: React.MutableRefObject<() => void> | null = null;
+
 type MultiSelectionOptionProps = {
   option: SelectionOptions;
   children?: React.ReactNode;
@@ -150,6 +153,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement | null>(null);
   const focusTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const closeMenuRef = React.useRef<() => void>(() => undefined);
   const generatedInstanceId = React.useId().replace(/:/g, '');
   const instanceId = id ?? `multi-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
@@ -284,6 +288,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   };
 
   const openMenu = (focusFirstOption = false) => {
+    if (exclusiveOpenCloseRef && exclusiveOpenCloseRef !== closeMenuRef) {
+      exclusiveOpenCloseRef.current();
+    }
+    exclusiveOpenCloseRef = closeMenuRef;
     setIsOpen(true);
     if (focusFirstOption) {
       const firstFocusableIndex = getNextFocusableIndex(null, 'down');
@@ -301,12 +309,19 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     setIsOpen(false);
     setInputValue('');
     resetActiveAndFocusedItem();
+    if (exclusiveOpenCloseRef === closeMenuRef) {
+      exclusiveOpenCloseRef = null;
+    }
   };
+  closeMenuRef.current = closeMenu;
 
   React.useEffect(
     () => () => {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
+      }
+      if (exclusiveOpenCloseRef === closeMenuRef) {
+        exclusiveOpenCloseRef = null;
       }
     },
     [],
@@ -314,7 +329,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const handleMenuArrowKeys = (key: string) => {
     if (!isOpen) {
-      setIsOpen(true);
+      openMenu();
     }
 
     const optionsLength = visibleOptions.length;
@@ -383,7 +398,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
     if (valueOfInput) {
-      setIsOpen(true);
+      openMenu();
     }
     resetActiveAndFocusedItem();
   };

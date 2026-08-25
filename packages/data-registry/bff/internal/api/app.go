@@ -28,11 +28,23 @@ import (
 
 const (
 	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
+	PathPrefix      = "/data-registry"
 	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
 	UserPath        = ApiPathPrefix + "/user"
 	NamespacePath   = ApiPathPrefix + "/namespaces"
+
+	// DataRegistryPathPrefix is the root under which the Data Registry API catchall proxy is
+	// mounted. It intentionally matches ApiPathPrefix so the publicly exposed route shape stays
+	// consistent with every other BFF in the monorepo ("/api/v1/..."). Only the literal "/api"
+	// segment is stripped before forwarding upstream (see registry_proxy_handler.go), so the
+	// resulting path (e.g. "/v1/{project}/config") matches the vendored OpenAPI contract's own
+	// "/v1" root exactly (see openapi/src/data-registry-api.yaml). Once this module's Node
+	// dashboard backend proxy is registered (module federation name "dataRegistry", see
+	// frontend/config/moduleFederation.js), that backend strips its own "/_mf/dataRegistry"
+	// prefix and forwards the remainder unchanged (see backend/src/routes/module-federation.ts) —
+	// no further prefix stripping happens between that and this "/api/v1" root.
+	DataRegistryPathPrefix = ApiPathPrefix
 )
 
 type App struct {
@@ -47,6 +59,16 @@ type App struct {
 	// bffClientFactory creates clients for inter-BFF communication
 	bffClientFactory bffclient.BFFClientFactory
 	wsTracker        *proxy.ConnectionTracker
+	// dataRegistryAPIURL holds the resolved base URL of the upstream Data Registry API,
+	// unvalidated (see registry_proxy_handler.go, which validates on every read). Empty when not
+	// yet configured (e.g. ConfigMap not deployed) — proxy routes return 503 until it's set. It's
+	// a StringHolder rather than a plain string because a background discovery retry loop (see
+	// data_registry_discovery.go) may set it after startup, once the ConfigMap appears, without
+	// requiring the process to restart.
+	dataRegistryAPIURL *helper.StringHolder
+	// dataRegistryDiscoveryCancel stops the background discovery loop above. nil if the URL was
+	// already known at startup, so no loop was started. Called from Shutdown.
+	dataRegistryDiscoveryCancel context.CancelFunc
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -138,6 +160,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	// Resolve the Data Registry API URL: an explicit flag/env value always wins (local dev,
+	// tests). Otherwise, attempt a best-effort, bounded-timeout ConfigMap lookup — a stalled API
+	// server must not block startup — falling back to a background retry loop (below) rather
+	// than a fatal error, since the backend (RHAISTRAT-2381) may not be deployed yet.
+	dataRegistryAPIURLHolder := helper.NewStringHolder(cfg.DataRegistryAPIURL)
+	needsDiscoveryLoop := false
+	if cfg.DataRegistryAPIURL == "" && !cfg.MockK8Client {
+		resolveCtx, cancel := context.WithTimeout(context.Background(), dataRegistryConfigMapLookupTimeout)
+		resolvedURL, cmErr := k8s.ResolveDataRegistryAPIURL(resolveCtx, cfg.DataRegistryConfigMapName, cfg.DataRegistryConfigMapKey, logger)
+		cancel()
+		if cmErr != nil {
+			logger.Warn("Data Registry API URL not yet available; proxy routes will return 503 until it's found (retrying in the background)",
+				slog.Any("error", cmErr))
+			needsDiscoveryLoop = true
+		} else {
+			dataRegistryAPIURLHolder.Set(resolvedURL)
+		}
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
@@ -146,6 +187,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
+		dataRegistryAPIURL:      dataRegistryAPIURLHolder,
+	}
+
+	if needsDiscoveryLoop {
+		discoveryCtx, cancel := context.WithCancel(context.Background())
+		app.dataRegistryDiscoveryCancel = cancel
+		startDataRegistryDiscoveryLoop(discoveryCtx, cfg, logger, dataRegistryAPIURLHolder)
 	}
 
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
@@ -155,6 +203,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.dataRegistryDiscoveryCancel != nil {
+		app.dataRegistryDiscoveryCancel()
+	}
 	if app.wsTracker != nil {
 		app.wsTracker.Stop()
 	}
@@ -187,9 +238,21 @@ func (app *App) Routes() http.Handler {
 	// App Router
 	appMux := http.NewServeMux()
 
-	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
+	// The BFF's own handlers are mounted on exact patterns (UserPath, NamespacePath) so they
+	// take precedence over the Data Registry catchall proxy mounted on the broader
+	// DataRegistryPathPrefix+"/" subtree below — Go's ServeMux always prefers the more specific
+	// pattern regardless of registration order (same technique already used for HealthCheckPath
+	// vs. the root pattern further down).
+	appMux.Handle(UserPath, apiRouter)
+	appMux.Handle(NamespacePath, apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+
+	// Data Registry API catchall proxy (Iceberg REST Catalog-compatible + RHOAI extensions):
+	// every request under DataRegistryPathPrefix is forwarded verbatim to the upstream Data
+	// Registry API — no per-operation routes, so new upstream endpoints are automatically
+	// reachable without any BFF change ("dumb proxy", confirmed in RHAI-415 review). See
+	// registry_proxy_handler.go.
+	appMux.Handle(DataRegistryPathPrefix+"/", app.DataRegistryReverseProxy())
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

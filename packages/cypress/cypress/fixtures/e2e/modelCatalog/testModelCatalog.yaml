@@ -1,2 +1,3 @@
 projectResourceName: "test-model-catalog"
 singleModelName: "catalog-model-test"
+awsBucket: "BUCKET_1"

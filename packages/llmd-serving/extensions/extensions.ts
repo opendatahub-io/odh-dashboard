@@ -397,6 +397,8 @@ const extensions: (
     type: 'model-serving.deployment/form-data',
     properties: {
       platform: LLMD_SERVING_ID,
+      isActive: true,
+      priority: 0,
       extractHardwareProfileConfig: () =>
         import('../src/deployments/hardware').then((m) => m.extractHardwareProfileConfig),
       extractModelType: () => import('../src/deployments/model').then((m) => m.extractModelType),

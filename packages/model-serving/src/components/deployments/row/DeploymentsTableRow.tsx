@@ -9,7 +9,6 @@ import {
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource, SchedulingType } from '@odh-dashboard/k8s-core';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import {
   useHardwareProfileBindingState,
@@ -33,7 +32,10 @@ import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
 import ModelServingStopModal from '../ModelServingStopModal';
 import DeploymentStatusModal from '../DeploymentStatusModal';
-import { useDeploymentExtension } from '../../../concepts/extensionUtils';
+import {
+  useDeploymentExtension,
+  useResolvedDeploymentExtension,
+} from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
@@ -105,15 +107,9 @@ export const DeploymentRow: React.FC<{
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
   const statusSubtitle = getDeploymentStatusSubtitle(deployment.status);
 
-  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+  const [formDataExtension, formDataResolved] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
-  );
-  const formDataExtension = React.useMemo(
-    () =>
-      formDataExtensions.find(
-        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
-      ) ?? null,
-    [formDataExtensions, deployment.modelServingPlatformId],
+    deployment,
   );
   const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
   const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
