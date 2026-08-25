@@ -1,5 +1,5 @@
 {
-  "name": "@odh-dashboard/maas-customer-portal-distribution",
+  "name": "@odh-dashboard/maas-consumer-portal-distribution",
   "version": "0.0.0",
   "description": "MaaS Consumer Portal distribution — consumer-facing API key and endpoint management",
   "license": "Apache-2.0",

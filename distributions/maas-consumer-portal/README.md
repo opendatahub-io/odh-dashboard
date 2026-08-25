@@ -25,7 +25,7 @@ Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which s
 **Terminal 3 — Dev server (port 4020):**
 
 ```bash
-cd distributions/maas-customer-portal
+cd distributions/maas-consumer-portal
 OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 npm run dev
 ```
 
@@ -50,7 +50,7 @@ oc port-forward -n $NS pod/$POD 8243:8243 8143:8143
 **Terminal 2 — Dev server (port 4020):**
 
 ```bash
-cd distributions/maas-customer-portal
+cd distributions/maas-consumer-portal
 MAAS_BFF_TARGET=https://localhost:8243 GENAI_BFF_TARGET=https://localhost:8143 npm run dev
 ```
 
