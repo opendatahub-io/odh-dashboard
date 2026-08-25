@@ -103,16 +103,24 @@ func (app *App) OpenShellProxyHandler() (http.Handler, error) {
 		// ── DOUBLE-AUTH TRUST BOUNDARY ──────────────────────────────────
 		// The RHOAI/OpenShift credentials (Token A) must NOT cross into the
 		// OpenShell service. The browser supplies Token B as
-		// "Authorization: Bearer" (via the package's setAuthTokenGetter). Strip
-		// Token A headers and the RHOAI session cookie so the relay BFF —
-		// which prefers x-forwarded-access-token — authenticates against the
-		// OpenShell gateway's OIDC JWKS with Token B only.
+		// "Authorization: Bearer" (via the package's setAuthTokenGetter). First
+		// clear every Token A header + the RHOAI session cookie, then translate
+		// Token B into x-forwarded-access-token (the relay BFF's primary header)
+		// so it authenticates against the OpenShell gateway's OIDC JWKS with
+		// Token B only. Authorization: Bearer is left intact as a fallback.
 		req.Header.Del("X-Forwarded-Access-Token")
 		req.Header.Del("X-Auth-Request-User")
 		req.Header.Del("X-Auth-Request-Groups")
 		req.Header.Del("X-Auth-Request-Email")
 		req.Header.Del("X-Auth-Request-Preferred-Username")
 		req.Header.Del("Cookie")
+
+		if bearer := req.Header.Get("Authorization"); bearer != "" {
+			tokenB := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
+			if tokenB != "" {
+				req.Header.Set("X-Forwarded-Access-Token", tokenB)
+			}
+		}
 	}
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, perr error) {

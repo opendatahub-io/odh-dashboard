@@ -109,6 +109,9 @@ func TestOpenShellProxyStripsTokenAForwardsTokenB(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "/api/v1/workspaces", gotPath, "/openshell prefix must be stripped")
 	assert.Equal(t, "Bearer TOKEN_B", gotAuth, "Token B (Authorization) must be forwarded")
-	assert.Empty(t, gotXFAT, "Token A must be stripped at the trust boundary")
+	// Token A must not cross; x-forwarded-access-token is translated to Token B
+	// (the relay BFF's primary header).
+	assert.NotEqual(t, "TOKEN_A", gotXFAT, "Token A must not cross the trust boundary")
+	assert.Equal(t, "TOKEN_B", gotXFAT, "x-forwarded-access-token must carry Token B")
 	assert.Empty(t, gotCookie, "RHOAI session cookie must be stripped at the trust boundary")
 }
