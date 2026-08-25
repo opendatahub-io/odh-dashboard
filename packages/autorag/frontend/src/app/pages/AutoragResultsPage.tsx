@@ -11,11 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
@@ -421,11 +421,13 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
+                  <ContextBreadcrumb
                     pageName="AutoRAG"
-                    namespace={namespace}
                     projectDisplayName={projectDisplayName}
                     homePath={getRedirectPath(namespace)}
+                    projectHomePath={`/projects/${namespace}`}
+                    homeTestId="experiment-breadcrumb-home"
+                    projectLinkTestId="project-navigator-link-in-breadcrumb"
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
                       <Link
@@ -436,7 +438,7 @@ function AutoragResultsPage(): React.JSX.Element {
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                  </ContextBreadcrumb>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

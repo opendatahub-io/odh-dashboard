@@ -10,5 +10,8 @@
  * See ../../../ARCHITECTURE.md for the full layering conventions.
  */
 export { default as ActionableEmptyState } from './ActionableEmptyState';
+export { default as ConfigureFormGroup } from './ConfigureFormGroup';
 export { default as ConfirmationModal } from './ConfirmationModal';
+export { default as ContextBreadcrumb } from './ContextBreadcrumb';
+export { default as ModuleHeader } from './ModuleHeader';
 export { default as SpinnerEmptyState } from './SpinnerEmptyState';

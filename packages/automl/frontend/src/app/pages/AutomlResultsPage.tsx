@@ -11,11 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
@@ -281,11 +281,13 @@ function AutomlResultsPage(): React.JSX.Element {
               }
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
+                  <ContextBreadcrumb
                     pageName="AutoML"
-                    namespace={namespace}
                     projectDisplayName={projectDisplayName}
                     homePath={getRedirectPath(namespace)}
+                    projectHomePath={`/projects/${namespace}`}
+                    homeTestId="experiment-breadcrumb-home"
+                    projectLinkTestId="project-navigator-link-in-breadcrumb"
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
                       <Link
@@ -296,7 +298,7 @@ function AutomlResultsPage(): React.JSX.Element {
                       </Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                  </ContextBreadcrumb>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

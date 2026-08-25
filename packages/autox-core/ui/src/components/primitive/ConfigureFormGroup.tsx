@@ -1,7 +1,7 @@
 import { Content, Flex, FlexItem, Popover } from '@patternfly/react-core';
 import type { PopoverProps } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DashboardPopupIconButton } from 'mod-arch-shared';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import * as React from 'react';
 
 type ConfigureFormGroupProps = {

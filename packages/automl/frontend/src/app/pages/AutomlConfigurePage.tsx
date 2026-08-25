@@ -16,8 +16,8 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -314,12 +314,14 @@ function AutomlConfigurePage({
       breadcrumb={
         (step === 'configure' || sourceRunId) &&
         namespace && (
-          <ExperimentContextBreadcrumb
+          <ContextBreadcrumb
             pageName="AutoML"
-            namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            projectHomePath={`/projects/${namespace}`}
             onHomeNavigate={handleHomeNavigate}
+            homeTestId="experiment-breadcrumb-home"
+            projectLinkTestId="project-navigator-link-in-breadcrumb"
           >
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
@@ -341,7 +343,7 @@ function AutomlConfigurePage({
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
-          </ExperimentContextBreadcrumb>
+          </ContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}

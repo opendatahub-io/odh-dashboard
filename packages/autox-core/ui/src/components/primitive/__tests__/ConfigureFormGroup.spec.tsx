@@ -2,14 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-
-// Mock DashboardPopupIconButton
-jest.mock('mod-arch-shared', () => ({
-  DashboardPopupIconButton: ({ icon, ...props }: { icon: React.ReactNode }) => (
-    <button {...props}>{icon}</button>
-  ),
-}));
+import ConfigureFormGroup from '../ConfigureFormGroup';
 
 describe('ConfigureFormGroup', () => {
   it('should render label and children', () => {

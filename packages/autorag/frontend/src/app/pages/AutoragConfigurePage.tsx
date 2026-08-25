@@ -16,9 +16,9 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -424,12 +424,14 @@ function AutoragConfigurePage({
       breadcrumb={
         (step === 'configure' || sourceRunId) &&
         namespace && (
-          <ExperimentContextBreadcrumb
+          <ContextBreadcrumb
             pageName="AutoRAG"
-            namespace={namespace}
             projectDisplayName={projectDisplayName}
             homePath={getRedirectPath(namespace)}
+            projectHomePath={`/projects/${namespace}`}
             onHomeNavigate={handleHomeNavigate}
+            homeTestId="experiment-breadcrumb-home"
+            projectLinkTestId="project-navigator-link-in-breadcrumb"
           >
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
@@ -446,7 +448,7 @@ function AutoragConfigurePage({
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
               {sourceRunId ? 'Reconfigure' : 'Run configurations'}
             </BreadcrumbItem>
-          </ExperimentContextBreadcrumb>
+          </ContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}
