@@ -57,24 +57,22 @@ describe('Eval Hub E2E', () => {
     });
 
     cy.then(() => {
-      cy.step('Ensure MLflow CR is Available (must be ready before EvalHub)');
+      cy.step('[Setup] Provision MLflow instance');
       return ensureMlflowCrReady(mlflowInstanceYamlPath);
     });
 
     cy.then(() => {
-      cy.step('Ensure EvalHub CR is Ready');
+      cy.step('[Setup] Provision EvalHub instance');
       return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath);
     });
 
     cy.then(() => {
-      const tracked: string[] = Cypress.env('EVAL_HUB_CREATED_PROJECTS') || [];
-      tracked.push(evaluationTenantProject);
-      Cypress.env('EVAL_HUB_CREATED_PROJECTS', tracked);
-      cy.step(`Create ephemeral project ${evaluationTenantProject}`);
+      cy.step(`[Setup] Create tenant project: ${evaluationTenantProject}`);
       createCleanProject(evaluationTenantProject);
     });
 
     cy.then(() => {
+      cy.step('[Setup] Deploy vLLM model and configure tenant access');
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
       setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
@@ -86,13 +84,10 @@ describe('Eval Hub E2E', () => {
   after(() => {
     ensureAdminOcSession();
 
-    const projectsToDelete = [
-      ...new Set((Cypress.env('EVAL_HUB_CREATED_PROJECTS') || []) as string[]),
-    ];
-    projectsToDelete.forEach((project) => {
-      cy.step(`Delete tenant project ${project}`);
-      deleteOpenShiftProject(project, { wait: false, ignoreNotFound: true });
-    });
+    if (evaluationTenantProject) {
+      cy.step(`Delete tenant project: ${evaluationTenantProject}`);
+      deleteOpenShiftProject(evaluationTenantProject, { wait: false, ignoreNotFound: true });
+    }
 
     if (hardwareProfileName) {
       cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
@@ -120,18 +115,18 @@ describe('Eval Hub E2E', () => {
       );
       evaluationsPage.assertEvaluationsShellVisible(evaluationTenantProject);
 
-      cy.step('Create new evaluation → single benchmark');
+      cy.step('Open create evaluation wizard and select single benchmark');
       evalHubEvaluationFlow.openCreateEvaluationFromList();
       evalHubEvaluationFlow.selectSingleBenchmarkEntry();
 
       cy.step(`Select benchmark: ${benchmarkCardTitle}`);
       evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkCardTitle);
 
-      cy.step('Fill evaluation form');
+      cy.step('Enter evaluation name');
       evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
       evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
 
-      cy.step('Select deployed cluster model from picker');
+      cy.step('Select deployed model from cluster picker');
       evalHubEvaluationFlow.selectClusterModel(inferenceServiceName);
 
       if (extraParams) {
@@ -144,17 +139,38 @@ describe('Eval Hub E2E', () => {
           .type(extraParams, { parseSpecialCharSequences: false });
       }
 
-      cy.step('Submit and verify evaluation appears in table');
+      cy.step('Submit evaluation and confirm it appears in the list');
       evalHubEvaluationFlow.findStartEvaluationSubmitButton().should('be.enabled');
       evalHubEvaluationFlow.findStartEvaluationSubmitButton().click();
       cy.url({ timeout: 120000 }).should('not.include', '/create');
 
       evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
 
-      cy.step('Wait for evaluation job to complete on backend');
+      cy.step('Open status modal and verify progress tab shows benchmark steps');
+      evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
+      evaluationsPage.findStatusModal().should('be.visible');
+      evaluationsPage.findStatusModalProgressContent().should('be.visible');
+      evaluationsPage.findStatusModalBenchmarkSteps().should('exist');
+
+      cy.step('Switch to events log tab and verify it activates without error');
+      evaluationsPage.findStatusModalEventsLogTab().click();
+      evaluationsPage.findStatusModalEventsLogTab().should('have.attr', 'aria-selected', 'true');
+      evaluationsPage.findStatusModalCloseButton().click();
+      evaluationsPage.findStatusModal().should('not.exist');
+
+      cy.step('Poll until evaluation job completes on the backend');
       waitForEvaluationJobComplete(evaluationTenantProject);
 
-      cy.step('Verify evaluation shows completed in UI');
+      cy.step('Re-open status modal after completion — View Results shown, Stop absent');
+      cy.reload();
+      evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
+      evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
+      evaluationsPage.findStatusModal().should('be.visible');
+      evaluationsPage.findStatusModalViewResultsButton().should('be.visible');
+      evaluationsPage.findStatusModalStopButton().should('not.exist');
+      evaluationsPage.findStatusModalCloseButton().click();
+
+      cy.step('Verify evaluation status shows Completed in the UI');
       evaluationsPage.assertEvaluationCompleteInUI(evaluationRunName);
     },
   );
