@@ -93,7 +93,11 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
 
     if (evaluationTenantProject) {
       cy.step(`Delete tenant project: ${evaluationTenantProject}`);
-      deleteOpenShiftProject(evaluationTenantProject, { wait: false, ignoreNotFound: true });
+      cy.exec(
+        `oc label namespace ${evaluationTenantProject} evalhub.trustyai.opendatahub.io/tenant- --ignore-not-found`,
+        { failOnNonZeroExit: false },
+      );
+      deleteOpenShiftProject(evaluationTenantProject, { wait: true, ignoreNotFound: true });
     }
 
     if (hardwareProfileName) {
@@ -123,7 +127,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
         additionalBenchmarkParams,
       });
       verifyEvaluationProgressModal(evaluationRunName);
-      waitForEvaluationJobComplete(evaluationTenantProject);
+      waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
       verifyEvaluationCompletedAndViewResults(evaluationRunName, evaluationTenantProject);
     },
   );

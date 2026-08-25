@@ -86,8 +86,8 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
 };
 
 /**
- * Polls until at least one Job in the namespace has a `Complete` condition.
- * The namespace is ephemeral (created fresh each test run), so only one job exists.
+ * Polls until ALL Jobs in the namespace have finished (no active pods remaining).
+ * Works for both single-benchmark runs (1 job) and benchmark suite runs (N jobs).
  */
 export const waitForEvaluationJobComplete = (
   namespace: string,
@@ -97,8 +97,8 @@ export const waitForEvaluationJobComplete = (
   const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
 
   return pollUntilSuccess(
-    `oc get jobs -n ${namespace} -o json | jq -e '.items[] | select(.status.conditions[]? | select(.type == "Complete" and .status == "True"))'`,
-    `Evaluation job Complete in ${namespace}`,
+    `oc get jobs -n ${namespace} -o json | jq -e '(.items | length) > 0 and ([.items[] | (.status.active // 0)] | all(. == 0))'`,
+    `All evaluation jobs complete in ${namespace}`,
     { maxAttempts, pollIntervalMs },
   );
 };
