@@ -1,4 +1,4 @@
-import { pollUntilSuccess } from './baseCommands';
+import { pollUntilSuccess, waitForNamespace } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -25,18 +25,53 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Add dashboard label immediately after project creation
-    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
-    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-      if (labelResult.exitCode !== 0) {
-        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
-                  stdout: ${labelResult.stdout}
-                  stderr: ${labelResult.stderr}`);
-      }
-      return cy.wrap(result);
-    });
+
+    // oc new-project can return before the Namespace object is patchable.
+    // Labeling immediately then treating a failed label as a warning leaves the
+    // project invisible in the dashboard A.I. projects filter.
+    return waitForNamespace(projectName, 30, 1000)
+      .then(() => applyDashboardLabel(projectName))
+      .then(() => waitForProjectReadyForDashboard(projectName))
+      .then(() => cy.wrap(result));
   });
 };
+
+/**
+ * Apply the dashboard label that `isAiProject` / the default projects-table filter require.
+ * Fail the test if the label cannot be applied — a missing label is not recoverable in the UI.
+ */
+const applyDashboardLabel = (projectName: string): Cypress.Chainable<Cypress.Exec> => {
+  const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+  return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+    if (labelResult.exitCode !== 0) {
+      throw new Error(
+        `Failed to add dashboard label to ${projectName}: ${
+          labelResult.stderr || labelResult.stdout
+        }`,
+      );
+    }
+    return labelResult;
+  });
+};
+
+/**
+ * Wait until the project is visible to the dashboard: dashboard label set and status Active.
+ * The UI watch lists Projects and client-filters to Active + opendatahub.io/dashboard=true.
+ */
+export const waitForProjectReadyForDashboard = (
+  projectName: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get namespace ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true"'`,
+    `dashboard label on namespace ${projectName}`,
+    { maxAttempts: 15, pollIntervalMs: 1000 },
+  ).then(() =>
+    pollUntilSuccess(
+      `oc get project ${projectName} -o json | jq -e '.status.phase == "Active"'`,
+      `project ${projectName} phase Active`,
+      { maxAttempts: 15, pollIntervalMs: 1000 },
+    ),
+  );
 
 /**
  * Delete an OpenShift Project given its name
