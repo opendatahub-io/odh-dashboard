@@ -21,7 +21,7 @@ all: frontend-build-federated
 
 .PHONY: help
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(shell bash -c 'for f in $(MAKEFILE_LIST); do printf "%q " "$$f"; done')
 
 ############ Dev Environment ############
 
@@ -36,7 +36,7 @@ dev-frontend-federated: ## Run the federated Module Federation dev server
 .PHONY: dev-start-federated
 dev-start-federated: ## Start the standalone federated dev server (proxies /api to host backend)
 	@trap 'exit 0' INT; \
-	$(MAKE) dev-frontend-federated
+	"$(MAKE)" dev-frontend-federated
 
 ############ Build ############
 
