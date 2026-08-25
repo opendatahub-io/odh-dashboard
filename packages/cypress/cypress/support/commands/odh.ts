@@ -30,7 +30,7 @@ import type {
 import type {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
-} from '@odh-dashboard/internal/api';
+} from '@odh-dashboard/trustyai/types';
 import type {
   ModelArtifact,
   ModelArtifactList,

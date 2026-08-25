@@ -56,13 +56,6 @@ export const ModelRegistryModel: K8sModelCommon = {
   plural: 'modelregistries',
 };
 
-export const TrustyAIApplicationsModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
-  apiGroup: 'trustyai.opendatahub.io',
-  kind: 'TrustyAIService',
-  plural: 'trustyaiservices',
-};
-
 export const FeatureStoreModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'feast.dev',

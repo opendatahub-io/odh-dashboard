@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '@odh-dashboard/internal/concepts/metrics/MetricsPageToolbar';
-import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
+import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData';
 import DashboardExpandableSection from '@odh-dashboard/ui-core/components/DashboardExpandableSection';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import BiasMetricConfigSelector from './BiasMetricConfigSelector';

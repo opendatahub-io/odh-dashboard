@@ -57,19 +57,17 @@ export const useRuntimeArgsField = (existingData?: RuntimeArgsFieldData): Runtim
 type RuntimeArgsFieldProps = {
   data?: RuntimeArgsFieldData;
   onChange?: (data: RuntimeArgsFieldData) => void;
-  allowCreate?: boolean;
   predefinedArgs?: string[];
 };
 
 export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
   data = { enabled: false, args: [] },
   onChange,
-  allowCreate = true,
   predefinedArgs,
 }) => {
   const hasTyped = React.useRef(false);
-  const displayValue = hasTyped.current ? data.args.join('\n') : `${data.args.join('\n')}\n`;
-
+  const joined = data.args.join('\n');
+  const displayValue = data.args.length > 0 && !hasTyped.current ? `${joined}\n` : joined;
   const handleTextAreaChange = (_e: React.FormEvent<HTMLTextAreaElement>, textValue: string) => {
     hasTyped.current = true;
     const args = textValue.split('\n');
@@ -140,8 +138,6 @@ export const RuntimeArgsField: React.FC<RuntimeArgsFieldProps> = ({
           placeholder={`--arg\n--arg2=value2\n--arg3 value3`}
           value={displayValue}
           onChange={handleTextAreaChange}
-          isDisabled={!allowCreate}
-          rows={4}
           autoResize
         />
         <FormHelperText>

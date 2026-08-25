@@ -5,9 +5,9 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
-import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
-import { formatListResponse } from '#~/concepts/trustyai/utils';
+import type { TrustyAPIState } from './useTrustyAIAPIState';
+import type { BiasMetricConfig } from '../types';
+import { formatListResponse } from '../utilities/utils';
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;

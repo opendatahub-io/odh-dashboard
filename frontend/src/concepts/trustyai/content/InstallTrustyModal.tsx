@@ -2,13 +2,13 @@ import * as React from 'react';
 import { Form, Radio, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '@odh-dashboard/trustyai/const';
 import TrustyDBSecretFields from '#~/concepts/trustyai/content/TrustyDBSecretFields';
 import useTrustyInstallModalData, {
   TrustyInstallModalFormType,
 } from '#~/concepts/trustyai/content/useTrustyInstallModalData';
 import { UseManageTrustyAICRReturnType } from '#~/concepts/trustyai/useManageTrustyAICR';
 import TrustyDBExistingSecretField from '#~/concepts/trustyai/content/TrustyDBExistingSecretField';
-import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '#~/concepts/trustyai/const';
 
 type InstallTrustyModalProps = {
   onClose: () => void;
