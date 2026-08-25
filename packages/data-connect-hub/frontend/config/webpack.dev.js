@@ -47,6 +47,8 @@ const getProxyHeaders = () => {
       console.error('Failed to get Kubernetes token:', error.message);
       return {};
     }
+  } else {
+    console.warn(`Unsupported AUTH_METHOD (${AUTH_METHOD}) for getProxyHeaders()`);
   }
   return {};
 };

@@ -28,11 +28,11 @@ import (
 
 const (
 	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
+	PathPrefix      = "/data-connect-hub"
 	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
-	UserPath      = ApiPathPrefix + "/user"
-	NamespacePath = ApiPathPrefix + "/namespaces"
+	UserPath        = ApiPathPrefix + "/user"
+	NamespacePath   = ApiPathPrefix + "/namespaces"
 )
 
 type App struct {

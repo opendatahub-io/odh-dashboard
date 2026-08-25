@@ -116,6 +116,7 @@ module.exports = {
     ],
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/no-require-imports': 'off',
     'no-relative-import-paths/no-relative-import-paths': [
       'warn',
       {
