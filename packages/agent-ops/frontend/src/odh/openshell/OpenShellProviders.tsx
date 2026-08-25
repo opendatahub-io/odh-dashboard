@@ -5,8 +5,13 @@ import { SlotProvider } from 'openshell-dashboard/slots';
 import { setApiBasePath, setSessionExpiredHandler } from 'openshell-dashboard/api';
 
 setApiBasePath('/openshell');
+// When embedded in RHOAI, the OpenShell (Token B) session is independent of the
+// RHOAI (Token A) session. A hard redirect to '/' would tear down the whole
+// dashboard context for a *second-service* session expiry, so instead emit a
+// non-destructive event the OpenShell area listens for to show inline reconnect.
+export const OPENSHELL_SESSION_EXPIRED_EVENT = 'openshell:session-expired';
 setSessionExpiredHandler(() => {
-  window.location.assign('/');
+  window.dispatchEvent(new CustomEvent(OPENSHELL_SESSION_EXPIRED_EVENT));
 });
 
 const queryClient = new QueryClient({
