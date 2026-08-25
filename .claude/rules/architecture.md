@@ -58,6 +58,7 @@ These packages export extensions but have **no** `module-federation` config. The
 
 ### Infrastructure Packages
 
+- `analytics` — Shared Segment analytics implementation
 - `eslint-config` — Centralized ESLint configuration (base, typescript, react, node, markdown, yaml, prettier)
 - `eslint-plugin` — Custom ESLint rules for the project
 - `jest-config` — Shared Jest test configuration and custom matchers

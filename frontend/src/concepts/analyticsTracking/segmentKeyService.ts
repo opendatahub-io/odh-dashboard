@@ -1,6 +1,8 @@
 import axios from '#~/utilities/axios';
 
-import { ODHSegmentKey } from '#~/concepts/analyticsTracking/trackingProperties';
+export type ODHSegmentKey = {
+  segmentKey: string;
+};
 
 export const fetchSegmentKey = (): Promise<ODHSegmentKey> => {
   const url = '/api/segment-key';

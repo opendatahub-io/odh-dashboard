@@ -159,8 +159,6 @@ type K8sMetadata = {
 /** Used for Telemetry */
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    analytics?: any;
     clusterID?: string;
     POLL_INTERVAL?: number;
     FAST_POLL_INTERVAL?: number;
