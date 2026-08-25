@@ -18,6 +18,9 @@ import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
+import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -67,25 +70,45 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     inferenceService.metadata.name,
   );
 
+  const [bindingStateInfo] = useHardwareProfileBindingState(
+    inferenceService,
+    MODEL_SERVING_VISIBILITY,
+  );
+  const deletedHardwareProfilePatches = React.useMemo(
+    () => getDeletedHardwareProfilePatches(bindingStateInfo, inferenceService),
+    [bindingStateInfo, inferenceService],
+  );
+
   const onStart = React.useCallback(() => {
     setIsStarting(true);
-    patchInferenceServiceStoppedStatus(inferenceService, 'false')
+    patchInferenceServiceStoppedStatus(inferenceService, 'false', deletedHardwareProfilePatches)
       .then(() => {
         refresh();
         watchDeployment();
       })
       .catch(() => setIsStarting(false));
-  }, [inferenceService, refresh, setIsStarting, watchDeployment]);
+  }, [inferenceService, refresh, setIsStarting, watchDeployment, deletedHardwareProfilePatches]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
       setIsStarting(false);
       setIsStopping(true);
-      patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+      patchInferenceServiceStoppedStatus(
+        inferenceService,
+        'true',
+        deletedHardwareProfilePatches,
+      ).then(refresh);
     } else {
       setOpenConfirm(true);
     }
-  }, [dontShowModalValue, inferenceService, refresh, setIsStarting, setIsStopping]);
+  }, [
+    dontShowModalValue,
+    inferenceService,
+    refresh,
+    setIsStarting,
+    setIsStopping,
+    deletedHardwareProfilePatches,
+  ]);
 
   return (
     <>
@@ -208,7 +231,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             if (confirmStatus) {
               setIsStarting(false);
               setIsStopping(true);
-              patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+              patchInferenceServiceStoppedStatus(
+                inferenceService,
+                'true',
+                deletedHardwareProfilePatches,
+              ).then(refresh);
             }
           }}
         />

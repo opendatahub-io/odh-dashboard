@@ -31,6 +31,8 @@ import {
   mockHardwareProfile,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { ModelStateToggleLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {
   kserveModalEdit,
@@ -821,6 +823,43 @@ describe('Model Serving Global', () => {
       errorIcon.trigger('mouseenter');
       const errorPopoverTitle = modelRow.findHardwareProfileErrorPopover();
       errorPopoverTitle.should('be.visible');
+    });
+  });
+  describe('Model Serving Deleted Hardware Profile', () => {
+    it('should strip the deleted hardware profile annotations when stopping a deployment', () => {
+      const inferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'Test Model',
+        hardwareProfileName: 'deleted-profile',
+        hardwareProfileNamespace: 'opendatahub',
+      });
+      initIntercepts({ inferenceServices: [inferenceService] });
+
+      cy.interceptK8s(
+        'PATCH',
+        { model: InferenceServiceModel, ns: 'test-project', name: 'test-model' },
+        inferenceService,
+      ).as('stopModelPatch');
+
+      modelServingGlobal.visit('test-project');
+
+      const modelRow = modelServingGlobal.getDeploymentRow('Test Model');
+      modelRow.findHardwareProfileDeletedLabel().should('be.visible');
+      modelRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.STOP).click();
+      modelRow.findConfirmStopModalButton().click();
+
+      cy.wait('@stopModelPatch').then((interception) => {
+        expect(interception.request.body).to.containSubset([
+          {
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          },
+        ]);
+        expect(interception.request.body).to.containSubset(
+          REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+        );
+      });
     });
   });
 });

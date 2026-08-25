@@ -7,6 +7,9 @@ import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
+import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
+import { getDeletedHardwareProfilePatches } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
@@ -56,6 +59,15 @@ export const DeploymentRow: React.FC<{
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
+  const [bindingStateInfo] = useHardwareProfileBindingState(
+    deployment.model,
+    MODEL_SERVING_VISIBILITY,
+  );
+  const deletedHardwareProfilePatches = React.useMemo(
+    () => getDeletedHardwareProfilePatches(bindingStateInfo, deployment.model),
+    [bindingStateInfo, deployment.model],
+  );
+
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
 
   const [formDataExtensions, formDataResolved] = useResolvedExtensions(
@@ -76,21 +88,23 @@ export const DeploymentRow: React.FC<{
     startStopActionExtension.properties
       .patchDeploymentStoppedStatus()
       .then(async (resolvedFunction) => {
-        await resolvedFunction(deployment, false);
+        await resolvedFunction(deployment, false, deletedHardwareProfilePatches);
         // Start watching for deployment status changes
         watchDeployment();
       });
-  }, [deployment, startStopActionExtension, watchDeployment]);
+  }, [deployment, startStopActionExtension, watchDeployment, deletedHardwareProfilePatches]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
       startStopActionExtension?.properties
         .patchDeploymentStoppedStatus()
-        .then((resolvedFunction) => resolvedFunction(deployment, true));
+        .then((resolvedFunction) =>
+          resolvedFunction(deployment, true, deletedHardwareProfilePatches),
+        );
     } else {
       setOpenConfirm(true);
     }
-  }, [dontShowModalValue, deployment, startStopActionExtension]);
+  }, [dontShowModalValue, deployment, startStopActionExtension, deletedHardwareProfilePatches]);
 
   const row = (
     <>
@@ -209,7 +223,9 @@ export const DeploymentRow: React.FC<{
             if (confirmStatus) {
               startStopActionExtension.properties
                 .patchDeploymentStoppedStatus()
-                .then((resolvedFunction) => resolvedFunction(deployment, true));
+                .then((resolvedFunction) =>
+                  resolvedFunction(deployment, true, deletedHardwareProfilePatches),
+                );
             }
           }}
         />

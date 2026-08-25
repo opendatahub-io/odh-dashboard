@@ -61,6 +61,13 @@ jest.mock('../row/DeploymentHardwareProfileCell', () => ({
   DeploymentHardwareProfileCell: () => <td>Hardware Profile</td>,
 }));
 
+jest.mock(
+  '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState',
+  () => ({
+    useHardwareProfileBindingState: () => [null, true, undefined],
+  }),
+);
+
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
   model: {

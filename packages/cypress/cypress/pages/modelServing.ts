@@ -712,6 +712,10 @@ class ModelServingRow extends TableRow {
   findModelResourceKindText() {
     return cy.findByTestId('resource-kind-text');
   }
+
+  findStateActionToggle() {
+    return this.find().findByTestId('state-action-toggle');
+  }
 }
 
 class KServeRow extends ModelServingRow {
@@ -727,10 +731,6 @@ class KServeRow extends ModelServingRow {
 
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-label');
-  }
-
-  findStateActionToggle() {
-    return this.find().findByTestId('state-action-toggle');
   }
 
   findStatusLabel(label?: string, timeout?: number) {
