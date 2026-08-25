@@ -22,7 +22,11 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       featureFlags: ['agentOpsDeploy'],
     },
   },
-  // --- Existing agent-ops tabs/routes ---
+  // --- Native agent-sandbox CRs (RHOAI login / Token A) ---
+  // Demoted below OpenShell (which is the default landing). This is a separate,
+  // one-click view of sandboxes in the user's own projects — no OpenShell auth.
+  // NOTE: this is still a peer tab; the target IA is a separate nav page (see
+  // double-auth-poc.md "native page repoint recipe").
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -31,9 +35,9 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     properties: {
       pageId: AGENTS_TAB_PAGE,
       id: 'deployments',
-      title: 'Deployments',
+      title: 'In your projects',
       component: () => import('./AgentDeploymentsWrapper.tsx'),
-      group: '1_deployments',
+      group: '3_your_projects',
     },
   },
   {
@@ -56,7 +60,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
-  // --- OpenShell Dashboard tabs/routes ---
+  // --- OpenShell (separate service / Token B) — the DEFAULT Agents landing ---
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -67,7 +71,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       id: 'sandboxes',
       title: 'Sandboxes',
       component: () => import('./openshell/SandboxesWrapper'),
-      group: '2_sandboxes',
+      group: '1_sandboxes',
     },
   },
   {
@@ -80,7 +84,28 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       id: 'workspaces',
       title: 'Workspaces',
       component: () => import('./openshell/WorkspacesWrapper'),
-      group: '3_workspaces',
+      group: '2_workspaces',
+    },
+  },
+  // --- OpenShell OIDC (Token B) redirect + silent-renew callbacks ---
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/oidc/callback',
+      component: () => import('./openshell/OpenShellOidcCallback'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/oidc/silent-callback',
+      component: () => import('./openshell/OpenShellOidcCallback'),
     },
   },
   {
