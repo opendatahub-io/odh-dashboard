@@ -1,4 +1,4 @@
-name: Sync Main to ODH Release and RHOAI Release
+name: Sync main to odh-release and stable
 
 on:
   workflow_dispatch:
@@ -247,41 +247,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check rhoai-release branch exists
+      - name: Check stable branch exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh api "repos/${{ github.repository }}/branches/rhoai-release" --silent 2>/dev/null; then
-            echo "ERROR: Branch 'rhoai-release' does not exist. Skipping sync."
+          if ! gh api "repos/${{ github.repository }}/branches/stable" --silent 2>/dev/null; then
+            echo "ERROR: Branch 'stable' does not exist. Skipping sync."
             exit 1
           fi
-          echo "Branch 'rhoai-release' exists."
+          echo "Branch 'stable' exists."
 
-      - name: Checkout rhoai-release
+      - name: Checkout stable
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          ref: rhoai-release
+          ref: stable
           fetch-depth: 0
 
-      - name: Fast-forward rhoai-release to odh-release
+      - name: Fast-forward stable to odh-release
         run: |
           git fetch origin odh-release
 
-          echo "rhoai-release before: $(git rev-parse HEAD)"
+          echo "stable before: $(git rev-parse HEAD)"
           echo "odh-release target:   $(git rev-parse origin/odh-release)"
 
           if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/odh-release)" ]]; then
-            echo "No changes — rhoai-release is already up to date with odh-release"
+            echo "No changes — stable is already up to date with odh-release"
             exit 0
           fi
 
           if ! git merge-base --is-ancestor HEAD origin/odh-release; then
-            echo "ERROR: Cannot fast-forward. rhoai-release has diverged from odh-release."
+            echo "ERROR: Cannot fast-forward. stable has diverged from odh-release."
             echo "Manual intervention required."
             exit 1
           fi
 
           git merge --ff-only origin/odh-release
-          echo "rhoai-release after:  $(git rev-parse HEAD)"
-          git push origin rhoai-release
-          echo "Fast-forwarded rhoai-release to odh-release"
+          echo "stable after:  $(git rev-parse HEAD)"
+          git push origin stable
+          echo "Fast-forwarded stable to odh-release"
