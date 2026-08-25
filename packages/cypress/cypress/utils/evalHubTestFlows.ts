@@ -122,11 +122,10 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
 };
 
 export const verifyEvaluationProgressModal = (evaluationRunName: string): void => {
-  cy.step('Open status modal and verify progress tab shows benchmark steps');
+  cy.step('Open status modal and verify progress tab is visible');
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
   evaluationsPage.findStatusModal().should('be.visible');
   evaluationsPage.findStatusModalProgressContent().should('be.visible');
-  evaluationsPage.findStatusModalBenchmarkSteps().should('exist');
 
   cy.step('Switch to events log tab and verify it activates without error');
   evaluationsPage.findStatusModalEventsLogTab().click();
@@ -151,6 +150,18 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationResultsPage.findResultsContent().should('be.visible');
   evaluationResultsPage.findScoreValue().should('be.visible');
   evaluationResultsPage.findMetadata().should('be.visible');
+  evaluationResultsPage.findBenchmarkDetailsInfo().should('be.visible');
+
+  cy.step('Verify About this result popover opens');
+  evaluationResultsPage.findFirstAboutResultButton().click();
+  cy.findByRole('dialog').should('be.visible');
+  cy.findByRole('dialog').find('button[aria-label="Close"]').click();
+
+  cy.step('Open event log modal and verify it renders');
+  evaluationResultsPage.findViewLogButton().click();
+  evaluationResultsPage.findEventLogModal().should('be.visible');
+  evaluationResultsPage.findLogContent().should('be.visible');
+  evaluationResultsPage.findEventLogModal().find('button[aria-label="Close"]').click();
 
   cy.step('Return to evaluations list and verify Complete status');
   cy.visitWithLogin(

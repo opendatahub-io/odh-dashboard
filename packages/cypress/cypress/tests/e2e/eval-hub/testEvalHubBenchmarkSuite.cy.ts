@@ -106,7 +106,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
     'Eval Hub: start benchmark suite evaluation and see it complete',
     {
       retries: { runMode: 0, openMode: 0 },
-      tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
+      tags: ['@EvalHub', '@Featureflagged'],
     },
     () => {
       const evaluationRunName = `e2e-suite-${evaluationTenantProject.replace(

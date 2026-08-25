@@ -55,8 +55,24 @@ class EvaluationResultsPage {
     return cy.findByTestId('benchmark-provider-label');
   }
 
+  findAboutResultButton(benchmarkId: string, index: number) {
+    return cy.findByTestId(`about-result-${benchmarkId}-${index}`);
+  }
+
+  findFirstAboutResultButton() {
+    return cy.get('[data-testid^="about-result-"]').first();
+  }
+
   findEventLogModal() {
     return cy.findByTestId('evaluation-event-log-modal');
+  }
+
+  findLogContent() {
+    return cy.findByTestId('log-content');
+  }
+
+  findLogTailNotice() {
+    return cy.findByTestId('log-tail-notice');
   }
 }
 
