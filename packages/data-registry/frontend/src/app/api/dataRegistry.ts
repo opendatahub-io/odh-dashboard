@@ -1,11 +1,12 @@
 import {
+  AssetResponse,
   AssetListResponse,
+  VolumeInfo,
   ListVolumesResponse,
   ListNamespacesResponse,
   NamespaceResponse,
   CreateNamespaceRequest,
   CreateVolumeRequest,
-  VolumeInfo,
   LabelListResponse,
   CreateLabelRequest,
   LabelResponse,
@@ -74,6 +75,29 @@ export { ApiError };
 export const fetchAssets = (project: string, collection: string): Promise<AssetListResponse> =>
   fetchJSON(registryUrl(`/${project}/namespaces/${collection}/generic-tables`));
 
+export const fetchGenericTable = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<AssetResponse> =>
+  fetchJSON(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+  );
+
+export const deleteGenericTable = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<void> =>
+  fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+    'DELETE',
+  ).then(() => undefined);
+
 // Volumes
 
 export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
@@ -91,6 +115,25 @@ export const createVolume = async (
   );
   return response.json();
 };
+
+export const fetchVolume = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<VolumeInfo> =>
+  fetchJSON(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+    ),
+  );
+
+export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
+  fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+    ),
+    'DELETE',
+  ).then(() => undefined);
 
 // Labels
 

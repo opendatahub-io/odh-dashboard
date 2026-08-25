@@ -1,5 +1,6 @@
 import { TextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
+import '@testing-library/jest-dom';
 import 'core-js/actual/array/to-sorted';
 import {
   BooleanValues,
