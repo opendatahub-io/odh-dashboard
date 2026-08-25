@@ -37,7 +37,7 @@ const (
 	moduleComponentLabel    = "app.kubernetes.io/component"
 )
 
-// --- Module proxy configuration (static data needed for federation ConfigMap) ---
+// --- Module proxy and federation types ---
 
 type proxyRoute struct {
 	Path        string `json:"path"`
@@ -68,21 +68,6 @@ type proxyServiceEntry struct {
 	Service     serviceRef `json:"service"`
 }
 
-var moduleProxyPaths = map[string][]proxyRoute{
-	"modelRegistry": {{Path: "/model-registry/api", PathRewrite: "/api"}},
-	"genAi":         {{Path: "/gen-ai/api", PathRewrite: "/api"}},
-	"maas":          {{Path: "/maas/api", PathRewrite: "/api"}},
-	"mlflow":        {{Path: "/_bff/mlflow/api", PathRewrite: "/api"}},
-	"evalHub":       {{Path: "/eval-hub/api", PathRewrite: "/api"}},
-	"automl":        {{Path: "/automl/api", PathRewrite: "/api"}},
-	"autorag":       {{Path: "/autorag/api", PathRewrite: "/api"}},
-	"agentOps": {
-		{Path: "/agent-ops/api", PathRewrite: "/api"},
-		{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
-	},
-	"notebooks": {{Path: "/notebooks/api", PathRewrite: "/api"}},
-}
-
 // --- Service discovery env vars (inter-BFF injection) ---
 
 type interBFFDependency struct {
@@ -91,14 +76,17 @@ type interBFFDependency struct {
 	TargetModule   string
 }
 
-var interBFFDependencies = map[string][]interBFFDependency{
-	"genAi": {
-		{
-			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
-			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
-			TargetModule:   "maas",
-		},
-	},
+// proxyPathsFor returns the proxy routes for a module. If the module has
+// explicit ProxyPaths set, those are returned. Otherwise the standard
+// convention /<slug>/api → /api is used.
+func proxyPathsFor(mod ModuleDefinition) []proxyRoute {
+	if mod.ProxyPaths != nil {
+		return mod.ProxyPaths
+	}
+	return []proxyRoute{{
+		Path:        "/" + mod.ManifestSlug + "/api",
+		PathRewrite: "/api",
+	}}
 }
 
 // coreBffPort is the port core-bff listens on within the main dashboard pod/service.
@@ -352,11 +340,11 @@ func (r *DashboardReconciler) deleteModuleResources(
 // --- Inter-BFF env var params ---
 
 func addInterBFFParams(params map[string]string, moduleName string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) {
-	deps, ok := interBFFDependencies[moduleName]
-	if !ok {
+	mod := moduleRegistry[moduleName]
+	if mod.InterBFFDeps == nil {
 		return
 	}
-	for _, dep := range deps {
+	for _, dep := range mod.InterBFFDeps {
 		targetMod, ok := moduleRegistry[dep.TargetModule]
 		if !ok {
 			continue
@@ -392,7 +380,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			RemoteEntry: "/remoteEntry.js",
 			Authorize:   true,
 			TLS:         mod.TLS,
-			Proxy:       moduleProxyPaths[name],
+			Proxy:       proxyPathsFor(mod),
 			Service: &serviceRef{
 				Name:      svcName,
 				Namespace: r.ApplicationsNamespace,

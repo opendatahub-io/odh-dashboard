@@ -12,9 +12,9 @@ policiesModelsCount: 1
 subscriptionName: 'test-maas-policies-sub'
 subscriptionDescription: 'Test MaaS Authorization policies'
 subscriptionGroups: ['rhods-admins','rhods-users']
-tokenRateLimit : 
+tokenRateLimit :
   limit: 1,000
-  window: 1000
+  window: 1,000
   unit: minute
 apiKeyName: 'a-test-maas-subscription-api-key'
 apiKeyDescription: 'Cypress test: API key for test-maas-policies-sub'

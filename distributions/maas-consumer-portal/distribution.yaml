@@ -1,9 +1,9 @@
-name: maas-customer-portal
+name: maas-consumer-portal
 productName: "MaaS Consumer Portal"
 
 packages:
   local:
-    - name: maas-customer-portal
+    - name: maas-consumer-portal
       extensionsPath: ./extensions
   bundled:
     - package: '@odh-dashboard/maas'
