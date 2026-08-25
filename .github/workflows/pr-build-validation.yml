@@ -899,11 +899,13 @@ jobs:
 
       - name: Detect changed BFF modules
         id: detect
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
 
           # Get files changed in this PR
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD")
 
           # Check if root build files changed (affects all BFF builds)
           ROOT_BUILD_CHANGED=false
@@ -956,6 +958,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Free disk space
         uses: ./.github/actions/free-disk-space
@@ -976,9 +980,10 @@ jobs:
           echo "Build completed for ${MODULE}"
 
       - name: Validate BFF startup
+        env:
+          MODULE: ${{ matrix.module }}
         run: |
           set -euo pipefail
-          MODULE="${{ matrix.module }}"
           CONTAINER_NAME="bff-${MODULE}-test"
           IMAGE="bff-${MODULE}:test"
 
