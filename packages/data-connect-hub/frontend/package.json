@@ -38,6 +38,7 @@
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@module-federation/enhanced": "^0.21.4",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
