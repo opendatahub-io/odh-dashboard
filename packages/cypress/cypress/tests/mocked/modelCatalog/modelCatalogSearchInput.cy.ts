@@ -19,6 +19,10 @@ describe('Model Catalog search input minimum width regression', () => {
     setupModelCatalogIntercepts();
 
     cy.visitWithLogin('/ai-hub/models/catalog');
-    modelCatalog.findSearchInput().should('be.visible').invoke('outerWidth').should('be.gte', 400);
+    modelCatalog
+      .findSearchInputContainer()
+      .should('be.visible')
+      .invoke('outerWidth')
+      .should('be.gte', 400);
   });
 });

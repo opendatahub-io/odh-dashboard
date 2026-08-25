@@ -6,40 +6,6 @@ import { setupModelCatalogIntercepts } from '../catalogHelpers';
 const API_VERSION = 'v1';
 
 const setupAgentsCatalogIntercepts = () => {
-  cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/sources*`, {
-    body: {
-      data: {
-        items: [
-          {
-            id: 'sample-source',
-            name: 'Sample Source',
-            enabled: true,
-            labels: ['agent_templates'],
-          },
-        ],
-        size: 1,
-        pageSize: 10,
-        nextPageToken: '',
-      },
-    },
-  });
-
-  cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/labels*`, {
-    body: {
-      data: {
-        items: [
-          {
-            name: 'agent_templates',
-            displayName: 'Agent Templates',
-          },
-        ],
-        size: 1,
-        pageSize: 10,
-        nextPageToken: '',
-      },
-    },
-  });
-
   cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/agents*`, {
     body: {
       data: {
@@ -78,7 +44,7 @@ describe('Agents Catalog search input minimum width regression', () => {
     setupModelCatalogIntercepts();
     setupAgentsCatalogIntercepts();
 
-    cy.visitWithLogin('/ai-hub/agents/catalog');
+    agentsCatalogPage.visit();
     agentsCatalogPage
       .findSearchInput()
       .should('be.visible')

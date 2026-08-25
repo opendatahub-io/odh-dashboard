@@ -223,7 +223,7 @@ class ModelCatalog {
     return cy.findByTestId('Validated arguments-tool-calling-checkbox');
   }
 
-  findSearchInput() {
+  findSearchInputContainer() {
     return cy.findByTestId('search-input');
   }
 }
