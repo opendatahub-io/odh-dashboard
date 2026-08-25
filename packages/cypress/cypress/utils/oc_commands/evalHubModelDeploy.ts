@@ -49,8 +49,9 @@ export function setupTenantAndDeployModel(
   );
 
   cy.step('Wait for operator to reconcile tenant resources');
+  const appsNs = Cypress.env('APPLICATIONS_NAMESPACE') as string;
   pollUntilSuccess(
-    `oc -n ${ns} get sa evalhub-redhat-ods-applications-job -o name`,
+    `oc -n ${ns} get sa evalhub-${appsNs}-job -o name`,
     'operator-provisioned ServiceAccount',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
@@ -60,7 +61,7 @@ export function setupTenantAndDeployModel(
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
   pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-redhat-ods-applications-job-access-role -o name`,
+    `oc -n ${ns} get role evalhub-${appsNs}-job-access-role -o name`,
     'operator-provisioned status-events Role',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
