@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
-	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
-	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
+	helper "github.com/opendatahub-io/data-connect-hub/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
 )
 
 // GetClient retrieves a BFF client from the context for the specified target

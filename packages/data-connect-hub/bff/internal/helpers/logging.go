@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/constants"
 )
 
 func GetContextLoggerFromReq(r *http.Request) *slog.Logger {

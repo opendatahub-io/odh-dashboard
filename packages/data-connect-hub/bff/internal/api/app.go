@@ -10,18 +10,18 @@ import (
 	"path"
 	"strings"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
-	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	k8mocks "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/bffclient"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/bffclient/bffmocks"
+	k8s "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes"
+	k8mocks "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	helper "github.com/opendatahub-io/data-connect-hub/bff/internal/helpers"
 
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/proxy"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/config"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/proxy"
+	"github.com/opendatahub-io/data-connect-hub/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
 )

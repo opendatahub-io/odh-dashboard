@@ -1,4 +1,4 @@
-module github.com/opendatahub-io/mod-arch-library/bff
+module github.com/opendatahub-io/data-connect-hub/bff
 
 go 1.26
 
