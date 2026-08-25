@@ -173,6 +173,44 @@ export const verifyEvaluationCompletedAndViewResults = (
     .should('contain.text', 'Complete');
 };
 
+export const stopAndReconfigureEvaluation = (
+  evaluationRunName: string,
+  reconfiguredRunName: string,
+): void => {
+  cy.step('Open status modal and stop the running evaluation');
+  evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
+  evaluationsPage.findStatusModal().should('be.visible');
+  evaluationsPage.findStatusModalStopButton().should('be.visible').click();
+
+  cy.step('Confirm stop in the stop evaluation modal');
+  evaluationsPage.findStopModal().should('be.visible');
+  evaluationsPage.findStopConfirmButton().click();
+  evaluationsPage.findStopModal().should('not.exist');
+
+  cy.step('Wait for evaluation to reach Stopped status');
+  cy.reload();
+  evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
+  evaluationsPage
+    .findEvaluationStatusButtonInRow(evaluationRunName)
+    .should('not.contain.text', 'Stopping', { timeout: 120000 });
+  evaluationsPage
+    .findEvaluationStatusButtonInRow(evaluationRunName)
+    .should('contain.text', 'Stopped', { timeout: 30000 });
+
+  cy.step('Open status modal and click Reconfigure');
+  evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
+  evaluationsPage.findStatusModal().should('be.visible');
+  evaluationsPage.findStatusModalReconfigureButton().should('be.visible').click();
+
+  cy.step(`Submit the reconfigured evaluation run as "${reconfiguredRunName}"`);
+  cy.url().should('include', '/reconfigure');
+  createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 30000 });
+  createEvaluationPage.findEvaluationNameInput().clear().type(reconfiguredRunName);
+  createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
+  evaluationsPage.findEvaluationsTable({ timeout: 30000 }).should('contain', reconfiguredRunName);
+};
+
 export const runSingleBenchmarkEvaluationFlow = (
   evaluationTenantProject: string,
   opts: SingleBenchmarkEvaluationOptions,

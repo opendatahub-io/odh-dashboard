@@ -51,8 +51,24 @@ class EvaluationsPage {
     return cy.findByTestId('status-modal-stop-button');
   }
 
+  findStatusModalReconfigureButton() {
+    return cy.findByTestId('status-modal-reconfigure-button');
+  }
+
   findStatusModalCloseButton() {
     return cy.findByTestId('status-modal-close-button');
+  }
+
+  findStopModal() {
+    return cy.findByTestId('evaluation-stop-modal');
+  }
+
+  findStopConfirmButton() {
+    return cy.findByTestId('evaluation-stop-confirm');
+  }
+
+  findStopCancelButton() {
+    return cy.findByTestId('evaluation-stop-cancel');
   }
 }
 
