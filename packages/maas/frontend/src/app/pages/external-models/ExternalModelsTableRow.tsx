@@ -4,12 +4,15 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { convertStringToPhaseStatus, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   ExternalModelsInfoPopoverLocation,
   ExternalModelsInfoPopoverTarget,
+  ExternalModelsProviderLabelsExpandedProperties,
+  ExternalModelRowExpandedProperties,
   MaaSEvents,
+  ExternalModelsInfoPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { externalModelsColumns } from './columns';
 import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
@@ -52,13 +55,13 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     if (!isExpanded) {
       if (toggleLocation === ToggleLocation.ARROW) {
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ROW_EXPANDED, {
-          modelStatus: externalModel.phase,
+          modelStatus: convertStringToPhaseStatus(externalModel.phase ?? ''),
           providerCount: externalModel.providerRefs.length,
-        });
+        } satisfies ExternalModelRowExpandedProperties);
       } else {
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED, {
           visibleProviderCount: visibleLabelCount,
-        });
+        } satisfies ExternalModelsProviderLabelsExpandedProperties);
       }
     }
 
@@ -146,7 +149,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
           fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
             infoTarget: ExternalModelsInfoPopoverTarget.MODEL_REFERENCE,
             location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-          });
+          } satisfies ExternalModelsInfoPopoverViewedProperties);
         }}
       />
     </Td>
@@ -205,7 +208,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                 infoTarget: ExternalModelsInfoPopoverTarget.STATUS_LABEL,
                 location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
-              });
+              } satisfies ExternalModelsInfoPopoverViewedProperties);
             }}
           />
         </FlexItem>

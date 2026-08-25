@@ -24,6 +24,7 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  MaaSResourceDeletedProperties,
 } from '~/app/types/event-tracking';
 import EmptyStatePage from './EmptyStatePage';
 
@@ -134,7 +135,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
                 source: EventTrackingSource.LIST_KEBAB,
                 resourceStatus: deleteSubscription.phase ?? '',
                 outcome: TrackingOutcome.submit,
-              });
+              } satisfies MaaSResourceDeletedProperties);
               refresh();
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
@@ -142,7 +143,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
                 source: EventTrackingSource.LIST_KEBAB,
                 resourceStatus: deleteSubscription.phase ?? '',
                 outcome: TrackingOutcome.cancel,
-              });
+              } satisfies MaaSResourceDeletedProperties);
             }
           }}
         />
