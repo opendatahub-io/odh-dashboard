@@ -12,13 +12,14 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: eval-hub-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: eval-hub-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.eval-hub-ui-image
-configurations:
-  - params.yaml
+      fieldPath: data.eval-hub-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: eval-hub-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=eval-hub-ui].image

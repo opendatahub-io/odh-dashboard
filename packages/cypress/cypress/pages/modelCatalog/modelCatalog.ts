@@ -7,7 +7,7 @@ class ModelCatalog {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/models/catalog`);
+    cy.visitWithLogin('/ai-hub/models/catalog');
     this.wait();
   }
 
@@ -38,8 +38,13 @@ class ModelCatalog {
     return this;
   }
 
-  findModelCatalogEmptyState() {
-    return cy.findByTestId('empty-model-catalog-state');
+  findSearchInput() {
+    return cy.findByTestId('search-input').find('input');
+  }
+
+  searchByName(name: string) {
+    this.findSearchInput().clear().type(`${name}{enter}`);
+    return this;
   }
 
   findModelCatalogModelDetailLink() {
@@ -56,6 +61,10 @@ class ModelCatalog {
       .contains('[data-testid~=model-catalog-card]', modelName);
   }
 
+  findModelCatalogCardLink(modelName: string) {
+    return this.findModelCatalogCard(modelName).findByTestId('model-catalog-detail-link');
+  }
+
   findFirstModelCatalogCard() {
     return cy.findAllByTestId('model-catalog-card').first();
   }
@@ -69,7 +78,7 @@ class ModelCatalog {
   }
 
   clickDeployModelButtonWithRetry() {
-    const maxRetries = 3;
+    const maxRetries = 6;
     let attempt = 0;
     const tryClick = () => {
       attempt++;
@@ -79,6 +88,8 @@ class ModelCatalog {
       cy.location('pathname').then((path) => {
         if (!path.includes('/ai-hub/models/deployments/deploy') && attempt < maxRetries) {
           cy.log('Wizard did not open, retrying...');
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(2000);
           tryClick();
         }
       });

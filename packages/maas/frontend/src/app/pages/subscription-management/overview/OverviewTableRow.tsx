@@ -4,8 +4,17 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import {
+  convertStringToPopoverViewedStatus,
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+} from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -20,23 +29,21 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
-    headerContent="Configuration warning"
+    data-testid="no-subscriptions-warning-popover"
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
+    headerContent="No subscriptions"
     bodyContent={
-      <div>
-        <p>
-          This model has no subscriptions. Without a subscription, no token rate limits are
-          configured and the model cannot be called through the MaaS API gateway.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <strong>How to fix this:</strong>
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Create a new subscription that includes this model and at least one group.
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Or add this model to an existing subscription from the Subscriptions tab.
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it is not included in any
+        subscriptions. Create a subscription that includes this model and at least 1 group, or add
+        this model to an existing subscription from the <b>Subscriptions</b> tab.
+      </p>
     }
   >
     <Button
@@ -51,26 +58,22 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
-    headerContent="Configuration warning"
+    data-testid="no-policies-warning-popover"
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+    }}
+    headerContent="No authorization policies"
     bodyContent={
-      <div>
-        <p>
-          This model has no authorization policies. Without a policy, the MaaS gateway will deny all
-          access to this model -- even if a subscription exists.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <strong>How to fix this:</strong>
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Create a new authorization policy that includes this model and at least one group.
-        </p>
-        <p className="pf-v6-u-ml-md">
-          Or add this model to an existing policy from the Authorization policies tab.
-        </p>
-        <p className="pf-v6-u-mt-sm">
-          <em>Both a subscription and a policy are required for a group to access a model.</em>
-        </p>
-      </div>
+      <p>
+        This model cannot be called through the MaaS API gateway because it does not have an
+        authorization policy. Both a subscription and a policy are required for a group to access a
+        model. Create a policy that includes this model and at least 1 group, or add this model to
+        an existing policy from the <b>Authorization policies</b> tab.
+      </p>
     }
   >
     <Button
@@ -92,7 +95,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Tbody isExpanded={isExpanded} data-testid="overview-model-row">
+    <Tbody isExpanded={isExpanded} data-testid={`overview-model-row-${row.id}-${row.namespace}`}>
       <Tr style={isExpanded ? { borderBottom: 'none' } : undefined}>
         <Td
           data-testid="expand-model"
@@ -114,7 +117,27 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={overviewColumns[2].label}>
+        <Td dataLabel={overviewColumns[2].label}>{row.namespace}</Td>
+        <Td dataLabel={overviewColumns[3].label}>
+          <PhaseLabel
+            phase={row.modelDetails.phase}
+            statusMessage={row.modelDetails.statusMessage}
+            status={row.modelDetails.status}
+            conditionType={row.modelDetails.conditionType}
+            lastTransitionTime={row.modelDetails.lastTransitionTime}
+            reason={row.modelDetails.reason}
+            resourceType={PhaseResourceType.MODEL}
+            resourceName={row.modelDetails.displayName ?? row.id}
+            onClick={() => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+                popoverType: EventTrackingPopoverType.STATUS,
+                status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
+                location: PhaseLabelLocation.OVERVIEW,
+              } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+            }}
+          />
+        </Td>
+        <Td dataLabel={overviewColumns[4].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.subscriptions.length}</FlexItem>
             {row.subscriptions.length === 0 && (
@@ -124,7 +147,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             )}
           </Flex>
         </Td>
-        <Td dataLabel={overviewColumns[3].label}>
+        <Td dataLabel={overviewColumns[5].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.authPolicies.length}</FlexItem>
             {row.authPolicies.length === 0 && (
@@ -167,7 +190,11 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
       <Tr isExpanded={isExpanded}>
         <Td colSpan={overviewColumns.length}>
           <ExpandableRowContent>
-            <ExpandedModelContent subscriptions={row.subscriptions} policies={row.authPolicies} />
+            <ExpandedModelContent
+              subscriptions={row.subscriptions}
+              policies={row.authPolicies}
+              returnTo={RETURN_TO}
+            />
           </ExpandableRowContent>
         </Td>
       </Tr>

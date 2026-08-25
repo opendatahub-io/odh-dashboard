@@ -8,8 +8,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { z } from 'zod';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   useModelServingClusterSettings,

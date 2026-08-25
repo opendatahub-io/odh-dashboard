@@ -22,6 +22,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
   return (
     <DeleteModal
       title="Delete playground?"
+      testId="delete-playground-modal"
       onClose={() => {
         onCancel();
         fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {

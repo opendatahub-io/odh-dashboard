@@ -7,12 +7,12 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import TabRoutePage from '#~/app/navigation/TabRoutePage';
 import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { useUser } from '#~/redux/selectors';
 
-const NotFound = React.lazy(() => import('../pages/NotFound'));
+const NotFound = React.lazy(() => import('@odh-dashboard/ui-core/components/NotFound'));
 
 const DependencyMissingPage = React.lazy(
   () => import('#~/pages/dependencies/DependencyMissingPage'),

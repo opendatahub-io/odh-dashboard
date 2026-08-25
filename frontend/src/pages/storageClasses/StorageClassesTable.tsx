@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import useFilters from '#~/utilities/useFilters';
 import { columns, initialScFilterData, StorageClassFilterData } from './constants';
 import { isValidConfigValue } from './utils';
 import { StorageClassesTableRow } from './StorageClassesTableRow';
@@ -9,7 +10,8 @@ import { useStorageClassContext } from './StorageClassesContext';
 
 export const StorageClassesTable: React.FC = () => {
   const { storageClasses, storageClassConfigs } = useStorageClassContext();
-  const [filterData, setFilterData] = React.useState<StorageClassFilterData>(initialScFilterData);
+  const { filterData, onFilterUpdate, onClearFilters } =
+    useFilters<StorageClassFilterData>(initialScFilterData);
 
   const filteredStorageClasses = React.useMemo(
     () =>
@@ -41,15 +43,13 @@ export const StorageClassesTable: React.FC = () => {
       variant="compact"
       data={filteredStorageClasses}
       columns={columns}
-      emptyTableView={
-        <DashboardEmptyTableView onClearFilters={() => setFilterData(initialScFilterData)} />
-      }
+      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
       data-testid="storage-classes-table"
       rowRenderer={(storageClass) => (
         <StorageClassesTableRow key={storageClass.metadata.name} storageClass={storageClass} />
       )}
       toolbarContent={
-        <StorageClassFilterToolbar filterData={filterData} setFilterData={setFilterData} />
+        <StorageClassFilterToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
       }
     />
   );

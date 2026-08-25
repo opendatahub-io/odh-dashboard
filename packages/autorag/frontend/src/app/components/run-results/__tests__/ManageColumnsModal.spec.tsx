@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import ManageColumnsModal from '~/app/components/run-results/ManageColumnsModal';
+import ManageColumnsModal, {
+  type ColumnPreset,
+} from '~/app/components/run-results/ManageColumnsModal';
 
 let capturedOnDrop: ((event: unknown, newItems: { id: string }[]) => void) | undefined;
 
@@ -31,6 +34,11 @@ const columns: ColumnManagementModalColumn[] = [
   { key: 'col-a', title: 'Column A', isShownByDefault: true, isShown: true },
   { key: 'col-b', title: 'Column B', isShownByDefault: true, isShown: true },
   { key: 'col-c', title: 'Column C', isShownByDefault: true, isShown: true },
+];
+
+const presets: ColumnPreset[] = [
+  { label: 'Preset A', visibleColumnKeys: ['col-a'] },
+  { label: 'Preset B', visibleColumnKeys: ['col-a', 'col-b'] },
 ];
 
 describe('ManageColumnsModal', () => {
@@ -92,5 +100,32 @@ describe('ManageColumnsModal', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('should call onPresetSelect exactly once when a preset option is clicked', async () => {
+    const user = userEvent.setup();
+    const onPresetSelect = jest.fn();
+
+    render(
+      <ManageColumnsModal
+        isOpen
+        onClose={jest.fn()}
+        appliedColumns={columns}
+        defaultColumns={columns}
+        applyColumns={jest.fn()}
+        presets={presets}
+        onPresetSelect={onPresetSelect}
+      />,
+    );
+
+    await user.click(screen.getByTestId('organize-by-toggle'));
+    // Click the visible label text of the preset option, which is the most
+    // realistic user interaction and previously caused the handler to fire
+    // multiple times (once via the Select's onSelect, once via the Radio's
+    // onChange).
+    await user.click(screen.getByText('Preset B'));
+
+    expect(onPresetSelect).toHaveBeenCalledTimes(1);
+    expect(onPresetSelect).toHaveBeenCalledWith('Preset B');
   });
 });

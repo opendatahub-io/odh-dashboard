@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -227,128 +228,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg)
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
-func (r *DashboardReconciler) reconcileSidecar(
-	ctx context.Context,
-	dashboard *v1alpha1.Dashboard,
-	cm *conditions.Manager,
-	cfg OperatorConfig,
-) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
-
-	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("KustomizeParamsFailed"),
-			conditions.WithError(err))
-
-		return ctrl.Result{}, fmt.Errorf("failed to apply kustomize params: %w", err)
-	}
-
-	engine := kustomize.NewEngine()
-
-	var allResources []unstructured.Unstructured
-	for _, m := range manifests {
-		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
-		if err != nil {
-			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-				conditions.WithReason("RenderFailed"),
-				conditions.WithError(err))
-
-			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
-		}
-
-		allResources = append(allResources, rendered...)
-	}
-
-	remapRayDashboardGatewayRBAC(allResources)
-
-	deployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
-		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
-		deploy.WithApplyOrder(),
-		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
-	)
-
-	if err := deployer.Deploy(ctx, deploy.DeployInput{
-		Client:    r.Client,
-		Owner:     dashboard,
-		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
-		Resources: allResources,
-	}); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("DeployFailed"),
-			conditions.WithError(err))
-
-		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
-	}
-
-	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
-		conditions.WithReason("ResourcesApplied"),
-		conditions.WithMessage("Dashboard manifests applied successfully"))
-
-	r.reconcileObservability(ctx, dashboard, cm)
-
-	url, requeueAfter, err := r.reconcileURL(ctx, dashboard, cm)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
-
-	var podList corev1.PodList
-	if err := r.List(ctx, &podList,
-		client.InNamespace(r.ApplicationsNamespace),
-		client.MatchingLabels{"app.kubernetes.io/part-of": "odh-dashboard"},
-	); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("PodListFailed"),
-			conditions.WithError(err),
-			conditions.WithSeverity(common.ConditionSeverityError))
-
-		return ctrl.Result{}, fmt.Errorf("failed to list dashboard pods: %w", err)
-	}
-
-	overlayContainerReadiness(nextStatuses, podList.Items)
-
-	for name, next := range nextStatuses {
-		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
-			prev.Phase == next.Phase &&
-			prev.Reason == next.Reason &&
-			prev.Message == next.Message {
-			next.LastTransitionTime = prev.LastTransitionTime
-			nextStatuses[name] = next
-		}
-	}
-	dashboard.Status.ModuleStatuses = nextStatuses
-
-	if requeueAfter > 0 {
-		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter, "modules", len(dashboard.Status.ModuleStatuses))
-	} else {
-		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
-	}
-
-	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
-		requeueAfter = cfg.ReconcileInterval
-	}
-
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
-}
-
-func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+// cleanupLegacySidecarResources removes resources that were created by the
+// now-removed sidecar deployment mode. Kept for upgrade safety: clusters that
+// were running sidecar mode need these resources cleaned up on the first
+// reconcile with the new operator. The function is idempotent.
+func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	ns := r.ApplicationsNamespace
 	var errs []error
@@ -384,13 +289,13 @@ func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error 
 	}
 
 	if len(errs) == 0 {
-		logger.Info("Cleaned up sidecar-specific resources")
+		logger.Info("Cleaned up legacy sidecar resources")
 	}
 
 	return errors.Join(errs...)
 }
 
-func (r *DashboardReconciler) reconcileStandalone(
+func (r *DashboardReconciler) reconcileDeployment(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
@@ -398,18 +303,14 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
-	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
-	if err := r.deleteSidecarResources(ctx); err != nil {
+	if err := r.cleanupLegacySidecarResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("SidecarCleanupFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy sidecar resources: %w", err)
 	}
 
-	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
-	// Uses the standalone overlay which excludes BFF module sidecar containers.
-	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
+	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -426,12 +327,26 @@ func (r *DashboardReconciler) reconcileStandalone(
 			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 				conditions.WithReason("RenderFailed"),
 				conditions.WithError(err))
-			return ctrl.Result{}, fmt.Errorf("failed to render core manifests from %s: %w", m, err)
+			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
 		}
 		allResources = append(allResources, rendered...)
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -449,13 +364,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to deploy core resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
 	}
 
-	// Step 2: Resolve module statuses
 	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
 
-	// Step 3: Deploy enabled modules
 	if err := r.deployModuleManifests(ctx, dashboard, nextStatuses); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("ModuleDeployFailed"),
@@ -463,7 +376,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("failed to deploy module manifests: %w", err)
 	}
 
-	// Step 4: GC disabled modules
+	// GC disabled modules
 	if err := r.deleteModuleResources(ctx, nextStatuses); err != nil {
 		logger.Error(err, "Failed to clean up disabled module resources")
 	}
@@ -472,11 +385,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
-	// Step 5: Overlay readiness from standalone deployments (before federation ConfigMap
+	// Overlay readiness from module deployments (before federation ConfigMap
 	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
 	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
-	// Persist module statuses now so early returns from steps 6-8 don't leave
+	// Persist module statuses now so early returns from steps 6-9 don't leave
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	for name, next := range nextStatuses {
 		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
@@ -489,10 +402,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 	dashboard.Status.ModuleStatuses = nextStatuses
 
-	// Step 6: Deploy observability
+	// Reconcile cross-namespace RBAC (notebooks, model-registry)
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
+
+	// Deploy observability
 	r.reconcileObservability(ctx, dashboard, cm)
 
-	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
+	// Build and deploy federation ConfigMap
 	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
 	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
@@ -507,7 +429,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
-	// Step 8: URL extraction + degraded condition
+	// URL extraction + degraded condition
 	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
 	if urlErr != nil {
 		return ctrl.Result{}, urlErr
@@ -515,11 +437,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
 	}
+	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
+	// restore the RBAC failure so it is not silently cleared while cross-namespace
+	// grants are still broken.
+	if rbacErr != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
 
 	if requeueAfter > 0 {
-		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
+		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
 	} else {
-		logger.Info("Standalone mode reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
 	}
 
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
@@ -655,6 +585,10 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
 
+	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
+	}
+
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
 	}
@@ -663,6 +597,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
@@ -942,5 +880,6 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Complete(r)
 }

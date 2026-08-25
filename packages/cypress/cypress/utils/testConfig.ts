@@ -18,6 +18,8 @@ import type { UserAuthConfig, TestConfig, AWSS3BucketDetails, AWSS3Buckets } fro
   }),
 );
 
+console.log('CY_TEST_CONFIG:', env.CY_TEST_CONFIG);
+
 const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
   ? YAML.parse(fs.readFileSync(env.CY_TEST_CONFIG).toString())
   : undefined;

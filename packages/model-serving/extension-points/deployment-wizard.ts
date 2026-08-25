@@ -4,7 +4,7 @@ import type {
   useHardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { Deployment, ExtractionResult } from './index';
+import type { Deployment, DeploymentHookPayloadFor, ExtractionResult } from './index';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -13,11 +13,22 @@ import type {
   ModelLocationData,
 } from '../src/shared/types/form-data';
 import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    /**
+     * Whether this extension is active for the given deployment. When multiple form-data
+     * extensions share a `platform`, the active one with the highest `priority` wins.
+     * Evaluated at extraction time from an existing deployment, so it must not rely on wizard state.
+     */
+    isActive: CodeRef<(deployment: D) => boolean> | true;
+    /**
+     * Priority among active extensions WITH the same `platform`. Higher number wins.
+     */
+    priority: number | 0;
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
@@ -74,6 +85,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
+        externalData: ExternalDataMap,
         projectName: string,
         existingDeployment?: D,
         modelResource?: D['model'],
@@ -172,8 +184,8 @@ export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deploy
   {
     /** The ID of the WizardField this apply extension is associated with */
     fieldId: string;
-    /** The platform this apply extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this apply extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Apply function that modifies the deployment based on the field's data.
      * @param deployment - The deployment resource being assembled
@@ -205,8 +217,8 @@ export type WizardFieldExtractorExtension<
   {
     /** The ID of the WizardField this extractor is associated with */
     fieldId: string;
-    /** The platform this extractor applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this extractor applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Extract function that retrieves the field's initial data from a deployment.
      * @param deployment - The deployment resource to extract data from
@@ -221,10 +233,9 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
   extension.type === 'model-serving.deployment/wizard-field-extractor';
 
 /**
- * Extension for performing dry-run validation of side-effect resources before a deployment is saved.
+ * Extension for making side-effect resources before a deployment is saved.
  * This runs before the inference service is created, in the same phase as other dry runs,
  * allowing extensions to validate that their associated resources can be created without conflicts.
- * Unlike post-deploy, errors thrown here propagate and block the deployment.
  *
  * The `fieldId` links this to a specific WizardFieldExtension so it is only
  * executed when that field is active.
@@ -237,25 +248,50 @@ export type WizardFieldDeploymentFunctionsExtension<
   {
     /** The ID of the WizardField this deployment functions extension is associated with */
     fieldId: string;
-    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this deployment functions extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
-     * Async function that dry-runs before the deployment is saved. Throw to block the deployment.
+     * Async function that runs before the deployment is saved. Throw to block the deployment.
+     *
+     * Called twice: first with `dryRun === true` alongside the other dry runs to validate,
+     * then again with `dryRun !== true` to perform the actual side effects before the
+     * deployment is created.
+     *
      * @param fieldData - The current data from the associated wizard field
      * @param wizardState - The full wizard form state for context (includes project name, etc.)
-     * @param modelResource - The assembled model resource (not yet created, may lack uid/namespace)
+     * @param deployment - The assembled deployment (not yet created, may lack uid/namespace)
      * @param existingDeployment - The deployment before editing, or undefined for a create
+     * @param dryRun - True for the validation pass, falsy for the real pass
      */
-    preDeploy: CodeRef<
+    preDeploy: null | CodeRef<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
-        deployment: D,
+        deployment: DeploymentHookPayloadFor<D>,
         existingDeployment?: D,
-      ) => Promise<D>
+        dryRun?: boolean,
+      ) => Promise<DeploymentHookPayloadFor<D>>
     >;
-    postDeploy: CodeRef<
-      (fieldData: T, deployedModel: D['model'], existingDeployment?: D) => Promise<void>
+    /**
+     * Async function that runs after the deployment is saved.
+     *
+     * Called twice: first with `dryRun === true` alongside the other dry runs to validate,
+     * then again with `dryRun !== true` once the deployment has been created.
+     *
+     * @param fieldData - The current data from the associated wizard field
+     * @param deployedModel - The full deployment resource. On the dry run pass this is the
+     * assembled deployment; on the real pass it is the created deployment returned by the
+     * deploy method.
+     * @param existingDeployment - The deployment before editing, or undefined for a create
+     * @param dryRun - True for the validation pass, falsy for the real pass
+     */
+    postDeploy: null | CodeRef<
+      (
+        fieldData: T,
+        deployedModel: DeploymentHookPayloadFor<D>,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<void>
     >;
   }
 >;
@@ -266,3 +302,28 @@ export const isWizardFieldDeploymentFunctionsExtension = <
   extension: Extension,
 ): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-deployment-functions';
+
+/**
+ * Extension for contributing per-platform tracking properties to the Model Deployed event.
+ * Spokes register this extension so the hub can collect platform-specific analytics data
+ * without importing from spoke packages.
+ */
+export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/tracking-properties',
+  {
+    platform: D['modelServingPlatformId'];
+    /**
+     * Extract platform-specific tracking properties from the wizard form state.
+     * These are merged into the base Model Deployed / Model Updated event properties.
+     */
+    getProperties: CodeRef<
+      (
+        wizardState: WizardFormData['state'],
+      ) => Record<string, string | number | boolean | undefined>
+    >;
+  }
+>;
+export const isWizardTrackingPropertiesExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is WizardTrackingPropertiesExtension<D> =>
+  extension.type === 'model-serving.deployment/tracking-properties';

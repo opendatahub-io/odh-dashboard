@@ -11,9 +11,9 @@ interface MCPToolsTableRowProps {
 }
 
 const MCPToolsTableRow: React.FC<MCPToolsTableRowProps> = ({ tool, isChecked, onToggleCheck }) => (
-  <Tr>
+  <Tr data-testid={`mcp-tool-row-${tool.name}`}>
     <CheckboxTd id={tool.id} isChecked={isChecked} onToggle={onToggleCheck} />
-    <Td dataLabel="Tool name">
+    <Td dataLabel="Tool name" data-testid={`mcp-tool-name-${tool.name}`}>
       <Truncate content={tool.name} className="pf-v6-u-font-family-monospace" />
     </Td>
     <Td dataLabel="Description">

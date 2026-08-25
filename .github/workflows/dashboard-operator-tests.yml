@@ -21,6 +21,7 @@ on:
 
 jobs:
   test:
+    name: Dashboard Operator Tests
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -46,6 +47,10 @@ jobs:
       - name: Test
         working-directory: dashboard-operator
         run: make test
+
+      - name: Integration tests (envtest)
+        working-directory: dashboard-operator
+        run: make test-integration
 
       - name: Validate Helm chart
         working-directory: dashboard-operator

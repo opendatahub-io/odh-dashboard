@@ -9,11 +9,6 @@ import type {
 } from '@odh-dashboard/model-serving/shared';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 
-export enum PerformanceMetricType {
-  SERVER = 'server',
-  MODEL = 'model',
-}
-
 export enum MetricType {
   SERVER = 'server',
   MODEL = 'model',

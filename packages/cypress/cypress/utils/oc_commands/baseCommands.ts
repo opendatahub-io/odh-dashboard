@@ -60,6 +60,9 @@ export const execWithOutput = (
         return cy.wrap({ exitCode: 0, stdout: '', stderr: '' });
       }
       cy.log(`Command exit code: ${result.exitCode}`);
+      if (result.exitCode !== 0) {
+        cy.log(`Command stderr: ${result.stderr || result.stdout}`);
+      }
       return cy.wrap(result);
     });
 };
@@ -81,6 +84,27 @@ export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
 };
 
 /**
+ * Gets the CPU architecture of cluster nodes by querying node labels.
+ * Returns 's390x' when at least one node carries the s390x architecture label,
+ * otherwise returns 'x86_64'.
+ *
+ * @returns A Cypress chainable resolving to the architecture string.
+ */
+export const getClusterArchitecture = (): Cypress.Chainable<string> => {
+  return cy
+    .exec(`oc get nodes -o jsonpath='{.items[*].status.nodeInfo.architecture}'`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
+      const isS390x = archOutput.split(/\s+/).some((a) => a === 's390x');
+      const arch = isS390x ? 's390x' : 'x86_64';
+      cy.log(`Detected cluster architecture: ${arch} (raw: ${archOutput})`);
+      return cy.wrap(arch);
+    });
+};
+
+/**
  * Applies the given YAML content using the `oc apply` command.
  *
  * @param yamlContent YAML content to be applied
@@ -96,9 +120,11 @@ export const applyOpenShiftYaml = (
     .toString(36)
     .substr(2, 9)}.yaml`;
 
-  // Write YAML content to temp file using Node.js fs to avoid logging
-  return cy.writeFile(tempFileName, yamlContent).then(() => {
-    const ocCommand = `oc apply ${ns} -f ${tempFileName} && rm -f ${tempFileName}`;
+  // Write YAML to a temp file so `oc apply -f <path>` does not put secrets on argv.
+  // log: false keeps Cypress from printing file contents (often Secret YAML) to CI logs.
+  return cy.writeFile(tempFileName, yamlContent, { log: false }).then(() => {
+    const ocCommand =
+      `oc apply ${ns} -f ${tempFileName}; status=$?; ` + `rm -f -- ${tempFileName}; exit $status`;
     return execWithOutput(ocCommand);
   });
 };

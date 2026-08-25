@@ -2,12 +2,12 @@ import { waitFor } from '@testing-library/dom';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import { mockConnection } from '#~/__mocks__/mockConnection';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import usePrefillModelDeployModal from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({

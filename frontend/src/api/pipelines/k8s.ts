@@ -6,19 +6,17 @@ import {
   k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import { kindApiVersion } from '@odh-dashboard/k8s-core';
+import type { SecretKind, K8sAPIOptions, RouteKind } from '@odh-dashboard/k8s-core';
+import { kindApiVersion, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
   DSPipelineManagedPipelinesInstructLabKind,
   DSPipelineManagedPipelinesKind,
-  K8sAPIOptions,
-  RouteKind,
+  DSPipelineMlflowKind,
 } from '#~/k8sTypes';
 import { getRoute } from '#~/api/k8s/routes';
 import { getSecret } from '#~/api/k8s/secrets';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { DEFAULT_PIPELINE_DEFINITION_NAME } from '#~/concepts/pipelines/const';
 import { ELYRA_SECRET_NAME } from '#~/concepts/pipelines/elyra/const';
 import { DEV_MODE } from '#~/utilities/const';
@@ -139,6 +137,7 @@ export const updatePipelineSettings = async (
   settings: {
     cacheEnabled?: boolean;
     managedPipelines?: DSPipelineManagedPipelinesKind;
+    mlflow?: DSPipelineMlflowKind;
   },
   name = 'dspa',
 ): Promise<DSPipelineKind> => {
@@ -148,7 +147,7 @@ export const updatePipelineSettings = async (
     | { op: 'remove'; path: string }
   > = [];
 
-  // Read current resource to check for existing managedPipelines field
+  // Read current resource to check for existing fields
   const currentResource = await k8sGetResource<DSPipelineKind>({
     model: DataSciencePipelineApplicationModel,
     queryOptions: { name, ns: namespace },
@@ -188,6 +187,23 @@ export const updatePipelineSettings = async (
       patches.push({
         op: 'remove' as const,
         path: '/spec/apiServer/managedPipelines',
+      });
+    }
+  }
+
+  if (settings.mlflow !== undefined) {
+    const existingMlflow = currentResource.spec.mlflow;
+    if (existingMlflow) {
+      patches.push({
+        op: 'replace' as const,
+        path: '/spec/mlflow',
+        value: settings.mlflow,
+      });
+    } else {
+      patches.push({
+        op: 'add' as const,
+        path: '/spec/mlflow',
+        value: settings.mlflow,
       });
     }
   }

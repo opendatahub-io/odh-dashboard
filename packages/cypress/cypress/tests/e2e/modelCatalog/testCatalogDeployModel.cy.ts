@@ -1,6 +1,9 @@
 import * as yaml from 'js-yaml';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
-import { ModelLocationSelectOption } from '../../../utils/modelServingConstants';
+import {
+  ModelLocationSelectOption,
+  ModelDeploymentType,
+} from '../../../utils/modelServingConstants';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -60,7 +63,7 @@ describe('Verify a model can be deployed from model catalog', () => {
   });
   it(
     'Verify a model can be deployed from model catalog',
-    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Smoke', '@SmokeSet3', '@ModelCatalog'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       // Enable model catalog
@@ -109,9 +112,7 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-
-      modelServingWizard.selectFirstAvailableDeploymentMethod();
-      modelServingWizard.selectServingRuntimeIfAvailable();
+      modelServingWizard.selectDeploymentType(ModelDeploymentType.TYPE1);
 
       cy.step('Advanced options step');
       modelServingWizard.findNextButton().should('be.enabled').click();

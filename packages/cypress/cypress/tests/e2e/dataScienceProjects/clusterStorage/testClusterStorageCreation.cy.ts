@@ -95,7 +95,9 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       addClusterStorageModal.findDescriptionInput().type(pvStorageDescription);
       const numericPvcSize = dashboardConfig.notebookController.pvcSize.replace(/\D/g, '');
       addClusterStorageModal.findPVStorageSizeValue().should('have.value', numericPvcSize);
-      addClusterStorageModal.findSubmitButton().click({ force: true });
+      addClusterStorageModal.findSubmitButton().should('be.enabled').click();
+      // Wait for create modal to close before asserting the new row
+      addClusterStorageModal.shouldBeOpen(false);
       clusterStorage.getClusterStorageRow(pvStorageName).find().should('exist');
 
       // Edit the Cluster Storage, amend the name and update
@@ -104,7 +106,9 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       clusterStorageActions.findEditStorageAction().click();
       updateClusterStorageModal.findNameInput().clear();
       updateClusterStorageModal.findNameInput().type(pvStorageNameEdited);
-      updateClusterStorageModal.findSubmitButton().click({ force: true });
+      updateClusterStorageModal.findSubmitButton().should('be.enabled').click();
+      // Wait for update modal to close before asserting the edited row
+      updateClusterStorageModal.shouldBeOpen(false);
       clusterStorage.getClusterStorageRow(pvStorageNameEdited).find().should('exist');
 
       // Delete the Cluster Storage and confirm that the deletion was successful
@@ -114,6 +118,8 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type(pvStorageNameEdited);
       deleteModal.findSubmitButton().should('be.enabled').click();
+      // Wait for delete modal to close before asserting empty state
+      deleteModal.shouldBeOpen(false);
       clusterStorage.findEmptyState().should('exist');
     },
   );

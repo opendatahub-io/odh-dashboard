@@ -29,6 +29,10 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 test: fmt vet ## Run tests.
 	go test -race -coverprofile=cover.out ./...
 
+.PHONY: test-integration
+test-integration: setup-envtest ## Run integration tests with envtest.
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use 1.31.x -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
+
 ##@ Build
 
 SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
@@ -92,6 +96,28 @@ docker-build: ## Build container image (run from repo root).
 docker-push: ## Push container image.
 	docker push $(IMG)
 
+##@ Chaos
+
+OPERATOR_CHAOS_VERSION ?= v0.0.0-20260521100204-4dab974d613c
+OPERATOR_CHAOS ?= $(LOCALBIN)/operator-chaos-$(OPERATOR_CHAOS_VERSION)
+
+.PHONY: operator-chaos
+operator-chaos: $(OPERATOR_CHAOS) ## Download operator-chaos locally if necessary.
+$(OPERATOR_CHAOS): $(LOCALBIN)
+	$(call go-install-tool,$(OPERATOR_CHAOS),github.com/opendatahub-io/operator-chaos/cmd/operator-chaos,$(OPERATOR_CHAOS_VERSION))
+
+.PHONY: chaos-validate
+chaos-validate: operator-chaos ## Validate chaos knowledge model and experiments.
+	"$(OPERATOR_CHAOS)" validate --knowledge ../chaos/knowledge/dashboard.yaml
+	@status=0; \
+	for f in ../chaos/experiments/*.yaml; do \
+		echo "--- $$f ---"; \
+		if ! "$(OPERATOR_CHAOS)" validate "$$f"; then \
+			status=1; \
+		fi; \
+	done; \
+	exit $$status
+
 ##@ Dependencies
 
 LOCALBIN ?= $(shell pwd)/bin
@@ -100,9 +126,11 @@ $(LOCALBIN):
 
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen-$(CONTROLLER_GEN_VERSION)
+ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 
 GOLANGCI_LINT_VERSION ?= v2.1.0
 CONTROLLER_GEN_VERSION ?= v0.17.2
+ENVTEST_VERSION ?= v0.24.1
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT)
@@ -113,6 +141,11 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN): $(LOCALBIN)
 	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_GEN_VERSION))
+
+.PHONY: setup-envtest
+setup-envtest: $(ENVTEST)
+$(ENVTEST): $(LOCALBIN)
+	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
 define go-install-tool
 @[ -f $(1) ] || { \

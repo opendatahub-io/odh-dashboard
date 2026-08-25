@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { Flex, FlexItem, Icon, Tooltip, Truncate } from '@patternfly/react-core';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { Content, Truncate } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
-import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type SelectFeatureStoresModalRowProps = {
   rowIndex: number;
@@ -34,21 +32,12 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
       />
       <Td dataLabel="Name">
         {featureStore.isUnavailable ? (
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
+          <Content
+            className="pf-v6-u-text-color-disabled"
+            data-testid="feature-store-unavailable-name"
           >
-            <FlexItem>
-              <Truncate content={featureStore.projectName} />
-            </FlexItem>
-            <FlexItem>
-              <Tooltip content={FEATURE_STORE_UNAVAILABLE_TOOLTIP}>
-                <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
-                  <InfoCircleIcon />
-                </Icon>
-              </Tooltip>
-            </FlexItem>
-          </Flex>
+            <Truncate content={featureStore.projectName} />
+          </Content>
         ) : (
           <Truncate content={featureStore.projectName} />
         )}

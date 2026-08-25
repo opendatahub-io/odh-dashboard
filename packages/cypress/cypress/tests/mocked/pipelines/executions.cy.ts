@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import {
   buildMockPipeline,
   buildMockPipelines,
-  mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockRouteK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockGetExecutions,
   mockGetNextPageExecutions,
@@ -25,21 +25,7 @@ import { verifyRelativeURL } from '../../../utils/url';
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
 
-describe('ExecutionsError', () => {
-  it('Fails to load executions list', () => {
-    initIntercepts(false);
-    executionPage.visit(projectName);
-    executionPage.findText('There was an issue loading executions');
-  });
-});
-
-describe('No Executions', () => {
-  it('Has no executions', () => {
-    initIntercepts(true, true);
-    executionPage.visit(projectName);
-    executionPage.findText('No executions');
-  });
-});
+// CONVERTED to Jest: ExecutionsList.spec.tsx
 
 describe('Executions', () => {
   beforeEach(() => {
@@ -57,11 +43,8 @@ describe('Executions', () => {
     testExecutionDetailsPage();
   });
 
-  it('redirect from v2 to v3 route', () => {
-    cy.visitWithLogin('/executions');
-    cy.findByTestId('app-page-title').contains('Executions');
-    cy.url().should('include', '/develop-train/pipelines/executions');
-  });
+  // CONVERTED to Jest: frontend/src/utilities/__tests__/v2Redirect.spec.tsx
+  // - "redirect from v2 to v3 route" -> covered by v2Redirect.spec.tsx wildcard redirect tests
 });
 
 export enum FilterArgs {

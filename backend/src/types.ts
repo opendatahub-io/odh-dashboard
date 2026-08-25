@@ -59,6 +59,7 @@ export type DashboardConfig = K8sResourceCommon & {
       modelAsService: boolean;
       externalModels: boolean;
       mlflow: boolean;
+      workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
       agentOps: boolean;
@@ -77,6 +78,7 @@ export type DashboardConfig = K8sResourceCommon & {
       globalProjectPrompts: boolean;
       gpuaas: boolean;
       connectionTest: boolean;
+      modelCapabilities: boolean;
       observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later

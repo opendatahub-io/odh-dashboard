@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
 import EvalHubCoreLoader from './components/EvalHubCoreLoader';
@@ -14,6 +14,7 @@ import EvaluationResultsPage from './pages/EvaluationResultsPage';
 import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
 import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
 import { evaluationComparePathSegment } from './routes';
+import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -45,6 +46,7 @@ const AppRoutes: React.FC = () => (
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
         <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
+        <Route path=":namespace/reconfigure/:jobId" element={<EvaluationReconfigureLoader />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

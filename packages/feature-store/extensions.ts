@@ -138,6 +138,34 @@ const extensions: (
     },
   },
   {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_FEATURE_STORE_ADMIN],
+    },
+    properties: {
+      id: 'settings-feature-stores',
+      title: 'Feature stores',
+      href: '/settings/environment-setup/feature-stores',
+      section: 'settings-environment-setup',
+      path: '/settings/environment-setup/feature-stores/*',
+      accessReview: {
+        group: 'feast.dev',
+        resource: 'featurestores',
+        verb: 'list',
+      },
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_FEATURE_STORE_ADMIN],
+    },
+    properties: {
+      path: '/settings/environment-setup/feature-stores/*',
+      component: () => import('./src/screens/manage/FeatureStoreManageRoutes'),
+    },
+  },
+  {
     type: 'app.route',
     flags: {
       required: [PLUGIN_FEATURE_STORE],

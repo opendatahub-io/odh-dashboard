@@ -10,4 +10,4 @@ export type {
   RecursivePartial,
   ValueOf,
 } from './typeHelpers';
-export { genRandomChars } from './utils';
+export { genRandomChars, genUID } from './utils';

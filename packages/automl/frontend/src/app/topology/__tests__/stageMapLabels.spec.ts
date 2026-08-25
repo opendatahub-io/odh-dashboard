@@ -2,7 +2,10 @@ import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabe
 
 describe('resolveStageLabel', () => {
   it('returns mapped display names for known stage IDs', () => {
-    expect(resolveStageLabel('model_selection')).toBe('Model selection');
+    expect(resolveStageLabel('model_selection')).toBe('Select models');
+    expect(resolveStageLabel('split_and_export')).toBe('Split data');
+    expect(resolveStageLabel('prepare_data')).toBe('Prepare data');
+    expect(resolveStageLabel('refit_full')).toBe('Refit and evaluate');
     expect(resolveStageLabel('build_leaderboard')).toBe('Build leaderboard');
   });
 
@@ -18,8 +21,11 @@ describe('resolveStageLabel', () => {
 
 describe('resolveStepLabel', () => {
   it('returns mapped display names for known step IDs', () => {
-    expect(resolveStepLabel('feature_engineering')).toBe('Feature engineering');
-    expect(resolveStepLabel('model_training')).toBe('Model training');
+    expect(resolveStepLabel('feature_engineering')).toBe('Engineer features');
+    expect(resolveStepLabel('model_training')).toBe('Train model');
+    expect(resolveStepLabel('stacking')).toBe('Stack predictions');
+    expect(resolveStepLabel('model_evaluation')).toBe('Evaluate results');
+    expect(resolveStepLabel('evaluation')).toBe('Evaluate results');
   });
 
   it('falls back for unknown step IDs', () => {

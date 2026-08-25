@@ -12,16 +12,24 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
-jest.mock('~/app/hooks/useSubscriptionPolicyFormData', () => ({
-  useSubscriptionPolicyFormData: () => [
-    {
-      groups: [],
-      modelRefs: [{ name: 'model-1' }],
-      subscriptions: [{ name: 'sub-1' }],
-      policies: [{ name: 'policy-1' }],
-    },
-    true,
-  ],
+jest.mock('~/app/context/MaaSGovernanceContext', () => ({
+  useMaaSGovernanceContext: () => ({
+    subscriptions: [{ name: 'sub-1' }],
+    policies: [{ name: 'policy-1' }],
+    modelRefs: [{ name: 'model-1' }],
+    groups: [],
+    overviewRows: [],
+    isEmpty: false,
+    loaded: true,
+    subscriptionsLoaded: true,
+    policiesLoaded: true,
+    modelRefsLoaded: true,
+    groupsLoaded: true,
+    overviewLoaded: true,
+    error: undefined,
+    overviewError: undefined,
+    refresh: jest.fn(),
+  }),
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => {

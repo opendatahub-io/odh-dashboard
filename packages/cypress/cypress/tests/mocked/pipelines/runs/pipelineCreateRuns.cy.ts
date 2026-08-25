@@ -8,13 +8,14 @@ import {
   StorageStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   buildMockRunKF,
   buildMockPipeline,
   buildMockPipelineVersion,
+  buildMockPipelineVersions,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
-  mockDashboardConfig,
   mockArgoWorkflowPipelineVersion,
 } from '@odh-dashboard/internal/__mocks__';
 import { getCorePipelineSpec } from '@odh-dashboard/internal/concepts/pipelines/getCorePipelineSpec';
@@ -959,8 +960,24 @@ describe('Pipeline create runs', () => {
 
       pipelineVersionImportModal.find();
       pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
+
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+        {
+          path: {
+            namespace: projectName,
+            serviceName: 'dspa',
+            pipelineId: mockPipeline.pipeline_id,
+          },
+          times: 1,
+        },
+        buildMockPipelineVersions([]),
+      ).as('duplicateNameCheck');
+
       pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
       pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
+
+      cy.wait('@duplicateNameCheck');
 
       // Update the versions mock to include the new version so the dropdown
       // refetch after creation returns it

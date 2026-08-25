@@ -113,7 +113,7 @@ export type FeastRegistryFilePersistence = {
 
 export type FeastRegistryDBStorePersistence = {
   type: string;
-  secretRef: { name: string };
+  secretRef?: { name: string };
   secretKeyName?: string;
 };
 
@@ -211,6 +211,7 @@ export type FeastAuthzConfig = {
   oidc?: {
     secretRef?: { name: string };
   };
+  noAuth?: boolean;
 };
 
 export type FeastCronJobContainerConfigs = FeastContainerConfigs & {

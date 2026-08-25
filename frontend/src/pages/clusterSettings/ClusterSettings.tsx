@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAppContext } from '#~/app/AppContext';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
@@ -12,17 +12,23 @@ import { useAppDispatch } from '#~/redux/hooks';
 import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
 import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
-import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
-import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
 import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import SettingSection from '#~/components/SettingSection';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,
   DEFAULT_CULLER_TIMEOUT,
   MIN_CULLER_TIMEOUT,
 } from './const';
+
+const DEFAULT_DISTRIBUTED_INFERENCING = DEFAULT_CONFIG.isDistributedInferencingDefault ?? true;
+
+enum GlobalProjectState {
+  added = 'Added',
+  changed = 'Changed',
+  unchanged = 'Unchanged',
+  removed = 'Removed',
+}
 
 const ClusterSettings: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false);
@@ -33,7 +39,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
-    clusterSettings.isDistributedInferencingDefault,
+    DEFAULT_DISTRIBUTED_INFERENCING,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
@@ -41,7 +47,6 @@ const ClusterSettings: React.FC = () => {
   const [globalMLflowNamespace, setGlobalMLflowNamespace] = React.useState('');
   const { dashboardConfig } = useAppContext();
   const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;
-  const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
     React.useState<ModelServingPlatformEnabled>(clusterSettings.modelServingPlatformEnabled);
@@ -55,16 +60,22 @@ const ClusterSettings: React.FC = () => {
         const modelServingConfig = dashboardConfig.spec.modelServing || {};
         const deploymentStrategy = modelServingConfig.deploymentStrategy ?? 'rolling';
 
+        // API may omit optional fields (JSON drops undefined). Fill defaults so the
+        // baseline matches form state and Save stays disabled until the user edits.
+        const distributedInferencingDefault =
+          fetchedClusterSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING;
         const normalizedSettings: ClusterSettingsType = {
           ...fetchedClusterSettings,
+          isDistributedInferencingDefault: distributedInferencingDefault,
           defaultDeploymentStrategy: deploymentStrategy,
+          globalMLflowNamespaces: fetchedClusterSettings.globalMLflowNamespaces ?? [],
         };
         setClusterSettings(normalizedSettings);
         setPvcSize(normalizedSettings.pvcSize);
         setCullerTimeout(normalizedSettings.cullerTimeout);
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
-        setisDistributedInferencingDefault(normalizedSettings.isDistributedInferencingDefault);
+        setisDistributedInferencingDefault(distributedInferencingDefault);
         setDefaultDeploymentStrategy(deploymentStrategy);
         setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
         setLoaded(true);
@@ -114,9 +125,7 @@ const ClusterSettings: React.FC = () => {
       globalMLflowNamespaces,
     };
 
-    const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
-
-    if (clusterSettingsUnchanged) {
+    if (!isSettingsChanged) {
       return;
     }
 
@@ -127,24 +136,31 @@ const ClusterSettings: React.FC = () => {
       return;
     }
 
-    setSaving(true);
+    const currentGlobalNamespace = clusterSettings.globalMLflowNamespaces?.[0];
+    const newGlobalNamespace = newClusterSettings.globalMLflowNamespaces?.[0];
+    let globalProjectName: GlobalProjectState;
+    if (currentGlobalNamespace === newGlobalNamespace)
+      globalProjectName = GlobalProjectState.unchanged;
+    else if (!currentGlobalNamespace) globalProjectName = GlobalProjectState.added;
+    else if (!newGlobalNamespace) globalProjectName = GlobalProjectState.removed;
+    else globalProjectName = GlobalProjectState.changed;
 
     try {
-      const response = await updateClusterSettings({
-        pvcSize,
-        cullerTimeout,
-        userTrackingEnabled,
-        modelServingPlatformEnabled: modelServingEnabledPlatforms,
-        isDistributedInferencingDefault,
-        defaultDeploymentStrategy,
-        globalMLflowNamespaces,
-      });
+      setSaving(true);
+      const response = await updateClusterSettings(newClusterSettings);
 
       if (!response.success) {
         throw new Error(response.error);
       }
 
       setClusterSettings(newClusterSettings);
+
+      if (globalProjectName !== GlobalProjectState.unchanged)
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          globalProjectName,
+        });
 
       dispatch(
         addNotification({
@@ -155,6 +171,15 @@ const ClusterSettings: React.FC = () => {
         }),
       );
     } catch (error) {
+      if (globalProjectName !== GlobalProjectState.unchanged) {
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          globalProjectName,
+          error: error instanceof Error ? error.message : 'unknown error',
+        });
+      }
+
       dispatch(
         addNotification({
           status: AlertVariant.danger,
@@ -182,27 +207,6 @@ const ClusterSettings: React.FC = () => {
       provideChildrenPadding
     >
       <Stack hasGutter>
-        {modelServingEnabled && (
-          <SettingSection title="Model deployments">
-            <Stack hasGutter>
-              <StackItem>
-                <ModelServingPlatformSettings
-                  initialValue={clusterSettings.modelServingPlatformEnabled}
-                  enabledPlatforms={modelServingEnabledPlatforms}
-                  setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  isDistributedInferencingDefault={isDistributedInferencingDefault ?? false}
-                  setisDistributedInferencingDefault={setisDistributedInferencingDefault}
-                />
-              </StackItem>
-              <StackItem>
-                <ModelDeploymentSettings
-                  defaultDeploymentStrategy={defaultDeploymentStrategy}
-                  setDefaultDeploymentStrategy={setDefaultDeploymentStrategy}
-                />
-              </StackItem>
-            </Stack>
-          </SettingSection>
-        )}
         <StackItem>
           <PVCSizeSettings
             initialValue={clusterSettings.pvcSize}

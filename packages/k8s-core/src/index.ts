@@ -1,3 +1,5 @@
+export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+
 export {
   ContainerResourceAttributes,
   SchedulingType,
@@ -87,7 +89,11 @@ export type {
   NIMAccountKind,
   ConfigSecretItem,
   K8sWatchResult,
+  RouteKind,
+  OdhApplication,
+  OdhIntegrationApplication,
 } from './k8sTypes';
+export { OdhApplicationCategory } from './k8sTypes';
 
 export {
   isK8sDSGResource,
@@ -112,11 +118,14 @@ export {
   LimitNameResourceType,
   INFERENCE_SERVICE_NAME_REGEX,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  ROUTE_BASED_RESOURCE_TYPES,
+  ROUTE_NAME_TOO_LONG_MESSAGE,
   resourceTypeLimits,
   isK8sNameDescriptionType,
   setupDefaults,
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
+  isRouteNameTooLong,
   extractK8sNameDescriptionFieldData,
 } from './k8sNameDescriptionFieldUtils';
 
@@ -179,6 +188,9 @@ export {
 } from './projectUtils';
 export type { GetByName } from './projectUtils';
 export { isK8sStatus, K8sStatusError } from './errorUtils';
+
+export { uriToModelLocation } from './modelLocationUtils';
+export type { ObjectStorageFields, ModelLocation } from './modelLocationUtils';
 
 export {
   isSecretKind,

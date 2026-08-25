@@ -4,7 +4,7 @@ metadata:
   name: odh-dashboard
 spec:
   parentRefs:
-    - name: $(gateway-name)
+    - name: gateway-name
       kind: Gateway
       namespace: openshift-ingress
   rules:

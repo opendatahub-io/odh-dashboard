@@ -1,4 +1,5 @@
 import { capitalize } from '@patternfly/react-core';
+import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -197,21 +198,74 @@ export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
   model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
   !!model.servingConfig?.toolCalling?.toolCallParser;
 
+const quoteCliArgValue = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed || !/\s/.test(trimmed)) {
+    return trimmed;
+  }
+  return `"${trimmed.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+};
+
 export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
   const parts: string[] = [];
   if (config?.enableAutoToolChoice) {
     parts.push('--enable-auto-tool-choice');
   }
   if (config?.toolCallParser) {
-    parts.push(`--tool-call-parser ${config.toolCallParser}`);
+    parts.push(`--tool-call-parser ${quoteCliArgValue(config.toolCallParser)}`);
   }
   if (config?.chatTemplate) {
-    parts.push(`--chat-template ${config.chatTemplate}`);
+    parts.push(`--chat-template ${quoteCliArgValue(config.chatTemplate)}`);
   }
   if (config?.requiredArgs) {
-    parts.push(...config.requiredArgs);
+    parts.push(...config.requiredArgs.map((arg) => arg.trim()).filter(Boolean));
   }
   return parts.join(' \\\n');
+};
+
+/**
+ * Builds the `validatedConfigurations` entries to prefill into the deployment wizard for a
+ * catalog model. Catalog UI (labels, filters, details card) is always on. Wizard prefill is
+ * gated here — currently tool calling is included only when the `toolCalling` flag is on and
+ * the model has validated tool-calling args. The wizard renders whatever it receives.
+ *
+ * Returns both the available configurations and a pre-selection record so that validated
+ * options are checked by default when the wizard opens.
+ */
+export const getValidatedConfigurationsForModel = (
+  model: CatalogModel,
+  isToolCallingEnabled: boolean,
+): Pick<DeployPrefillData, 'validatedConfigurations' | 'selectedValidatedConfigurations'> => {
+  const options: NonNullable<DeployPrefillData['validatedConfigurations']>[number]['options'] = [];
+
+  if (isToolCallingEnabled && hasValidatedToolCalling(model)) {
+    options.push({
+      title: 'Tool calling',
+      description:
+        'Allows the model to call external tools and APIs, enabling it to take actions like querying databases or running code.',
+      value: getToolCallingArgs(model.servingConfig?.toolCalling),
+    });
+  }
+
+  if (options.length === 0) {
+    return {};
+  }
+
+  const validatedConfigurations: DeployPrefillData['validatedConfigurations'] = [
+    {
+      forField: 'args',
+      title: 'Validated arguments',
+      description:
+        'This model has runtime configurations that have been tested and validated by Red Hat. Selected configurations will be applied as runtime arguments in your deployment.',
+      options,
+    },
+  ];
+
+  const selectedValidatedConfigurations: Record<string, string[]> = {
+    args: options.map((option) => option.value),
+  };
+
+  return { validatedConfigurations, selectedValidatedConfigurations };
 };
 
 const isArrayOfSelections = (

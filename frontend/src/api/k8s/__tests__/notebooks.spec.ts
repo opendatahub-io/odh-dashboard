@@ -7,13 +7,14 @@ import {
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { NotebookKind } from '#~/k8sTypes';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { mockUseAssignHardwareProfileResult } from '#~/__mocks__/mockUseAssignHardwareProfileResult';
+import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 
 import {
   assembleNotebook,
@@ -127,6 +128,7 @@ describe('assembleNotebook', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 253,
+            routeNameTooLong: false,
             touched: false,
           },
         },
@@ -304,6 +306,7 @@ describe('assembleNotebook', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
     const notebookData = mockStartNotebookData({});
     notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
       selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleNotebook(notebookData, 'test-user');
@@ -319,6 +322,7 @@ describe('assembleNotebook', () => {
       name: 'no-scheduling-profile',
     });
     notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
       selectedHardwareProfile: hardwareProfile,
     });
 
@@ -347,6 +351,7 @@ describe('assembleNotebook', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'real-profile', namespace: 'opendatahub' });
     const notebookData = mockStartNotebookData({});
     notebookData.hardwareProfileOptions = mockUseAssignHardwareProfileResult({
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
       selectedHardwareProfile: hardwareProfile,
       resources: {
         requests: {

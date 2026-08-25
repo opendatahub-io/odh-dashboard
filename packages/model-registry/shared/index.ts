@@ -1,11 +1,19 @@
 export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
+  catalogModelId?: string;
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
+  validatedConfigurations?: {
+    forField: string;
+    title: string;
+    description: string;
+    options: { title: string; description: string; value: string }[];
+  }[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
 };
 
 export type ModelDeployPrefillInfo = {

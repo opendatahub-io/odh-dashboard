@@ -115,6 +115,19 @@ rules:
       - update
       - patch
       - delete
+  # PodDisruptionBudgets for core dashboard availability
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
   # Networking
   - apiGroups:
       - networking.k8s.io
@@ -270,6 +283,7 @@ rules:
       - ""
     resources:
       - pods
+      - persistentvolumes
     verbs:
       - get
       - list
@@ -294,7 +308,7 @@ rules:
       - get
       - update
       - delete
-  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole.
+  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole + notebooks module.
   - apiGroups:
       - storage.k8s.io
     resources:
@@ -302,6 +316,7 @@ rules:
     verbs:
       - get
       - list
+      - watch
       - update
       - patch
   # Auth delegation for operand service accounts
@@ -362,6 +377,16 @@ rules:
       - update
       - patch
       - delete
+  # system:image-puller (referenced by the cluster-image-pullers
+  # RoleBinding) grants imagestreams/layers get under both "" and
+  # image.openshift.io. RBAC escalation prevention requires the
+  # operator SA to hold the core-group variant as well.
+  - apiGroups:
+      - ""
+    resources:
+      - imagestreams/layers
+    verbs:
+      - get
   # Verbs cover both sa-rbac/role.yaml (list) and
   # fetch-builds-and-images.rbac.yaml (get, list, watch).
   - apiGroups:
@@ -516,11 +541,13 @@ rules:
       - default-gateway
     verbs:
       - get
-  # Kubeflow notebooks
+  # Kubeflow notebooks and workbenches V2
   - apiGroups:
       - kubeflow.org
     resources:
       - notebooks
+      - workspaces
+      - workspacekinds
     verbs:
       - get
       - list
@@ -632,6 +659,7 @@ rules:
       - create
       - update
       - delete
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -63,10 +63,13 @@ import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
+import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -94,6 +97,11 @@ import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
   resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
+import {
+  AUTORAG_FAILURE_CATEGORY,
+  fireAutoragKnowledgeSourceConfigured,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 import {
   getInputDataDropRejectedNotification,
   INPUT_DATA_FILE_ACCEPT,
@@ -128,6 +136,8 @@ const OPTIMIZATION_METRICS: {
     description: 'How correct the generated answer is compared to the ground truth.',
   },
 ];
+
+const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
 
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -181,10 +191,16 @@ function AutoragConfigure({
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
   const inputDataNativeInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the S3 file browser's "Select" primary action already fired the Knowledge
+  // Source Configured event for the current open/close cycle, so onClose doesn't also fire it
+  // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
+  const inputDataS3SelectionCommittedRef = useRef(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
+  const { showUIError } = useUIErrorHandler();
+  const { onKnowledgeSourceConfigured } = useRunTriggeredTracking();
 
   const form = useFormContext<ConfigureSchema>();
   const { getValues, reset, setValue, formState } = form;
@@ -229,31 +245,68 @@ function AutoragConfigure({
 
   // When the secret changes, mark models as needing re-initialization and
   // immediately clear stale selections so the UI reflects the transition.
-  useEffect(() => {
+  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
+  // already populated on mount during reconfigure; a plain useEffect would
+  // wipe the pre-populated model selections before they could be restored.
+  useReconfigureSafeEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
     setValue('embedding_models', []);
   }, [ogxSecretName, setValue]);
 
   useEffect(() => {
-    // Initialize available generation and embedding models into the form data
+    // Initialize available generation and embedding models into the form data.
+    // Preserve existing selections (reconfigure flow) when they are already
+    // populated; only default to all models on a fresh create.
     if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
+
+      const currentValues = getValues();
+      const currentGenModels = currentValues.generation_models;
+      const currentEmbModels = currentValues.embedding_models;
+
+      const allLlmModels = allModelsData.models
+        .filter((model) => model.type === 'llm')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      const allEmbeddingModels = allModelsData.models
+        .filter((model) => model.type === 'embedding')
+        .map((model) => model.id)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      // Restored selections (e.g. from reconfigure) may reference models that are
+      // no longer returned for this secret (removed/deprecated upstream). Drop
+      // any IDs that aren't currently available before deciding whether to keep
+      // the restored selection or fall back to "all models".
+      const retainedGenerationModels = currentGenModels.filter((modelId) =>
+        allLlmModels.includes(modelId),
+      );
+      const retainedEmbeddingModels = currentEmbModels.filter((modelId) =>
+        allEmbeddingModels.includes(modelId),
+      );
+
+      if (
+        retainedGenerationModels.length < currentGenModels.length ||
+        retainedEmbeddingModels.length < currentEmbModels.length
+      ) {
+        notification.warning(
+          'Some previously selected models are unavailable',
+          'One or more previously selected foundation or embedding models are no longer available and have been removed from your selection.',
+        );
+      }
+
       reset({
-        ...getValues(),
+        ...currentValues,
         // eslint-disable-next-line camelcase
-        generation_models: allModelsData.models
-          .filter((model) => model.type === 'llm')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        generation_models:
+          retainedGenerationModels.length > 0 ? retainedGenerationModels : allLlmModels,
         // eslint-disable-next-line camelcase
-        embedding_models: allModelsData.models
-          .filter((model) => model.type === 'embedding')
-          .map((model) => model.id)
-          .toSorted((a, b) => a.localeCompare(b)),
+        embedding_models:
+          retainedEmbeddingModels.length > 0 ? retainedEmbeddingModels : allEmbeddingModels,
       });
     }
-  }, [allModelsData, isModelsError, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -352,17 +405,35 @@ function AutoragConfigure({
           return;
         }
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+        fireAutoragKnowledgeSourceConfigured({
+          knowledgeSourceType: 'upload',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
+        onKnowledgeSourceConfigured('upload');
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+          if (isUIError(err)) {
+            showUIError(err);
+          } else {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            const isConflict = errorMessage.toLowerCase().includes('unique filename');
 
-          notification.error(
-            'Failed to upload file',
-            isConflict
-              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
-              : errorMessage,
-          );
+            notification.error(
+              'Failed to upload file',
+              isConflict
+                ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+                : errorMessage,
+            );
+          }
+          fireAutoragKnowledgeSourceConfigured({
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 0,
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: AUTORAG_FAILURE_CATEGORY,
+          });
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
@@ -370,7 +441,16 @@ function AutoragConfigure({
         }
       }
     },
-    [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
+    [
+      inputDataBucketName,
+      inputDataSecretName,
+      namespace,
+      notification,
+      onKnowledgeSourceConfigured,
+      setValue,
+      showUIError,
+      uploadFileToS3,
+    ],
   );
 
   const handleInputDataDropRejected = useCallback(
@@ -1121,7 +1201,20 @@ function AutoragConfigure({
         namespace={namespace}
         s3SecretName={selectedSecret?.name}
         isOpen={Boolean(fileExplorerMode)}
-        onClose={() => setFileExplorerMode(false)}
+        onClose={() => {
+          if (fileExplorerMode === 'input_data' && !inputDataS3SelectionCommittedRef.current) {
+            fireAutoragKnowledgeSourceConfigured({
+              knowledgeSourceType: 's3',
+              countOfDocuments: 0,
+              outcome: TrackingOutcome.cancel,
+              // No file was ever selected/committed, so nothing was actually configured —
+              // `success: true` would misleadingly imply the milestone was completed.
+              success: false,
+            });
+          }
+          inputDataS3SelectionCommittedRef.current = false;
+          setFileExplorerMode(false);
+        }}
         onSelectFiles={(files) => {
           if (files.length > 0) {
             const file = files[0];
@@ -1129,6 +1222,16 @@ function AutoragConfigure({
             if (fileExplorerMode === 'input_data') {
               setValue('input_data_key', filePath, { shouldValidate: true });
               setSelectedInputDataFile(file);
+              inputDataS3SelectionCommittedRef.current = true;
+              fireAutoragKnowledgeSourceConfigured({
+                knowledgeSourceType: 's3',
+                // Only files[0] is ever committed to input_data_key, so report 1 committed
+                // document regardless of how many files the picker returned (e.g. a folder).
+                countOfDocuments: 1,
+                outcome: TrackingOutcome.submit,
+                success: true,
+              });
+              onKnowledgeSourceConfigured('s3');
             }
             if (fileExplorerMode === 'test_data') {
               setValue('test_data_key', filePath, { shouldValidate: true });
@@ -1137,10 +1240,10 @@ function AutoragConfigure({
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
-        disabledPaths={[
-          '/autogluon-tabular-training-pipeline',
-          '/autogluon-timeseries-training-pipeline',
-        ]}
+        disabledPaths={{
+          '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+          '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+        }}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />

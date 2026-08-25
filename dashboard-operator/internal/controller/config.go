@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 )
 
 const operatorConfigMapName = "dashboard-operator-config"
@@ -63,9 +64,11 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 }
 
 // readDistributionConfig reads the distribution identity from the
-// chart-deployed ConfigMap. Returns (nil, nil) when the ConfigMap is
-// absent or contains no distribution keys, and (nil, err) on transient
-// read failures so the caller can preserve last-known-good status.
+// chart-deployed ConfigMap. Orchestrator annotations (PlatformType,
+// PlatformVersion) take precedence over Helm chart data keys for backward
+// compatibility. Returns (nil, nil) when the ConfigMap is absent or
+// contains no distribution identity, and (nil, err) on transient read
+// failures so the caller can preserve last-known-good status.
 func readDistributionConfig(ctx context.Context, cli client.Client, namespace string) (*v1alpha1.Distribution, error) {
 	logger := log.FromContext(ctx)
 
@@ -80,12 +83,16 @@ func readDistributionConfig(ctx context.Context, cli client.Client, namespace st
 		return nil, fmt.Errorf("failed to read distribution config ConfigMap: %w", err)
 	}
 
-	if cm.Data == nil {
-		return nil, nil
-	}
-
 	name := cm.Data["distribution.name"]
 	version := cm.Data["distribution.version"]
+
+	// Orchestrator annotations take precedence over Helm chart data keys.
+	if annoName := cm.Annotations[annotations.PlatformType]; annoName != "" {
+		name = annoName
+	}
+	if annoVersion := cm.Annotations[annotations.PlatformVersion]; annoVersion != "" {
+		version = annoVersion
+	}
 
 	if name == "" && version == "" {
 		return nil, nil

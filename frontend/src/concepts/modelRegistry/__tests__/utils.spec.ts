@@ -1,3 +1,4 @@
+import { uriToModelLocation } from '@odh-dashboard/k8s-core';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import {
@@ -10,7 +11,6 @@ import {
   isRedHatRegistryUri,
   objectStorageFieldsToUri,
   uriToConnectionTypeName,
-  uriToModelLocation,
   modelSourcePropertiesToCatalogParams,
   catalogParamsToModelSourceProperties,
   modelSourcePropertiesToPipelineRunRef,

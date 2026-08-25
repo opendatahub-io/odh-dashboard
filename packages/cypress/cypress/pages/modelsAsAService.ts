@@ -585,12 +585,12 @@ class SubscriptionTableRow extends TableRow {
     return this.find().find('[data-label="Status"]');
   }
 
-  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findPhase().findByTestId('phase-label');
+  findPhaseLabelSubtext(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label-subtext');
   }
 
-  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('phase-popover');
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findPhase().findByTestId('phase-label');
   }
 
   findGroups(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -658,6 +658,55 @@ class SubscriptionTableRow extends TableRow {
   }
 }
 
+class PhaseModal extends Modal {
+  constructor() {
+    super('Phase modal');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('phase-modal');
+  }
+
+  findAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-modal-alert');
+  }
+
+  findAlertBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAlert().findByTestId('phase-modal-alert-body');
+  }
+
+  findApiDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-api-details').findByRole('button');
+  }
+
+  findAlertDetailsCodeBlock(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAlert().findByTestId('phase-api-details-code-block');
+  }
+
+  findViewDetailsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-modal-view-details-link');
+  }
+
+  findAffectedModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('affected-models-table');
+  }
+
+  findAffectedModelName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-name-${name}`);
+  }
+
+  findAffectedModelNamespace(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-namespace-${name}`);
+  }
+
+  findAffectedModelStatus(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-status-${name}`);
+  }
+
+  findAffectedModelStatusMessage(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-status-message-${name}`);
+  }
+}
 class CreateSubscriptionPage {
   visit(): void {
     cy.visitWithLogin('/maas/maas-governance/subscriptions/create');
@@ -1398,13 +1447,77 @@ class SubscriptionsTab {
   }
 }
 
+class OverviewTableRow extends TableRow {
+  findModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]').findByTestId('table-row-title');
+  }
+
+  findModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]');
+  }
+
+  findModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findModelProject(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Project"]');
+  }
+
+  findModelPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findModelPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label');
+  }
+
+  findModelSubscriptions(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Subscriptions"]');
+  }
+
+  findModelSubscriptionsWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-subscriptions-warning');
+  }
+
+  findModelAuthorizationPolicies(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Authorization policies"]');
+  }
+
+  findModelPoliciesWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-policies-warning');
+  }
+
+  findKebabToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findCreateSubscriptionKebabAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Create subscription' });
+  }
+
+  findCreatePolicyKebabAction(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Create authorization policy' });
+  }
+}
+
 class OverviewTabPage {
+  getRow(modelId: string, namespace: string): OverviewTableRow {
+    return new OverviewTableRow(() =>
+      cy.findByTestId(`overview-model-row-${modelId}-${namespace}`).find('tr').first(),
+    );
+  }
+
+  getRowByIndex(index: number): OverviewTableRow {
+    return new OverviewTableRow(() => this.findModelRows().eq(index).find('tr').first());
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('overview-table');
   }
 
   findModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().findAllByTestId('overview-model-row');
+    return this.findTable().find('[data-testid^="overview-model-row-"]');
   }
 
   findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1417,6 +1530,88 @@ class OverviewTabPage {
 
   expandModelRow(index: number): void {
     this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
+  }
+
+  findGroupChip(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Chips for the same group exist on every matching sub/policy in the DOM;
+    // only query chips inside expanded nested items (not collapsed ones).
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`)
+      .first();
+  }
+
+  findGroupChips(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`);
+  }
+
+  findExpandableItemInRow(
+    rowIndex: number,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
+    return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
+  }
+
+  findExpandableItemName(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId('expandable-item-name');
+  }
+
+  findExpandableItemPhase(rowIndex: number, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId('phase-label');
+  }
+
+  findExpandableItemTokenLimits(
+    rowIndex: number,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, name).findByTestId(
+      'expandable-item-token-limits',
+    );
+  }
+
+  findExpandableItemGroupChip(
+    rowIndex: number,
+    itemName: string,
+    group: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandableItemInRow(rowIndex, itemName).findByTestId(`group-chip-${group}`);
+  }
+
+  shouldExpandableItemInRowBeExpanded(rowIndex: number, name: string, expanded = true): void {
+    const chain = this.findExpandableItemInRow(rowIndex, name);
+    if (expanded) {
+      chain.should('have.class', 'pf-m-expanded');
+    } else {
+      chain.should('not.have.class', 'pf-m-expanded');
+    }
+  }
+
+  shouldGroupChipsBeHighlighted(
+    group: string,
+    rowIndex: number,
+    highlighted = true,
+    expectedCount?: number,
+  ): void {
+    const chips = this.findGroupChips(group, rowIndex);
+    if (expectedCount !== undefined) {
+      chips.should('have.length', expectedCount);
+    }
+    chips.each(($chip) => {
+      cy.wrap($chip).should(highlighted ? 'have.class' : 'not.have.class', 'pf-m-blue');
+    });
+  }
+
+  expandExpandableItemInRow(rowIndex: number, name: string): void {
+    this.findModelRows()
+      .eq(rowIndex)
+      .contains(name)
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
   }
 
   findExpandAllSubscriptionsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1473,6 +1668,10 @@ class OverviewTabPage {
 
   findClearFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('clear-filters-button');
+  }
+
+  findPhaseLabelInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows().eq(index).findByTestId('phase-label');
   }
 }
 
@@ -1796,3 +1995,4 @@ export const deleteExternalModelModal = new DeleteExternalModelModal();
 export const externalModelPathModal = new ExternalModelPathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();
+export const phaseModal = new PhaseModal();

@@ -10,8 +10,10 @@ import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogMo
 import {
   decodeParams,
   getModelArtifactUri,
+  getValidatedConfigurationsForModel,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { getDeployButtonState } from '~/odh/utils';
+import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 
 type CatalogDeployActionProps = {
   model: CatalogModel;
@@ -32,6 +34,7 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
     encodeURIComponent(`${decodedParams.modelName}`),
   );
   const [availablePlatformIds, setAvailablePlatformIds] = React.useState<string[]>([]);
+  const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const platformIdButtonState = React.useMemo(
     () => getDeployButtonState(availablePlatformIds, true),
     [availablePlatformIds],
@@ -46,12 +49,16 @@ const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
     () => ({
       modelName: model.name,
       modelUri: uri,
+      catalogModelId: [decodedParams.sourceId || model.source_id, model.name]
+        .filter(Boolean)
+        .join('/'),
       returnRouteValue: '/ai-hub/models/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
+      ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
     }),
-    [model.name, uri, cancelReturnRoute],
+    [model, uri, cancelReturnRoute, isToolCallingEnabled, decodedParams.sourceId],
   );
 
   const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(

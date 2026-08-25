@@ -1,4 +1,5 @@
 import * as React from 'react';
+/* eslint-disable @odh-dashboard/no-restricted-imports -- TODO: migrate ManageKServeModal to ContentModal */
 import {
   Form,
   FormSection,
@@ -31,6 +32,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -41,7 +43,6 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
@@ -124,19 +125,20 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
     });
 
+  const currentProjectName = projectContext?.currentProject.metadata.name;
+  const namespace = currentProjectName || createDataInferenceService.project;
+
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+    namespace,
   });
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
   const [hasReplicaValidationErrors, setHasReplicaValidationErrors] = React.useState(false);
-
-  const currentProjectName = projectContext?.currentProject.metadata.name;
-  const namespace = currentProjectName || createDataInferenceService.project;
 
   const pvcs = usePvcs(namespace);
 

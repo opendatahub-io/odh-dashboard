@@ -1,7 +1,7 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
 import { mockResourceFlavorK8sResource } from '@odh-dashboard/internal/__mocks__/mockResourceFlavorK8sResource';
@@ -150,7 +150,7 @@ const initIntercepts = ({
     mockK8sResourceList(resourceFlavors.map((opts) => mockResourceFlavorK8sResource(opts))),
   );
 
-  cy.interceptOdh('POST /api/prometheus/query', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/query', (req) => {
     const { query } = req.body;
 
     // DCGM per-model queries must come before the generic 'modelName' check because
@@ -218,7 +218,7 @@ const initIntercepts = ({
     }
   });
 
-  cy.interceptOdh('POST /api/prometheus/queryRange', (req) => {
+  cy.interceptOdh('POST /api/prometheus/cluster/queryRange', (req) => {
     if (req.body.query && req.body.query.includes('kueue_cluster_queue_resource_usage')) {
       req.reply(
         makePrometheusRangeResponse(
@@ -393,6 +393,7 @@ describe('GPUaaS Infrastructure Page', () => {
       // Stage 1: no cluster queues at all
       initIntercepts({ clusterQueues: [], cohortNames: [], resourceFlavors: [] });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage
         .findCQUtilizationEmptyState()
         .should('exist')
@@ -412,6 +413,7 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [],
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage.findCQUtilizationEmptyState().should('exist');
     });
 
@@ -432,9 +434,10 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage
         .findCQUtilizationSubtitle()
-        .should('contain.text', 'Cluster queue accelerator consumption grouped by cohort.');
+        .should('contain.text', 'Compute profile accelerator utilization grouped by Kueue cohort.');
       infrastructurePage.findCohortAccordion('cohort-1').should('exist');
       infrastructurePage.findCQCard('cq-gpu').should('exist');
       infrastructurePage.findHardwareModelBadge('NVIDIA A100').should('exist');
@@ -471,6 +474,7 @@ describe('GPUaaS Infrastructure Page', () => {
         dcgmModelName: 'AMD MI300X',
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage.scrollToCQUtilizationSection();
       infrastructurePage.findCohortAccordion('research-sandbox').should('exist');
       infrastructurePage.findCQCard('notebook-queues').should('exist');
@@ -517,6 +521,7 @@ describe('GPUaaS Infrastructure Page', () => {
           dcgmModelName: 'NVIDIA A100',
         });
         infrastructurePage.visit();
+        infrastructurePage.switchToClusterQueueUtilizationTab();
         infrastructurePage.scrollToCQUtilizationSection();
       });
 
@@ -595,6 +600,7 @@ describe('GPUaaS Infrastructure Page', () => {
             dcgmModelName: 'NVIDIA H100',
           });
           infrastructurePage.visit();
+          infrastructurePage.switchToClusterQueueUtilizationTab();
         });
 
         it('renders the CQ card with all 3 chart columns and a fully-filled borrowed donut', () => {

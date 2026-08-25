@@ -9,8 +9,8 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import NotFound from '#~/pages/NotFound';
 
 type TabRoutePageProps = {
   extension: LoadedExtension<TabRoutePageExtension>;

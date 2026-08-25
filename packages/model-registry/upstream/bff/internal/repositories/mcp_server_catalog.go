@@ -16,7 +16,8 @@ type McpServerCatalogInterface interface {
 	GetAllMcpServers(client httpclient.HTTPClientInterface, pageValues url.Values) (*models.McpServerList, error)
 	GetMcpServersFilter(client httpclient.HTTPClientInterface) (*models.FilterOptionsList, error)
 	GetMcpServer(client httpclient.HTTPClientInterface, serverId string, pageValues url.Values) (*models.McpServer, error)
-	GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string) (*models.McpToolList, error)
+	GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string, pageValues url.Values) (*models.McpToolList, error)
+	GetMcpServerLogo(client httpclient.HTTPClientInterface, serverId string) (*httpclient.RawResponse, error)
 }
 
 type McpServerCatalog struct {
@@ -77,14 +78,14 @@ func (a *McpServerCatalog) GetMcpServer(client httpclient.HTTPClientInterface, s
 	return &mcpServer, nil
 }
 
-func (a *McpServerCatalog) GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string) (*models.McpToolList, error) {
+func (a *McpServerCatalog) GetMcpServersTools(client httpclient.HTTPClientInterface, serverId string, pageValues url.Values) (*models.McpToolList, error) {
 	path, err := url.JoinPath(mcpServerPath, serverId, "tools")
 
 	if err != nil {
 		return nil, err
 	}
 
-	responseData, err := client.GET(path)
+	responseData, err := client.GET(UrlWithPageParams(path, pageValues))
 
 	if err != nil {
 		return nil, fmt.Errorf("error fetching mcp server tools: %w", err)
@@ -115,4 +116,23 @@ func (a *McpServerCatalog) GetMcpServersTools(client httpclient.HTTPClientInterf
 		Size:          mcpServerTools.Size,
 		Items:         wrappedItems,
 	}, nil
+}
+
+// GetMcpServerLogo fetches the raw logo response for an MCP server. It returns the
+// upstream status, headers and body unprocessed so the caller can faithfully proxy
+// either the decoded image bytes (inline data-URI logos) or a redirect (external URLs).
+func (a *McpServerCatalog) GetMcpServerLogo(client httpclient.HTTPClientInterface, serverId string) (*httpclient.RawResponse, error) {
+	path, err := url.JoinPath(mcpServerPath, serverId, "logo")
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.GETRaw(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("error fetching mcp server logo: %w", err)
+	}
+
+	return resp, nil
 }

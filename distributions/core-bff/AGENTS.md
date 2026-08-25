@@ -1,7 +1,7 @@
 # AGENTS.md - Core BFF
 
 This document provides guidance for AI agents and developers working on the Core BFF module.
-The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go
+The Core BFF replaces the Fastify backend for RHOAI deployments. It contains a Go
 backend-for-frontend (BFF) and a React frontend that integrates with the ODH dashboard via
 Module Federation.
 
@@ -80,9 +80,9 @@ core-bff/
 │   │   ├── __tests__/           # Test files
 │   │   └── images/              # Image assets
 │   ├── config/
-│   │   ├── webpack.common.js    # Shared webpack config
-│   │   ├── webpack.dev.js       # Development webpack config
-│   │   ├── webpack.prod.js      # Production webpack config
+│   │   ├── rspack.common.js     # Shared rspack config
+│   │   ├── rspack.dev.js        # Development rspack config
+│   │   ├── rspack.prod.js       # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
 │   ├── package.json             # NPM dependencies and scripts
@@ -260,7 +260,7 @@ schemas.
 
 - React 18 + TypeScript
 - PatternFly v6 (UI framework for federated mode)
-- Webpack with Module Federation
+- Rspack with Module Federation
 - **mod-arch-core** - Core functionality, hooks, context providers
 
 ### Development Guidelines

@@ -1,0 +1,16 @@
+.odh-artifact-visualization {
+  &__iframe {
+    min-height: 300px;
+    border: none;
+  }
+
+  &__iframe--fullscreen {
+    height: 75vh;
+    border: none;
+  }
+
+  &__markdown--fullscreen {
+    max-height: 75vh;
+    overflow: auto;
+  }
+}

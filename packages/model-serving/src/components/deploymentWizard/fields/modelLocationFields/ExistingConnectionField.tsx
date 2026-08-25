@@ -12,9 +12,9 @@ import type { Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
-import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
-import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
+import { ConnectionDetailsHelperText } from '@odh-dashboard/ui-core/components/connectionTypes/ConnectionDetailsHelperText';
+import ConnectionS3FolderPathField from '../../../connectionTypes/ConnectionS3FolderPathField';
+import ConnectionOciPathField from '../../../connectionTypes/ConnectionOciPathField';
 import {
   ConnectionTypeRefs,
   ModelLocationData,

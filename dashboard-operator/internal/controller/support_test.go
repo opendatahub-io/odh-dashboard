@@ -8,8 +8,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
@@ -189,4 +191,107 @@ func TestParamsPreservation(t *testing.T) {
 	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
 	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
 	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
+}
+
+func TestImagesMapContainsAllModules(t *testing.T) {
+	for name, mod := range moduleRegistry {
+		t.Run(name, func(t *testing.T) {
+			paramKey := mod.ManifestSlug + "-ui-image"
+			envVar, ok := imagesMap[paramKey]
+			assert.True(t, ok, "imagesMap missing entry (expected key %q)", paramKey)
+			assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch")
+		})
+	}
+}
+
+func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
+	require.NoError(t, err)
+
+	var values struct {
+		RelatedImages map[string]string `yaml:"relatedImages"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &values))
+	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
+
+	for paramKey, envVar := range imagesMap {
+		t.Run(paramKey, func(t *testing.T) {
+			_, ok := values.RelatedImages[envVar]
+			assert.True(t, ok, "relatedImages must contain key %q (for param %q)", envVar, paramKey)
+		})
+	}
+}
+
+func TestNamespaceInjection(t *testing.T) {
+	dir := t.TempDir()
+
+	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - networkpolicy.yaml
+`
+	configmapYAML := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`
+	saYAML := `apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-sa
+`
+	deployYAML := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deploy
+spec:
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: main
+          image: busybox:latest
+`
+	npYAML := `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-np
+spec:
+  podSelector: {}
+`
+
+	for name, content := range map[string]string{
+		"kustomization.yaml":  kustomizationYAML,
+		"configmap.yaml":      configmapYAML,
+		"serviceaccount.yaml": saYAML,
+		"deployment.yaml":     deployYAML,
+		"networkpolicy.yaml":  npYAML,
+	} {
+		require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(content), 0644))
+	}
+
+	const targetNS = "test-target-ns"
+
+	engine := kustomize.NewEngine()
+	rendered, err := engine.Render(dir, kustomize.WithNamespace(targetNS))
+	require.NoError(t, err)
+	require.Len(t, rendered, 4, "kustomize must render every fixture resource")
+
+	for _, res := range rendered {
+		ns := res.GetNamespace()
+		kind := res.GetKind()
+		name := res.GetName()
+		assert.Equalf(t, targetNS, ns,
+			"%s/%s must have namespace %q after WithNamespace injection", kind, name, targetNS)
+	}
 }

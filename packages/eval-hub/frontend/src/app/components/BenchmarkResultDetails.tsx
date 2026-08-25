@@ -12,7 +12,14 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import { useProvider } from '~/app/hooks/useProvider';
+import {
+  formatAsPercentage,
+  getBenchmarkDisplayName,
+  getJobBenchmarks,
+} from '~/app/utilities/evaluationUtils';
+import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -26,22 +33,20 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   job,
 }) => {
   const result = job.results.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
   const benchmarkConfig = getJobBenchmarks(job).find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
+
+  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
+  const { provider } = useProvider(providerId);
 
   if (!result) {
     return null;
   }
 
-  const benchmarkStatus = job.status.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
-  );
-  const passStatus =
-    result.test?.pass ??
-    (benchmarkStatus?.status == null ? null : benchmarkStatus.status === 'completed');
+  const passStatus = result.test?.pass ?? null;
   const metricKeys = result.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : '-');
@@ -49,6 +54,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
     result.test?.threshold;
+
+  const rawComplements = provider?.agent?.complements;
+  const complements = Array.isArray(rawComplements) ? rawComplements : undefined;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
@@ -78,6 +86,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             </Label>
           </FlexItem>
         )}
+        <FlexItem>
+          <AboutBenchmarkResultPopover
+            benchmarkId={benchmarkId}
+            benchmarkIndex={benchmarkIndex}
+            job={job}
+            provider={provider}
+          />
+        </FlexItem>
       </Flex>
       <Content
         component="p"
@@ -97,14 +113,24 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Primary metric</DescriptionListTerm>
-          <DescriptionListDescription>{primaryMetricName}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {primaryMetricName !== '-' ? getMetricDisplayName(primaryMetricName) : '-'}
+          </DescriptionListDescription>
         </DescriptionListGroup>
-        {threshold != null && (
+        {typeof threshold === 'number' && Number.isFinite(threshold) && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
-            <DescriptionListDescription>{threshold}</DescriptionListDescription>
+            <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
+        {complements?.length ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Related evaluations</DescriptionListTerm>
+            <DescriptionListDescription data-testid="complementary-frameworks">
+              {complements.map((c) => getBenchmarkDisplayName(c)).join(', ')}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
       </DescriptionList>
     </div>
   );

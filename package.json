@@ -15,7 +15,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "packageManager": "npm@11.8.0",
   "workspaces": [
@@ -26,7 +26,10 @@
     "distributions/base",
     "distributions/core-bff",
     "distributions/rhaii",
-    "packages/model-serving/cypress"
+    "distributions/maas-consumer-portal",
+    "packages/model-serving/cypress",
+    "packages/kserve/cypress",
+    "packages/llmd-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",
@@ -91,7 +94,11 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@module-federation/enhanced": "^0.24.1",
     "@odh-dashboard/eslint-config": "*",
+    "@rspack/cli": "2.1.10",
+    "@rspack/core": "2.1.10",
+    "@rspack/dev-server": "^2.1.0",
     "@types/node": "^22.19.19",
     "@types/react": "^18.3.31",
     "concurrently": "^9.2.1",
@@ -116,14 +123,14 @@
   "overrides": {
     "@openshift/dynamic-plugin-sdk-utils": {
       "react-redux": "^8.1.3",
-      "react-router": "^7.17.0",
-      "react-router-dom": "^7.17.0",
+      "react-router": "^7.18.2",
+      "react-router-dom": "^7.18.2",
       "react": "^18.3.1",
       "react-dom": "^18.3.1",
-      "@patternfly/react-core": "6.4.0",
-      "@patternfly/react-icons": "6.4.0",
-      "@patternfly/react-styles": "6.4.0",
-      "@patternfly/react-table": "6.4.0",
+      "@patternfly/react-core": "~6.5.1",
+      "@patternfly/react-icons": "~6.5.1",
+      "@patternfly/react-styles": "~6.5.1",
+      "@patternfly/react-table": "~6.5.1",
       "@patternfly/react-virtualized-extension": "6.2.0"
     },
     "@patternfly/react-topology": {
@@ -131,7 +138,8 @@
     },
     "@types/react": "^18.3.31",
     "csstype": "^3.2.3",
-    "react-router": "^7.17.0",
+    "react-router": "^7.18.2",
+    "react-router-dom": "^7.18.2",
     "ws": "^8.21.0",
     "@types/ws": "^8.18.1",
     "dompurify": "^3.4.8",
@@ -142,6 +150,18 @@
     "form-data": "^4.0.5",
     "axios": "^1.17.0",
     "shell-quote": ">=1.8.4",
-    "webpack": "5.104.1"
+    "webpack": "5.104.1",
+    "@rspack/core": "2.1.10",
+    "@rspack/cli": "2.1.10",
+    "serialize-javascript": ">=7.0.5",
+    "fast-uri": ">=3.1.4 <4.0.0",
+    "koa": ">=3.1.2",
+    "adm-zip": ">=0.6.0",
+    "@cypress/code-coverage": {
+      "js-yaml": ">=4.3.0"
+    },
+    "xmlbuilder2": {
+      "js-yaml": "^3.14.2"
+    }
   }
 }

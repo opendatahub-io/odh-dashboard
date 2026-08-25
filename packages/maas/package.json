@@ -47,18 +47,20 @@
     "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",
     "./types/maas-model": "./frontend/src/app/types/maas-model.ts",
     "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts",
-    "./types/external-models": "./frontend/src/app/types/external-models.ts"
+    "./types/external-models": "./frontend/src/app/types/external-models.ts",
+    "./extensions/static": "./frontend/src/odh/odhExtensions/odhExtensions.ts"
   },
   "dependencies": {
+    "@odh-dashboard/gen-ai": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
-    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/llmd-serving": "*",
-    "@odh-dashboard/gen-ai": "*"
+    "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }

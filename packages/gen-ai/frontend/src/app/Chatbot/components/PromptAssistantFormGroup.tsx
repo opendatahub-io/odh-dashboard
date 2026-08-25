@@ -28,6 +28,8 @@ import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
+import PromptVersionSelector from '~/app/Chatbot/components/PromptVersionSelector';
+import { GenAiContext } from '~/app/context/GenAiContext';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -40,6 +42,12 @@ const CONFIRMATION_CONFIG = {
   message:
     'Your current edits haven’t been saved. Reverting will restore the last saved version of this prompt. To keep your changes, cancel and save first.',
   confirmLabel: 'Revert',
+};
+const VERSION_SWITCH_CONFIRMATION_CONFIG = {
+  title: 'Switch to a different version?',
+  message:
+    'Your current prompt has unsaved changes that will be lost. To keep your changes, cancel and save first.',
+  confirmLabel: 'Switch',
 };
 const RESET_CONFIRMATION_CONFIG = {
   title: 'Reset to default?',
@@ -54,8 +62,10 @@ export default function PromptAssistantFormGroup({
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
+  const { namespace } = React.useContext(GenAiContext);
   const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
@@ -93,6 +103,32 @@ export default function PromptAssistantFormGroup({
     clearPromptState(configId, promptStub);
     onSystemInstructionChange(promptStub.template);
     setEditMode(true);
+  }
+
+  function handleVersionSwitch(version: MLflowPromptVersion) {
+    const doSwitch = () => {
+      updateActivePrompt(configId, version);
+      const instruction =
+        version.template ?? version.messages?.find((m) => m.role === 'system')?.content ?? '';
+      onSystemInstructionChange(instruction);
+      setEditMode(false);
+      fireMiscTrackingEvent('Playground Prompt Version Switched', {
+        fromVersion: activePrompt?.version,
+        toVersion: version.version,
+      });
+    };
+
+    confirm(doSwitch, {
+      ...VERSION_SWITCH_CONFIRMATION_CONFIG,
+      onConfirmTracking: () =>
+        fireMiscTrackingEvent('Playground Prompt Version Switch Interrupted', {
+          outcome: 'submit',
+        }),
+      onCancelTracking: () =>
+        fireMiscTrackingEvent('Playground Prompt Version Switch Interrupted', {
+          outcome: 'cancel',
+        }),
+    });
   }
 
   const isGlobalPrompt = activePrompt?.scope?.type === 'global';
@@ -169,14 +205,13 @@ export default function PromptAssistantFormGroup({
               </Label>
             )}
             {!!activePrompt?.version && (
-              <Label
-                data-testid="prompt-version-label"
-                isCompact
-                variant={isEdited ? 'filled' : 'outline'}
-                color={isEdited ? 'grey' : 'purple'}
-              >
-                Version {activePrompt.version.toString()}
-              </Label>
+              <PromptVersionSelector
+                promptName={activePrompt.name}
+                promptScope={activePrompt.scope}
+                currentVersion={activePrompt.version}
+                onVersionSelect={handleVersionSwitch}
+                namespace={namespace?.name}
+              />
             )}
             {isEdited && (
               <div

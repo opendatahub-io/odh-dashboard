@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
 import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
@@ -11,6 +11,7 @@ import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
 import SubscriptionManagementPage from './pages/subscription-management/SubscriptionManagementPage';
+import { MaaSGovernanceProvider } from './context/MaaSGovernanceContext';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -19,17 +20,19 @@ const AppRoutes: React.FC = () => {
 
   if (isSubscriptionManagement) {
     return (
-      <Routes>
-        <Route path="/" element={<SubscriptionManagementPage />} />
-        <Route path="/:tab" element={<SubscriptionManagementPage />} />
-        <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
-        <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
-        <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />
-        <Route path="/auth-policies/create" element={<CreateAuthPolicyPage />} />
-        <Route path="/auth-policies/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
-        <Route path="/auth-policies/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <MaaSGovernanceProvider>
+        <Routes>
+          <Route path="/" element={<SubscriptionManagementPage />} />
+          <Route path="/:tab" element={<SubscriptionManagementPage />} />
+          <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
+          <Route path="/subscriptions/view/:subscriptionName" element={<ViewSubscriptionPage />} />
+          <Route path="/subscriptions/edit/:subscriptionName" element={<EditSubscriptionPage />} />
+          <Route path="/auth-policies/create" element={<CreateAuthPolicyPage />} />
+          <Route path="/auth-policies/view/:authPolicyName" element={<ViewAuthPoliciesPage />} />
+          <Route path="/auth-policies/edit/:authPolicyName" element={<EditAuthPolicyPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </MaaSGovernanceProvider>
     );
   }
   if (isKeysAndSubs) {

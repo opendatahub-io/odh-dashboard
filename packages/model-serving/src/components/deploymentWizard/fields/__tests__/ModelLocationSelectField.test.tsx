@@ -9,7 +9,7 @@ import type {
   ConnectionTypeConfigMapObj,
   Connection,
 } from '@odh-dashboard/k8s-core';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
 import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
@@ -211,8 +211,32 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
     },
   },
 ];
-jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+const StubConnectionTypeFormFields: React.FC<{
+  fields?: { type: string; envVar?: string }[];
+  connectionValues?: Record<string, unknown>;
+  onChange?: (field: { type: string; envVar?: string }, value: unknown) => void;
+}> = ({ fields, connectionValues, onChange }) => (
+  <>
+    {fields
+      ?.filter((f): f is { type: string; envVar: string } => f.type !== 'section' && !!f.envVar)
+      .map((field) => (
+        <input
+          key={field.envVar}
+          data-testid={`field ${field.envVar}`}
+          value={String(connectionValues?.[field.envVar] ?? '')}
+          onChange={(e) => onChange?.(field, e.target.value)}
+        />
+      ))}
+  </>
+);
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
+  useServingConnections: jest.fn(() => [mockConnections, true]),
+  useHostApi: jest.fn(() => ({
+    ConnectionTypeFormFields: StubConnectionTypeFormFields,
+  })),
+  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -237,14 +261,6 @@ jest.mock('@odh-dashboard/internal/pages/modelServing/usePvcs', () => ({
   __esModule: true,
   default: jest.fn(() => ({ data: mockPvcs, loaded: true, error: undefined })),
 }));
-
-jest.mock(
-  '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections',
-  () => ({
-    __esModule: true,
-    default: jest.fn(() => [mockConnections, true]),
-  }),
-);
 
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
@@ -495,6 +511,11 @@ describe('ModelLocationSelectField', () => {
                   [KnownLabels.DASHBOARD_RESOURCE]: 'true',
                   'opendatahub.io/connection-type': 'true',
                 },
+              },
+              data: {
+                fields: [
+                  { envVar: 'URI', name: 'URI', required: true, type: 'uri', properties: {} },
+                ],
               },
             },
           }}

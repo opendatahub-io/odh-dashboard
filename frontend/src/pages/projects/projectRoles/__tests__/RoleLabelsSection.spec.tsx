@@ -35,7 +35,9 @@ describe('RoleLabelsSection', () => {
       render(<RoleLabelsSection labels={[]} onLabelsChange={mockOnLabelsChange} />);
 
       expect(
-        screen.getByText(/Add key\/value labels to organize and filter roles/),
+        screen.getByText(
+          /Optionally, add key\/value pair labels to help organize and filter roles/,
+        ),
       ).toBeInTheDocument();
     });
   });

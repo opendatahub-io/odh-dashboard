@@ -26,7 +26,7 @@ import {
   TypeBorderedCard,
 } from '@odh-dashboard/ui-core';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
@@ -150,7 +150,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   onClearFilters,
 }) => {
   const navigate = useNavigate();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
   const { deployments } = React.useContext(ModelDeploymentsContext);
 
   const { extensionDataMap, onLoad } = usePlatformExtensionDataMap(
@@ -234,7 +234,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 };
 
 const DeployedModelsSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
   const { activePlatform } = useProjectServingPlatform(currentProject, platforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
 
