@@ -195,7 +195,7 @@ export const stopAndReconfigureEvaluation = (
     .should('not.contain.text', 'Stopping', { timeout: 120000 });
   evaluationsPage
     .findEvaluationStatusButtonInRow(evaluationRunName)
-    .should('contain.text', 'Cancelled', { timeout: 30000 });
+    .should('contain.text', 'Canceled', { timeout: 30000 });
 
   cy.step('Open status modal and click Reconfigure');
   evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
