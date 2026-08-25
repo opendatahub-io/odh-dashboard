@@ -35,6 +35,7 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   onManageCollections: () => void;
+  onRegisterData: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -104,6 +105,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   onManageCollections,
+  onRegisterData,
 }) => {
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
@@ -379,6 +381,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 }}
                 data-testid="asset-search"
               />
+            </ToolbarItem>
+            {/* Register data button */}
+            <ToolbarItem>
+              <Button variant="primary" onClick={onRegisterData} data-testid="register-data-button">
+                Register data
+              </Button>
             </ToolbarItem>
             {/* Kebab */}
             <ToolbarItem>
