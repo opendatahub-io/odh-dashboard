@@ -279,6 +279,7 @@ describe('EnvExistingSecretField', () => {
         'The following keys are defined more than once across the selected secrets.',
       );
       expect(alert).toHaveTextContent('Defined in secrets: secret-a, secret-b');
+      expect(within(alert).getByText('secret-a, secret-b').tagName).toBe('STRONG');
     });
 
     it('should show plural collision warning for multiple key collisions', () => {
@@ -317,6 +318,27 @@ describe('EnvExistingSecretField', () => {
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
           existingSecretsData={mockExistingSecretsData()}
+        />,
+      );
+
+      expect(screen.queryByTestId('env-collision-warning')).not.toBeInTheDocument();
+    });
+
+    it('should not show collision warning when only reserved keys overlap', () => {
+      const collidingSecrets: ExistingSecretMetadata[] = [
+        { name: 'secret-a', keys: ['TOKEN_VALUE', 'NOTEBOOK_ARGS'] },
+        { name: 'secret-b', keys: ['NOTEBOOK_ARGS'] },
+      ];
+      const existingRefs: ExistingSecretRef[] = [
+        { secretName: 'secret-a', selectedKeys: ['TOKEN_VALUE', 'NOTEBOOK_ARGS'] },
+        { secretName: 'secret-b', selectedKeys: ['NOTEBOOK_ARGS'] },
+      ];
+
+      render(
+        <EnvExistingSecretField
+          existingSecretRefs={existingRefs}
+          onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData({ secrets: collidingSecrets })}
         />,
       );
 

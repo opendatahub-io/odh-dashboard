@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { ExistingSecretMetadata, ExistingSecretRef } from '#~/pages/projects/types';
 import ExistingSecretKeyPicker from '#~/pages/projects/screens/spawner/environmentVariables/ExistingSecretKeyPicker';
 
@@ -646,6 +646,7 @@ describe('ExistingSecretKeyPicker', () => {
         '1 key in this secret cannot be used as environment variables',
       );
       expect(alert).toHaveTextContent('Unavailable: key-with-hyphens');
+      expect(within(alert).getByText('key-with-hyphens').tagName).toBe('STRONG');
     });
 
     it('should show plural message for multiple unavailable keys', () => {
@@ -737,6 +738,32 @@ describe('ExistingSecretKeyPicker', () => {
       expandSection('db-secret');
 
       expect(screen.queryByTestId('collision-icon-db-secret-username')).not.toBeInTheDocument();
+    });
+
+    it('should not show collision icon on reserved keys', () => {
+      const mixedSecrets: ExistingSecretMetadata[] = [
+        { name: 'mixed-reserved-keys', keys: ['NOTEBOOK_ARGS', 'TOKEN_VALUE'] },
+      ];
+      const selectedRefs: ExistingSecretRef[] = [
+        { secretName: 'mixed-reserved-keys', selectedKeys: ['TOKEN_VALUE'] },
+      ];
+      const collidingKeys = new Set(['NOTEBOOK_ARGS', 'TOKEN_VALUE']);
+
+      render(
+        <ExistingSecretKeyPicker
+          selectedRefs={selectedRefs}
+          availableSecrets={mixedSecrets}
+          onUpdate={jest.fn()}
+          collidingKeys={collidingKeys}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('collision-icon-mixed-reserved-keys-NOTEBOOK_ARGS'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId('collision-icon-mixed-reserved-keys-TOKEN_VALUE'),
+      ).toBeInTheDocument();
     });
   });
 });

@@ -287,8 +287,8 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                 data-testid={`env-unavailable-keys-alert-${secretRef.secretName}`}
               >
                 <p>
-                  Unavailable: {unavailableKeys.join(', ')}. These keys have invalid names or
-                  conflict with system variables.
+                  Unavailable: <strong>{unavailableKeys.join(', ')}</strong>. These keys have
+                  invalid names or conflict with system variables.
                 </p>
               </Alert>
             </StackItem>
@@ -349,7 +349,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                           display={{ default: 'inlineFlex' }}
                         >
                           <FlexItem>{k}</FlexItem>
-                          {isColliding ? (
+                          {isColliding && !isKeyDisabled ? (
                             <FlexItem>
                               <Tooltip content="This key is defined in multiple secrets">
                                 <Icon

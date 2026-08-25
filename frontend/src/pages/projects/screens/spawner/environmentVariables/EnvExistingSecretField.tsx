@@ -228,7 +228,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
               <div key={c.key}>
                 <strong>{c.key}</strong>
                 <br />
-                Defined in secrets: {c.sources.join(', ')}
+                Defined in secrets: <strong>{c.sources.join(', ')}</strong>
               </div>
             ))}
           </Alert>
