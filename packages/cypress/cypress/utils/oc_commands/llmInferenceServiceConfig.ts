@@ -2,6 +2,7 @@
 import { createCustomResource } from './customResources';
 import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { replacePlaceholdersInYaml } from '../yaml_files';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 if (!applicationNamespace) {
@@ -47,7 +48,8 @@ export const createCleanLLMInferenceServiceConfig = (
   cy.log(`Cleaning up and creating LLMInferenceServiceConfig: ${configName}`);
   cleanupLLMInferenceServiceConfig(configName).then(() => {
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
-    createCustomResource(applicationNamespace, configYamlPath);
+    const replacedYaml = replacePlaceholdersInYaml(configYamlPath, { CONFIG_NAME: configName });
+    createCustomResource(applicationNamespace, replacedYaml);
   });
 };
 

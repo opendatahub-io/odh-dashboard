@@ -135,7 +135,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   it(
     ' Verify Authorization Policy Create, View, Edit and  Delete Operations',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', 'MaaSCI'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@MaaSCI'],
     },
     () => {
       cy.step('Log into the application as admin');

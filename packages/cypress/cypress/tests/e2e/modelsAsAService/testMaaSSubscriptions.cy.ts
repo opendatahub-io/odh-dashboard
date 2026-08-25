@@ -44,10 +44,6 @@ import type { ModelAsAServiceTestData } from '../../../types';
 import { PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import {
-  createCleanHardwareProfile,
-  cleanupHardwareProfiles,
-} from '../../../utils/oc_commands/hardwareProfiles';
-import {
   createCleanLLMInferenceServiceConfig,
   cleanupLLMInferenceServiceConfig,
   checkLLMInferenceServiceConfigState,
@@ -74,12 +70,11 @@ let tokenRateLimit: { limit: string; window: string; unit: string };
 let tokenLimit: string;
 const uuid = generateTestUUID();
 let apiKeyName: string;
-let hardwareProfileResourceName: string;
 let modelURI: string;
 let llmInferenceServiceConfigName: string;
 let llmInferenceServiceConfigDisplayName: string;
 const llmInferenceServiceConfigYamlPath =
-  'resources/modelServing/llmd-inference-service-config.yaml';
+  'resources/modelServing/llmd-inference-service-config-simulator.yaml';
 let llmInferenceServiceConfigContainerImage: string;
 
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
@@ -90,11 +85,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
-        llmInferenceServiceConfigName = testData.llmInferenceServiceConfigName;
+        llmInferenceServiceConfigName = `testData.llmInferenceServiceConfigName-${uuid}`;
         llmInferenceServiceConfigDisplayName = testData.llmInferenceServiceConfigDisplayName;
         llmInferenceServiceConfigContainerImage = testData.llmInferenceServiceConfigContainerImage;
         modelURI = testData.modelLocationURI;
-        hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionNamespace = testData.subscriptionNamespace;
         subscriptionDescription = 'This is a test MaaS subscription';
@@ -133,10 +127,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         });
       })
       .then(() => {
-        cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
-        createCleanHardwareProfile('resources/yaml/llmd-hardware-profile.yaml');
-      })
-      .then(() => {
         cy.log(`Load LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
         createCleanLLMInferenceServiceConfig(
           llmInferenceServiceConfigName,
@@ -147,8 +137,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
   after(() => {
     ensureAdminOcSession();
-    cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
-    cleanupHardwareProfiles(hardwareProfileResourceName);
     cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
     cleanupLLMInferenceServiceConfig(llmInferenceServiceConfigName);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
@@ -178,15 +166,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   it(
     'Verify User can deploy a model by selecting a MaaS subscription and API key',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet5',
-        '@Dashboard',
-        '@ModelServing',
-        '@NonConcurrent',
-        '@MaaSCI',
-        `@MaasSubscriptions`,
-      ],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@ModelServing', '@MaaS', '@MaaSCI'],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -213,7 +193,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
       modelServingWizard.findNextButton().should('be.enabled').click();
 
-      cy.step('Step 2: Model deployment - select vLLM CPU LLMInferenceServiceConfig');
+      cy.step('Step 2: Model deployment - select LLM-d inference simulator config');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
       modelServingWizard.findResourceNameButton().click();
       modelServingWizard
@@ -227,7 +207,6 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .findModelDeploymentDescriptionInput()
         .clear()
         .type(testData.singleModelDescription);
-      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
