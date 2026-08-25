@@ -1,8 +1,8 @@
-import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
-import { waitForEvaluationJobComplete } from '../../../utils/oc_commands/evalHubInstance';
-import { evaluationsPage } from '../../../pages/evalHub/evaluationsPage';
-import { createEvaluationPage } from '../../../pages/evalHub/createEvaluationPage';
-import { evaluationResultsPage } from '../../../pages/evalHub/evaluationResultsPage';
+import { LDAP_ADMIN_USER } from './e2eUsers';
+import { waitForEvaluationJobComplete } from './oc_commands/evalHubInstance';
+import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
+import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
+import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
 
 export type SingleBenchmarkEvaluationOptions = {
   benchmarkCardTitle: string;

@@ -4,7 +4,7 @@ import {
   submitSingleBenchmarkEvaluation,
   verifyEvaluationProgressModal,
   verifyEvaluationCompletedAndViewResults,
-} from './evalHubFlow';
+} from '../../../utils/evalHubTestFlows';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
