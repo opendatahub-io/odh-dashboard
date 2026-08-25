@@ -42,7 +42,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [SupportedArea.PLUGIN_DATA_CONNECT_HUB],
     },
     properties: {
       path: '/data-connect-hub/main-view/*',
