@@ -285,7 +285,7 @@ reviews:
       instructions: |
         MODULE FEDERATION CONFIG:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
-        2. Remote entry configuration must be consistent with manifests/sidecar/.
+        2. Remote entry configuration must be consistent with manifests/modules/.
         3. Changes to shared dependency list require coordination across all plugins.
 
 

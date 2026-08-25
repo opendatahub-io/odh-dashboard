@@ -17,7 +17,7 @@ const (
 	AuthMethodUser = "user_token"
 
 	// DefaultAuthTokenHeader is the header the RHOAI OAuth proxy uses to forward
-	// the user's access token to sidecar BFFs.
+	// the user's access token to BFFs.
 	DefaultAuthTokenHeader = "x-forwarded-access-token" //nolint:gosec // G101: not a credential, config default for header name
 
 	// DefaultAuthTokenPrefix is empty because x-forwarded-access-token carries
