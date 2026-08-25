@@ -38,6 +38,7 @@ const AdminHelpAction: React.FC<AdminHelpActionProps> = ({
             <p>
               To create a new model registry, go to the <b>{settingsTitle}</b> page.
             </p>
+            <br />
             <Link to={settingsUrl}>
               Go to <b>{settingsTitle}</b>
             </Link>
