@@ -242,6 +242,22 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByText('NIM image')).toBeInTheDocument();
   });
 
+  it('should not unlock image selection while the catalog is still empty on load', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.READY,
+        },
+        loaded: true,
+      },
+    });
+
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+  });
+
   it('should disable image selection when editing with a valid image', () => {
     renderComponent({
       isEditing: true,

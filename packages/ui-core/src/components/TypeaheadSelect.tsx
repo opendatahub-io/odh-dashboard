@@ -427,10 +427,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       data-testid={dataTestId ?? 'typeahead-menu-toggle'}
       onClick={onToggleClick}
       isExpanded={isOpen}
-      isDisabled={isToggleDisabled}
       isFullWidth
       style={{ width: toggleWidth }}
       {...toggleProps}
+      isDisabled={isToggleDisabled}
     >
       <TextInputGroup isPlain isDisabled={isToggleDisabled}>
         <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
@@ -451,7 +451,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
             />
           </FlexItem>
           {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
-          {(isFiltering && filterValue) || (allowClear && selected) ? (
+          {(isFiltering && filterValue) || (allowClear && selected && !isToggleDisabled) ? (
             <FlexItem>
               <TextInputGroupUtilities>
                 <Button

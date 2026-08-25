@@ -31,8 +31,22 @@ describe('isNIMImageSelectionLocked', () => {
         true,
         { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
         true,
+        false,
+        true,
       ),
     ).toBe(false);
+  });
+
+  it('should stay locked when catalog is empty even if existingOptionNotFound is true', () => {
+    expect(
+      isNIMImageSelectionLocked(
+        true,
+        { repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' },
+        true,
+        false,
+        false,
+      ),
+    ).toBe(true);
   });
 
   it('should stay unlocked after selecting a catalog image when reselection was unlocked', () => {

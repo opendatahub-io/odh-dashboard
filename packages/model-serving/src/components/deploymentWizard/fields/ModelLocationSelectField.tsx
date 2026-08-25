@@ -68,7 +68,10 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
 }) => {
   const isEditing = wizardState.initialData?.isEditing ?? false;
   const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
-  const modelLocationOverrides = useWizardFieldOverrides(isModelLocationFieldOverride);
+  const modelLocationOverrides = useWizardFieldOverrides(
+    isModelLocationFieldOverride,
+    wizardState.state,
+  );
   const hiddenLocationKeys = React.useMemo(
     () =>
       new Set(

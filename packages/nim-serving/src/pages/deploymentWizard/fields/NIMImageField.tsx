@@ -99,9 +99,11 @@ export const isNIMImageSelectionLocked = (
   value: NIMImageFieldValue | undefined,
   existingOptionNotFound: boolean,
   isReselectionUnlocked = false,
+  catalogLoadedWithImages = false,
 ): boolean => {
+  const imageMissingFromCatalog = catalogLoadedWithImages && existingOptionNotFound;
   const canReselectImage =
-    !value || !value.repository || !value.tag || existingOptionNotFound || isReselectionUnlocked;
+    !value || !value.repository || !value.tag || imageMissingFromCatalog || isReselectionUnlocked;
   return !!isEditing && !canReselectImage;
 };
 
@@ -181,17 +183,19 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const [isReselectionUnlocked, setIsReselectionUnlocked] = React.useState(false);
   React.useEffect(() => {
-    if (isEditing && existingOptionNotFound) {
+    if (isEditing && existingOptionNotFound && externalData?.loaded && images.length > 0) {
       setIsReselectionUnlocked(true);
     }
-  }, [isEditing, existingOptionNotFound]);
+  }, [isEditing, existingOptionNotFound, externalData?.loaded, images.length]);
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
+  const catalogLoadedWithImages = Boolean(externalData?.loaded && images.length > 0);
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,
     existingOptionNotFound,
     isReselectionUnlocked,
+    catalogLoadedWithImages,
   );
 
   const onSelect = React.useCallback(
