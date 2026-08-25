@@ -503,7 +503,6 @@ func TestIntegration_InterModuleDependency(t *testing.T) {
 		// Also skip DSC gate by leaving Components nil.
 		modules := disableAllModulesExcept("autorag")
 		dashboard := newDashboard(v1alpha1.DashboardSpec{
-
 			Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 			Modules: modules,
 		})
@@ -530,7 +529,6 @@ func TestIntegration_InterModuleDependency(t *testing.T) {
 	t.Run("autorag_deployed_when_genAi_enabled", func(t *testing.T) {
 		modules := disableAllModulesExcept("autorag", "genAi")
 		dashboard := newDashboard(v1alpha1.DashboardSpec{
-
 			Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 			Modules: modules,
 		})

@@ -188,15 +188,19 @@ jobs:
             case "$MODULE_NAME" in
               model-registry)
                 sed -i "s|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:.*|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:${NEW_VERSION}-odh|" "$params_file"
+                echo "Updated $params_file"
                 ;;
               gen-ai)
                 sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" "$params_file"
+                echo "Updated $params_file"
                 ;;
               maas)
                 sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" "$params_file"
+                echo "Updated $params_file"
+                ;;
+              *)
                 ;;
             esac
-            echo "Updated $params_file"
           done
 
           # Commit version bump
