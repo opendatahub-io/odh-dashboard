@@ -20,6 +20,11 @@ This strategy consists of the following parts:
 - UI: TS types, class and util functions to manage the errors coming from requests to the BFF
 - UI: A React handler component for managing the rendering of the `UIError`s as PF Alerts, PF Modal.
 
+> **Note:** the golang side of this strategy (`NewUIError` struct/constructor) is currently
+> implemented independently in each product's BFF (e.g. AutoRAG's). Promoting it into the shared
+> `packages/autox-core/services` Go library, mirroring this frontend promotion, is a deferred
+> follow-up — not part of this UI restructure.
+
 ## The `UIError` shape
 
 The type definition for `UIError` outlines it's fields and it's use:
@@ -106,7 +111,7 @@ When rendering your app, make use of the high-level `UIErrorHandler` component.
 
 The `UIErrorHandler` component offers a React hook that enables the easy rendering of `UIError`s we get back from API requests.  
 ```TSX
-import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
+import { useCatchUIError } from '@odh-dashboard/autox-core/ui/components/primitive';
 
 const catchUIError = useCatchUIError();
 

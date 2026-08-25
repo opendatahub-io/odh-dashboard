@@ -9,7 +9,7 @@ import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';

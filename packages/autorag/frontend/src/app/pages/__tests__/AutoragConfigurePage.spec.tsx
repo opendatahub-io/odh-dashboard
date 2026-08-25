@@ -9,7 +9,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 

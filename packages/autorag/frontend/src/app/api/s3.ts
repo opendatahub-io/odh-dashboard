@@ -8,7 +8,7 @@ import {
   restCREATE,
   restGET,
 } from 'mod-arch-core';
-import { handleRestWithUIErrors } from '~/app/components/common/UIError/util';
+import { handleRestWithUIErrors } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import type { S3ListObjectsResponse } from '~/app/types';
 

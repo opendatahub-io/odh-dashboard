@@ -14,10 +14,10 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AppRoutes from '~/app/AppRoutes';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings';
 
 const App: React.FC = () => {

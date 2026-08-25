@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import type { UIError } from '~/app/components/common/UIError/types';
-import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
+import type { UIError } from '../types';
+import { UIErrorInstance } from '../UIErrorInstance';
 
 const validUIError: UIError = {
   type: 'UIError',

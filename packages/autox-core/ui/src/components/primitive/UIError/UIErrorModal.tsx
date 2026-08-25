@@ -16,8 +16,8 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import type { UIError, UIErrorMapping } from './types.ts';
-import { UIErrorDefaults } from './constants.ts';
+import type { UIError, UIErrorMapping } from './types';
+import { UIErrorDefaults } from './constants';
 
 // Types ---------------------------------------------------------------------->
 

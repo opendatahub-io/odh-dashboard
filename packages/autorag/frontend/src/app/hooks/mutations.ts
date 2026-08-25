@@ -1,6 +1,7 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { isModArchResponse, restCREATE } from 'mod-arch-core';
 import * as z from 'zod';
+import { handleRestWithUIErrors } from '@odh-dashboard/autox-core/ui/components/primitive';
 import {
   uploadFileToS3,
   type UploadFileToS3Params,
@@ -11,7 +12,6 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { CreateIndexingPipelineRunRequest, PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { handleRestWithUIErrors } from '~/app/components/common/UIError/util.ts';
 
 const createPipelineRunResponseSchema = z.object({
   /* eslint-disable camelcase */

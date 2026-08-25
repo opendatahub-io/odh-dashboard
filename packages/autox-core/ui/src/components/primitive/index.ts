@@ -15,3 +15,4 @@ export { default as ConfirmationModal } from './ConfirmationModal';
 export { default as ContextBreadcrumb } from './ContextBreadcrumb';
 export { default as ModuleHeader } from './ModuleHeader';
 export { default as SpinnerEmptyState } from './SpinnerEmptyState';
+export * from './UIError';

@@ -1,4 +1,4 @@
-import type { UIErrorMapping } from './types.ts';
+import type { UIErrorMapping } from './types';
 
 const uiErrorMapping: UIErrorMapping = {
   title: 'Something went wrong',

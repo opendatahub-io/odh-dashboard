@@ -63,9 +63,11 @@ import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { ConfigureFormGroup } from '@odh-dashboard/autox-core/ui/components/primitive';
-import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
-import { isUIError } from '~/app/components/common/UIError/util';
+import {
+  ConfigureFormGroup,
+  useUIErrorHandler,
+  isUIError,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';

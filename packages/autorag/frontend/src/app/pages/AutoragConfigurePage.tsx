@@ -16,7 +16,10 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
-import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import {
+  ContextBreadcrumb,
+  useCatchUIError,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
@@ -46,7 +49,6 @@ import {
   RunTriggeredTrackingContext,
   type RunTriggeredTrackingContextProps,
 } from '~/app/context/RunTriggeredTrackingContext';
-import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<

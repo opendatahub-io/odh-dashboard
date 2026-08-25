@@ -1,11 +1,11 @@
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
-import UIErrorModal from './UIErrorModal.tsx';
-import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert.tsx';
-import type { UIError, UIErrorMappings } from './types.ts';
-import { normalizeErrorWithInstance } from './util.ts';
-import { UIErrorInstance } from './UIErrorInstance.ts';
+import UIErrorModal from './UIErrorModal';
+import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert';
+import type { UIError, UIErrorMappings } from './types';
+import { normalizeErrorWithInstance } from './util';
+import { UIErrorInstance } from './UIErrorInstance';
 
 // Types ---------------------------------------------------------------------->
 

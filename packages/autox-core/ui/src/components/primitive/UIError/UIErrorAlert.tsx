@@ -2,10 +2,10 @@
 
 import React, { useId } from 'react';
 import { Alert, AlertActionCloseButton, AlertActionLink, AlertGroup } from '@patternfly/react-core';
-import type { UIErrorMapping } from './types.ts';
-import { UIErrorDefaults } from './constants.ts';
-import type { UIErrorInstance } from './UIErrorInstance.ts';
-import { useUIErrorHandler } from './UIErrorHandler.tsx';
+import type { UIErrorMapping } from './types';
+import { UIErrorDefaults } from './constants';
+import type { UIErrorInstance } from './UIErrorInstance';
+import { useUIErrorHandler } from './UIErrorHandler';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->

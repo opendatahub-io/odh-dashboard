@@ -7,9 +7,9 @@ import {
   ModularArchContextProvider,
 } from 'mod-arch-core';
 import React from 'react';
+import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AppRoutes from '~/app/AppRoutes';
 import ToastNotifications from '~/app/components/ToastNotifications';
-import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings.ts';
 import { registerGenAiRemote } from './registerGenAiRemote';

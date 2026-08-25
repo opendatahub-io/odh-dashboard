@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import { handleRestFailures } from 'mod-arch-core';
-import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
-import type { UIError } from '~/app/components/common/UIError/types';
+import { UIErrorInstance } from '../UIErrorInstance';
+import type { UIError } from '../types';
 import {
   isUIError,
   normalizeErrorWithInstance,
   throwUIError,
   handleRestWithUIErrors,
-} from '~/app/components/common/UIError/util';
+} from '../util';
 
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
