@@ -126,7 +126,7 @@ class ProjectListPage {
   }
 
   findProjectLink(projectName: string) {
-    return this.findProjectsTable().findByRole('link', { name: projectName, timeout: 30000 });
+    return this.findProjectsTable().findByRole('link', { name: projectName });
   }
 
   findEmptyResults() {
