@@ -11,6 +11,7 @@
  *
  * See ../../../ARCHITECTURE.md for the full layering conventions.
  */
+export { default as DeleteRunModal } from './DeleteRunModal';
 export { default as EmptyExperimentsState } from './EmptyExperimentsState';
 export { default as EnableManagedPipelinesModal } from './EnableManagedPipelinesModal';
 export { default as InvalidExperiment } from './InvalidExperiment';

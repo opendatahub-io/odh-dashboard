@@ -2,11 +2,10 @@ import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { DeleteRunModal, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
-import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { autoragReconfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
@@ -192,7 +191,13 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
         runName={run.display_name}
-        source="runsList"
+        productName="AutoRAG"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'runsList',
+          })
+        }
       />
     </>
   );

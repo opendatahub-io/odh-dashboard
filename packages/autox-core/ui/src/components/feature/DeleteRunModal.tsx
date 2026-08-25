@@ -11,8 +11,6 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AUTORAG_EVENTS, TrackingOutcome, type RunActionSource } from '~/app/utilities/tracking';
 
 type DeleteRunModalProps = {
   isOpen: boolean;
@@ -20,16 +18,31 @@ type DeleteRunModalProps = {
   onConfirm: () => void;
   isDeleting: boolean;
   runName?: string;
-  source: RunActionSource;
+  productName: string;
+  /**
+   * Called when the modal is dismissed without confirming and no delete request
+   * is already in flight — e.g. for firing a product-specific tracking event.
+   * Not called for a cancel while a delete request is in flight (Escape/close
+   * button while submitting), since the caller's own outcome tracking around
+   * `onConfirm` covers that case.
+   */
+  onCancel?: () => void;
 };
 
+/**
+ * Confirmation modal for deleting a pipeline run, requiring the user to type
+ * the run name before the Delete button is enabled. Owns the submitting/loading
+ * state and the cancel-while-submitting guard; callers supply `onConfirm` (the
+ * actual delete mutation) and an optional `onCancel` for tracking.
+ */
 const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
   isDeleting,
   runName,
-  source,
+  productName,
+  onCancel,
 }) => {
   const [confirmInputValue, setConfirmInputValue] = React.useState('');
   // Mirrors `isDeleting` but flips to `true` synchronously the instant the Delete button is
@@ -61,29 +74,27 @@ const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
   const handleClose = React.useCallback(() => {
     // Deletion is already in flight (e.g. triggered via Escape/backdrop, which PatternFly's
     // Modal invokes regardless of the disabled Cancel button) — don't record a "cancel"
-    // outcome here, since handleDelete will record the real submit success/failure outcome.
+    // outcome here, since the caller's onConfirm handling will record the real submit
+    // success/failure outcome.
     if (isBusy) {
       return;
     }
     setConfirmInputValue('');
-    fireFormTrackingEvent(AUTORAG_EVENTS.EXPERIMENT_DELETED, {
-      outcome: TrackingOutcome.cancel,
-      source,
-    });
+    onCancel?.();
     onClose();
-  }, [isBusy, onClose, source]);
+  }, [isBusy, onClose, onCancel]);
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = React.useCallback(() => {
     // Set synchronously, before calling onConfirm(), so isBusy is already true by the time
     // any subsequent event (e.g. an Escape keydown) is processed — no need to wait for the
     // async `isDeleting` prop update.
     setIsSubmitting(true);
     onConfirm();
-  };
+  }, [onConfirm]);
 
   return (
     <Modal variant="small" isOpen={isOpen} onClose={handleClose} data-testid="delete-run-modal">
-      <ModalHeader title="Delete AutoRAG optimization run?" titleIconVariant="warning" />
+      <ModalHeader title={`Delete ${productName} optimization run?`} titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>The run will be permanently deleted. This action cannot be undone.</StackItem>
