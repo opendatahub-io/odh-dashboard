@@ -8,8 +8,8 @@ const MLFLOW_GVR = 'mlflows.mlflow.opendatahub.io';
 
 const waitMlflowAvailable = (): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
-    `MLflow ${MLFLOW_CR_NAME} Available`,
+    `oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o json | jq -e '.status.conditions[]? | select(.type=="MLflowOperatorReady") | .status == "True"'`,
+    `MLflow ${MLFLOW_CR_NAME} MLflowOperatorReady`,
     { maxAttempts: 72, pollIntervalMs: 5000 },
   );
 
