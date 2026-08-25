@@ -3,6 +3,26 @@ class CreateEvaluationPage {
     return cy.findByTestId('standardised-benchmarks-card');
   }
 
+  findEvaluationCollectionsCard() {
+    return cy.findByTestId('evaluation-collections-card');
+  }
+
+  findCollectionsGallery(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('collections-gallery', options);
+  }
+
+  findCollectionCard(collectionId: string) {
+    return cy.findByTestId(`collection-card-${collectionId}`);
+  }
+
+  findUseBenchmarkSuiteButton() {
+    return cy.findByTestId('use-benchmark-suite-button');
+  }
+
+  findCollectionsNameFilter() {
+    return cy.findByTestId('collections-name-filter');
+  }
+
   findBenchmarksGallery(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('benchmarks-gallery', options);
   }

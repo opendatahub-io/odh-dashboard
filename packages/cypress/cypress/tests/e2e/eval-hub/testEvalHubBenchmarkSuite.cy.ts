@@ -1,7 +1,7 @@
 import * as yaml from 'js-yaml';
 import {
   navigateToEvaluationsPage,
-  submitSingleBenchmarkEvaluation,
+  submitBenchmarkSuiteEvaluation,
   verifyEvaluationProgressModal,
   verifyEvaluationCompletedAndViewResults,
 } from '../../../utils/evalHubTestFlows';
@@ -11,7 +11,7 @@ import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
-import type { EvalHubTestData } from '../../../types';
+import type { EvalHubBenchmarkSuiteTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
   ensureEvalHubCrReady,
@@ -24,38 +24,37 @@ import {
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 
 /**
- * Live-cluster Eval Hub E2E. Ensures EvalHub + MLflow CRs are Ready, creates an ephemeral
- * OpenShift project with a vLLM-served model, then drives the Evaluations UI to submit an
- * inference evaluation and verify it completes.
+ * Live-cluster Eval Hub E2E — benchmark suite (collection) flow.
+ * Selects the "Toxicity and Ethical Principles" collection (toxigen, truthfulqa_mc1,
+ * bigbench_hhh) to exercise the multi-benchmark collection path end-to-end.
  *
- * EvalHub and MLflow CRs are never deleted by this suite — they are treated as shared cluster
- * infrastructure. ensureEvalHubCrReady / ensureMlflowCrReady create them on first run if
- * absent and are no-ops on subsequent runs, making concurrent execution safe.
+ * EvalHub and MLflow CRs are treated as shared cluster infrastructure and are never
+ * deleted by this suite.
  */
-describe('Eval Hub E2E', () => {
-  let testData: EvalHubTestData;
-  const uuid = Cypress.env('EVAL_HUB_UUID') || generateTestUUID();
-  Cypress.env('EVAL_HUB_UUID', uuid);
+describe('Eval Hub E2E — Benchmark Suite', () => {
+  let testData: EvalHubBenchmarkSuiteTestData;
+  const uuid = Cypress.env('EVAL_HUB_SUITE_UUID') || generateTestUUID();
+  Cypress.env('EVAL_HUB_SUITE_UUID', uuid);
   let evaluationTenantProject = '';
   let evalHubCrName = 'evalhub';
   let hardwareProfileName = '';
   let inferenceServiceName = '';
   let evalHubInstanceYamlPath = '';
   let mlflowInstanceYamlPath = '';
-  let benchmarkCardTitle = '';
+  let collectionId = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
 
   retryableBefore(() => {
     ensureAdminOcSession();
-    cy.fixture('e2e/eval-hub/testEvalHubSingleBenchmark.yaml', 'utf8').then(
+    cy.fixture('e2e/eval-hub/testEvalHubBenchmarkSuite.yaml', 'utf8').then(
       (yamlContent: string) => {
-        testData = yaml.load(yamlContent) as EvalHubTestData;
+        testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
         evalHubCrName = testData.evalHubCrName;
         hardwareProfileName = testData.hardwareProfileName;
         evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
-        benchmarkCardTitle = testData.benchmarkCardTitle;
+        collectionId = testData.collectionId;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
         evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
@@ -102,20 +101,20 @@ describe('Eval Hub E2E', () => {
   });
 
   it(
-    'Eval Hub: start inference evaluation and see it complete',
+    'Eval Hub: start benchmark suite evaluation and see it complete',
     {
       retries: { runMode: 0, openMode: 0 },
       tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
     },
     () => {
-      const evaluationRunName = `e2e-eval-${evaluationTenantProject.replace(
+      const evaluationRunName = `e2e-suite-${evaluationTenantProject.replace(
         `${projectNamePrefix}-`,
         '',
       )}`;
 
       navigateToEvaluationsPage(evaluationTenantProject);
-      submitSingleBenchmarkEvaluation({
-        benchmarkCardTitle,
+      submitBenchmarkSuiteEvaluation({
+        collectionId,
         evaluationRunName,
         inferenceServiceName,
         additionalBenchmarkParams,

@@ -11,6 +11,13 @@ export type SingleBenchmarkEvaluationOptions = {
   additionalBenchmarkParams?: string;
 };
 
+export type BenchmarkSuiteEvaluationOptions = {
+  collectionId: string;
+  evaluationRunName: string;
+  inferenceServiceName: string;
+  additionalBenchmarkParams?: string;
+};
+
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
@@ -43,6 +50,47 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
 
   cy.step('Enter evaluation name');
   createEvaluationPage.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
+  createEvaluationPage.findEvaluationNameInput().clear().type(evaluationRunName);
+
+  cy.step('Select deployed model from cluster picker');
+  createEvaluationPage.findModelPickerToggle().click();
+  createEvaluationPage.findModelOption(inferenceServiceName).click();
+
+  if (additionalBenchmarkParams?.trim()) {
+    cy.step('Add benchmark parameters');
+    createEvaluationPage.findBenchmarkParametersCheckbox().check({ force: true });
+    createEvaluationPage
+      .findAdditionalBenchmarkParamsTextarea()
+      .should('be.visible')
+      .clear()
+      .type(additionalBenchmarkParams.trim(), { parseSpecialCharSequences: false });
+  }
+
+  cy.step('Submit evaluation and confirm it appears in the list');
+  createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
+  cy.url({ timeout: 120000 }).should('not.include', '/create');
+  evaluationsPage.findEvaluationsTable().should('contain', evaluationRunName);
+};
+
+export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOptions): void => {
+  const { collectionId, evaluationRunName, inferenceServiceName, additionalBenchmarkParams } = opts;
+
+  cy.step('Open create evaluation wizard and select benchmark suite');
+  evaluationsPage.findCreateEvaluationButton().click();
+  createEvaluationPage.findEvaluationCollectionsCard().should('be.visible').click();
+  cy.url().should('include', '/create/collections');
+  createEvaluationPage.findCollectionsGallery({ timeout: 120000 }).should('be.visible');
+
+  cy.step(`Select collection: ${collectionId}`);
+  createEvaluationPage
+    .findCollectionCard(collectionId)
+    .scrollIntoView()
+    .within(() => {
+      createEvaluationPage.findUseBenchmarkSuiteButton().click();
+    });
+  createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 120000 });
+
+  cy.step('Enter evaluation name');
   createEvaluationPage.findEvaluationNameInput().clear().type(evaluationRunName);
 
   cy.step('Select deployed model from cluster picker');

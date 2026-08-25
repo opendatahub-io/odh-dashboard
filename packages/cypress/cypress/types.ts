@@ -780,6 +780,11 @@ export type EvalHubTestData = {
   hardwareProfileName: string;
 };
 
+export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+  /** Resource ID of the benchmark suite / collection to select (matches `collection.resource.id`). */
+  collectionId: string;
+};
+
 export type ModelCatalogSourceTestData = {
   sourceName: string;
   redhatAiSourceId: string;
