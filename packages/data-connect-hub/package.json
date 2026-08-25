@@ -33,9 +33,6 @@
     "healthEndpoint": "/healthcheck",
     "startCommand": "make dev-bff-e2e-mock"
   },
-  "exports": {
-    "./extensions": "./frontend/src/odh/extensions.ts"
-  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
@@ -52,6 +49,7 @@
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
     "eslint-plugin-n": "^17.23.1"
