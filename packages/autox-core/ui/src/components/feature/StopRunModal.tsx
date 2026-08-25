@@ -1,7 +1,5 @@
 import React from 'react';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AUTORAG_EVENTS, TrackingOutcome, type RunActionSource } from '~/app/utilities/tracking';
 
 type StopRunModalProps = {
   isOpen: boolean;
@@ -9,16 +7,28 @@ type StopRunModalProps = {
   onConfirm: () => void | Promise<void>;
   isTerminating: boolean;
   runName?: string;
-  source: RunActionSource;
+  /**
+   * Called when the modal is dismissed without confirming and no stop request
+   * is already in flight — e.g. for firing a product-specific tracking event.
+   * Not called for a cancel while a stop request is in flight (Escape/close
+   * button while submitting), since `onConfirm`'s own outcome tracking covers
+   * that case.
+   */
+  onCancel?: () => void;
 };
 
+/**
+ * Confirmation modal for stopping a pipeline run. Owns the submitting/loading
+ * state and the cancel-while-submitting guard; callers supply `onConfirm` (the
+ * actual stop mutation) and an optional `onCancel` for tracking.
+ */
 const StopRunModal: React.FC<StopRunModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
   isTerminating,
   runName,
-  source,
+  onCancel,
 }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -33,6 +43,8 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
     setIsSubmitting(true);
     try {
       await onConfirm();
+    } catch {
+      // Error notification and tracking are handled by the caller's onConfirm.
     } finally {
       setIsSubmitting(false);
     }
@@ -41,14 +53,14 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
   const handleCancel = React.useCallback(() => {
     // A stop request is already in flight (e.g. triggered via Escape/close-button, which
     // PatternFly's Modal invokes regardless of the disabled Cancel button) — don't record a
-    // "cancel" outcome here, since handleStopClick's onConfirm will record the real submit
+    // cancel outcome here, since handleStopClick's onConfirm will record the real submit
     // success/failure outcome.
     if (isSubmitting || isTerminating) {
       return;
     }
-    fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, { outcome: TrackingOutcome.cancel, source });
+    onCancel?.();
     onClose();
-  }, [isSubmitting, isTerminating, onClose, source]);
+  }, [isSubmitting, isTerminating, onClose, onCancel]);
 
   const isDisabled = isSubmitting || isTerminating;
 

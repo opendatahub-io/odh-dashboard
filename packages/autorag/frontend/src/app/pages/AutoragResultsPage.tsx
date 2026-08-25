@@ -10,8 +10,9 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -21,7 +22,6 @@ import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
@@ -41,10 +41,12 @@ import {
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 import {
+  AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
+  TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
 
@@ -465,7 +467,12 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
       {viewCodePattern && (
         <ViewCodeModal

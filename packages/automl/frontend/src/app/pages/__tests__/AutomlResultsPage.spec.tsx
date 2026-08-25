@@ -107,16 +107,7 @@ jest.mock('~/app/components/run-results/AutomlResults', () => ({
 jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
   InvalidPipelineRun: () => <div data-testid="invalid-run">Invalid Run</div>,
-}));
-
-jest.mock('~/app/components/empty-states/InvalidProject', () => ({
-  __esModule: true,
-  default: () => <div data-testid="invalid-project">Invalid Project</div>,
-}));
-
-jest.mock('~/app/components/run-results/StopRunModal', () => ({
-  __esModule: true,
-  default: ({
+  StopRunModal: ({
     isOpen,
     isTerminating,
     onConfirm,
@@ -137,6 +128,11 @@ jest.mock('~/app/components/run-results/StopRunModal', () => ({
         </button>
       </div>
     ) : null,
+}));
+
+jest.mock('~/app/components/empty-states/InvalidProject', () => ({
+  __esModule: true,
+  default: () => <div data-testid="invalid-project">Invalid Project</div>,
 }));
 
 const mockNotification = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };

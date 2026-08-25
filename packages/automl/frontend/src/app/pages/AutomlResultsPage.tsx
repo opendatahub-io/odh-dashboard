@@ -10,8 +10,9 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -19,7 +20,6 @@ import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -30,7 +30,12 @@ import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
-import { fireAutomlResultsViewed, isAutomlResultsNavigationState } from '~/app/utilities/tracking';
+import {
+  AUTOML_EVENTS,
+  fireAutomlResultsViewed,
+  isAutomlResultsNavigationState,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -325,7 +330,12 @@ function AutomlResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
     </AutomlResultsContext.Provider>
   );

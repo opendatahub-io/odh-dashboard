@@ -18,3 +18,4 @@ export { default as InvalidPipelineRun } from './InvalidPipelineRun';
 export { default as NoProjects } from './NoProjects';
 export { default as PipelineServerStarting } from './PipelineServerStarting';
 export { default as RunInProgress } from './RunInProgress';
+export { default as StopRunModal } from './StopRunModal';

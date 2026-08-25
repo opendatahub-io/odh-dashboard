@@ -2,13 +2,15 @@ import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
 import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
+import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 import {
   getTaskType,
   isRunTerminatable,
@@ -200,7 +202,12 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={run.display_name}
-        source="runsList"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'runsList',
+          })
+        }
       />
       <DeleteRunModal
         isOpen={isDeleteModalOpen}

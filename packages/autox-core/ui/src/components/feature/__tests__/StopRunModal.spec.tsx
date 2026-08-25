@@ -2,16 +2,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
-import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
+import StopRunModal from '../StopRunModal';
 
 describe('StopRunModal', () => {
   const defaultProps = {
@@ -19,7 +10,6 @@ describe('StopRunModal', () => {
     onClose: jest.fn(),
     onConfirm: jest.fn(),
     isTerminating: false,
-    source: 'runsList' as const,
   };
 
   beforeEach(() => {
@@ -95,20 +85,19 @@ describe('StopRunModal', () => {
     expect(screen.getByText(/the run will be marked as failed/)).toBeInTheDocument();
   });
 
-  it('should close and fire a cancel event on Escape when no stop request is pending', async () => {
-    render(<StopRunModal {...defaultProps} />);
+  it('should close and call onCancel on Escape when no stop request is pending', async () => {
+    const onCancel = jest.fn();
+    render(<StopRunModal {...defaultProps} onCancel={onCancel} />);
 
     await userEvent.keyboard('{Escape}');
 
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.RUN_STOPPED,
-      expect.objectContaining({ outcome: TrackingOutcome.cancel, source: 'runsList' }),
-    );
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('should not close or fire a cancel event on Escape while isTerminating is true', async () => {
-    render(<StopRunModal {...defaultProps} isTerminating />);
+  it('should not close or call onCancel on Escape while isTerminating is true', async () => {
+    const onCancel = jest.fn();
+    render(<StopRunModal {...defaultProps} isTerminating onCancel={onCancel} />);
 
     await userEvent.keyboard('{Escape}');
 
@@ -116,10 +105,11 @@ describe('StopRunModal', () => {
     // button — closing here would let a stray "cancel" event race with the submit
     // success/failure event fired once the in-flight stop request resolves.
     expect(defaultProps.onClose).not.toHaveBeenCalled();
-    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
-  it('should not close or fire a cancel event on Escape while a stop request is submitting', async () => {
+  it('should not close or call onCancel on Escape while a stop request is submitting', async () => {
+    const onCancel = jest.fn();
     let resolveConfirm: () => void = () => undefined;
     const onConfirm = jest.fn(
       () =>
@@ -127,13 +117,13 @@ describe('StopRunModal', () => {
           resolveConfirm = resolve;
         }),
     );
-    render(<StopRunModal {...defaultProps} onConfirm={onConfirm} />);
+    render(<StopRunModal {...defaultProps} onConfirm={onConfirm} onCancel={onCancel} />);
 
     await userEvent.click(screen.getByTestId('confirm-stop-run-button'));
     await userEvent.keyboard('{Escape}');
 
     expect(defaultProps.onClose).not.toHaveBeenCalled();
-    expect(fireFormTrackingEventMock).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
 
     resolveConfirm();
   });
