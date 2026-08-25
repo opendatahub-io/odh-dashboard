@@ -33,6 +33,7 @@
     "startCommand": "make dev-bff-e2e-mock"
   },
   "scripts": {
+    "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token' odh-ct-bff-consumer --bff-dir bff",
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "*",
+    "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }

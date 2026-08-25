@@ -14,11 +14,11 @@ import {
   DATA_CONNECTION_PREFIX,
   getGeneratedSecretName,
   translateDisplayNameForK8s,
+  applyK8sAPIOptions,
 } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { SecretModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const assembleSecret = (
   projectName: string,
