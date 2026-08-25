@@ -81,7 +81,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findAddVariableButton().click();
 
     const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.selectEnvironmentVariableType('ConfigMap');
     environmentVariableField.find().findByTestId('env-type-radio-Config Map').should('be.checked');
   });
 
@@ -115,7 +115,7 @@ describe('Workbench page', () => {
 
     //add Config Map  key/ value environment variable
     let environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.selectEnvironmentVariableType('ConfigMap');
     environmentVariableField.selectEnvDataType('Create');
 
     environmentVariableField.findAnotherKeyValuePairButton().click();
@@ -139,7 +139,7 @@ describe('Workbench page', () => {
     // add Config Map  upload environment variable
     createSpawnerPage.findAddVariableButton().click();
     environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(1);
-    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.selectEnvironmentVariableType('ConfigMap');
     environmentVariableField.selectEnvDataType('Upload');
     environmentVariableField.uploadConfigYaml(configYamlPath);
     environmentVariableField.findRemoveEnvironmentVariableButton().should('be.enabled');

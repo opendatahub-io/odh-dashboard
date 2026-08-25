@@ -177,7 +177,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
       // Add 3 variables
       editSpawnerPage.findAddVariableButton().click();
       let envField = editSpawnerPage.getEnvironmentVariableTypeField(0);
-      envField.selectEnvironmentVariableType('Config Map');
+      envField.selectEnvironmentVariableType('ConfigMap');
       envField.selectEnvDataType('Create');
       let keyValuePair = envField.getKeyValuePair(0);
       keyValuePair.findKeyInput().fill('VAR1_KEY');
@@ -193,7 +193,7 @@ describe('Environment Variable Edge Cases - RHOAIENG-18214/17122', () => {
 
       editSpawnerPage.findAddVariableButton().click();
       envField = editSpawnerPage.getEnvironmentVariableTypeField(2);
-      envField.selectEnvironmentVariableType('Config Map');
+      envField.selectEnvironmentVariableType('ConfigMap');
       envField.selectEnvDataType('Create');
       keyValuePair = envField.getKeyValuePair(0);
       keyValuePair.findKeyInput().fill('VAR3_KEY');

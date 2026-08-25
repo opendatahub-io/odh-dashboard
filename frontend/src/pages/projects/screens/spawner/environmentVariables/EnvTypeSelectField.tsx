@@ -22,6 +22,11 @@ type EnvTypeSelectFieldProps = {
   existingSecretsData: UseExistingSecretsResult;
 };
 
+const ENV_TYPE_LABELS: Record<EnvironmentVariableType, string> = {
+  [EnvironmentVariableType.CONFIG_MAP]: 'ConfigMap',
+  [EnvironmentVariableType.SECRET]: 'Secret',
+};
+
 const ENV_TYPE_DESCRIPTIONS: Record<EnvironmentVariableType, string> = {
   [EnvironmentVariableType.CONFIG_MAP]:
     'Non-confidential configuration data stored as key-value pairs.',
@@ -65,7 +70,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
             <Radio
               id={`${uniqueId}-env-type-${type}`}
               name={`${uniqueId}-env-variable-type`}
-              label={type}
+              label={ENV_TYPE_LABELS[type]}
               description={ENV_TYPE_DESCRIPTIONS[type]}
               isChecked={envVariable.type === type}
               onChange={() => onUpdate({ type })}
