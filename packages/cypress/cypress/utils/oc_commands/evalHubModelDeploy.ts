@@ -31,13 +31,16 @@ rules:
   );
 }
 
-export function getVllmEndpointUrl(td: EvalHubTestData, ns: string): string {
+export function getVllmEndpointUrl(
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
+  ns: string,
+): string {
   return `http://${td.inferenceServiceName}-predictor.${ns}.svc.cluster.local:8080`;
 }
 
 export function setupTenantAndDeployModel(
   ns: string,
-  td: EvalHubTestData,
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
 ): void {
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');

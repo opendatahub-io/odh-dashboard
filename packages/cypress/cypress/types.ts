@@ -783,6 +783,8 @@ export type EvalHubTestData = {
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
   /** Resource ID of the benchmark suite / collection to select (matches `collection.resource.id`). */
   collectionId: string;
+  /** Display name of the collection shown in the start-evaluation form after selection. */
+  collectionName: string;
 };
 
 export type ModelCatalogSourceTestData = {

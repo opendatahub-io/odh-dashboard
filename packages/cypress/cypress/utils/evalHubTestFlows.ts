@@ -13,6 +13,7 @@ export type SingleBenchmarkEvaluationOptions = {
 
 export type BenchmarkSuiteEvaluationOptions = {
   collectionId: string;
+  collectionName: string;
   evaluationRunName: string;
   inferenceServiceName: string;
   additionalBenchmarkParams?: string;
@@ -73,7 +74,13 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
 };
 
 export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOptions): void => {
-  const { collectionId, evaluationRunName, inferenceServiceName, additionalBenchmarkParams } = opts;
+  const {
+    collectionId,
+    collectionName,
+    evaluationRunName,
+    inferenceServiceName,
+    additionalBenchmarkParams,
+  } = opts;
 
   cy.step('Open create evaluation wizard and select benchmark suite');
   evaluationsPage.findCreateEvaluationButton().click();
@@ -81,7 +88,7 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
   cy.url().should('include', '/create/collections');
   createEvaluationPage.findCollectionsGallery({ timeout: 120000 }).should('be.visible');
 
-  cy.step(`Select collection: ${collectionId}`);
+  cy.step(`Select collection: ${collectionName}`);
   createEvaluationPage
     .findCollectionCard(collectionId)
     .scrollIntoView()
@@ -91,6 +98,7 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
   createEvaluationPage.findStartEvaluationForm().should('exist', { timeout: 120000 });
 
   cy.step('Enter evaluation name');
+  createEvaluationPage.findBenchmarkNameDisplay().should('contain.text', collectionName);
   createEvaluationPage.findEvaluationNameInput().clear().type(evaluationRunName);
 
   cy.step('Select deployed model from cluster picker');

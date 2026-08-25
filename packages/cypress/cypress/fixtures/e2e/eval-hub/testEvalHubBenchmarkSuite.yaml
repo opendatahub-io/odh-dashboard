@@ -12,6 +12,7 @@ hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profi
 hardwareProfileName: cypress-gen-ai-hardware-profile
 # Benchmark suite config — "Toxicity and Ethical Principles" (toxigen, truthfulqa_mc1, bigbench_hhh)
 collectionId: toxicity-and-ethical-principles
+collectionName: Toxicity and Ethical Principles
 inferenceModelName: evalhub-suite-llm
 defaultExperimentName: EvalHub
 additionalBenchmarkParams: |
