@@ -2114,7 +2114,37 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 		}
 	} else {
-		kc.Logger.Info("Passthrough enabled — skipping individual model registration (Responses API resolves per-request)")
+		// Passthrough enabled — skip registration of any models that do not require explicit registration in the config.
+		kc.Logger.Info("Passthrough enabled — skipping registration of any models that do not require explicit registration in the config (embedding models require explicit registration and can't use the passthrough path)")
+
+		for i, model := range installModels {
+			if model.ModelType != string(models.ModelTypeEmbedding) {
+				continue
+			}
+
+			kc.Logger.Debug("Registering embedding model (required for vector stores)", "model", model.ModelName)
+
+			if models.IsExternalModelSource(model.ModelSourceType) {
+				externalModelsConfig, err := kc.GetExternalModelsConfig(ctx, namespace)
+				if err != nil {
+					return "", fmt.Errorf("failed to get external models ConfigMap for embedding model: %w", err)
+				}
+				extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
+				if err != nil {
+					return "", fmt.Errorf("cannot find external embedding model '%s': %w", model.ModelName, err)
+				}
+				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+				kc.Logger.Info("Added embedding model (custom endpoint) to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID)
+			} else {
+				details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
+				if err != nil {
+					return "", fmt.Errorf("cannot determine endpoint for embedding model '%s': %w", model.ModelName, err)
+				}
+				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension)
+				kc.Logger.Info("Added embedding model (cluster) to configuration", "model", details.modelID, "providerID", providerID)
+			}
+		}
 	}
 
 	// Vector stores processing happens here after all the model providers above have been processed.

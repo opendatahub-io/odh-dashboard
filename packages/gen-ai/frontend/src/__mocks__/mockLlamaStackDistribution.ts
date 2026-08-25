@@ -15,8 +15,8 @@ export const createMockLlamaStackDistribution = (
       activeDistribution: 'meta-llama3',
       providers: [
         {
-          providerID: 'meta-reference',
-          providerType: 'inference',
+          provider_id: 'meta-reference',
+          provider_type: 'inference',
           api: 'inference',
           health: {
             status: isHealthy ? 'healthy' : 'unhealthy',
@@ -26,8 +26,8 @@ export const createMockLlamaStackDistribution = (
         ...(isHealthy
           ? [
               {
-                providerID: 'test',
-                providerType: 'embedding' as const,
+                provider_id: 'test',
+                provider_type: 'embedding' as const,
                 api: 'embeddings' as const,
                 config: null,
                 health: {
