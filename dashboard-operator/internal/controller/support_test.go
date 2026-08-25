@@ -214,25 +214,10 @@ func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
 	require.NoError(t, yaml.Unmarshal(data, &values))
 	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
 
-	for name, mod := range moduleRegistry {
-		t.Run("module_"+name, func(t *testing.T) {
-			_, ok := values.RelatedImages[mod.ImageEnvVar]
-			assert.True(t, ok, "relatedImages must contain key %q", mod.ImageEnvVar)
-		})
-	}
-
-	coreEnvVars := []struct {
-		name   string
-		envVar string
-	}{
-		{"dashboard", "RELATED_IMAGE_ODH_DASHBOARD_IMAGE"},
-		{"kube-rbac-proxy", "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE"},
-		{"core-bff", "RELATED_IMAGE_ODH_CORE_BFF_IMAGE"},
-	}
-	for _, tt := range coreEnvVars {
-		t.Run("core_"+tt.name, func(t *testing.T) {
-			_, ok := values.RelatedImages[tt.envVar]
-			assert.True(t, ok, "relatedImages must contain key %q", tt.envVar)
+	for paramKey, envVar := range imagesMap {
+		t.Run(paramKey, func(t *testing.T) {
+			_, ok := values.RelatedImages[envVar]
+			assert.True(t, ok, "relatedImages must contain key %q (for param %q)", envVar, paramKey)
 		})
 	}
 }
