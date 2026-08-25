@@ -101,6 +101,19 @@ type ObservabilitySpec struct {
 
 // +kubebuilder:object:generate=true
 
+// ConsumerPortalSpec configures the MaaS Consumer Portal.
+type ConsumerPortalSpec struct {
+	// Enabled controls whether the portal is deployed.
+	// The portal is only created when Enabled is true and
+	// Gateway.Domain is set (the portal host is derived from it).
+	//
+	// +kubebuilder:default=false
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+
 // ServiceTarget identifies a Kubernetes service for proxy configuration.
 type ServiceTarget struct {
 	// +kubebuilder:validation:Required
@@ -160,6 +173,10 @@ type DashboardSpec struct {
 	// Observability configures the observability stack integration.
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
+
+	// ConsumerPortal configures the MaaS Consumer Portal.
+	// +optional
+	ConsumerPortal *ConsumerPortalSpec `json:"consumerPortal,omitempty"`
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this

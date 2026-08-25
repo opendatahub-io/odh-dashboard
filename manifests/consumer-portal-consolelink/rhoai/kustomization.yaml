@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# MaaS Consumer Portal ConsoleLink. Deployed conditionally by the
+# dashboard-operator when spec.consumerPortal.enabled is true and
+# Gateway.Domain is set. The operator writes consumer-portal-url and
+# section-title into params.env before rendering.
+commonLabels:
+  app: rhods-dashboard
+  app.kubernetes.io/part-of: rhods-dashboard
+resources:
+  - consolelink.yaml
+configMapGenerator:
+  - name: consumer-portal-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+replacements:
+  - source:
+      kind: ConfigMap
+      name: consumer-portal-params
+      fieldPath: data.section-title
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: consumer-portal-link
+        fieldPaths:
+          - spec.applicationMenu.section
+  - source:
+      kind: ConfigMap
+      name: consumer-portal-params
+      fieldPath: data.consumer-portal-url
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: consumer-portal-link
+        fieldPaths:
+          - spec.href

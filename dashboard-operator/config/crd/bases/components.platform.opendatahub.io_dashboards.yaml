@@ -84,6 +84,17 @@ spec:
                   Components is a snapshot of DSC component availability, projected by
                   the ODH Operator onto this CR.
                 type: object
+              consumerPortal:
+                description: ConsumerPortal configures the MaaS Consumer Portal.
+                properties:
+                  enabled:
+                    default: false
+                    description: |-
+                      Enabled controls whether the portal is deployed.
+                      The portal is only created when Enabled is true and
+                      Gateway.Domain is set (the portal host is derived from it).
+                    type: boolean
+                type: object
               gateway:
                 description: Gateway configures the ingress point for the dashboard.
                 properties:

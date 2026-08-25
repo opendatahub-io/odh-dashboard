@@ -67,6 +67,33 @@ func observabilityManifestInfo(basePath string, platform cluster.Platform) rende
 	}
 }
 
+// consumerPortalHostPrefix is prepended to Gateway.Domain to derive the
+// MaaS Consumer Portal host (e.g. consumer-portal.<domain>).
+const consumerPortalHostPrefix = "consumer-portal"
+
+// consumerPortalConsoleLinkManifestInfo points at the portal ConsoleLink
+// bundle. It always uses the /rhoai source: the portal is an RHOAI feature
+// and deploys on both self-managed and managed RHOAI when enabled, so it is
+// intentionally not gated by the platformPaths /not-supported overlay.
+func consumerPortalConsoleLinkManifestInfo(basePath string) render.ManifestInfo {
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "consumer-portal-consolelink",
+		SourcePath: "/rhoai",
+	}
+}
+
+// consumerPortalURL derives the portal URL from the gateway domain. The
+// second return value is false when the domain is empty, meaning the URL
+// cannot be derived and the ConsoleLink must not be deployed.
+func consumerPortalURL(domain string) (string, bool) {
+	if domain == "" {
+		return "", false
+	}
+
+	return fmt.Sprintf("https://%s.%s/", consumerPortalHostPrefix, domain), true
+}
+
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {
 	params := map[string]string{}
 

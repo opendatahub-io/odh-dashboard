@@ -23,13 +23,14 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
+| `consumerPortal` | `ConsumerPortalSpec` | MaaS Consumer Portal (`enabled` only; host derived as `consumer-portal.<gateway.domain>`) |
 
 ### Status Fields
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `ConsumerPortalAvailable` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
@@ -74,6 +75,13 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 3. Status is updated: `phase: NotReady`, `ProvisioningSucceeded: False` (reason: `Removed`), `Degraded: False` (reason: `Removed`)
 4. `status.url` and `status.moduleStatuses` are cleared
 5. The controller returns without requeuing -- it will reconcile again if the CR is updated
+
+**The Consumer Portal is an independent operand, decoupled from `managementState`.** The portal is gated on its own `spec.consumerPortal.enabled`, not on the core dashboard's lifecycle, and this independence is *structural* rather than special-cased:
+
+- The portal is reconciled **once per loop in the outer `Reconcile`, before the `managementState` branch** — so it runs identically whether the core dashboard is `Managed` or `Removed` (it is not invoked from inside either branch).
+- Portal resources carry a **distinct ownership label `platform.opendatahub.io/part-of: consumer-portal`** (not `dashboard`). The core teardown selects `part-of: dashboard`, so it *never matches* portal resources — there is no per-resource skip to keep in sync.
+
+Consequently, `managementState: Removed` with `consumerPortal.enabled: true` leaves the portal fully available, and `ConsumerPortalAvailable` reflects the portal's actual state (not `Removed`). When `consumerPortal.enabled: false`, the portal reconcile removes its own resources by name. This mirrors the future two-management-state model where the portal (`maasConsumerPortal.managementState`) and the core dashboard are enabled independently, and means new portal resources (BFFs, HTTPRoute) inherit the decoupling for free.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -124,6 +132,15 @@ The eight registered modules and their manifest directories:
 | maas | `manifests/modules/maas/` | `odh-dashboard-maas-ui` |
 | mlflow | `manifests/modules/mlflow/` | `odh-dashboard-mlflow-ui` |
 | modelRegistry | `manifests/modules/model-registry/` | `odh-dashboard-model-registry-ui` |
+
+### Consumer Portal ConsoleLink
+
+When `spec.consumerPortal.enabled` is `true` and `spec.gateway.domain` is set, the controller deploys a cluster-scoped `ConsoleLink` (`console.openshift.io/v1`, name `consumer-portal-link`) that surfaces the MaaS Consumer Portal in the OpenShift application-menu launcher. The manifest bundle lives at `manifests/consumer-portal-consolelink/rhoai/` (`consolelink.yaml`, `kustomization.yaml`, `params.env`).
+
+- **Host derivation**: the `href` is derived as `https://consumer-portal.<spec.gateway.domain>/` -- there is no per-portal hostname field. If `spec.gateway.domain` is empty the link cannot be built and `ConsumerPortalAvailable` is set `False` with reason `ConsumerPortalDomainRequired`.
+- **Lifecycle**: the portal is reconciled once per loop in the outer `Reconcile`, independent of the core dashboard's `managementState` (see [ManagementState Handling](#managementstate-handling)). The ConsoleLink is removed when the portal is disabled (`enabled: false`) or when the Dashboard CR is deleted; it is **not** removed by `managementState: Removed` while the portal stays enabled. Because `ConsoleLink` is cluster-scoped, deletion on disable is done explicitly by name (the SSA deployer is additive and does not prune); deletion on CR removal is via ownerReference GC (the link owner-references the Dashboard CR).
+- **Ownership**: portal resources are labeled `platform.opendatahub.io/part-of: consumer-portal`, distinct from the core dashboard's `part-of: dashboard`. This keeps the core teardown selector from ever matching portal resources, so the portal is a self-contained operand rather than a special case inside the core lifecycle.
+- **Platform scope**: RHOAI-on-OpenShift only -- `ConsoleLink` is always present there, so there is no CRD-existence gate. RBAC for `console.openshift.io/consolelinks` lives in `config/rbac/role.yaml`.
 
 ## Module Registry and Dependency Resolution
 
@@ -322,8 +339,9 @@ The Dashboard type provides five methods:
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
+| `ConsumerPortalAvailable` | MaaS Consumer Portal ConsoleLink deployed | ConsoleLink not deployed (reasons `Disabled`, `ConsumerPortalDomainRequired`, `ConsumerPortalDeployFailed`) -- all `False` states use `severity: Info`, so they never block `Ready` |
 
-The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled) are treated as non-blocking by the rollup.
+The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `ConsumerPortalAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled, or any `ConsumerPortalAvailable=False` state) are treated as non-blocking by the rollup.
 
 ### Phase Derivation
 
@@ -531,6 +549,8 @@ spec:
   deploymentMode: Standalone
   gateway:
     domain: ""
+  consumerPortal:
+    enabled: false
   components:
     modelregistry:
       managementState: Managed

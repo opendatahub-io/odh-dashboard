@@ -27,11 +27,26 @@ import (
 )
 
 var (
-	ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
-	ErrPersesCRDNotFound      = errors.New("PersesDashboard CRD not installed")
-	ErrObservabilityDisabled  = errors.New("observability is not enabled")
-	ErrPersesServiceRequired  = errors.New("observability is enabled but PersesService is not configured")
+	ErrDashboardRouteNotReady       = errors.New("dashboard route not yet ready")
+	ErrPersesCRDNotFound            = errors.New("PersesDashboard CRD not installed")
+	ErrObservabilityDisabled        = errors.New("observability is not enabled")
+	ErrPersesServiceRequired        = errors.New("observability is enabled but PersesService is not configured")
+	ErrConsumerPortalDisabled       = errors.New("consumer portal is not enabled")
+	ErrConsumerPortalDomainRequired = errors.New("consumer portal is enabled but gateway domain is not set")
 )
+
+// consumerPortalConsoleLinkName is the fixed name of the MaaS Consumer Portal
+// ConsoleLink CR managed by the operator.
+const consumerPortalConsoleLinkName = "consumer-portal-link"
+
+// consumerPortalPartOf is the platform.opendatahub.io/part-of label value
+// applied to consumer portal resources. It is deliberately distinct from the
+// core dashboard's value so the portal is an independent operand: the core
+// dashboard teardown (which selects part-of=dashboard) never matches portal
+// resources, and the portal is reconciled and removed solely by
+// reconcileConsumerPortalConsoleLink — independent of the core dashboard's
+// managementState.
+const consumerPortalPartOf = "consumer-portal"
 
 // Ray Gateway RBAC must live in openshift-ingress; kustomize WithNamespace(apps)
 // would otherwise place these Role/RoleBinding objects in the applications namespace.
@@ -222,6 +237,107 @@ func deployObservabilityManifests(
 		Resources: rendered,
 	}); err != nil {
 		return fmt.Errorf("failed to deploy observability resources to %s: %w", obsNamespace, err)
+	}
+
+	return nil
+}
+
+// deployConsumerPortalConsoleLink renders and applies the MaaS Consumer Portal
+// ConsoleLink. It returns ErrConsumerPortalDisabled when the portal is not
+// enabled and ErrConsumerPortalDomainRequired when the gateway domain (from
+// which the portal host is derived) is not set. The cluster-scoped ConsoleLink
+// is owned by the Dashboard CR so it is garbage-collected on CR deletion.
+func deployConsumerPortalConsoleLink(
+	ctx context.Context,
+	cli client.Client,
+	dashboard *v1alpha1.Dashboard,
+	basePath string,
+	platform cluster.Platform,
+) error {
+	logger := log.FromContext(ctx)
+
+	if dashboard.Spec.ConsumerPortal == nil || !dashboard.Spec.ConsumerPortal.Enabled {
+		return ErrConsumerPortalDisabled
+	}
+
+	domain := ""
+	if dashboard.Spec.Gateway != nil {
+		domain = dashboard.Spec.Gateway.Domain
+	}
+
+	consumerPortalURLValue, ok := consumerPortalURL(domain)
+	if !ok {
+		return ErrConsumerPortalDomainRequired
+	}
+
+	m := consumerPortalConsoleLinkManifestInfo(basePath)
+
+	// Inject the derived portal URL and the platform's section title into the
+	// portal manifest's own params.env before rendering.
+	manifestPath := m.String()
+	params := readExistingParams(filepath.Join(manifestPath, "params.env"))
+	params["consumer-portal-url"] = consumerPortalURLValue
+	if title, titleOK := sectionTitle[platform]; titleOK {
+		params["section-title"] = title
+	}
+	if err := writeParamsEnv(manifestPath, params); err != nil {
+		return fmt.Errorf("failed to write consumer portal params.env to %s: %w", manifestPath, err)
+	}
+
+	engine := kustomize.NewEngine()
+
+	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(dashboard.Namespace))
+	if err != nil {
+		return fmt.Errorf("failed to render consumer portal manifests from %s: %w", m, err)
+	}
+
+	// Deploy only the ConsoleLink. The kustomize configMapGenerator produces a
+	// params ConfigMap used purely for replacements; deploying it would leave an
+	// orphan when the portal is disabled, so it is filtered out here to keep
+	// deploy/delete symmetric.
+	resources := make([]unstructured.Unstructured, 0, len(rendered))
+	for i := range rendered {
+		if rendered[i].GetKind() == "ConsoleLink" {
+			resources = append(resources, rendered[i])
+		}
+	}
+
+	logger.Info("Deploying consumer portal ConsoleLink", "url", consumerPortalURLValue, "resources", len(resources))
+
+	deployer := deploy.NewDeployer(
+		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithLabel(labels.PlatformPartOf, consumerPortalPartOf),
+		deploy.WithApplyOrder(),
+	)
+
+	if err := deployer.Deploy(ctx, deploy.DeployInput{
+		Client:    cli,
+		Owner:     dashboard,
+		Release:   deploy.ReleaseInfo{Type: string(platform)},
+		Resources: resources,
+	}); err != nil {
+		return fmt.Errorf("failed to deploy consumer portal ConsoleLink: %w", err)
+	}
+
+	return nil
+}
+
+// deleteConsumerPortalConsoleLink removes the portal ConsoleLink by name. It is
+// a no-op when the ConsoleLink CRD is not installed or the object is absent.
+func deleteConsumerPortalConsoleLink(ctx context.Context, cli client.Client) error {
+	logger := log.FromContext(ctx)
+
+	cl := &unstructured.Unstructured{}
+	cl.SetGroupVersionKind(consoleLinkGVK)
+	cl.SetName(consumerPortalConsoleLinkName)
+
+	logger.Info("Deleting consumer portal ConsoleLink", "name", consumerPortalConsoleLinkName)
+	if err := cli.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
+		if meta.IsNoMatchError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("deleting ConsoleLink %s: %w", consumerPortalConsoleLinkName, err)
 	}
 
 	return nil

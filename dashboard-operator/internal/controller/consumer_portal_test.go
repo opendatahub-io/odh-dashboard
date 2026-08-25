@@ -1,0 +1,111 @@
+package controller
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+
+	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
+)
+
+// consumerPortalTestManager builds a conditions.Manager whose Error-severity dependents
+// are all healthy, so the Ready rollup is True before the consumerPortalCond is reconciled.
+func consumerPortalTestManager(t *testing.T, dashboard *v1alpha1.Dashboard) *conditions.Manager {
+	t.Helper()
+
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
+		conditionConsumerPortalAvailable,
+	)
+	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
+		conditions.WithReason("ResourcesApplied"))
+	cm.MarkFalse(string(common.ConditionTypeDegraded),
+		conditions.WithReason("NoDegradation"),
+		conditions.WithSeverity(common.ConditionSeverityInfo))
+	cm.MarkTrue(conditionObservabilityAvailable,
+		conditions.WithReason("Deployed"))
+
+	// Ready is not yet True here: ConsumerPortalAvailable is still Unknown (Error
+	// severity) until the consumerPortalCond reconcile resolves it. Each test asserts
+	// Ready becomes True afterwards, proving the Info-severity consumerPortalCond state
+	// does not drag the rollup down.
+	return cm
+}
+
+func TestReconcileConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	// Portal enabled but no gateway domain — the URL is unresolvable.
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec: v1alpha1.DashboardSpec{
+			ConsumerPortal: &v1alpha1.ConsumerPortalSpec{Enabled: true},
+		},
+	}
+
+	r := &DashboardReconciler{
+		Client:            fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:            s,
+		ManifestsBasePath: t.TempDir(),
+		Platform:          cluster.SelfManagedRhoai,
+	}
+
+	cm := consumerPortalTestManager(t, dashboard)
+	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+
+	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
+	require.NotNil(t, consumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
+	assert.Equal(t, "ConsumerPortalDomainRequired", consumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
+
+	// Ready must be unaffected: Info-severity False dependents are ignored.
+	assert.True(t, cm.IsHappy(), "Ready must remain True when the consumerPortalCond domain is missing")
+}
+
+func TestReconcileConsumerPortalConsoleLink_Disabled(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	// Portal absent (disabled). The delete attempt is best-effort — any error
+	// (e.g. ConsoleLink CRD not registered) is logged and does not affect the
+	// ConsumerPortalAvailable condition.
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec:       v1alpha1.DashboardSpec{},
+	}
+
+	r := &DashboardReconciler{
+		Client:            fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:            s,
+		ManifestsBasePath: t.TempDir(),
+		Platform:          cluster.SelfManagedRhoai,
+	}
+
+	cm := consumerPortalTestManager(t, dashboard)
+	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+
+	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
+	require.NotNil(t, consumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
+	assert.Equal(t, "Disabled", consumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
+	assert.True(t, cm.IsHappy(), "Ready must remain True when the consumerPortalCond is disabled")
+}
