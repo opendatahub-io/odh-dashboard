@@ -31,7 +31,9 @@
       "port": 8843
     }
   },
-  "e2eCiTags": ["@AgentOpsCI"],
+  "e2eCiTags": [
+    "@AgentOpsCI"
+  ],
   "exports": {
     "./extensions": "./extensions.ts"
   },
@@ -55,7 +57,7 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
-    "openshell-dashboard": "file:/Users/gkrumbac/Documents/brain/openshell-dashboard/openshell-dashboard/frontend"
+    "openshell-dashboard": "^0.1.0"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",
