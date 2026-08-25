@@ -64,23 +64,26 @@ const ModelsProjectDetailsView: React.FC<{
           ? [<DeployButton key="deploy-button" project={project} variant="secondary" fromProject />]
           : undefined
       }
-      labels={[
-        [
-          <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
-            <Label data-testid="serving-platform-label">
-              {activePlatform?.properties.enableCardText.enabledText}
-            </Label>
-            {projectPlatform && ( // projectPlatform gets the actual saved value in the project labels
-              <ResetPlatformButton
-                platforms={platforms}
-                hasDeployments={hasModels}
-                isLoading={loadingState.type === 'reset'}
-                onReset={resetProjectPlatform}
-              />
-            )}
-          </Flex>,
-        ],
-      ]}
+      {...(platforms.length > 1
+        ? {
+            labels: [
+              <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
+                <Label data-testid="serving-platform-label">
+                  {activePlatform?.properties.enableCardText.enabledText}
+                </Label>
+
+                {projectPlatform && ( // projectPlatform gets the actual saved value in the project labels
+                  <ResetPlatformButton
+                    platforms={platforms}
+                    hasDeployments={hasModels}
+                    isLoading={loadingState.type === 'reset'}
+                    onReset={resetProjectPlatform}
+                  />
+                )}
+              </Flex>,
+            ],
+          }
+        : {})}
       isEmpty={!activePlatform}
       emptyState={
         !isLoading && (
