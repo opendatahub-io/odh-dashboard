@@ -7,11 +7,12 @@ packages:
       extensionsPath: ./extensions
   bundled:
     - package: '@odh-dashboard/maas'
-      extensionsPath: './extensions/portal'
+      extensionsPath: './extensions/static'
       featureFlags:
         modelAsService: true
+        mySubscriptions: true
     - package: '@odh-dashboard/gen-ai'
-      extensionsPath: './extensions/portal'
+      extensionsPath: './extensions/static'
       featureFlags:
         genAiStudio: true
         plugin-gen-ai: true
