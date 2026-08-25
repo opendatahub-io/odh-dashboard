@@ -81,7 +81,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
         llmInferenceserviceYamlFixturePath =
-          'resources/modelsAsService/llmInferenceserviceWithMaasEnabled.yaml';
+          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml';
         modelURI = testData.modelLocationURI;
         policiesName = `${testData.policiesName}-${uuid}`;
         policiesDescription = testData.policiesDescription;

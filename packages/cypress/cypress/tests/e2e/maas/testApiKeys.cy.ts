@@ -60,7 +60,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
         llmInferenceserviceYamlFixturePath =
-          'resources/modelsAsService/llmInferenceserviceWithMaasEnabled.yaml';
+          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml';
         modelURI = testData.modelLocationURI;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
