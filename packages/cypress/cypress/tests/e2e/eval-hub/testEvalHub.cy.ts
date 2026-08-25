@@ -8,12 +8,10 @@ import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProf
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
-  deleteEvalHubCr,
-  deleteEvalHubE2eDatabaseSecret,
   ensureEvalHubCrReady,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
-import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
 import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
@@ -26,10 +24,9 @@ import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
  * OpenShift project with a vLLM-served model, then drives the Evaluations UI to submit an
  * inference evaluation and verify it completes.
  *
- * @NonConcurrent: EvalHub CR is a singleton in APPLICATIONS_NAMESPACE. Two concurrent runs
- * that both need to create it will conflict on teardown — the first to finish deletes the CR
- * while the second is still running. Remove this tag once EvalHub is pre-deployed on the CI
- * cluster (making ensureEvalHubCrReady a no-op create).
+ * EvalHub and MLflow CRs are never deleted by this suite — they are treated as shared cluster
+ * infrastructure. ensureEvalHubCrReady / ensureMlflowCrReady create them on first run if
+ * absent and are no-ops on subsequent runs, making concurrent execution safe.
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
@@ -61,20 +58,12 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       cy.step('Ensure MLflow CR is Available (must be ready before EvalHub)');
-      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
-        if (created) {
-          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
-        }
-      });
+      return ensureMlflowCrReady(mlflowInstanceYamlPath);
     });
 
     cy.then(() => {
       cy.step('Ensure EvalHub CR is Ready');
-      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
-        if (created) {
-          Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
-        }
-      });
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath);
     });
 
     cy.then(() => {
@@ -109,24 +98,13 @@ describe('Eval Hub E2E', () => {
       cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
       cleanupHardwareProfiles(hardwareProfileName);
     }
-
-    if (Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST')) {
-      cy.step(`Delete EvalHub CR ${evalHubCrName} created by this suite`);
-      deleteEvalHubCr(evalHubCrName);
-      deleteEvalHubE2eDatabaseSecret();
-    }
-
-    if (Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
-      cy.step('Delete MLflow CR created by this suite');
-      deleteMlflowCr();
-    }
   });
 
   it(
     'Eval Hub: start inference evaluation and see it complete',
     {
       retries: { runMode: 0, openMode: 0 },
-      tags: ['@EvalHub', '@EvalHubCI', '@NonConcurrent', '@Featureflagged'],
+      tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
     },
     () => {
       const extraParams = additionalBenchmarkParams.trim();
