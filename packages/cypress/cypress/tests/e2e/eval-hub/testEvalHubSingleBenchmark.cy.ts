@@ -1,4 +1,10 @@
 import * as yaml from 'js-yaml';
+import {
+  navigateToEvaluationsPage,
+  submitSingleBenchmarkEvaluation,
+  verifyEvaluationProgressModal,
+  verifyEvaluationCompletedAndViewResults,
+} from './evalHubFlow';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
@@ -16,8 +22,6 @@ import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
-import { evaluationsPage } from '../../../pages/evaluations';
-import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
 
 /**
  * Live-cluster Eval Hub E2E. Ensures EvalHub + MLflow CRs are Ready, creates an ephemeral
@@ -102,76 +106,21 @@ describe('Eval Hub E2E', () => {
       tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
     },
     () => {
-      const extraParams = additionalBenchmarkParams.trim();
       const evaluationRunName = `e2e-eval-${evaluationTenantProject.replace(
         `${projectNamePrefix}-`,
         '',
       )}`;
 
-      cy.step('Log into the application and open Evaluations page');
-      cy.visitWithLogin(
-        evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
-        LDAP_ADMIN_USER,
-      );
-      evaluationsPage.assertEvaluationsShellVisible(evaluationTenantProject);
-
-      cy.step('Open create evaluation wizard and select single benchmark');
-      evalHubEvaluationFlow.openCreateEvaluationFromList();
-      evalHubEvaluationFlow.selectSingleBenchmarkEntry();
-
-      cy.step(`Select benchmark: ${benchmarkCardTitle}`);
-      evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkCardTitle);
-
-      cy.step('Enter evaluation name');
-      evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
-      evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
-
-      cy.step('Select deployed model from cluster picker');
-      evalHubEvaluationFlow.selectClusterModel(inferenceServiceName);
-
-      if (extraParams) {
-        cy.step('Add benchmark parameters');
-        evalHubEvaluationFlow.findBenchmarkParametersCheckbox().check({ force: true });
-        evalHubEvaluationFlow
-          .findAdditionalBenchmarkParamsTextarea()
-          .should('be.visible')
-          .clear()
-          .type(extraParams, { parseSpecialCharSequences: false });
-      }
-
-      cy.step('Submit evaluation and confirm it appears in the list');
-      evalHubEvaluationFlow.findStartEvaluationSubmitButton().should('be.enabled');
-      evalHubEvaluationFlow.findStartEvaluationSubmitButton().click();
-      cy.url({ timeout: 120000 }).should('not.include', '/create');
-
-      evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
-
-      cy.step('Open status modal and verify progress tab shows benchmark steps');
-      evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
-      evaluationsPage.findStatusModal().should('be.visible');
-      evaluationsPage.findStatusModalProgressContent().should('be.visible');
-      evaluationsPage.findStatusModalBenchmarkSteps().should('exist');
-
-      cy.step('Switch to events log tab and verify it activates without error');
-      evaluationsPage.findStatusModalEventsLogTab().click();
-      evaluationsPage.findStatusModalEventsLogTab().should('have.attr', 'aria-selected', 'true');
-      evaluationsPage.findStatusModalCloseButton().click();
-      evaluationsPage.findStatusModal().should('not.exist');
-
-      cy.step('Poll until evaluation job completes on the backend');
+      navigateToEvaluationsPage(evaluationTenantProject);
+      submitSingleBenchmarkEvaluation({
+        benchmarkCardTitle,
+        evaluationRunName,
+        inferenceServiceName,
+        additionalBenchmarkParams,
+      });
+      verifyEvaluationProgressModal(evaluationRunName);
       waitForEvaluationJobComplete(evaluationTenantProject);
-
-      cy.step('Re-open status modal after completion — View Results shown, Stop absent');
-      cy.reload();
-      evaluationsPage.findPageTitle().should('be.visible', { timeout: 30000 });
-      evaluationsPage.findEvaluationStatusButtonInRow(evaluationRunName).click();
-      evaluationsPage.findStatusModal().should('be.visible');
-      evaluationsPage.findStatusModalViewResultsButton().should('be.visible');
-      evaluationsPage.findStatusModalStopButton().should('not.exist');
-      evaluationsPage.findStatusModalCloseButton().click();
-
-      cy.step('Verify evaluation status shows Completed in the UI');
-      evaluationsPage.assertEvaluationCompleteInUI(evaluationRunName);
+      verifyEvaluationCompletedAndViewResults(evaluationRunName, evaluationTenantProject);
     },
   );
 });
