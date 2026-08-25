@@ -18,7 +18,6 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
       href: '/evaluation',
       section: 'develop-and-train',
       path: '/evaluation/*',
-      label: 'Tech Preview',
     },
   },
   {

@@ -90,7 +90,7 @@ export const advancedAIMLFlags = {
   disableFeatureStore: false,
   featureStoreAdmin: false,
   disableFineTuning: true,
-  disableLMEval: true,
+  disableLMEval: false,
   trainingJobs: true,
   gpuaas: true,
   observabilityDashboard: true,
