@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "*",
-    "@module-federation/enhanced": "^0.21.4",
+    "@module-federation/enhanced": "^0.24.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
     "@mui/types": "^7.4.7",
