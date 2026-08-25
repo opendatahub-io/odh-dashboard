@@ -265,6 +265,16 @@ func (app *App) Routes() http.Handler {
 	appMux.Handle(ApiPathPrefix+"/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
+	// OpenShell double-auth routes (RHOAI embedding). Registered on the outer mux
+	// beside /api/v1 so they don't conflict with httprouter's wildcards. The exact
+	// /openshell/auth/config path takes precedence over the /openshell/ subtree.
+	if openShellProxy, err := app.OpenShellProxyHandler(); err != nil {
+		app.logger.Error("failed to initialize OpenShell reverse proxy; OpenShell routes disabled", slog.Any("error", err))
+	} else {
+		appMux.HandleFunc(OpenShellAuthConfigPath, app.OpenShellAuthConfigHandler)
+		appMux.Handle(OpenShellPathPrefix+"/", openShellProxy)
+	}
+
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)

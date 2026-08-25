@@ -18,8 +18,8 @@
         "pathRewrite": "/healthcheck"
       },
       {
-        "path": "/openshell/api",
-        "pathRewrite": "/api"
+        "path": "/openshell",
+        "pathRewrite": "/openshell"
       }
     ],
     "local": {
