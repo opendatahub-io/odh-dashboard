@@ -108,20 +108,6 @@ export type CreateVolumeRequest = {
   properties?: Record<string, string>;
 };
 
-export type CreateAssetRequest = {
-  name: string;
-  format?: string;
-  location?: string;
-  connection_ref?: ConnectionRef | null;
-  description?: string;
-  purpose?: string;
-  license?: string;
-  maturity?: string;
-  pii?: string;
-  owner?: string;
-  labels?: string[];
-};
-
 export type LabelListResponse = {
   labels: string[];
 };

@@ -55,12 +55,13 @@ const DataRegistryPage: React.FC = () => {
     assets,
     collectionNames,
   );
-  const [labels] = useLabels(selectedProject);
+  const [labels, , , labelsRefresh] = useLabels(selectedProject);
 
   const handleRefresh = React.useCallback(() => {
     assetsRefresh();
     collectionsRefresh();
-  }, [assetsRefresh, collectionsRefresh]);
+    labelsRefresh();
+  }, [assetsRefresh, collectionsRefresh, labelsRefresh]);
 
   const handleProjectSelect = React.useCallback(
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {

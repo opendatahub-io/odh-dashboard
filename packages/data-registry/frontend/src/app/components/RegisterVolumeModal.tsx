@@ -21,6 +21,8 @@ import {
   LabelGroup,
   Popover,
   Icon,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { createVolume } from '~/app/api/dataRegistry';
@@ -87,8 +89,9 @@ const RegisterVolumeModal: React.FC<RegisterVolumeModalProps> = ({
   const [license, setLicense] = React.useState('');
   const [maturity, setMaturity] = React.useState('');
   const [piiStatus, setPiiStatus] = React.useState('');
+  const customPropertyIdRef = React.useRef(0);
   const [customProperties, setCustomProperties] = React.useState<
-    Array<{ key: string; value: string }>
+    Array<{ id: number; key: string; value: string }>
   >([]);
   const [isFormatOpen, setIsFormatOpen] = React.useState(false);
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
@@ -114,7 +117,9 @@ const RegisterVolumeModal: React.FC<RegisterVolumeModalProps> = ({
   }, []);
 
   const handleAddCustomProperty = React.useCallback(() => {
-    setCustomProperties((prev) => [...prev, { key: '', value: '' }]);
+    const id = customPropertyIdRef.current;
+    customPropertyIdRef.current += 1;
+    setCustomProperties((prev) => [...prev, { id, key: '', value: '' }]);
   }, []);
 
   const handleRemoveCustomProperty = React.useCallback((index: number) => {
@@ -597,28 +602,36 @@ const RegisterVolumeModal: React.FC<RegisterVolumeModalProps> = ({
                 Add key/value pair
               </Button>
               {customProperties.map((prop, index) => (
-                <div key={index} className="pf-v6-u-display-flex pf-v6-u-gap-md pf-v6-u-mb-md">
-                  <TextInput
-                    value={prop.key}
-                    onChange={(_event, value) => handleCustomPropertyChange(index, 'key', value)}
-                    placeholder="Key"
-                    data-testid={`custom-property-key-${index}`}
-                  />
-                  <TextInput
-                    value={prop.value}
-                    onChange={(_event, value) => handleCustomPropertyChange(index, 'value', value)}
-                    placeholder="Value"
-                    data-testid={`custom-property-value-${index}`}
-                  />
-                  <Button
-                    variant="plain"
-                    onClick={() => handleRemoveCustomProperty(index)}
-                    aria-label="Remove property"
-                    data-testid={`custom-property-remove-${index}`}
-                  >
-                    Remove
-                  </Button>
-                </div>
+                <Flex key={prop.id} gap={{ default: 'gapMd' }} className="pf-v6-u-mb-md">
+                  <FlexItem grow={{ default: 'grow' }}>
+                    <TextInput
+                      value={prop.key}
+                      onChange={(_event, value) => handleCustomPropertyChange(index, 'key', value)}
+                      placeholder="Key"
+                      data-testid={`custom-property-key-${index}`}
+                    />
+                  </FlexItem>
+                  <FlexItem grow={{ default: 'grow' }}>
+                    <TextInput
+                      value={prop.value}
+                      onChange={(_event, value) =>
+                        handleCustomPropertyChange(index, 'value', value)
+                      }
+                      placeholder="Value"
+                      data-testid={`custom-property-value-${index}`}
+                    />
+                  </FlexItem>
+                  <FlexItem>
+                    <Button
+                      variant="plain"
+                      onClick={() => handleRemoveCustomProperty(index)}
+                      aria-label="Remove property"
+                      data-testid={`custom-property-remove-${index}`}
+                    >
+                      Remove
+                    </Button>
+                  </FlexItem>
+                </Flex>
               ))}
             </FormGroup>
           </FormSection>

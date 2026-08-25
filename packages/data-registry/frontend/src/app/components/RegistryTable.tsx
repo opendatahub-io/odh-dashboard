@@ -58,6 +58,7 @@ const FORMAT_LABELS: Record<
   audio: { text: 'Unstructured', color: 'orange' },
   video: { text: 'Unstructured', color: 'orange' },
   binary: { text: 'Unstructured', color: 'orange' },
+  other: { text: 'Unstructured', color: 'orange' },
 };
 
 const UNSTRUCTURED_FORMATS = [
@@ -66,6 +67,7 @@ const UNSTRUCTURED_FORMATS = [
   'audio',
   'video',
   'binary',
+  'other',
   'application/pdf',
   'pdf',
 ];
