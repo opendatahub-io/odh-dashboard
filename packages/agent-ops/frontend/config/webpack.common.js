@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
@@ -189,6 +190,11 @@ module.exports = (env) => ({
     uniqueName: name,
   },
   plugins: [
+    // The openshell-dashboard package source is authored for the automatic JSX
+    // runtime (no React import). When bundled into this module-federation remote
+    // its React.* references would be undefined ("React is not defined"), so
+    // provide React (the shared singleton) wherever it's referenced.
+    new webpack.ProvidePlugin({ React: 'react' }),
     ...moduleFederationPlugins,
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,
