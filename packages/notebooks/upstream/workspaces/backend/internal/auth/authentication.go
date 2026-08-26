@@ -19,6 +19,7 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -57,14 +58,7 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 		// get existing groups and ensure system:authenticated is included
 		// this is required for RBAC bindings that use the system:authenticated group
 		groups := response.User.GetGroups()
-		hasSystemAuthenticated := false
-		for _, g := range groups {
-			if g == "system:authenticated" {
-				hasSystemAuthenticated = true
-				break
-			}
-		}
-		if !hasSystemAuthenticated {
+		if !slices.Contains(groups, "system:authenticated") {
 			groups = append(groups, "system:authenticated")
 		}
 
