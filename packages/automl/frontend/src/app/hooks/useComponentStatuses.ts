@@ -1,6 +1,8 @@
 import React from 'react';
 import * as z from 'zod';
-import { fetchS3Json, useS3ListFilesQuery } from '~/app/hooks/queries';
+import { useProductContext, type ProductApi } from '@odh-dashboard/autox-core/ui/context';
+import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import { useS3FileFetchers, useS3ListFilesQuery } from '~/app/hooks/queries';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type {
   ComponentStageMap,
@@ -8,7 +10,6 @@ import type {
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, PipelineRunError, S3ListObjectsResponse } from '~/app/types';
-import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   isAllowedFlattenKey,
   NESTED_STAGE_FIELD_KEYS,
@@ -343,8 +344,9 @@ async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  s3Api: ProductApi['s3'],
 ): Promise<string | undefined> {
-  const result: S3ListObjectsResponse = await getS3Files(
+  const result: S3ListObjectsResponse = await s3Api.getFiles(
     '',
     { signal },
     { namespace, path: s3Prefix },
@@ -360,13 +362,15 @@ async function fetchComponentStatus(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  fetchers: S3FileFetchers,
+  s3Api: ProductApi['s3'],
 ): Promise<ComponentStatusFile | undefined> {
-  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal);
+  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, s3Api);
   if (!jsonPath) {
     return undefined;
   }
 
-  return fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
+  return fetchers.fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
 }
 
 export async function fetchComponentStatusForComponent(
@@ -376,12 +380,17 @@ export async function fetchComponentStatusForComponent(
   componentId: string,
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
+  fetchers?: S3FileFetchers,
+  s3Api?: ProductApi['s3'],
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
     return undefined;
   }
-  const data = await fetchComponentStatus(namespace, s3Prefix, signal);
+  if (!fetchers || !s3Api) {
+    return undefined;
+  }
+  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, s3Api);
   if (!data || data.component_id !== componentId) {
     return undefined;
   }
@@ -408,6 +417,10 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
+  const {
+    api: { s3: s3Api },
+  } = useProductContext();
+  const fetchers = useS3FileFetchers();
   const { rootDir } = useAutomlOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const shouldMergeStatuses = React.useMemo(() => {
@@ -528,6 +541,8 @@ export function useComponentStatuses(
           componentId,
           runLevelPrefixes,
           controller.signal,
+          { fetchS3File: fetchers.fetchS3File, fetchS3Json: fetchers.fetchS3Json },
+          s3Api,
         ),
       ),
     )
@@ -593,6 +608,8 @@ export function useComponentStatuses(
       controller.abort();
     };
   }, [
+    fetchers,
+    s3Api,
     runId,
     namespace,
     pipelineRun,

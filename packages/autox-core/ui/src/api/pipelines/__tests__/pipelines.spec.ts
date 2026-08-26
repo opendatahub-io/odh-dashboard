@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case */
 import { handleRestFailures, restCREATE, restGET, isModArchResponse } from 'mod-arch-core';
 import type { PipelineRun } from '../types';
-import { createPipelinesApi } from '../pipelines';
+import { createPipelinesApi, postPipelineRunAction } from '../pipelines';
 
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((promise: Promise<unknown>) => promise),
@@ -240,6 +240,52 @@ describe('createPipelinesApi', () => {
         '',
         '/test-product/api/v1/managed-pipelines/enable?namespace=ns%2Fwith%2Fslashes',
         {},
+      );
+    });
+  });
+
+  describe('pipeline run actions', () => {
+    it('should POST terminate and retry actions to encoded endpoints', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const api = createPipelinesApi('/test-product', 'v1');
+
+      await api.terminatePipelineRun('ns/one', 'run/one');
+      await api.retryPipelineRun('ns/one', 'run/one');
+
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        '/test-product/api/v1/pipeline-runs/run%2Fone/terminate?namespace=ns%2Fone',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        '/test-product/api/v1/pipeline-runs/run%2Fone/retry?namespace=ns%2Fone',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should preserve the shared POST action error behavior', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ error: { message: 'boom' } }),
+      });
+
+      await expect(postPipelineRunAction('/action', 'terminate')).rejects.toThrow(
+        'Failed to terminate run (500): boom',
+      );
+    });
+
+    it('should DELETE a pipeline run and preserve the server error message', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => 'plain text error',
+      });
+      const api = createPipelinesApi('/test-product', 'v1');
+
+      await expect(api.deletePipelineRun('ns', 'run-1')).rejects.toThrow(
+        'Failed to delete run (400): plain text error',
       );
     });
   });

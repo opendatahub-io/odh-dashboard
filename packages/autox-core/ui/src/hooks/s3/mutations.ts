@@ -1,32 +1,26 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import type { S3Api, UploadFileToS3Params, UploadFileToS3Response } from '../../api/s3';
+import type { UploadFileToS3Params, UploadFileToS3Response } from '../../api/s3';
+import { useProductContext } from '../../context';
 
 export type S3FileUploadMutationVariables = UploadFileToS3Params & {
   file: File;
 };
 
 /**
- * Creates a `useS3FileUploadMutation` hook bound to a product's own
- * `uploadFileToS3` API function (as returned by `createS3Api`).
+ * Uploads an S3 file using the API client configured by ProductContext.
  */
-export function createUseS3FileUploadMutation(
-  uploadFileToS3: S3Api['uploadFileToS3'],
-): (
+export function useS3FileUploadMutation(
   hostPath?: string,
-) => UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
-  /**
-   * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
-   * Uses hostPath '' for same-origin requests by default.
-   */
-  return function useS3FileUploadMutation(
-    hostPath = '',
-  ): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
-    return useMutation({
-      mutationKey: ['s3FileUpload'],
-      mutationFn: async (variables: S3FileUploadMutationVariables) => {
-        const { file, ...params } = variables;
-        return uploadFileToS3(hostPath, params, file);
-      },
-    });
-  };
+): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
+  const {
+    api: { s3: s3Api },
+  } = useProductContext();
+
+  return useMutation({
+    mutationKey: ['s3FileUpload'],
+    mutationFn: async (variables: S3FileUploadMutationVariables) => {
+      const { file, ...params } = variables;
+      return s3Api.uploadFileToS3(hostPath ?? '', params, file);
+    },
+  });
 }

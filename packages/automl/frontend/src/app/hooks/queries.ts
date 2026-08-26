@@ -1,12 +1,11 @@
 import { useQueries, useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import {
-  createS3FileFetchers,
-  createUsePipelineRunQuery,
-  createUseS3ListFilesQuery,
+  useS3FileFetchers,
+  usePipelineRunQuery as useCorePipelineRunQuery,
 } from '@odh-dashboard/autox-core/ui/hooks';
-import { getPipelineRunFromBFF } from '~/app/api/pipelines';
-import { getFiles as getS3Files } from '~/app/api/s3';
+
+export { useS3FileFetchers, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import type {
   BackTestingData,
   BackTestingForecastPoint,
@@ -18,8 +17,6 @@ import type {
   FeatureImportanceData,
 } from '~/app/types';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { URL_PREFIX } from '~/app/utilities/const';
-import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -70,7 +67,7 @@ const ColumnSchemaArraySchema = z.array(
   }),
 );
 
-export const { fetchS3File, fetchS3Json } = createS3FileFetchers(URL_PREFIX);
+export const usePipelineRunQuery = useCorePipelineRunQuery<ConfigureSchema>;
 
 export function useS3GetFileQuery(
   namespace?: string,
@@ -78,6 +75,7 @@ export function useS3GetFileQuery(
   bucket?: string,
   key?: string,
 ): UseQueryResult<Blob, Error> {
+  const { fetchS3File } = useS3FileFetchers();
   return useQuery({
     queryKey: ['file', namespace, secretName, bucket, key],
     queryFn: async ({ signal }) => {
@@ -97,6 +95,7 @@ export function useS3GetFileSchemaQuery(
   bucket?: string,
   key?: string,
 ): UseQueryResult<ColumnSchema[], Error> {
+  const { fetchS3Json } = useS3FileFetchers();
   return useQuery({
     queryKey: ['files', namespace, secretName, bucket, key],
     queryFn: async ({ signal }) => {
@@ -104,33 +103,13 @@ export function useS3GetFileSchemaQuery(
         return [];
       }
 
-      const params = new URLSearchParams({
-        namespace,
+      const result = await fetchS3Json<{ data?: { columns?: unknown } }>(namespace, key, {
+        signal,
         secretName,
-        ...(bucket && { bucket }),
+        bucket,
+        view: 'schema',
       });
-      params.set('view', 'schema');
-
-      const response = await fetch(
-        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
-        { signal },
-      );
-
-      if (!response.ok) {
-        let errorMessage = response.statusText;
-        try {
-          const errorData = await response.json();
-          if (errorData?.error?.message) {
-            errorMessage = errorData.error.message;
-          }
-        } catch {
-          // If parsing fails, fall back to statusText
-        }
-        throw new Error(`Failed to fetch file schema: ${errorMessage}`);
-      }
-
-      const result = await response.json();
-      const columns = result?.data?.columns;
+      const columns = result.data?.columns;
 
       if (!Array.isArray(columns)) {
         throw new Error('Unexpected API response: column data is missing or invalid');
@@ -153,13 +132,6 @@ export function useS3GetFileSchemaQuery(
     placeholderData: [],
   });
 }
-
-export const useS3ListFilesQuery = createUseS3ListFilesQuery(getS3Files);
-
-export const usePipelineRunQuery = createUsePipelineRunQuery<ConfigureSchema>(
-  getPipelineRunFromBFF,
-  { isRunInTerminalState, parseErrorStatus },
-);
 
 /**
  * Zod schema to validate FeatureImportanceData shape
@@ -315,6 +287,7 @@ export function useModelEvaluationArtifactsQuery(
   backTesting?: BackTestingData;
   isLoading: boolean;
 } {
+  const { fetchS3Json } = useS3FileFetchers();
   const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
   return useQueries({
     queries: [

@@ -21,6 +21,8 @@ import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopolo
 import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopology';
 import * as utils from '~/app/utilities/utils';
 
+const mockFetchS3File = jest.fn();
+
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
 }));
@@ -72,7 +74,10 @@ jest.mock('~/app/utilities/utils', () => ({
 
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+  useS3FileFetchers: jest.fn(() => ({
+    fetchS3File: mockFetchS3File,
+    fetchS3Json: jest.fn(),
+  })),
   useManagedPipelinesQuery: jest.fn().mockReturnValue({
     data: [
       {
@@ -200,7 +205,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
   },
 });
 
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);

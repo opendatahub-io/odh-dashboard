@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import * as z from 'zod';
-import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, useS3FileFetchers } from '~/app/hooks/queries';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
 
@@ -62,6 +62,7 @@ export function useComponentStageMap(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseComponentStageMapReturn {
+  const { fetchS3Json } = useS3FileFetchers();
   const { rootDir } = useAutoragOutputDir(pipelineRun);
 
   const taskSucceeded = isTaskSucceeded(pipelineRun);

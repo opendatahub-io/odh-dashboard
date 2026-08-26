@@ -5,7 +5,7 @@ import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
-import { fetchS3File, useManagedPipelinesQuery } from '~/app/hooks/queries';
+import { useS3FileFetchers, useManagedPipelinesQuery } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
@@ -40,6 +40,7 @@ type AutoragResultsProps = {
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+  const { fetchS3File } = useS3FileFetchers();
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
   const notification = useNotification();
@@ -308,7 +309,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         });
       }
     },
-    [namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;

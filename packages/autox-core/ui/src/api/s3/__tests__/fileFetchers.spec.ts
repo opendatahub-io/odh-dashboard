@@ -1,4 +1,4 @@
-import { createS3FileFetchers } from '../queries';
+import { createS3Api, createS3FileFetchers } from '../s3';
 
 const { fetchS3File, fetchS3Json } = createS3FileFetchers('/test-product');
 
@@ -35,6 +35,22 @@ describe('fetchS3File', () => {
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
     expect(result).toBe(mockBlob);
+  });
+
+  it('should use the configured BFF API version', async () => {
+    const mockBlob = new Blob(['file content']);
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      blob: async () => mockBlob,
+    } as Response);
+    const { fetchS3File: fetchS3FileWithV2 } = createS3Api('/test-product', 'v2');
+
+    await fetchS3FileWithV2('ns', 'key.json');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/test-product/api/v2/s3/files/key.json?'),
+      expect.objectContaining({ signal: undefined }),
+    );
   });
 
   it('should include secretName and bucket when provided', async () => {

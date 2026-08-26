@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { z } from 'zod';
-import { fetchS3Json } from '~/app/hooks/queries';
+import { useS3FileFetchers } from '~/app/hooks/queries';
 import type {
   AutoRAGEvaluationResult,
   AutoRAGEvaluationMetricResult,
@@ -63,6 +63,7 @@ export function usePatternEvaluationResults(
   patternName?: string,
   enabled = false,
 ): UseQueryResult<AutoRAGEvaluationResult[], Error> {
+  const { fetchS3Json } = useS3FileFetchers();
   const key =
     ragPatternsBasePath && patternName
       ? `${ragPatternsBasePath}/${patternName}/evaluation_results.json`

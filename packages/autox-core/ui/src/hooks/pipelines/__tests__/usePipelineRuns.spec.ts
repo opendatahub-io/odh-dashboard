@@ -1,8 +1,25 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFetchState } from 'mod-arch-core';
-import type { PipelineRun } from '../../../api/pipelines';
-import { createUsePipelineRuns } from '../usePipelineRuns';
+import React from 'react';
+import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
+import { ProductContextProvider } from '../../../context';
+import { usePipelineRuns } from '../usePipelineRuns';
+
+const mockPipelinesApi: PipelinesApi = {
+  getPipelineRunsFromBFF: jest.fn(),
+  getPipelineRunFromBFF: jest.fn(),
+  enableManagedPipelines: jest.fn(),
+  terminatePipelineRun: jest.fn(),
+  retryPipelineRun: jest.fn(),
+  deletePipelineRun: jest.fn(),
+};
+
+jest.mock('../../../api', () => ({
+  ...jest.requireActual('../../../api'),
+  createPipelinesApi: jest.fn(() => mockPipelinesApi),
+}));
 
 const mockRefreshSpy: { current?: jest.Mock } = {};
 
@@ -24,6 +41,23 @@ jest.mock('mod-arch-core', () => {
 
 const useFetchStateMock = jest.mocked(useFetchState);
 
+const createWrapper = () => {
+  const queryClient = new QueryClient();
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    React.createElement(
+      ProductContextProvider,
+      {
+        product: 'automl',
+        apiPrefix: '/automl',
+        bffApiVersion: 'v1',
+        isRunInTerminalState: () => false,
+        parseErrorStatus: () => undefined,
+      },
+      React.createElement(QueryClientProvider, { client: queryClient }, children),
+    );
+  return Wrapper;
+};
+
 const mockRuns: PipelineRun[] = [
   {
     run_id: 'r1',
@@ -41,9 +75,8 @@ const mockPipelineRunsData = {
   next_page_token: '',
 };
 
-describe('createUsePipelineRuns', () => {
-  const getPipelineRunsFromBFF = jest.fn();
-  const usePipelineRuns = createUsePipelineRuns(getPipelineRunsFromBFF);
+describe('usePipelineRuns', () => {
+  const getPipelineRunsFromBFF = jest.mocked(mockPipelinesApi.getPipelineRunsFromBFF);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -56,7 +89,7 @@ describe('createUsePipelineRuns', () => {
       next_page_token: '',
     });
 
-    const { result } = renderHook(() => usePipelineRuns(''));
+    const { result } = renderHook(() => usePipelineRuns(''), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     expect(result.current.runs).toEqual([]);
@@ -67,7 +100,9 @@ describe('createUsePipelineRuns', () => {
   it('should fetch and return pipeline runs from BFF with pagination data', async () => {
     getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
 
-    const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+    const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     expect(result.current.runs).toEqual(mockRuns);
@@ -85,7 +120,9 @@ describe('createUsePipelineRuns', () => {
     const fetchError = new Error('Fetch failed');
     getPipelineRunsFromBFF.mockRejectedValue(fetchError);
 
-    const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+    const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.error).toBe(fetchError));
 
     expect(result.current.runs).toEqual([]);
@@ -94,9 +131,7 @@ describe('createUsePipelineRuns', () => {
 
   it('should pass a custom defaultPageSize and pollInterval to useFetchState for polling', () => {
     getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
-    const usePipelineRunsCustom = createUsePipelineRuns(getPipelineRunsFromBFF, 50, 5000);
-
-    renderHook(() => usePipelineRunsCustom('my-namespace'));
+    renderHook(() => usePipelineRuns('my-namespace', 50, 5000), { wrapper: createWrapper() });
 
     expect(useFetchStateMock).toHaveBeenCalledWith(
       expect.any(Function),
@@ -111,6 +146,7 @@ describe('createUsePipelineRuns', () => {
 
       const { result, rerender } = renderHook(({ namespace }) => usePipelineRuns(namespace), {
         initialProps: { namespace: 'ns-1' },
+        wrapper: createWrapper(),
       });
       await waitFor(() => expect(result.current.loaded).toBe(true));
 
@@ -135,7 +171,9 @@ describe('createUsePipelineRuns', () => {
     it('should start with page 1 and default pageSize 20', async () => {
       getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
 
-      const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+      const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+        wrapper: createWrapper(),
+      });
       expect(result.current.page).toBe(1);
       expect(result.current.pageSize).toBe(20);
 
@@ -147,7 +185,9 @@ describe('createUsePipelineRuns', () => {
     it('should expose setPage and setPageSize callbacks', async () => {
       getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
 
-      const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+      const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loaded).toBe(true));
 
       expect(typeof result.current.setPage).toBe('function');
@@ -157,7 +197,9 @@ describe('createUsePipelineRuns', () => {
     it('should call refresh directly when on page 1', async () => {
       getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
 
-      const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+      const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loaded).toBe(true));
 
       mockRefreshSpy.current!.mockClear();
@@ -169,7 +211,9 @@ describe('createUsePipelineRuns', () => {
     it('should reset to page 1 instead of calling refresh when on page 2+', async () => {
       getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
 
-      const { result } = renderHook(() => usePipelineRuns('my-namespace'));
+      const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loaded).toBe(true));
 
       result.current.setPage(2);

@@ -2,10 +2,12 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { ProductContextProvider } from '@odh-dashboard/autox-core/ui/context';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   useS3GetFileSchemaQuery,
   useModelEvaluationArtifactsQuery,
-  fetchS3File,
   AutomlModelSchema,
   isRawTimeseriesModelV34,
   isRawModelV35,
@@ -29,7 +31,15 @@ const createWrapper = () => {
     },
   });
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <ProductContextProvider
+      product="automl"
+      apiPrefix={URL_PREFIX}
+      bffApiVersion={BFF_API_VERSION}
+      isRunInTerminalState={isRunInTerminalState}
+      parseErrorStatus={parseErrorStatus}
+    >
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </ProductContextProvider>
   );
   Wrapper.displayName = 'TestQueryClientProvider';
   return Wrapper;
@@ -87,7 +97,8 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
@@ -122,7 +133,8 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
@@ -164,7 +176,8 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     const { result } = renderHook(
@@ -184,7 +197,8 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     const { result } = renderHook(
@@ -212,7 +226,7 @@ describe('useS3GetFileSchemaQuery', () => {
       expect(result.current.error).toBeTruthy();
     });
 
-    expect(result.current.error?.message).toContain('Failed to fetch file schema');
+    expect(result.current.error?.message).toContain('Failed to fetch file');
   });
 
   it('should extract error message from API response', async () => {
@@ -239,7 +253,7 @@ describe('useS3GetFileSchemaQuery', () => {
     });
 
     expect(result.current.error?.message).toBe(
-      'Failed to fetch file schema: only CSV files are supported (must have .csv extension)',
+      'Failed to fetch file: only CSV files are supported (must have .csv extension)',
     );
   });
 
@@ -261,9 +275,7 @@ describe('useS3GetFileSchemaQuery', () => {
       expect(result.current.error).toBeTruthy();
     });
 
-    expect(result.current.error?.message).toBe(
-      'Failed to fetch file schema: Internal Server Error',
-    );
+    expect(result.current.error?.message).toBe('Failed to fetch file: Internal Server Error');
   });
 
   it('should handle network errors', async () => {
@@ -317,7 +329,8 @@ describe('useS3GetFileSchemaQuery', () => {
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => mockResponse,
+      headers: { get: () => null },
+      blob: async () => new Blob([JSON.stringify(mockResponse)]),
     });
 
     renderHook(
@@ -339,108 +352,6 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=my-bucket');
     expect(callUrl).toContain('view=schema');
-  });
-});
-
-describe('fetchS3File', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should throw for empty key', async () => {
-    await expect(fetchS3File('ns', '')).rejects.toThrow('File key must be a non-empty string');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('should throw for whitespace-only key', async () => {
-    await expect(fetchS3File('ns', '   ')).rejects.toThrow('File key must be a non-empty string');
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('should construct URL with namespace and key', async () => {
-    const mockBlob = new Blob(['file content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    const result = await fetchS3File('test-namespace', 'path/to/file.json');
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/files/path%2Fto%2Ffile.json?'),
-      expect.objectContaining({ signal: undefined }),
-    );
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).toContain('namespace=test-namespace');
-    expect(result).toBe(mockBlob);
-  });
-
-  it('should include secretName and bucket when provided', async () => {
-    const mockBlob = new Blob(['content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    await fetchS3File('ns', 'key.csv', { secretName: 'my-secret', bucket: 'my-bucket' });
-
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).toContain('secretName=my-secret');
-    expect(callUrl).toContain('bucket=my-bucket');
-  });
-
-  it('should omit secretName and bucket when not provided', async () => {
-    const mockBlob = new Blob(['content']);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      blob: async () => mockBlob,
-    });
-
-    await fetchS3File('ns', 'key.csv');
-
-    const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    expect(callUrl).not.toContain('secretName=');
-    expect(callUrl).not.toContain('bucket=');
-  });
-
-  it('should throw with statusText on non-ok response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Not Found',
-      json: async () => {
-        throw new Error('no body');
-      },
-    });
-
-    await expect(fetchS3File('ns', 'missing.json')).rejects.toThrow(
-      'Failed to fetch file: Not Found',
-    );
-  });
-
-  it('should throw with API error message when available', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Bad Request',
-      json: async () => ({
-        error: { message: 'S3 key not found' },
-      }),
-    });
-
-    await expect(fetchS3File('ns', 'bad-key')).rejects.toThrow(
-      'Failed to fetch file: S3 key not found',
-    );
-  });
-
-  it('should fall back to statusText when error JSON is malformed', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Internal Server Error',
-      json: async () => ({ unexpected: 'shape' }),
-    });
-
-    await expect(fetchS3File('ns', 'key')).rejects.toThrow(
-      'Failed to fetch file: Internal Server Error',
-    );
   });
 });
 

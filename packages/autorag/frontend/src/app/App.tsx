@@ -1,7 +1,6 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Alert,
   Bullseye,
@@ -21,17 +20,6 @@ import { AppContext } from '~/app/context/AppContext';
 import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings';
 
 const App: React.FC = () => {
-  const [queryClient] = React.useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          mutations: {
-            gcTime: Infinity,
-          },
-        },
-      }),
-  );
-
   const {
     configSettings,
     userSettings,
@@ -114,10 +102,6 @@ const App: React.FC = () => {
       </UIErrorHandler>
     </AppContext.Provider>
   );
-
-  if (isStandalone) {
-    return <QueryClientProvider client={queryClient}>{page}</QueryClientProvider>;
-  }
 
   return page;
 };

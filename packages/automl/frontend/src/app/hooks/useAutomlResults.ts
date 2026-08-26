@@ -2,7 +2,7 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3ListFilesQuery,
-  fetchS3Json,
+  useS3FileFetchers,
   AutomlModelSchema,
   isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
@@ -77,6 +77,7 @@ export function useAutomlResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutomlResultsReturn {
+  const { fetchS3Json } = useS3FileFetchers();
   // Step 0: Discover the training task directory under the run prefix.
   // The pipeline uses preset-based condition branches that produce different task
   // names (e.g. "autogluon-models-training" for balanced, "autogluon-models-training-2"

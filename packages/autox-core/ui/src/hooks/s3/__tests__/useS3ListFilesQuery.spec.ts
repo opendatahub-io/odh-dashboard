@@ -3,18 +3,40 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import type { S3Api } from '../../../api/s3';
-import { createUseS3ListFilesQuery } from '../useS3ListFilesQuery';
+import { ProductContextProvider } from '../../../context';
+import { useS3ListFilesQuery } from '../useS3ListFilesQuery';
+
+const mockS3Api: S3Api = {
+  uploadFileToS3: jest.fn(),
+  getFiles: jest.fn(),
+  fetchS3File: jest.fn(),
+  fetchS3Json: jest.fn(),
+};
+
+jest.mock('../../../api', () => ({
+  ...jest.requireActual('../../../api'),
+  createS3Api: jest.fn(() => mockS3Api),
+}));
 
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+    React.createElement(
+      ProductContextProvider,
+      {
+        product: 'automl',
+        apiPrefix: '/automl',
+        bffApiVersion: 'v1',
+        isRunInTerminalState: () => false,
+        parseErrorStatus: () => undefined,
+      },
+      React.createElement(QueryClientProvider, { client: queryClient }, children),
+    );
   return Wrapper;
 };
 
-describe('createUseS3ListFilesQuery', () => {
-  const getFiles = jest.fn<ReturnType<S3Api['getFiles']>, Parameters<S3Api['getFiles']>>();
-  const useS3ListFilesQuery = createUseS3ListFilesQuery(getFiles);
+describe('useS3ListFilesQuery', () => {
+  const getFiles = jest.mocked(mockS3Api.getFiles);
 
   beforeEach(() => {
     jest.clearAllMocks();

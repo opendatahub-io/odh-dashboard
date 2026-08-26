@@ -12,4 +12,4 @@ export type {
   GetPipelineRunsFromBFFParams,
 } from './types';
 export type { PipelinesApi } from './pipelines';
-export { createPipelinesApi } from './pipelines';
+export { createPipelineRun, createPipelinesApi, postPipelineRunAction } from './pipelines';

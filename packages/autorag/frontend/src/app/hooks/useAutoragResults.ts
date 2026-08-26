@@ -1,6 +1,6 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, useS3FileFetchers } from '~/app/hooks/queries';
 import {
   AutoragPatternSchema,
   isV1RawPattern,
@@ -128,6 +128,7 @@ export function useAutoragResults(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseAutoragResultsReturn {
+  const { fetchS3Json } = useS3FileFetchers();
   // Step 1: Fetch S3 files to discover the non-deterministic UUID directory
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
   const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);

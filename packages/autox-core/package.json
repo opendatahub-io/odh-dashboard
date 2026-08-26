@@ -6,6 +6,7 @@
   "exports": {
     "./ui/api": "./ui/src/api/index.ts",
     "./ui/api/pipelines/kfTypes": "./ui/src/api/pipelines/kfTypes.ts",
+    "./ui/context": "./ui/src/context/index.ts",
     "./ui/hooks": "./ui/src/hooks/index.ts",
     "./ui/layouts": "./ui/src/layouts/index.ts",
     "./ui/components/primitive": "./ui/src/components/primitive/index.ts",

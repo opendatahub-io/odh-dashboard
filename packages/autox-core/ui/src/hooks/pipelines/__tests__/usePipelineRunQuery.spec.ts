@@ -3,12 +3,40 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
-import { createUsePipelineRunQuery } from '../usePipelineRunQuery';
+import { ProductContextProvider } from '../../../context';
+import { usePipelineRunQuery } from '../usePipelineRunQuery';
+
+const mockPipelinesApi: PipelinesApi = {
+  getPipelineRunsFromBFF: jest.fn(),
+  getPipelineRunFromBFF: jest.fn(),
+  enableManagedPipelines: jest.fn(),
+  terminatePipelineRun: jest.fn(),
+  retryPipelineRun: jest.fn(),
+  deletePipelineRun: jest.fn(),
+};
+
+jest.mock('../../../api', () => ({
+  ...jest.requireActual('../../../api'),
+  createPipelinesApi: jest.fn(() => mockPipelinesApi),
+}));
+
+const isRunInTerminalState = jest.fn().mockReturnValue(false);
+const parseErrorStatus = jest.fn().mockReturnValue(undefined);
 
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+    React.createElement(
+      ProductContextProvider,
+      {
+        product: 'automl',
+        apiPrefix: '/automl',
+        bffApiVersion: 'v1',
+        isRunInTerminalState,
+        parseErrorStatus,
+      },
+      React.createElement(QueryClientProvider, { client: queryClient }, children),
+    );
   return Wrapper;
 };
 
@@ -19,13 +47,8 @@ const mockRun: PipelineRun = {
   state: 'RUNNING',
 };
 
-describe('createUsePipelineRunQuery', () => {
-  const getPipelineRunFromBFF = jest.fn<
-    ReturnType<PipelinesApi['getPipelineRunFromBFF']>,
-    Parameters<PipelinesApi['getPipelineRunFromBFF']>
-  >();
-  const isRunInTerminalState = jest.fn().mockReturnValue(false);
-  const parseErrorStatus = jest.fn().mockReturnValue(undefined);
+describe('usePipelineRunQuery', () => {
+  const getPipelineRunFromBFF = jest.mocked(mockPipelinesApi.getPipelineRunFromBFF);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,11 +57,6 @@ describe('createUsePipelineRunQuery', () => {
   });
 
   it('should be disabled when runId or namespace is undefined', () => {
-    const usePipelineRunQuery = createUsePipelineRunQuery(getPipelineRunFromBFF, {
-      isRunInTerminalState,
-      parseErrorStatus,
-    });
-
     const { result } = renderHook(() => usePipelineRunQuery(undefined, 'ns'), {
       wrapper: createWrapper(),
     });
@@ -49,11 +67,6 @@ describe('createUsePipelineRunQuery', () => {
 
   it('should fetch the pipeline run when enabled', async () => {
     getPipelineRunFromBFF.mockResolvedValue(mockRun);
-    const usePipelineRunQuery = createUsePipelineRunQuery(getPipelineRunFromBFF, {
-      isRunInTerminalState,
-      parseErrorStatus,
-    });
-
     const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns'), {
       wrapper: createWrapper(),
     });
@@ -70,14 +83,24 @@ describe('createUsePipelineRunQuery', () => {
     getPipelineRunFromBFF.mockResolvedValue(mockRun);
     const normalized = { ...mockRun, display_name: 'Normalized Run 1' };
     const normalize = jest.fn().mockReturnValue(normalized);
-    const usePipelineRunQuery = createUsePipelineRunQuery(getPipelineRunFromBFF, {
-      isRunInTerminalState,
-      parseErrorStatus,
-      normalize,
-    });
-
     const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns'), {
-      wrapper: createWrapper(),
+      wrapper: ({ children }) =>
+        React.createElement(
+          ProductContextProvider,
+          {
+            product: 'automl',
+            apiPrefix: '/automl',
+            bffApiVersion: 'v1',
+            isRunInTerminalState,
+            parseErrorStatus,
+            normalize,
+          },
+          React.createElement(
+            QueryClientProvider,
+            { client: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
+            children,
+          ),
+        ),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -90,11 +113,6 @@ describe('createUsePipelineRunQuery', () => {
     const httpError = new Error('status code 404');
     getPipelineRunFromBFF.mockRejectedValue(httpError);
     parseErrorStatus.mockReturnValue(404);
-    const usePipelineRunQuery = createUsePipelineRunQuery(getPipelineRunFromBFF, {
-      isRunInTerminalState,
-      parseErrorStatus,
-    });
-
     const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns'), {
       wrapper: createWrapper(),
     });

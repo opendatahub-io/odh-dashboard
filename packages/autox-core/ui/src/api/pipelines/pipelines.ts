@@ -27,6 +27,9 @@ export type PipelinesApi<TParams = Record<string, unknown>> = {
     opts?: APIOptions,
   ) => Promise<PipelineRun<TParams>>;
   enableManagedPipelines: (hostPath: string, namespace: string) => Promise<void>;
+  terminatePipelineRun: (namespace: string, runId: string) => Promise<void>;
+  retryPipelineRun: (namespace: string, runId: string) => Promise<void>;
+  deletePipelineRun: (namespace: string, runId: string) => Promise<void>;
 };
 
 /**
@@ -111,5 +114,89 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     );
   }
 
-  return { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines };
+  async function terminatePipelineRun(namespace: string, runId: string): Promise<void> {
+    return postPipelineRunAction(
+      `${urlPrefix}/api/${bffApiVersion}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}/terminate?namespace=${encodeURIComponent(namespace)}`,
+      'terminate',
+    );
+  }
+
+  async function retryPipelineRun(namespace: string, runId: string): Promise<void> {
+    return postPipelineRunAction(
+      `${urlPrefix}/api/${bffApiVersion}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}/retry?namespace=${encodeURIComponent(namespace)}`,
+      'retry',
+    );
+  }
+
+  async function deletePipelineRun(namespace: string, runId: string): Promise<void> {
+    const response = await fetch(
+      `${urlPrefix}/api/${bffApiVersion}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}?namespace=${encodeURIComponent(namespace)}`,
+      { method: 'DELETE' },
+    );
+    if (!response.ok) {
+      const body = await response.text();
+      let serverMessage = body;
+      try {
+        const json = JSON.parse(body);
+        serverMessage = json.error?.message || json.message || body;
+      } catch {
+        // body is not JSON, use as-is
+      }
+      throw new Error(`Failed to delete run (${response.status}): ${serverMessage}`);
+    }
+  }
+
+  return {
+    getPipelineRunsFromBFF,
+    getPipelineRunFromBFF,
+    enableManagedPipelines,
+    terminatePipelineRun,
+    retryPipelineRun,
+    deletePipelineRun,
+  };
+}
+
+export async function createPipelineRun<TParams = Record<string, unknown>>(
+  urlPrefix: string,
+  bffApiVersion: string,
+  hostPath: string,
+  namespace: string,
+  payload: Record<string, unknown> | FormData,
+): Promise<PipelineRun<TParams>> {
+  const response = await handleRestFailures(
+    restCREATE<PipelineRun<TParams>>(
+      hostPath,
+      `${urlPrefix}/api/${bffApiVersion}/pipeline-runs?namespace=${encodeURIComponent(namespace)}`,
+      payload,
+    ),
+  );
+  if (isModArchResponse<PipelineRun<TParams>>(response)) {
+    return response.data;
+  }
+  throw new Error('Invalid response format');
+}
+
+export async function postPipelineRunAction(url: string, action: string): Promise<void> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    let serverMessage = body;
+    try {
+      const json = JSON.parse(body);
+      serverMessage = json.error?.message || json.message || body;
+    } catch {
+      // body is not JSON, use as-is
+    }
+    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
+  }
 }
