@@ -268,10 +268,21 @@ describe('ChatbotConfigurationModal auto-selected models', () => {
       embedding_model: 'embed-model',
       embedding_dimension: 768,
     };
+    const existingVs: VectorStore = {
+      id: 'vs-1',
+      name: 'test-vs',
+      object: 'vector_store',
+      created_at: 1700000000,
+      last_active_at: 1700000000,
+      file_counts: { cancelled: 0, completed: 0, failed: 0, in_progress: 0, total: 0 },
+      metadata: { provider_id: 'provider-1' },
+      status: 'completed',
+      usage_bytes: 0,
+    };
     renderModal({
       allModels: [...allModels, embeddingModel],
       allCollections: [collection],
-      existingCollections: [{ id: 'vs-1', name: 'test-vs' }],
+      existingCollections: [existingVs],
     });
     expect(getSelectedModelNames()).toContain('embed-model');
   });
@@ -753,10 +764,21 @@ describe('ChatbotConfigurationModal form tracking', () => {
         embedding_model: 'embed-model',
         embedding_dimension: 768,
       };
+      const existingVs: VectorStore = {
+        id: 'vs-1',
+        name: 'test-vs',
+        object: 'vector_store',
+        created_at: 1700000000,
+        last_active_at: 1700000000,
+        file_counts: { cancelled: 0, completed: 0, failed: 0, in_progress: 0, total: 0 },
+        metadata: { provider_id: 'provider-1' },
+        status: 'completed',
+        usage_bytes: 0,
+      };
       renderModalWithContext({
         allModels: [chatModel, embeddingModel],
         allCollections: [collection],
-        existingCollections: [{ id: 'vs-1', name: 'test-vs' }],
+        existingCollections: [existingVs],
       });
 
       await user.click(screen.getByRole('button', { name: /create/i }));
