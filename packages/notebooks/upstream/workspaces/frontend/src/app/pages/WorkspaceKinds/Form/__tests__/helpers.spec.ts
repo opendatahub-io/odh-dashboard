@@ -34,7 +34,7 @@ describe('getResources', () => {
     expect(gpu?.id).toMatch(/nvidia\.com\/gpu-/);
   });
 
-  it(' handle empty or missing resources and return default CPU and memory entries', () => {
+  it('should handle empty or missing resources and return default CPU and memory entries', () => {
     const emptyConfig: WorkspaceKindPodConfigValue = {
       id: 'test-config',
       displayName: 'Test Config',
