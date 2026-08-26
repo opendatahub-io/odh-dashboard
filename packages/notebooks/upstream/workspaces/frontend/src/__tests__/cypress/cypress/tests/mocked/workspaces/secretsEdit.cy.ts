@@ -34,13 +34,11 @@ describe('Edit Secret Modal', () => {
     state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
 
-  // Add a secret to the workspace
-  mockWorkspaceListItem.podTemplate.volumes.secrets = [
-    { secretName: 'test-secret', mountPath: '/mnt/secrets', defaultMode: 420 },
-  ];
+  const testSecrets = [{ secretName: 'test-secret', mountPath: '/mnt/secrets', defaultMode: 420 }];
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: testSecrets },
   });
 
   const mockSecrets = [
@@ -201,7 +199,7 @@ describe('Edit Secret Modal', () => {
       workspaceKind: mockWorkspaceKindInfo,
       state: V1Beta1WorkspaceState.WorkspaceStateRunning,
     });
-    workspaceWithImmutableSecret.podTemplate.volumes.secrets = [
+    const immutableSecrets = [
       { secretName: 'immutable-secret', mountPath: '/mnt/immutable', defaultMode: 420 },
     ];
 
@@ -215,6 +213,7 @@ describe('Edit Secret Modal', () => {
     // Re-intercept getWorkspace with updated workspace data
     const updatedWorkspace = buildMockWorkspaceUpdateFromWorkspace({
       workspace: workspaceWithImmutableSecret,
+      volumes: { secrets: immutableSecrets },
     });
     cy.interceptApi(
       'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
@@ -273,13 +272,14 @@ describe('Edit Secret Modal', () => {
     ).as('listSecretsUpdated');
 
     // Add this secret to workspace and re-visit the page
-    mockWorkspaceListItem.podTemplate.volumes.secrets = [
+    const noUpdateSecrets = [
       { secretName: 'no-update-secret', mountPath: '/mnt/no-update', defaultMode: 420 },
     ];
 
     // Re-intercept getWorkspace with updated workspace data
     const updatedWorkspace = buildMockWorkspaceUpdateFromWorkspace({
       workspace: mockWorkspaceListItem,
+      volumes: { secrets: noUpdateSecrets },
     });
     cy.interceptApi(
       'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
