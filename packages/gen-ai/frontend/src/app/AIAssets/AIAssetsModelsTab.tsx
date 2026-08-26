@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Bullseye, Button, Content, ContentVariants, Spinner } from '@patternfly/react-core';
+import {
+  Alert,
+  AlertVariant,
+  Bullseye,
+  Button,
+  Content,
+  ContentVariants,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import ModelsEmptyState from '~/app/EmptyStates/NoData';
@@ -16,7 +26,7 @@ const AIAssetsModelsTab: React.FC = () => {
   const { namespace } = React.useContext(GenAiContext);
   const { data: playgroundModels } = useFetchLlamaModels(undefined, true);
 
-  const { models, loaded, error, refresh } = useMergedModels();
+  const { models, loaded, error, refresh, isPartialResponse } = useMergedModels();
   const { data: lsdStatus } = useFetchLSDStatus();
   const { api, apiAvailable } = useGenAiAPI();
   const isExternalModelsEnabled = useAiAssetCustomEndpointsEnabled();
@@ -157,28 +167,45 @@ const AIAssetsModelsTab: React.FC = () => {
       {models.length === 0 ? (
         emptyState
       ) : (
-        <AIModelsTable
-          models={models}
-          playgroundModels={playgroundModels}
-          lsdStatus={lsdStatus}
-          toolbarActions={
-            isExternalModelsEnabled ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
-                    source: 'toolbar',
-                  });
-                  setIsCreateEndpointModalOpen(true);
-                }}
-                data-testid="create-endpoint-button"
+        <Stack hasGutter>
+          {isPartialResponse && (
+            <StackItem>
+              <Alert
+                variant={AlertVariant.warning}
+                isInline
+                title="Some model sources are unavailable"
+                data-testid="partial-response-warning"
               >
-                Create endpoint
-              </Button>
-            ) : undefined
-          }
-          onDelete={isExternalModelsEnabled ? handleDeleteExternalModel : undefined}
-        />
+                External model sources could not be reached. The list below shows only models from
+                available sources.
+              </Alert>
+            </StackItem>
+          )}
+          <StackItem>
+            <AIModelsTable
+              models={models}
+              playgroundModels={playgroundModels}
+              lsdStatus={lsdStatus}
+              toolbarActions={
+                isExternalModelsEnabled ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      fireMiscTrackingEvent('Available Endpoints Create Endpoint Clicked', {
+                        source: 'toolbar',
+                      });
+                      setIsCreateEndpointModalOpen(true);
+                    }}
+                    data-testid="create-endpoint-button"
+                  >
+                    Create endpoint
+                  </Button>
+                ) : undefined
+              }
+              onDelete={isExternalModelsEnabled ? handleDeleteExternalModel : undefined}
+            />
+          </StackItem>
+        </Stack>
       )}
       {isExternalModelsEnabled && (
         <CreateExternalEndpointModal

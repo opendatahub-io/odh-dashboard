@@ -80,6 +80,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: false,
       error: undefined,
       refresh: jest.fn(),
+      isPartialResponse: false,
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -93,6 +94,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       error: undefined,
       refresh: jest.fn(),
+      isPartialResponse: false,
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -107,6 +109,7 @@ describe('AIAssetsModelsTab', () => {
       loaded: true,
       error: new Error('Failed to fetch'),
       refresh: jest.fn(),
+      isPartialResponse: false,
     } as ReturnType<typeof useMergedModels>);
 
     render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
@@ -127,6 +130,7 @@ describe('AIAssetsModelsTab', () => {
       ] as AIModel[],
       loaded: true,
       error: undefined,
+      isPartialResponse: false,
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 

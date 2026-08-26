@@ -43,6 +43,7 @@ describe('useMergedModels', () => {
       data: [],
       loaded: true,
       error: undefined,
+      isPartialResponse: false,
       ...mockFetchStateDefaults,
     });
 
@@ -67,6 +68,7 @@ describe('useMergedModels', () => {
       data: models,
       loaded: true,
       error: undefined,
+      isPartialResponse: false,
       ...mockFetchStateDefaults,
     });
 
@@ -83,6 +85,7 @@ describe('useMergedModels', () => {
         data: [],
         loaded: false,
         error: undefined,
+        isPartialResponse: false,
         ...mockFetchStateDefaults,
       });
 
@@ -96,6 +99,7 @@ describe('useMergedModels', () => {
         data: [],
         loaded: true,
         error: undefined,
+        isPartialResponse: false,
         ...mockFetchStateDefaults,
       });
 
@@ -109,6 +113,7 @@ describe('useMergedModels', () => {
         data: [],
         loaded: false,
         error: new Error('fetch failed'),
+        isPartialResponse: false,
         ...mockFetchStateDefaults,
       });
 
@@ -126,6 +131,7 @@ describe('useMergedModels', () => {
         data: [],
         loaded: true,
         error: undefined,
+        isPartialResponse: false,
         refresh,
       });
 

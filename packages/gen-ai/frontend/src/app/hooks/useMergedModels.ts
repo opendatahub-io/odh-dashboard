@@ -6,16 +6,18 @@ type UseMergedModelsResult = {
   loaded: boolean;
   error: Error | undefined;
   refresh: () => void;
+  isPartialResponse: boolean;
 };
 
 const useMergedModels = (): UseMergedModelsResult => {
-  const { data: models = [], loaded, error, refresh } = useFetchAIModels();
+  const { data: models = [], loaded, error, refresh, isPartialResponse } = useFetchAIModels();
 
   return {
     models,
     loaded: loaded || !!error,
     error,
     refresh,
+    isPartialResponse,
   };
 };
 

@@ -392,4 +392,26 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).toHaveBeenCalledWith('basic-sub');
     expect(onSubscriptionChange).toHaveBeenCalledTimes(1);
   });
+
+  it('should match subscriptions correctly when isMaaSModel is true with slash in model ID', () => {
+    const onSubscriptionChange = jest.fn();
+    const maasModelId = 'meta-llama/Llama-2-7b-chat-hf';
+    const model = createMaaSModel({
+      model_id: maasModelId,
+      subscriptions: [{ name: 'llama-sub', displayName: 'Llama Subscription' }],
+    });
+
+    render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown
+          selectedModel={maasModelId}
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+          isMaaSModel
+        />
+      </TestWrapper>,
+    );
+
+    expect(onSubscriptionChange).toHaveBeenCalledWith('llama-sub');
+  });
 });
