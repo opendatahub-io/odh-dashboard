@@ -1370,19 +1370,6 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 }
 
-// ogxCommand returns the container command for the OGXServer pod.
-//
-// When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
-// process. This is a temporary workaround for two issues in the current OGX image:
-//
-//  1. ENABLE_USER_SITE=False in the container prevents sitecustomize.py from
-//     loading, so opentelemetry-instrument's auto-instrumentation silently fails.
-//     Workaround: copy sitecustomize.py to standard site-packages before starting.
-//
-//  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
-//     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
-//     on port 4318, so we must use otlp_proto_http explicitly.
-
 // existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
 // whether it already contains a remote::passthrough inference provider. Returns
 // false (conservatively) on any read/parse error so the caller falls through to
@@ -1418,6 +1405,19 @@ func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx c
 	return config.HasPassthroughProvider()
 }
 
+// ogxCommand returns the container command for the OGXServer pod.
+//
+// When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
+// process. This is a temporary workaround for two issues in the current OGX image:
+//
+//  1. ENABLE_USER_SITE=False in the container prevents sitecustomize.py from
+//     loading, so opentelemetry-instrument's auto-instrumentation silently fails.
+//     Workaround: copy sitecustomize.py to standard site-packages before starting.
+//
+//  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
+//     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
+//     on port 4318, so we must use otlp_proto_http explicitly.
+//
 // We can later use the simpler entrypoint command if the OGX image fixes the
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
 //
