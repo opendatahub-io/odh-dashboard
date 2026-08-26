@@ -78,25 +78,35 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Contains(t, errResp["error"].(map[string]interface{})["message"], "messages")
 	})
 
-	It("should return 400 when stream is true", func() {
+	It("should proxy streaming request successfully", func() {
 		t := GinkgoT()
-		body := `{"model":"some-model","messages":[{"role":"user","content":"hi"}],"stream":true}`
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/genai-proxy/ns/test-ns/v1/chat/completions", strings.NewReader(body))
+
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "data: {\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\"}\n\ndata: [DONE]\n\n")
+		}))
+		defer upstream.Close()
+
+		app.httpClient = &http.Client{
+			Transport: &redirectTransport{target: upstream.URL},
+		}
+
+		body := `{"model":"llama-32-3b-instruct","messages":[{"role":"user","content":"hi"}],"stream":true}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/chat/completions", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-1")
 		req = req.WithContext(ctx)
 
-		params := httprouter.Params{{Key: "namespace", Value: "test-ns"}}
+		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSChatCompletionsHandler(rr, req, params)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		var errResp map[string]interface{}
-		err := json.Unmarshal(rr.Body.Bytes(), &errResp)
-		require.NoError(t, err)
-		assert.Contains(t, errResp["error"].(map[string]interface{})["message"], "streaming")
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, rr.Body.String(), "chat.completion.chunk")
 	})
 
 	It("should return 400 when messages is not a JSON array", func() {
@@ -137,7 +147,7 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
 	})
 
-	It("should strip provider prefix from model ID when proxying", func() {
+	It("should strip passthrough provider prefix from model ID when proxying", func() {
 		t := GinkgoT()
 
 		var receivedModel string
@@ -155,7 +165,7 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 			Transport: &redirectTransport{target: upstream.URL},
 		}
 
-		body := `{"model":"vllm-1/llama-32-3b-instruct","messages":[{"role":"user","content":"hi"}]}`
+		body := `{"model":"genai-bff-proxy/llama-32-3b-instruct","messages":[{"role":"user","content":"hi"}]}`
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/chat/completions", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
