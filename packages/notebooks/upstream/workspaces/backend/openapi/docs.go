@@ -7613,6 +7613,10 @@ const docTemplate = `{
                 "podTemplate"
             ],
             "properties": {
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
                 "kind": {
                     "type": "string"
                 },
@@ -7673,6 +7677,10 @@ const docTemplate = `{
                 "audit": {
                     "$ref": "#/definitions/common.Audit"
                 },
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7716,6 +7724,10 @@ const docTemplate = `{
                 "revision"
             ],
             "properties": {
+                "displayName": {
+                    "description": "DisplayName is an optional human-readable name for the workspace.",
+                    "type": "string"
+                },
                 "paused": {
                     "description": "TODO: remove ` + "`" + `paused` + "`" + ` once we have an \"actions\" api for pausing workspaces",
                     "type": "boolean"
