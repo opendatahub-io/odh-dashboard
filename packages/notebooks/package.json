@@ -15,8 +15,12 @@
     "start:dev:wait": "wait-on -i 1000 http://localhost:9105"
   },
   "subtree": {
+    "DO_NOT_MERGE_SYNCED_FROM_LOCAL": {
+      "branch": "RHOAIENG-58841",
+      "origin_url": "git@github.com:harshad16/kf-notebooks.git"
+    },
     "repo": "https://github.com/opendatahub-io/workbenches.git",
-    "branch": "main",
+    "branch": "RHOAIENG-58841",
     "src": "",
     "target": "upstream",
     "commit": "88f318c4e1346bdd9b5d6acda208411bc344ccbd"
