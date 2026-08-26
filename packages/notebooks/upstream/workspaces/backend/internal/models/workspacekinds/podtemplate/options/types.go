@@ -31,13 +31,13 @@ type ImageConfig struct {
 }
 
 type ImageConfigValue struct {
-	Id             string               `json:"id"`
-	DisplayName    string               `json:"displayName"`
-	Description    string               `json:"description"`
-	Labels         []OptionLabel        `json:"labels,omitempty"`
-	Hidden         bool                 `json:"hidden"`
-	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
-	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
+	Id             string                `json:"id"`
+	DisplayName    string                `json:"displayName"`
+	Description    string                `json:"description"`
+	Labels         []OptionLabel         `json:"labels,omitempty"`
+	Hidden         bool                  `json:"hidden"`
+	Redirect       *OptionRedirect       `json:"redirect,omitempty"`
+	ClusterMetrics *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }
 
 type PodConfig struct {
@@ -46,13 +46,13 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id             string               `json:"id"`
-	DisplayName    string               `json:"displayName"`
-	Description    string               `json:"description"`
-	Labels         []OptionLabel        `json:"labels,omitempty"`
-	Hidden         bool                 `json:"hidden"`
-	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
-	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
+	Id             string                `json:"id"`
+	DisplayName    string                `json:"displayName"`
+	Description    string                `json:"description"`
+	Labels         []OptionLabel         `json:"labels,omitempty"`
+	Hidden         bool                  `json:"hidden"`
+	Redirect       *OptionRedirect       `json:"redirect,omitempty"`
+	ClusterMetrics *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }
 
 type OptionLabel struct {
