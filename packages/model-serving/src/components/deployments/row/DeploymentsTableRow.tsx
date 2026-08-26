@@ -8,7 +8,10 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
 import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import { getDeletedHardwareProfilePatches } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import {
+  getDeletedHardwareProfilePatches,
+  getUpdatedHardwareProfilePatches,
+} from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
@@ -83,16 +86,31 @@ export const DeploymentRow: React.FC<{
   const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
   const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
 
+  const updatedHardwareProfilePatches = React.useMemo(
+    () =>
+      getUpdatedHardwareProfilePatches(bindingStateInfo, deployment.model, hardwareProfilePaths),
+    [bindingStateInfo, deployment.model, hardwareProfilePaths],
+  );
+
   const onStart = React.useCallback(() => {
     if (!startStopActionExtension) return;
     startStopActionExtension.properties
       .patchDeploymentStoppedStatus()
       .then(async (resolvedFunction) => {
-        await resolvedFunction(deployment, false, deletedHardwareProfilePatches);
+        await resolvedFunction(deployment, false, [
+          ...deletedHardwareProfilePatches,
+          ...updatedHardwareProfilePatches,
+        ]);
         // Start watching for deployment status changes
         watchDeployment();
       });
-  }, [deployment, startStopActionExtension, watchDeployment, deletedHardwareProfilePatches]);
+  }, [
+    deployment,
+    startStopActionExtension,
+    watchDeployment,
+    deletedHardwareProfilePatches,
+    updatedHardwareProfilePatches,
+  ]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {

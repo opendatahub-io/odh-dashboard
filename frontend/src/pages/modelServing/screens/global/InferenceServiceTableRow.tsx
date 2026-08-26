@@ -19,8 +19,14 @@ import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
-import { MODEL_SERVING_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import {
+  getDeletedHardwareProfilePatches,
+  getUpdatedHardwareProfilePatches,
+} from '#~/concepts/hardwareProfiles/utils';
+import {
+  MODEL_SERVING_VISIBILITY,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+} from '#~/concepts/hardwareProfiles/const';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -79,15 +85,35 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     [bindingStateInfo, inferenceService],
   );
 
+  const updatedHardwareProfilePatches = React.useMemo(
+    () =>
+      getUpdatedHardwareProfilePatches(
+        bindingStateInfo,
+        inferenceService,
+        INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      ),
+    [bindingStateInfo, inferenceService],
+  );
+
   const onStart = React.useCallback(() => {
     setIsStarting(true);
-    patchInferenceServiceStoppedStatus(inferenceService, 'false', deletedHardwareProfilePatches)
+    patchInferenceServiceStoppedStatus(inferenceService, 'false', [
+      ...deletedHardwareProfilePatches,
+      ...updatedHardwareProfilePatches,
+    ])
       .then(() => {
         refresh();
         watchDeployment();
       })
       .catch(() => setIsStarting(false));
-  }, [inferenceService, refresh, setIsStarting, watchDeployment, deletedHardwareProfilePatches]);
+  }, [
+    inferenceService,
+    refresh,
+    setIsStarting,
+    watchDeployment,
+    deletedHardwareProfilePatches,
+    updatedHardwareProfilePatches,
+  ]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {

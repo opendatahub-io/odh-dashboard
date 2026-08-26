@@ -19,6 +19,7 @@ import {
 import {
   HardwareProfileBindingState,
   REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+  HARDWARE_PROFILE_RESOURCE_VERSION_PATH,
 } from '#~/concepts/hardwareProfiles/const';
 import {
   HardwarePodSpecOptions,
@@ -319,4 +320,21 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     }
   }
   return result;
+};
+
+export const getUpdatedHardwareProfilePatches = <T extends K8sResourceCommon>(
+  bindingState: HardwareProfileBindingStateInfo | null,
+  cr: T,
+  paths?: CrPathConfig,
+): Patch[] => {
+  const { resourceVersion } = bindingState?.profile?.metadata ?? {};
+
+  return bindingState?.state === HardwareProfileBindingState.UPDATED && paths && resourceVersion
+    ? [
+        ...[paths.containerResourcesPath, paths.tolerationsPath, paths.nodeSelectorPath]
+          .filter((path) => get(cr, path) !== undefined)
+          .map((path): Patch => ({ op: 'remove', path: `/${path.split('.').join('/')}` })),
+        { op: 'replace', path: HARDWARE_PROFILE_RESOURCE_VERSION_PATH, value: resourceVersion },
+      ]
+    : [];
 };
