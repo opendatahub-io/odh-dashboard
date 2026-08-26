@@ -25,7 +25,9 @@ import (
 
 // WorkspaceCreate is used to create a new workspace.
 type WorkspaceCreate struct {
-	Name        string            `json:"name"`
+	Name string `json:"name"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName string            `json:"displayName,omitempty"`
 	Kind        string            `json:"kind"`
 	Paused      bool              `json:"paused"`
 	PodTemplate PodTemplateMutate `json:"podTemplate"`
@@ -34,7 +36,7 @@ type WorkspaceCreate struct {
 // Validate validates the WorkspaceCreate struct.
 // NOTE: we only do basic validation, more complex validation is done by the controller when attempting to create the workspace.
 func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the workspace name
 	namePath := prefix.Child("name")
@@ -60,6 +62,8 @@ type WorkspaceUpdate struct {
 	//   - Clients must not parse, interpret, or compare revision values
 	//     other than for equality, as the format is not guaranteed to be stable.
 	Revision common.RevisionString `json:"revision"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName string `json:"displayName,omitempty"`
 
 	Paused      bool              `json:"paused"` // TODO: remove `paused` once we have an "actions" api for pausing workspaces
 	PodTemplate PodTemplateMutate `json:"podTemplate"`
@@ -90,7 +94,7 @@ type PodTemplateMutate struct {
 
 // Validate validates the PodTemplateMutate struct.
 func (p *PodTemplateMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the pod metadata
 	podMetadataPath := prefix.Child("podMetadata")
@@ -117,7 +121,7 @@ type PodMetadataMutate struct {
 
 // Validate validates the PodMetadataMutate struct.
 func (p *PodMetadataMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the labels
 	labelsPath := prefix.Child("labels")
@@ -171,7 +175,7 @@ type PodVolumeMount struct {
 
 // Validate validates the PodVolumeMount struct.
 func (p *PodVolumeMount) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the PVC name
 	pvcNamePath := prefix.Child("pvcName")
@@ -220,7 +224,7 @@ type PodTemplateOptionsMutate struct {
 
 // Validate validates the PodTemplateOptionsMutate struct.
 func (p *PodTemplateOptionsMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the image config
 	imageConfigPath := prefix.Child("imageConfig")

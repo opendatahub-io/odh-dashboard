@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
@@ -47,9 +48,14 @@ import (
 //	@consumes	application/json
 //	@produces	application/json
 
+// NOTE: the security definition for the user id header is not declared here, but injected at
+//       runtime by the Swagger UI handler (see `api/swagger_handler.go`), because the name of
+//       the header is configurable with the `--userid-header` flag.
+
 func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
+	var certFile, keyFile string
 	flag.IntVar(&cfg.Port,
 		"port",
 		getEnvAsInt("PORT", 4000),
@@ -66,13 +72,6 @@ func main() {
 		"client-burst",
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
-	)
-	flag.BoolVar(
-		// TODO: remove before GA
-		&cfg.DisableAuth,
-		"disable-auth",
-		getEnvAsBool("DISABLE_AUTH", true),
-		"Disable authentication and authorization",
 	)
 	flag.StringVar(
 		&cfg.UserIdHeader,
@@ -130,6 +129,8 @@ func main() {
 		getEnvAsStr("STATIC_ASSETS_DIR", "/static"),
 		"Directory containing frontend static assets",
 	)
+	flag.StringVar(&certFile, "cert-file", getEnvAsStr("CERT_FILE", ""), "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", getEnvAsStr("KEY_FILE", ""), "Path to TLS key file")
 
 	flag.Parse()
 
@@ -166,6 +167,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	clientset, err := kubernetes.NewForConfig(kubeconfig)
+	if err != nil {
+		logger.Error("failed to create Kubernetes clientset", "error", err)
+		os.Exit(1)
+	}
+
 	// Create the request authenticator
 	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
 	if err != nil {
@@ -197,12 +204,13 @@ func main() {
 		mgr.GetScheme(),
 		reqAuthN,
 		reqAuthZ,
+		clientset,
 	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)
 	}
-	svr, err := server.NewServer(app, logger)
+	svr, err := server.NewServer(app, logger, certFile, keyFile)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
 		os.Exit(1)

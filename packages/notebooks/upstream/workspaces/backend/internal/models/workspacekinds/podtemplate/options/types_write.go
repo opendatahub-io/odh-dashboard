@@ -28,13 +28,25 @@ type ListValuesRequest struct {
 
 // Validate validates the ListValuesRequest struct.
 func (d *ListValuesRequest) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the context
 	contextPath := prefix.Child("context")
 	errs = append(errs, d.Context.Validate(contextPath)...)
 
 	return errs
+}
+
+// configIDs returns the imageConfig and podConfig ids from the request context,
+// each empty when the corresponding context is absent.
+func (d *ListValuesRequest) configIDs() (imageConfigID, podConfigID string) {
+	if d.Context.ImageConfig != nil {
+		imageConfigID = d.Context.ImageConfig.Id
+	}
+	if d.Context.PodConfig != nil {
+		podConfigID = d.Context.PodConfig.Id
+	}
+	return imageConfigID, podConfigID
 }
 
 type ListValuesContext struct {
@@ -74,7 +86,7 @@ type ContextNamespace struct {
 
 // Validate validates the ContextNamespace struct.
 func (c *ContextNamespace) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the namespace name
 	namePath := prefix.Child("name")
@@ -89,7 +101,7 @@ type ContextPodConfig struct {
 
 // Validate validates the ContextPodConfig struct.
 func (c *ContextPodConfig) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the pod config id
 	idPath := prefix.Child("id")
@@ -104,7 +116,7 @@ type ContextImageConfig struct {
 
 // Validate validates the ContextImageConfig struct.
 func (c *ContextImageConfig) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the image config id
 	idPath := prefix.Child("id")

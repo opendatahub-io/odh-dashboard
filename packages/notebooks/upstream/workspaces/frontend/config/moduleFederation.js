@@ -29,7 +29,7 @@ const moduleFederationConfig = {
   // For module federation to work when optimization.runtimeChunk="single":
   // See https://github.com/webpack/webpack/issues/18810
   runtime: false,
-  dts: true,
+  dts: false,
 };
 
 module.exports = {
