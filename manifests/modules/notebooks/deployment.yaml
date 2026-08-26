@@ -59,6 +59,23 @@ spec:
                   items:
                     - key: service-ca.crt
                       path: service-ca.crt
+        - name: proxy-tls
+          secret:
+            secretName: notebooks-proxy-tls
+        - name: odh-trusted-ca-cert
+          configMap:
+            name: odh-trusted-ca-bundle
+            optional: true
+            items:
+              - key: ca-bundle.crt
+                path: odh-trusted-ca-bundle.crt
+        - name: odh-ca-cert
+          configMap:
+            name: odh-trusted-ca-bundle
+            optional: true
+            items:
+              - key: odh-ca-bundle.crt
+                path: odh-ca-bundle.crt
       containers:
         - name: notebooks-ui
           image: notebooks-ui-image
@@ -67,7 +84,7 @@ spec:
             httpGet:
               path: /api/v1/healthcheck
               port: 9043
-              scheme: HTTP
+              scheme: HTTPS
             initialDelaySeconds: 30
             timeoutSeconds: 15
             periodSeconds: 30
@@ -77,7 +94,7 @@ spec:
             httpGet:
               path: /api/v1/healthcheck
               port: 9043
-              scheme: HTTP
+              scheme: HTTPS
             initialDelaySeconds: 15
             timeoutSeconds: 15
             periodSeconds: 30
@@ -98,12 +115,33 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: proxy-tls
+              mountPath: /etc/tls/private
+              readOnly: true
+            - name: odh-trusted-ca-cert
+              mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+              subPath: odh-trusted-ca-bundle.crt
+              readOnly: true
+            - name: odh-trusted-ca-cert
+              mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+              subPath: odh-trusted-ca-bundle.crt
+              readOnly: true
+            - name: odh-ca-cert
+              mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+              subPath: odh-ca-bundle.crt
+              readOnly: true
+            - name: odh-ca-cert
+              mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+              subPath: odh-ca-bundle.crt
+              readOnly: true
             - name: modules-sa-token
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
-          env:
-            - name: PORT
-              value: "9043"
+          args:
+            - '--port=9043'
+            - '--cert-file=/etc/tls/private/tls.crt'
+            - '--key-file=/etc/tls/private/tls.key'
+            - '--static-assets-dir=/static'
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

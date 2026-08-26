@@ -35,7 +35,7 @@ const mapVolumeAsset = (volume: VolumeInfo, collection: string): RegistryAsset =
   assetType: 'volume',
   location: volume['storage-location'] || '',
   connectionRef: volume.properties?.['connection-ref'] || '',
-  labels: [],
+  labels: volume.labels || [],
   collection,
 });
 
