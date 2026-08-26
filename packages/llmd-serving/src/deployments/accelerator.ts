@@ -1,11 +1,16 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
 import { applyConfigRef, createLocalConfigName, preDeployConfigCopy } from './configs';
-import { ACCELERATOR_CONFIG_REF_ANNOTATION, type LLMdDeployment } from '../types';
+import {
+  ACCELERATOR_CONFIG_REF_ANNOTATION,
+  LLMInferenceServiceConfigKind,
+  type LLMdDeployment,
+} from '../types';
 import { ACCELERATOR_CONFIG_DEFAULT } from '../const';
 import type { AcceleratorConfigFieldData } from '../wizardFields/AcceleratorConfigField';
 
-const isSentinel = (c: unknown): boolean => c === ACCELERATOR_CONFIG_DEFAULT;
+const isDefaultPlaceholder = (c: string | LLMInferenceServiceConfigKind): boolean =>
+  c === ACCELERATOR_CONFIG_DEFAULT;
 
 export const applyAcceleratorConfig = (
   deployment: LLMdDeployment,
@@ -14,7 +19,7 @@ export const applyAcceleratorConfig = (
   applyConfigRef(deployment, fieldData, {
     annotationKey: ACCELERATOR_CONFIG_REF_ANNOTATION,
     configName: createLocalConfigName,
-    isSentinel,
+    isDefaultPlaceholder,
   });
 
 export const preDeployAcceleratorConfig = (
@@ -25,7 +30,7 @@ export const preDeployAcceleratorConfig = (
   dryRun?: boolean,
 ): Promise<DeploymentHookPayloadFor<LLMdDeployment>> =>
   preDeployConfigCopy(
-    { annotationKey: ACCELERATOR_CONFIG_REF_ANNOTATION, isSentinel },
+    { annotationKey: ACCELERATOR_CONFIG_REF_ANNOTATION, isDefaultPlaceholder },
     fieldData,
     deployment,
     existingDeployment,

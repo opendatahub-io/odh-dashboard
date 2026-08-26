@@ -87,7 +87,7 @@ describe('AcceleratorConfigFieldWizardField.getInitialFieldData', () => {
     expect(result).toBe(existing);
   });
 
-  it('defaults to the built-in sentinel (Manual) when nothing matches', () => {
+  it('defaults to the built-in placeholder (Manual) when nothing matches', () => {
     const result = getInitialFieldData(undefined, { configs: [makeConfig('rocm')] }, {});
     expect(result.selectedConfig).toBe(ACCELERATOR_CONFIG_DEFAULT);
     expect(result.autoSelect).toBe(false);

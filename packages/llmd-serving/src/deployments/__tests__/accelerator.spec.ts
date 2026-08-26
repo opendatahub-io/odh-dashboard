@@ -41,7 +41,7 @@ describe('applyAcceleratorConfig', () => {
     expect(result.model.spec.router?.scheduler).toEqual({});
   });
 
-  it('adds no baseRef for the built-in (sentinel) selection', () => {
+  it('adds no baseRef for the built-in (placeholder) selection', () => {
     const result = applyAcceleratorConfig(makeDeployment(), {
       selectedConfig: ACCELERATOR_CONFIG_DEFAULT,
     });

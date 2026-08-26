@@ -43,7 +43,7 @@ export const applyTopologyConfig = (
   applyConfigRef(deployment, fieldData, {
     annotationKey: TOPOLOGY_CONFIG_REF_ANNOTATION,
     configName: createLocalConfigName,
-    isSentinel: (c) => c === TOPOLOGY_CONFIG_DEFAULT,
+    isDefaultPlaceholder: (c) => c === TOPOLOGY_CONFIG_DEFAULT,
   });
 
 // ─── PreDeploy: Topology Config ────────────────────────────────────────────────
@@ -58,7 +58,7 @@ export const preDeployTopologyConfig = (
   preDeployConfigCopy(
     {
       annotationKey: TOPOLOGY_CONFIG_REF_ANNOTATION,
-      isSentinel: (c) => c === TOPOLOGY_CONFIG_DEFAULT,
+      isDefaultPlaceholder: (c) => c === TOPOLOGY_CONFIG_DEFAULT,
     },
     fieldData,
     deployment,

@@ -33,7 +33,7 @@ import { isLLMInferenceServiceActive } from '../formUtils';
 import { ACCELERATOR_CONFIG_FIELD_ID, ACCELERATOR_CONFIG_DEFAULT } from '../const';
 
 // Synthetic "no override / use the built-in image" option surfaced in the Manual selection list.
-// Its `name` doubles as the sentinel we persist (ACCELERATOR_CONFIG_DEFAULT); it carries no
+// Its `name` doubles as the placeholder we persist (ACCELERATOR_CONFIG_DEFAULT); it carries no
 // `template`, so ModelServerTemplateSelectField renders no version labels for it.
 const BUILT_IN_IMAGE_OPTION: ModelServerOption = {
   name: ACCELERATOR_CONFIG_DEFAULT,
@@ -222,7 +222,7 @@ export const AcceleratorConfigFieldComponent: AcceleratorConfigFieldType['compon
     [configs, topologyType],
   );
 
-  // Options presented to the shared component: the "Built-in image (default)" sentinel first,
+  // Options presented to the shared component: the "Built-in image (default)" placeholder first,
   // then the topology-compatible accelerator configs.
   const options: ModelServerOption[] = React.useMemo(
     () => [

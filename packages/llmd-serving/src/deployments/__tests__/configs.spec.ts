@@ -58,12 +58,12 @@ describe('applyConfigRef', () => {
     expect(next.model.metadata.annotations?.[ANN]).toBe('my-deployment-accel-b');
   });
 
-  it('removes the ref and annotation for a sentinel selection', () => {
+  it('removes the ref and annotation for a placeholder selection', () => {
     const prev = applyConfigRef(makeDeployment(), { selectedConfig: makeConfig('accel-a') }, opts);
     const next = applyConfigRef(
       prev,
       { selectedConfig: 'default' },
-      { ...opts, isSentinel: (c) => c === 'default' },
+      { ...opts, isDefaultPlaceholder: (c) => c === 'default' },
     );
     expect(next.model.spec.baseRefs ?? []).toEqual([]);
     expect(next.model.metadata.annotations?.[ANN]).toBeUndefined();
@@ -155,9 +155,9 @@ describe('preDeployConfigCopy', () => {
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
-  it('does not clone for a sentinel selection', async () => {
+  it('does not clone for a placeholder selection', async () => {
     await preDeployConfigCopy(
-      { annotationKey: ANN, isSentinel: (c) => c === 'default' },
+      { annotationKey: ANN, isDefaultPlaceholder: (c) => c === 'default' },
       { selectedConfig: 'default' },
       withAnnotation(undefined),
     );

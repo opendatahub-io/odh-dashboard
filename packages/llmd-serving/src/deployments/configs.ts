@@ -62,14 +62,14 @@ export type ApplyConfigRefOptions = {
   annotationKey: string;
   /** Produces the baseRef name for the selected config (usually createLocalConfigName). */
   configName: (deployment: LLMdDeployment, config: LLMInferenceServiceConfigKind) => string;
-  /** True when the selection is a "no config" sentinel (e.g. topology default / built-in image). */
-  isSentinel?: (config: LLMInferenceServiceConfigKind | string) => boolean;
+  /** True when the selection is a "no config" placeholder (e.g. topology default / built-in image). */
+  isDefaultPlaceholder?: (config: LLMInferenceServiceConfigKind | string) => boolean;
 };
 
 /**
  * Swap the baseRef + tracking annotation for one kind of config on a deployment.
  * - Removes any previously tracked ref for this annotation.
- * - If a real (non-sentinel) config is selected, pushes its ref to the END of baseRefs and records
+ * - If a real (non-placeholder) config is selected, pushes its ref to the END of baseRefs and records
  *   the annotation. baseRef ordering across config kinds is a registration-order concern (the
  *   accelerator apply is registered after topology so its image wins).
  * - Never touches spec.router.scheduler.
@@ -96,7 +96,7 @@ export const applyConfigRef = (
 
   const config = fieldData?.selectedConfig;
   const isRealConfig =
-    config !== undefined && typeof config !== 'string' && !options.isSentinel?.(config);
+    config !== undefined && typeof config !== 'string' && !options.isDefaultPlaceholder?.(config);
   if (isRealConfig) {
     const name = options.configName(result, config);
     annotations[options.annotationKey] = name;
@@ -117,15 +117,15 @@ export const applyConfigRef = (
 export type PreDeployConfigCopyOptions = {
   /** The annotation used to track which deployment-local copy belongs to this config kind. */
   annotationKey: string;
-  /** True when the selection is a "no config" sentinel (e.g. topology default / built-in image). */
-  isSentinel?: (config: LLMInferenceServiceConfigKind | string) => boolean;
+  /** True when the selection is a "no config" placeholder (e.g. topology default / built-in image). */
+  isDefaultPlaceholder?: (config: LLMInferenceServiceConfigKind | string) => boolean;
 };
 
 /**
  * Create/replace the deployment-local copy of one config kind.
  * - Deletes the previously tracked copy when switching (404 ignored).
  * - Clones the selected config into the deployment namespace (409 ignored).
- * - No-op for a sentinel selection.
+ * - No-op for a placeholder selection.
  * Called twice by the wizard: first with dryRun=true, then for real.
  */
 export const preDeployConfigCopy = async (
@@ -146,11 +146,11 @@ export const preDeployConfigCopy = async (
 
   const config = fieldData.selectedConfig;
   const isRealConfig =
-    config !== undefined && typeof config !== 'string' && !options.isSentinel?.(config);
+    config !== undefined && typeof config !== 'string' && !options.isDefaultPlaceholder?.(config);
 
   // Create the new local copy BEFORE deleting the previous one, so a failed create never leaves the
   // deployment referencing a config we already removed. Delete-on-switch happens only after the new
-  // copy exists (or when switching to a sentinel, which has nothing to create).
+  // copy exists (or when switching to a placeholder, which has nothing to create).
   if (isRealConfig && newName) {
     const copy = cleanlyDuplicateConfig(config, {
       name: newName,

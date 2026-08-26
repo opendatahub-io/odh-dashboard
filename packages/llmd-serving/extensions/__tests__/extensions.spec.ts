@@ -203,7 +203,7 @@ describe('llm-d routing configuration extensions', () => {
   });
 });
 
-const applyFieldId = (ext: unknown): string | undefined => {
+const getFieldIdForApplyExtension = (ext: unknown): string | undefined => {
   const e = ext as { type?: string; properties?: { fieldId?: string } };
   return e.type === 'model-serving.deployment/wizard-field-apply'
     ? e.properties?.fieldId
@@ -212,7 +212,7 @@ const applyFieldId = (ext: unknown): string | undefined => {
 
 describe('llmd-serving apply extension ordering', () => {
   it('registers the accelerator apply after the topology config apply', () => {
-    const applyIds = extensions.map(applyFieldId).filter(Boolean) as string[];
+    const applyIds = extensions.map(getFieldIdForApplyExtension).filter(Boolean) as string[];
     const topoIdx = applyIds.indexOf('llmd-serving/custom-topology-config');
     const accelIdx = applyIds.indexOf('llmd-serving/accelerator-config');
     expect(topoIdx).toBeGreaterThanOrEqual(0);
