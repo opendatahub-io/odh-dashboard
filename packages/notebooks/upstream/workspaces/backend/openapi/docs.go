@@ -1868,6 +1868,75 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/details": {
+            "get": {
+                "description": "Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace pod template details",
+                "operationId": "getWorkspacePodTemplateDetails",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceDetailsEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2153,6 +2222,17 @@ const docTemplate = `{
                 }
             }
         },
+        "api.WorkspaceDetailsEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/details.WorkspaceDetails"
+                }
+            }
+        },
         "api.WorkspaceEnvelope": {
             "type": "object",
             "required": [
@@ -2267,6 +2347,143 @@ const docTemplate = `{
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "common.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "common.PodSecretInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.PodVolumeInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName",
+                "readOnly"
+            ],
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "details.WorkspaceDetailContainer": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailPod": {
+            "type": "object",
+            "required": [
+                "name",
+                "nodeName"
+            ],
+            "properties": {
+                "containers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "initContainers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nodeName": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailVolumes": {
+            "type": "object",
+            "required": [
+                "home"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/common.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.PodSecretInfo"
+                    }
+                }
+            }
+        },
+        "details.WorkspaceDetails": {
+            "type": "object",
+            "required": [
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "pod": {
+                    "$ref": "#/definitions/details.WorkspaceDetailPod"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/common.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/details.WorkspaceDetailVolumes"
                 }
             }
         },
@@ -7099,27 +7316,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodMetadata": {
-            "type": "object",
-            "required": [
-                "annotations",
-                "labels"
-            ],
-            "properties": {
-                "annotations": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "workspaces.PodMetadataMutate": {
             "type": "object",
             "required": [
@@ -7138,24 +7334,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "workspaces.PodSecretInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "secretName"
-            ],
-            "properties": {
-                "defaultMode": {
-                    "type": "integer"
-                },
-                "mountPath": {
-                    "type": "string"
-                },
-                "secretName": {
-                    "type": "string"
                 }
             }
         },
@@ -7189,7 +7367,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspaces.PodTemplateOptions"
                 },
                 "podMetadata": {
-                    "$ref": "#/definitions/workspaces.PodMetadata"
+                    "$ref": "#/definitions/common.PodMetadata"
                 },
                 "volumes": {
                     "$ref": "#/definitions/workspaces.PodVolumes"
@@ -7245,25 +7423,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodVolumeInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "pvcName",
-                "readOnly"
-            ],
-            "properties": {
-                "mountPath": {
-                    "type": "string"
-                },
-                "pvcName": {
-                    "type": "string"
-                },
-                "readOnly": {
-                    "type": "boolean"
-                }
-            }
-        },
         "workspaces.PodVolumeMount": {
             "type": "object",
             "required": [
@@ -7284,23 +7443,20 @@ const docTemplate = `{
         },
         "workspaces.PodVolumes": {
             "type": "object",
-            "required": [
-                "data"
-            ],
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                        "$ref": "#/definitions/common.PodVolumeInfo"
                     }
                 },
                 "home": {
-                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                    "$ref": "#/definitions/common.PodVolumeInfo"
                 },
                 "secrets": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspaces.PodSecretInfo"
+                        "$ref": "#/definitions/common.PodSecretInfo"
                     }
                 }
             }
