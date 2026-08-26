@@ -94,11 +94,15 @@ swag: SWAGGER
 
 .PHONY: build
 build: fmt vet swag ## Build backend binary.
-	go build -o bin/backend cmd/main.go
+	go build -o bin/backend ./cmd
+
+.PHONY: build-mock
+build-mock: fmt vet swag ## Build backend binary with mock Kubernetes support.
+	go build -tags mockk8s -o bin/backend ./cmd
 
 .PHONY: run
 run: fmt vet swag ## Run a backend from your host.
-	go run ./cmd/main.go --port=$(PORT)
+	go run ./cmd --port=$(PORT)
 
 .PHONY: docker-build
 docker-build:

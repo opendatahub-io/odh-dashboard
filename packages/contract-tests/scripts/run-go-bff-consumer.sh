@@ -200,7 +200,11 @@ log_info "Starting Mock BFF server on port $PORT..."
 
 BFF_BINARY="$(mktemp -d)/bff-test"
 log_info "Building Mock BFF binary..."
-go build -o "$BFF_BINARY" ./cmd
+if [[ -n "${BFF_GO_BUILD_TAGS:-}" ]]; then
+  go build -tags "$BFF_GO_BUILD_TAGS" -o "$BFF_BINARY" ./cmd
+else
+  go build -o "$BFF_BINARY" ./cmd
+fi
 
 log_info "Starting Mock BFF server"
 GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
