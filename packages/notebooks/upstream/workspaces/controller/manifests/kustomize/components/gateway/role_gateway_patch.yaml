@@ -39,6 +39,40 @@
     - create
     - delete
     - get
+    - list
+    - watch
+    - update
+    - patch
+# RBAC escalation for kube-rbac-proxy system:auth-delegator ClusterRoleBindings
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+- op: add
+  path: /rules/-
+  value:
+    apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - clusterroles
+    resourceNames:
+    - system:auth-delegator
+    verbs:
+    - bind
 # ReferenceGrant permissions for cross-namespace HTTPRoute backend references
 - op: add
   path: /rules/-
