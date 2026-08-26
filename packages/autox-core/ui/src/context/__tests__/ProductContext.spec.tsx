@@ -38,9 +38,8 @@ describe('ProductContextProvider', () => {
   it('should provide product configuration, strategies, and URL-bound clients', async () => {
     const isRunInTerminalState = jest.fn().mockReturnValue(true);
     const parseErrorStatus = jest.fn().mockReturnValue(404);
-    const normalize = jest.fn();
     const { result } = renderHook(() => useProductContext(), {
-      wrapper: createWrapper(createProps({ isRunInTerminalState, parseErrorStatus, normalize })),
+      wrapper: createWrapper(createProps({ isRunInTerminalState, parseErrorStatus })),
     });
 
     expect(result.current).toEqual(
@@ -50,7 +49,6 @@ describe('ProductContextProvider', () => {
         bffApiVersion: 'v1',
         isRunInTerminalState,
         parseErrorStatus,
-        normalize,
         api: {
           k8s: expect.any(Object),
           s3: expect.any(Object),

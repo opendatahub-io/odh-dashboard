@@ -89,7 +89,7 @@ export type PipelineRunDetails = SharedPipelineRunDetails;
 
 export type PipelineRunStateHistoryEntry = SharedPipelineRunStateHistoryEntry;
 
-export type PipelineRun = SharedPipelineRun;
+export type PipelineRun<TParams = Record<string, unknown>> = SharedPipelineRun<TParams>;
 
 export type OgxModelType = 'llm' | 'embedding';
 

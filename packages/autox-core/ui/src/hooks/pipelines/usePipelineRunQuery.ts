@@ -1,4 +1,4 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import type { PipelineRun } from '../../api/pipelines';
 import { useProductContext } from '../../context';
 
@@ -9,26 +9,29 @@ const MAX_RETRY_ATTEMPTS = 5;
 /**
  * Fetches one pipeline run using the API client configured by ProductContext.
  */
-export function usePipelineRunQuery<TParams = Record<string, unknown>>(
+export function usePipelineRunQuery<
+  TParams = Record<string, unknown>,
+  TData = PipelineRun<TParams>,
+>(
   runId?: string,
   namespace?: string,
-): UseQueryResult<PipelineRun<TParams>, Error> {
+  select?: (run: PipelineRun<TParams>) => TData,
+): UseQueryResult<TData, Error> {
   const {
     api: { pipelines: pipelinesApi },
     isRunInTerminalState,
     parseErrorStatus,
-    normalize,
   } = useProductContext();
 
-  return useQuery({
+  return useQuery<PipelineRun<TParams>, Error, TData>({
     queryKey: ['pipelineRun', runId, namespace],
     queryFn: async ({ signal }) => {
       const run = await pipelinesApi.getPipelineRunFromBFF('', runId!, namespace!, { signal });
-      const normalized = normalize ? normalize(run) : run;
       // ProductContext owns the runtime client; the caller supplies the run parameter type.
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return normalized as PipelineRun<TParams>;
+      return run as PipelineRun<TParams>;
     },
+    select,
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
     retry: (failureCount, error) => {

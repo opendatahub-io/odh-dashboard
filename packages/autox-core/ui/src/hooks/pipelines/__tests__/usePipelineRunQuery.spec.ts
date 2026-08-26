@@ -80,11 +80,11 @@ describe('usePipelineRunQuery', () => {
     });
   });
 
-  it('should apply the optional normalize callback to the fetched run', async () => {
+  it('should apply the optional select callback to the fetched run', async () => {
     getPipelineRunFromBFF.mockResolvedValue(mockRun);
     const normalized = { ...mockRun, display_name: 'Normalized Run 1' };
-    const normalize = jest.fn().mockReturnValue(normalized);
-    const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns'), {
+    const select = jest.fn().mockReturnValue(normalized);
+    const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns', select), {
       wrapper: ({ children }) =>
         React.createElement(
           ProductContextProvider,
@@ -94,7 +94,6 @@ describe('usePipelineRunQuery', () => {
             bffApiVersion: 'v1',
             isRunInTerminalState,
             parseErrorStatus,
-            normalize,
           },
           React.createElement(
             QueryClientProvider,
@@ -106,7 +105,7 @@ describe('usePipelineRunQuery', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(normalize).toHaveBeenCalledWith(mockRun);
+    expect(select).toHaveBeenCalledWith(mockRun);
     expect(result.current.data).toEqual(normalized);
   });
 
