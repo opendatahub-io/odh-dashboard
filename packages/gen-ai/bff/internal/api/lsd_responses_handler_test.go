@@ -1075,7 +1075,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
 			Input:  llamastack.InputUnion{Text: "Hello"},
-			Model:  testutil.GetTestLlamaStackModel(),
+			Model:  "mock-model",
 			Stream: true,
 		}
 
@@ -1086,8 +1086,10 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		// Use in-memory mock directly to ensure deterministic streaming events
+		// (the factory may connect to a real server in CI which can be flaky).
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
