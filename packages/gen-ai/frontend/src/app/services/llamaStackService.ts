@@ -1048,45 +1048,6 @@ export const exportCode = modArchRestCREATE<CodeExportData, CodeExportRequest>('
 
 /** AI Assets Endpoints */
 export const getAAModels = modArchRestGET<AAModelResponse[]>('/aaa/models');
-
-/**
- * Get AA models with response headers (including X-Partial-Response)
- * Returns both the model data and a flag indicating if the response was partial
- */
-export const getAAModelsWithHeaders =
-  (hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
-  async (
-    queryParams: Record<string, unknown> = {},
-    opts: APIOptions = {},
-  ): Promise<{ data: AAModelResponse[]; isPartialResponse: boolean }> => {
-    const sanitizedQueryParams = { ...baseQueryParams, ...queryParams };
-    const searchParams = Object.keys(sanitizedQueryParams).length
-      ? `?${new URLSearchParams(sanitizedQueryParams).toString()}`
-      : '';
-
-    const response = await fetch(`${hostPath}/aaa/models${searchParams}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...opts.headers,
-      },
-      signal: opts.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
-    }
-
-    const json = await response.json();
-    const isPartialResponse = response.headers.get('X-Partial-Response') === 'true';
-
-    if (isModArchResponse<AAModelResponse[]>(json)) {
-      return { data: json.data, isPartialResponse };
-    }
-
-    throw new Error('Invalid response format');
-  };
-
 export const getAAVectorStores = modArchRestGET<ExternalVectorStoreSummary[]>('/aaa/vectorstores');
 export const createExternalModel = modArchRestCREATE<ExternalModelResponse, ExternalModelRequest>(
   '/models/external',

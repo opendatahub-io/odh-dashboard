@@ -19,7 +19,6 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       installLSD: jest.fn().mockResolvedValue({ data: null }),
       deleteLSD: jest.fn().mockResolvedValue({ data: null }),
       getAAModels: jest.fn().mockResolvedValue([]),
-      getAAModelsWithHeaders: jest.fn().mockResolvedValue({ data: [], isPartialResponse: false }),
       getAAVectorStores: jest.fn().mockResolvedValue([]),
       listVectorStoreFiles: jest.fn().mockResolvedValue([]),
       deleteVectorStoreFile: jest.fn().mockResolvedValue({ data: null }),

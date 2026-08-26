@@ -49,7 +49,7 @@ export const isValidAAModel = (item: unknown): item is AAModelResponse =>
   Array.isArray(item.endpoints) &&
   item.endpoints.every((e: unknown) => typeof e === 'string');
 
-const useFetchAIModels = (): FetchStateObject<AIModel[]> & { isPartialResponse: boolean } => {
+const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
   const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
@@ -59,7 +59,6 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> & { isPartialResponse: 
   );
 
   const queryParams = maaSEnabled ? MAAS_QUERY_PARAMS : EMPTY_QUERY_PARAMS;
-  const [isPartialResponse, setIsPartialResponse] = React.useState(false);
 
   const fetchAIModels = React.useCallback<FetchStateCallbackPromise<AIModel[]>>(
     async (opts: APIOptions) => {
@@ -67,12 +66,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> & { isPartialResponse: 
         return Promise.reject(new NotReadyError('API not yet available'));
       }
 
-      const { data: rawData, isPartialResponse: partial } = await api.getAAModelsWithHeaders(
-        queryParams,
-        opts,
-      );
-      setIsPartialResponse(partial);
-
+      const rawData = await api.getAAModels(queryParams, opts);
       const models = (Array.isArray(rawData) ? rawData : []).filter(isValidAAModel);
 
       return models.map((item) => {
@@ -106,7 +100,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> & { isPartialResponse: 
     initialPromisePurity: true,
   });
 
-  return { data, loaded, error, refresh, isPartialResponse };
+  return { data, loaded, error, refresh };
 };
 
 export default useFetchAIModels;
