@@ -30,11 +30,11 @@ dev-install-dependencies: ## Install frontend dependencies
 	cd frontend && npm install
 
 .PHONY: dev-frontend-federated
-dev-frontend-federated: ## Run the Module Federation dev server (standalone mode so :9109 can render; remoteEntry.js still served)
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=standalone STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev
+dev-frontend-federated: ## Run the federated Module Federation dev server (use with host on :4000; :9109 alone only serves remoteEntry.js)
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev
 
 .PHONY: dev-start-federated
-dev-start-federated: ## Start the MF dev server on :9109 (standalone UI + remoteEntry.js; host integration in RHOAIENG-79899)
+dev-start-federated: ## Start the MF remote dev server on :9109 (pair with npm run dev:frontend + dev:backend on :4000)
 	@trap 'exit 0' INT; \
 	"$(MAKE)" dev-frontend-federated
 
