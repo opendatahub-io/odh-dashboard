@@ -28,6 +28,7 @@ describe('SecretsAttachModal', () => {
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: [] },
   });
 
   const mockSecrets = [

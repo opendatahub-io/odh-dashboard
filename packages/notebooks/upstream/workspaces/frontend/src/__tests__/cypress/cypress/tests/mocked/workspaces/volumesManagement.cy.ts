@@ -41,6 +41,7 @@ describe('Volumes Management - Attach and Create', () => {
   // Override to have empty volumes
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { data: [] },
   });
 
   // Create mock PVCs for attach modal
