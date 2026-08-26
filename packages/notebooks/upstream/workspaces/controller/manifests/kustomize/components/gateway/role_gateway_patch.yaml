@@ -43,25 +43,8 @@
     - watch
     - update
     - patch
-# RBAC escalation for kube-rbac-proxy system:auth-delegator ClusterRoleBindings
-- op: add
-  path: /rules/-
-  value:
-    apiGroups:
-    - authentication.k8s.io
-    resources:
-    - tokenreviews
-    verbs:
-    - create
-- op: add
-  path: /rules/-
-  value:
-    apiGroups:
-    - authorization.k8s.io
-    resources:
-    - subjectaccessreviews
-    verbs:
-    - create
+# RBAC escalation: bind permission on system:auth-delegator allows creating
+# kube-rbac-proxy ClusterRoleBindings without holding tokenreviews/SAR create.
 - op: add
   path: /rules/-
   value:
