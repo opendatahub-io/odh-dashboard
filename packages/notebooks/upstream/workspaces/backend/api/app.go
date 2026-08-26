@@ -23,6 +23,7 @@ import (
 	"path"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/klauspost/compress/gzhttp"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -137,8 +138,9 @@ func (a *App) Routes() http.Handler {
 	// Create a mux to combine API routes with static file serving
 	mux := http.NewServeMux()
 
-	// API routes - handle /api/v1/* paths
-	mux.Handle(constants.PathPrefix+"/", a.recoverPanic(a.enableCORS(router)))
+	// API routes - handle /api/v1/* paths with gzip compression
+	handler := gzhttp.GzipHandler(router)
+	mux.Handle(constants.PathPrefix+"/", a.recoverPanic(a.enableCORS(handler)))
 
 	// Static file server for frontend assets (Module Federation support)
 	if a.Config.StaticAssetsDir != "" {
