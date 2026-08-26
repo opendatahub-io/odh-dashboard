@@ -181,12 +181,11 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [images, value],
   );
 
-  const [isReselectionUnlocked, setIsReselectionUnlocked] = React.useState(false);
-  React.useEffect(() => {
-    if (isEditing && existingOptionNotFound && externalData?.loaded && images.length > 0) {
-      setIsReselectionUnlocked(true);
-    }
-  }, [isEditing, existingOptionNotFound, externalData?.loaded, images.length]);
+  const reselectionUnlockedRef = React.useRef(false);
+  if (isEditing && existingOptionNotFound && externalData?.loaded && images.length > 0) {
+    reselectionUnlockedRef.current = true;
+  }
+  const isReselectionUnlocked = reselectionUnlockedRef.current;
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
   const catalogLoadedWithImages = Boolean(externalData?.loaded && images.length > 0);

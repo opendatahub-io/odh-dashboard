@@ -12,26 +12,12 @@ import type {
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import {
-  ModelLocationData,
-  ModelLocationType,
-  type ModelLocationFieldOverride,
-} from '../../../../shared/types/form-data';
+import { NIMModelLocationOverride } from '@odh-dashboard/nim-serving/wizardFields/overrides/NIMModelLocationOverride';
+import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 import { useWizardFieldOverrides } from '../../dynamicFormUtils';
-import { NIMModelLocationOption } from '../modelLocationFields/NIMModelLocation';
-
-const nimModelLocationOverride: ModelLocationFieldOverride = {
-  id: 'modelLocation',
-  type: 'modifier',
-  isActive: () => true,
-  locationKey: NIMModelLocationOption.key,
-  disableWhenEditing: true,
-  disabledTooltip: 'Model location cannot be changed when editing an NVIDIA NIM deployment.',
-  hideOptionWhenEditingOtherLocation: true,
-};
 
 const modelLocationSchema = z.object({
   modelLocationData: z.custom<ModelLocationData>((val) => {
@@ -1005,7 +991,7 @@ describe('ModelLocationSelectField', () => {
     });
     it('should disable model location select when editing a NIM deployment', () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
-      mockUseWizardFieldOverrides.mockReturnValue([nimModelLocationOverride]);
+      mockUseWizardFieldOverrides.mockReturnValue([NIMModelLocationOverride]);
       render(
         <ModelLocationSelectField
           wizardState={{
@@ -1026,7 +1012,7 @@ describe('ModelLocationSelectField', () => {
     });
     it('should hide NVIDIA NIM option when editing a non-NIM deployment', async () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
-      mockUseWizardFieldOverrides.mockReturnValue([nimModelLocationOverride]);
+      mockUseWizardFieldOverrides.mockReturnValue([NIMModelLocationOverride]);
       render(
         <ModelLocationSelectField
           wizardState={{

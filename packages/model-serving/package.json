@@ -97,6 +97,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/nim-serving": "*",
     "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
