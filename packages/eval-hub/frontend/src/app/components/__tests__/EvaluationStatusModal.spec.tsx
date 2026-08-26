@@ -81,6 +81,18 @@ describe('EvaluationStatusModal tab defaults', () => {
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('should keep a stable modal height on the progress and events-log tabs', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+
+    switchToEventsLog();
+    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+      'evalhub-status-modal--full-height',
+    );
+  });
+
   it('should not show the failure-info tab for a failed job', () => {
     renderModal(mockEvaluationJob({ state: 'failed' }));
     expect(screen.queryByTestId('failure-info-tab')).not.toBeInTheDocument();

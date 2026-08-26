@@ -429,7 +429,11 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          flexWrap={{ default: 'nowrap' }}
+        >
           {benchmarks.length > 1 ? (
             <FlexItem>
               <Select
@@ -445,6 +449,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                     ref={toggleRef}
                     onClick={() => setIsBenchmarkSelectOpen((prev) => !prev)}
                     isExpanded={isBenchmarkSelectOpen}
+                    className="evalhub-event-log__benchmark-select"
                     data-testid="benchmark-log-selector"
                   >
                     {selectedBenchmark === ALL_BENCHMARKS
