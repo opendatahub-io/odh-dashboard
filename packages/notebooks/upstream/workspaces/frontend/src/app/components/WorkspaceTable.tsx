@@ -45,6 +45,7 @@ import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
   extractWorkspaceStateColor,
+  normalizeWorkspaceState,
   WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -136,6 +137,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     ref,
   ) => {
     const { isDrawerExpanded } = useWorkspaceActionsContext();
+    const normalizedWorkspaces = useMemo(
+      () =>
+        workspaces.map((ws) => ({
+          ...ws,
+          state: normalizeWorkspaceState(ws.state),
+        })),
+      [workspaces],
+    );
+
     const [workspaceKinds] = useWorkspaceKinds(namespace);
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
@@ -199,8 +209,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       expandedWorkspacesNames.includes(workspace.name);
 
     const filteredWorkspaces = useMemo(
-      () => applyFilters(workspaces, filterValues, filterableProperties),
-      [workspaces, filterValues, filterableProperties],
+      () => applyFilters(normalizedWorkspaces, filterValues, filterableProperties),
+      [normalizedWorkspaces, filterValues, filterableProperties],
     );
 
     const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
@@ -503,6 +513,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   />
                                 </Tooltip>
                               )}
+<<<<<<< ours
                             </WorkspaceKindImage>
                           )}
                           {columnKey === 'namespace' && workspace.namespace}
@@ -533,6 +544,75 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                         </Td>
                       );
                     })}
+=======
+                              {columnKey === 'kind' && (
+                                <WorkspaceKindImage
+                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                  skeletonWidth="20px"
+                                  fallback={
+                                    <ImageFallback
+                                      imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                    />
+                                  }
+                                  assetType="logo"
+                                  kindName={workspace.workspaceKind.name}
+                                >
+                                  {(validSrc) => (
+                                    <Tooltip content={workspace.workspaceKind.name}>
+                                      <img
+                                        src={validSrc}
+                                        alt={workspace.workspaceKind.name}
+                                        style={{
+                                          width: '20px',
+                                          height: '20px',
+                                          cursor: 'pointer',
+                                        }}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                </WorkspaceKindImage>
+                              )}
+                              {columnKey === 'namespace' && workspace.namespace}
+                              {columnKey === 'state' && (
+                                <div className="pf-v6-u-display-inline-block">
+                                  <Tooltip content={workspace.stateMessage || workspace.state}>
+                                    <Label color={extractWorkspaceStateColor(workspace.state)}>
+                                      {workspace.state}
+                                    </Label>
+                                  </Tooltip>
+                                </div>
+                              )}
+                              {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
+                              {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
+                              {columnKey === 'lastActivity' &&
+                                (workspace.activity.lastActivity === 0 ? (
+                                  <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>
+                                ) : (
+                                  <Timestamp
+                                    date={new Date(workspace.activity.lastActivity)}
+                                    tooltip={{ variant: TimestampTooltipVariant.default }}
+                                  >
+                                    {formatDistanceToNow(
+                                      new Date(workspace.activity.lastActivity),
+                                      {
+                                        addSuffix: true,
+                                      },
+                                    )}
+                                  </Timestamp>
+                                ))}
+                            </Td>
+                          );
+                        })}
+                      </Tr>
+                    </Tbody>
+                  ))}
+              {sortedWorkspaces.length === 0 && (
+                <Tbody>
+                  <Tr>
+                    <Td colSpan={8} id="empty-state-cell">
+                      <Bullseye>{emptyState}</Bullseye>
+                    </Td>
+>>>>>>> theirs
                   </Tr>
                   {isWorkspaceExpanded(workspace) && (
                     <ExpandedWorkspaceRow
