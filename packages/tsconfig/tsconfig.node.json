@@ -2,6 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "nodenext",
-    "moduleResolution": "nodenext"
-  }
+    "moduleResolution": "nodenext",
+    "types": ["node", "jest"],
+    "lib": ["es2021"]
+  },
+  "files": []
 }
