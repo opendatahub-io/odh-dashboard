@@ -228,6 +228,13 @@ export const alphaSortHardwareProfilesByName = (
   return profiles.toSorted((a, b) => collator.compare(a.metadata.name, b.metadata.name));
 };
 
+export const isNvidiaHardwareProfile = (profile: HardwareProfileKind): boolean =>
+  profile.spec.identifiers?.some(
+    (identifier) =>
+      identifier.resourceType === IdentifierResourceType.ACCELERATOR &&
+      identifier.identifier.startsWith('nvidia.com/'),
+  ) ?? false;
+
 export const orderHardwareProfiles = (
   profiles: HardwareProfileKind[],
   hardwareProfileOrder: string[] = [],
@@ -248,6 +255,17 @@ export const orderHardwareProfiles = (
     });
   }
   return alphaSortHardwareProfilesByName(profiles);
+};
+
+export const prioritizeHardwareProfiles = (
+  profiles: HardwareProfileKind[],
+  isPreferred: (profile: HardwareProfileKind) => boolean,
+  hardwareProfileOrder: string[] = [],
+): HardwareProfileKind[] => {
+  const ordered = orderHardwareProfiles(profiles, hardwareProfileOrder);
+  const preferred = ordered.filter(isPreferred);
+  const rest = ordered.filter((profile) => !isPreferred(profile));
+  return [...preferred, ...rest];
 };
 
 export const getClusterQueueNameFromLocalQueues = (

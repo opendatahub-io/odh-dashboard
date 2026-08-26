@@ -64,6 +64,10 @@ export {
   applyHardwareProfileConfig,
   getLocalQueueLabel,
 } from './utils';
+export {
+  isNvidiaHardwareProfile,
+  prioritizeHardwareProfiles,
+} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 
 // Components
 export { default as HardwareProfileBindingStateLabel } from './HardwareProfileBindingStateLabel';
