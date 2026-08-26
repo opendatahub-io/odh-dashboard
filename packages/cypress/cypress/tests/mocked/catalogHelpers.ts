@@ -2,7 +2,7 @@ import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatu
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 
-const API_VERSION = 'v1';
+export const API_VERSION = 'v1';
 const REGISTRIES_NAMESPACE = 'odh-model-registries';
 
 export const setupModelCatalogIntercepts = (): void => {

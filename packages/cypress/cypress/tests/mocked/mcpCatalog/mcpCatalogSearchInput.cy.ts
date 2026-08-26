@@ -83,7 +83,7 @@ describe('MCP Catalog search input minimum width regression', () => {
     setupModelCatalogIntercepts();
     setupMcpCatalogIntercepts();
 
-    cy.visitWithLogin('/ai-hub/mcp-servers/catalog');
+    mcpCatalogPage.visit();
     mcpCatalogPage
       .findSearchInput()
       .should('be.visible')

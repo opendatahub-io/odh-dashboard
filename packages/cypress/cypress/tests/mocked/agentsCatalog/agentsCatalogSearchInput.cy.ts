@@ -1,9 +1,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { agentsCatalogPage } from '../../../pages/agentsCatalog';
-import { setupModelCatalogIntercepts } from '../catalogHelpers';
-
-const API_VERSION = 'v1';
+import { API_VERSION, setupModelCatalogIntercepts } from '../catalogHelpers';
 
 const setupAgentsCatalogIntercepts = () => {
   cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/agents*`, {
