@@ -134,6 +134,14 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     );
   }
 
+  if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
+    dropdownItems.push(
+      <DropdownItem key="uninstall" data-testid="uninstall-app" onClick={removeApplication}>
+        Uninstall
+      </DropdownItem>,
+    );
+  }
+
   const launchClasses = css(
     'odh-card__footer__link',
     !odhApp.spec.link && 'm-hidden',
@@ -269,6 +277,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
                   <MenuToggle
                     variant="plain"
                     aria-label="Actions"
+                    data-testid="app-actions-toggle"
                     ref={toggleRef}
                     onClick={() => setIsOpen(!isOpen)}
                     isExpanded={isOpen}
