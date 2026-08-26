@@ -66,6 +66,9 @@ const (
 	// label keys
 	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
+	odhComponentLabelKey   = "opendatahub.io/component"
+	odhNamespaceLabelKey   = "opendatahub.io/namespace"
+	odhComponentWorkspace  = "workspace"
 
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
@@ -88,7 +91,7 @@ const (
 	nameHashLength              = 8
 	maxServiceNameLength        = 63
 	maxVirtualServiceNameLength = 63
-	maxStatefulSetNameLength    = 52  // https://github.com/kubernetes/kubernetes/issues/64023
+	maxStatefulSetNameLength    = 52 // https://github.com/kubernetes/kubernetes/issues/64023
 	maxGatewayNameLength        = 63
 	maxServiceAccountNameLength = 253 // RFC 1123 subdomain
 	maxRoleBindingNameLength    = 253 // path segment name, but we only generate RFC 1123 subdomains
@@ -439,7 +442,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// NOTE: we exclude kube-rbac-proxy services (used with KubeGateway) via label selector
 	var serviceName string
 	ownedServices := &corev1.ServiceList{}
-	listOpts := &client.ListOptions{
+	listOpts = &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
 		Namespace:     req.Namespace,
 	}
@@ -478,8 +481,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		serviceName = service.Name
 		log.V(2).Info("Service created", "service", serviceName)
 	default:
-		foundService := &workspaceServices[0]
-		serviceName = foundService.ObjectMeta.Name
+		foundService := &ownedServices.Items[0]
+		serviceName = foundService.Name
 		if helper.CopyServiceFields(service, foundService) {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
@@ -511,7 +514,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile StatefulSet (now with sidecar if KubeGateway is enabled)
-	var statefulSetName string
 	statefulSet, statefulSetName, stsResult, err := r.reconcileOwnedStatefulSet(ctx, log, workspace, req.Namespace, statefulSet)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -879,20 +881,27 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // mergeReconcileResult combines two reconcile results, preferring the sooner requeue.
 func mergeReconcileResult(a, b ctrl.Result) ctrl.Result {
+	aDelay := requeueDelay(a)
+	bDelay := requeueDelay(b)
 	switch {
-	case a.Requeue:
+	case aDelay > 0 && (bDelay <= 0 || aDelay <= bDelay):
 		return a
-	case b.Requeue:
+	case bDelay > 0:
 		return b
-	case a.RequeueAfter <= 0:
-		return b
-	case b.RequeueAfter <= 0:
-		return a
-	case a.RequeueAfter <= b.RequeueAfter:
-		return a
 	default:
-		return b
+		return a
 	}
+}
+
+// requeueDelay returns how soon a result wants to requeue. Zero means "do not requeue".
+func requeueDelay(r ctrl.Result) time.Duration {
+	if r.RequeueAfter > 0 {
+		return r.RequeueAfter
+	}
+	if r.Requeue { //nolint:staticcheck // Result.Requeue is deprecated in controller-runtime v0.22
+		return time.Nanosecond
+	}
+	return 0
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -1015,12 +1024,12 @@ func (r *WorkspaceReconciler) reconcileOwnedStatefulSet(
 			log.Error(err, "unable to create StatefulSet")
 			return nil, "", nil, err
 		}
-		statefulSetName = desiredStatefulSet.ObjectMeta.Name
+		statefulSetName = desiredStatefulSet.Name
 		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
 		return desiredStatefulSet, statefulSetName, nil, nil
 	default:
 		foundStatefulSet = &ownedStatefulSets.Items[0]
-		statefulSetName = foundStatefulSet.ObjectMeta.Name
+		statefulSetName = foundStatefulSet.Name
 		if helper.CopyStatefulSetFields(desiredStatefulSet, foundStatefulSet) {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
@@ -1165,8 +1174,8 @@ func generateNamePrefix(workspaceName string, maxLength int) string {
 	return namePrefix
 }
 
-// generateWorkspaceSuffixedName builds a deterministic DNS-label name "ws-{workspace}{suffix}"
-// truncated to maxServiceNameLength (63).
+// generateWorkspaceSuffixedName generates a deterministic resource name of the form
+// "ws-{workspaceName}{suffix}", truncating the workspace name so the result fits DNS-1123 limits.
 func generateWorkspaceSuffixedName(workspaceName, suffix string) string {
 	name := fmt.Sprintf("ws-%s%s", workspaceName, suffix)
 	if len(name) <= maxServiceNameLength {
