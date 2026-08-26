@@ -282,7 +282,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       editRateLimitsModal.findCountInput(0).clear();
       editRateLimitsModal.findCountInput(0).type(tokenRateLimit.limit.toString());
       editRateLimitsModal.findTimeInput(0).clear();
-      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window);
+      editRateLimitsModal.findTimeInput(0).type(tokenRateLimit.window.toString());
       editRateLimitsModal.findUnitDropdown(0).click();
       cy.findByText(tokenRateLimit.unit).should('be.visible').click();
       editRateLimitsModal.findSaveButton().click();

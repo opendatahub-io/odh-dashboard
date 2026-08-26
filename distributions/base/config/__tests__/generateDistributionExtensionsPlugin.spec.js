@@ -92,7 +92,7 @@ describe('GenerateDistributionExtensionsPlugin', () => {
       expect(() =>
         plugin.validatePackageRef({
           name: '@odh-dashboard/pkg',
-          extensionsPath: './extensions/portal',
+          extensionsPath: './extensions/static',
         }),
       ).not.toThrow();
     });
@@ -336,7 +336,7 @@ describe('GenerateDistributionExtensionsPlugin', () => {
   describe('readConfig', () => {
     it('should parse YAML from the given config path', () => {
       fs.readFileSync.mockReturnValue(`
-name: maas-customer-portal
+name: maas-consumer-portal
 packages:
   bundled:
     - package: '@odh-dashboard/maas'
@@ -345,7 +345,7 @@ packages:
       const config = plugin.readConfig('/fake/distribution.yaml');
 
       expect(fs.readFileSync).toHaveBeenCalledWith('/fake/distribution.yaml', 'utf8');
-      expect(config.name).toBe('maas-customer-portal');
+      expect(config.name).toBe('maas-consumer-portal');
       expect(config.packages.bundled).toEqual([{ package: '@odh-dashboard/maas' }]);
     });
 
