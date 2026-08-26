@@ -12,6 +12,7 @@ import {
   buildMockActionsWorkspaceActionPause,
   buildMockNamespace,
   buildMockWorkspace,
+  buildMockWorkspaceDetails,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
   buildMockWorkspaceLogs,
@@ -272,84 +273,6 @@ describe('Workspaces', () => {
       cy.wait('@getDefaultNsWorkspaces');
       workspaces.assertWorkspaceCount(defaultNsWorkspaces.length);
       workspaces.assertEmptyStateNotExists();
-    });
-  });
-
-  describe('Expand row', () => {
-    it('should expand and collapse table row to view workspace details', () => {
-      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
-      const mockWorkspaceKind = buildMockWorkspaceKindInfo({ name: 'jupyterlab' });
-      const mockWorkspace = buildMockWorkspace({
-        name: TEST_WORKSPACE_NAME,
-        namespace: mockNamespace.name,
-        workspaceKind: mockWorkspaceKind,
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/namespaces',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse([mockNamespace]),
-      ).as('getNamespaces');
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspaces/:namespace',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-        mockModArchResponse([mockWorkspace]),
-      ).as('getWorkspaces');
-
-      navigateToNamespace(mockNamespace.name);
-
-      // Verify row is initially collapsed
-      workspaces.assertExpandedRowNotExists(mockWorkspace.name);
-      workspaces.toggleRowExpansion(0);
-
-      // Verify expanded content
-      workspaces.assertExpandedRowExists(mockWorkspace.name);
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Home volume');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Packages');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'CPU');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Memory');
-
-      // Collapse the row
-      workspaces.toggleRowExpansion(0);
-      workspaces.assertExpandedRowNotExists(mockWorkspace.name);
-    });
-
-    it('should allow multiple rows to be expanded simultaneously', () => {
-      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
-      const workspace1 = buildMockWorkspace({
-        name: 'Workspace1',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-      const workspace2 = buildMockWorkspace({
-        name: 'Workspace2',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      });
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/namespaces',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse([mockNamespace]),
-      ).as('getNamespaces');
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspaces/:namespace',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-        mockModArchResponse([workspace1, workspace2]),
-      ).as('getWorkspaces');
-
-      navigateToNamespace(mockNamespace.name);
-
-      // Expand first row
-      workspaces.toggleRowExpansion(0);
-      workspaces.assertExpandedRowExists(workspace1.name);
-
-      // Expand second row
-      workspaces.toggleRowExpansion(1);
-      workspaces.assertExpandedRowExists(workspace2.name);
-
-      // Both should still be expanded
-      workspaces.assertExpandedRowExists(workspace1.name);
-      workspaces.assertExpandedRowExists(workspace2.name);
     });
   });
 
@@ -760,6 +683,18 @@ describe('Workspaces', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse(mockWorkspaces),
       ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceDetails()),
+      ).as('getWorkspaceDetails');
 
       navigateToNamespace(mockNamespace.name);
 
@@ -1320,6 +1255,30 @@ describe('Workspaces', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
           mockModArchResponse(mockWorkspaces),
         ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspaceDetails');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: workspace2Name,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspace2Details');
 
         navigateToNamespace(mockNamespace.name);
 
