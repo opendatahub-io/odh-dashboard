@@ -5,10 +5,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import {
-  LLMInferenceServiceConfigModel,
-  LLMInferenceServiceModel,
-} from '@odh-dashboard/cypress/cypress/utils/models';
+import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import {
   routingConfigurations,
@@ -369,9 +366,6 @@ describe('LLMD Routing Admin Settings', () => {
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'lab-routing-profile' },
         mockUserConfig,
       ).as('getConfigForDelete');
-      cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([])).as(
-        'listDeploymentsForDelete',
-      );
       cy.interceptK8s(
         'DELETE',
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'lab-routing-profile' },
@@ -383,7 +377,6 @@ describe('LLMD Routing Admin Settings', () => {
       deleteModal.findInput().type('Lab routing profile');
       deleteModal.findSubmitButton().should('be.enabled').click();
       cy.wait('@getConfigForDelete');
-      cy.wait('@listDeploymentsForDelete');
       cy.wait('@deleteConfig');
 
       cy.wsK8s(

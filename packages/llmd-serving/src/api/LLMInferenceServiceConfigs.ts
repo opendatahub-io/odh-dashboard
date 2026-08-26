@@ -15,7 +15,6 @@ import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import { listAllLLMInferenceServices } from './LLMInferenceService';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
@@ -25,7 +24,7 @@ import {
 } from '../types';
 import {
   CONFIG_IN_USE_ERROR_MESSAGE,
-  isConfigInUse,
+  isConfigReferencedInStatus,
   isDeletionPendingDueToReferences,
   type LlmConfigRefType,
 } from '../utils';
@@ -157,21 +156,12 @@ export const deleteLLMInferenceServiceConfig = (
 export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
   configName: string,
   namespace: string,
-  refType: LlmConfigRefType,
+  _refType: LlmConfigRefType,
   opts?: K8sAPIOptions,
 ): Promise<DeleteLlmInferenceServiceConfigOutcome> => {
   const config = await getLLMInferenceServiceConfig(configName, namespace, opts);
 
-  const deployments = await listAllLLMInferenceServices().catch((e: unknown) => {
-    // Users without cluster-wide list permission can still delete; rely on the
-    // KServe finalizer to block deletion when the config is still referenced.
-    if (getGenericErrorCode(e) === 403) {
-      return null;
-    }
-    throw e;
-  });
-
-  if (isConfigInUse(config, deployments, configName, refType)) {
+  if (isConfigReferencedInStatus(config)) {
     throw new ConfigInUseError();
   }
 
@@ -189,7 +179,7 @@ export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
     ),
   );
 
-  if (isDeletionPendingDueToReferences(result, deployments, configName, refType)) {
+  if (isDeletionPendingDueToReferences(result)) {
     return 'blocked-pending';
   }
 
@@ -198,10 +188,7 @@ export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
   const refreshedConfig = await getLLMInferenceServiceConfig(configName, namespace, opts).catch(
     () => null,
   );
-  if (
-    refreshedConfig &&
-    isDeletionPendingDueToReferences(refreshedConfig, deployments, configName, refType)
-  ) {
+  if (refreshedConfig && isDeletionPendingDueToReferences(refreshedConfig)) {
     return 'blocked-pending';
   }
 

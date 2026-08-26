@@ -5,10 +5,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import {
-  LLMInferenceServiceConfigModel,
-  LLMInferenceServiceModel,
-} from '@odh-dashboard/cypress/cypress/utils/models';
+import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { topologyConfigurations } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/topologyConfigurations';
 import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
@@ -310,9 +307,6 @@ describe('LLMD Topology Admin Settings', () => {
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
         mockUserConfig,
       ).as('getConfigForDelete');
-      cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([])).as(
-        'listDeploymentsForDelete',
-      );
       cy.interceptK8s(
         'DELETE',
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
@@ -325,7 +319,6 @@ describe('LLMD Topology Admin Settings', () => {
       deleteModal.findInput().type('User Multi-node Config');
       deleteModal.findSubmitButton().should('be.enabled').click();
       cy.wait('@getConfigForDelete');
-      cy.wait('@listDeploymentsForDelete');
       cy.wait('@deleteConfig');
 
       cy.wsK8s(

@@ -49,7 +49,7 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
         isDanger: true,
       },
     ],
-    verbModelAccess('delete', LLMInferenceServiceConfigModel),
+    verbModelAccess('delete', LLMInferenceServiceConfigModel, config.metadata.namespace),
   );
 
   return (

@@ -101,10 +101,3 @@ export const listLLMInferenceServices = (namespace: string): Promise<LLMInferenc
     model: LLMInferenceServiceModel,
     queryOptions: { ns: namespace },
   });
-
-/** Lists LLMInferenceService resources cluster-wide (requires cluster list permission). */
-export const listAllLLMInferenceServices = (): Promise<LLMInferenceServiceKind[]> =>
-  k8sListResourceItems<LLMInferenceServiceKind>({
-    model: LLMInferenceServiceModel,
-    queryOptions: {},
-  });

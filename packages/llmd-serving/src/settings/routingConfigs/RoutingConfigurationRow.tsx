@@ -53,7 +53,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
         isDanger: true,
       },
     ],
-    verbModelAccess('delete', LLMInferenceServiceConfigModel),
+    verbModelAccess('delete', LLMInferenceServiceConfigModel, config.metadata.namespace),
   );
 
   return (

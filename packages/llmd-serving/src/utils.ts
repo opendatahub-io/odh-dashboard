@@ -1,13 +1,7 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
-import {
-  WELL_KNOWN_ANNOTATION,
-  DISABLED_ANNOTATION,
-  DASHBOARD_RESOURCE_LABEL,
-  ROUTING_CONFIG_REF_ANNOTATION,
-  TOPOLOGY_CONFIG_REF_ANNOTATION,
-} from './const';
-import type { LLMInferenceServiceConfigKind, LLMInferenceServiceKind } from './types';
+import { WELL_KNOWN_ANNOTATION, DISABLED_ANNOTATION, DASHBOARD_RESOURCE_LABEL } from './const';
+import type { LLMInferenceServiceConfigKind } from './types';
 
 export const CONFIG_IN_USE_ERROR_MESSAGE =
   'This configuration is currently in use by a deployment. Remove the deployment before deleting this configuration.';
@@ -126,83 +120,10 @@ export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
 
 export type LlmConfigRefType = 'routing' | 'topology';
 
-const getConfigRefAnnotation = (refType: LlmConfigRefType) =>
-  refType === 'routing' ? ROUTING_CONFIG_REF_ANNOTATION : TOPOLOGY_CONFIG_REF_ANNOTATION;
-
-const MAX_K8S_NAME_LENGTH = 253;
-
-const getLocalTopologyConfigName = (deploymentName: string, configName: string): string => {
-  const prefix = `${deploymentName}-`;
-  if (configName.startsWith(prefix)) {
-    return configName;
-  }
-  return `${prefix}${configName}`.slice(0, MAX_K8S_NAME_LENGTH).replace(/-+$/, '');
-};
-
 export const isConfigReferencedInStatus = (config: LLMInferenceServiceConfigKind): boolean =>
   (config.status?.referencedBy?.length ?? 0) > 0;
 
-export const isConfigInUse = (
-  config: LLMInferenceServiceConfigKind,
-  deployments: LLMInferenceServiceKind[] | null,
-  configName: string,
-  refType: LlmConfigRefType,
-): boolean => {
-  if (deployments) {
-    return getDeploymentsReferencingConfig(deployments, configName, refType).length > 0;
-  }
-
-  return isConfigReferencedInStatus(config);
-};
-
-export const isDeletionPendingDueToReferences = (
-  result: unknown,
-  deployments: LLMInferenceServiceKind[] | null,
-  configName: string,
-  refType: LlmConfigRefType,
-): boolean =>
+export const isDeletionPendingDueToReferences = (result: unknown): boolean =>
   isDeletionBlockedByFinalizer(result) &&
   isConfigObject(result) &&
-  isConfigInUse(result, deployments, configName, refType);
-
-export const isDeploymentReferencingConfig = (
-  deployment: LLMInferenceServiceKind,
-  configName: string,
-  refType: LlmConfigRefType,
-): boolean => {
-  const annotationRef = deployment.metadata.annotations?.[getConfigRefAnnotation(refType)];
-  if (annotationRef === configName) {
-    return true;
-  }
-
-  if (
-    refType === 'topology' &&
-    annotationRef === getLocalTopologyConfigName(deployment.metadata.name, configName)
-  ) {
-    return true;
-  }
-
-  if (deployment.spec.baseRefs?.some((ref) => ref.name === configName)) {
-    return true;
-  }
-
-  if (
-    refType === 'topology' &&
-    deployment.spec.baseRefs?.some(
-      (ref) => ref.name === getLocalTopologyConfigName(deployment.metadata.name, configName),
-    )
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
-export const getDeploymentsReferencingConfig = (
-  deployments: LLMInferenceServiceKind[],
-  configName: string,
-  refType: LlmConfigRefType,
-): LLMInferenceServiceKind[] =>
-  deployments.filter((deployment) =>
-    isDeploymentReferencingConfig(deployment, configName, refType),
-  );
+  isConfigReferencedInStatus(result);
