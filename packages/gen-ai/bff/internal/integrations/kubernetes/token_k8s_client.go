@@ -1475,11 +1475,12 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// OGX's Responses API resolves models per-request via the passthrough provider,
 		// so newly added models (ISVCs, MaaS, custom endpoints) are immediately
 		// available without OGX knowing about them in its model registry.
+		//
+		// For updates that require an OGX config change (e.g. vector store additions),
+		// the frontend deletes the playground first and re-installs, so this path
+		// only handles the "no changes needed" case.
 		existing := &existingList.Items[0]
 		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
-			if len(vectorStores) > 0 {
-				return nil, fmt.Errorf("cannot install vector stores through the zero-restart path; manage vector stores separately via the vector stores API")
-			}
 			kc.Logger.Info("OGXServer exists with passthrough provider; new models resolved per-request via Responses API (zero-restart)",
 				"namespace", namespace, "server", existing.Name)
 			return existing, nil
