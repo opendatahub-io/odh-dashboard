@@ -55,7 +55,7 @@ func TestReconcileConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec: v1alpha1.DashboardSpec{
-			ConsumerPortal: &v1alpha1.ConsumerPortalSpec{Enabled: true},
+			ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
 		},
 	}
 

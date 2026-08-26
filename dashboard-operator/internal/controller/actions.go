@@ -256,7 +256,7 @@ func deployConsumerPortalConsoleLink(
 ) error {
 	logger := log.FromContext(ctx)
 
-	if dashboard.Spec.ConsumerPortal == nil || !dashboard.Spec.ConsumerPortal.Enabled {
+	if dashboard.Spec.ConsumerPortal == nil || dashboard.Spec.ConsumerPortal.ManagementState != "Managed" {
 		return ErrConsumerPortalDisabled
 	}
 
@@ -268,6 +268,11 @@ func deployConsumerPortalConsoleLink(
 	consumerPortalURLValue, ok := consumerPortalURL(domain)
 	if !ok {
 		return ErrConsumerPortalDomainRequired
+	}
+
+	// RHOAI-only feature; warn if enabled on ODH so the misconfig is visible.
+	if platform == cluster.OpenDataHub {
+		logger.Info("Consumer portal ConsoleLink is an RHOAI-only feature; deploying it on Open Data Hub will use RHOAI branding")
 	}
 
 	m := consumerPortalConsoleLinkManifestInfo(basePath)

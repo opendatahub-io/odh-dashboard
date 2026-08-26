@@ -87,13 +87,18 @@ spec:
               consumerPortal:
                 description: ConsumerPortal configures the MaaS Consumer Portal.
                 properties:
-                  enabled:
-                    default: false
+                  managementState:
+                    default: Removed
                     description: |-
-                      Enabled controls whether the portal is deployed.
-                      The portal is only created when Enabled is true and
-                      Gateway.Domain is set (the portal host is derived from it).
-                    type: boolean
+                      ManagementState controls whether the portal is deployed.
+                      "Managed" deploys the portal (requires Gateway.Domain to be set,
+                      since the portal host is derived from it); "Removed" tears it down.
+                      This mirrors the shape the ODH Operator projects from
+                      dashboard.maasCustomerPortal.managementState.
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
                 type: object
               gateway:
                 description: Gateway configures the ingress point for the dashboard.

@@ -462,7 +462,7 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{Enabled: true},
+		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -500,7 +500,7 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 
 	// Disable the portal — the ConsoleLink is removed.
 	dashboard = getDashboard(t)
-	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{Enabled: false}
+	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
@@ -512,8 +512,8 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 // TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved verifies
 // that the portal ConsoleLink survives a core-dashboard teardown while the
 // portal itself stays enabled — the portal is independent of the core
-// dashboard's managementState, so `managementState: Removed` with
-// `consumerPortal.enabled: true` must keep the link visible.
+// dashboard's managementState, so core `managementState: Removed` with
+// `consumerPortal.managementState: Managed` must keep the link visible.
 func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"model-registry"})
 	writeConsumerPortalManifest(t, base)
@@ -530,7 +530,7 @@ func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testin
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{Enabled: true},
+		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -583,7 +583,7 @@ func TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{Enabled: true},
+		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -604,7 +604,7 @@ func TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) 
 	// Portal disabled AND core Removed: nothing should keep the link alive.
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
-	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{Enabled: false}
+	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)

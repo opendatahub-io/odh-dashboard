@@ -1,12 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # MaaS Consumer Portal ConsoleLink. Deployed conditionally by the
-# dashboard-operator when spec.consumerPortal.enabled is true and
+# dashboard-operator when spec.consumerPortal.managementState is Managed and
 # Gateway.Domain is set. The operator writes consumer-portal-url and
 # section-title into params.env before rendering.
-commonLabels:
-  app: rhods-dashboard
-  app.kubernetes.io/part-of: rhods-dashboard
+#
+# No commonLabels here: the portal is a separate product from rhods-dashboard,
+# and the operator's deployer stamps platform.opendatahub.io/part-of=consumer-portal.
 resources:
   - consolelink.yaml
 configMapGenerator:

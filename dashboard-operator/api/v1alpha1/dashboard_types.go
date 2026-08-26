@@ -103,13 +103,16 @@ type ObservabilitySpec struct {
 
 // ConsumerPortalSpec configures the MaaS Consumer Portal.
 type ConsumerPortalSpec struct {
-	// Enabled controls whether the portal is deployed.
-	// The portal is only created when Enabled is true and
-	// Gateway.Domain is set (the portal host is derived from it).
+	// ManagementState controls whether the portal is deployed.
+	// "Managed" deploys the portal (requires Gateway.Domain to be set,
+	// since the portal host is derived from it); "Removed" tears it down.
+	// This mirrors the shape the ODH Operator projects from
+	// dashboard.maasCustomerPortal.managementState.
 	//
-	// +kubebuilder:default=false
+	// +kubebuilder:validation:Enum=Managed;Removed
+	// +kubebuilder:default=Removed
 	// +optional
-	Enabled bool `json:"enabled,omitempty"`
+	ManagementState string `json:"managementState,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

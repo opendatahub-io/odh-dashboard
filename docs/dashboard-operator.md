@@ -23,7 +23,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `consumerPortal` | `ConsumerPortalSpec` | MaaS Consumer Portal (`enabled` only; host derived as `consumer-portal.<gateway.domain>`) |
+| `consumerPortal` | `ConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; host derived as `consumer-portal.<gateway.domain>`) |
 
 ### Status Fields
 
@@ -76,12 +76,12 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 4. `status.url` and `status.moduleStatuses` are cleared
 5. The controller returns without requeuing -- it will reconcile again if the CR is updated
 
-**The Consumer Portal is an independent operand, decoupled from `managementState`.** The portal is gated on its own `spec.consumerPortal.enabled`, not on the core dashboard's lifecycle, and this independence is *structural* rather than special-cased:
+**The Consumer Portal is an independent operand, decoupled from the core dashboard's `managementState`.** The portal is gated on its own `spec.consumerPortal.managementState`, not on the core dashboard's lifecycle, and this independence is *structural* rather than special-cased:
 
 - The portal is reconciled **once per loop in the outer `Reconcile`, before the `managementState` branch** — so it runs identically whether the core dashboard is `Managed` or `Removed` (it is not invoked from inside either branch).
 - Portal resources carry a **distinct ownership label `platform.opendatahub.io/part-of: consumer-portal`** (not `dashboard`). The core teardown selects `part-of: dashboard`, so it *never matches* portal resources — there is no per-resource skip to keep in sync.
 
-Consequently, `managementState: Removed` with `consumerPortal.enabled: true` leaves the portal fully available, and `ConsumerPortalAvailable` reflects the portal's actual state (not `Removed`). When `consumerPortal.enabled: false`, the portal reconcile removes its own resources by name. This mirrors the future two-management-state model where the portal (`maasConsumerPortal.managementState`) and the core dashboard are enabled independently, and means new portal resources (BFFs, HTTPRoute) inherit the decoupling for free.
+Consequently, core `managementState: Removed` with `consumerPortal.managementState: Managed` leaves the portal fully available, and `ConsumerPortalAvailable` reflects the portal's actual state (not `Removed`). When `consumerPortal.managementState: Removed`, the portal reconcile removes its own resources by name. This mirrors the two-management-state model where the portal (`maasCustomerPortal.managementState`) and the core dashboard are enabled independently, and means new portal resources (BFFs, HTTPRoute) inherit the decoupling for free.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -135,10 +135,10 @@ The eight registered modules and their manifest directories:
 
 ### Consumer Portal ConsoleLink
 
-When `spec.consumerPortal.enabled` is `true` and `spec.gateway.domain` is set, the controller deploys a cluster-scoped `ConsoleLink` (`console.openshift.io/v1`, name `consumer-portal-link`) that surfaces the MaaS Consumer Portal in the OpenShift application-menu launcher. The manifest bundle lives at `manifests/consumer-portal-consolelink/rhoai/` (`consolelink.yaml`, `kustomization.yaml`, `params.env`).
+When `spec.consumerPortal.managementState` is `Managed` and `spec.gateway.domain` is set, the controller deploys a cluster-scoped `ConsoleLink` (`console.openshift.io/v1`, name `consumer-portal-link`) that surfaces the MaaS Consumer Portal in the OpenShift application-menu launcher. The manifest bundle lives at `manifests/consumer-portal-consolelink/rhoai/` (`consolelink.yaml`, `kustomization.yaml`, `params.env`).
 
 - **Host derivation**: the `href` is derived as `https://consumer-portal.<spec.gateway.domain>/` -- there is no per-portal hostname field. If `spec.gateway.domain` is empty the link cannot be built and `ConsumerPortalAvailable` is set `False` with reason `ConsumerPortalDomainRequired`.
-- **Lifecycle**: the portal is reconciled once per loop in the outer `Reconcile`, independent of the core dashboard's `managementState` (see [ManagementState Handling](#managementstate-handling)). The ConsoleLink is removed when the portal is disabled (`enabled: false`) or when the Dashboard CR is deleted; it is **not** removed by `managementState: Removed` while the portal stays enabled. Because `ConsoleLink` is cluster-scoped, deletion on disable is done explicitly by name (the SSA deployer is additive and does not prune); deletion on CR removal is via ownerReference GC (the link owner-references the Dashboard CR).
+- **Lifecycle**: the portal is reconciled once per loop in the outer `Reconcile`, independent of the core dashboard's `managementState` (see [ManagementState Handling](#managementstate-handling)). The ConsoleLink is removed when the portal is disabled (`consumerPortal.managementState: Removed`) or when the Dashboard CR is deleted; it is **not** removed by the core dashboard's `managementState: Removed` while the portal stays Managed. Because `ConsoleLink` is cluster-scoped, deletion on disable is done explicitly by name (the SSA deployer is additive and does not prune); deletion on CR removal is via ownerReference GC (the link owner-references the Dashboard CR).
 - **Ownership**: portal resources are labeled `platform.opendatahub.io/part-of: consumer-portal`, distinct from the core dashboard's `part-of: dashboard`. This keeps the core teardown selector from ever matching portal resources, so the portal is a self-contained operand rather than a special case inside the core lifecycle.
 - **Platform scope**: RHOAI-on-OpenShift only -- `ConsoleLink` is always present there, so there is no CRD-existence gate. RBAC for `console.openshift.io/consolelinks` lives in `config/rbac/role.yaml`.
 
@@ -550,7 +550,7 @@ spec:
   gateway:
     domain: ""
   consumerPortal:
-    enabled: false
+    managementState: Removed
   components:
     modelregistry:
       managementState: Managed
