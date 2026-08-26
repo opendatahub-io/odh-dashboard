@@ -166,8 +166,6 @@ describe('Secrets Management - Attach Modal', () => {
   });
 
   // Start with no secrets
-  mockWorkspaceListItem.podTemplate.volumes.secrets = [];
-
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
   });
