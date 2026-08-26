@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { Tbody, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
@@ -33,11 +33,13 @@ const enum ToggleLocation {
 type ExternalModelTableRowProps = {
   externalModel: ExternalModel;
   rowIndex: number;
+  setDeleteExternalModel: (externalModel: ExternalModel) => void;
 };
 
 const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   externalModel,
   rowIndex,
+  setDeleteExternalModel,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasOverflow, setHasOverflow] = React.useState(false);
@@ -224,6 +226,20 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     </Td>
   );
 
+  const actionsCell = (
+    <Td isActionCell>
+      <ActionsColumn
+        data-testid="external-model-actions"
+        items={[
+          {
+            title: 'Delete',
+            onClick: () => setDeleteExternalModel(externalModel),
+          },
+        ]}
+      />
+    </Td>
+  );
+
   return (
     <>
       <Tbody isExpanded={isExpanded} data-testid="external-model-row">
@@ -239,6 +255,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
           {nameCell}
           {externalProviderCell}
           {phaseCell}
+          {actionsCell}
         </ResourceTr>
         <Tr isExpanded={isExpanded}>
           <Td colSpan={externalModelsColumns.length + 1}>

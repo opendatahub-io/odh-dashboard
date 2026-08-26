@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useListExternalModels } from '~/app/hooks/useListExternalModels';
+import { ExternalModel } from '~/app/types/external-models';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -15,6 +16,7 @@ import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
 import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
 import { filterExternalModelsByKeyword } from './utils';
+import DeleteExternalModelModal from './DeleteExternalModelModal';
 
 const AllExternalModelsPage: React.FC = () => {
   const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
@@ -42,7 +44,10 @@ const AllExternalModelsPage: React.FC = () => {
   const fallbackNamespace = preferredNamespace?.name ?? namespaces[0]?.name;
   const resolvedNamespace = validUrlNamespace ?? fallbackNamespace;
 
-  const [externalModels, loaded, error] = useListExternalModels(resolvedNamespace || '');
+  const [externalModels, loaded, error, refresh] = useListExternalModels(resolvedNamespace || '');
+  const [deleteExternalModel, setDeleteExternalModel] = React.useState<ExternalModel | undefined>(
+    undefined,
+  );
 
   const filteredExternalModels = React.useMemo(
     () =>
@@ -76,6 +81,7 @@ const AllExternalModelsPage: React.FC = () => {
           <ExternalModelsTable
             externalModels={filteredExternalModels}
             onClearFilters={onClearFilters}
+            setDeleteExternalModel={setDeleteExternalModel}
             toolbarContent={
               <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
             }
@@ -84,6 +90,17 @@ const AllExternalModelsPage: React.FC = () => {
                 <EmptyExternalModelsPage />
               )
             }
+          />
+        )}
+        {deleteExternalModel && (
+          <DeleteExternalModelModal
+            externalModel={deleteExternalModel}
+            onClose={(deleted) => {
+              setDeleteExternalModel(undefined);
+              if (deleted) {
+                refresh();
+              }
+            }}
           />
         )}
       </ApplicationsPage>

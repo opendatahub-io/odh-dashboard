@@ -10,6 +10,7 @@ import {
   externalModelPathModal,
   externalModelProviderUrlModal,
   externalModelsPage,
+  deleteExternalModelModal,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -211,31 +212,31 @@ describe('External Models Page', () => {
       externalModelsPage.findRows().should('have.length', 4);
     });
 
-    // it('should delete an external model', () => {
-    //   cy.interceptOdh(
-    //     'DELETE /maas/api/v1/externalmodel/:namespace/:name',
-    //     { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
-    //     { data: null },
-    //   ).as('deleteExternalModel');
+    it('should delete an external model', () => {
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/externalmodel/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
+        { data: null },
+      ).as('deleteExternalModel');
 
-    //   externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
-    //   deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
-    //   deleteExternalModelModal.findInput().type('GPT-4o External');
-    //   deleteExternalModelModal.findSubmitButton().should('be.enabled');
+      externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
+      deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
+      deleteExternalModelModal.findInput().type('GPT-4o External');
+      deleteExternalModelModal.findSubmitButton().should('be.enabled');
 
-    //   cy.interceptOdh(
-    //     'GET /maas/api/v1/externalmodel',
-    //     { query: { namespace: TEST_PROJECT } },
-    //     {
-    //       data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
-    //     },
-    //   ).as('listExternalModels');
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalmodel',
+        { query: { namespace: TEST_PROJECT } },
+        {
+          data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
+        },
+      ).as('listExternalModels');
 
-    //   deleteExternalModelModal.findSubmitButton().click();
-    //   cy.wait('@deleteExternalModel');
-    //   cy.wait('@listExternalModels');
-    //   externalModelsPage.findRows().should('have.length', 3);
-    //   externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
-    // });
+      deleteExternalModelModal.findSubmitButton().click();
+      cy.wait('@deleteExternalModel');
+      cy.wait('@listExternalModels');
+      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
+    });
   });
 });
