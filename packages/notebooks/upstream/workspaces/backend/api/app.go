@@ -141,9 +141,8 @@ func (a *App) Routes() http.Handler {
 	// Create a mux to combine API routes with static file serving
 	mux := http.NewServeMux()
 
-	// API routes - handle /api/v1/* paths with gzip compression
-	handler := gzhttp.GzipHandler(router)
-	mux.Handle(constants.PathPrefix+"/", a.recoverPanic(a.enableCORS(handler)))
+	// API routes - handle /api/v1/* paths
+	mux.Handle(constants.PathPrefix+"/", router)
 
 	// Static file server for frontend assets (Module Federation support)
 	if a.Config.StaticAssetsDir != "" {
@@ -164,5 +163,5 @@ func (a *App) Routes() http.Handler {
 		})
 	}
 
-	return mux
+	return a.recoverPanic(a.enableCORS(gzhttp.GzipHandler(mux)))
 }

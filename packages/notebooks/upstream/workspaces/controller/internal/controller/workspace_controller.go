@@ -593,7 +593,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// NOTE: Sidecar is already added to StatefulSet and reconciled above (before UseIstio/UseKubeGateway branches)
 
 		// generate KubeRBACProxyClusterRoleBinding
-		kubeRBACProxyClusterRoleBinding := r.generateKubeRBACProxyClusterRoleBinding(workspace, workspaceKind)
+		// NOTE: bind system:auth-delegator to the per-Workspace ServiceAccount (not a WorkspaceKind-level SA)
+		kubeRBACProxyClusterRoleBinding := r.generateKubeRBACProxyClusterRoleBinding(workspace, serviceAccountName)
 
 		// Add finalizer to Workspace for ClusterRoleBinding cleanup (cluster-scoped resources can't use ownerReferences)
 		if !controllerutil.ContainsFinalizer(workspace, WorkspaceFinalizer) {
@@ -1962,7 +1963,7 @@ func (r *WorkspaceReconciler) generateKubeRBACProxySidecar(workspace *kubeflowor
 }
 
 // generateKubeRBACProxyClusterRoleBinding generates a KubeRBACProxyClusterRoleBinding for a Workspace
-func (r *WorkspaceReconciler) generateKubeRBACProxyClusterRoleBinding(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *rbacv1.ClusterRoleBinding {
+func (r *WorkspaceReconciler) generateKubeRBACProxyClusterRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccountName string) *rbacv1.ClusterRoleBinding {
 	kubeRBACProxyClusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("ws-%s-rbac-%s-auth-delegator", workspace.Name, workspace.Namespace),
@@ -1975,7 +1976,7 @@ func (r *WorkspaceReconciler) generateKubeRBACProxyClusterRoleBinding(workspace 
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      workspaceKind.Spec.PodTemplate.ServiceAccount.Name,
+				Name:      serviceAccountName,
 				Namespace: workspace.Namespace,
 			},
 		},
