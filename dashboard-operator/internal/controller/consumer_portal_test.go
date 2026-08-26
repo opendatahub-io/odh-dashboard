@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -108,4 +111,42 @@ func TestReconcileConsumerPortalConsoleLink_Disabled(t *testing.T) {
 	assert.Equal(t, "Disabled", consumerPortalCond.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
 	assert.True(t, cm.IsHappy(), "Ready must remain True when the consumerPortalCond is disabled")
+}
+
+func TestReconcileConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	// Portal absent (disabled), but the best-effort delete hits a genuine
+	// failure (not NotFound / CRD-not-installed, which are already treated as
+	// success). The failure must be surfaced on the condition instead of a
+	// misleading clean Disabled, while Info severity keeps Ready True.
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec:       v1alpha1.DashboardSpec{},
+	}
+
+	failingClient := fake.NewClientBuilder().WithScheme(s).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
+			return errors.New("simulated delete failure")
+		},
+	}).Build()
+
+	r := &DashboardReconciler{
+		Client:            failingClient,
+		Scheme:            s,
+		ManifestsBasePath: t.TempDir(),
+		Platform:          cluster.SelfManagedRhoai,
+	}
+
+	cm := consumerPortalTestManager(t, dashboard)
+	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+
+	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
+	require.NotNil(t, consumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
+	assert.Equal(t, "ConsumerPortalDeleteFailed", consumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
+	assert.True(t, cm.IsHappy(), "Ready must remain True even when the portal delete fails (Info severity)")
 }

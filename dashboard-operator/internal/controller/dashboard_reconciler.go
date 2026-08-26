@@ -533,14 +533,24 @@ func (r *DashboardReconciler) reconcileConsumerPortalConsoleLink(
 			conditions.WithMessage("Consumer portal ConsoleLink applied successfully"))
 	case errors.Is(consumerPortalErr, ErrConsumerPortalDisabled):
 		// Explicitly remove the ConsoleLink when the portal is disabled — the
-		// SSA deployer is additive and does not prune.
+		// SSA deployer is additive and does not prune. Benign cases (absent
+		// object, ConsoleLink CRD not installed) are already treated as success
+		// inside deleteConsumerPortalConsoleLink, so a non-nil error here is a
+		// genuine failure: surface it on the condition (Info severity, like the
+		// deploy-failed branch) rather than falsely reporting a clean Disabled
+		// state while a stale ConsoleLink lingers.
 		if delErr := deleteConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
 			logger.Error(delErr, "Failed to delete consumer portal ConsoleLink")
+			cm.MarkFalse(conditionConsumerPortalAvailable,
+				conditions.WithReason("ConsumerPortalDeleteFailed"),
+				conditions.WithMessage("failed to delete consumer portal ConsoleLink: %s", delErr.Error()),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		} else {
+			cm.MarkFalse(conditionConsumerPortalAvailable,
+				conditions.WithReason("Disabled"),
+				conditions.WithMessage("Consumer portal is not enabled"),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
 		}
-		cm.MarkFalse(conditionConsumerPortalAvailable,
-			conditions.WithReason("Disabled"),
-			conditions.WithMessage("Consumer portal is not enabled"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
 	case errors.Is(consumerPortalErr, ErrConsumerPortalDomainRequired):
 		cm.MarkFalse(conditionConsumerPortalAvailable,
 			conditions.WithReason("ConsumerPortalDomainRequired"),

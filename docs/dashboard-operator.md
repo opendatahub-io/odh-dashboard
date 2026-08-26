@@ -311,7 +311,7 @@ On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-
 
 ### Labels
 
-All resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection.
+Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. The MaaS Consumer Portal ConsoleLink is the exception: it is labeled `platform.opendatahub.io/part-of: consumer-portal` so the core teardown selector (`part-of: dashboard`) never matches it (see [Consumer Portal ConsoleLink](#consumer-portal-consolelink)).
 
 ## Status Aggregation
 
@@ -339,7 +339,7 @@ The Dashboard type provides five methods:
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
-| `ConsumerPortalAvailable` | MaaS Consumer Portal ConsoleLink deployed | ConsoleLink not deployed (reasons `Disabled`, `ConsumerPortalDomainRequired`, `ConsumerPortalDeployFailed`) -- all `False` states use `severity: Info`, so they never block `Ready` |
+| `ConsumerPortalAvailable` | MaaS Consumer Portal ConsoleLink deployed | ConsoleLink not deployed (reasons `Disabled`, `ConsumerPortalDomainRequired`, `ConsumerPortalDeployFailed`, `ConsumerPortalDeleteFailed`) -- all `False` states use `severity: Info`, so they never block `Ready` |
 
 The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `ConsumerPortalAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled, or any `ConsumerPortalAvailable=False` state) are treated as non-blocking by the rollup.
 
