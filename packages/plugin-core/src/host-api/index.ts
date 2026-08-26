@@ -23,4 +23,6 @@ export type {
   HostApiFetchState,
   K8sWatchResult,
   SecretOps,
+  ClusterSettingsType,
+  ModelServingPlatformEnabled,
 } from './types';

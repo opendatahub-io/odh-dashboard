@@ -35,6 +35,7 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   onManageCollections: () => void;
+  onRegisterData: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -57,6 +58,7 @@ const FORMAT_LABELS: Record<
   audio: { text: 'Unstructured', color: 'orange' },
   video: { text: 'Unstructured', color: 'orange' },
   binary: { text: 'Unstructured', color: 'orange' },
+  other: { text: 'Unstructured', color: 'orange' },
 };
 
 const UNSTRUCTURED_FORMATS = [
@@ -65,6 +67,7 @@ const UNSTRUCTURED_FORMATS = [
   'audio',
   'video',
   'binary',
+  'other',
   'application/pdf',
   'pdf',
 ];
@@ -104,6 +107,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   onManageCollections,
+  onRegisterData,
 }) => {
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
@@ -379,6 +383,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 }}
                 data-testid="asset-search"
               />
+            </ToolbarItem>
+            {/* Register data button */}
+            <ToolbarItem>
+              <Button variant="primary" onClick={onRegisterData} data-testid="register-data-button">
+                Register data
+              </Button>
             </ToolbarItem>
             {/* Kebab */}
             <ToolbarItem>

@@ -27,6 +27,21 @@ export type HostApiFetchState<T> = [
   refresh: () => Promise<T | undefined>,
 ];
 
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  LLMd: boolean;
+};
+
+export type ClusterSettingsType = {
+  userTrackingEnabled: boolean;
+  pvcSize: number;
+  cullerTimeout: number;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+  isDistributedInferencingDefault?: boolean;
+  defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
+};
+
 /**
  * Core infrastructure primitives every federated module needs.
  * Stable, rarely changes. Provided via HostApiCoreContext.
@@ -46,6 +61,14 @@ export type HostApiCoreServices = {
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
   fetchDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfigKind>;
+
+  /** Fetch cluster-wide settings (PVC size, culler timeout, model serving platforms, etc.). */
+  fetchClusterSettings: () => Promise<ClusterSettingsType>;
+
+  /** Update cluster-wide settings. */
+  updateClusterSettings: (
+    settings: ClusterSettingsType,
+  ) => Promise<{ success: boolean; error: string }>;
 };
 
 /**

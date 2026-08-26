@@ -10,7 +10,7 @@ import { MaaSSubscription } from '~/app/types/subscriptions';
 import {
   getSubscriptionEditUrl,
   getSubscriptionViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
 import { useSubscriptionAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -26,7 +26,7 @@ import {
   convertStringToPopoverViewedStatus,
   EventTrackingEditSource,
   MaaSEvents,
-  SubscriptionManagementStatusPopoverViewedProperties,
+  MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
 
@@ -137,11 +137,11 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {
-          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
             popoverType: EventTrackingPopoverType.STATUS,
             status: convertStringToPopoverViewedStatus(subscription.phase),
             location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
-          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+          } satisfies MaaSGovernanceStatusPopoverViewedProperties);
         }}
       />
     </Td>

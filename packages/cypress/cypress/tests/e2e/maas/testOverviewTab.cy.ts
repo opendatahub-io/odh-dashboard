@@ -15,7 +15,7 @@ import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
-  subscriptionManagementPage,
+  maasGovernancePage,
   overviewTabPage,
   phaseModal,
   createSubscriptionPage,
@@ -51,7 +51,7 @@ const rowIndex = 0;
 describe('MaaS Governance Overview tab', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadMaaSFixture('e2e/modelsAsService/testOverviewTab.yaml')
+    return loadMaaSFixture('e2e/maas/testOverviewTab.yaml')
       .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
@@ -94,7 +94,7 @@ describe('MaaS Governance Overview tab', () => {
           projectName,
           modelName,
           dataConnectionReplacements.CONNECTION_NAME,
-          'resources/modelsAsService/llmInferenceserviceWithMaasEnabled.yaml',
+          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml',
         );
         checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
         createMaaSModelRef(projectName, modelName);
@@ -128,7 +128,7 @@ describe('MaaS Governance Overview tab', () => {
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to MaaS governance Overview tab');
-      subscriptionManagementPage.visit('overview');
+      maasGovernancePage.visit('overview');
       overviewTabPage.findTable().should('exist');
 
       cy.step('Filter to the test model and validate the overview row');

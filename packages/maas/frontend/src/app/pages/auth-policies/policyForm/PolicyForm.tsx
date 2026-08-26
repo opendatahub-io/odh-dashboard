@@ -31,7 +31,6 @@ import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
 import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-policies';
 import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
-import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
   AuthPolicyCreatedCancelProperties,
@@ -44,6 +43,7 @@ import {
   EventTrackingPrefillSource,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),

@@ -4,7 +4,7 @@ import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
-  subscriptionManagementPage,
+  maasGovernancePage,
   subscriptionsPage,
   authPoliciesPage,
   overviewTabPage,
@@ -48,7 +48,7 @@ const setupCommonIntercepts = () => {
   );
 };
 
-describe('Subscription Management Page / Overview Tab', () => {
+describe('MaaS Governance Page / Overview Tab', () => {
   beforeEach(() => {
     setupCommonIntercepts();
   });
@@ -61,12 +61,12 @@ describe('Subscription Management Page / Overview Tab', () => {
         policies: [],
       }),
     );
-    subscriptionManagementPage.visit();
-    subscriptionManagementPage.findOverviewEmptyState().should('exist');
-    subscriptionManagementPage.findSubscriptionsTab().should('not.exist');
-    subscriptionManagementPage.findAuthPoliciesTab().should('not.exist');
-    subscriptionManagementPage.findCreateSubscriptionButton().should('exist');
-    subscriptionManagementPage.findCreateAuthPolicyButton().should('exist');
+    maasGovernancePage.visit();
+    maasGovernancePage.findOverviewEmptyState().should('exist');
+    maasGovernancePage.findSubscriptionsTab().should('not.exist');
+    maasGovernancePage.findAuthPoliciesTab().should('not.exist');
+    maasGovernancePage.findCreateSubscriptionButton().should('exist');
+    maasGovernancePage.findCreateAuthPolicyButton().should('exist');
   });
 
   it('should show the overview empty state in the overview tab when there are no models', () => {
@@ -75,15 +75,15 @@ describe('Subscription Management Page / Overview Tab', () => {
         modelRefs: [],
       }),
     );
-    subscriptionManagementPage.visit('overview');
-    subscriptionManagementPage.findOverviewEmptyState().should('exist');
-    subscriptionManagementPage.findSubscriptionsTab().should('be.visible');
-    subscriptionManagementPage.findAuthPoliciesTab().should('be.visible');
+    maasGovernancePage.visit('overview');
+    maasGovernancePage.findOverviewEmptyState().should('exist');
+    maasGovernancePage.findSubscriptionsTab().should('be.visible');
+    maasGovernancePage.findAuthPoliciesTab().should('be.visible');
     overviewTabPage.findTable().should('not.exist');
   });
 
   it('should show the filter empty state when overview filters match no models', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     overviewTabPage.findFilterInput('model').type('nonexistent-model-xyz');
     overviewTabPage.findEmptyTableState().should('exist');
     overviewTabPage.findClearFiltersButton().click();
@@ -91,7 +91,7 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should display the overview table with correct page content', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     overviewTabPage.findTable().should('exist');
     const overviewRow = overviewTabPage.getRow('flan-t5-small', 'maas-models');
     overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
@@ -104,25 +104,25 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should navigate between tabs and update the URL', () => {
-    subscriptionManagementPage.visit();
-    subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
-    subscriptionManagementPage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
+    maasGovernancePage.visit();
+    maasGovernancePage.findTitle().should('contain.text', 'MaaS governance');
+    maasGovernancePage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
 
-    subscriptionManagementPage.findSubscriptionsTab().click();
+    maasGovernancePage.findSubscriptionsTab().click();
     cy.url().should('include', '/maas-governance/subscriptions');
     subscriptionsPage.findTable().should('exist');
 
-    subscriptionManagementPage.findAuthPoliciesTab().click();
+    maasGovernancePage.findAuthPoliciesTab().click();
     cy.url().should('include', '/maas-governance/auth-policies');
     authPoliciesPage.findTable().should('exist');
 
-    subscriptionManagementPage.findOverviewTab().click();
+    maasGovernancePage.findOverviewTab().click();
     cy.url().should('include', '/maas-governance/overview');
     overviewTabPage.findTable().should('exist');
   });
 
   it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     overviewTabPage.findTable().should('exist');
 
     // Sort by model name
@@ -241,7 +241,7 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should filter by model name, model ID, description, project, group name, subscription name, and authorization policy name', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     // Display name
     overviewTabPage.findFilterInput('model').type('Llama');
     overviewTabPage.findModelRows().should('have.length', 1);
@@ -292,12 +292,12 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should navigate to the correct form when creating a subscription or authorization policy via the overview toolbar', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     overviewTabPage.findCreateSubscriptionButton().click();
     cy.url().should('include', '/maas-governance/subscriptions/create');
     createSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/maas-governance/overview');
-    subscriptionManagementPage.findOverviewTab().click();
+    maasGovernancePage.findOverviewTab().click();
     overviewTabPage.findCreateAuthorizationPolicyButton().click();
     cy.url().should('include', '/maas-governance/auth-policies/create');
     policyPage.findCancelButton().click();
@@ -305,7 +305,7 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should highlight matching subscriptions and policies when a group chip is clicked', () => {
-    subscriptionManagementPage.visit('overview');
+    maasGovernancePage.visit('overview');
     overviewTabPage.findFilterInput('model').type('Granite 3 8B Instruct');
     overviewTabPage.findModelRows().should('have.length', 2);
 

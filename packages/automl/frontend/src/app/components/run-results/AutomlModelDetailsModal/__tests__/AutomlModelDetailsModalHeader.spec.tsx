@@ -45,7 +45,7 @@ describe('AutomlModelDetailsModalHeader', () => {
   it('should display optimized metric name and value', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
     expect(screen.getByText('Accuracy (Optimized)')).toBeInTheDocument();
-    expect(screen.getByText('0.658')).toBeInTheDocument();
+    expect(screen.getByText('0.6580')).toBeInTheDocument();
   });
 
   it('should display raw value for non-error metrics like r2', () => {
@@ -58,7 +58,7 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('-0.123')).toBeInTheDocument();
+    expect(screen.getByText('-0.1230')).toBeInTheDocument();
   });
 
   it('should display negated error metric values as-is', () => {
@@ -71,7 +71,7 @@ describe('AutomlModelDetailsModalHeader', () => {
         currentModelName="Model"
       />,
     );
-    expect(screen.getByText('-0.082')).toBeInTheDocument();
+    expect(screen.getByText('-0.0820')).toBeInTheDocument();
   });
 
   it('should display N/A when eval_metric is missing from test_data', () => {
