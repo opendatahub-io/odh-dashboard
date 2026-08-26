@@ -134,7 +134,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
     );
   }
 
-  if (isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
+  if (isAdmin && isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
     dropdownItems.push(
       <DropdownItem key="uninstall" data-testid="uninstall-app" onClick={removeApplication}>
         Uninstall

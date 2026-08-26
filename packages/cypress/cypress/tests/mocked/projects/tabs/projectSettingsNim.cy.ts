@@ -10,7 +10,7 @@ import { projectDetailsSettingsTab } from '../../../../pages/projects';
 import { explorePage } from '../../../../pages/explore';
 import { enabledPage } from '../../../../pages/enabled';
 import { NIMAccountModel, ProjectModel, TemplateModel } from '../../../../utils/models';
-import { asProjectEditUser } from '../../../../utils/mockUsers';
+import { asProductAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
 
 const initIntercepts = ({
   nimAccountExists = false,
@@ -86,7 +86,7 @@ describe('NIM Settings Card', () => {
 
 describe('NIM global app deprecation (nimWizard enabled)', () => {
   beforeEach(() => {
-    asProjectEditUser();
+    asProductAdminUser();
   });
 
   it('should not show the NIM app on the Explore page', () => {
