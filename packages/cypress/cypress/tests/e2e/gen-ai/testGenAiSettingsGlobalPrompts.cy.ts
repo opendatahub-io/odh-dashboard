@@ -159,12 +159,16 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   });
 
   after(() => {
-    deleteStalePromptByName(projectName, `copy-of-${globalPromptName}`);
-    deleteStalePromptByName(globalNamespace, globalPromptName);
-    deleteStalePromptByName(projectName, projectPromptName);
+    if (projectName) {
+      deleteStalePromptByName(projectName, `copy-of-${globalPromptName}`);
+      deleteStalePromptByName(projectName, projectPromptName);
+    }
+    if (globalNamespace) {
+      deleteStalePromptByName(globalNamespace, globalPromptName);
+      deleteOpenShiftProject(globalNamespace, { wait: false, ignoreNotFound: true });
+    }
     removeGlobalMLflowNamespaces();
     disablePromptManagementFeatures();
-    deleteOpenShiftProject(globalNamespace, { wait: false, ignoreNotFound: true });
 
     if (servingRuntimeName) {
       cleanupServingRuntimeTemplate(servingRuntimeName);
@@ -252,6 +256,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
 
       cy.step('Verify the copy is not in the global tab');
       chatbotPromptModal.findGlobalPromptsTab().click();
+      chatbotPromptModal.findTableRow(globalPromptName).should('exist');
       chatbotPromptModal.findTableRow(`copy-of-${globalPromptName}`).should('not.exist');
     },
   );
