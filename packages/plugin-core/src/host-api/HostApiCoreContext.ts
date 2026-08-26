@@ -10,4 +10,6 @@ export const HostApiCoreContext = React.createContext<HostApiCoreServices>({
   checkAccess: notProvided('checkAccess'),
   trackEvent: notProvided('trackEvent'),
   fetchDashboardConfig: notProvided('fetchDashboardConfig'),
+  fetchClusterSettings: notProvided('fetchClusterSettings'),
+  updateClusterSettings: notProvided('updateClusterSettings'),
 });
