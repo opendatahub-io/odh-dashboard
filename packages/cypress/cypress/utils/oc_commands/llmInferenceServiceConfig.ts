@@ -49,8 +49,8 @@ export const createCleanLLMInferenceServiceConfig = (
   cleanupLLMInferenceServiceConfig(configName).then(() => {
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
     cy.fixture(configYamlPath).then((yaml) => {
-    const replacedYaml = replacePlaceholdersInYaml(yaml, { CONFIG_NAME: configName });
-    createCustomResource(applicationNamespace, replacedYaml);
+      const replacedYaml = replacePlaceholdersInYaml(yaml, { CONFIG_NAME: configName });
+      createCustomResource(applicationNamespace, replacedYaml);
     });
   });
 };
