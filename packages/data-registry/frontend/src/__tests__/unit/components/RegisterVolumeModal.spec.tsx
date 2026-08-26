@@ -51,37 +51,48 @@ describe('RegisterVolumeModal', () => {
     ).toBeTruthy();
   });
 
-  it('should have register button disabled when name is empty', () => {
+  it('should show validation error when submitting without name', async () => {
     render(<RegisterVolumeModal {...defaultProps} />);
 
     const submitButton = screen.getByTestId('register-volume-submit');
-    expect(submitButton).toHaveProperty('disabled', true);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Asset name is required')).toBeTruthy();
+    });
+
+    expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
-  it('should have register button disabled when collection is not selected', () => {
+  it('should show validation error when submitting without collection', async () => {
     render(<RegisterVolumeModal {...defaultProps} />);
 
     const nameInput = screen.getByTestId('volume-name-input');
     fireEvent.change(nameInput, { target: { value: 'test-volume' } });
+    fireEvent.blur(nameInput);
 
     const submitButton = screen.getByTestId('register-volume-submit');
-    expect(submitButton).toHaveProperty('disabled', true);
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Collection is required')).toBeTruthy();
+    });
+
+    expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
-  it('should enable register button when name and collection are provided', () => {
+  it('should show validation error for invalid name format', async () => {
     render(<RegisterVolumeModal {...defaultProps} />);
 
     const nameInput = screen.getByTestId('volume-name-input');
-    fireEvent.change(nameInput, { target: { value: 'test-volume' } });
+    fireEvent.change(nameInput, { target: { value: 'INVALID_NAME!' } });
+    fireEvent.blur(nameInput);
 
-    const collectionToggle = screen.getByTestId('volume-collection-toggle');
-    fireEvent.click(collectionToggle);
-
-    const collectionOption = screen.getByText('collection-1');
-    fireEvent.click(collectionOption);
-
-    const submitButton = screen.getByTestId('register-volume-submit');
-    expect(submitButton).toHaveProperty('disabled', false);
+    await waitFor(() => {
+      expect(
+        screen.getByText('Name must contain only lowercase letters, numbers, and hyphens'),
+      ).toBeTruthy();
+    });
   });
 
   it('should submit volume with correct data', async () => {

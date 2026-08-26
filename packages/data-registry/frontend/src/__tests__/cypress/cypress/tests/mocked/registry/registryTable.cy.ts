@@ -233,18 +233,14 @@ describe('Register Volume', () => {
     ).should('exist');
   });
 
-  it('should have register button disabled until name and collection are provided', () => {
+  it('should show validation errors when submitting without required fields', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('register-volume-submit').should('be.disabled');
+    cy.findByTestId('register-volume-submit').click();
 
-    cy.findByTestId('volume-name-input').type('my-volume');
-    cy.findByTestId('register-volume-submit').should('be.disabled');
-
-    cy.findByTestId('volume-collection-toggle').click();
-    cy.contains('analytics').click();
-    cy.findByTestId('register-volume-submit').should('be.enabled');
+    cy.contains('Asset name is required').should('exist');
+    cy.contains('Collection is required').should('exist');
   });
 
   it('should submit volume with all fields', () => {
