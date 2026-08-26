@@ -32,7 +32,7 @@ describe('Secrets Expandable Key/Value Pairs', () => {
   });
 
   // Override the secrets in the workspace
-  mockWorkspaceListItem.podTemplate.volumes.secrets = [
+  const testSecrets = [
     { secretName: 'api-key-secret', mountPath: '/mnt/secrets', defaultMode: 420 },
     { secretName: 'db-credentials', mountPath: '/mnt/db', defaultMode: 384 },
   ];
@@ -40,6 +40,7 @@ describe('Secrets Expandable Key/Value Pairs', () => {
   // Create the WorkspaceUpdate format for the getWorkspace API call
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: testSecrets },
   });
 
   beforeEach(() => {
@@ -168,6 +169,7 @@ describe('Secrets Management - Attach Modal', () => {
   // Start with no secrets
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: [] },
   });
 
   const mockSecrets = [
