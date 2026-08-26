@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- BFF API uses snake_case */
 import { handleRestFailures, restCREATE, restGET, isModArchResponse } from 'mod-arch-core';
 import type { PipelineRun } from '../types';
-import { createPipelinesApi, postPipelineRunAction } from '../pipelines';
+import { createPipelinesApi } from '../pipelines';
 
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((promise: Promise<unknown>) => promise),
@@ -264,14 +264,16 @@ describe('createPipelinesApi', () => {
       );
     });
 
-    it('should preserve the shared POST action error behavior', async () => {
+    it('should preserve the terminate action error behavior', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 500,
         text: async () => JSON.stringify({ error: { message: 'boom' } }),
       });
 
-      await expect(postPipelineRunAction('/action', 'terminate')).rejects.toThrow(
+      const api = createPipelinesApi('/test-product', 'v1');
+
+      await expect(api.terminatePipelineRun('ns', 'run-1')).rejects.toThrow(
         'Failed to terminate run (500): boom',
       );
     });

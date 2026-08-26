@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import type { S3Api } from '../../../api/s3';
 import { ProductContextProvider } from '../../../context';
-import { useS3FileUploadMutation } from '../mutations';
+import { useS3FileUploadMutation } from '../useS3FileUploadMutation';
 
 const mockS3Api: S3Api = {
   uploadFileToS3: jest.fn(),

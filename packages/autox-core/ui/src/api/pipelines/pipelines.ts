@@ -15,6 +15,11 @@ type PipelineRunsApiResponse<TParams> = {
 };
 
 export type PipelinesApi<TParams = Record<string, unknown>> = {
+  createPipelineRun: (
+    hostPath: string,
+    namespace: string,
+    payload: Record<string, unknown> | FormData,
+  ) => Promise<PipelineRun<TParams>>;
   getPipelineRunsFromBFF: (
     hostPath: string,
     params: GetPipelineRunsFromBFFParams,
@@ -114,6 +119,45 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     );
   }
 
+  async function createPipelineRun(
+    hostPath: string,
+    namespace: string,
+    payload: Record<string, unknown> | FormData,
+  ): Promise<PipelineRun<TParams>> {
+    const response = await handleRestFailures(
+      restCREATE<PipelineRun<TParams>>(
+        hostPath,
+        `${urlPrefix}/api/${bffApiVersion}/pipeline-runs?namespace=${encodeURIComponent(
+          namespace,
+        )}`,
+        payload,
+      ),
+    );
+    if (isModArchResponse<PipelineRun<TParams>>(response)) {
+      return response.data;
+    }
+    throw new Error('Invalid response format');
+  }
+
+  async function postPipelineRunAction(url: string, action: string): Promise<void> {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      let serverMessage = body;
+      try {
+        const json = JSON.parse(body);
+        serverMessage = json.error?.message || json.message || body;
+      } catch {
+        // body is not JSON, use as-is
+      }
+      throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
+    }
+  }
+
   async function terminatePipelineRun(namespace: string, runId: string): Promise<void> {
     return postPipelineRunAction(
       `${urlPrefix}/api/${bffApiVersion}/pipeline-runs/${encodeURIComponent(
@@ -153,6 +197,7 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
   }
 
   return {
+    createPipelineRun,
     getPipelineRunsFromBFF,
     getPipelineRunFromBFF,
     enableManagedPipelines,
@@ -160,43 +205,4 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
     retryPipelineRun,
     deletePipelineRun,
   };
-}
-
-export async function createPipelineRun<TParams = Record<string, unknown>>(
-  urlPrefix: string,
-  bffApiVersion: string,
-  hostPath: string,
-  namespace: string,
-  payload: Record<string, unknown> | FormData,
-): Promise<PipelineRun<TParams>> {
-  const response = await handleRestFailures(
-    restCREATE<PipelineRun<TParams>>(
-      hostPath,
-      `${urlPrefix}/api/${bffApiVersion}/pipeline-runs?namespace=${encodeURIComponent(namespace)}`,
-      payload,
-    ),
-  );
-  if (isModArchResponse<PipelineRun<TParams>>(response)) {
-    return response.data;
-  }
-  throw new Error('Invalid response format');
-}
-
-export async function postPipelineRunAction(url: string, action: string): Promise<void> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    let serverMessage = body;
-    try {
-      const json = JSON.parse(body);
-      serverMessage = json.error?.message || json.message || body;
-    } catch {
-      // body is not JSON, use as-is
-    }
-    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
-  }
 }

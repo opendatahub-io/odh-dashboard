@@ -1,5 +1,4 @@
 import {
-  createPipelineRun as createSharedPipelineRun,
   createPipelinesApi,
   type PipelineRunsData as SharedPipelineRunsData,
 } from '@odh-dashboard/autox-core/ui/api';
@@ -48,13 +47,7 @@ export async function createPipelineRun(
   namespace: string,
   payload: ConfigureSchema,
 ): Promise<PipelineRun> {
-  const run = await createSharedPipelineRun<ConfigureSchema>(
-    URL_PREFIX,
-    BFF_API_VERSION,
-    hostPath,
-    namespace,
-    payload,
-  );
+  const run = await pipelinesApi.createPipelineRun(hostPath, namespace, payload);
   createPipelineRunResponseSchema.parse(run);
   return run;
 }

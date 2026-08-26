@@ -1,9 +1,9 @@
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
+import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
-import { useS3FileFetchers } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
@@ -43,7 +43,7 @@ type NotebookDownloadError = {
 };
 
 function AutomlResults(): React.JSX.Element {
-  const { fetchS3File } = useS3FileFetchers();
+  const fetchS3File = useFetchS3File();
   const {
     pipelineRun,
     models,
@@ -116,7 +116,6 @@ function AutomlResults(): React.JSX.Element {
       setReadyRunId(runId);
     }
   }, [
-    fetchS3File,
     readyRunId,
     runId,
     useStageMap,

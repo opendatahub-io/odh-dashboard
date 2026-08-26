@@ -26,19 +26,15 @@ export { createUseNamespaces } from './k8s/useNamespaces';
 
 export { usePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
 export { usePipelineRunQuery } from './pipelines/usePipelineRunQuery';
-export {
-  useTerminatePipelineRunMutation,
-  useRetryPipelineRunMutation,
-  useDeletePipelineRunMutation,
-  type PipelineRunMutations,
-} from './pipelines/usePipelineRunMutations';
+export { useTerminatePipelineRunMutation } from './pipelines/useTerminatePipelineRunMutation';
+export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMutation';
+export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
 
-export {
-  createS3FileFetchers,
-  type S3FileFetchers,
-  type FetchS3FileOptions,
-  type FetchS3JsonOptions,
-} from './s3/queries';
-export { useS3FileFetchers } from './s3/queries';
+export { useS3FileFetchers } from './s3/useS3FileFetchers';
+export { useFetchS3File } from './s3/useFetchS3File';
+export type { FetchS3FileOptions, FetchS3JsonOptions, S3FileFetchers } from '../api/s3';
 export { useS3ListFilesQuery } from './s3/useS3ListFilesQuery';
-export { useS3FileUploadMutation, type S3FileUploadMutationVariables } from './s3/mutations';
+export {
+  useS3FileUploadMutation,
+  type S3FileUploadMutationVariables,
+} from './s3/useS3FileUploadMutation';

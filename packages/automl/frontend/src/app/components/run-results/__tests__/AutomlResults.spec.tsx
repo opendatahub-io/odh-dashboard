@@ -82,12 +82,9 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  useS3FileFetchers: jest.fn(() => ({
-    fetchS3File: mockFetchS3File,
-    fetchS3Json: jest.fn(),
-  })),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
 }));
 
 const mockPipelineRun: PipelineRun = {

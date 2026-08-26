@@ -6,9 +6,6 @@ export type S3FileUploadMutationVariables = UploadFileToS3Params & {
   file: File;
 };
 
-/**
- * Uploads an S3 file using the API client configured by ProductContext.
- */
 export function useS3FileUploadMutation(
   hostPath?: string,
 ): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {

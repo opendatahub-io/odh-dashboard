@@ -14,7 +14,7 @@ import {
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import * as queries from '~/app/hooks/queries';
+import * as managedPipelinesQuery from '~/app/hooks/useManagedPipelinesQuery';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
@@ -74,10 +74,6 @@ jest.mock('~/app/utilities/utils', () => ({
 
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useS3FileFetchers: jest.fn(() => ({
-    fetchS3File: mockFetchS3File,
-    fetchS3Json: jest.fn(),
-  })),
   useManagedPipelinesQuery: jest.fn().mockReturnValue({
     data: [
       {
@@ -90,6 +86,35 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     isError: false,
     error: null,
+  }),
+}));
+
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
+}));
+
+jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
+  useManagedPipelinesQuery: jest.fn().mockReturnValue({
+    data: [
+      {
+        pipeline_type: 'indexing',
+        pipeline_id: 'idx',
+        pipeline_version_id: 'v',
+        display_name: 'documents-indexing-pipeline',
+      },
+    ],
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
+
+jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
+  useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+    reset: jest.fn(),
   }),
 }));
 
@@ -280,12 +305,12 @@ describe('AutoragResults', () => {
   });
 
   it('should toast a warning when managed pipelines query fails', () => {
-    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+    jest.mocked(managedPipelinesQuery.useManagedPipelinesQuery).mockReturnValueOnce({
       data: undefined,
       isLoading: false,
       isError: true,
       error: new Error('Network Error'),
-    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+    } as ReturnType<typeof managedPipelinesQuery.useManagedPipelinesQuery>);
 
     renderWithContext(mockPipelineRun);
 

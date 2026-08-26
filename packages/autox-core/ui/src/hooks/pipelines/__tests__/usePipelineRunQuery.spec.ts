@@ -7,6 +7,7 @@ import { ProductContextProvider } from '../../../context';
 import { usePipelineRunQuery } from '../usePipelineRunQuery';
 
 const mockPipelinesApi: PipelinesApi = {
+  createPipelineRun: jest.fn(),
   getPipelineRunsFromBFF: jest.fn(),
   getPipelineRunFromBFF: jest.fn(),
   enableManagedPipelines: jest.fn(),

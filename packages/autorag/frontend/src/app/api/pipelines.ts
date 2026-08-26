@@ -54,17 +54,9 @@ export async function createPipelineRun(
   namespace: string,
   payload: ConfigureSchema,
 ): Promise<PipelineRun> {
-  const response = await handleRestWithUIErrors(
-    restCREATE<PipelineRun>(
-      hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs?namespace=${encodeURIComponent(namespace)}`,
-      payload,
-    ),
+  const run = await handleRestWithUIErrors(
+    pipelinesApi.createPipelineRun(hostPath, namespace, payload),
   );
-  if (!isModArchResponse<PipelineRun>(response)) {
-    throw new Error('Invalid response format');
-  }
-  const run = response.data;
   createPipelineRunResponseSchema.parse(run);
   return run;
 }
