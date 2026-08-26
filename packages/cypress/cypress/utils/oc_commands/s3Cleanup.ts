@@ -1,4 +1,5 @@
 import { applyOpenShiftYaml } from './baseCommands';
+import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { AWSS3Buckets } from '../../types';
 import { AWS_BUCKETS } from '../s3Buckets';
 
@@ -29,8 +30,9 @@ type AwsCliPodOptions = {
 /**
  * Run the AWS CLI in an ephemeral in-cluster pod.
  *
- * Credentials are mounted from a temporary Secret via `--env-from`, so the
- * `oc run` argv (and therefore Cypress `[EXEC]` logs) never contain the keys.
+ * Credentials are mounted from a temporary Secret via `--overrides`
+ * (`envFrom.secretRef`), so the `oc run` argv (and therefore Cypress `[EXEC]`
+ * logs) never contain the keys.
  * The Secret is deleted after the pod exits, including when `oc run` fails.
  */
 export const runAwsCliInCluster = ({
@@ -67,7 +69,19 @@ export const runAwsCliInCluster = ({
       log: false,
     });
 
-  const quotedArgs = awsCliArgs.map(shQuote).join(' ');
+  // `--overrides` replaces `spec.containers` wholesale, so it must carry image and args.
+  const podOverrides = JSON.stringify({
+    spec: {
+      containers: [
+        {
+          name: podName,
+          image: AWS_CLI_IMAGE,
+          args: awsCliArgs,
+          envFrom: [{ secretRef: { name: secretName } }],
+        },
+      ],
+    },
+  });
 
   applyOpenShiftYaml(secretManifest).then(() => {
     // failOnNonZeroExit must be false so Cypress still runs Secret cleanup after a
@@ -77,14 +91,16 @@ export const runAwsCliInCluster = ({
         `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
           `--image=${shQuote(AWS_CLI_IMAGE)} ` +
           `--restart=Never --rm --attach --tty=false ` +
-          `--env-from=${shQuote(`secret/${secretName}`)} ` +
-          `-- ${quotedArgs}`,
+          `--overrides=${shQuote(podOverrides)}`,
         { failOnNonZeroExit: false, log: false, timeout },
       )
       .then((result) =>
         deleteCredentials().then(() => {
           if (failOnNonZeroExit && result.exitCode !== 0) {
-            throw new Error(`AWS CLI pod ${podName} exited with code ${result.exitCode}`);
+            const maskedStderr = maskSensitiveInfo(result.stderr);
+            throw new Error(
+              `AWS CLI pod ${podName} exited with code ${result.exitCode}: ${maskedStderr}`,
+            );
           }
         }),
       );
