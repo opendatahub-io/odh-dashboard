@@ -449,6 +449,8 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+  datasetName: string;
+  featureServiceName: string;
 };
 
 export type GenAiTestData = {
