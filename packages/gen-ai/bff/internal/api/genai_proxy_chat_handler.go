@@ -238,10 +238,7 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 
 	// Strip passthrough provider prefix if present. OGX may forward the full
 	// provider-qualified ID (e.g., "genai-bff-proxy/maas-model") to this handler.
-	passthroughPrefix := constants.PassthroughProviderID + "/"
-	if strings.HasPrefix(modelID, passthroughPrefix) {
-		modelID = strings.TrimPrefix(modelID, passthroughPrefix)
-	}
+	modelID = strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
 
 	// Resolution priority:
 	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
