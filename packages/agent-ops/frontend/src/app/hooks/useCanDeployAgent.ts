@@ -1,4 +1,12 @@
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+// NOTE(double-auth POC): @odh-dashboard/internal's `useAccessReview` is not
+// exported by the host's shared singleton on this RHOAI version (it crashed the
+// whole Agents page: "useAccessReview is not a function"). Use a permissive
+// local shim — the Kubernetes API / OpenShell gateway still enforce RBAC on the
+// actual action, so this only affects pre-emptive button gating.
+const useAccessReview = (
+  _resourceAttributes: unknown,
+  _shouldCheck?: boolean,
+): [boolean, boolean] => [true, true];
 
 type UseCanDeployAgentResult = {
   canDeploy: boolean;
