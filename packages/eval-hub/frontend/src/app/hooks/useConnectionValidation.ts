@@ -5,7 +5,10 @@ import {
   EVAL_HUB_EVENTS,
   type ExternalConnectionTestedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { getUserFriendlyConnectionError } from '~/app/utils/validationUtils';
+import {
+  getUserFriendlyConnectionError,
+  RECOGNIZED_CONNECTION_ERROR_CODES,
+} from '~/app/utils/validationUtils';
 import type { ConnectionValidationState, SourceMode, VerifyConnectionRequest } from '~/app/types';
 
 type UseConnectionValidationParams = {
@@ -89,19 +92,16 @@ export const useConnectionValidation = ({
         return;
       }
       let errorCode: string | undefined;
-      let serverMessage: string | undefined;
       if (err && typeof err === 'object' && 'error' in err) {
         const inner = (err as Record<string, unknown>).error; // eslint-disable-line @typescript-eslint/consistent-type-assertions
-        if (inner && typeof inner === 'object') {
-          if ('code' in inner) {
-            errorCode = String((inner as Record<string, unknown>).code); // eslint-disable-line @typescript-eslint/consistent-type-assertions
-          }
-          if ('message' in inner) {
-            serverMessage = String((inner as Record<string, unknown>).message); // eslint-disable-line @typescript-eslint/consistent-type-assertions
+        if (inner && typeof inner === 'object' && 'code' in inner) {
+          const rawCode = String((inner as Record<string, unknown>).code); // eslint-disable-line @typescript-eslint/consistent-type-assertions
+          if (RECOGNIZED_CONNECTION_ERROR_CODES.has(rawCode)) {
+            errorCode = rawCode;
           }
         }
       }
-      const errorMessage = getUserFriendlyConnectionError(errorCode, sourceMode, serverMessage);
+      const errorMessage = getUserFriendlyConnectionError(errorCode, sourceMode);
       setConnectionValidation({
         status: 'error',
         message: errorMessage,

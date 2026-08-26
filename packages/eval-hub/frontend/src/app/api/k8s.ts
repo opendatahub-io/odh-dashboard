@@ -513,8 +513,9 @@ export const verifyConnection =
         return response.data;
       }
       if (response && typeof response === 'object' && 'error' in response) {
+        const { error } = response as { error: unknown }; // eslint-disable-line @typescript-eslint/consistent-type-assertions
         // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw response;
+        throw { error };
       }
       throw new Error('Invalid response format');
     });

@@ -22,10 +22,16 @@ export const getUrlValidationError = (url: string): string | undefined => {
   return undefined;
 };
 
+export const RECOGNIZED_CONNECTION_ERROR_CODES = new Set([
+  'CONNECTION_FAILED',
+  'TIMEOUT',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+]);
+
 export const getUserFriendlyConnectionError = (
   errorCode: string | undefined,
   sourceMode: SourceMode,
-  serverMessage?: string,
 ): string => {
   switch (errorCode) {
     case 'CONNECTION_FAILED':
@@ -39,6 +45,6 @@ export const getUserFriendlyConnectionError = (
     case 'FORBIDDEN':
       return 'Access denied \u2014 insufficient permissions.';
     default:
-      return serverMessage || 'Connection verification failed.';
+      return 'Connection verification failed.';
   }
 };

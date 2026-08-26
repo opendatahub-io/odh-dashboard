@@ -2,6 +2,7 @@ import {
   isValidUrl,
   getUrlValidationError,
   getUserFriendlyConnectionError,
+  RECOGNIZED_CONNECTION_ERROR_CODES,
 } from '~/app/utils/validationUtils';
 
 describe('isValidUrl', () => {
@@ -105,21 +106,17 @@ describe('getUserFriendlyConnectionError', () => {
     );
   });
 
-  it('should return server message for unknown error code when provided', () => {
-    expect(
-      getUserFriendlyConnectionError('UNKNOWN', 'model', 'failed to resolve secret "my-secret"'),
-    ).toBe('failed to resolve secret "my-secret"');
-  });
-
-  it('should return server message for undefined error code when provided', () => {
-    expect(getUserFriendlyConnectionError(undefined, 'model', 'some server error')).toBe(
-      'some server error',
+  it('should return generic message for unrecognized error codes regardless of server context', () => {
+    expect(getUserFriendlyConnectionError('SECRET_NOT_FOUND', 'model')).toBe(
+      'Connection verification failed.',
     );
   });
 
-  it('should prefer mapped message over server message for known error codes', () => {
-    expect(getUserFriendlyConnectionError('TIMEOUT', 'model', 'raw timeout details')).toBe(
-      'Connection timed out. The endpoint is not responding.',
-    );
+  it('should recognize all codes in RECOGNIZED_CONNECTION_ERROR_CODES', () => {
+    for (const code of RECOGNIZED_CONNECTION_ERROR_CODES) {
+      expect(getUserFriendlyConnectionError(code, 'model')).not.toBe(
+        'Connection verification failed.',
+      );
+    }
   });
 });
