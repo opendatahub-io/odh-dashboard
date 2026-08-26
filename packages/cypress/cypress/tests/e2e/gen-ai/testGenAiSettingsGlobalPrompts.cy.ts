@@ -51,7 +51,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
   const projectPromptName = `project-prompt-${uuid}`;
 
   retryableBefore(() => {
-    cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
+    cy.fixture('e2e/genAi/testGenAiModelDeployment.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as GenAiTestData;
         hardwareProfileName = testData.hardwareProfileName;
