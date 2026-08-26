@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
@@ -190,6 +191,35 @@ func TestParamsPreservation(t *testing.T) {
 	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
 	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
 	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
+}
+
+func TestImagesMapContainsAllModules(t *testing.T) {
+	for name, mod := range moduleRegistry {
+		t.Run(name, func(t *testing.T) {
+			paramKey := mod.ManifestSlug + "-ui-image"
+			envVar, ok := imagesMap[paramKey]
+			assert.True(t, ok, "imagesMap missing entry (expected key %q)", paramKey)
+			assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch")
+		})
+	}
+}
+
+func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
+	require.NoError(t, err)
+
+	var values struct {
+		RelatedImages map[string]string `yaml:"relatedImages"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &values))
+	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
+
+	for paramKey, envVar := range imagesMap {
+		t.Run(paramKey, func(t *testing.T) {
+			_, ok := values.RelatedImages[envVar]
+			assert.True(t, ok, "relatedImages must contain key %q (for param %q)", envVar, paramKey)
+		})
+	}
 }
 
 func TestNamespaceInjection(t *testing.T) {

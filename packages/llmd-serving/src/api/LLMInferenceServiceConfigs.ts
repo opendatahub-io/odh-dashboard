@@ -11,9 +11,8 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {

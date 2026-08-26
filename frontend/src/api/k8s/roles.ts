@@ -6,10 +6,9 @@ import {
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions, RoleKind } from '#~/k8sTypes';
 import { RoleModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const generateRoleInferenceService = (
   roleName: string,

@@ -261,6 +261,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Router state
   const location = useLocation();
   const selectedAAModel = location.state?.model;
+  const vectorStoreIdFromRoute = location.state?.vectorStoreId;
   const mcpServersFromRoute = React.useMemo(() => {
     const servers = location.state?.mcpServers;
     return Array.isArray(servers) ? servers : [];
@@ -312,8 +313,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const [warningsDismissed, setWarningsDismissed] = React.useState(false);
+  const settingsTabFromRoute: keyof typeof TAB_KEY_MAP | undefined =
+    location.state?.openSettingsToTab;
   const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
-    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+    settingsTabFromRoute ? TAB_KEY_MAP[settingsTabFromRoute] : 0,
   );
 
   // Reset warning dismissal when a different profile is loaded
@@ -813,15 +816,23 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
     useChatbotConfigStore.getState().resetConfiguration({
       selectedMcpServerIds: mcpServersFromRoute,
+      ...(vectorStoreIdFromRoute
+        ? {
+            knowledgeMode: 'external' as const,
+            selectedVectorStoreId: vectorStoreIdFromRoute,
+            isRagEnabled: true,
+          }
+        : {}),
     });
-  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel, vectorStoreIdFromRoute]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
         location.state?.model ||
         location.state?.mcpServerStatuses ||
-        location.state?.openSettingsToTab,
+        location.state?.openSettingsToTab ||
+        location.state?.vectorStoreId,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);

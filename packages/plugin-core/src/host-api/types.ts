@@ -28,24 +28,6 @@ export type HostApiFetchState<T> = [
 ];
 
 /**
- * Lightweight fetch-state object used in host-api service signatures.
- * Structurally compatible with ui-core's FetchStateObject without creating a dependency.
- */
-export type HostApiFetchStateObject<T> = {
-  data: T;
-  loaded: boolean;
-  error?: Error;
-  refresh: () => Promise<T | undefined>;
-};
-
-export type ServingPlatformStatuses = {
-  kServe: { enabled: boolean; installed: boolean };
-  kServeNIM: { enabled: boolean; installed: boolean };
-  platformEnabledCount: number;
-  refreshNIMAvailability: () => Promise<boolean | undefined>;
-};
-
-/**
  * Core infrastructure primitives every federated module needs.
  * Stable, rarely changes. Provided via HostApiCoreContext.
  */
@@ -131,20 +113,6 @@ export type HostApiServices = {
 
   /** Fetch the disabled serving runtime template names from DashboardConfig. */
   getDashboardConfigTemplateDisablement: (ns: string) => Promise<string[]>;
-
-  /** Fetch model serving metrics (Prometheus queries) for a given inference service. */
-  useModelServingMetrics: (
-    type: string,
-    queries: Record<string, string>,
-    timeframe: string,
-    lastUpdateTime: number,
-    setLastUpdateTime: (time: number) => void,
-    refreshInterval: string,
-    namespace: string,
-  ) => { data: Record<string, HostApiFetchStateObject<unknown[]>>; refresh: () => void };
-
-  /** Get serving platform statuses (KServe, NIM availability). */
-  useServingPlatformStatuses: (shouldRefreshNimAvailability?: boolean) => ServingPlatformStatuses;
 
   /** Check whether a project has NIM support enabled. */
   isProjectNIMSupported: (currentProject: ProjectKind) => boolean;

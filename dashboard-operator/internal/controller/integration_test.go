@@ -94,9 +94,9 @@ func createIntegrationManifests(t *testing.T, moduleSlugs []string) string {
 
 	base := t.TempDir()
 
-	// Core overlay: basePath/odh/standalone/
-	// The standalone overlay path must match standaloneOverlaysSourcePaths in support.go.
-	overlay := filepath.Join(base, "odh", "standalone")
+	// Core overlay: basePath/odh/
+	// The overlay path must match overlaysSourcePaths in support.go.
+	overlay := filepath.Join(base, "odh")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -364,9 +364,8 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		DeploymentMode: v1alpha1.DeploymentModeStandalone,
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept("modelRegistry"),
 	})
 
 	ctx := context.Background()
@@ -379,7 +378,7 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 
 	// First reconcile adds the finalizer and returns early.
 	reconcile(t, r)
-	// Second reconcile executes the full standalone pipeline.
+	// Second reconcile executes the full deployment pipeline.
 	reconcile(t, r)
 
 	// Verify module Deployment was created with correct labels.
@@ -434,9 +433,8 @@ func TestIntegration_StandaloneDisableModule(t *testing.T) {
 
 	// Create Dashboard with modelRegistry enabled.
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		DeploymentMode: v1alpha1.DeploymentModeStandalone,
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept("modelRegistry"),
 	})
 
 	ctx := context.Background()
@@ -505,9 +503,8 @@ func TestIntegration_InterModuleDependency(t *testing.T) {
 		// Also skip DSC gate by leaving Components nil.
 		modules := disableAllModulesExcept("autorag")
 		dashboard := newDashboard(v1alpha1.DashboardSpec{
-			DeploymentMode: v1alpha1.DeploymentModeStandalone,
-			Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-			Modules:        modules,
+			Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+			Modules: modules,
 		})
 		require.NoError(t, k8sClient.Create(ctx, dashboard))
 
@@ -532,9 +529,8 @@ func TestIntegration_InterModuleDependency(t *testing.T) {
 	t.Run("autorag_deployed_when_genAi_enabled", func(t *testing.T) {
 		modules := disableAllModulesExcept("autorag", "genAi")
 		dashboard := newDashboard(v1alpha1.DashboardSpec{
-			DeploymentMode: v1alpha1.DeploymentModeStandalone,
-			Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-			Modules:        modules,
+			Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+			Modules: modules,
 		})
 		require.NoError(t, k8sClient.Create(ctx, dashboard))
 
@@ -576,9 +572,8 @@ func TestIntegration_DSCComponentGate(t *testing.T) {
 	// Create Dashboard with DSC Components map that does NOT include
 	// "modelregistry" — the component required by the modelRegistry module.
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		DeploymentMode: v1alpha1.DeploymentModeStandalone,
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept("modelRegistry"),
 		Components: map[string]v1alpha1.ComponentAvailability{
 			"kserve": {ManagementState: "Managed"},
 		},
