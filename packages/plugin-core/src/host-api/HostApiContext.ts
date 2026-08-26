@@ -23,8 +23,6 @@ export const HostApiContext = React.createContext<HostApiServices>({
   useServingConnections: notProvided('useServingConnections'),
   getDashboardConfigTemplateOrder: notProvided('getDashboardConfigTemplateOrder'),
   getDashboardConfigTemplateDisablement: notProvided('getDashboardConfigTemplateDisablement'),
-  useModelServingMetrics: notProvided('useModelServingMetrics'),
-  useServingPlatformStatuses: notProvided('useServingPlatformStatuses'),
   isProjectNIMSupported: notProvided('isProjectNIMSupported'),
   createProject: notProvided('createProject'),
   ConnectionTypeFormFields: notProvided('ConnectionTypeFormFields'),
