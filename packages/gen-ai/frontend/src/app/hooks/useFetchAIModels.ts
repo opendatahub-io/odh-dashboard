@@ -67,7 +67,10 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
       }
 
       const rawData = await api.getAAModels(queryParams, opts);
-      const models = (Array.isArray(rawData) ? rawData : []).filter(isValidAAModel);
+      if (!Array.isArray(rawData)) {
+        throw new Error('Invalid response from getAAModels: expected an array');
+      }
+      const models = rawData.filter(isValidAAModel);
 
       return models.map((item) => {
         if (item.model_source_type === 'maas') {
