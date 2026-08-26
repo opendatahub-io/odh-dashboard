@@ -162,6 +162,12 @@ func mergeStringMapFields(desired map[string]string, target map[string]string) (
 	return target, requireUpdate
 }
 
+// replaceStringMapFields replaces target with desired, returning the desired map and whether they differed.
+// Unlike copyLabelFields, keys that are only present on the target are removed.
+func replaceStringMapFields(desired map[string]string, target map[string]string) (map[string]string, bool) {
+	return desired, !equality.Semantic.DeepEqual(desired, target)
+}
+
 // CopyServiceAccountFields updates a target ServiceAccount with the fields from a desired ServiceAccount, returning true if an update is required.
 func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.ServiceAccount) bool {
 	requireUpdate := false
@@ -189,12 +195,12 @@ func CopyRoleBindingFields(desired *rbacv1.RoleBinding, target *rbacv1.RoleBindi
 	requireUpdate := false
 
 	var updated bool
-	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	target.Labels, updated = replaceStringMapFields(desired.Labels, target.Labels)
 	if updated {
 		requireUpdate = true
 	}
 
-	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	target.Annotations, updated = replaceStringMapFields(desired.Annotations, target.Annotations)
 	if updated {
 		requireUpdate = true
 	}
