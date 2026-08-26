@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
+import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import type { CatalogDeployActionComponentProps } from '@odh-dashboard/model-registry/shared';
 import useAvailablePlatformIds from '../modelRegistry/useAvailablePlatformIds';
 import { useNavigateToDeploymentWizardWithData } from '../modelRegistry/useNavigateToDeploymentWizardWithData';
@@ -9,6 +9,7 @@ import { getDeployButtonState } from '../modelRegistry/getDeployButtonState';
  * Model catalog deploy action registered as `core.action` by model-serving.
  *
  * Expects catalog prefill data from the model-registry consumer via `componentProps`.
+ * The extension is only registered when model serving and model catalog are available.
  */
 const CatalogDeployAction: React.FC<CatalogDeployActionComponentProps> = ({
   deployPrefill,
@@ -49,14 +50,10 @@ const CatalogDeployAction: React.FC<CatalogDeployActionComponentProps> = ({
     </Button>
   );
 
-  return (
-    <FlexItem>
-      {buttonState.tooltip ? (
-        <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
-      ) : (
-        deployButton
-      )}
-    </FlexItem>
+  return buttonState.tooltip ? (
+    <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
+  ) : (
+    deployButton
   );
 };
 
