@@ -17,7 +17,6 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
-
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
@@ -83,16 +82,21 @@ jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreatePipelineRunMutation', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+}));
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3UploadMutateAsync,
     isPending: false,
     reset: jest.fn(),
     variables: undefined,
   })),
+}));
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
   useUploadToStorageMutation: jest.fn(() => ({
     mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'test-file.json' }),
     mutate: jest.fn(),
@@ -179,7 +183,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   return { __esModule: true, default: MockVectorStoreSelector };
 });
 
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/useOgxModelsQuery', () => ({
   useOgxModelsQuery: jest.fn(() => ({
     data: {
       models: [

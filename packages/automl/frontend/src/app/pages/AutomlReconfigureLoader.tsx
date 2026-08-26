@@ -8,7 +8,7 @@ import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';

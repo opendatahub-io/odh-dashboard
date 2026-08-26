@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { z } from 'zod';
-import { useS3FileFetchers } from '~/app/hooks/queries';
+import { useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import type {
   AutoRAGEvaluationResult,
   AutoRAGEvaluationMetricResult,

@@ -6,11 +6,11 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 import { OgxModelType } from '~/app/types';
 
-jest.mock('~/app/hooks/queries');
+jest.mock('~/app/hooks/useOgxModelsQuery');
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => ({ namespace: 'test-namespace' }),

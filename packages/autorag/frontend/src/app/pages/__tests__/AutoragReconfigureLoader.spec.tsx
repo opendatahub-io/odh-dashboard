@@ -28,7 +28,7 @@ jest.mock('mod-arch-core', () => ({
 }));
 
 const mockUsePipelineRunQuery = jest.fn();
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/usePipelineRunQuery', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
 }));
 

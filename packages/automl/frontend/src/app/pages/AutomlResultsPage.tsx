@@ -23,7 +23,7 @@ import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInput
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';

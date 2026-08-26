@@ -15,7 +15,8 @@ const mockNotification = {
   warning: jest.fn(),
 };
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn().mockResolvedValue(undefined),
     isPending: false,
@@ -60,8 +61,9 @@ describe('useAutoragRunActions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset mocks to default successful behavior
-    const { useRetryPipelineRunMutation, useTerminatePipelineRunMutation } =
-      jest.requireMock('~/app/hooks/mutations');
+    const { useRetryPipelineRunMutation, useTerminatePipelineRunMutation } = jest.requireMock(
+      '@odh-dashboard/autox-core/ui/hooks',
+    );
     useRetryPipelineRunMutation.mockReturnValue({
       mutateAsync: jest.fn().mockResolvedValue(undefined),
       isPending: false,
@@ -97,7 +99,9 @@ describe('useAutoragRunActions', () => {
       const mockMutateAsync = jest
         .fn()
         .mockRejectedValue(new Error('run is in state FAILED and cannot be terminated'));
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -128,7 +132,9 @@ describe('useAutoragRunActions', () => {
       const errorMessage =
         'Network error (403): AccessDenied for tenant acme-corp using key AKIAabc123';
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error(errorMessage));
-      const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useTerminatePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useTerminatePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -186,7 +192,9 @@ describe('useAutoragRunActions', () => {
       const errorMessage =
         'Network error (403): AccessDenied for tenant acme-corp using key AKIAabc123';
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error(errorMessage));
-      const { useRetryPipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useRetryPipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useRetryPipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
@@ -243,7 +251,9 @@ describe('useAutoragRunActions', () => {
       const errorMessage =
         'Network error (403): AccessDenied for tenant acme-corp using key AKIAabc123';
       const mockMutateAsync = jest.fn().mockRejectedValue(new Error(errorMessage));
-      const { useDeletePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      const { useDeletePipelineRunMutation } = jest.requireMock(
+        '@odh-dashboard/autox-core/ui/hooks',
+      );
       useDeletePipelineRunMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,

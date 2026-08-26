@@ -3,10 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
-import { useUploadToStorageMutation } from '~/app/hooks/mutations';
+import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual('~/app/hooks/mutations'),
+jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
+  ...jest.requireActual('~/app/hooks/useUploadToStorageMutation'),
   useUploadToStorageMutation: jest.fn(),
 }));
 

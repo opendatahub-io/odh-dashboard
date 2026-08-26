@@ -1,6 +1,6 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, useS3FileFetchers } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import {
   AutoragPatternSchema,
   isV1RawPattern,

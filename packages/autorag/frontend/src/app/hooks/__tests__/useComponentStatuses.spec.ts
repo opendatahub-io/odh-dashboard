@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useProductContext } from '@odh-dashboard/autox-core/ui/context';
+import { useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import { useS3ListFilesQuery } from '~/app/hooks/queries';
 import {
   buildRunLevelPrefixesFromTaskDetails,
   componentIdToTaskId,
@@ -27,7 +27,8 @@ const mockS3FileFetchers = {
 };
 const mockS3Api = { getFiles: jest.fn() };
 
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3ListFilesQuery: jest.fn(),
   useS3FileFetchers: jest.fn(() => mockS3FileFetchers),
 }));

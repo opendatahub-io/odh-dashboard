@@ -10,7 +10,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import AiExperienceIcon from '@odh-dashboard/internal/images/icons/AiExperienceIcon';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
-import type { ColumnSchema } from '~/app/hooks/queries';
+import type { ColumnSchema } from '~/app/hooks/useS3GetFileSchemaQuery';
 import {
   formatTargetColumnUniqueValuesMessage,
   getTargetColumnUniqueValueCount,

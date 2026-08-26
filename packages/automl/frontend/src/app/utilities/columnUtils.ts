@@ -1,4 +1,4 @@
-import type { ColumnSchema } from '~/app/hooks/queries';
+import type { ColumnSchema } from '~/app/hooks/useS3GetFileSchemaQuery';
 
 /** Distinct value count from schema inference (sample-based). */
 export const getTargetColumnUniqueValueCount = (

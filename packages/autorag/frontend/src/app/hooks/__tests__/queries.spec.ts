@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
-import { useOgxModelsQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
 import { getOgxModels, getSecretByName } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({

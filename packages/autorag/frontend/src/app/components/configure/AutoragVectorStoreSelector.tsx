@@ -10,7 +10,7 @@ import {
   // DEFAULT_IN_MEMORY_PROVIDER,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
-import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/useOgxVectorStoreProvidersQuery';
 import { OgxVectorStoreProvider } from '~/app/types';
 import {
   fireAutoragVectorStoreConfigured,

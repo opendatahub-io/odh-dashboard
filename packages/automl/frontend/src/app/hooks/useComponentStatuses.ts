@@ -2,7 +2,7 @@ import React from 'react';
 import * as z from 'zod';
 import { useProductContext, type ProductApi } from '@odh-dashboard/autox-core/ui/context';
 import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
-import { useS3FileFetchers, useS3ListFilesQuery } from '~/app/hooks/queries';
+import { useS3FileFetchers, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type {
   ComponentStageMap,

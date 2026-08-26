@@ -22,7 +22,7 @@ import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { OgxModelType } from '~/app/types';
 

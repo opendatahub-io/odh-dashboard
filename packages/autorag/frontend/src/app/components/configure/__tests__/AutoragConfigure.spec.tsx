@@ -11,7 +11,7 @@ import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplore
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -37,7 +37,8 @@ const mockNotificationError = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   __esModule: true,
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
@@ -113,8 +114,8 @@ jest.mock('~/app/hooks/useNotification', () => ({
 }));
 
 // Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
+jest.mock('~/app/hooks/useOgxModelsQuery', () => ({
+  ...jest.requireActual('~/app/hooks/useOgxModelsQuery'),
   useOgxModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,

@@ -28,7 +28,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock query hooks
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/useModelEvaluationArtifactsQuery', () => ({
   useModelEvaluationArtifactsQuery: jest.fn(),
 }));
 
@@ -50,7 +50,9 @@ describe('AutomlModelDetailsModal', () => {
     useParams.mockReturnValue({ namespace: 'test-namespace' });
 
     // Mock useModelEvaluationArtifactsQuery to return feature importance and confusion matrix
-    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock(
+      '~/app/hooks/useModelEvaluationArtifactsQuery',
+    );
     useModelEvaluationArtifactsQuery.mockReturnValue({
       featureImportance: mockTabularFeatureImportances.CatBoost_BAG_L2_FULL,
       confusionMatrix: mockTabularConfusionMatrices.CatBoost_BAG_L2_FULL,
@@ -244,7 +246,9 @@ describe('AutomlModelDetailsModal', () => {
   });
 
   it('should disable download button for non-timeseries without feature importance', () => {
-    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock(
+      '~/app/hooks/useModelEvaluationArtifactsQuery',
+    );
     useModelEvaluationArtifactsQuery.mockReturnValue({
       featureImportance: undefined,
       confusionMatrix: undefined,
@@ -262,7 +266,9 @@ describe('AutomlModelDetailsModal', () => {
   });
 
   it('should enable download button for timeseries without feature importance', () => {
-    const { useModelEvaluationArtifactsQuery } = jest.requireMock('~/app/hooks/queries');
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock(
+      '~/app/hooks/useModelEvaluationArtifactsQuery',
+    );
     useModelEvaluationArtifactsQuery.mockReturnValue({
       featureImportance: undefined,
       confusionMatrix: undefined,

@@ -26,7 +26,8 @@ import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragR
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';

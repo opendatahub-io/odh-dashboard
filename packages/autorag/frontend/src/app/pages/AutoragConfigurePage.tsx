@@ -25,7 +25,7 @@ import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
-import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
+import { useCreatePipelineRunMutation } from '~/app/hooks/useCreatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';

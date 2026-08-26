@@ -68,12 +68,12 @@ import {
   useUIErrorHandler,
   isUIError,
 } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {

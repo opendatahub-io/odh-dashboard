@@ -74,16 +74,19 @@ jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Federated: 'federated', Standalone: 'standalone', Kubeflow: 'kubeflow' },
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreatePipelineRunMutation', () => ({
   useCreatePipelineRunMutation: jest.fn(() => ({
     mutateAsync: mockMutateAsync,
   })),
+}));
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: jest.fn().mockResolvedValue({ uploaded: true, key: 'data.csv' }),
   })),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
       { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },

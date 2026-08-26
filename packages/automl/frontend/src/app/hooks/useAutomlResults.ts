@@ -1,11 +1,7 @@
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import {
-  useS3ListFilesQuery,
-  useS3FileFetchers,
-  AutomlModelSchema,
-  isRawTimeseriesModelV34,
-} from '~/app/hooks/queries';
+import { useS3ListFilesQuery, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import { AutomlModelSchema, isRawTimeseriesModelV34 } from '~/app/hooks/modelSchema';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';

@@ -1,10 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import {
-  useDeletePipelineRunMutation,
-  useRetryPipelineRunMutation,
-  useTerminatePipelineRunMutation,
-} from '~/app/hooks/mutations';
+import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
+import { useRetryPipelineRunMutation } from '~/app/hooks/useRetryPipelineRunMutation';
+import { useTerminatePipelineRunMutation } from '~/app/hooks/useTerminatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   AUTOML_FAILURE_CATEGORY,

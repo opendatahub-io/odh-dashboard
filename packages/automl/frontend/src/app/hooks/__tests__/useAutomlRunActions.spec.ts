@@ -1,11 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { act } from '@testing-library/react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import {
-  useDeletePipelineRunMutation,
-  useRetryPipelineRunMutation,
-  useTerminatePipelineRunMutation,
-} from '~/app/hooks/mutations';
+import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
+import { useRetryPipelineRunMutation } from '~/app/hooks/useRetryPipelineRunMutation';
+import { useTerminatePipelineRunMutation } from '~/app/hooks/useTerminatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import {
@@ -19,9 +17,13 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useRetryPipelineRunMutation', () => ({
   useRetryPipelineRunMutation: jest.fn(),
+}));
+jest.mock('~/app/hooks/useTerminatePipelineRunMutation', () => ({
   useTerminatePipelineRunMutation: jest.fn(),
+}));
+jest.mock('~/app/hooks/useDeletePipelineRunMutation', () => ({
   useDeletePipelineRunMutation: jest.fn(),
 }));
 

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import * as z from 'zod';
-import { useS3ListFilesQuery, useS3FileFetchers } from '~/app/hooks/queries';
+import { useS3ListFilesQuery, useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type { PipelineRun } from '~/app/types';
 

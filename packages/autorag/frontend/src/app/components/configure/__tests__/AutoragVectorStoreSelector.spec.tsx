@@ -7,7 +7,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
-import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/useOgxVectorStoreProvidersQuery';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
@@ -18,8 +18,8 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
+jest.mock('~/app/hooks/useOgxVectorStoreProvidersQuery', () => ({
+  ...jest.requireActual('~/app/hooks/useOgxVectorStoreProvidersQuery'),
   useOgxVectorStoreProvidersQuery: jest.fn(),
 }));
 

@@ -72,23 +72,6 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  useManagedPipelinesQuery: jest.fn().mockReturnValue({
-    data: [
-      {
-        pipeline_type: 'indexing',
-        pipeline_id: 'idx',
-        pipeline_version_id: 'v',
-        display_name: 'documents-indexing-pipeline',
-      },
-    ],
-    isLoading: false,
-    isError: false,
-    error: null,
-  }),
-}));
-
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useFetchS3File: jest.fn(() => mockFetchS3File),
@@ -111,14 +94,6 @@ jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
 }));
 
 jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
-  useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
-    mutateAsync: jest.fn(),
-    isPending: false,
-    reset: jest.fn(),
-  }),
-}));
-
-jest.mock('~/app/hooks/mutations', () => ({
   useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
     isPending: false,

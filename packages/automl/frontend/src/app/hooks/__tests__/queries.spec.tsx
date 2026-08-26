@@ -5,19 +5,15 @@ import React from 'react';
 import { ProductContextProvider } from '@odh-dashboard/autox-core/ui/context';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import {
-  useS3GetFileSchemaQuery,
-  useModelEvaluationArtifactsQuery,
-  AutomlModelSchema,
-  isRawTimeseriesModelV34,
-  isRawModelV35,
-} from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
+import { useModelEvaluationArtifactsQuery } from '~/app/hooks/useModelEvaluationArtifactsQuery';
 import type {
   AutomlRawTabularModelV34,
   AutomlRawTimeseriesModelV34,
   AutomlRawModelV35,
   AutomlRawModel,
-} from '~/app/hooks/queries';
+} from '~/app/hooks/modelSchema';
+import { AutomlModelSchema, isRawTimeseriesModelV34, isRawModelV35 } from '~/app/hooks/modelSchema';
 
 // Mock fetch globally
 global.fetch = jest.fn();

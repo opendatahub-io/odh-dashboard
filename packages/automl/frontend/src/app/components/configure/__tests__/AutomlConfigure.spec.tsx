@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
-import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import {
@@ -33,7 +33,7 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries');
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery');
 
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({
@@ -43,8 +43,8 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
-  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
