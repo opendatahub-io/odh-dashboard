@@ -360,8 +360,8 @@ export type LlamaStackDistributionModel = {
   distributionConfig: {
     activeDistribution: string;
     providers: Array<{
-      provider_id?: string;
-      provider_type?: string;
+      providerID: string;
+      providerType: string;
       api: string;
       config?: Record<string, unknown> | null;
       health: {

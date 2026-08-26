@@ -180,9 +180,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
             />
           )}
           selectAll={{
-            disabled:
-              filteredModels.length === 0 ||
-              filteredModels.every((m) => lockedModelNames.has(m.model_name)),
+            disabled: filteredModels.length === 0,
             onSelect: handleSelectAll,
             selected: isAllSelected,
             tooltip: 'Select all models',
