@@ -52,7 +52,13 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
   const [formData, setData] = useManageSourceData(existingData);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
-  const { apiState, refreshCatalogSourceConfigs } = React.useContext(ModelCatalogSettingsContext);
+  const {
+    apiState,
+    catalogSources,
+    refreshCatalogSourceConfigs,
+    refreshCatalogSources,
+    markSourcePending,
+  } = React.useContext(ModelCatalogSettingsContext);
 
   // Use the preview hook
   const preview = useSourcePreview({
@@ -77,13 +83,27 @@ const ManageSourceForm: React.FC<ManageSourceFormProps> = ({
       const sourceConfig = transformFormDataToConfig(formData, existingSourceConfig);
       const payload = getPayloadForConfig(sourceConfig, isEditMode);
 
-      if (isEditMode) {
+      if (isEditMode && existingData) {
+        const previousStatus =
+          catalogSources?.items?.find((s) => s.id === formData.id)?.status ?? '';
         await apiState.api.updateCatalogSourceConfig({}, formData.id, payload);
+        const validationFieldsChanged =
+          existingData!.sourceType !== formData.sourceType ||
+          existingData!.yamlContent !== formData.yamlContent ||
+          existingData!.accessToken !== formData.accessToken ||
+          existingData!.organization !== formData.organization ||
+          existingData!.allowedModels !== formData.allowedModels ||
+          existingData!.excludedModels !== formData.excludedModels ||
+          existingData!.enabled !== formData.enabled;
+        if (validationFieldsChanged) {
+          markSourcePending(formData.id, previousStatus);
+        }
       } else {
         await apiState.api.createCatalogSourceConfig({}, payload);
       }
 
       refreshCatalogSourceConfigs();
+      refreshCatalogSources();
       navigate(catalogSettingsUrl());
     } catch (error) {
       setSubmitError(error instanceof Error ? error : new Error(ERROR_MESSAGES.SAVE_FAILED));

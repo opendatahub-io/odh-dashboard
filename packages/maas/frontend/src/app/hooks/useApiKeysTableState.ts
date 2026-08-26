@@ -1,4 +1,5 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   APIKey,
   APIKeyStatus,
@@ -11,6 +12,11 @@ import {
 } from '~/app/types/api-key';
 import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
+import {
+  ApiKeysSearchAppliedProperties,
+  ApiKeysStatusFilterAppliedProperties,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -51,6 +57,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [sortDirection, setSortDirection] = React.useState<SortDirection>(DEFAULT_SORT_DIRECTION);
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
+  const pendingUsernameSearch = React.useRef(false);
 
   // The API has no concept of "inactive" — it only knows active | revoked | expired.
   // "Inactive" is a client-side display status for active keys whose subscription was
@@ -109,31 +116,51 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setIsFetching(false);
   }, [response]);
 
-  const onUsernameChange = React.useCallback(
-    (value: string) => {
-      setFilterData((prev) => ({ ...prev, username: value }));
-      setPage(1);
-      setIsFetching(value !== localUsername);
-    },
-    [localUsername],
-  );
+  React.useEffect(() => {
+    if (!isFetching && loaded && pendingUsernameSearch.current) {
+      pendingUsernameSearch.current = false;
+      fireMiscTrackingEvent(MaaSEvents.API_KEYS_SEARCH_APPLIED, {
+        hasQuery: Boolean(filterData.username),
+        resultCount: response.data.length,
+        isAdmin: true,
+      } satisfies ApiKeysSearchAppliedProperties);
+    }
+  }, [isFetching, loaded, filterData.username, response.data.length]);
+
+  const trackStatusFilter = (statuses: APIKeyDisplayStatus[]) => {
+    fireMiscTrackingEvent(MaaSEvents.API_KEYS_STATUS_FILTER_APPLIED, {
+      selectedStatuses: JSON.stringify(statuses),
+      selectedCount: statuses.length,
+    } satisfies ApiKeysStatusFilterAppliedProperties);
+  };
+
+  const onUsernameChange = React.useCallback((value: string) => {
+    pendingUsernameSearch.current = true;
+    setFilterData((prev) => ({ ...prev, username: value }));
+    setPage(1);
+    // Always mark fetching so search telemetry waits for the filtered response.
+    // localUsername is already in sync when the user submits the SearchInput.
+    setIsFetching(true);
+  }, []);
 
   const onStatusToggle = React.useCallback((status: APIKeyDisplayStatus) => {
-    setFilterData((prev) => ({
-      ...prev,
-      statuses: prev.statuses.includes(status)
+    setFilterData((prev) => {
+      const statuses = prev.statuses.includes(status)
         ? prev.statuses.filter((s) => s !== status)
-        : [...prev.statuses, status],
-    }));
+        : [...prev.statuses, status];
+      trackStatusFilter(statuses);
+      return { ...prev, statuses };
+    });
     setPage(1);
     setIsFetching(true);
   }, []);
 
   const onStatusClear = React.useCallback((status: APIKeyDisplayStatus) => {
-    setFilterData((prev) => ({
-      ...prev,
-      statuses: prev.statuses.filter((s) => s !== status),
-    }));
+    setFilterData((prev) => {
+      const statuses = prev.statuses.filter((s) => s !== status);
+      trackStatusFilter(statuses);
+      return { ...prev, statuses };
+    });
     setPage(1);
     setIsFetching(true);
   }, []);

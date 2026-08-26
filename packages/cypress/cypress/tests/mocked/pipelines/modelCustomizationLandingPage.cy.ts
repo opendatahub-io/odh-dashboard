@@ -15,21 +15,17 @@ const initIntercepts = ({ disableFineTuning = false }: HandlersProps) => {
 };
 
 describe('Model Customization Landing Page', () => {
-  describe('Feature flag disableFineTuning', () => {
-    it('should not show the page if the flag is enabled', () => {
-      initIntercepts({
-        disableFineTuning: true,
-      });
+  describe('Feature flag gating', () => {
+    it('should show NotFound page when fine tuning is disabled', () => {
+      initIntercepts({ disableFineTuning: true });
       modelCustomizationLandingPage.visit(false);
       modelCustomizationLandingPage.findNotFoundPage().should('exist');
     });
 
-    it('should show the page if the flag is disabled', () => {
-      initIntercepts({
-        disableFineTuning: false,
-      });
+    it('should show the page when fine tuning is enabled', () => {
+      initIntercepts({ disableFineTuning: false });
       modelCustomizationLandingPage.visit();
-      modelCustomizationLandingPage.findPage();
+      modelCustomizationLandingPage.findPage().should('exist');
     });
   });
 

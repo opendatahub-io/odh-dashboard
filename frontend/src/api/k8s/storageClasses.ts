@@ -4,10 +4,9 @@ import {
   k8sPatchResource,
   Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { MetadataAnnotation, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import { StorageClassModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getDefaultStorageClassConfig } from '#~/pages/storageClasses/utils.ts';
 
 export const getStorageClasses = (): Promise<StorageClassKind[]> =>

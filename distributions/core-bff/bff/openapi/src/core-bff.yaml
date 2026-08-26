@@ -1243,7 +1243,7 @@ components:
       description: >-
         Token-based authentication. By default the BFF reads a raw bearer token
         from the x-forwarded-access-token header (the header used by the RHOAI
-        OAuth proxy to forward the user's access token to sidecar BFFs). The
+        OAuth proxy to forward the user's access token to BFFs). The
         header name is configurable via the -auth-token-header flag; when set to
         Authorization with -auth-token-prefix "Bearer ", the BFF accepts
         standard Authorization: Bearer <token> instead.

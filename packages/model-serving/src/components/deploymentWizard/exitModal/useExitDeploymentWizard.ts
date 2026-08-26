@@ -1,5 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
 
 type UseExitWizardOptions = {
   returnRoute?: string;
@@ -39,6 +41,7 @@ export const useExitDeploymentWizard = ({
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {
+    fireModelDeployed({ outcome: TrackingOutcome.cancel });
     setIsExitModalOpen(false);
     exitWizardOnCancel();
   }, [exitWizardOnCancel]);

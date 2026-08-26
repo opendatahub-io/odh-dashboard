@@ -1,6 +1,9 @@
 export class ToastNotifications {
-  findToastNotificationList(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('toast-notification-group');
+  findToastNotificationList(timeout?: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(
+      'toast-notification-group',
+      timeout !== undefined ? { timeout } : undefined,
+    );
   }
 
   // gets the list of notifications, each entry has an Alert with data-testid=toast-notification-alert

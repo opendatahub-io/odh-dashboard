@@ -13,6 +13,7 @@ import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
+import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeployedTracking';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -39,6 +40,11 @@ export const useModelDeploymentSubmit = (
 } => {
   const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { fireModelDeployedTracking } = useModelDeployedTracking(
+    formState,
+    initialWizardData,
+    deployMethod?.properties.platform,
+  );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
@@ -112,9 +118,22 @@ export const useModelDeploymentSubmit = (
           runPreDeploy,
           runPostDeploy,
         );
+
+        try {
+          await fireModelDeployedTracking('submit', true);
+        } catch {
+          // Telemetry must not block navigation after a successful deploy.
+        }
         exitWizardOnSubmit();
       } catch (error) {
-        setSubmitError(error instanceof Error ? error : new Error(String(error)));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setSubmitError(error instanceof Error ? error : new Error(errorMessage));
+
+        try {
+          await fireModelDeployedTracking('submit', false, errorMessage);
+        } catch {
+          // Telemetry must not mask the deploy failure shown to the user.
+        }
       } finally {
         setIsLoading(false);
       }
@@ -139,6 +158,7 @@ export const useModelDeploymentSubmit = (
       runPostDeploy,
       exitWizardOnSubmit,
       yamlError,
+      fireModelDeployedTracking,
     ],
   );
 

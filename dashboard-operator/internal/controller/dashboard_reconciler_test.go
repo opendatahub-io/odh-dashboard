@@ -68,10 +68,6 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	sidecar := filepath.Join(base, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
-
 	return base
 }
 
@@ -189,7 +185,7 @@ func TestReconcile(t *testing.T) {
 			wantModuleCount: registrySize,
 		},
 		{
-			name:       "module statuses populated — all modules deployed by default",
+			name:       "module statuses populated — all modules not deployed when no manifests present",
 			generation: 1,
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
@@ -205,14 +201,15 @@ func TestReconcile(t *testing.T) {
 			wantRequeue:     ctrlpkg.ObservabilityRetryInterval,
 			wantModuleCount: registrySize,
 			wantModulePhases: map[string]v1alpha1.ModulePhase{
-				"modelRegistry": v1alpha1.ModulePhaseDeployed,
-				"genAi":         v1alpha1.ModulePhaseDeployed,
-				"mlflow":        v1alpha1.ModulePhaseDeployed,
-				"maas":          v1alpha1.ModulePhaseDeployed,
-				"evalHub":       v1alpha1.ModulePhaseDeployed,
-				"automl":        v1alpha1.ModulePhaseDeployed,
-				"autorag":       v1alpha1.ModulePhaseDeployed,
-				"agentOps":      v1alpha1.ModulePhaseDeployed,
+				"modelRegistry": v1alpha1.ModulePhaseNotDeployed,
+				"genAi":         v1alpha1.ModulePhaseNotDeployed,
+				"mlflow":        v1alpha1.ModulePhaseNotDeployed,
+				"maas":          v1alpha1.ModulePhaseNotDeployed,
+				"evalHub":       v1alpha1.ModulePhaseNotDeployed,
+				"automl":        v1alpha1.ModulePhaseNotDeployed,
+				"autorag":       v1alpha1.ModulePhaseNotDeployed,
+				"agentOps":      v1alpha1.ModulePhaseNotDeployed,
+				"notebooks":     v1alpha1.ModulePhaseNotDeployed,
 			},
 		},
 		{
@@ -811,10 +808,6 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	sidecar := filepath.Join(base, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
-
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
 		Scheme:                s,
@@ -1111,8 +1104,8 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
-func TestDeleteSidecarResources(t *testing.T) {
-	t.Run("deletes all sidecar-specific resources", func(t *testing.T) {
+func TestCleanupLegacySidecarResources(t *testing.T) {
+	t.Run("deletes all legacy sidecar resources", func(t *testing.T) {
 		s := testScheme(t)
 		ctx := context.Background()
 
@@ -1150,7 +1143,7 @@ func TestDeleteSidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.DeleteSidecarResources(ctx)
+		err := r.CleanupLegacySidecarResources(ctx)
 		require.NoError(t, err)
 
 		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
@@ -1174,7 +1167,7 @@ func TestDeleteSidecarResources(t *testing.T) {
 			ApplicationsNamespace: testNamespace,
 		}
 
-		err := r.DeleteSidecarResources(context.Background())
+		err := r.CleanupLegacySidecarResources(context.Background())
 		require.NoError(t, err)
 	})
 }

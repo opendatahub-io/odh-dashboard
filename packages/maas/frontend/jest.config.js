@@ -13,7 +13,7 @@ module.exports = {
       '<rootDir>/config/transform.file.js',
     '~/(.*)': '<rootDir>/src/$1',
   },
-  testEnvironment: 'jest-environment-jsdom',
+  testEnvironment: '<rootDir>/config/jestEnvironment.js',
   transformIgnorePatterns: [
     'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core)',
   ],

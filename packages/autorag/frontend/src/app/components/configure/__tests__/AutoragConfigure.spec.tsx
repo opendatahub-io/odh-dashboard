@@ -5,19 +5,33 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
 import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import {
+  AUTORAG_EVENTS,
+  AUTORAG_FAILURE_CATEGORY,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
@@ -222,6 +236,21 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
         >
           Select File
         </button>
+        <button
+          data-testid="file-explorer-select-folder"
+          onClick={() => {
+            onSelectFiles([
+              { path: '/docs/a.txt', name: 'a.txt', type: 'txt' },
+              { path: '/docs/b.txt', name: 'b.txt', type: 'txt' },
+            ]);
+            onClose();
+          }}
+        >
+          Select Folder (2 files)
+        </button>
+        <button data-testid="file-explorer-cancel" onClick={() => onClose()}>
+          Cancel
+        </button>
       </div>
     ) : null,
 }));
@@ -232,6 +261,18 @@ const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
+// Captures the live react-hook-form instance so tests can assert on exact
+// form state (e.g. which model IDs are selected) instead of only on rendered
+// text, which can't distinguish "same count, different models" regressions.
+let latestForm: UseFormReturn<ConfigureSchema> | undefined;
+
+const getLatestFormValues = (): ConfigureSchema => {
+  if (!latestForm) {
+    throw new Error('Form has not been rendered yet');
+  }
+  return latestForm.getValues();
+};
+
 const FormWrapper: React.FC<{
   children: React.ReactNode;
   defaultValues?: Partial<typeof configureSchema.defaults>;
@@ -241,6 +282,7 @@ const FormWrapper: React.FC<{
     resolver: zodResolver(configureSchema.full),
     defaultValues: { ...configureSchema.defaults, ...defaultValues },
   });
+  latestForm = form as unknown as UseFormReturn<ConfigureSchema>;
   return <FormProvider {...form}>{children}</FormProvider>;
 };
 
@@ -258,20 +300,39 @@ const createTestQueryClient = () =>
 const renderWithQueryClient = (
   component: React.ReactElement,
   defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
 ) => {
   const queryClient = createTestQueryClient();
-  return render(
+  const tree = (
     <QueryClientProvider client={queryClient}>
       {/* UIError behavior is tested in UIErrorHandler's own spec */}
       <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
         <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
       </UIErrorHandler>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+  );
+  return render(
+    options?.onKnowledgeSourceConfigured ? (
+      <RunTriggeredTrackingContext.Provider
+        value={{
+          onKnowledgeSourceConfigured: options.onKnowledgeSourceConfigured,
+          onEvaluationSourceConfigured: jest.fn(),
+          onVectorStoreConfigured: jest.fn(),
+          onModelsConfigured: jest.fn(),
+        }}
+      >
+        {tree}
+      </RunTriggeredTrackingContext.Provider>
+    ) : (
+      tree
+    ),
   );
 };
 
-const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
-  renderWithQueryClient(<AutoragConfigure />, defaultValues);
+const renderComponent = (
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+  options?: { onKnowledgeSourceConfigured?: (sourceType: string) => void },
+) => renderWithQueryClient(<AutoragConfigure />, defaultValues, options);
 
 const renderWithInitialValues = (
   initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
@@ -707,6 +768,170 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+    });
+  });
+
+  describe('AutoRAG Knowledge Source Configured tracking', () => {
+    it('should fire with knowledgeSourceType: s3 and countOfDocuments: 1 when a single file is selected', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire with countOfDocuments: 1 even when the picker returns multiple files (only the first is committed)', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-folder'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        },
+      );
+    });
+
+    it('should fire with outcome: cancel and success: false when the S3 file browser is dismissed without a selection', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        {
+          knowledgeSourceType: 's3',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.cancel,
+          success: false,
+        },
+      );
+    });
+
+    it('should not fire a cancel event when the browser is closed immediately after a successful selection', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+        expect.objectContaining({ outcome: TrackingOutcome.submit }),
+      );
+    });
+
+    it('should fire with knowledgeSourceType: upload and success: true on a successful upload', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+          {
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 1,
+            outcome: TrackingOutcome.submit,
+            success: true,
+          },
+        );
+      });
+    });
+
+    it('should fire with success: false and an allowlisted failure category (not the raw error message) on a failed upload', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValueOnce(
+        new Error('upload exploded: s3://acme-secret-bucket'),
+      );
+      fireFormTrackingEventMock.mockClear();
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
+          {
+            knowledgeSourceType: 'upload',
+            countOfDocuments: 0,
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: AUTORAG_FAILURE_CATEGORY,
+          },
+        );
+      });
+
+      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      expect(allTrackingCalls).not.toContain('acme-secret-bucket');
+    });
+
+    it('should report a successful s3 selection to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('s3');
+    });
+
+    it('should not report a cancelled s3 selection to RunTriggeredTrackingContext', () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      expect(onKnowledgeSourceConfigured).not.toHaveBeenCalled();
+    });
+
+    it('should report a successful upload to RunTriggeredTrackingContext for use by AutoRAG Run Triggered', async () => {
+      const onKnowledgeSourceConfigured = jest.fn();
+      renderComponent(undefined, { onKnowledgeSourceConfigured });
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+      const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+
+      await waitFor(() => {
+        expect(onKnowledgeSourceConfigured).toHaveBeenCalledWith('upload');
+      });
     });
   });
 
@@ -1160,6 +1385,190 @@ describe('AutoragConfigure', () => {
 
       const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
       expect(input).toHaveValue(12);
+    });
+
+    it('should retain the previously selected foundation/embedding models instead of resetting to all models', () => {
+      // Query returns more models than were previously selected, so a reset-to-all
+      // regression is distinguishable from correctly retaining the prior selection.
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+            {
+              id: 'embed-model-2',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-2', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1'],
+          embedding_models: ['embed-model-1'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1'],
+          embedding_models: ['embed-model-1'],
+        },
+      );
+
+      // Assert the exact retained model IDs (not just counts) so a regression that
+      // swaps the selection for a same-sized set of different models (e.g.
+      // llm-model-1 -> llm-model-2) is caught rather than passing on count alone.
+      expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
+      expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
+      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
+    });
+
+    it('should drop restored model selections that are no longer available and fall back to all models', () => {
+      // The restored selection references a model that is no longer returned by
+      // the current secret/provider (e.g. removed/deprecated upstream).
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+            {
+              id: 'embed-model-1',
+              type: 'embedding',
+              provider: 'ollama',
+              resource_path: 'ollama://embed-1', // eslint-disable-line camelcase
+            },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          // "removed-llm-model" no longer exists in the current models response.
+          generation_models: ['removed-llm-model'],
+          embedding_models: ['removed-embed-model'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['removed-llm-model'],
+          embedding_models: ['removed-embed-model'],
+        },
+      );
+
+      // Falls back to all currently available models rather than keeping the
+      // now-nonexistent restored IDs.
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1', 'llm-model-2']);
+      expect(getLatestFormValues().embedding_models).toEqual(['embed-model-1']);
+      expect(getLatestFormValues().generation_models).not.toContain('removed-llm-model');
+      expect(getLatestFormValues().embedding_models).not.toContain('removed-embed-model');
+    });
+
+    it('should keep only the still-available restored models when some restored selections are stale', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-1', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-1' },
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model-2', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm-2' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          // "llm-model-1" is still available, "removed-llm-model" is not.
+          generation_models: ['llm-model-1', 'removed-llm-model'],
+          embedding_models: ['embed-model-1'],
+        },
+        {
+          ogx_secret_name: 'Test OGX Secret',
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          generation_models: ['llm-model-1', 'removed-llm-model'],
+          embedding_models: ['embed-model-1'],
+        },
+      );
+
+      // Only the still-valid restored selection is kept; since at least one valid
+      // restored ID remains, it does NOT fall back to all available models.
+      expect(getLatestFormValues().generation_models).toEqual(['llm-model-1']);
     });
   });
 

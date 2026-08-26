@@ -18,15 +18,25 @@ import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
-const addRule = (apiGroup: string, resource: string, verb: string) => {
-  projectRoles.findAddRuleButton().click();
-  projectRoles.findAddRuleModal().should('exist');
+const selectApiGroup = (apiGroup: string) => {
   projectRoles.findRuleApiGroupsToggle().click();
   projectRoles.findRuleApiGroupsToggle().parent().find('input').type(apiGroup);
-  cy.contains(`Use custom API group "${apiGroup}"`).click();
+  cy.findByTestId(`select-multi-typeahead-${apiGroup}`).click();
+  cy.press(Cypress.Keyboard.Keys.TAB);
+};
+
+const selectResource = (resource: string, label: string) => {
   projectRoles.findRuleResourceTypesToggle().click();
   projectRoles.findRuleResourceTypesToggle().parent().find('input').type(resource);
-  cy.contains(`Use custom resource type "${resource}"`).click();
+  cy.findByTestId(`select-multi-typeahead-${label}`).click();
+  cy.press(Cypress.Keyboard.Keys.TAB);
+};
+
+const addRule = (apiGroup: string, resource: string, resourceLabel: string, verb: string) => {
+  projectRoles.findAddRuleButton().click();
+  projectRoles.findAddRuleModal().should('exist');
+  selectApiGroup(apiGroup);
+  selectResource(resource, resourceLabel);
   projectRoles.findVerbCheckbox(verb).click();
   projectRoles.findRuleSaveButton().click();
 };
@@ -106,7 +116,7 @@ describe('Create Role submit', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
-    addRule('apps', 'deployments', 'get');
+    addRule('apps', 'deployments', 'Deployments', 'get');
 
     projectRoles.findSubmitButton().click();
 
@@ -135,7 +145,7 @@ describe('Create Role submit', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
-    addRule('apps', 'deployments', 'get');
+    addRule('apps', 'deployments', 'Deployments', 'get');
 
     projectRoles.findSubmitButton().click();
 

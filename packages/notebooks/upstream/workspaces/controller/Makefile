@@ -8,6 +8,19 @@ TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
 IMG ?= $(REGISTRY)/$(NAME):$(TAG)
 ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 
+# Target namespace for gateway overlay (manual deploy). workbenches-operator overrides
+# the placeholder in overlays/gateway/kustomization.yaml at render time.
+NAMESPACE ?= redhat-ods-applications
+export NAMESPACE
+
+# Validate NAMESPACE as a DNS-1123 label and substitute into gateway kustomization.
+# Uses $$NAMESPACE in the shell (not Make expansion) to avoid CWE-78 injection.
+define gateway_namespace_sed
+printf '%s' "$$NAMESPACE" | grep -Eq '^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$$' || { \
+  echo "ERROR: NAMESPACE must be a valid DNS-1123 label (lowercase alphanumeric or '-', cannot start/end with '-', max 63 chars)" >&2; exit 1; \
+}; \
+sed -i "s|^namespace:.*|namespace: $$NAMESPACE|" manifests/kustomize/.output/overlays/gateway/kustomization.yaml
+endef
 
 # The version of Kubernetes to use for envtest.
 # If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
@@ -159,6 +172,34 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=$(ignore-not-found)
+
+.PHONY: deploy-gateway
+deploy-gateway: manifests kustomize ## Deploy controller with gateway overlay to the K8s cluster specified in ~/.kube/config.
+ifndef IMG
+	$(error IMG must be set)
+endif
+ifneq ($(findstring |,$(IMG)),)
+	$(error IMG must not contain '|')
+endif
+ifneq ($(findstring ",$(IMG)),)
+	$(error IMG must not contain double quotes)
+endif
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@$(gateway_namespace_sed)
+	@sed -i "s|^WORKBENCH_CONTROLLER_IMAGE=.*|WORKBENCH_CONTROLLER_IMAGE=${IMG}|" manifests/kustomize/.output/overlays/gateway/params.env
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) apply -f -
+
+.PHONY: undeploy-gateway
+undeploy-gateway: kustomize ## Undeploy controller (gateway overlay) from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	@$(gateway_namespace_sed)
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/gateway | $(KUBECTL) delete --ignore-not-found="$(ignore-not-found)" -f -
 
 ##@ Dependencies
 

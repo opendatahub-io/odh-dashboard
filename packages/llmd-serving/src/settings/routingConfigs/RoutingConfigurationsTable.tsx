@@ -3,7 +3,7 @@ import { Button, EmptyState, EmptyStateBody, ToolbarItem } from '@patternfly/rea
 import { CubesIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { Table, SortableData } from '@odh-dashboard/ui-core';
+import { Table, SortableData, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
@@ -13,6 +13,7 @@ import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingC
 import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+import { fireRoutingConfigDeleted } from '../../tracking/llmdTrackingConstants';
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
@@ -96,12 +97,17 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
           ns: dashboardNamespace,
         },
       });
+      fireRoutingConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
       setDeleteConfig(undefined);
     } catch (e) {
       notification.error(
         'Error deleting configuration',
         e instanceof Error ? e.message : 'Unknown error',
       );
+      fireRoutingConfigDeleted({
+        outcome: TrackingOutcome.submit,
+        success: false,
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -153,6 +159,7 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
         <DeleteModal
           title="Delete llm-d routing configuration?"
           onClose={() => {
+            fireRoutingConfigDeleted({ outcome: TrackingOutcome.cancel });
             setDeleteConfig(undefined);
             setIsDeleting(false);
           }}

@@ -23,6 +23,9 @@ const (
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
 
+	// user
+	UserPath = PathPrefix + "/user"
+
 	// workspaces
 	AllWorkspacesPath         = PathPrefix + "/workspaces"
 	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam

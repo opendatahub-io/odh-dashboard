@@ -162,7 +162,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
               })
             }
           >
-            View Details
+            View details
           </Link>
         </ModalFooter>
       ) : null}

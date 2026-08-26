@@ -26,8 +26,10 @@
     "distributions/base",
     "distributions/core-bff",
     "distributions/rhaii",
-    "distributions/maas-customer-portal",
-    "packages/model-serving/cypress"
+    "distributions/maas-consumer-portal",
+    "packages/model-serving/cypress",
+    "packages/kserve/cypress",
+    "packages/llmd-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",

@@ -6,7 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	healthCheck, err := app.repositories.HealthCheck.HealthCheck(Version)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

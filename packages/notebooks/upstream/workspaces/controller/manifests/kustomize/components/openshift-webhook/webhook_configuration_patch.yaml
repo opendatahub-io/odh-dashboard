@@ -1,0 +1,6 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: workspaces-validating-webhook-configuration
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"

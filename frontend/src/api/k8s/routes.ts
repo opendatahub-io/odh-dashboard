@@ -1,7 +1,7 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { K8sAPIOptions, RouteKind } from '@odh-dashboard/k8s-core';
+import { applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { RouteModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const getRoute = (
   name: string,

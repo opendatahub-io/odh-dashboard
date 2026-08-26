@@ -93,6 +93,25 @@ export type Deployment<
   resources?: ModelServingPodSpecOptionsState;
 };
 
+/**
+ * Deployment context passed to wizard pre/post-deploy hooks before the model resource
+ * is fully assembled (e.g. KServe NIM deploy). Hooks that require `model` must guard
+ * for its absence and no-op or throw as appropriate.
+ */
+export type DeploymentHookPayload<
+  ModelResource extends ModelResourceType = ModelResourceType,
+  ServerResource extends ServerResourceType = ServerResourceType,
+> = Omit<Deployment<ModelResource, ServerResource>, 'model'> & {
+  model?: ModelResource;
+};
+
+export type DeploymentHookPayloadFor<D extends Deployment> = DeploymentHookPayload<
+  D['model'],
+  D extends Deployment<ModelResourceType, infer ServerResource>
+    ? ServerResource
+    : ServerResourceType
+>;
+
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.platform',
   {

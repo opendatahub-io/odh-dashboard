@@ -12,13 +12,14 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
+import { evaluationReconfigureRoute } from '~/app/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import useEvalHubHealth from '~/app/hooks/useEvalHubHealth';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -26,8 +27,10 @@ import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import { EvaluationJob } from '~/app/types';
+import StopEvaluationModal from '~/app/components/StopEvaluationModal';
 
 const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
@@ -35,16 +38,30 @@ const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
 
+  // Pause list polling when the browser tab is backgrounded
+  const isPollingEnabled = usePageVisibility();
+
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
     !isHealthy,
+    isPollingEnabled,
   );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
   >();
+  const navigate = useNavigate();
+  const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
+
+  const polledJobData = React.useMemo(
+    () =>
+      selectedJob
+        ? evaluations.find((e) => e.resource.id === selectedJob.job.resource.id)
+        : undefined,
+    [evaluations, selectedJob],
+  );
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
@@ -169,10 +186,27 @@ const EvaluationsPage: React.FC = () => {
           <EvaluationStatusModal
             job={selectedJob.job}
             namespace={selectedJob.namespace}
+            polledJobData={polledJobData}
             onClose={() => setSelectedJob(undefined)}
+            onRequestStop={(job) => {
+              setSelectedJob(undefined);
+              setPendingStopJob(job);
+            }}
+            onRequestReconfigure={(job) => {
+              setSelectedJob(undefined);
+              navigate(evaluationReconfigureRoute(namespace, job.resource.id));
+            }}
           />
         </React.Suspense>
       ) : null}
+      {pendingStopJob && namespace && (
+        <StopEvaluationModal
+          job={pendingStopJob}
+          namespace={namespace}
+          onClose={() => setPendingStopJob(undefined)}
+          onComplete={refreshEvaluations}
+        />
+      )}
     </>
   );
 };

@@ -367,7 +367,7 @@ func (r *MCPRegistryRepository) CreateServerVersion(ctx context.Context, name st
 		opts = append(opts, mcpregistry.WithVersionConnectOptions(fromConnectOptions(req.ConnectOptions)))
 	}
 
-	version, err := client.CreateMCPServerVersion(ctx, name, req.ServerJSON, opts...)
+	version, err := client.CreateMCPServerVersion(ctx, name, req.ServerJSON.AsMap(), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("creating version for MCP server %q: %w", name, err)
 	}

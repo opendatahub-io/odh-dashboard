@@ -58,6 +58,7 @@ These packages export extensions but have **no** `module-federation` config. The
 
 ### Infrastructure Packages
 
+- `analytics` — Shared Segment analytics implementation
 - `eslint-config` — Centralized ESLint configuration (base, typescript, react, node, markdown, yaml, prettier)
 - `eslint-plugin` — Custom ESLint rules for the project
 - `jest-config` — Shared Jest test configuration and custom matchers
@@ -94,13 +95,13 @@ Dashboard variants — three independently-deployable distributions plus a share
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
 | `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Webpack |
-| `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | Make + Webpack |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | Make + Webpack |
 | `rhaii/` | RHAII-specific distribution | No | Webpack |
-| `maas-customer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | Webpack |
+| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | Webpack |
 
-- `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/`, `rhaii/`, and `maas-customer-portal/` extend
+- `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/`, `rhaii/`, and `maas-consumer-portal/` extend
 - `rhaii/` is frontend-only — React + Webpack + Module Federation host configuration
-- `maas-customer-portal/` is frontend-only — bundles maas and gen-ai packages directly, connects through their BFFs (no BFF of its own)
+- `maas-consumer-portal/` is frontend-only — bundles maas and gen-ai packages directly, connects through their BFFs (no BFF of its own)
 - `core-bff/` has both a Go BFF (`bff/`) and React frontend (`frontend/`) with its own contract tests (`contract-tests/`)
 - Each distribution has its own `package.json`, `tsconfig.json`, and webpack config; dependencies on internal packages resolve through the workspace
 - `core-bff/` follows contract-first development (OpenAPI → BFF stub → Frontend → Production BFF)
