@@ -43,6 +43,14 @@ type OpenShellAuthConfig = {
 // down the RHOAI context. Defined here to keep it a dependency-free shared const.
 export const OPENSHELL_SESSION_EXPIRED_EVENT = 'openshell:session-expired';
 
+// Dedicated request header that carries Token B from the browser to the
+// agent-ops BFF proxy. RHOAI's data-science-gateway ext-authz (kube-auth-proxy)
+// rewrites `Authorization` and `x-forwarded-access-token` to the platform's own
+// OpenShift token, so Token B cannot ride either — it travels on this custom
+// header (passed through untouched) and the BFF translates it into the relay's
+// x-forwarded-access-token. Must match OpenShellAuthHeader in openshell_handler.go.
+export const OPENSHELL_AUTH_HEADER = 'X-OpenShell-Authorization';
+
 // App routes the SPA registers to complete the OIDC redirect / silent-renew.
 // Intentionally OUTSIDE the /openshell/* prefix (which is reverse-proxied to the
 // BFF) so these resolve as SPA routes. Register both as redirect URIs in Keycloak.

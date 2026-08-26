@@ -17,7 +17,8 @@ import {
   DisconnectedIcon,
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
-import { setAuthTokenGetter } from 'openshell-dashboard/api';
+import { setAuthTokenGetter, setAuthTokenHeader } from 'openshell-dashboard/api';
+import { OPENSHELL_AUTH_HEADER } from './openShellAuth';
 import {
   connectOpenShell,
   disconnectOpenShell,
@@ -57,7 +58,12 @@ export const OpenShellConnectionProvider: React.FC<{ children: React.ReactNode }
   });
 
   React.useEffect(() => {
-    // Supply Token B to the OpenShell package on every request.
+    // Supply Token B to the OpenShell package on every request. RHOAI's
+    // data-science-gateway rewrites `Authorization` (and x-forwarded-access-token)
+    // to the platform's OWN OpenShift token, so Token B must ride a dedicated
+    // header the gateway passes through untouched; the agent-ops BFF proxy
+    // translates it back into the relay's x-forwarded-access-token.
+    setAuthTokenHeader(OPENSHELL_AUTH_HEADER);
     setAuthTokenGetter(getOpenShellToken);
     const unsubscribe = subscribeOpenShellConnection(setState);
     // Establish connection state without forcing a login: resume a session or

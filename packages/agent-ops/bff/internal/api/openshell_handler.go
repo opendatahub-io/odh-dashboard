@@ -21,11 +21,18 @@ import (
 //   - /openshell/auth/config  — advertises the (non-secret) Keycloak client the
 //     browser uses for silent OIDC (prompt=none) to obtain Token B.
 //   - /openshell/*            — reverse-proxies OpenShell API calls to the
-//     OpenShell relay BFF, forwarding ONLY Token B (browser Authorization
-//     header) and stripping Token A credentials at the trust boundary.
+//     OpenShell relay BFF, forwarding ONLY Token B (carried on a dedicated
+//     header the RHOAI gateway leaves untouched) and stripping Token A
+//     credentials at the trust boundary.
 const (
 	OpenShellPathPrefix     = "/openshell"
 	OpenShellAuthConfigPath = OpenShellPathPrefix + "/auth/config"
+	// OpenShellAuthHeader is the dedicated header the browser uses to carry
+	// Token B. RHOAI's data-science-gateway ext-authz rewrites Authorization
+	// and x-forwarded-access-token to the platform's OWN OpenShift token
+	// (Token A), so Token B must ride a header the gateway leaves untouched.
+	// Must match OPENSHELL_AUTH_HEADER in the frontend (openShellAuth.ts).
+	OpenShellAuthHeader = "X-OpenShell-Authorization"
 )
 
 // openShellAuthConfig is the non-secret client config the browser needs to run
@@ -102,24 +109,34 @@ func (app *App) OpenShellProxyHandler() (http.Handler, error) {
 
 		// ── DOUBLE-AUTH TRUST BOUNDARY ──────────────────────────────────
 		// The RHOAI/OpenShift credentials (Token A) must NOT cross into the
-		// OpenShell service. The browser supplies Token B as
-		// "Authorization: Bearer" (via the package's setAuthTokenGetter). First
-		// clear every Token A header + the RHOAI session cookie, then translate
-		// Token B into x-forwarded-access-token (the relay BFF's primary header)
-		// so it authenticates against the OpenShell gateway's OIDC JWKS with
-		// Token B only. Authorization: Bearer is left intact as a fallback.
+		// OpenShell service. Critically, RHOAI's fronting gateway (kube-auth-proxy)
+		// OWNS both `Authorization` and `x-forwarded-access-token`, rewriting them
+		// to the platform's OpenShift access token (Token A, an opaque token the
+		// OpenShell gateway cannot validate). So Token B arrives on a dedicated
+		// header (OpenShellAuthHeader) the gateway passes through untouched.
+		//
+		// Extract Token B, then clobber every Token A header + the RHOAI session
+		// cookie, and re-project Token B onto BOTH the relay's primary header
+		// (x-forwarded-access-token) and Authorization so no Token A value can
+		// leak downstream regardless of the relay's precedence chain.
+		tokenB := strings.TrimSpace(strings.TrimPrefix(req.Header.Get(OpenShellAuthHeader), "Bearer "))
+		if tokenB == "" {
+			// Standalone/dev fallback: no fronting gateway rewriting Authorization.
+			tokenB = strings.TrimSpace(strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer "))
+		}
+
+		req.Header.Del(OpenShellAuthHeader)
 		req.Header.Del("X-Forwarded-Access-Token")
+		req.Header.Del("Authorization")
 		req.Header.Del("X-Auth-Request-User")
 		req.Header.Del("X-Auth-Request-Groups")
 		req.Header.Del("X-Auth-Request-Email")
 		req.Header.Del("X-Auth-Request-Preferred-Username")
 		req.Header.Del("Cookie")
 
-		if bearer := req.Header.Get("Authorization"); bearer != "" {
-			tokenB := strings.TrimSpace(strings.TrimPrefix(bearer, "Bearer "))
-			if tokenB != "" {
-				req.Header.Set("X-Forwarded-Access-Token", tokenB)
-			}
+		if tokenB != "" {
+			req.Header.Set("X-Forwarded-Access-Token", tokenB)
+			req.Header.Set("Authorization", "Bearer "+tokenB)
 		}
 	}
 
