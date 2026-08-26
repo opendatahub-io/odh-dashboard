@@ -7289,13 +7289,13 @@ const docTemplate = `{
         "workspaces.LastProbeInfo": {
             "type": "object",
             "required": [
-                "endTimeMs",
+                "endTime",
                 "message",
                 "result",
-                "startTimeMs"
+                "startTime"
             ],
             "properties": {
-                "endTimeMs": {
+                "endTime": {
                     "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
@@ -7305,7 +7305,7 @@ const docTemplate = `{
                 "result": {
                     "$ref": "#/definitions/workspaces.ProbeResult"
                 },
-                "startTimeMs": {
+                "startTime": {
                     "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 }
