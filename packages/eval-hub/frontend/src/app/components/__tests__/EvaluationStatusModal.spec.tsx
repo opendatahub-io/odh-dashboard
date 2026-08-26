@@ -447,6 +447,11 @@ describe('EvaluationStatusModal running state header', () => {
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
   });
 
+  it('should truncate the benchmark name on the header paragraph', () => {
+    renderModal();
+    expect(screen.getByTestId('benchmark-name-header')).toHaveClass('pf-v6-u-text-truncate');
+  });
+
   it('should show "Evaluation job is running." in description', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
 

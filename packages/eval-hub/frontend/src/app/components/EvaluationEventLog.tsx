@@ -432,7 +432,10 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
           gap={{ default: 'gapMd' }}
-          flexWrap={{ default: 'nowrap' }}
+          flexWrap={{ default: 'wrap', md: 'nowrap' }}
+          fullWidth={{ default: 'fullWidth' }}
+          className="pf-v6-u-overflow-auto"
+          data-testid="event-log-toolbar"
         >
           {benchmarks.length > 1 ? (
             <FlexItem>

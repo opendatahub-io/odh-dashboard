@@ -489,7 +489,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                   )}
                 </FlexItem>
                 <FlexItem className="evalhub-status-modal__benchmark-name">
-                  <Content component="p" data-testid="benchmark-name-header">
+                  <Content
+                    component="p"
+                    className="pf-v6-u-text-truncate"
+                    data-testid="benchmark-name-header"
+                  >
                     <strong>{benchmarkName}</strong>
                   </Content>
                 </FlexItem>
