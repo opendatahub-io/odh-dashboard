@@ -11,7 +11,7 @@ import {
   editSubscriptionPage,
   subscriptionsPage,
   viewSubscriptionPage,
-  subscriptionManagementPage,
+  maasGovernancePage,
   phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
@@ -159,7 +159,7 @@ describe('Subscriptions Page', () => {
   });
 
   it('should expand and collapse inline rows in the subscriptions tab', () => {
-    subscriptionManagementPage.visit('subscriptions');
+    maasGovernancePage.visit('subscriptions');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
 
@@ -334,7 +334,7 @@ describe('View Subscription Page', () => {
         'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
     });
 
-    subscriptionManagementPage.visit('subscriptions');
+    maasGovernancePage.visit('subscriptions');
     subscriptionsPage.findTable().should('exist');
     subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');

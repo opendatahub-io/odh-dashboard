@@ -25,7 +25,7 @@ describe('External models read-only list', () => {
   retryableBefore(() => {
     cy.log('Loading external models test data');
     return cy
-      .fixture('e2e/modelsAsService/testExternalModels.yaml', 'utf8')
+      .fixture('e2e/maas/testExternalModels.yaml', 'utf8')
       .then((yamlContent: string) => {
         const fixtureData = yaml.load(yamlContent) as {
           projectResourceName: string;
