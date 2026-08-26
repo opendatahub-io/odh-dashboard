@@ -6,6 +6,7 @@ import {
   restCREATE,
   restGET,
 } from 'mod-arch-core';
+import { createPipelinesApi } from '@odh-dashboard/autox-core/ui/api';
 import type {
   CreateIndexingPipelineRunRequest,
   ManagedPipeline,
@@ -14,100 +15,17 @@ import type {
 } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
-/** Response shape from BFF pipeline-runs API. Exported for hooks/tables that need pagination. */
-export type PipelineRunsData = {
-  runs: PipelineRun[];
-  total_size: number;
-  next_page_token: string;
-};
-
-/** Default page size per pipeline-runs-api.md */
-const DEFAULT_PAGE_SIZE = 20;
-
-export type GetPipelineRunsFromBFFParams = {
-  namespace: string;
-  pipelineVersionId?: string;
-  pageSize?: number;
-  page?: number;
-};
-
-type PipelineRunsApiResponse = {
-  runs?: PipelineRun[];
-  total_size?: number;
-  next_page_token?: string;
-};
+export type {
+  PipelineRunsData,
+  GetPipelineRunsFromBFFParams,
+} from '@odh-dashboard/autox-core/ui/api';
 
 /**
- * Fetches pipeline runs from the BFF API.
- * Returns full pagination data for server-side pagination support.
+ * Pipeline-runs API surface for the AutoRAG BFF.
  * @see packages/autorag/docs/pipeline-runs-api.md
  */
-export async function getPipelineRunsFromBFF(
-  hostPath: string,
-  params: GetPipelineRunsFromBFFParams,
-  opts?: APIOptions,
-): Promise<PipelineRunsData> {
-  const queryParams: Record<string, string> = {
-    namespace: params.namespace,
-    pageSize: String(params.pageSize ?? DEFAULT_PAGE_SIZE),
-  };
-  if (params.pipelineVersionId) {
-    queryParams.pipelineVersionId = params.pipelineVersionId;
-  }
-  if (params.page != null) {
-    queryParams.page = String(params.page);
-  }
-
-  const response = await handleRestFailures(
-    restGET(
-      hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs`,
-      queryParams,
-      opts ?? {},
-    ),
-  );
-  if (isModArchResponse<PipelineRunsApiResponse>(response)) {
-    const { data } = response;
-    return {
-      runs: data.runs ?? [],
-      total_size: data.total_size ?? 0,
-      next_page_token: data.next_page_token ?? '',
-    };
-  }
-  throw new Error('Invalid response format');
-}
-
-export async function getPipelineRunFromBFF(
-  hostPath: string,
-  runId: string,
-  namespace: string,
-  opts?: APIOptions,
-): Promise<PipelineRun> {
-  const queryParams: Record<string, string> = { namespace };
-
-  const response = await handleRestFailures(
-    restGET(
-      hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}`,
-      queryParams,
-      opts ?? {},
-    ),
-  );
-  if (isModArchResponse<PipelineRun>(response)) {
-    return response.data;
-  }
-  throw new Error('Invalid response format');
-}
-
-export async function enableManagedPipelines(hostPath: string, namespace: string): Promise<void> {
-  await handleRestFailures(
-    restCREATE(
-      hostPath,
-      `${URL_PREFIX}/api/${BFF_API_VERSION}/managed-pipelines/enable?namespace=${encodeURIComponent(namespace)}`,
-      {},
-    ),
-  );
-}
+export const { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines } =
+  createPipelinesApi(URL_PREFIX, BFF_API_VERSION);
 
 export async function getManagedPipelines(
   hostPath: string,
