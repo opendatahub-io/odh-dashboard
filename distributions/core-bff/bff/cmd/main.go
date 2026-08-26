@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http/httptest"
@@ -12,6 +11,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/api"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 
 	"log/slog"
 	"net/http"
@@ -169,14 +169,19 @@ func newHTTPServer(app *api.App, cfg config.EnvConfig, certFile, keyFile string,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	if certFile != "" && keyFile != "" {
+		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsCfg
+	}
+
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()

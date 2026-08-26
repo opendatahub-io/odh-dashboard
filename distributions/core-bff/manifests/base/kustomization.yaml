@@ -7,6 +7,8 @@ resources:
   - service-account.yaml
   - role.yaml
   - role-binding.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
 
 configMapGenerator:
   - name: core-bff-params
