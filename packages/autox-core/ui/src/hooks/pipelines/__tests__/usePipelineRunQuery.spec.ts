@@ -21,7 +21,6 @@ jest.mock('../../../api', () => ({
   createPipelinesApi: jest.fn(() => mockPipelinesApi),
 }));
 
-const isRunInTerminalState = jest.fn().mockReturnValue(false);
 const parseErrorStatus = jest.fn().mockReturnValue(undefined);
 
 const createWrapper = () => {
@@ -33,7 +32,6 @@ const createWrapper = () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        isRunInTerminalState,
         parseErrorStatus,
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
@@ -53,7 +51,6 @@ describe('usePipelineRunQuery', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    isRunInTerminalState.mockReturnValue(false);
     parseErrorStatus.mockReturnValue(undefined);
   });
 
@@ -92,7 +89,6 @@ describe('usePipelineRunQuery', () => {
             product: 'automl',
             apiPrefix: '/automl',
             bffApiVersion: 'v1',
-            isRunInTerminalState,
             parseErrorStatus,
           },
           React.createElement(

@@ -5,7 +5,6 @@ import { createK8sApi, createS3Api, createPipelinesApi } from '../api';
 export type Product = 'automl' | 'autorag';
 
 export type PipelineRunBehavior = {
-  isRunInTerminalState: (state: unknown) => boolean;
   parseErrorStatus: (error: Error) => number | undefined;
 };
 
@@ -19,7 +18,6 @@ export type ProductContextProviderProps = React.PropsWithChildren<{
   product: Product;
   apiPrefix: string;
   bffApiVersion: string;
-  isRunInTerminalState: PipelineRunBehavior['isRunInTerminalState'];
   parseErrorStatus: PipelineRunBehavior['parseErrorStatus'];
 }>;
 
@@ -28,7 +26,6 @@ export type ProductContextValue = {
   apiPrefix: string;
   bffApiVersion: string;
   api: ProductApi;
-  isRunInTerminalState: PipelineRunBehavior['isRunInTerminalState'];
   parseErrorStatus: PipelineRunBehavior['parseErrorStatus'];
 };
 
@@ -39,7 +36,6 @@ export const ProductContextProvider: React.FC<ProductContextProviderProps> = ({
   product,
   apiPrefix,
   bffApiVersion,
-  isRunInTerminalState,
   parseErrorStatus,
 }) => {
   const contextValue = React.useMemo<ProductContextValue>(
@@ -52,10 +48,9 @@ export const ProductContextProvider: React.FC<ProductContextProviderProps> = ({
         s3: createS3Api(apiPrefix, bffApiVersion),
         pipelines: createPipelinesApi(apiPrefix, bffApiVersion),
       },
-      isRunInTerminalState,
       parseErrorStatus,
     }),
-    [product, apiPrefix, bffApiVersion, isRunInTerminalState, parseErrorStatus],
+    [product, apiPrefix, bffApiVersion, parseErrorStatus],
   );
 
   return <ProductContext.Provider value={contextValue}>{children}</ProductContext.Provider>;

@@ -19,7 +19,6 @@ const createProps = (
   product: 'automl',
   apiPrefix: '/automl',
   bffApiVersion: 'v1',
-  isRunInTerminalState: () => false,
   parseErrorStatus: () => undefined,
   ...overrides,
 });
@@ -36,10 +35,9 @@ describe('ProductContextProvider', () => {
   });
 
   it('should provide product configuration, strategies, and URL-bound clients', async () => {
-    const isRunInTerminalState = jest.fn().mockReturnValue(true);
     const parseErrorStatus = jest.fn().mockReturnValue(404);
     const { result } = renderHook(() => useProductContext(), {
-      wrapper: createWrapper(createProps({ isRunInTerminalState, parseErrorStatus })),
+      wrapper: createWrapper(createProps({ parseErrorStatus })),
     });
 
     expect(result.current).toEqual(
@@ -47,7 +45,6 @@ describe('ProductContextProvider', () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        isRunInTerminalState,
         parseErrorStatus,
         api: {
           k8s: expect.any(Object),

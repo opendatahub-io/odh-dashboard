@@ -2,6 +2,7 @@ import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/rea
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useFetchS3File } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 import { useCreateIndexingPipelineRunMutation } from '~/app/hooks/useCreateIndexingPipelineRunMutation';
@@ -16,7 +17,6 @@ import {
   computePatternRankMap,
   downloadBlob,
   getOptimizedMetricForRAG,
-  isRunInTerminalState,
   normalizePipelineRunState,
   sanitizeFilename,
 } from '~/app/utilities/utils';

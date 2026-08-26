@@ -25,6 +25,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
+import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
 import { Link, useParams } from 'react-router';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -39,7 +40,7 @@ import {
   getDetectedLanguageFromPatterns,
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { isRunCompleted } from '~/app/utilities/utils';
 import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */

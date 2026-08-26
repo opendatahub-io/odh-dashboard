@@ -19,6 +19,17 @@ export enum RuntimeStateKF {
   PAUSED = 'PAUSED',
 }
 
+const TERMINAL_RUNTIME_STATES = new Set<string>([
+  RuntimeStateKF.SUCCEEDED,
+  RuntimeStateKF.FAILED,
+  RuntimeStateKF.CANCELED,
+  RuntimeStateKF.SKIPPED,
+  RuntimeStateKF.CACHED,
+]);
+
+export const isRunInTerminalState = (state: unknown): boolean =>
+  typeof state === 'string' && TERMINAL_RUNTIME_STATES.has(state.trim().toUpperCase());
+
 export enum ExecutionStateKF {
   NEW = 'New',
   RUNNING = 'Running',

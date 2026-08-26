@@ -39,21 +39,6 @@ export const isRunCompleted = (state: unknown): boolean =>
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: unknown): boolean => {
-  const s = normalizePipelineRunState(state);
-  if (!s) {
-    return false;
-  }
-  const TERMINAL_STATES: Set<string> = new Set([
-    RuntimeStateKF.SUCCEEDED,
-    RuntimeStateKF.FAILED,
-    RuntimeStateKF.CANCELED,
-    RuntimeStateKF.SKIPPED,
-    RuntimeStateKF.CACHED,
-  ]);
-  return TERMINAL_STATES.has(s);
-};
-
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */

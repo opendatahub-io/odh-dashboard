@@ -51,7 +51,6 @@ const createWrapper = () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        isRunInTerminalState: () => false,
         parseErrorStatus: () => undefined,
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),

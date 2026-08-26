@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { useProductContext, type ProductApi } from '@odh-dashboard/autox-core/ui/context';
 import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import { useS3FileFetchers, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type {
   ComponentStageMap,
@@ -18,7 +19,6 @@ import {
 import {
   findComponentTaskPrefix,
   isRunCompleted,
-  isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
 

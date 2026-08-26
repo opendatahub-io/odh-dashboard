@@ -21,10 +21,11 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Link, useParams } from 'react-router';
+import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import { formatMetricName, isRunCompleted } from '~/app/utilities/utils';
 
 import './AutomlInputParametersPanel.scss';
 

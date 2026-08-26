@@ -159,8 +159,7 @@ sufficient before reaching for the next one:
 `context/ProductContext.tsx` is the single core-owned context for product runtime
 configuration. Each consuming product must place its provider at the product
 application boundary, above any autox-core feature or hook that reads it. Product
-code supplies the product identity, BFF URL prefix/version, and narrow pipeline-run
-behavior (`isRunInTerminalState`, error-status parsing, and optional normalization).
+code supplies the product identity, BFF URL prefix/version, and error-status parsing.
 
 The context owns URL-bound API clients and exposes them together as `api` (`k8s`,
 `s3`, and `pipelines`). It must not import types or implementations from

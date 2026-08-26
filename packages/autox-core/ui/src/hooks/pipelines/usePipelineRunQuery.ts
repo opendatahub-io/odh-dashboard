@@ -1,5 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import type { PipelineRun } from '../../api/pipelines';
+import { isRunInTerminalState } from '../../api/pipelines/kfTypes';
 import { useProductContext } from '../../context';
 
 const POLL_INTERVAL_MS = 10000;
@@ -19,7 +20,6 @@ export function usePipelineRunQuery<
 ): UseQueryResult<TData, Error> {
   const {
     api: { pipelines: pipelinesApi },
-    isRunInTerminalState,
     parseErrorStatus,
   } = useProductContext();
 
