@@ -1,6 +1,5 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
-import { createCustomResource } from './customResources';
-import { pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 
@@ -48,9 +47,9 @@ export const createCleanLLMInferenceServiceConfig = (
   cy.log(`Cleaning up and creating LLMInferenceServiceConfig: ${configName}`);
   cleanupLLMInferenceServiceConfig(configName).then(() => {
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
-    cy.fixture(configYamlPath).then((yaml) => {
+    cy.fixture(configYamlPath, 'utf8').then((yaml: string) => {
       const replacedYaml = replacePlaceholdersInYaml(yaml, { CONFIG_NAME: configName });
-      createCustomResource(applicationNamespace, replacedYaml);
+      applyOpenShiftYaml(replacedYaml, applicationNamespace);
     });
   });
 };

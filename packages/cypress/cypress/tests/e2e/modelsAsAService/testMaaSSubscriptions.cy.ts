@@ -87,7 +87,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
-        llmInferenceServiceConfigName = `testData.llmInferenceServiceConfigName-${uuid}`;
+        llmInferenceServiceConfigName = `${testData.llmInferenceServiceConfigName}-${uuid}`;
         llmInferenceServiceConfigDisplayName = testData.llmInferenceServiceConfigDisplayName;
         llmInferenceServiceConfigContainerImage = testData.llmInferenceServiceConfigContainerImage;
         modelURI = testData.modelLocationURI;
