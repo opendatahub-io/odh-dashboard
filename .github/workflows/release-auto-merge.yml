@@ -1,4 +1,4 @@
-name: Sync main to odh-release and stable
+name: Sync main to odh-release
 
 on:
   workflow_dispatch:
@@ -25,8 +25,6 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    outputs:
-      has_changes: ${{ steps.sync.outputs.has_changes }}
 
     steps:
       - name: Checkout
@@ -240,48 +238,3 @@ jobs:
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"
-
-  sync-rhoai:
-    needs: sync
-    if: ${{ needs.sync.outputs.has_changes == 'true' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check stable branch exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ! gh api "repos/${{ github.repository }}/branches/stable" --silent 2>/dev/null; then
-            echo "ERROR: Branch 'stable' does not exist. Skipping sync."
-            exit 1
-          fi
-          echo "Branch 'stable' exists."
-
-      - name: Checkout stable
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: stable
-          fetch-depth: 0
-
-      - name: Fast-forward stable to odh-release
-        run: |
-          git fetch origin odh-release
-
-          echo "stable before: $(git rev-parse HEAD)"
-          echo "odh-release target:   $(git rev-parse origin/odh-release)"
-
-          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/odh-release)" ]]; then
-            echo "No changes — stable is already up to date with odh-release"
-            exit 0
-          fi
-
-          if ! git merge-base --is-ancestor HEAD origin/odh-release; then
-            echo "ERROR: Cannot fast-forward. stable has diverged from odh-release."
-            echo "Manual intervention required."
-            exit 1
-          fi
-
-          git merge --ff-only origin/odh-release
-          echo "stable after:  $(git rev-parse HEAD)"
-          git push origin stable
-          echo "Fast-forwarded stable to odh-release"
