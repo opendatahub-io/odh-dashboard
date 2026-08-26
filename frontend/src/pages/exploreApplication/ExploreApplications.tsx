@@ -103,6 +103,7 @@ ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
   const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
+  const nimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedId = searchParams.get('selectId');
@@ -132,8 +133,9 @@ const ExploreApplications: React.FC = () => {
       _.cloneDeep(components)
         .filter((component) => !component.spec.hidden)
         .filter((component) => component.metadata.name !== 'mlflow' || mlflowEnabled)
+        .filter((component) => component.metadata.name !== 'nvidia-nim' || !nimWizardEnabled)
         .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
-    [components, mlflowEnabled],
+    [components, mlflowEnabled, nimWizardEnabled],
   );
 
   React.useEffect(() => {
