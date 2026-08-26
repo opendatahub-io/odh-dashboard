@@ -42,7 +42,7 @@ The plugin configures shared modules, singleton flags, and version constraints s
 
 #### Remotes and `import: false`
 
-When `isHost` is false (federated remote), the plugin sets `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. When `isHost` is true (dashboard host, or a remote with `DEPLOYMENT_MODE=standalone`), the plugin enables eager sharing for must-share modules and leaves `import` at the Module Federation default (`true`) so the build can bundle its own copy.
+When `isHost` is false (federated remote), the plugin sets `import: false` on modules that must come from the host: React, routers, OpenShift SDK, `@patternfly/react-core`, `@patternfly/react-styles`, and host-provided ODH packages. Other shared PatternFly packages and federated-only `@odh-dashboard/*` packages remain singleton but may fall back to a remote-bundled copy. When `isHost` is true (dashboard host, or a standalone remote), the plugin enables eager sharing for must-share modules and leaves `import` at the Module Federation default (`true`) so the build can bundle its own copy.
 
 #### Additional shared modules
 
@@ -65,7 +65,7 @@ Each federated module must include a `module-federation` property in its `packag
   - **host** (string, optional): Development host (defaults to `localhost`)
   - **port** (number): Development server port
 - **service** (object): Production service configuration
-  - **name** (string): Kubernetes service name. In standalone deployment mode, this should match the module's standalone Service name (e.g., `odh-dashboard-<slug>-ui`). In sidecar mode (legacy), this typically points to the shared `odh-dashboard` service.
+  - **name** (string): Kubernetes service name. Should match the module's Service name (e.g., `odh-dashboard-<slug>-ui`).
   - **namespace** (string, optional): Kubernetes namespace (uses current namespace if not specified)
   - **port** (number): Service port
 
@@ -152,7 +152,7 @@ For each configured module, the backend sets up:
    - Uses the `proxy` configuration from the module-federation config
    - Supports path rewriting and authorization
 
-In standalone deployment mode (primary), each module runs as its own Kubernetes Service. The proxy routes requests to the module's standalone Service (e.g., `odh-dashboard-gen-ai-ui`) rather than to localhost ports within a shared pod. The `federation-config` ConfigMap provides the Fastify backend with the service name, namespace, and port for each enabled module.
+Each module runs as its own Kubernetes Service. The proxy routes requests to the module's Service (e.g., `odh-dashboard-gen-ai-ui`). The `federation-config` ConfigMap provides the Fastify backend with the service name, namespace, and port for each enabled module.
 
 ## Federation Configuration in Production
 
@@ -160,11 +160,11 @@ The `federation-config` ConfigMap is the bridge between the Dashboard Module Con
 
 ### How it Works
 
-In standalone deployment mode, the operator dynamically builds the `federation-config` ConfigMap based on which modules are currently enabled. The process works as follows:
+The operator dynamically builds the `federation-config` ConfigMap based on which modules are currently enabled. The process works as follows:
 
 1. **Module resolution**: The operator evaluates DSC component gates, CR overrides, and inter-module dependencies to determine which modules are enabled.
 2. **ConfigMap generation**: For each enabled module, the operator creates an entry in the ConfigMap containing:
-   - **Service name**: The module's standalone Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`)
+   - **Service name**: The module's Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`)
    - **Namespace**: The namespace where the module is deployed
    - **Port**: The container port the module listens on
    - **Proxy paths**: API paths that should be forwarded to the module's BFF

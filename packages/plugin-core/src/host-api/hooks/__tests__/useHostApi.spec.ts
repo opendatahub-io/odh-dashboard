@@ -11,13 +11,6 @@ const mockServices: HostApiServices = {
   useServingConnections: jest.fn(() => [[], false, undefined, jest.fn()]),
   getDashboardConfigTemplateOrder: jest.fn(),
   getDashboardConfigTemplateDisablement: jest.fn(),
-  useModelServingMetrics: jest.fn(() => ({ data: {}, refresh: jest.fn() })),
-  useServingPlatformStatuses: jest.fn(() => ({
-    kServe: { enabled: false, installed: false },
-    kServeNIM: { enabled: false, installed: false },
-    platformEnabledCount: 0,
-    refreshNIMAvailability: jest.fn(),
-  })),
   isProjectNIMSupported: jest.fn(() => false),
   createProject: jest.fn(),
   ConnectionTypeFormFields: jest.fn(),

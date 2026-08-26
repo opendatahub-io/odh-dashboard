@@ -26,8 +26,8 @@ func (r *DashboardReconciler) PatchDeploymentFederationHash(ctx context.Context,
 	return r.patchDeploymentFederationHash(ctx, configData)
 }
 
-func (r *DashboardReconciler) DeleteSidecarResources(ctx context.Context) error {
-	return r.deleteSidecarResources(ctx)
+func (r *DashboardReconciler) CleanupLegacySidecarResources(ctx context.Context) error {
+	return r.cleanupLegacySidecarResources(ctx)
 }
 
 func (r *DashboardReconciler) AutoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {

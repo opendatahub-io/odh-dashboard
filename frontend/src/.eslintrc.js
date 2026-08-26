@@ -16,6 +16,8 @@ module.exports = require('@odh-dashboard/eslint-config')
           patterns: [
             {
               group: [
+                '!@odh-dashboard/analytics',
+                '!@odh-dashboard/analytics/**',
                 '!@odh-dashboard/app-config',
                 '!@odh-dashboard/app-config/**',
                 '!@odh-dashboard/plugin-core',

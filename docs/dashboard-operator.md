@@ -23,9 +23,6 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `deploymentMode` | `Sidecar\|Standalone` | Deployment topology for BFF modules (default: Sidecar; **standalone is the recommended mode** -- sidecar is deprecated and will be removed) |
-
-> **Deprecation notice**: Sidecar deployment mode is deprecated. Standalone mode is the primary deployment topology for all new modules. Sidecar support will be removed in a future release.
 
 ### Status Fields
 
@@ -48,26 +45,22 @@ The CRD embeds types from `odh-platform-utilities/api/common`:
 
 ## Reconciliation Pipeline
 
-The controller follows a sequential pipeline on each reconcile, branching based on the `deploymentMode` spec field:
+The controller follows a sequential pipeline on each reconcile:
 
-```
+```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
 3. Handle Removed      -> tear down all labeled resources
-4. Branch on deploymentMode:
-   |-- Sidecar path (reconcileSidecar):
-   |   -> Render platform overlay (odh/ or rhoai/) with sidecar patches
-   |   -> Deploy via SSA (single pod with all BFF containers)
-   |   -> Check container readiness per-module
-   +-- Standalone path (reconcileStandalone):
-       -> Render standalone overlay (odh/standalone or rhoai/standalone)
-       -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
-       -> For each enabled module:
-       |   -> Render manifests/modules/<slug>/
-       |   -> Deploy as independent Deployment via SSA
-       -> GC disabled module resources
-       -> Build dynamic federation-config ConfigMap
-       -> Patch main Deployment with config hash annotation (rolling restart)
+4. Deploy:
+   -> Clean up legacy sidecar resources (upgrade path)
+   -> Render overlay (odh or rhoai)
+   -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
+   -> For each enabled module:
+   |   -> Render manifests/modules/<slug>/
+   |   -> Deploy as independent Deployment via SSA
+   -> GC disabled module resources
+   -> Build dynamic federation-config ConfigMap
+   -> Patch main Deployment with config hash annotation (rolling restart)
 5. Extract URL         -> Route admission check
 6. Update status       -> conditions, phase, URL, moduleStatuses, releases
 ```
@@ -92,18 +85,16 @@ The finalizer handles a separate concern: cleanup on CR **deletion** (when `Dele
 
 ## Manifest Management
 
-Manifests are stored at a configurable base path (`--manifests-base-path` flag), with platform-specific overlays for each deployment mode:
+Manifests are stored at a configurable base path (`--manifests-base-path` flag), with platform-specific overlays:
 
 ### Overlay Paths
 
-| Platform | Sidecar Overlay | Standalone Overlay |
-|----------|----------------|-------------------|
-| OpenDataHub | `/odh` | `/odh/standalone` |
-| SelfManagedRhoai | `/rhoai` | `/rhoai/standalone` |
+| Platform | Overlay |
+|----------|---------|
+| OpenDataHub | `/odh` |
+| SelfManagedRhoai | `/rhoai` |
 
-**Sidecar overlay** extends `manifests/base/` + `manifests/sidecar/` (injects all BFF containers via JSON6902 patches, includes static federation-config ConfigMap).
-
-**Standalone overlay** extends `manifests/base/` directly (no sidecar patches). Produces a core pod with only 3 containers (odh-dashboard, kube-rbac-proxy, core-bff).
+The overlay extends `manifests/base/` and produces a core pod with 3 containers (odh-dashboard, kube-rbac-proxy, core-bff).
 
 ### Rendering Pipeline
 
@@ -111,7 +102,7 @@ Manifests are stored at a configurable base path (`--manifests-base-path` flag),
 2. **Kustomize engine** renders manifests with namespace injection
 3. **SSA deployer** applies all resources with `dashboard-operator` as field owner
 
-### Standalone Module Manifests
+### Module Manifests
 
 Each module has its own kustomize package under `manifests/modules/<slug>/` containing:
 - `deployment.yaml` -- 2-replica Deployment with TLS, SA isolation
@@ -161,17 +152,13 @@ Module enablement uses a three-pass algorithm implemented in `resolveModuleStatu
 
 3. **Unknown Module Detection**: Any key in `spec.modules` that does not match a registered module is reported as `Phase: NotDeployed`, reason: `UnknownModule`.
 
-### Resolution (Sidecar Mode)
+### Module Health Resolution
 
-In sidecar mode, container readiness is overlaid from pod status after module enablement is resolved. If a module's container is in `ImagePullBackOff`, `CrashLoopBackOff`, or similar waiting state, its status is downgraded to `Degraded`. If the container is not found in any pod, the status is set to `NotDeployed`.
+Module health is checked by inspecting each module's Deployment readiness (replicas vs ready replicas). If the Deployment has fewer ready replicas than desired, the module is marked `Degraded`. If no Deployment is found for the module, it is marked `NotDeployed`.
 
-### Resolution (Standalone Mode)
+## Dynamic Federation ConfigMap
 
-In standalone mode, module health is checked by inspecting each module's standalone Deployment readiness (replicas vs ready replicas), not container readiness within a shared pod. If the Deployment has fewer ready replicas than desired, the module is marked `Degraded`. If no Deployment is found for the module, it is marked `NotDeployed`.
-
-## Dynamic Federation ConfigMap (Standalone Mode)
-
-In standalone mode, the operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's standalone Service:
+The operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's Service:
 
 ```json
 {
@@ -194,8 +181,6 @@ The ConfigMap also includes:
 - An `mlflowEmbedded` entry if the mlflow module is deployed (routes to the embedded MLflow UI)
 
 After deploying the ConfigMap, the operator patches the main Deployment with a content hash annotation (`dashboard.opendatahub.io/federation-config-hash`) to trigger a rolling restart whenever the federation configuration changes. The hash is computed as SHA-256 of the ConfigMap data, and the patch is skipped if the hash has not changed.
-
-In sidecar mode, the federation-config ConfigMap is static and included directly in the sidecar overlay manifests.
 
 ## Operator ConfigMap
 
@@ -220,11 +205,11 @@ dashboard-operator/
 |   +-- main.go                     # Entry point: flags, scheme, platform detection
 |-- internal/
 |   |-- controller/
-|   |   |-- dashboard_reconciler.go # Reconcile loop (sidecar + standalone paths)
+|   |   |-- dashboard_reconciler.go # Reconcile loop
 |   |   |-- actions.go              # Manifest sets, kustomize params, URL extraction
 |   |   |-- support.go              # Platform config, image resolution
 |   |   |-- modules.go              # Module registry + dependency resolution
-|   |   |-- module_deploy.go        # Standalone module deployment, federation ConfigMap
+|   |   |-- module_deploy.go        # Module deployment, federation ConfigMap
 |   |   |-- config.go               # Operator ConfigMap reader
 |   |   +-- *_test.go               # Unit tests for each file
 |   +-- webhook/
@@ -283,7 +268,7 @@ The operator controller is distinct from BFF (Backend-for-Frontend) services:
 | Location | `dashboard-operator/` | `packages/*/bff/` |
 | Build | Standalone binary | Per-package binary |
 
-The operator manages the deployment of BFF containers -- in sidecar mode as part of the Dashboard pod, and in standalone mode as independent Deployments -- but does not interact with BFF HTTP APIs at runtime.
+The operator manages the deployment of BFF containers as independent Deployments but does not interact with BFF HTTP APIs at runtime.
 
 ## Zero-Downtime Migration (SSA Adoption)
 
@@ -309,7 +294,7 @@ On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-
 
 ### Labels
 
-All resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. In standalone mode, individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection.
+All resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection.
 
 ## Status Aggregation
 
@@ -335,7 +320,7 @@ The Dashboard type provides five methods:
 |-----------|-----------|-------------|
 | `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
-| `Degraded` | One or more modules degraded (standalone) | No degradation / route not ready |
+| `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
 
 The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled) are treated as non-blocking by the rollup.
@@ -535,7 +520,7 @@ helm install dashboard charts/dashboard/ \
   --set image.repository=quay.io/<your-registry>/odh-dashboard-operator \
   --set image.tag=dev
 
-# Create the Dashboard CR (standalone mode, recommended)
+# Create the Dashboard CR
 cat <<EOF | oc apply -f -
 apiVersion: components.platform.opendatahub.io/v1alpha1
 kind: Dashboard
@@ -544,21 +529,6 @@ metadata:
 spec:
   managementState: Managed
   deploymentMode: Standalone
-  gateway:
-    domain: ""
-  components:
-    modelregistry:
-      managementState: Managed
-EOF
-
-# Or create the Dashboard CR in sidecar mode (deprecated)
-cat <<EOF | oc apply -f -
-apiVersion: components.platform.opendatahub.io/v1alpha1
-kind: Dashboard
-metadata:
-  name: default-dashboard
-spec:
-  managementState: Managed
   gateway:
     domain: ""
   components:
@@ -589,8 +559,7 @@ All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operato
 
 | Aspect | ODH | RHOAI |
 |--------|-----|-------|
-| Sidecar overlay | `/odh` | `/rhoai` |
-| Standalone overlay | `/odh/standalone` | `/rhoai/standalone` |
+| Overlay | `/odh` | `/rhoai` |
 | Section title | "OpenShift Open Data Hub" | "OpenShift Self Managed Services" |
 | Image sources | `quay.io/opendatahub/` | `quay.io/redhat-ai-dev/` (via Konflux) |
 | CRD group | `components.platform.opendatahub.io` | Same |
@@ -629,9 +598,9 @@ The `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` is not yet onboarded to Konflux
 
 The controller requeues every 10 seconds until the OpenShift Route is admitted. Check Route status: `oc get route -n <namespace> -l platform.opendatahub.io/part-of=dashboard`.
 
-**Module stuck in Degraded (standalone mode)**
+**Module stuck in Degraded**
 
-In standalone mode, check the individual module Deployment:
+Check the individual module Deployment:
 ```bash
 oc get deployment -n <namespace> -l app.kubernetes.io/component=<slug>
 oc describe deployment odh-dashboard-<slug>-ui -n <namespace>

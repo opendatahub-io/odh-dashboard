@@ -48,11 +48,6 @@ func TestApplyKustomizeParams(t *testing.T) {
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("existing-key=existing-value\n"), 0644))
 
-	sidecar := filepath.Join(dir, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"),
-		[]byte("model-registry-ui-image=quay.io/default:main\ngen-ai-ui-image=quay.io/default:main\n"), 0644))
-
 	t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:prod")
 
 	dashboard := &v1alpha1.Dashboard{
@@ -71,16 +66,8 @@ func TestApplyKustomizeParams(t *testing.T) {
 	assert.Contains(t, overlayContent, "dashboard-url=https://rh-ai.apps.test.com/")
 	assert.Contains(t, overlayContent, "section-title=OpenShift Self Managed Services")
 	assert.Contains(t, overlayContent, "existing-key=existing-value")
-
-	sidecarData, err := os.ReadFile(filepath.Join(sidecar, "params.env"))
-	require.NoError(t, err)
-	sidecarContent := string(sidecarData)
-	assert.Contains(t, sidecarContent, "model-registry-ui-image=quay.io/mr:prod",
-		"RELATED_IMAGE env var should override default in sidecar params.env")
-	assert.Contains(t, sidecarContent, "gen-ai-ui-image=quay.io/default:main",
-		"unset RELATED_IMAGE should preserve existing default")
-	assert.Contains(t, sidecarContent, "gateway-domain=rh-ai.apps.test.com",
-		"computed params should also be written to sidecar")
+	assert.Contains(t, overlayContent, "model-registry-ui-image=quay.io/mr:prod",
+		"RELATED_IMAGE env var should be written to overlay params.env")
 }
 
 func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
@@ -89,11 +76,6 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"),
 		[]byte("odh-dashboard-image=quay.io/opendatahub/odh-dashboard@sha256:abc123\nkube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456\n"), 0644))
-
-	sidecar := filepath.Join(dir, "sidecar")
-	require.NoError(t, os.MkdirAll(sidecar, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"),
-		[]byte("model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789\n"), 0644))
 
 	for _, envVar := range imagesMap {
 		t.Setenv(envVar, "")
@@ -110,27 +92,6 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 		"digest-pinned default from params.env must survive when no env var override is provided")
 	assert.Contains(t, overlayContent, "kube-rbac-proxy=quay.io/opendatahub/odh-kube-rbac-proxy@sha256:def456",
 		"digest-pinned default from params.env must survive when no env var override is provided")
-
-	sidecarData, err := os.ReadFile(filepath.Join(sidecar, "params.env"))
-	require.NoError(t, err)
-	sidecarContent := string(sidecarData)
-	assert.Contains(t, sidecarContent, "model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-model-registry@sha256:ghi789",
-		"digest-pinned default in sidecar params.env must survive when no env var override is provided")
-}
-
-// TestApplyKustomizeParamsStandaloneNoSidecar verifies that applyKustomizeParams
-// returns nil without error when the sidecar/ directory is absent (standalone mode).
-func TestApplyKustomizeParamsStandaloneNoSidecar(t *testing.T) {
-	dir := t.TempDir()
-	overlay := filepath.Join(dir, "odh", "standalone")
-	require.NoError(t, os.MkdirAll(overlay, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
-
-	// No sidecar/ directory created — simulates standalone mode manifest layout.
-	dashboard := &v1alpha1.Dashboard{}
-	manifests := standaloneManifestSets(dir, cluster.OpenDataHub)
-	err := applyKustomizeParams(dashboard, manifests, cluster.OpenDataHub)
-	require.NoError(t, err, "applyKustomizeParams must not error when sidecar/ is absent")
 }
 
 func TestExtractDashboardURL(t *testing.T) {

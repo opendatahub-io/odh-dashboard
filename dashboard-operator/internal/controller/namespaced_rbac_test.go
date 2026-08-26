@@ -41,7 +41,7 @@ func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Ob
 	return r, cli
 }
 
-func newDashboard(notebooksNS, modelRegistryNS string) *v1alpha1.Dashboard {
+func newRBACDashboard(notebooksNS, modelRegistryNS string) *v1alpha1.Dashboard {
 	return &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: v1alpha1.DashboardInstanceName,
@@ -112,7 +112,7 @@ func TestDashboardSAName(t *testing.T) {
 // are created in both target namespaces when both spec fields are set.
 func TestReconcileNamespacedRBAC_BothNamespaces(t *testing.T) {
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
@@ -151,7 +151,7 @@ func TestReconcileNamespacedRBAC_BothNamespaces(t *testing.T) {
 // when ModelRegistryNamespace is empty.
 func TestReconcileNamespacedRBAC_OnlyNotebooks(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard(testNotebooksNS, "")
+	dashboard := newRBACDashboard(testNotebooksNS, "")
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestReconcileNamespacedRBAC_OnlyNotebooks(t *testing.T) {
 // is created when NotebooksNamespace is empty.
 func TestReconcileNamespacedRBAC_OnlyModelRegistry(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard("", testModelRegistryNS)
+	dashboard := newRBACDashboard("", testModelRegistryNS)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestReconcileNamespacedRBAC_OnlyModelRegistry(t *testing.T) {
 // namespace fields are empty.
 func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard("", "")
+	dashboard := newRBACDashboard("", "")
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
@@ -202,7 +202,7 @@ func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 // the same result (no duplicate resources, update path works).
 func TestReconcileNamespacedRBAC_Idempotent(t *testing.T) {
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
@@ -231,7 +231,7 @@ func TestReconcileNamespacedRBAC_UpdateExistingRole(t *testing.T) {
 	}
 
 	r, cli := newReconciler(t, cluster.OpenDataHub, existingRole)
-	dashboard := newDashboard(testNotebooksNS, "")
+	dashboard := newRBACDashboard(testNotebooksNS, "")
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
@@ -258,7 +258,7 @@ func TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange(t *testing.T) {
 	newNS := "new-notebooks-ns"
 
 	// First reconcile with old namespace
-	dashboard := newDashboard(oldNS, "")
+	dashboard := newRBACDashboard(oldNS, "")
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 
 	// Verify old resources exist
@@ -283,7 +283,7 @@ func TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange(t *testing.T) {
 // namespace fields are cleared, all managed resources are removed.
 func TestReconcileNamespacedRBAC_GCStaleOnNamespaceRemoved(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 	assert.Len(t, listRoles(t, cli), 2)
@@ -301,7 +301,7 @@ func TestReconcileNamespacedRBAC_GCStaleOnNamespaceRemoved(t *testing.T) {
 // cluster-wide, regardless of namespace.
 func TestCleanupNamespacedRBAC(t *testing.T) {
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 	assert.Len(t, listRoles(t, cli), 2)
@@ -326,7 +326,7 @@ func TestCleanupNamespacedRBAC_AlreadyGone(t *testing.T) {
 // namespaces untouched and only removes resources in non-desired namespaces.
 func TestGCStaleNamespacedRBAC_OnlyRemovesNonDesired(t *testing.T) {
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 	assert.Len(t, listRoles(t, cli), 2)
@@ -349,7 +349,7 @@ func TestGCStaleNamespacedRBAC_OnlyRemovesNonDesired(t *testing.T) {
 // desired set removes all managed resources.
 func TestGCStaleNamespacedRBAC_EmptyDesiredDeletesAll(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 	assert.Len(t, listRoles(t, cli), 2)
@@ -395,7 +395,7 @@ func TestReconcileNamespacedRBAC_DoesNotTouchUnmanagedRoles(t *testing.T) {
 // expected managed label so future label-based GC can find them.
 func TestReconcileNamespacedRBAC_Labels(t *testing.T) {
 	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
-	dashboard := newDashboard(testNotebooksNS, "")
+	dashboard := newRBACDashboard(testNotebooksNS, "")
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 
@@ -412,7 +412,7 @@ func TestReconcileNamespacedRBAC_Labels(t *testing.T) {
 // (not ClusterRole) in the same namespace.
 func TestReconcileNamespacedRBAC_RoleRefIsRole(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard(testNotebooksNS, testModelRegistryNS)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 
@@ -428,7 +428,7 @@ func TestReconcileNamespacedRBAC_RoleRefIsRole(t *testing.T) {
 // notebooks namespace match what the dashboard app needs.
 func TestReconcileNamespacedRBAC_NotebooksRules(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard(testNotebooksNS, "")
+	dashboard := newRBACDashboard(testNotebooksNS, "")
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 
@@ -452,7 +452,7 @@ func TestReconcileNamespacedRBAC_NotebooksRules(t *testing.T) {
 // the model-registry namespace.
 func TestReconcileNamespacedRBAC_ModelRegistryRules(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
-	dashboard := newDashboard("", testModelRegistryNS)
+	dashboard := newRBACDashboard("", testModelRegistryNS)
 
 	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
 
@@ -476,7 +476,7 @@ func TestReconcileNamespacedRBAC_ModelRegistryRules(t *testing.T) {
 func TestReconcileNamespacedRBAC_SameNamespaceBothComponents(t *testing.T) {
 	r, cli := newReconciler(t, cluster.OpenDataHub)
 	sharedNS := "shared-namespace"
-	dashboard := newDashboard(sharedNS, sharedNS)
+	dashboard := newRBACDashboard(sharedNS, sharedNS)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.NoError(t, err)
