@@ -27,26 +27,26 @@ import (
 )
 
 var (
-	ErrDashboardRouteNotReady       = errors.New("dashboard route not yet ready")
-	ErrPersesCRDNotFound            = errors.New("PersesDashboard CRD not installed")
-	ErrObservabilityDisabled        = errors.New("observability is not enabled")
-	ErrPersesServiceRequired        = errors.New("observability is enabled but PersesService is not configured")
-	ErrConsumerPortalDisabled       = errors.New("consumer portal is not enabled")
-	ErrConsumerPortalDomainRequired = errors.New("consumer portal is enabled but gateway domain is not set")
+	ErrDashboardRouteNotReady           = errors.New("dashboard route not yet ready")
+	ErrPersesCRDNotFound                = errors.New("PersesDashboard CRD not installed")
+	ErrObservabilityDisabled            = errors.New("observability is not enabled")
+	ErrPersesServiceRequired            = errors.New("observability is enabled but PersesService is not configured")
+	ErrMaasConsumerPortalDisabled       = errors.New("maas consumer portal is not enabled")
+	ErrMaasConsumerPortalDomainRequired = errors.New("maas consumer portal is enabled but gateway domain is not set")
 )
 
-// consumerPortalConsoleLinkName is the fixed name of the MaaS Consumer Portal
+// maasConsumerPortalConsoleLinkName is the fixed name of the MaaS Consumer Portal
 // ConsoleLink CR managed by the operator.
-const consumerPortalConsoleLinkName = "consumer-portal-link"
+const maasConsumerPortalConsoleLinkName = "maas-consumer-portal-link"
 
-// consumerPortalPartOf is the platform.opendatahub.io/part-of label value
-// applied to consumer portal resources. It is deliberately distinct from the
+// maasConsumerPortalPartOf is the platform.opendatahub.io/part-of label value
+// applied to maas consumer portal resources. It is deliberately distinct from the
 // core dashboard's value so the portal is an independent operand: the core
 // dashboard teardown (which selects part-of=dashboard) never matches portal
 // resources, and the portal is reconciled and removed solely by
-// reconcileConsumerPortalConsoleLink — independent of the core dashboard's
+// reconcileMaasConsumerPortalConsoleLink — independent of the core dashboard's
 // managementState.
-const consumerPortalPartOf = "consumer-portal"
+const maasConsumerPortalPartOf = "maas-consumer-portal"
 
 // Ray Gateway RBAC must live in openshift-ingress; kustomize WithNamespace(apps)
 // would otherwise place these Role/RoleBinding objects in the applications namespace.
@@ -242,12 +242,12 @@ func deployObservabilityManifests(
 	return nil
 }
 
-// deployConsumerPortalConsoleLink renders and applies the MaaS Consumer Portal
-// ConsoleLink. It returns ErrConsumerPortalDisabled when the portal is not
-// enabled and ErrConsumerPortalDomainRequired when the gateway domain (from
+// deployMaasConsumerPortalConsoleLink renders and applies the MaaS Consumer Portal
+// ConsoleLink. It returns ErrMaasConsumerPortalDisabled when the portal is not
+// enabled and ErrMaasConsumerPortalDomainRequired when the gateway domain (from
 // which the portal host is derived) is not set. The cluster-scoped ConsoleLink
 // is owned by the Dashboard CR so it is garbage-collected on CR deletion.
-func deployConsumerPortalConsoleLink(
+func deployMaasConsumerPortalConsoleLink(
 	ctx context.Context,
 	cli client.Client,
 	dashboard *v1alpha1.Dashboard,
@@ -256,8 +256,8 @@ func deployConsumerPortalConsoleLink(
 ) error {
 	logger := log.FromContext(ctx)
 
-	if dashboard.Spec.ConsumerPortal == nil || dashboard.Spec.ConsumerPortal.ManagementState != "Managed" {
-		return ErrConsumerPortalDisabled
+	if dashboard.Spec.MaasConsumerPortal == nil || dashboard.Spec.MaasConsumerPortal.ManagementState != "Managed" {
+		return ErrMaasConsumerPortalDisabled
 	}
 
 	domain := ""
@@ -265,35 +265,35 @@ func deployConsumerPortalConsoleLink(
 		domain = dashboard.Spec.Gateway.Domain
 	}
 
-	consumerPortalURLValue, ok := consumerPortalURL(domain)
+	maasConsumerPortalURLValue, ok := maasConsumerPortalURL(domain)
 	if !ok {
-		return ErrConsumerPortalDomainRequired
+		return ErrMaasConsumerPortalDomainRequired
 	}
 
 	// RHOAI-only feature; warn if enabled on ODH so the misconfig is visible.
 	if platform == cluster.OpenDataHub {
-		logger.Info("Consumer portal ConsoleLink is an RHOAI-only feature; deploying it on Open Data Hub will use RHOAI branding")
+		logger.Info("MaaS Consumer Portal ConsoleLink is an RHOAI-only feature; deploying it on Open Data Hub will use RHOAI branding")
 	}
 
-	m := consumerPortalConsoleLinkManifestInfo(basePath)
+	m := maasConsumerPortalConsoleLinkManifestInfo(basePath)
 
 	// Inject the derived portal URL and the platform's section title into the
 	// portal manifest's own params.env before rendering.
 	manifestPath := m.String()
 	params := readExistingParams(filepath.Join(manifestPath, "params.env"))
-	params["consumer-portal-url"] = consumerPortalURLValue
+	params["maas-consumer-portal-url"] = maasConsumerPortalURLValue
 	if title, titleOK := sectionTitle[platform]; titleOK {
 		params["section-title"] = title
 	}
 	if err := writeParamsEnv(manifestPath, params); err != nil {
-		return fmt.Errorf("failed to write consumer portal params.env to %s: %w", manifestPath, err)
+		return fmt.Errorf("failed to write maas consumer portal params.env to %s: %w", manifestPath, err)
 	}
 
 	engine := kustomize.NewEngine()
 
 	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(dashboard.Namespace))
 	if err != nil {
-		return fmt.Errorf("failed to render consumer portal manifests from %s: %w", m, err)
+		return fmt.Errorf("failed to render maas consumer portal manifests from %s: %w", m, err)
 	}
 
 	// Deploy only the ConsoleLink. The kustomize configMapGenerator produces a
@@ -307,11 +307,11 @@ func deployConsumerPortalConsoleLink(
 		}
 	}
 
-	logger.Info("Deploying consumer portal ConsoleLink", "url", consumerPortalURLValue, "resources", len(resources))
+	logger.Info("Deploying maas consumer portal ConsoleLink", "url", maasConsumerPortalURLValue, "resources", len(resources))
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
-		deploy.WithLabel(labels.PlatformPartOf, consumerPortalPartOf),
+		deploy.WithLabel(labels.PlatformPartOf, maasConsumerPortalPartOf),
 		deploy.WithApplyOrder(),
 	)
 
@@ -321,28 +321,28 @@ func deployConsumerPortalConsoleLink(
 		Release:   deploy.ReleaseInfo{Type: string(platform)},
 		Resources: resources,
 	}); err != nil {
-		return fmt.Errorf("failed to deploy consumer portal ConsoleLink: %w", err)
+		return fmt.Errorf("failed to deploy maas consumer portal ConsoleLink: %w", err)
 	}
 
 	return nil
 }
 
-// deleteConsumerPortalConsoleLink removes the portal ConsoleLink by name. It is
+// deleteMaasConsumerPortalConsoleLink removes the portal ConsoleLink by name. It is
 // a no-op when the ConsoleLink CRD is not installed or the object is absent.
-func deleteConsumerPortalConsoleLink(ctx context.Context, cli client.Client) error {
+func deleteMaasConsumerPortalConsoleLink(ctx context.Context, cli client.Client) error {
 	logger := log.FromContext(ctx)
 
 	cl := &unstructured.Unstructured{}
 	cl.SetGroupVersionKind(consoleLinkGVK)
-	cl.SetName(consumerPortalConsoleLinkName)
+	cl.SetName(maasConsumerPortalConsoleLinkName)
 
-	logger.Info("Deleting consumer portal ConsoleLink", "name", consumerPortalConsoleLinkName)
+	logger.Info("Deleting maas consumer portal ConsoleLink", "name", maasConsumerPortalConsoleLinkName)
 	if err := cli.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
 		if meta.IsNoMatchError(err) {
 			return nil
 		}
 
-		return fmt.Errorf("deleting ConsoleLink %s: %w", consumerPortalConsoleLinkName, err)
+		return fmt.Errorf("deleting ConsoleLink %s: %w", maasConsumerPortalConsoleLinkName, err)
 	}
 
 	return nil

@@ -354,12 +354,12 @@ func disableAllModulesExcept(enabled ...string) map[string]v1alpha1.ModuleOverri
 	return modules
 }
 
-// writeConsumerPortalManifest writes the portal ConsoleLink kustomize bundle
-// into base/consumer-portal-consolelink/rhoai so the reconciler can render it.
-func writeConsumerPortalManifest(t *testing.T, base string) {
+// writeMaasConsumerPortalManifest writes the portal ConsoleLink kustomize bundle
+// into base/maas-consumer-portal-consolelink/rhoai so the reconciler can render it.
+func writeMaasConsumerPortalManifest(t *testing.T, base string) {
 	t.Helper()
 
-	dir := filepath.Join(base, "consumer-portal-consolelink", "rhoai")
+	dir := filepath.Join(base, "maas-consumer-portal-consolelink", "rhoai")
 	require.NoError(t, os.MkdirAll(dir, 0755))
 
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
@@ -367,29 +367,29 @@ kind: Kustomization
 resources:
   - consolelink.yaml
 configMapGenerator:
-  - name: consumer-portal-params
+  - name: maas-consumer-portal-params
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
 replacements:
   - source:
       kind: ConfigMap
-      name: consumer-portal-params
+      name: maas-consumer-portal-params
       fieldPath: data.section-title
     targets:
       - select:
           kind: ConsoleLink
-          name: consumer-portal-link
+          name: maas-consumer-portal-link
         fieldPaths:
           - spec.applicationMenu.section
   - source:
       kind: ConfigMap
-      name: consumer-portal-params
-      fieldPath: data.consumer-portal-url
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-url
     targets:
       - select:
           kind: ConsoleLink
-          name: consumer-portal-link
+          name: maas-consumer-portal-link
         fieldPaths:
           - spec.href
 `), 0644))
@@ -397,17 +397,17 @@ replacements:
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "consolelink.yaml"), []byte(`apiVersion: console.openshift.io/v1
 kind: ConsoleLink
 metadata:
-  name: consumer-portal-link
+  name: maas-consumer-portal-link
 spec:
   applicationMenu:
     section: section-title
     imageURL: data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=
-  href: consumer-portal-url
+  href: maas-consumer-portal-url
   location: ApplicationMenu
   text: MaaS Consumer Portal
 `), 0644))
 
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("consumer-portal-url=\nsection-title=\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("maas-consumer-portal-url=\nsection-title=\n"), 0644))
 }
 
 // getConsoleLink fetches a cluster-scoped ConsoleLink by name, returning nil
@@ -446,9 +446,9 @@ func conditionStatus(dashboard *v1alpha1.Dashboard, conditionType string) metav1
 	return ""
 }
 
-func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
+func TestIntegration_MaasConsumerPortalConsoleLink(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"model-registry"})
-	writeConsumerPortalManifest(t, base)
+	writeMaasConsumerPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -460,9 +460,9 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("modelRegistry"),
+		MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -471,20 +471,20 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 	t.Cleanup(func() {
 		deleteDashboard(t)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.ConsumerPortalConsoleLinkName)
+		deleteConsoleLinkIfExists(t, ctrlpkg.MaasConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
 	reconcile(t, r)
 
 	// ConsoleLink is created with the derived href.
-	cl := getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName)
-	require.NotNil(t, cl, "consumer-portal-link ConsoleLink should be created when enabled")
+	cl := getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName)
+	require.NotNil(t, cl, "maas-consumer-portal-link ConsoleLink should be created when enabled")
 
 	href, found, err := unstructured.NestedString(cl.Object, "spec", "href")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "https://consumer-portal.test.example.com/", href)
+	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", href)
 
 	// ownerReference points to the Dashboard CR (for GC on CR deletion).
 	owners := cl.GetOwnerReferences()
@@ -494,29 +494,29 @@ func TestIntegration_ConsumerPortalConsoleLink(t *testing.T) {
 
 	// The portal carries a distinct part-of label so the core dashboard teardown
 	// (which selects part-of=dashboard) never touches it. This makes the portal
-	// an independent operand — see TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved.
-	assert.Equal(t, "consumer-portal", cl.GetLabels()[labels.PlatformPartOf],
-		"portal ConsoleLink must carry part-of=consumer-portal, not part-of=dashboard")
+	// an independent operand — see TestIntegration_MaasConsumerPortalConsoleLinkPreservedWhenCoreRemoved.
+	assert.Equal(t, "maas-consumer-portal", cl.GetLabels()[labels.PlatformPartOf],
+		"portal ConsoleLink must carry part-of=maas-consumer-portal, not part-of=dashboard")
 
 	// Disable the portal — the ConsoleLink is removed.
 	dashboard = getDashboard(t)
-	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{ManagementState: "Removed"}
+	dashboard.Spec.MaasConsumerPortal = &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
 
-	cl = getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName)
-	assert.Nil(t, cl, "consumer-portal-link ConsoleLink should be deleted when disabled")
+	cl = getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName)
+	assert.Nil(t, cl, "maas-consumer-portal-link ConsoleLink should be deleted when disabled")
 }
 
-// TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved verifies
+// TestIntegration_MaasConsumerPortalConsoleLinkPreservedWhenCoreRemoved verifies
 // that the portal ConsoleLink survives a core-dashboard teardown while the
 // portal itself stays enabled — the portal is independent of the core
 // dashboard's managementState, so core `managementState: Removed` with
-// `consumerPortal.managementState: Managed` must keep the link visible.
-func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testing.T) {
+// `maasConsumerPortal.managementState: Managed` must keep the link visible.
+func TestIntegration_MaasConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"model-registry"})
-	writeConsumerPortalManifest(t, base)
+	writeMaasConsumerPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -528,9 +528,9 @@ func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testin
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("modelRegistry"),
+		MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -539,13 +539,13 @@ func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testin
 	t.Cleanup(func() {
 		deleteDashboard(t)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.ConsumerPortalConsoleLinkName)
+		deleteConsoleLinkIfExists(t, ctrlpkg.MaasConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
 	reconcile(t, r)
 
-	require.NotNil(t, getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName),
+	require.NotNil(t, getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName),
 		"ConsoleLink should exist before Removed")
 
 	// Core dashboard is torn down but the portal stays enabled, so its
@@ -556,20 +556,20 @@ func TestIntegration_ConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *testin
 
 	reconcile(t, r)
 
-	assert.NotNil(t, getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName),
+	assert.NotNil(t, getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName),
 		"ConsoleLink should be preserved when core is Removed but portal stays enabled")
 
 	updated := getDashboard(t)
-	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "ConsumerPortalAvailable"),
-		"ConsumerPortalAvailable should be True while the portal stays enabled")
+	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaasConsumerPortalAvailable"),
+		"MaasConsumerPortalAvailable should be True while the portal stays enabled")
 }
 
-// TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled verifies that a
+// TestIntegration_MaasConsumerPortalConsoleLinkRemovedWhenDisabled verifies that a
 // core-dashboard teardown with the portal disabled removes the portal
 // ConsoleLink along with the rest of the managed resources.
-func TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) {
+func TestIntegration_MaasConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) {
 	base := createIntegrationManifests(t, []string{"model-registry"})
-	writeConsumerPortalManifest(t, base)
+	writeMaasConsumerPortalManifest(t, base)
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
@@ -581,9 +581,9 @@ func TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) 
 	}
 
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
-		Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
-		Modules:        disableAllModulesExcept("modelRegistry"),
-		ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
+		Gateway:            &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules:            disableAllModulesExcept("modelRegistry"),
+		MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
 	})
 
 	ctx := context.Background()
@@ -592,24 +592,24 @@ func TestIntegration_ConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing.T) 
 	t.Cleanup(func() {
 		deleteDashboard(t)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.ConsumerPortalConsoleLinkName)
+		deleteConsoleLinkIfExists(t, ctrlpkg.MaasConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
 	reconcile(t, r)
 
-	require.NotNil(t, getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName),
+	require.NotNil(t, getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName),
 		"ConsoleLink should exist before Removed")
 
 	// Portal disabled AND core Removed: nothing should keep the link alive.
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Removed"
-	dashboard.Spec.ConsumerPortal = &v1alpha1.ConsumerPortalSpec{ManagementState: "Removed"}
+	dashboard.Spec.MaasConsumerPortal = &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Removed"}
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
 
-	assert.Nil(t, getConsoleLink(t, ctrlpkg.ConsumerPortalConsoleLinkName),
+	assert.Nil(t, getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName),
 		"ConsoleLink should be removed when managementState is Removed and portal is disabled")
 }
 

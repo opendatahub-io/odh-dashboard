@@ -35,7 +35,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
-const conditionConsumerPortalAvailable = "ConsumerPortalAvailable"
+const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -140,8 +140,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
-	// ConsumerPortalAvailable. It is never set explicitly. The manager is built
-	// here, before the managementState branch, because the consumer portal is
+	// MaasConsumerPortalAvailable. It is never set explicitly. The manager is built
+	// here, before the managementState branch, because the maas consumer portal is
 	// reconciled unconditionally below regardless of the core dashboard's state.
 	cm := conditions.NewManager(
 		dashboard,
@@ -149,19 +149,19 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionConsumerPortalAvailable,
+		conditionMaasConsumerPortalAvailable,
 	)
 
-	// The consumer portal is an independent operand: it is reconciled once per
+	// The maas consumer portal is an independent operand: it is reconciled once per
 	// loop, decoupled from the core dashboard's managementState, so it runs with
 	// or without the core dashboard. Its resources carry a distinct part-of
-	// label (see consumerPortalPartOf) so core-dashboard teardown never touches
-	// them. This reconcile sets the ConsumerPortalAvailable condition — deploying
+	// label (see maasConsumerPortalPartOf) so core-dashboard teardown never touches
+	// them. This reconcile sets the MaasConsumerPortalAvailable condition — deploying
 	// the ConsoleLink when enabled, removing it when disabled. Running before the
 	// teardown below also ensures any portal resource carrying a stale
 	// part-of=dashboard label (from an older operator) is relabeled before the
 	// core teardown selector runs.
-	r.reconcileConsumerPortalConsoleLink(ctx, dashboard, cm)
+	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -515,54 +515,54 @@ func (r *DashboardReconciler) reconcileObservability(
 	}
 }
 
-// reconcileConsumerPortalConsoleLink deploys or removes the MaaS Consumer
-// Portal ConsoleLink based on spec.consumerPortal, and reports the outcome via
-// the ConsumerPortalAvailable condition. All False states use Info severity so the
+// reconcileMaasConsumerPortalConsoleLink deploys or removes the MaaS Consumer
+// Portal ConsoleLink based on spec.maasConsumerPortal, and reports the outcome via
+// the MaasConsumerPortalAvailable condition. All False states use Info severity so the
 // portal never affects the Ready rollup.
-func (r *DashboardReconciler) reconcileConsumerPortalConsoleLink(
+func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 ) {
 	logger := log.FromContext(ctx)
 
-	switch consumerPortalErr := deployConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
-	case consumerPortalErr == nil:
-		cm.MarkTrue(conditionConsumerPortalAvailable,
+	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case maasConsumerPortalErr == nil:
+		cm.MarkTrue(conditionMaasConsumerPortalAvailable,
 			conditions.WithReason("Deployed"),
-			conditions.WithMessage("Consumer portal ConsoleLink applied successfully"))
-	case errors.Is(consumerPortalErr, ErrConsumerPortalDisabled):
+			conditions.WithMessage("MaaS Consumer Portal ConsoleLink applied successfully"))
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDisabled):
 		// Explicitly remove the ConsoleLink when the portal is disabled — the
 		// SSA deployer is additive and does not prune. Benign cases (absent
 		// object, ConsoleLink CRD not installed) are already treated as success
-		// inside deleteConsumerPortalConsoleLink, so a non-nil error here is a
+		// inside deleteMaasConsumerPortalConsoleLink, so a non-nil error here is a
 		// genuine failure: surface it on the condition (Info severity, like the
 		// deploy-failed branch) rather than falsely reporting a clean Disabled
 		// state while a stale ConsoleLink lingers.
-		if delErr := deleteConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
-			logger.Error(delErr, "Failed to delete consumer portal ConsoleLink")
-			cm.MarkFalse(conditionConsumerPortalAvailable,
-				conditions.WithReason("ConsumerPortalDeleteFailed"),
-				conditions.WithMessage("failed to delete consumer portal ConsoleLink: %s", delErr.Error()),
+		if delErr := deleteMaasConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
+			logger.Error(delErr, "Failed to delete maas consumer portal ConsoleLink")
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
+				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
 				conditions.WithSeverity(common.ConditionSeverityInfo))
 		} else {
-			cm.MarkFalse(conditionConsumerPortalAvailable,
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
 				conditions.WithReason("Disabled"),
-				conditions.WithMessage("Consumer portal is not enabled"),
+				conditions.WithMessage("MaaS Consumer Portal is not enabled"),
 				conditions.WithSeverity(common.ConditionSeverityInfo))
 		}
-	case errors.Is(consumerPortalErr, ErrConsumerPortalDomainRequired):
-		cm.MarkFalse(conditionConsumerPortalAvailable,
-			conditions.WithReason("ConsumerPortalDomainRequired"),
-			conditions.WithMessage("Consumer portal is enabled but gateway domain is not set"),
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDomainRequired):
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		logger.Info("Consumer portal enabled but gateway domain not set, skipping ConsoleLink")
+		logger.Info("MaaS Consumer Portal enabled but gateway domain not set, skipping ConsoleLink")
 	default:
-		cm.MarkFalse(conditionConsumerPortalAvailable,
-			conditions.WithReason("ConsumerPortalDeployFailed"),
-			conditions.WithError(consumerPortalErr),
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDeployFailed"),
+			conditions.WithError(maasConsumerPortalErr),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		logger.Error(consumerPortalErr, "Failed to deploy consumer portal ConsoleLink")
+		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
 	}
 }
 
@@ -858,10 +858,10 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
-	// part-of=dashboard and is matched here. The consumer portal ConsoleLink is
-	// an independent operand labeled part-of=consumer-portal, so it is not
+	// part-of=dashboard and is matched here. The maas consumer portal ConsoleLink is
+	// an independent operand labeled part-of=maas-consumer-portal, so it is not
 	// selected by this teardown — it is managed solely by
-	// reconcileConsumerPortalConsoleLink, independent of the core dashboard's
+	// reconcileMaasConsumerPortalConsoleLink, independent of the core dashboard's
 	// managementState. Guard against clusters where the ConsoleLink CRD is not
 	// installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}

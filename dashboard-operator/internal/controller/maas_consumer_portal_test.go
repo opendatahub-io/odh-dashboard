@@ -21,9 +21,9 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-// consumerPortalTestManager builds a conditions.Manager whose Error-severity dependents
-// are all healthy, so the Ready rollup is True before the consumerPortalCond is reconciled.
-func consumerPortalTestManager(t *testing.T, dashboard *v1alpha1.Dashboard) *conditions.Manager {
+// maasConsumerPortalTestManager builds a conditions.Manager whose Error-severity dependents
+// are all healthy, so the Ready rollup is True before the maasConsumerPortalCond is reconciled.
+func maasConsumerPortalTestManager(t *testing.T, dashboard *v1alpha1.Dashboard) *conditions.Manager {
 	t.Helper()
 
 	cm := conditions.NewManager(
@@ -32,7 +32,7 @@ func consumerPortalTestManager(t *testing.T, dashboard *v1alpha1.Dashboard) *con
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionConsumerPortalAvailable,
+		conditionMaasConsumerPortalAvailable,
 	)
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
 		conditions.WithReason("ResourcesApplied"))
@@ -42,14 +42,14 @@ func consumerPortalTestManager(t *testing.T, dashboard *v1alpha1.Dashboard) *con
 	cm.MarkTrue(conditionObservabilityAvailable,
 		conditions.WithReason("Deployed"))
 
-	// Ready is not yet True here: ConsumerPortalAvailable is still Unknown (Error
-	// severity) until the consumerPortalCond reconcile resolves it. Each test asserts
-	// Ready becomes True afterwards, proving the Info-severity consumerPortalCond state
+	// Ready is not yet True here: MaasConsumerPortalAvailable is still Unknown (Error
+	// severity) until the maasConsumerPortalCond reconcile resolves it. Each test asserts
+	// Ready becomes True afterwards, proving the Info-severity maasConsumerPortalCond state
 	// does not drag the rollup down.
 	return cm
 }
 
-func TestReconcileConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
+func TestReconcileMaasConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
@@ -58,7 +58,7 @@ func TestReconcileConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec: v1alpha1.DashboardSpec{
-			ConsumerPortal: &v1alpha1.ConsumerPortalSpec{ManagementState: "Managed"},
+			MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
 		},
 	}
 
@@ -69,27 +69,27 @@ func TestReconcileConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
 		Platform:          cluster.SelfManagedRhoai,
 	}
 
-	cm := consumerPortalTestManager(t, dashboard)
-	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
-	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
-	require.NotNil(t, consumerPortalCond)
-	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
-	assert.Equal(t, "ConsumerPortalDomainRequired", consumerPortalCond.Reason)
-	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
+	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+	require.NotNil(t, maasConsumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
+	assert.Equal(t, "MaasConsumerPortalDomainRequired", maasConsumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
 
 	// Ready must be unaffected: Info-severity False dependents are ignored.
-	assert.True(t, cm.IsHappy(), "Ready must remain True when the consumerPortalCond domain is missing")
+	assert.True(t, cm.IsHappy(), "Ready must remain True when the maasConsumerPortalCond domain is missing")
 }
 
-func TestReconcileConsumerPortalConsoleLink_Disabled(t *testing.T) {
+func TestReconcileMaasConsumerPortalConsoleLink_Disabled(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
 
 	// Portal absent (disabled). The delete attempt is best-effort — any error
 	// (e.g. ConsoleLink CRD not registered) is logged and does not affect the
-	// ConsumerPortalAvailable condition.
+	// MaasConsumerPortalAvailable condition.
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
 		Spec:       v1alpha1.DashboardSpec{},
@@ -102,18 +102,18 @@ func TestReconcileConsumerPortalConsoleLink_Disabled(t *testing.T) {
 		Platform:          cluster.SelfManagedRhoai,
 	}
 
-	cm := consumerPortalTestManager(t, dashboard)
-	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
-	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
-	require.NotNil(t, consumerPortalCond)
-	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
-	assert.Equal(t, "Disabled", consumerPortalCond.Reason)
-	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
-	assert.True(t, cm.IsHappy(), "Ready must remain True when the consumerPortalCond is disabled")
+	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+	require.NotNil(t, maasConsumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
+	assert.Equal(t, "Disabled", maasConsumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
+	assert.True(t, cm.IsHappy(), "Ready must remain True when the maasConsumerPortalCond is disabled")
 }
 
-func TestReconcileConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T) {
+func TestReconcileMaasConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, clientgoscheme.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
@@ -140,13 +140,13 @@ func TestReconcileConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T) {
 		Platform:          cluster.SelfManagedRhoai,
 	}
 
-	cm := consumerPortalTestManager(t, dashboard)
-	r.reconcileConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
-	consumerPortalCond := cm.GetCondition(conditionConsumerPortalAvailable)
-	require.NotNil(t, consumerPortalCond)
-	assert.Equal(t, metav1.ConditionFalse, consumerPortalCond.Status)
-	assert.Equal(t, "ConsumerPortalDeleteFailed", consumerPortalCond.Reason)
-	assert.Equal(t, common.ConditionSeverityInfo, consumerPortalCond.Severity)
+	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+	require.NotNil(t, maasConsumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
+	assert.Equal(t, "MaasConsumerPortalDeleteFailed", maasConsumerPortalCond.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
 	assert.True(t, cm.IsHappy(), "Ready must remain True even when the portal delete fails (Info severity)")
 }

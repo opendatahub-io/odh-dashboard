@@ -84,16 +84,16 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
-func TestConsumerPortalConsoleLinkManifestInfo(t *testing.T) {
+func TestMaasConsumerPortalConsoleLinkManifestInfo(t *testing.T) {
 	// The portal is an RHOAI feature that always uses the /rhoai source,
 	// regardless of platform (it deploys on both self-managed and managed).
-	info := consumerPortalConsoleLinkManifestInfo("/base")
+	info := maasConsumerPortalConsoleLinkManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
-	assert.Equal(t, "consumer-portal-consolelink", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal-consolelink", info.ContextDir)
 	assert.Equal(t, "/rhoai", info.SourcePath)
 }
 
-func TestConsumerPortalURL(t *testing.T) {
+func TestMaasConsumerPortalURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		domain  string
@@ -103,7 +103,7 @@ func TestConsumerPortalURL(t *testing.T) {
 		{
 			name:    "derives host from domain",
 			domain:  "rh-ai.apps.example.com",
-			wantURL: "https://consumer-portal.rh-ai.apps.example.com/",
+			wantURL: "https://maas-consumer-portal.rh-ai.apps.example.com/",
 			wantOK:  true,
 		},
 		{
@@ -116,17 +116,17 @@ func TestConsumerPortalURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, ok := consumerPortalURL(tt.domain)
+			url, ok := maasConsumerPortalURL(tt.domain)
 			assert.Equal(t, tt.wantOK, ok)
 			assert.Equal(t, tt.wantURL, url)
 		})
 	}
 }
 
-// TestConsumerPortalParamInjection verifies that injecting consumer-portal-url
+// TestMaasConsumerPortalParamInjection verifies that injecting maas-consumer-portal-url
 // and section-title into the portal manifest's params.env and rendering the
 // kustomization substitutes the ConsoleLink href and applicationMenu.section.
-func TestConsumerPortalParamInjection(t *testing.T) {
+func TestMaasConsumerPortalParamInjection(t *testing.T) {
 	dir := t.TempDir()
 
 	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
@@ -134,52 +134,52 @@ kind: Kustomization
 resources:
   - consolelink.yaml
 configMapGenerator:
-  - name: consumer-portal-params
+  - name: maas-consumer-portal-params
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
 replacements:
   - source:
       kind: ConfigMap
-      name: consumer-portal-params
+      name: maas-consumer-portal-params
       fieldPath: data.section-title
     targets:
       - select:
           kind: ConsoleLink
-          name: consumer-portal-link
+          name: maas-consumer-portal-link
         fieldPaths:
           - spec.applicationMenu.section
   - source:
       kind: ConfigMap
-      name: consumer-portal-params
-      fieldPath: data.consumer-portal-url
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-url
     targets:
       - select:
           kind: ConsoleLink
-          name: consumer-portal-link
+          name: maas-consumer-portal-link
         fieldPaths:
           - spec.href
 `
 	consoleLinkYAML := `apiVersion: console.openshift.io/v1
 kind: ConsoleLink
 metadata:
-  name: consumer-portal-link
+  name: maas-consumer-portal-link
 spec:
   applicationMenu:
     section: section-title
     imageURL: data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=
-  href: consumer-portal-url
+  href: maas-consumer-portal-url
   location: ApplicationMenu
   text: MaaS Consumer Portal
 `
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "kustomization.yaml"), []byte(kustomizationYAML), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "consolelink.yaml"), []byte(consoleLinkYAML), 0644))
 	// Commit-equivalent empty placeholders.
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("consumer-portal-url=\nsection-title=\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("maas-consumer-portal-url=\nsection-title=\n"), 0644))
 
-	// Inject the operator-derived values, mirroring deployConsumerPortalConsoleLink.
+	// Inject the operator-derived values, mirroring deployMaasConsumerPortalConsoleLink.
 	params := readExistingParams(filepath.Join(dir, "params.env"))
-	params["consumer-portal-url"] = "https://consumer-portal.rh-ai.apps.example.com/"
+	params["maas-consumer-portal-url"] = "https://maas-consumer-portal.rh-ai.apps.example.com/"
 	params["section-title"] = "OpenShift Self Managed Services"
 	require.NoError(t, writeParamsEnv(dir, params))
 
@@ -200,7 +200,7 @@ spec:
 	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "https://consumer-portal.rh-ai.apps.example.com/", href)
+	assert.Equal(t, "https://maas-consumer-portal.rh-ai.apps.example.com/", href)
 
 	section, found, err := unstructured.NestedString(consoleLink.Object, "spec", "applicationMenu", "section")
 	require.NoError(t, err)

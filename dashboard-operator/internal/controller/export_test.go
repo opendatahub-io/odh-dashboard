@@ -54,9 +54,9 @@ func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired
 	return r.gcStaleNamespacedRBAC(ctx, desired)
 }
 
-const ConsumerPortalConsoleLinkName = consumerPortalConsoleLinkName
+const MaasConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
 
-const ConditionConsumerPortalAvailable = conditionConsumerPortalAvailable
+const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailable
 
 var ConsoleLinkGVK = consoleLinkGVK
 
