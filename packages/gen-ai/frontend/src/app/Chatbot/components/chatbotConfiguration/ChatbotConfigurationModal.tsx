@@ -36,7 +36,6 @@ import {
   computeEmbeddingModelStatus,
   convertMaaSModelToAIModel,
   isASROnlyModel,
-  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -68,8 +67,6 @@ type ChatbotConfigurationModalProps = {
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];
-  /** Models that we want to be selected in the table besides the existing models */
-  extraSelectedModels?: AIModel[];
   /** Whether show the button in the modal to redirect to the playground after configuration */
   redirectToPlayground?: boolean;
   /** All available external vector store collections */
@@ -93,7 +90,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   aiModels,
   maasModels = [],
   existingModels = [],
-  extraSelectedModels,
   redirectToPlayground,
   allCollections,
   collectionsLoaded,
@@ -116,34 +112,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const allModels = React.useMemo(
     () => [...aiModels, ...maasAsAIModels].filter((model) => !isASROnlyModel(model)),
     [aiModels, maasAsAIModels],
-  );
-
-  const preSelectedModels = React.useMemo(() => {
-    if (existingModels.length > 0) {
-      const existingAIModels = allModels.filter((model) =>
-        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
-      );
-
-      if (extraSelectedModels && extraSelectedModels.length > 0) {
-        const filteredExtra = extraSelectedModels.filter((model) => !isASROnlyModel(model));
-        const extraSelectedModelsSet = new Set(filteredExtra.map((model) => model.model_name));
-        const merged = [
-          ...filteredExtra,
-          ...existingAIModels.filter((model) => !extraSelectedModelsSet.has(model.model_name)),
-        ];
-        return merged;
-      }
-      return existingAIModels;
-    }
-    return extraSelectedModels?.filter((model) => !isASROnlyModel(model)) ?? allModels;
-  }, [existingModels, extraSelectedModels, allModels]);
-
-  const availableModels = React.useMemo(
-    () =>
-      preSelectedModels.filter(
-        (model) => model.status === 'Running' || model.model_source_type === 'custom_endpoint',
-      ),
-    [preSelectedModels],
   );
 
   const [maxTokensMap, setMaxTokensMap] = React.useState<Map<string, number | undefined>>(
@@ -179,10 +147,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   }, [existingCollections, availableCollections, extraSelectedCollections]);
 
   const [selectedModels, setSelectedModels] = React.useState<AIModel[]>(() => {
-    // Start from available models (preserve duplicates) and add any embedding models
-    // required by pre-selected collections that are not already present.
-    const result = [...availableModels];
-    const existingNames = new Set(availableModels.map((m) => m.model_name));
+    // All non-embedding models are auto-selected (they're locked and auto-available
+    // via passthrough). Embedding models are added when a vector store requires them.
+    const result = allModels.filter((m) => m.model_type !== 'embedding');
+    const existingNames = new Set(result.map((m) => m.model_name));
     preSelectedCollections.forEach((c) => {
       const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
       const found = allModels.find((m) => {
@@ -216,20 +184,22 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [selectedCollections, setSelectedCollections] =
     React.useState<ExternalVectorStoreSummary[]>(preSelectedCollections);
 
+  const isUpdate = !!lsdStatus;
+  const hasBffPassthroughProvider =
+    lsdStatus?.distributionConfig.providers.some((p) =>
+      p.provider_id?.startsWith('genai-bff-proxy'),
+    ) ?? false;
+
   const lockedModelNames = React.useMemo(() => {
+    // All models are locked — inference models are auto-available via passthrough
+    // and embedding models are managed implicitly by vector store selection.
+    // The user's only actionable choice is which vector stores to enable.
     const names = new Set<string>();
-    selectedCollections.forEach((c) => {
-      const { id: normEmbedId } = splitLlamaModelId(c.embedding_model);
-      const found = allModels.find((m) => {
-        const { id: normModelId } = splitLlamaModelId(m.model_id);
-        return m.model_id === c.embedding_model || normModelId === normEmbedId;
-      });
-      if (found) {
-        names.add(found.model_name);
-      }
+    allModels.forEach((m) => {
+      names.add(m.model_name);
     });
     return names;
-  }, [selectedCollections, allModels]);
+  }, [allModels]);
 
   const handleSetSelectedCollections = React.useCallback<
     React.Dispatch<React.SetStateAction<ExternalVectorStoreSummary[]>>
@@ -296,8 +266,6 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const [error, setError] = React.useState<Error>();
   const [alertTitle, setAlertTitle] = React.useState<string>();
   const [enableTracing, setEnableTracing] = React.useState(false);
-
-  const isUpdate = !!lsdStatus;
 
   /**
    * Handles changes to the max_tokens value for a specific model.
@@ -401,6 +369,21 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   // True while we don't yet know if the collections step will be present
   const isStepsLoading = vectorStoresEnabled && !collectionsLoaded;
 
+  // When updating a playground that has the BFF passthrough provider, only
+  // vector store changes require an OGX restart (embedding models are implicitly
+  // managed by vector store selection). All other models are resolved per-request.
+  const hasChangesRequiringOgxRestart = React.useMemo(() => {
+    if (!isUpdate || !hasBffPassthroughProvider) {
+      return true;
+    }
+    const existingCollectionIds = new Set(existingCollections.map((vs) => vs.id));
+    const selectedCollectionIds = new Set(selectedCollections.map((c) => c.vector_store_id));
+    return (
+      existingCollectionIds.size !== selectedCollectionIds.size ||
+      [...existingCollectionIds].some((id) => !selectedCollectionIds.has(id))
+    );
+  }, [isUpdate, hasBffPassthroughProvider, existingCollections, selectedCollections]);
+
   const goNext = () => setCurrentStepIndex((i) => Math.min(i + 1, activeSteps.length - 1));
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
 
@@ -420,6 +403,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     if (submitting) {
       return;
     }
+
     if (selectedModels.length === 0) {
       setAlertTitle('Select at least one model');
       const e = new Error(
@@ -636,7 +620,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
             <Button
               variant="primary"
               onClick={onSubmit}
-              isDisabled={submitting}
+              isDisabled={submitting || !hasChangesRequiringOgxRestart}
               data-testid="modal-submit-button"
             >
               {isUpdate ? 'Configure' : 'Create'}

@@ -154,7 +154,6 @@ type RenderModalProps = {
   allModels: AIModel[];
   maasModels?: MaaSModel[];
   existingModels?: LlamaModel[];
-  extraSelectedModels?: AIModel[];
   allCollections?: ExternalVectorStoreSummary[];
   collectionsLoaded?: boolean;
   existingCollections?: VectorStore[];
@@ -172,7 +171,6 @@ const renderModal = (props: RenderModalProps) =>
         aiModels={props.allModels}
         maasModels={props.maasModels}
         existingModels={props.existingModels}
-        extraSelectedModels={props.extraSelectedModels}
         allCollections={props.allCollections ?? []}
         collectionsLoaded={props.collectionsLoaded ?? true}
         existingCollections={props.existingCollections}
@@ -192,7 +190,6 @@ const renderModalWithContext = (props: RenderModalProps) =>
           aiModels={props.allModels}
           maasModels={props.maasModels}
           existingModels={props.existingModels}
-          extraSelectedModels={props.extraSelectedModels}
           allCollections={props.allCollections ?? []}
           collectionsLoaded={props.collectionsLoaded ?? true}
           existingCollections={props.existingCollections}
@@ -226,57 +223,57 @@ const getAllCollectionIds = (): string[] => {
 
 // ─── Pre-selected models ─────────────────────────────────────────────────────
 
-describe('ChatbotConfigurationModal preSelectedModels', () => {
+describe('ChatbotConfigurationModal auto-selected models', () => {
   const aiA = createAIModel({ model_name: 'mA', display_name: 'A' });
   const aiB = createAIModel({ model_name: 'mB', display_name: 'B' });
   const aiC = createAIModel({ model_name: 'mC', display_name: 'C' });
   const aiD = createAIModel({ model_name: 'mD', display_name: 'D', status: 'Stop' });
   const allModels = [aiA, aiB, aiC, aiD];
 
-  it('uses existing models only when provided (mapped by id ↔ model_name)', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing });
-    expect(getSelectedModelNames()).toEqual(['mA', 'mC']);
-  });
-
-  it('uses only available existing models (Running status)', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mD', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mD' },
-    ];
-    renderModal({ allModels, existingModels: existing });
-    expect(getSelectedModelNames()).toEqual(['mA']);
-  });
-
-  it('merges extraSelectedModels and existingModels, deduplicating by model_name', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing, extraSelectedModels: [aiB] });
-    expect(getSelectedModelNames()).toEqual(['mB', 'mA', 'mC']);
-  });
-
-  it('extra takes precedence over existing when same model appears in both', () => {
-    const existing: LlamaModel[] = [
-      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
-      { id: 'pA/mC', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mC' },
-    ];
-    renderModal({ allModels, existingModels: existing, extraSelectedModels: [aiB, aiA] });
-    expect(getSelectedModelNames()).toEqual(['mB', 'mA', 'mC']);
-  });
-
-  it('uses only extraSelectedModels when existingModels is not provided', () => {
-    renderModal({ allModels, extraSelectedModels: [aiB] });
-    expect(getSelectedModelNames()).toEqual(['mB']);
-  });
-
-  it('falls back to allModels when neither existing nor extra are provided', () => {
+  it('auto-selects all non-embedding models regardless of status', () => {
     renderModal({ allModels });
-    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC']);
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('auto-selects all non-embedding models even when existingModels is provided', () => {
+    const existing: LlamaModel[] = [
+      { id: 'pA/mA', object: 'model', created: Date.now(), owned_by: 'x', modelId: 'mA' },
+    ];
+    renderModal({ allModels, existingModels: existing });
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('excludes embedding models from auto-selection', () => {
+    const embeddingModel = createAIModel({
+      model_name: 'embed-model',
+      display_name: 'Embedding',
+      model_type: 'embedding',
+    });
+    renderModal({ allModels: [...allModels, embeddingModel] });
+    expect(getSelectedModelNames()).toEqual(['mA', 'mB', 'mC', 'mD']);
+  });
+
+  it('includes embedding models when required by a pre-selected collection', () => {
+    const embeddingModel = createAIModel({
+      model_name: 'embed-model',
+      model_id: 'embed-model',
+      display_name: 'Embedding',
+      model_type: 'embedding',
+    });
+    const collection: ExternalVectorStoreSummary = {
+      vector_store_id: 'vs-1',
+      vector_store_name: 'test-vs',
+      provider_id: 'provider-1',
+      provider_type: 'remote::passthrough',
+      embedding_model: 'embed-model',
+      embedding_dimension: 768,
+    };
+    renderModal({
+      allModels: [...allModels, embeddingModel],
+      allCollections: [collection],
+      existingCollections: [{ id: 'vs-1', name: 'test-vs' }],
+    });
+    expect(getSelectedModelNames()).toContain('embed-model');
   });
 });
 
@@ -339,38 +336,14 @@ describe('ChatbotConfigurationModal ASR model exclusion', () => {
     expect(getSelectedModelNames()).toEqual(['chat-model', 'no-caps']);
   });
 
-  it('excludes ASR-only models from extraSelectedModels when existingModels present', () => {
+  it('excludes ASR-only models from auto-selection', () => {
     const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
     const asrModel = createAIModel({
       model_name: 'whisper-asr',
       display_name: 'Whisper ASR',
       capabilities: ['audio-transcription'],
     });
-    const existing: LlamaModel[] = [
-      {
-        id: 'pA/chat-model',
-        object: 'model',
-        created: Date.now(),
-        owned_by: 'x',
-        modelId: 'chat-model',
-      },
-    ];
-    renderModal({
-      allModels: [chatModel, asrModel],
-      existingModels: existing,
-      extraSelectedModels: [asrModel],
-    });
-    expect(getSelectedModelNames()).toEqual(['chat-model']);
-  });
-
-  it('excludes ASR-only models from extraSelectedModels in fallback path', () => {
-    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
-    const asrModel = createAIModel({
-      model_name: 'whisper-asr',
-      display_name: 'Whisper ASR',
-      capabilities: ['audio-transcription'],
-    });
-    renderModal({ allModels: [chatModel, asrModel], extraSelectedModels: [chatModel, asrModel] });
+    renderModal({ allModels: [chatModel, asrModel] });
     expect(getSelectedModelNames()).toEqual(['chat-model']);
   });
 });
@@ -764,13 +737,27 @@ describe('ChatbotConfigurationModal form tracking', () => {
       });
     });
 
-    it('fires success tracking with countEmbeddingModels=1 when an embedding model is selected', async () => {
+    it('fires success tracking with countEmbeddingModels=1 when an embedding model is included via vector store', async () => {
       const user = userEvent.setup();
+      const chatModel = createAIModel({ model_name: 'chat-model' });
       const embeddingModel = createAIModel({
         model_name: 'embed-model',
+        model_id: 'embed-model',
         model_type: 'embedding',
       });
-      renderModalWithContext({ allModels: [embeddingModel] });
+      const collection: ExternalVectorStoreSummary = {
+        vector_store_id: 'vs-1',
+        vector_store_name: 'test-vs',
+        provider_id: 'provider-1',
+        provider_type: 'remote::passthrough',
+        embedding_model: 'embed-model',
+        embedding_dimension: 768,
+      };
+      renderModalWithContext({
+        allModels: [chatModel, embeddingModel],
+        allCollections: [collection],
+        existingCollections: [{ id: 'vs-1', name: 'test-vs' }],
+      });
 
       await user.click(screen.getByRole('button', { name: /create/i }));
 
@@ -779,8 +766,8 @@ describe('ChatbotConfigurationModal form tracking', () => {
           outcome: 'submit',
           success: true,
           namespace: 'test-namespace',
-          countModelsSelected: 1,
-          countCollectionsSelected: 0,
+          countModelsSelected: 2,
+          countCollectionsSelected: 1,
           countEmbeddingModels: 1,
         });
       });
