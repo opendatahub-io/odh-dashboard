@@ -12,12 +12,12 @@ import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import {
   getAuthPolicyViewUrl,
   getSubscriptionViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
-  SubscriptionManagementStatusPopoverViewedProperties,
+  MaaSGovernanceStatusPopoverViewedProperties,
   EventTrackingPopoverType,
   convertStringToPopoverViewedStatus,
 } from '~/app/types/event-tracking';
@@ -137,14 +137,11 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                     returnTo={returnTo}
                     hideSubtext
                     onClick={() => {
-                      fireMiscTrackingEvent(
-                        MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
-                        {
-                          popoverType: EventTrackingPopoverType.STATUS,
-                          status: convertStringToPopoverViewedStatus(phase),
-                          location: PhaseLabelLocation.OVERVIEW,
-                        } satisfies SubscriptionManagementStatusPopoverViewedProperties,
-                      );
+                      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                        popoverType: EventTrackingPopoverType.STATUS,
+                        status: convertStringToPopoverViewedStatus(phase),
+                        location: PhaseLabelLocation.OVERVIEW,
+                      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
                     }}
                   />
                 </FlexItem>
@@ -429,7 +426,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
 
   const onGroupSelect = React.useCallback(
     (group: string) => {
-      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_GROUP_LABEL_SELECTED, {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_GROUP_LABEL_SELECTED, {
         subsCountPerModel: subscriptions.length,
         policyCountPerModel: policies.length,
         subsCountWithSelectedGroup: subscriptions.filter((sub) =>

@@ -54,13 +54,13 @@ const keyCreatedAt = new Date();
 describe('A user can view subscriptions and manage API keys on the Keys and Subscriptions page', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadMaaSFixture('e2e/modelsAsService/testApiKeys.yaml')
+    return loadMaaSFixture('e2e/maas/testApiKeys.yaml')
       .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
         llmInferenceserviceYamlFixturePath =
-          'resources/modelsAsService/llmInferenceserviceWithMaasEnabled.yaml';
+          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml';
         modelURI = testData.modelLocationURI;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;

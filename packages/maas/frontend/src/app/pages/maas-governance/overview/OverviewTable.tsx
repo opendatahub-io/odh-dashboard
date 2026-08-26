@@ -38,7 +38,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
 
   const toggleModel = (row: ModelOverviewItem) => {
     if (!expandedModels.has(rowKey(row))) {
-      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_ROW_EXPANDED, {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED, {
         subscriptionCount: row.subscriptions.length,
         policyCount: row.authPolicies.length,
       });

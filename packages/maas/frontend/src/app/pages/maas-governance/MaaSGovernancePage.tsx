@@ -14,10 +14,7 @@ const SUBSCRIPTIONS_TAB = 'subscriptions';
 const AUTH_POLICIES_TAB = 'auth-policies';
 const VALID_TABS = [OVERVIEW_TAB, SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
 
-const SubscriptionManagementPage: React.FC = () => {
-  // Page-level empty only when models+subs+policies are all loaded and empty.
-  // ApplicationsPage then replaces children (hides tabs) with emptyStatePage.
-  // Per-tab empties still apply when some resources exist but one list is empty.
+const MaaSGovernancePage: React.FC = () => {
   const { isEmpty, overviewLoaded, overviewError } = useMaaSGovernanceContext();
 
   const { tab } = useParams<{ tab: string }>();
@@ -54,7 +51,7 @@ const SubscriptionManagementPage: React.FC = () => {
       <Tabs
         activeKey={activeTab}
         onSelect={onSelectTab}
-        aria-label="Subscription management tabs"
+        aria-label="MaaS governance tabs"
         inset={{ default: 'insetNone' }}
         mountOnEnter
         unmountOnExit
@@ -92,4 +89,4 @@ const SubscriptionManagementPage: React.FC = () => {
   );
 };
 
-export default SubscriptionManagementPage;
+export default MaaSGovernancePage;

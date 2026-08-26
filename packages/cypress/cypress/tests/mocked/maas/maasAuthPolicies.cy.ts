@@ -8,7 +8,7 @@ import {
   deleteAuthPolicyModal,
   phaseModal,
   policyPage,
-  subscriptionManagementPage,
+  maasGovernancePage,
   viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import {
@@ -201,7 +201,7 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should expand and collapse inline rows in the auth policies tab', () => {
-    subscriptionManagementPage.visit('auth-policies');
+    maasGovernancePage.visit('auth-policies');
 
     const premiumPolicy = authPoliciesPage.getRow('Premium Team Policy');
 
@@ -375,7 +375,7 @@ describe('View Auth Policy Page', () => {
         'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSAuthPolicy\nmetadata:\n  name: premium-team-policy\n',
     });
 
-    subscriptionManagementPage.visit('auth-policies');
+    maasGovernancePage.visit('auth-policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 8);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
