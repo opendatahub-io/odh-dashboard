@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
-import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
+import { useReconfigureSafeEffect } from '../useReconfigureSafeEffect';
 
 describe('useReconfigureSafeEffect', () => {
   beforeEach(() => {

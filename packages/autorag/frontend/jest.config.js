@@ -20,6 +20,12 @@ module.exports = {
     // mean a <MemoryRouter> from one and a <Link>/useNavigate from the other share no context.
     '^react-router$': '<rootDir>/../../../node_modules/react-router',
     '^react-router-dom$': '<rootDir>/../../../node_modules/react-router-dom',
+    // Single mod-arch-core instance: same class of issue as react-router above. This
+    // package's own nested mod-arch-core install can be a different version than the
+    // root install @odh-dashboard/autox-core always resolves against — mismatched
+    // copies mean useModularArchContext's React.createContext() differs, breaking
+    // hooks like useNamespaceSelector for any consumer using the shared hooks layer.
+    '^mod-arch-core$': '<rootDir>/../../../node_modules/mod-arch-core',
     // Resolve @odh-dashboard/internal's #~/ imports to main frontend src
     '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',

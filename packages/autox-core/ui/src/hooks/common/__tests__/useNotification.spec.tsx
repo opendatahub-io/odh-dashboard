@@ -1,30 +1,18 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { AlertVariant } from '@patternfly/react-core';
-import { useNotification } from '~/app/hooks/useNotification';
-import { useStore } from '~/app/store';
+import { createUseNotification } from '../useNotification';
 
-// Mock the store
-jest.mock('~/app/store', () => ({
-  useStore: jest.fn(),
-}));
-
-const mockUseStore = jest.mocked(useStore);
-
-describe('useNotification', () => {
+describe('createUseNotification', () => {
   const mockAddNotification = jest.fn();
   const mockRemoveNotification = jest.fn();
+  const useNotification = createUseNotification(
+    () => mockAddNotification,
+    () => mockRemoveNotification,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseStore.mockImplementation((selector) => {
-      const state = {
-        addNotification: mockAddNotification,
-        removeNotification: mockRemoveNotification,
-        notifications: [],
-      };
-      return selector(state);
-    });
   });
 
   it('should create success notification', () => {
