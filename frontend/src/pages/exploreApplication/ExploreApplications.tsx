@@ -108,11 +108,22 @@ const ExploreApplications: React.FC = () => {
   const [searchParams] = useSearchParams();
   const selectedId = searchParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
-  const isEmpty = components.length === 0;
+
+  const exploreComponents = React.useMemo<OdhApplication[]>(
+    () =>
+      _.cloneDeep(components)
+        .filter((component) => !component.spec.hidden)
+        .filter((component) => component.metadata.name !== 'mlflow' || mlflowEnabled)
+        .filter((component) => component.metadata.name !== 'nvidia-nim' || !nimWizardEnabled)
+        .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
+    [components, mlflowEnabled, nimWizardEnabled],
+  );
+
+  const isEmpty = exploreComponents.length === 0;
 
   const updateSelection = React.useCallback(
     (currentSelectedId?: string | null): void => {
-      const selection = components.find(
+      const selection = exploreComponents.find(
         (c) => c.metadata.name && c.metadata.name === currentSelectedId,
       );
       if (currentSelectedId && selection) {
@@ -125,17 +136,7 @@ const ExploreApplications: React.FC = () => {
       removeQueryArgument(navigate, 'selectId');
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [components],
-  );
-
-  const exploreComponents = React.useMemo<OdhApplication[]>(
-    () =>
-      _.cloneDeep(components)
-        .filter((component) => !component.spec.hidden)
-        .filter((component) => component.metadata.name !== 'mlflow' || mlflowEnabled)
-        .filter((component) => component.metadata.name !== 'nvidia-nim' || !nimWizardEnabled)
-        .toSorted((a, b) => a.spec.displayName.localeCompare(b.spec.displayName)),
-    [components, mlflowEnabled, nimWizardEnabled],
+    [exploreComponents],
   );
 
   React.useEffect(() => {
