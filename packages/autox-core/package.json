@@ -31,6 +31,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
+    "@tanstack/react-query": "5.101.4",
     "@testing-library/jest-dom": "^6.6.2",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "14.6.1",
@@ -40,7 +41,8 @@
     "@types/react-dom": "^18.3.1",
     "expect": "^30.0.2",
     "jest": "^30.2.0",
-    "jest-environment-jsdom": "^30.2.0"
+    "jest-environment-jsdom": "^30.2.0",
+    "zod": "4.3.6"
   },
   "peerDependencies": {
     "@patternfly/react-core": "^6",

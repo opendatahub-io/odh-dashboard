@@ -1,5 +1,10 @@
 import { useQueries, useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
+import {
+  createS3FileFetchers,
+  createUsePipelineRunQuery,
+  createUseS3ListFilesQuery,
+} from '@odh-dashboard/autox-core/ui/hooks';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
@@ -11,9 +16,8 @@ import type {
   ConfusionMatrixData,
   CurvesData,
   FeatureImportanceData,
-  PipelineRun,
-  S3ListObjectsResponse,
 } from '~/app/types';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
@@ -66,95 +70,7 @@ const ColumnSchemaArraySchema = z.array(
   }),
 );
 
-type FetchS3FileOptions = {
-  secretName?: string;
-  bucket?: string;
-  signal?: AbortSignal;
-  maxBytes?: number;
-};
-
-/**
- * Fetches a file from S3 storage and returns it as a Blob.
- * This is a utility function that can be used in both hooks and query functions.
- */
-export async function fetchS3File(
-  namespace: string,
-  key: string,
-  options?: FetchS3FileOptions,
-): Promise<Blob> {
-  if (!key || !key.trim()) {
-    throw new Error('File key must be a non-empty string');
-  }
-
-  const { secretName, bucket, signal, maxBytes } = options ?? {};
-  const params = new URLSearchParams({
-    namespace,
-    ...(secretName && { secretName }),
-    ...(bucket && { bucket }),
-  });
-
-  const abortController = maxBytes != null ? new AbortController() : undefined;
-  const combinedSignal = abortController
-    ? AbortSignal.any([abortController.signal, ...(signal ? [signal] : [])])
-    : signal;
-
-  const response = await fetch(
-    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
-    { signal: combinedSignal },
-  );
-
-  if (!response.ok) {
-    let errorMessage = response.statusText;
-    try {
-      const errorData = await response.json();
-      if (errorData?.error?.message) {
-        errorMessage = errorData.error.message;
-      }
-    } catch {
-      // If parsing fails, fall back to statusText
-    }
-    throw new Error(`Failed to fetch file: ${errorMessage}`);
-  }
-
-  if (maxBytes != null) {
-    const contentLength = response.headers.get('Content-Length');
-    if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
-      abortController?.abort();
-      throw new Error(
-        `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
-      );
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      return response.blob();
-    }
-
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      received += value.byteLength;
-      if (received > maxBytes) {
-        abortController?.abort();
-        throw new Error(`S3 file too large: exceeded limit of ${maxBytes} bytes during download`);
-      }
-      chunks.push(value);
-    }
-    const combined = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      combined.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return new Blob([combined]);
-  }
-
-  return response.blob();
-}
+export const { fetchS3File, fetchS3Json } = createS3FileFetchers(URL_PREFIX);
 
 export function useS3GetFileQuery(
   namespace?: string,
@@ -238,69 +154,12 @@ export function useS3GetFileSchemaQuery(
   });
 }
 
-export function useS3ListFilesQuery(
-  namespace?: string,
-  path?: string,
-): UseQueryResult<S3ListObjectsResponse, Error> {
-  return useQuery({
-    queryKey: ['automl', 's3Files', namespace, path],
-    queryFn: async ({ signal }) => {
-      if (!namespace || !path) {
-        throw new Error('namespace and path are required');
-      }
-      return getS3Files(
-        '',
-        { signal },
-        {
-          namespace,
-          path,
-        },
-      );
-    },
-    enabled: Boolean(namespace && path),
-    retry: false,
-  });
-}
+export const useS3ListFilesQuery = createUseS3ListFilesQuery(getS3Files);
 
-const POLL_INTERVAL_MS = 10000;
-const RETRY_DELAY_MS = 5000;
-const MAX_RETRY_ATTEMPTS = 5;
-
-export function usePipelineRunQuery(
-  runId?: string,
-  namespace?: string,
-): UseQueryResult<PipelineRun, Error> {
-  return useQuery({
-    queryKey: ['pipelineRun', runId, namespace],
-    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
-    enabled: !!runId && !!namespace,
-    placeholderData: (previousData) => previousData,
-    retry: (failureCount, error) => {
-      const status = parseErrorStatus(error);
-      if (status && status >= 400 && status < 500) {
-        return false;
-      }
-      return failureCount < MAX_RETRY_ATTEMPTS;
-    },
-    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
-    retryDelay: (attempt) => {
-      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
-      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
-      return exp + jitter;
-    },
-    refetchInterval: (query) => {
-      // Let the retry backoff handle re-fetching during errors
-      if (query.state.status === 'error') {
-        return false;
-      }
-      const state = query.state.data?.state;
-      if (!state || isRunInTerminalState(state)) {
-        return false;
-      }
-      return POLL_INTERVAL_MS;
-    },
-  });
-}
+export const usePipelineRunQuery = createUsePipelineRunQuery<ConfigureSchema>(
+  getPipelineRunFromBFF,
+  { isRunInTerminalState, parseErrorStatus },
+);
 
 /**
  * Zod schema to validate FeatureImportanceData shape
@@ -435,56 +294,6 @@ const BackTestingDataSchema: z.ZodType<BackTestingData> = z.object({
   }),
 });
 /* eslint-enable camelcase */
-
-/**
- * Fetches and parses JSON content from S3.
- *
- * @param namespace - K8s namespace
- * @param key - S3 object key
- * @param options - Optional configuration
- * @param options.signal - Abort signal for cancellation
- * @param options.schema - Optional Zod schema for runtime validation
- * @returns Parsed JSON cast to type T (validated if schema provided)
- */
-const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
-
-export async function fetchS3Json<T>(
-  namespace: string,
-  key: string,
-  options?: {
-    signal?: AbortSignal;
-    schema?: z.ZodSchema<T>;
-    maxBytes?: number;
-  },
-): Promise<T> {
-  const { signal, schema, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
-  const blob = await fetchS3File(namespace, key, { signal, maxBytes });
-  const text = await blob.text();
-
-  try {
-    const parsed = JSON.parse(text);
-
-    // Validate if schema provided, otherwise trust the data
-    if (schema) {
-      return schema.parse(parsed);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no schema provided, caller accepts risk
-    return parsed as T;
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const issues = error.issues
-        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-        .join(', ');
-      throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
-    }
-    throw new Error(
-      `Failed to parse JSON from S3 file "${key}": ${
-        error instanceof Error ? error.message : 'Invalid JSON'
-      }`,
-    );
-  }
-}
 
 export { AutomlModelSchema, isRawTimeseriesModelV34, isRawModelV35 } from '~/app/hooks/modelSchema';
 export type {

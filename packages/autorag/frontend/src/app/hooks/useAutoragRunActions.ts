@@ -44,7 +44,7 @@ export const useAutoragRunActions = (
     try {
       await retryMutation.mutateAsync();
       await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+        queryKey: ['pipelineRun', runId, namespace],
       });
       notification.success(
         'Retry submitted successfully',
@@ -75,7 +75,7 @@ export const useAutoragRunActions = (
     try {
       await terminateMutation.mutateAsync();
       await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+        queryKey: ['pipelineRun', runId, namespace],
       });
       notification.success(
         'Stop submitted successfully',
@@ -105,7 +105,7 @@ export const useAutoragRunActions = (
       // Refresh the state to update the UI (don't let refresh failure mask the original error)
       try {
         await queryClient.invalidateQueries({
-          queryKey: ['autorag', 'pipelineRun', runId, namespace],
+          queryKey: ['pipelineRun', runId, namespace],
         });
       } catch {
         // Ignore refresh failure
@@ -123,7 +123,7 @@ export const useAutoragRunActions = (
     try {
       await deleteMutation.mutateAsync();
       await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+        queryKey: ['pipelineRun', runId, namespace],
       });
       notification.success(
         'Run deleted successfully',

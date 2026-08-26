@@ -163,6 +163,74 @@ sufficient before reaching for the next one:
 - `hooks/common/` — generic, non-domain-specific hooks (e.g. `useNotification`).
   Has no `api/common/` counterpart.
 
+## Known Issues: Peer Dependency Version Skew
+
+`packages/autox-core` has no `node_modules` of its own for its context-sensitive
+peer dependencies (`react`, `@tanstack/react-query`, `zod`, etc.) — same as
+`react-router`/`mod-arch-core` before it. Any bare import of one of these from
+`ui/src/**` resolves via Node's directory walk-up, which can land on a
+**different, unrelated version** hoisted at the monorepo root instead of the
+version AutoML/AutoRAG actually use. Two concrete manifestations hit so far:
+
+- **`react-router`/`mod-arch-core` (jest only)**: root's hoisted copy differs
+  from AutoML/AutoRAG's own nested copy → dual React Context instances at test
+  runtime. Fixed via `moduleNameMapper` in both products' `jest.config.js` (see
+  git history on those files). Does not affect production webpack builds:
+  `resolve.symlinks: false` in both products' webpack config makes the bundler
+  resolve `autox-core`'s files as if physically nested under the *consuming*
+  product's own `node_modules`, picking up the correct local copy.
+- **`@tanstack/react-query`/`zod` (type-checking + potential runtime
+  correctness)**: root's hoisted copies are pinned to an **unrelated older
+  major version** (`@tanstack/react-query@^4.44.0`, `zod@^3.25.76`), needed by
+  the main dashboard `frontend` app and `packages/observability`'s
+  `@perses-dev/*` peer graph — nothing to do with AutoX. `autox-core` itself
+  declares the correct `^5.90.20` / `^4` ranges as `peerDependencies`, but
+  peer-only declarations don't get a local install for `autox-core`'s own
+  tooling to resolve against.
+  - `tsc` compiling a consumer's full program (e.g. AutoML's) that transitively
+    includes an `autox-core` file with such an import will resolve it against
+    root's wrong major version, causing real type errors — or, if the
+    generic surface is complex enough (e.g. `@tanstack/react-query`'s
+    `refetchInterval`/`placeholderData` combined with an *additional*,
+    unresolved generic type parameter of our own), can make `tsc` **run out
+    of memory** entirely rather than error cleanly.
+  - **Fix applied**: `autox-core/package.json` also declares
+    `@tanstack/react-query` and `zod` as `devDependencies`, pinned to the
+    **exact** version string AutoML/AutoRAG currently resolve (not a range —
+    a range lets npm pick an independent, possibly different patch version
+    for `autox-core`'s own nested copy, which reintroduces the same problem
+    one patch level down). This gives `autox-core` its own physically
+    separate module instance, but confirmed empirically safe as long as the
+    version is exactly aligned: zod v4 doesn't use JS `#private`/TS `private`
+    class fields for its public API (confirmed via inspection), so its types
+    are compared **structurally** by `tsc`, not nominally — two separately
+    loaded instances of the *identical* version type-check as compatible.
+    `instanceof z.ZodError` across the two instances was also confirmed to
+    work correctly at runtime (zod implements this robustly across module
+    instances).
+  - **This is a maintenance trap, not a permanent fix**: if AutoML/AutoRAG's
+    own resolved patch version of `zod` or `@tanstack/react-query` ever drifts
+    from `autox-core`'s pinned `devDependency` (e.g. an unrelated `npm update`
+    bumps one product's lockfile but not the pin here), the exact-match
+    invariant silently breaks and the OOM/type-mismatch failure mode can
+    reappear with no obvious link to its actual cause. **Whenever you bump
+    `zod` or `@tanstack/react-query` in AutoML's or AutoRAG's own
+    `package.json`, update the matching exact-pinned `devDependency` version
+    here too.**
+  - Real root cause (not fixed, out of scope): `packages/observability`'s
+    `@perses-dev/*` chain and the main `frontend` app are pinned to
+    `zod@^3`/`@tanstack/react-query@^4`, which conflicts with `autox-core`'s
+    `peerDependency` ranges at the root `npm install` resolution level (a
+    plain `npm install` after adding any new dependency to `autox-core`
+    reliably reproduces an `ERESOLVE` error over this, requiring
+    `--legacy-peer-deps` to bypass). Fixing this for real means either
+    upgrading `frontend`/`observability` off zod v3 / react-query v4, or
+    accepting a `--legacy-peer-deps` lockfile rewrite repo-wide — both
+    explicitly out of scope for this package's own work and require separate,
+    deliberate sign-off (same class of blocker already on record for
+    `ManageColumnsModal`'s `@patternfly/react-component-groups`/
+    `@patternfly/react-drag-drop` dependencies, see git history).
+
 ## Scope Boundary (autox-core/ui vs. ui-core / mod-arch-shared)
 
 `@odh-dashboard/ui-core` (in-repo, consumed dashboard-wide) and `mod-arch-shared`

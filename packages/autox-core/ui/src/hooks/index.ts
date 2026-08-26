@@ -25,3 +25,20 @@ export {
 export { createUseNamespaces } from './k8s/useNamespaces';
 
 export { createUsePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
+export {
+  createUsePipelineRunQuery,
+  type PipelineRunQueryDeps,
+} from './pipelines/usePipelineRunQuery';
+export {
+  createPipelineRunMutations,
+  type PipelineRunMutations,
+} from './pipelines/usePipelineRunMutations';
+
+export {
+  createS3FileFetchers,
+  type S3FileFetchers,
+  type FetchS3FileOptions,
+  type FetchS3JsonOptions,
+} from './s3/queries';
+export { createUseS3ListFilesQuery } from './s3/useS3ListFilesQuery';
+export { createUseS3FileUploadMutation, type S3FileUploadMutationVariables } from './s3/mutations';

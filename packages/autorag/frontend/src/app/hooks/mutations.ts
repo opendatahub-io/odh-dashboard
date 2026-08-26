@@ -1,12 +1,13 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { isModArchResponse, restCREATE } from 'mod-arch-core';
 import * as z from 'zod';
-import { handleRestWithUIErrors } from '@odh-dashboard/autox-core/ui/components/primitive';
 import {
-  uploadFileToS3,
-  type UploadFileToS3Params,
-  type UploadFileToS3Response,
-} from '~/app/api/s3';
+  createPipelineRunMutations,
+  createUseS3FileUploadMutation,
+  type S3FileUploadMutationVariables,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { handleRestWithUIErrors } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { uploadFileToS3 } from '~/app/api/s3';
 import { createIndexingPipelineRun } from '~/app/api/pipelines';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { CreateIndexingPipelineRunRequest, PipelineRun } from '~/app/types';
@@ -29,100 +30,15 @@ const createPipelineRunResponseSchema = z.object({
   /* eslint-enable camelcase */
 });
 
-export type S3FileUploadMutationVariables = UploadFileToS3Params & {
-  file: File;
-};
+export type { S3FileUploadMutationVariables };
 
-/**
- * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
- * Uses hostPath '' for same-origin requests by default.
- */
-export function useS3FileUploadMutation(
-  hostPath = '',
-): UseMutationResult<UploadFileToS3Response, Error, S3FileUploadMutationVariables> {
-  return useMutation({
-    mutationKey: ['autorag', 's3FileUpload'],
-    mutationFn: async (variables: S3FileUploadMutationVariables) => {
-      const { file, ...params } = variables;
-      return uploadFileToS3(hostPath, params, file);
-    },
-  });
-}
+export const useS3FileUploadMutation = createUseS3FileUploadMutation(uploadFileToS3);
 
-async function postPipelineRunAction(url: string, action: string): Promise<void> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    let serverMessage = body;
-    try {
-      const json = JSON.parse(body);
-      serverMessage = json.error?.message || json.message || body;
-    } catch {
-      // body is not JSON, use as-is
-    }
-    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
-  }
-}
-
-export function useTerminatePipelineRunMutation(
-  namespace: string,
-  runId: string,
-): UseMutationResult<void, Error, void, unknown> {
-  return useMutation({
-    mutationKey: ['autorag', 'terminatePipelineRun', runId],
-    mutationFn: () => {
-      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
-        runId,
-      )}/terminate?namespace=${encodeURIComponent(namespace)}`;
-      return postPipelineRunAction(url, 'terminate');
-    },
-  });
-}
-
-export function useRetryPipelineRunMutation(
-  namespace: string,
-  runId: string,
-): UseMutationResult<void, Error, void, unknown> {
-  return useMutation({
-    mutationKey: ['autorag', 'retryPipelineRun', runId],
-    mutationFn: () => {
-      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
-        runId,
-      )}/retry?namespace=${encodeURIComponent(namespace)}`;
-      return postPipelineRunAction(url, 'retry');
-    },
-  });
-}
-
-export function useDeletePipelineRunMutation(
-  namespace: string,
-  runId: string,
-): UseMutationResult<void, Error, void, unknown> {
-  return useMutation({
-    mutationKey: ['autorag', 'deletePipelineRun', runId],
-    mutationFn: async () => {
-      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
-        runId,
-      )}?namespace=${encodeURIComponent(namespace)}`;
-      const response = await fetch(url, { method: 'DELETE' });
-      if (!response.ok) {
-        const body = await response.text();
-        let serverMessage = body;
-        try {
-          const json = JSON.parse(body);
-          serverMessage = json.error?.message || json.message || body;
-        } catch {
-          // body is not JSON, use as-is
-        }
-        throw new Error(`Failed to delete run (${response.status}): ${serverMessage}`);
-      }
-    },
-  });
-}
+export const {
+  useTerminatePipelineRunMutation,
+  useRetryPipelineRunMutation,
+  useDeletePipelineRunMutation,
+} = createPipelineRunMutations(URL_PREFIX, BFF_API_VERSION);
 
 export function useCreatePipelineRunMutation(
   namespace: string,

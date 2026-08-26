@@ -945,7 +945,7 @@ describe('AutoragResultsPage', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1);
         expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-          queryKey: ['autorag', 'pipelineRun', 'run-123', 'test-ns'],
+          queryKey: ['pipelineRun', 'run-123', 'test-ns'],
         });
         expect(mockNotification.success).toHaveBeenCalledWith(
           'Retry submitted successfully',
