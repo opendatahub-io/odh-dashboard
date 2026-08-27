@@ -180,8 +180,6 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     filterData[BenchmarkFilterOptions.category].length > 0 ||
     filterData[BenchmarkFilterOptions.metrics].length > 0;
 
-  const nameChipLabel = 'Name or ID';
-
   return (
     <Drawer isExpanded={!!selectedBenchmark}>
       <DrawerContent
@@ -279,7 +277,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                   [BenchmarkFilterOptions.name]: '',
                                 }))
                               }
-                              categoryName={nameChipLabel}
+                              categoryName="Name or ID"
                             >
                               <SearchInput
                                 aria-label="Filter by name or ID"
