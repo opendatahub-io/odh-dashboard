@@ -42,7 +42,7 @@
     "type-check": "tsc --noEmit && cd frontend && npm run test:type-check"
   },
   "exports": {
-    "./extensions": "./extensions/index.ts",
+    "./extensions/static": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
     "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
