@@ -204,7 +204,7 @@ importers:
         specifier: ^4.0.9
         version: 4.0.9
       '@types/lodash':
-        specifier: ^4.17.24
+        specifier: ^4.17.25
         version: 4.17.25
       '@types/ws':
         specifier: ^8.18.1
