@@ -26,6 +26,7 @@ export { createUseNamespaces } from './k8s/useNamespaces';
 
 export { usePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
 export { usePipelineRunQuery } from './pipelines/usePipelineRunQuery';
+export { useCreatePipelineRunMutation } from './pipelines/useCreatePipelineRunMutation';
 export { useTerminatePipelineRunMutation } from './pipelines/useTerminatePipelineRunMutation';
 export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMutation';
 export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
