@@ -9,7 +9,7 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
-import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
+import { TrustyAIContext } from '@odh-dashboard/trustyai/context';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { type BiasMetricConfig, BiasMetricType } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';

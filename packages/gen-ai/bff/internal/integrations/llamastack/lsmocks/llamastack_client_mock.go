@@ -98,22 +98,24 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 }
 
 // ListVectorStores mock returns two external (non-user) vector stores.
+// The first store's ID matches the first AAE ConfigMap entry so it appears as
+// "already in playground" on the AI asset endpoints page.
 // The LlamaStackListVectorStoresHandler will find no user-specific store and auto-provision
 // one, resulting in three stores total in the response.
 func (m *MockLlamaStackClient) ListVectorStores(ctx context.Context, params llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	return []openai.VectorStore{
 		{
-			ID:           "vs_external_001",
+			ID:           "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
 			Object:       "vector_store",
 			CreatedAt:    1755721097,
-			Name:         "External Store 1",
+			Name:         "Product Embeddings (PGVector)",
 			UsageBytes:   0,
 			FileCounts:   openai.VectorStoreFileCounts{Completed: 2, Total: 2},
 			Status:       "completed",
 			LastActiveAt: 1755721097,
 			Metadata: map[string]string{
-				"provider_id":           "pgvector",
-				"provider_vector_db_id": "vs_external_001",
+				"provider_id":           "pgvector-provider",
+				"provider_vector_db_id": "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
 			},
 		},
 		{

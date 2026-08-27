@@ -21,6 +21,7 @@ import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import '~/app/components/EvaluationStatusModal.scss';
 import './EvaluationResultsPage.scss';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
@@ -337,6 +338,7 @@ const EvaluationResultsPage: React.FC = () => {
           variant="medium"
           aria-label="Event log"
           data-testid="evaluation-event-log-modal"
+          className="evalhub-status-modal evalhub-status-modal--full-height"
         >
           <ModalHeader title="Event log" />
           <ModalBody>
@@ -369,7 +371,6 @@ const EvaluationResultsPage: React.FC = () => {
                   job.status.state === 'pending' ||
                   job.status.state === 'stopping'
                 }
-                state={job.status.state}
               />
             </React.Suspense>
           </ModalBody>

@@ -12,12 +12,12 @@ export const MaaSEvents = {
   MAAS_RESOURCE_DETAILS_VIEWED: 'MaaS Settings Details Viewed',
   MAAS_SETTINGS_LIST_FILTERED: 'MaaS Settings List Filtered',
   MAAS_SETTINGS_LIST_ROW_EXPANDED: 'MaaS Settings List Row Expanded',
-  SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED: 'Subscription Management Overview Filtered',
-  SUBSCRIPTION_MANAGEMENT_OVERVIEW_ROW_EXPANDED: 'Subscription Management Overview Row Expanded',
-  SUBSCRIPTION_MANAGEMENT_GROUP_LABEL_SELECTED: 'Subscription Management Group Label Selected',
-  SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED: 'Subscription Management Status Popover Viewed',
-  SUBSCRIPTION_MANAGEMENT_YAML_VIEWED: 'Subscription Management YAML Viewed',
-  SUBSCRIPTION_MANAGEMENT_YAML_EXPORTED: 'Subscription Management YAML Exported',
+  MAAS_GOVERNANCE_OVERVIEW_FILTERED: 'MaaS Governance Overview Filtered',
+  MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED: 'MaaS Governance Overview Row Expanded',
+  MAAS_GOVERNANCE_GROUP_LABEL_SELECTED: 'MaaS Governance Group Label Selected',
+  MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED: 'MaaS Governance Status Popover Viewed',
+  MAAS_GOVERNANCE_YAML_VIEWED: 'MaaS Governance YAML Viewed',
+  MAAS_GOVERNANCE_YAML_EXPORTED: 'MaaS Governance YAML Exported',
   EXTERNAL_MODELS_LIST_FILTERS: 'External Models List Filtered',
   EXTERNAL_MODEL_ROW_EXPANDED: 'External Model Row Expanded',
   EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED: 'External Models Provider Labels Expanded',
@@ -193,34 +193,34 @@ export type MaaSSettingsListRowExpandedProperties = {
   groupCount: number;
 };
 
-export type SubscriptionManagementYamlViewedProperties = {
+export type MaaSGovernanceYamlViewedProperties = {
   resourceType: EventTrackingResourceType;
   context: EventTrackingContext;
 };
 
-export type SubscriptionManagementYamlExportedProperties = {
+export type MaaSGovernanceYamlExportedProperties = {
   resourceType: EventTrackingResourceType;
   context: EventTrackingContext;
   action: EventTrackingYAMLAction;
 };
 
-export type SubscriptionManagementOverviewFilteredProperties = {
+export type MaaSGovernanceOverviewFilteredProperties = {
   filterAttribute: EventTrackingFilterAttribute;
 };
 
-export type SubscriptionManagementOverviewRowExpandedProperties = {
+export type MaaSGovernanceOverviewRowExpandedProperties = {
   subscriptionCount: number;
   policyCount: number;
 };
 
-export type SubscriptionManagementGroupLabelSelectedProperties = {
+export type MaaSGovernanceGroupLabelSelectedProperties = {
   subsCountPerModel: number;
   policyCountPerModel: number;
   subsCountWithSelectedGroup: number;
   policyCountWithSelectedGroup: number;
 };
 
-export type SubscriptionManagementStatusPopoverViewedProperties = {
+export type MaaSGovernanceStatusPopoverViewedProperties = {
   popoverType: EventTrackingPopoverType;
   status: PhaseStatus | 'configuration-warning';
   location: PhaseLabelLocation;

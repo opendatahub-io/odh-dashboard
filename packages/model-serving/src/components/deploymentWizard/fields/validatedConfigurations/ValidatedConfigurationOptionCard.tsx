@@ -9,6 +9,7 @@ import {
   Content,
   Popover,
 } from '@patternfly/react-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   formatValidatedOptionValueForDisplay,
   slugifyValidatedOptionTitle,
@@ -29,6 +30,7 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
   onSelectionChange,
   catalogModelId,
 }) => {
+  const trackEvent = useTrackEvent();
   const optionSlug = slugifyValidatedOptionTitle(option.title);
   const formattedArgs = formatValidatedOptionValueForDisplay(option.value);
 
@@ -64,7 +66,7 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
           aria-label={`${option.title} arguments`}
           headerContent={`${option.title} arguments`}
           onShow={() => {
-            fireValidatedArgumentsViewed({
+            fireValidatedArgumentsViewed(trackEvent, {
               configurationName: option.title,
               catalogModelId,
               entryPoint: 'model_details',

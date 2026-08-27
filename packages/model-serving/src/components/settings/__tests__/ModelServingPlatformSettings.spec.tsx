@@ -1,13 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useServingPlatformStatuses } from '@odh-dashboard/plugin-core/host-api';
-import type { ServingPlatformStatuses } from '@odh-dashboard/plugin-core/host-api';
+import useServingPlatformStatuses from '../../../hooks/useServingPlatformStatuses';
+import type { ServingPlatformStatuses } from '../../../hooks/useServingPlatformStatuses';
 import ModelServingPlatformSettings from '../ModelServingPlatformSettings';
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useServingPlatformStatuses: jest.fn(),
-}));
+jest.mock('../../../hooks/useServingPlatformStatuses', () => jest.fn());
 
 const mockUseServingPlatformStatuses = jest.mocked(useServingPlatformStatuses);
 
