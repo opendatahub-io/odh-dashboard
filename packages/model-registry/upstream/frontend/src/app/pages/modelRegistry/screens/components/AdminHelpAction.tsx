@@ -39,7 +39,7 @@ const AdminHelpAction: React.FC<AdminHelpActionProps> = ({
               To create a new model registry, go to the <b>{settingsTitle}</b> page.
             </StackItem>
             <StackItem>
-              <Link to={settingsUrl}>
+              <Link to={settingsUrl} data-testid="model-registry-settings-link">
                 Go to <b>{settingsTitle}</b>
               </Link>
             </StackItem>

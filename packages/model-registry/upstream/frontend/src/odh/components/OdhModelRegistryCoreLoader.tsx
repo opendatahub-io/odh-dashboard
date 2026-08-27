@@ -58,9 +58,9 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
         }
         customAction={
           !isAdmin ? (
-            <WhosMyAdministrator />
+            <WhosMyAdministrator linkTestId="whos-my-admin-link" />
           ) : (
-            <Link to={settingsUrl}>
+            <Link to={settingsUrl} data-testid="model-registry-settings-link">
               Go to <b>{settingsTitle}</b>
             </Link>
           )

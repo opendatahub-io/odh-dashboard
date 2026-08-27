@@ -79,7 +79,7 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
 
       cy.findByTestId('empty-model-registries-state').should('be.visible');
       cy.findByTestId('empty-model-registries-state').within(() => {
-        cy.findByRole('link', { name: /Go to/i })
+        cy.findByTestId('model-registry-settings-link')
           .should('be.visible')
           .and('have.attr', 'href', REGISTRY_SETTINGS_URL);
       });
@@ -100,8 +100,8 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
         );
 
       cy.findByTestId('empty-model-registries-state').within(() => {
-        cy.findByRole('link', { name: /Go to/i }).should('not.exist');
-        cy.findByRole('button', { name: /Who's my administrator/i }).should('exist');
+        cy.findByTestId('model-registry-settings-link').should('not.exist');
+        cy.findByTestId('whos-my-admin-link').should('exist');
       });
     });
   });
@@ -120,7 +120,7 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
         .should('be.visible')
         .and('contain.text', 'To create a new model registry');
       modelRegistry.findHelpContentPopover().within(() => {
-        cy.findByRole('link', { name: /Go to/i })
+        cy.findByTestId('model-registry-settings-link')
           .should('be.visible')
           .and('have.attr', 'href', REGISTRY_SETTINGS_URL);
       });
@@ -139,7 +139,7 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
         .should('be.visible')
         .and('contain.text', 'contact your administrator');
       modelRegistry.findHelpContentPopover().within(() => {
-        cy.findByRole('link', { name: /Go to/i }).should('not.exist');
+        cy.findByTestId('model-registry-settings-link').should('not.exist');
       });
     });
   });
