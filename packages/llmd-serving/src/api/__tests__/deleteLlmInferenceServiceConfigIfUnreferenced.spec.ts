@@ -95,6 +95,22 @@ describe('deleteLlmInferenceServiceConfigIfUnreferenced', () => {
     expect(mockK8sGetResource).toHaveBeenCalledTimes(2);
   });
 
+  it('should propagate non-404 errors from the post-delete re-fetch', async () => {
+    mockK8sDeleteResource.mockResolvedValue({
+      kind: 'Status',
+      status: 'Success',
+      code: 200,
+      message: '',
+      reason: '',
+    });
+    const networkError = Object.assign(new Error('Internal Server Error'), { code: 500 });
+    mockK8sGetResource.mockResolvedValueOnce(defaultConfig).mockRejectedValueOnce(networkError);
+
+    await expect(
+      deleteLlmInferenceServiceConfigIfUnreferenced('router-config', 'opendatahub', 'routing'),
+    ).rejects.toBe(networkError);
+  });
+
   it('should return blocked-pending when delete response shows terminating and referenced', async () => {
     mockK8sDeleteResource.mockResolvedValue({
       kind: 'LLMInferenceServiceConfig',

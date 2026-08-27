@@ -185,8 +185,14 @@ export const deleteLlmInferenceServiceConfigIfUnreferenced = async (
 
   // Delete may return a Status object instead of the updated resource; re-fetch to detect
   // a terminating config blocked by the KServe finalizer while still referenced.
+  // Only treat 404 as "gone"; propagate any other error (5xx, network, etc.).
   const refreshedConfig = await getLLMInferenceServiceConfig(configName, namespace, opts).catch(
-    () => null,
+    (e: unknown) => {
+      if (getGenericErrorCode(e) === 404) {
+        return null;
+      }
+      throw e;
+    },
   );
   if (refreshedConfig && isDeletionPendingDueToReferences(refreshedConfig)) {
     return 'blocked-pending';
