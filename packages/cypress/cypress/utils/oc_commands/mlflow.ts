@@ -77,9 +77,16 @@ export const ensureMlflowCrReady = (
 
 export const deleteMlflowCr = (): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Deleting MLflow CR ${MLFLOW_CR_NAME} if present`);
-  return cy.exec(`oc delete ${MLFLOW_GVR} ${MLFLOW_CR_NAME} --ignore-not-found`, {
-    failOnNonZeroExit: false,
-  });
+  return cy
+    .exec(`oc delete ${MLFLOW_GVR} ${MLFLOW_CR_NAME} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(`Warning: MLflow CR deletion failed: ${maskSensitiveInfo(result.stderr || '')}`);
+      }
+      return result;
+    });
 };
 
 /**
