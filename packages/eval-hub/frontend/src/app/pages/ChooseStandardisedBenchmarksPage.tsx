@@ -127,7 +127,11 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     const metricsFilters = filterData[BenchmarkFilterOptions.metrics];
 
     return allBenchmarks.filter((b) => {
-      if (nameFilter && !b.name.toLowerCase().includes(nameFilter)) {
+      if (
+        nameFilter &&
+        !b.name.toLowerCase().includes(nameFilter) &&
+        !b.id.toLowerCase().includes(nameFilter)
+      ) {
         return false;
       }
       if (categoryFilters.length > 0 && !categoryFilters.includes(b.category ?? '')) {
@@ -175,6 +179,8 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     filterData[BenchmarkFilterOptions.name].trim() !== '' ||
     filterData[BenchmarkFilterOptions.category].length > 0 ||
     filterData[BenchmarkFilterOptions.metrics].length > 0;
+
+  const nameChipLabel = 'Name or ID';
 
   return (
     <Drawer isExpanded={!!selectedBenchmark}>
@@ -273,11 +279,11 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                   [BenchmarkFilterOptions.name]: '',
                                 }))
                               }
-                              categoryName="Name"
+                              categoryName={nameChipLabel}
                             >
                               <SearchInput
-                                aria-label="Filter by name"
-                                placeholder="Filter by name"
+                                aria-label="Filter by name or ID"
+                                placeholder="Filter by name or ID"
                                 value={filterData[BenchmarkFilterOptions.name]}
                                 onChange={(_event, value) =>
                                   setFilterData((prev) => ({
