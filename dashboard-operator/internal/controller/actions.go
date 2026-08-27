@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -112,15 +111,6 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 	}
 }
 
-// standaloneManifestSets returns the manifest paths for standalone deployment mode.
-// In standalone mode, the core dashboard pod has only 3 containers (odh-dashboard,
-// kube-rbac-proxy, core-bff). BFF module pods are deployed separately.
-func standaloneManifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
-	return []render.ManifestInfo{
-		standaloneManifestInfo(basePath, platform),
-	}
-}
-
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
@@ -131,23 +121,6 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
-		}
-	}
-
-	if len(manifests) > 0 {
-		sidecarPath := filepath.Join(manifests[0].Path, "sidecar")
-		if _, err := os.Stat(sidecarPath); os.IsNotExist(err) {
-			// Skip gracefully only in standalone mode (SourcePath contains "standalone").
-			// In sidecar mode an absent sidecar/ directory means a bad image build — return error.
-			if strings.Contains(manifests[0].SourcePath, "standalone") {
-				return nil
-			}
-			return fmt.Errorf("sidecar directory not found at %s: check operator image", sidecarPath)
-		}
-		params := readExistingParams(sidecarPath + "/params.env")
-		maps.Copy(params, computed)
-		if err := writeParamsEnv(sidecarPath, params); err != nil {
-			return fmt.Errorf("failed to write params.env to %s: %w", sidecarPath, err)
 		}
 	}
 

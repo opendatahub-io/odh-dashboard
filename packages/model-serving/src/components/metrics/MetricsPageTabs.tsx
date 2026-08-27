@@ -2,17 +2,15 @@ import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import {
-  useIsProjectNIMSupported,
-  useServingPlatformStatuses,
-} from '@odh-dashboard/plugin-core/host-api';
-import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
+import { useIsProjectNIMSupported } from '@odh-dashboard/plugin-core/host-api';
+import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
-import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
+import useDoesTrustyAICRExist from '@odh-dashboard/trustyai/hooks/useDoesTrustyAICRExist';
 import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import useServingPlatformStatuses from '@odh-dashboard/model-serving/hooks/useServingPlatformStatuses';
 import './MetricsPageTabs.scss';
 import { MetricsTabKeys } from './types';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';

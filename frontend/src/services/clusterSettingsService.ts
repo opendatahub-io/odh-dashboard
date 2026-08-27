@@ -1,4 +1,4 @@
-import { ClusterSettingsType } from '#~/types';
+import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import axios from '#~/utilities/axios';
 
 export const fetchClusterSettings = (): Promise<ClusterSettingsType> => {

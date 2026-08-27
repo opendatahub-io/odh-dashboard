@@ -16,7 +16,7 @@ describe('getBenchmarkDatasetUrl', () => {
 
     it('should return the URL for a case-sensitive key', () => {
       expect(getBenchmarkDatasetUrl('tinyTruthfulQA')).toBe(
-        'https://huggingface.co/datasets/truthfulqa/truthful_qa',
+        'https://huggingface.co/datasets/tinyBenchmarks/tinyTruthfulQA',
       );
     });
   });
@@ -28,9 +28,9 @@ describe('getBenchmarkDatasetUrl', () => {
       );
     });
 
-    it('should match the AraDiCE ArabicMMLU prefix', () => {
+    it('should match the AraDiCE prefix', () => {
       expect(getBenchmarkDatasetUrl('AraDiCE_ArabicMMLU_some_variant')).toBe(
-        'https://huggingface.co/datasets/MBZUAI/ArabicMMLU',
+        'https://huggingface.co/datasets/QCRI/AraDiCE',
       );
     });
 

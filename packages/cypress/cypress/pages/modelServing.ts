@@ -1329,10 +1329,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('num-replicas').findByRole('button', { name: 'Plus' });
   }
 
-  findRuntimeArgsCheckbox() {
-    return cy.findByTestId('runtime-args-checkbox');
-  }
-
   findRuntimeArgsTextBox() {
     return cy.findByTestId('runtime-args-textarea');
   }

@@ -63,8 +63,8 @@ class PipelineRunsGlobal {
     return cy.findByTestId('restore-button');
   }
 
-  findCompareRunsButton() {
-    return cy.findByTestId('compare-runs-button');
+  findCompareRunsButton(timeout?: number) {
+    return cy.findByTestId('compare-runs-button', { timeout });
   }
 
   findActiveRunsToolbar() {

@@ -164,7 +164,7 @@ export const initInterceptsToDeployNimInWizard = ({
   cy.interceptK8s(
     'POST',
     { model: InferenceServiceModel, ns: namespace },
-    { statusCode: 200, body: mockNimInferenceService({ namespace }) },
+    { statusCode: 200, body: mockNimInferenceService({ name: modelName, namespace }) },
   ).as('createInferenceService');
 
   cy.interceptK8s(

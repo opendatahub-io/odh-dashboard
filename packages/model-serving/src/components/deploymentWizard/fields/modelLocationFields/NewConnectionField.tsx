@@ -11,8 +11,8 @@ import type {
   ConnectionTypeValueType,
 } from '@odh-dashboard/k8s-core';
 import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
-import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
-import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
+import ConnectionOciPathField from '../../../connectionTypes/ConnectionOciPathField';
+import ConnectionS3FolderPathField from '../../../connectionTypes/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../../../shared/types/form-data';
 import { CreateConnectionInputFields } from '../CreateConnectionInputFields';
 import { UseModelDeploymentWizardState } from '../../useDeploymentWizard';

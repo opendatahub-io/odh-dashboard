@@ -22,7 +22,12 @@ import {
 } from '@patternfly/react-core';
 import { ClusterIcon, MicrochipIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import { INFRASTRUCTURE_SECTIONS, INFRASTRUCTURE_TABS } from '../const';
+import {
+  INFRASTRUCTURE_PAGE_DESCRIPTION,
+  INFRASTRUCTURE_SECTIONS,
+  INFRASTRUCTURE_TABS,
+} from '../const';
+import InfrastructureKueueHelpLink from '../components/InfrastructureKueueHelpLink';
 import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
@@ -113,7 +118,17 @@ const InfrastructurePage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Infrastructure"
-      description="Current accelerator allocation and quota consumption for this cluster. Cluster queues are grouped into cohorts to share resources."
+      description={
+        <>
+          {INFRASTRUCTURE_PAGE_DESCRIPTION}
+          {isKueueAvailable && (
+            <>
+              {' '}
+              <InfrastructureKueueHelpLink />
+            </>
+          )}
+        </>
+      }
       loaded
       empty={false}
       provideChildrenPadding

@@ -41,6 +41,10 @@ import type {
   GatewaySelectFieldData,
   GatewaySelectFieldType,
 } from '../src/wizardFields/gateway/GatewaySelectField';
+import type {
+  AcceleratorConfigFieldData,
+  AcceleratorConfigFieldType,
+} from '../src/wizardFields/AcceleratorConfigField';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
@@ -174,7 +178,12 @@ export type TopologyConfigsExtensionsType =
   // Router config
   | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
-  | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>;
+  | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>
+  // Accelerator config
+  | WizardFieldExtension<AcceleratorConfigFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<AcceleratorConfigFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<AcceleratorConfigFieldData, LLMdDeployment>
+  | WizardFieldDeploymentFunctionsExtension<AcceleratorConfigFieldData, LLMdDeployment>;
 
 export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
   // ─── Topology type ──────────────────────────────────────────────────
@@ -258,7 +267,10 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
     flags: {
       required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
-  },
+  } satisfies WizardFieldDeploymentFunctionsExtension<
+    CustomTopologyConfigFieldData,
+    LLMdDeployment
+  >,
   // ─── Router config ──────────────────────────────────────────────────
   {
     type: 'model-serving.deployment/wizard-field',
@@ -295,6 +307,48 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
       required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
   } satisfies WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+  // ─── Accelerator config ─────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/AcceleratorConfigField').then(
+          (m) => m.AcceleratorConfigFieldWizardField,
+        ),
+    },
+    flags: { required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS] },
+  } satisfies WizardFieldExtension<AcceleratorConfigFieldType, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'llmd-serving/accelerator-config',
+      platform: LLMD_SERVING_ID,
+      apply: () => import('../src/deployments/accelerator').then((m) => m.applyAcceleratorConfig),
+    },
+    flags: { required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS] },
+  } satisfies WizardFieldApplyExtension<AcceleratorConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/accelerator-config',
+      platform: LLMD_SERVING_ID,
+      extract: () =>
+        import('../src/deployments/accelerator').then((m) => m.extractAcceleratorConfig),
+    },
+    flags: { required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS] },
+  } satisfies WizardFieldExtractorExtension<AcceleratorConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-deployment-functions',
+    properties: {
+      fieldId: 'llmd-serving/accelerator-config',
+      platform: LLMD_SERVING_ID,
+      preDeploy: () =>
+        import('../src/deployments/accelerator').then((m) => m.preDeployAcceleratorConfig),
+      postDeploy: null,
+    },
+    flags: { required: [SupportedArea.LLMD_SERVING, SupportedArea.VLLM_ON_MAAS] },
+  } satisfies WizardFieldDeploymentFunctionsExtension<AcceleratorConfigFieldData, LLMdDeployment>,
 ];
 
 const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<

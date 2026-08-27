@@ -1,7 +1,7 @@
 # AGENTS.md - Core BFF
 
 This document provides guidance for AI agents and developers working on the Core BFF module.
-The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go
+The Core BFF replaces the Fastify backend for RHOAI deployments. It contains a Go
 backend-for-frontend (BFF) and a React frontend that integrates with the ODH dashboard via
 Module Federation.
 

@@ -15,7 +15,11 @@ export const API_GROUP_CATEGORIES: ApiGroupCategory[] = [
     id: 'core',
     label: 'Core',
     groups: [
-      { name: '', label: 'core', description: 'Pods, services, configmaps, namespaces, events' },
+      {
+        name: '',
+        label: 'core',
+        description: 'Pods, services, configmaps, PVCs, namespaces, events',
+      },
     ],
   },
   {
@@ -77,6 +81,16 @@ export const API_GROUP_CATEGORIES: ApiGroupCategory[] = [
         name: 'rbac.authorization.k8s.io',
         label: 'rbac.authorization.k8s.io',
         description: 'Roles, role bindings, cluster roles',
+      },
+      {
+        name: 'authorization.k8s.io',
+        label: 'authorization.k8s.io',
+        description: 'Subject access reviews',
+      },
+      {
+        name: 'authentication.k8s.io',
+        label: 'authentication.k8s.io',
+        description: 'Token reviews',
       },
     ],
   },

@@ -1,3 +1,15 @@
+export const INFRASTRUCTURE_PAGE_DESCRIPTION =
+  'View accelerator utilization, cluster queue cohort configuration, and workload details.';
+
+export const KUEUE_HELP_LINK_TEXT = "Not seeing what you're looking for?";
+export const KUEUE_HELP_POPOVER_BODY =
+  "This page shows data from projects managed by Kueue. Projects without a local queue aren't part of queue-based resource management.";
+export const KUEUE_HELP_VIEW_PROJECTS_LINK = 'View projects not managed by Kueue';
+export const NON_KUEUE_PROJECTS_MODAL_TITLE = 'Projects not managed by Kueue';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
+  'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
+export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
+
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;

@@ -554,4 +554,218 @@ describe('ResourcesTreeSelect', () => {
     const result = mockOnChange.mock.calls[0][0] as string[];
     expect(result).not.toContain('__all_category__core');
   });
+
+  describe('filterByApiGroups', () => {
+    it('should show all resources when filterByApiGroups is undefined', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+      expect(screen.getByText('Storage')).toBeInTheDocument();
+      expect(screen.getByText('Networking')).toBeInTheDocument();
+      expect(screen.getByText('RBAC')).toBeInTheDocument();
+    });
+
+    it('should show all resources when filterByApiGroups is empty', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={[]}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+      expect(screen.getByText('Storage')).toBeInTheDocument();
+      expect(screen.getByText('Networking')).toBeInTheDocument();
+      expect(screen.getByText('RBAC')).toBeInTheDocument();
+    });
+
+    it('should show all resources when filterByApiGroups contains wildcard', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['*']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+      expect(screen.getByText('Storage')).toBeInTheDocument();
+      expect(screen.getByText('Networking')).toBeInTheDocument();
+      expect(screen.getByText('RBAC')).toBeInTheDocument();
+    });
+
+    it('should filter resources to only show those in selected API groups', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['apps']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Deployments')).toBeInTheDocument();
+      expect(screen.getByText('StatefulSets')).toBeInTheDocument();
+      expect(screen.getByText('DaemonSets')).toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+      expect(screen.queryByText('Network policies')).not.toBeInTheDocument();
+      expect(screen.queryByText('Roles')).not.toBeInTheDocument();
+    });
+
+    it('should hide empty categories when all their resources are filtered out', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['networking.k8s.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Networking')).toBeInTheDocument();
+      expect(screen.getByText('Network policies')).toBeInTheDocument();
+      expect(screen.getByText('Ingresses')).toBeInTheDocument();
+      expect(screen.queryByText('Core')).not.toBeInTheDocument();
+      expect(screen.queryByText('Applications')).not.toBeInTheDocument();
+      expect(screen.queryByText('Storage')).not.toBeInTheDocument();
+      expect(screen.queryByText('RBAC')).not.toBeInTheDocument();
+    });
+
+    it('should filter core group resources using empty string', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Pods')).toBeInTheDocument();
+      expect(screen.getByText('Services')).toBeInTheDocument();
+      expect(screen.getByText('Persistent volumes')).toBeInTheDocument();
+      expect(screen.getByText('Cluster storage (persistentvolumeclaims)')).toBeInTheDocument();
+      expect(screen.queryByText('Storage')).not.toBeInTheDocument();
+      expect(screen.queryByText('Storage classes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Deployments')).not.toBeInTheDocument();
+      expect(screen.queryByText('Networking')).not.toBeInTheDocument();
+      expect(screen.queryByText('RBAC')).not.toBeInTheDocument();
+    });
+
+    it('should show only storage.k8s.io resources when that API group is selected', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['storage.k8s.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Storage')).toBeInTheDocument();
+      expect(screen.getByText('Storage classes')).toBeInTheDocument();
+      expect(screen.queryByText('Persistent volumes')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Cluster storage (persistentvolumeclaims)'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Core')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+    });
+
+    it('should show resources from multiple selected API groups', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['apps', 'batch']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+      expect(screen.getByText('Deployments')).toBeInTheDocument();
+      expect(screen.getByText('Jobs')).toBeInTheDocument();
+      expect(screen.getByText('CronJobs')).toBeInTheDocument();
+      expect(screen.queryByText('Core')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+    });
+
+    it('should not hide the resource tree when only a custom API group is selected', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['custom.example.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('All resources')).toBeInTheDocument();
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.getByText('Pods')).toBeInTheDocument();
+      expect(screen.getByText('Applications')).toBeInTheDocument();
+    });
+
+    it('should still filter to known groups when mixed with a custom API group', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['apps', 'custom.example.io']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Deployments')).toBeInTheDocument();
+      expect(screen.queryByText('Pods')).not.toBeInTheDocument();
+    });
+
+    it('should always show the "All resources" wildcard option regardless of filter', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+          filterByApiGroups={['apps']}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('All resources')).toBeInTheDocument();
+    });
+  });
 });

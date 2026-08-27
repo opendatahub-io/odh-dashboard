@@ -9,7 +9,7 @@ import {
   k8sListResourceItems,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   K8sAPIOptions,
   RoleBindingKind,
@@ -17,7 +17,6 @@ import {
   RoleBindingSubject,
 } from '#~/k8sTypes';
 import { RoleBindingModel } from '#~/api/models';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
 import { addOwnerReference } from '#~/api/k8sUtils';
 

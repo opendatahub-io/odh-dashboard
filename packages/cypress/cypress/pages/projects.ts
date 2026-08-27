@@ -244,7 +244,7 @@ class ProjectDetails {
     return cy.findByTestId('delete-project-action');
   }
 
-  findImportPipelineButton(timeout = 60000) {
+  findImportPipelineButton(timeout?: number) {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
