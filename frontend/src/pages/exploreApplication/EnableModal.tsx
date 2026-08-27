@@ -6,10 +6,12 @@ import {
   FormAlert,
   Spinner,
   TextInputTypes,
+  /* eslint-disable @odh-dashboard/no-restricted-imports */
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
+  /* eslint-enable @odh-dashboard/no-restricted-imports */
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { isEmpty, values } from 'lodash-es';
@@ -203,7 +205,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
           </div>
         ) : null}
         {enable.variables ? (
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             {postError ? (
               <FormAlert>
                 <Alert
