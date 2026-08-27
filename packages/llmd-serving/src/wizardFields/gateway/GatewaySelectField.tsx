@@ -163,7 +163,14 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
         <StackItem>
           {disabledTooltip && isDisabled ? (
             <Tooltip content={disabledTooltip}>
-              <div data-testid="gateway-select-tooltip-wrapper">{selectEl}</div>
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={disabledTooltip}
+                data-testid="gateway-select-tooltip-wrapper"
+              >
+                {selectEl}
+              </div>
             </Tooltip>
           ) : (
             selectEl
