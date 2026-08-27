@@ -37,13 +37,14 @@ const useCatalogDeployPrefillData = (
     return {
       modelName: model.name,
       modelUri: uri,
+      catalogModelId: [sourceId || model.source_id, model.name].filter(Boolean).join('/'),
       returnRouteValue: '/ai-hub/models/deployments/',
       cancelReturnRouteValue: cancelReturnRoute,
       wizardStartIndex: 1,
       prefillAlertText: `The ${model.name} model details have been imported from the model catalog.`,
       ...getValidatedConfigurationsForModel(model, isToolCallingEnabled),
     };
-  }, [model, uri, cancelReturnRoute, isToolCallingEnabled]);
+  }, [model, uri, cancelReturnRoute, isToolCallingEnabled, sourceId]);
 
   return {
     deployPrefill,
