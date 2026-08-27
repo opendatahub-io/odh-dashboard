@@ -2683,6 +2683,9 @@ importers:
 
   packages/data-registry/frontend:
     dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.9.1
+        version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.86.0(react@18.3.1))(zod@4.4.3)
       '@patternfly/patternfly':
         specifier: ~6.5.1
         version: 6.5.2
@@ -2713,12 +2716,18 @@ importers:
       react-dom:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
+      react-hook-form:
+        specifier: ^7.86.0
+        version: 7.86.0(react@18.3.1)
       react-router:
         specifier: ^7.18.2
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-router-dom:
         specifier: ^7.18.2
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@module-federation/enhanced':
         specifier: ^0.24.1
@@ -5116,7 +5125,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@hookform/resolvers':
         specifier: ^3.9.1
-        version: 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+        version: 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@mui/material':
         specifier: ^6.5.0
         version: 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -5149,25 +5158,25 @@ importers:
         version: 0.54.0
       '@perses-dev/dashboards':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+        version: 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/explore':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+        version: 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/loki-plugin':
         specifier: v0.6.0-rc.2
-        version: 0.6.0-rc.2(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@lezer/lr@1.4.10)(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/explore@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(@tanstack/react-query@4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.85.0(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 0.6.0-rc.2(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@lezer/lr@1.4.10)(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/explore@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(@tanstack/react-query@4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.86.0(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@perses-dev/plugin-system':
         specifier: ^0.54.0-beta.10
-        version: 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+        version: 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/prometheus-plugin':
         specifier: v0.58.0-beta.3
-        version: 0.58.0-beta.3(6ebd7facf4d9aff4766829b52eb8898e)
+        version: 0.58.0-beta.3(16027fe18803c61682eafbae8daad392)
       '@perses-dev/stat-chart-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@perses-dev/table-plugin':
         specifier: v0.13.0-rc.1
-        version: 0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(@tanstack/react-table@8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(@tanstack/react-table@8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@tanstack/react-query':
         specifier: ^4.44.0
         version: 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14760,6 +14769,12 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-hook-form@7.86.0:
+    resolution: {integrity: sha512-4kbWJrh5jPZt1+YqVcXcGKffGcXV/XVbozknLh0Yjh0KhpoAkus21TAQhzRYqNwFkkObmnSvRlZZ3GT+ehoIrA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+
   react-intersection-observer@9.16.0:
     resolution: {integrity: sha512-w9nJSEp+DrW9KmQmeWHQyfaP6b03v+TdXynaoA964Wxt7mdR3An11z4NNCQgL4gKSK7y1ver2Fq+JKH6CWEzUA==}
     peerDependencies:
@@ -18400,14 +18415,25 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1))':
+  '@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1))':
     dependencies:
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.86.0(react@18.3.1)
 
   '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.85.0(react@18.3.1))(zod@4.4.3)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.85.0(react@18.3.1)
+    optionalDependencies:
+      '@sinclair/typebox': 0.34.52
+      ajv: 8.20.0
+      ajv-formats: 2.1.1(ajv@8.20.0)
+      joi: 17.13.4
+      zod: 4.4.3
+
+  '@hookform/resolvers@5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.86.0(react@18.3.1))(zod@4.4.3)':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.86.0(react@18.3.1)
     optionalDependencies:
       '@sinclair/typebox': 0.34.52
       ajv: 8.20.0
@@ -20163,12 +20189,12 @@ snapshots:
       numbro: 2.5.0
       zod: 3.25.76
 
-  '@perses-dev/dashboards@0.54.0(4a916899151e177fc8c25cb888c2d8cd)':
+  '@perses-dev/dashboards@0.54.0(3f2addbcc946623bb2132c22031761a9)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/spec': 0.2.0
       '@tanstack/hotkeys': 0.8.0
       '@tanstack/react-hotkeys': 0.9.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20216,13 +20242,13 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/explore@0.54.0(4a916899151e177fc8c25cb888c2d8cd)':
+  '@perses-dev/explore@0.54.0(3f2addbcc946623bb2132c22031761a9)':
     dependencies:
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/dashboards': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       mdi-material-ui: 7.9.4(@mui/material@6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       qs: 6.15.3
@@ -20262,16 +20288,16 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/loki-plugin@0.6.0-rc.2(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@lezer/lr@1.4.10)(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/explore@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(@tanstack/react-query@4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.85.0(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@perses-dev/loki-plugin@0.6.0-rc.2(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@lezer/lr@1.4.10)(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/explore@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(@tanstack/react-query@4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.86.0(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@grafana/lezer-logql': 0.2.9(@lezer/lr@1.4.10)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/explore': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/dashboards': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/explore': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -20280,16 +20306,16 @@ snapshots:
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.86.0(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     transitivePeerDependencies:
       - '@lezer/lr'
 
-  '@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd)':
+  '@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@module-federation/enhanced': 2.8.2(@rspack/core@2.1.10(@module-federation/runtime-tools@0.24.1))(typescript@5.9.3)(webpack@5.104.1)
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@perses-dev/client': 0.54.0
@@ -20334,17 +20360,17 @@ snapshots:
       - vue-tsc
       - webpack
 
-  '@perses-dev/prometheus-plugin@0.58.0-beta.3(6ebd7facf4d9aff4766829b52eb8898e)':
+  '@perses-dev/prometheus-plugin@0.58.0-beta.3(16027fe18803c61682eafbae8daad392)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@nexucis/fuzzy': 0.5.1
       '@perses-dev/client': 0.54.0
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/explore': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/dashboards': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/explore': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/spec': 0.2.0
       '@prometheus-io/codemirror-promql': 0.311.3(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/state@6.7.1)(@codemirror/view@6.43.9)(@lezer/common@1.5.2)(@lezer/highlight@1.2.3)(@lezer/lr@1.4.10)
       '@tanstack/react-query': 4.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20356,7 +20382,7 @@ snapshots:
       qs: 6.15.3
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-hook-form: 7.85.0(react@18.3.1)
+      react-hook-form: 7.86.0(react@18.3.1)
       react-router-dom: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtuoso: 4.18.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -20376,13 +20402,13 @@ snapshots:
       mathjs: 15.2.0
       zod: 3.25.76
 
-  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@perses-dev/stat-chart-plugin@0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(immer@10.2.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/spec': 0.2.0
       chroma-js: 3.2.0
       date-fns: 4.4.0
@@ -20393,14 +20419,14 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       use-resize-observer: 9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  '@perses-dev/table-plugin@0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.85.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/plugin-system@0.54.0(4a916899151e177fc8c25cb888c2d8cd))(@perses-dev/spec@0.2.0)(@tanstack/react-table@8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@perses-dev/table-plugin@0.13.0-rc.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@hookform/resolvers@3.10.0(react-hook-form@7.86.0(react@18.3.1)))(@perses-dev/components@0.54.0(b91eebfe7fcdaeb9c33f3c676f726676))(@perses-dev/dashboards@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/plugin-system@0.54.0(3f2addbcc946623bb2132c22031761a9))(@perses-dev/spec@0.2.0)(@tanstack/react-table@8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(date-fns-tz@3.2.0(date-fns@4.4.0))(date-fns@4.4.0)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      '@hookform/resolvers': 3.10.0(react-hook-form@7.85.0(react@18.3.1))
+      '@hookform/resolvers': 3.10.0(react-hook-form@7.86.0(react@18.3.1))
       '@perses-dev/components': 0.54.0(b91eebfe7fcdaeb9c33f3c676f726676)
-      '@perses-dev/dashboards': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
-      '@perses-dev/plugin-system': 0.54.0(4a916899151e177fc8c25cb888c2d8cd)
+      '@perses-dev/dashboards': 0.54.0(3f2addbcc946623bb2132c22031761a9)
+      '@perses-dev/plugin-system': 0.54.0(3f2addbcc946623bb2132c22031761a9)
       '@perses-dev/spec': 0.2.0
       '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       date-fns: 4.4.0
@@ -29139,6 +29165,10 @@ snapshots:
       resize-observer-polyfill: 1.5.1
 
   react-hook-form@7.85.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  react-hook-form@7.86.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
