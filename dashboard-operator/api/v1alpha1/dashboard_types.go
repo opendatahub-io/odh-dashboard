@@ -30,14 +30,6 @@ const (
 	ModulePhaseDisabled    ModulePhase = "Disabled"
 )
 
-// DeploymentMode controls how BFF modules are deployed.
-type DeploymentMode string
-
-const (
-	DeploymentModeSidecar    DeploymentMode = "Sidecar"
-	DeploymentModeStandalone DeploymentMode = "Standalone"
-)
-
 // +kubebuilder:object:generate=true
 
 // GatewaySpec defines gateway configuration for the dashboard.
@@ -168,14 +160,6 @@ type DashboardSpec struct {
 	// Observability configures the observability stack integration.
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
-
-	// DeploymentMode controls how BFF modules are deployed.
-	// Sidecar (default): modules run as containers in the main dashboard pod.
-	// Standalone: each module gets its own Deployment, Service, and RBAC.
-	// +kubebuilder:validation:Enum=Sidecar;Standalone
-	// +kubebuilder:default=Sidecar
-	// +optional
-	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this

@@ -248,3 +248,15 @@ export enum PerformanceMetricType {
   SERVER = 'server',
   MODEL = 'model',
 }
+
+type PlatformStatus = {
+  enabled: boolean;
+  installed: boolean;
+};
+
+export type ServingPlatformStatuses = {
+  kServe: PlatformStatus;
+  kServeNIM: PlatformStatus;
+  platformEnabledCount: number;
+  refreshNIMAvailability: () => Promise<boolean | undefined>;
+};

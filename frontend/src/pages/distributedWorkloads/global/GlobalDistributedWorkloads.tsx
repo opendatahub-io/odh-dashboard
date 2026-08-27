@@ -5,12 +5,12 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
+import { MetricsCommonContextProvider } from '@odh-dashboard/ui-core/contexts/MetricsCommonContext';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { DistributedWorkloadsContextProvider } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { DistributedWorkloadsTabConfig } from '#~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import DistributedWorkloadsNoProjects from '#~/pages/distributedWorkloads/global/DistributedWorkloadsNoProjects';
 import GlobalDistributedWorkloadsTabs from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
-import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 

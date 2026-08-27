@@ -64,8 +64,6 @@ export const setupBaseMCPServerMocks = (
     includeAAModel: false,
   },
 ): void => {
-  const namespace = options.namespace ?? config.defaultNamespace;
-
   // If a custom namespace is provided, include it in the namespaces list
   const namespacesData =
     options.namespace && options.namespace !== config.defaultNamespace
@@ -78,41 +76,33 @@ export const setupBaseMCPServerMocks = (
 
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  // Mock AAA models endpoint
-  if (options.includeAAModel) {
-    cy.interceptGenAi(
-      'GET /api/v1/aaa/models',
-      { query: { namespace } },
-      mockAAModels([
+  // Mock AAA models endpoint — use route handler to intercept ALL requests regardless
+  // of query params, including the initial request before namespace resolves.
+  const aaModelResponse = options.includeAAModel
+    ? mockAAModels([
         {
           model_name: 'Llama-3.2-3B-Instruct',
-          // IMPORTANT: model_id should be WITHOUT provider prefix (just the model name)
-          // LSD has: 'meta-llama/Llama-3.2-3B-Instruct'
-          // After splitLlamaModelId: 'Llama-3.2-3B-Instruct'
-          // AAA model_id must match the split result
           model_id: 'Llama-3.2-3B-Instruct',
           serving_runtime: 'vllm',
           api_protocol: 'openai',
           status: 'Running',
           display_name: 'Llama 3.2 3B Instruct',
         },
-      ]),
-    ).as('aaModels');
-  } else {
-    cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
-  }
+      ])
+    : mockEmptyList();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cy.interceptGenAi('GET /api/v1/aaa/models', (req: any) => {
+    req.reply(aaModelResponse);
+  }).as('aaModels');
 
-  cy.interceptGenAi(
-    'GET /api/v1/lsd/status',
-    { query: { namespace } },
-    mockStatus(options.lsdStatus),
-  );
+  const lsdStatusResponse = mockStatus(options.lsdStatus);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cy.interceptGenAi('GET /api/v1/lsd/status', (req: any) => {
+    req.reply(lsdStatusResponse);
+  });
 
-  if (options.includeLsdModel) {
-    cy.interceptGenAi(
-      'GET /api/v1/lsd/models',
-      { query: { namespace } },
-      {
+  const lsdModelsResponse = options.includeLsdModel
+    ? {
         data: [
           {
             id: 'meta-llama/Llama-3.2-3B-Instruct',
@@ -122,13 +112,12 @@ export const setupBaseMCPServerMocks = (
             metadata: {},
           },
         ],
-      },
-    ).as('lsdModels');
-  } else {
-    cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
-  }
-
-  cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+      }
+    : mockEmptyList();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cy.interceptGenAi('GET /api/v1/lsd/models', (req: any) => {
+    req.reply(lsdModelsResponse);
+  }).as('lsdModels');
 
   // Mock user endpoint to prevent k8s client errors in test environment
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
