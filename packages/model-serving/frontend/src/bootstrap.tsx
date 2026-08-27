@@ -1,6 +1,6 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
-import { StandaloneDevPage, StandaloneHostApiProvider } from '~/app/StandaloneDevPage';
+import { StandaloneDevPage } from '~/app/StandaloneDevPage';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -10,8 +10,6 @@ const root = ReactDOM.createRoot(rootElement);
 
 root.render(
   <React.StrictMode>
-    <StandaloneHostApiProvider>
-      <StandaloneDevPage />
-    </StandaloneHostApiProvider>
+    <StandaloneDevPage />
   </React.StrictMode>,
 );
