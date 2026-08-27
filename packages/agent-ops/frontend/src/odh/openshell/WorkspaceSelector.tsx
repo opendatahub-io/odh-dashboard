@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import {
   Content,
   Dropdown,
@@ -13,8 +12,8 @@ import {
 import { useSelectedWorkspace } from './WorkspaceContext';
 
 // Project/namespace-selector-style picker for OpenShell workspaces. The chosen
-// workspace scopes the sandboxes list; "Go to workspace" opens the workspace's
-// full management page (providers, policies, members, inference).
+// workspace is the one whose page (sandboxes, providers, members, inference) is
+// shown below — switching it re-scopes the whole landing.
 const WorkspaceSelector: React.FC = () => {
   const { workspace, setWorkspace, workspaces } = useSelectedWorkspace();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -62,11 +61,6 @@ const WorkspaceSelector: React.FC = () => {
             })}
           </DropdownList>
         </Dropdown>
-      </FlexItem>
-      <FlexItem>
-        <Link to={`/ai-hub/agents/workspaces/${workspace}`} data-testid="go-to-workspace-link">
-          Go to workspace
-        </Link>
       </FlexItem>
     </Flex>
   );

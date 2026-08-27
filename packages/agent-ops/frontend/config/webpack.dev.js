@@ -79,6 +79,29 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
+            // LOCAL DEV: OpenShell API → port-forwarded relay BFF, translating
+            // the dedicated dev header into what the relay expects (mirrors the
+            // agent-ops BFF's translation) so no local BFF is needed. Trailing
+            // slash so it does NOT catch the SPA route '/openshell-preview'.
+            context: ['/openshell/'],
+            target: process.env.OPENSHELL_RELAY_URL || 'http://localhost:8081',
+            changeOrigin: true,
+            // Strip the /openshell prefix so the relay sees its own /api/v1/...
+            // (mirrors the agent-ops BFF's director).
+            pathRewrite: { '^/openshell': '' },
+            onProxyReq: (proxyReq) => {
+              const t = proxyReq.getHeader('x-openshell-authorization');
+              if (t) {
+                proxyReq.setHeader(
+                  'x-forwarded-access-token',
+                  String(t).replace(/^Bearer\s+/i, ''),
+                );
+                proxyReq.removeHeader('x-openshell-authorization');
+                proxyReq.removeHeader('authorization');
+              }
+            },
+          },
+          {
             context: ['/api', '/agent-ops/api', '/healthcheck'],
             target: {
               host: PROXY_HOST,
@@ -107,20 +130,10 @@ module.exports = smp.wrap(
           }
         },
       },
-      module: {
-        rules: [
-          {
-            test: /\.css$/,
-            include: [
-              SRC_DIR,
-              COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-            ],
-            use: ['style-loader', 'css-loader'],
-          },
-        ],
-      },
+      // NOTE: no `module.rules` for CSS here — webpack.common.js already has a
+      // broad `/\.css$/` rule. Re-declaring one made webpack-merge concatenate
+      // both, so PatternFly CSS ran through the loader chain twice
+      // (css-loader!style-loader!css-loader) → SyntaxError → blank dev page.
       plugins: [
         new ForkTsCheckerWebpackPlugin(),
         new ReactRefreshWebpackPlugin({ overlay: false }),

@@ -7,9 +7,22 @@ import AgentDeploymentsCoreLoader from './pages/AgentDeploymentsCoreLoader';
 import AgentDeploymentDetailPage from './pages/AgentDeploymentDetailPage';
 import { agentDeploymentsPath } from './utilities/routes';
 
+// Dev-only preview of the federated OpenShell landing (workspace selector +
+// workspace page) so it can be iterated in the standalone dev server without the
+// full core shell. Not part of the federated IA (that comes from odh/extensions).
+const OpenShellLandingPreview = React.lazy(() => import('../odh/openshell/SandboxesWrapper'));
+
 const AppRoutes: React.FC = () => (
   <Routes>
     <Route path="/" element={<Navigate to={agentDeploymentsPath} replace />} />
+    <Route
+      path="/openshell-preview"
+      element={
+        <React.Suspense fallback={null}>
+          <OpenShellLandingPreview />
+        </React.Suspense>
+      }
+    />
     <Route path="/deployments" element={<AgentDeploymentsCoreLoader />} />
     <Route
       path="/deployments/deploy"

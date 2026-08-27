@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { SandboxListPage } from 'openshell-dashboard/pages';
+import { WorkspaceDetailPage } from 'openshell-dashboard/pages';
 import OpenShellProviders from './OpenShellProviders';
 import WorkspaceSelector from './WorkspaceSelector';
 import { useSelectedWorkspace } from './WorkspaceContext';
 
-// The OpenShell landing: sandboxes are the content, scoped to the workspace
-// chosen in the top-bar selector. No sub-tabs — core's TabRoutePage hides the
-// tab bar when the module contributes a single tab.
-const SandboxesContent: React.FC = () => {
+// The OpenShell landing IS the workspace page for the workspace chosen in the
+// top-bar selector — its own Sandboxes / Providers / Members / Inference tabs.
+// No separate sandbox list, no module sub-tabs (core hides the tab bar in
+// single-tab mode).
+const WorkspaceLandingContent: React.FC = () => {
   const navigate = useNavigate();
   const { workspace, isLoading } = useSelectedWorkspace();
 
@@ -22,24 +23,21 @@ const SandboxesContent: React.FC = () => {
   }
 
   return (
-    <SandboxListPage
+    <WorkspaceDetailPage
       workspace={workspace}
-      onSelect={(name) =>
+      onSelectSandbox={(name) =>
         navigate(`/ai-hub/agents/workspaces/${workspace}/sandboxes/${name}`)
       }
-      onViewSandbox={(name, tab) => {
-        const tabParam = tab ? `?tab=${tab}` : '';
-        navigate(
-          `/ai-hub/agents/workspaces/${workspace}/sandboxes/${name}${tabParam}`,
-        );
-      }}
+      onSelectProvider={(name) =>
+        navigate(`/ai-hub/agents/workspaces/${workspace}/providers/${name}`)
+      }
     />
   );
 };
 
 const SandboxesWrapper: React.FC = () => (
   <OpenShellProviders toolbarStart={<WorkspaceSelector />}>
-    <SandboxesContent />
+    <WorkspaceLandingContent />
   </OpenShellProviders>
 );
 

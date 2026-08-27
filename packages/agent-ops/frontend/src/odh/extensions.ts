@@ -58,12 +58,15 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
-  // --- OpenShell (separate service / Token B) — the Agents landing ---
-  // The SINGLE tab contributed to the page. Core's TabRoutePage renders
-  // single-tab mode: the tab bar is hidden and only the page title + this
-  // component show. Workspaces are a selector inside the landing (not a tab),
-  // and native CRs are a top-right link — so the AI-hub tab space stays free
-  // for future siblings (deployments, catalog, registry).
+  // --- OpenShell (separate service / Token B) — the "Deployments" tab ---
+  // ONE tab on the shared `agents-tab-page` (model-registry contributes
+  // "Catalog", a future module "Registry"). This is the OpenShell area:
+  // "Deployments". When sibling tabs are enabled the bar shows them all; when
+  // only this one is active, core's single-tab mode hides the lone bar and
+  // renders just the page title + this component. Workspaces are a selector
+  // inside the content (not a tab), native CRs a top-right link — no sub-tabs.
+  // id 'openshell' (not 'deployments') so the landing URL doesn't collide with
+  // the native /ai-hub/agents/deployments route.
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -71,10 +74,11 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
     properties: {
       pageId: AGENTS_TAB_PAGE,
-      id: 'sandboxes',
-      title: 'Sandboxes',
+      id: 'openshell',
+      title: 'Deployments',
+      singleTabTitle: 'Agent deployments',
       component: () => import('./openshell/SandboxesWrapper'),
-      group: '1_sandboxes',
+      group: '1_deployments',
     },
   },
   // --- OpenShell OIDC (Token B) redirect + silent-renew callbacks ---

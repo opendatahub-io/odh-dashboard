@@ -47,11 +47,16 @@ describe('agent-ops extensions', () => {
     // The target IA has no sub-tabs: workspaces are a selector and native CRs a
     // top-right link. A single contributed tab makes core render single-tab mode.
     expect(tabs()).toHaveLength(1);
-    const sandboxes = findTab('sandboxes');
-    expect(sandboxes).toMatchObject({
+    const deployments = findTab('openshell');
+    expect(deployments).toMatchObject({
       type: 'app.tab-route/tab',
       flags: { required: [AGENT_OPS] },
-      properties: { pageId: 'agents-tab-page', id: 'sandboxes', group: '1_sandboxes' },
+      properties: {
+        pageId: 'agents-tab-page',
+        id: 'openshell',
+        title: 'Deployments',
+        group: '1_deployments',
+      },
     });
   });
 

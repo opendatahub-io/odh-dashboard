@@ -146,6 +146,21 @@ const getManager = (): Promise<UserManager | null> => {
   return managerPromise;
 };
 
+// LOCAL DEV ONLY: on localhost, allow reusing a Token B pasted into
+// localStorage('openshell-dev-token') instead of running the OIDC redirect flow
+// (which would need Dex localhost redirect URIs). Hard-gated to hostname
+// 'localhost' so it can NEVER be used in a deployed dashboard.
+const getDevToken = (): string | null => {
+  if (typeof window === 'undefined' || window.location.hostname !== 'localhost') {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem('openshell-dev-token');
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Per-request token provider for setAuthTokenGetter. Returns a fresh Token B.
  * An expired-but-resumable session is refreshed via its refresh token (works for
@@ -153,6 +168,10 @@ const getManager = (): Promise<UserManager | null> => {
  * IdP is shared; otherwise it returns null and the user must explicitly connect.
  */
 export const getOpenShellToken = async (): Promise<string | null> => {
+  const devToken = getDevToken();
+  if (devToken) {
+    return devToken;
+  }
   const manager = await getManager();
   if (!manager) {
     return null;
@@ -196,6 +215,10 @@ export const getOpenShellToken = async (): Promise<string | null> => {
  * disconnected so the connect gate is shown (explicit double-auth sign-in).
  */
 export const initOpenShellConnection = async (): Promise<void> => {
+  if (getDevToken()) {
+    setState({ status: 'connected', username: 'dev', error: null });
+    return;
+  }
   const manager = await getManager();
   if (!manager) {
     return; // 'unconfigured' already set
