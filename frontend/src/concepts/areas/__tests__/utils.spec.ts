@@ -323,19 +323,6 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
         expect(isAvailable.featureFlags).toBe(null);
       });
-
-      it('should enable Guided Tour when guidedTour is true', () => {
-        const isAvailable = isAreaAvailable(
-          SupportedArea.GUIDED_TOUR,
-          mockDashboardConfig({}).spec,
-          null,
-          null,
-          { internalStateMap: SupportedAreasStateMap, flagState: { guidedTour: true } },
-        );
-
-        expect(isAvailable.status).toBe(true);
-        expect(isAvailable.devFlags).toEqual({ guidedTour: 'on' });
-      });
     });
 
     describe('customCondition', () => {

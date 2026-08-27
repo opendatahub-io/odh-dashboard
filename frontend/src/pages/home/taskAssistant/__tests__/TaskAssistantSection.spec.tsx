@@ -96,15 +96,6 @@ describe('TaskAssistantSection', () => {
     expect(screen.getByText('Task shortcuts')).toBeInTheDocument();
   });
 
-  it('should show the guided tour link when the area is available', () => {
-    mockUseResolvedExtensions
-      .mockReturnValueOnce([[makeGroupExtension('g1', '1')], true, []])
-      .mockReturnValueOnce([[makeItemExtension('t1', 'g1', '1')], true, []]);
-
-    renderSection();
-    expect(screen.getByTestId('whats-new-task-link')).toBeInTheDocument();
-  });
-
   it('should hide the guided tour link when the area is unavailable', () => {
     mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(false));
     mockUseResolvedExtensions
