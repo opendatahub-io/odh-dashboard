@@ -7,7 +7,7 @@ module.exports = {
       isHost: process.env.DEPLOYMENT_MODE === 'standalone',
       exposes: {
         './extensions': './src/odh/extensions',
-        './extension-points': '../extension-points',
+        './extension-points': './src/odh/extension-points',
       },
       dts: false,
     }),

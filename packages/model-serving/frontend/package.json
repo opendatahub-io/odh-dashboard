@@ -16,6 +16,8 @@
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "build:clean": "rm -rf ./dist",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
+    "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./config",
+    "lint:fix": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./config --fix",
     "test:type-check": "tsc --noEmit"
   },
   "devDependencies": {
