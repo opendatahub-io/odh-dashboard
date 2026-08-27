@@ -1,5 +1,5 @@
 export const browseUrl = (project?: string): string => {
-  const base = '.';
+  const base = '..';
   if (!project) {
     return base;
   }

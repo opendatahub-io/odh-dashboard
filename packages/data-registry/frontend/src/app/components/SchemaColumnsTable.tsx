@@ -22,6 +22,8 @@ const SchemaColumnsTable: React.FC<SchemaColumnsTableProps> = ({ columns }) => {
         <Tr>
           <Th>Name</Th>
           <Th>Type</Th>
+          <Th>Description</Th>
+          <Th>Nullable</Th>
         </Tr>
       </Thead>
       <Tbody>
@@ -35,6 +37,8 @@ const SchemaColumnsTable: React.FC<SchemaColumnsTableProps> = ({ columns }) => {
                 {col.type}
               </Label>
             </Td>
+            <Td dataLabel="Description">{col.description || '-'}</Td>
+            <Td dataLabel="Nullable">{col.nullable ? 'Yes' : 'No'}</Td>
           </Tr>
         ))}
       </Tbody>

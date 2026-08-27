@@ -29,7 +29,12 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
   }, [onDelete]);
 
   return (
-    <Modal isOpen onClose={onClose} variant="small" data-testid="delete-asset-modal">
+    <Modal
+      isOpen
+      onClose={isDeleting ? undefined : onClose}
+      variant="small"
+      data-testid="delete-asset-modal"
+    >
       <ModalHeader title={`Delete ${assetType}?`} />
       <ModalBody>
         {error ? <Alert variant="danger" isInline title={error} /> : null}

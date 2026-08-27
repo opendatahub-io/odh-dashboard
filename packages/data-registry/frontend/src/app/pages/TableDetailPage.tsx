@@ -3,9 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Dropdown,
   DropdownList,
   DropdownItem,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   Label,
@@ -16,7 +21,7 @@ import {
   TabTitleText,
   Tooltip,
 } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { deleteGenericTable } from '~/app/api/dataRegistry';
@@ -44,7 +49,7 @@ const TableDetailPage: React.FC = () => {
     navigate(browseUrl(project));
   }, [project, collection, name, navigate]);
 
-  const decodedName = name ? decodeURIComponent(name) : 'Loading...';
+  const displayName = name || 'Loading...';
 
   const breadcrumb = (
     <Breadcrumb>
@@ -59,12 +64,12 @@ const TableDetailPage: React.FC = () => {
         <BreadcrumbItem
           render={({ className }) => (
             <Link className={className} to={browseUrl(project)}>
-              {decodeURIComponent(collection)}
+              {collection}
             </Link>
           )}
         />
       ) : null}
-      <BreadcrumbItem isActive>{decodedName}</BreadcrumbItem>
+      <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
     </Breadcrumb>
   );
 
@@ -105,7 +110,7 @@ const TableDetailPage: React.FC = () => {
       </Dropdown>
       {isDeleteModalOpen && name ? (
         <DeleteAssetModal
-          assetName={decodedName}
+          assetName={displayName}
           assetType="table"
           onDelete={handleDelete}
           onClose={() => setIsDeleteModalOpen(false)}
@@ -116,7 +121,7 @@ const TableDetailPage: React.FC = () => {
 
   const title = (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>{decodedName}</FlexItem>
+      <FlexItem>{displayName}</FlexItem>
       <FlexItem>
         <Label isCompact data-testid="asset-type-badge">
           Data asset
@@ -133,7 +138,27 @@ const TableDetailPage: React.FC = () => {
       loaded={loaded}
       loadError={loadError}
       empty={loaded && !asset}
-      emptyMessage="Table not found"
+      emptyStatePage={
+        <EmptyState
+          headingLevel="h2"
+          icon={SearchIcon}
+          titleText="Table not found"
+          variant={EmptyStateVariant.full}
+          data-testid="table-not-found-empty-state"
+        >
+          <EmptyStateBody>
+            The table you are looking for does not exist or you do not have permission to view it.
+          </EmptyStateBody>
+          <EmptyStateFooter>
+            <Button
+              variant="primary"
+              component={(props) => <Link {...props} to={browseUrl(project)} />}
+            >
+              Return to data browse
+            </Button>
+          </EmptyStateFooter>
+        </EmptyState>
+      }
       provideChildrenPadding
     >
       <Tabs defaultActiveKey={0} data-testid="detail-tabs">
