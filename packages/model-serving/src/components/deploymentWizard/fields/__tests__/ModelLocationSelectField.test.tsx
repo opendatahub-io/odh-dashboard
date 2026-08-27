@@ -12,8 +12,9 @@ import type {
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { NIMModelLocationOverride } from '@odh-dashboard/nim-serving/wizardFields/overrides/NIMModelLocationOverride';
+import type { ModelLocationFieldOverride } from '../../../../shared/types/form-data';
 import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
+import { NIMModelLocationKey } from '../../../../shared/wizard-fields';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
@@ -263,6 +264,15 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
 
 const mockConnections: Connection[] = [];
 const mockPvcs: PersistentVolumeClaimKind[] = [];
+const NIMModelLocationOverride: ModelLocationFieldOverride = {
+  id: 'modelLocation',
+  type: 'modifier' as const,
+  isActive: () => true,
+  locationKey: NIMModelLocationKey,
+  disableWhenEditing: true,
+  disabledTooltip: 'Model location cannot be changed when editing an NVIDIA NIM deployment.',
+  hideOptionWhenEditingOtherLocation: true,
+};
 
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
