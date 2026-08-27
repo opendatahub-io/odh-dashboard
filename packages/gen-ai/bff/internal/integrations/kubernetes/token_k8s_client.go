@@ -2235,8 +2235,12 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// The /gen-ai prefix is required because external traffic arrives at the
 	// Node.js dashboard first, which proxies /gen-ai/* to the Go BFF.
 	if kc.EnvConfig.GatewayDomain != "" {
+		pathPrefix := kc.EnvConfig.PathPrefix
+		if pathPrefix == "" {
+			pathPrefix = constants.PathPrefix
+		}
 		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
-			kc.EnvConfig.GatewayDomain, constants.PathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
+			kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
 		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
 		config.AddInferenceProvider(passthroughProvider)
 		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
