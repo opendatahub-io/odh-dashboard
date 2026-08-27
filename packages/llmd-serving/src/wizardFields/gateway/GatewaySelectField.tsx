@@ -98,8 +98,21 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
     if (initialMissingKey) {
       uniqueGateways.set(initialMissingKey, { key: initialMissingKey, label: initialMissingKey });
     }
+    if (isDisabled && selectedGatewayKey && !uniqueGateways.has(selectedGatewayKey)) {
+      uniqueGateways.set(selectedGatewayKey, {
+        key: selectedGatewayKey,
+        label: labelOverrides?.[selectedGatewayKey] ?? selectedGatewayKey,
+      });
+    }
     return Array.from(uniqueGateways.values());
-  }, [externalData, initialMissingKey, hiddenOptions, labelOverrides]);
+  }, [
+    externalData,
+    initialMissingKey,
+    hiddenOptions,
+    labelOverrides,
+    isDisabled,
+    selectedGatewayKey,
+  ]);
 
   const toggleProps = !isDisabled && externalData?.loadError ? { status: 'warning' as const } : {};
 
