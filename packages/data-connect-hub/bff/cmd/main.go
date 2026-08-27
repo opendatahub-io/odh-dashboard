@@ -51,6 +51,14 @@ func main() {
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
 
+	// ─── Data Connect Hub API ────────────────────────────────────────
+	flag.StringVar(&cfg.DataConnectHubAPIURL, "data-connect-hub-api-url", getEnvAsString("DATA_CONNECT_HUB_API_URL", ""),
+		"Base URL of the upstream Data Connect Hub API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
+	flag.StringVar(&cfg.DataConnectHubConfigMapName, "data-connect-hub-configmap-name", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_NAME", config.DefaultDataConnectHubConfigMapName),
+		"Name of the ConfigMap (in the pod's namespace) holding the Data Connect Hub API URL")
+	flag.StringVar(&cfg.DataConnectHubConfigMapKey, "data-connect-hub-configmap-key", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_KEY", config.DefaultDataConnectHubConfigMapKey),
+		"Key within the Data Connect Hub ConfigMap holding the API URL")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")

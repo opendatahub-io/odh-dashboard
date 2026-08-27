@@ -22,6 +22,13 @@ const (
 	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
 	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
 	DefaultAuthTokenPrefix = "Bearer "
+
+	// DefaultDataConnectHubConfigMapName is the ConfigMap expected to hold the upstream
+	// Data Connect Hub API base URL, read from the pod's own namespace at startup.
+	DefaultDataConnectHubConfigMapName = "data-connect-hub-config"
+
+	// DefaultDataConnectHubConfigMapKey is the key within the ConfigMap holding the URL value.
+	DefaultDataConnectHubConfigMapKey = "apiURL"
 )
 
 // DeploymentMode represents the deployment mode enum
@@ -102,6 +109,19 @@ type EnvConfig struct {
 	// MockBFFClients enables mock mode for BFF inter-communication clients.
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
+
+	// ─── DATA CONNECT HUB API ────────────────────────────────────────
+	// DataConnectHubAPIURL is the base URL of the upstream Data Connect Hub API.
+	// When set via flag/env, it takes precedence over the ConfigMap lookup below —
+	// primarily useful for local dev and tests.
+	DataConnectHubAPIURL string
+
+	// DataConnectHubConfigMapName is the ConfigMap (in the pod's own namespace) read at
+	// startup to resolve DataConnectHubAPIURL when it isn't provided via flag/env.
+	DataConnectHubConfigMapName string
+
+	// DataConnectHubConfigMapKey is the key within DataConnectHubConfigMapName holding the URL.
+	DataConnectHubConfigMapKey string
 
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
