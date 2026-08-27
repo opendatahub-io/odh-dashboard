@@ -1871,7 +1871,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	return ogxServer, nil
 }
 
-
 // pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
 // env config. Returns a zero-value Connection (IsConfigured() == false) when
 // PgvectorHost is empty.
