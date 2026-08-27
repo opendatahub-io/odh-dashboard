@@ -96,7 +96,10 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
     }
 
     if (initialMissingKey) {
-      uniqueGateways.set(initialMissingKey, { key: initialMissingKey, label: initialMissingKey });
+      uniqueGateways.set(initialMissingKey, {
+        key: initialMissingKey,
+        label: labelOverrides?.[initialMissingKey] ?? initialMissingKey,
+      });
     }
     if (isDisabled && selectedGatewayKey && !uniqueGateways.has(selectedGatewayKey)) {
       uniqueGateways.set(selectedGatewayKey, {
