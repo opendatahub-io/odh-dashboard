@@ -65,6 +65,7 @@ export {
   getLocalQueueLabel,
 } from './utils';
 export {
+  isHardwareProfileWithAcceleratorPrefix,
   isNvidiaHardwareProfile,
   prioritizeHardwareProfiles,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';

@@ -228,12 +228,18 @@ export const alphaSortHardwareProfilesByName = (
   return profiles.toSorted((a, b) => collator.compare(a.metadata.name, b.metadata.name));
 };
 
-export const isNvidiaHardwareProfile = (profile: HardwareProfileKind): boolean =>
+export const isHardwareProfileWithAcceleratorPrefix = (
+  profile: HardwareProfileKind,
+  acceleratorPrefix: string,
+): boolean =>
   profile.spec.identifiers?.some(
     (identifier) =>
       identifier.resourceType === IdentifierResourceType.ACCELERATOR &&
-      identifier.identifier.startsWith('nvidia.com/'),
+      identifier.identifier.startsWith(acceleratorPrefix),
   ) ?? false;
+
+export const isNvidiaHardwareProfile = (profile: HardwareProfileKind): boolean =>
+  isHardwareProfileWithAcceleratorPrefix(profile, 'nvidia.com/');
 
 export const orderHardwareProfiles = (
   profiles: HardwareProfileKind[],

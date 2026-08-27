@@ -246,6 +246,10 @@ export type WizardStateOverrides = {
     selection?: { name: string; namespace?: string };
     hiddenOptions?: { name: string; namespace?: string }[];
   };
+  hardwareProfile?: {
+    /** Accelerator identifier prefix used to prioritize matching hardware profiles. */
+    preferredAccelerator?: string;
+  };
 };
 
 export type WizardField<

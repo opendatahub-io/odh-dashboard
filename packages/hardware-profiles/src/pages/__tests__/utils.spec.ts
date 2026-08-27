@@ -16,6 +16,7 @@ import {
   filterRecognizedVisibility,
   getClusterQueueNameFromLocalQueues,
   isHardwareProfileIdentifierValid,
+  isHardwareProfileWithAcceleratorPrefix,
   isNvidiaHardwareProfile,
   prioritizeHardwareProfiles,
   validateProfileWarning,
@@ -542,6 +543,44 @@ describe('filterRecognizedVisibility', () => {
 
   it('should return an empty array when given an empty array', () => {
     expect(filterRecognizedVisibility([])).toEqual([]);
+  });
+});
+
+describe('isHardwareProfileWithAcceleratorPrefix', () => {
+  it('should return true when profile has a matching accelerator identifier prefix', () => {
+    const profile = mockHardwareProfile({
+      name: 'nvidia-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+
+    expect(isHardwareProfileWithAcceleratorPrefix(profile, 'nvidia.com/')).toBe(true);
+  });
+
+  it('should return false when profile has no matching accelerator identifier prefix', () => {
+    const profile = mockHardwareProfile({
+      name: 'amd-profile',
+      identifiers: [
+        {
+          displayName: 'GPU',
+          identifier: 'amd.com/gpu',
+          minCount: 1,
+          maxCount: 4,
+          defaultCount: 1,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+        },
+      ],
+    });
+
+    expect(isHardwareProfileWithAcceleratorPrefix(profile, 'nvidia.com/')).toBe(false);
   });
 });
 

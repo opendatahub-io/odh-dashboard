@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import { isNvidiaHardwareProfile } from '@odh-dashboard/hardware-profiles/shared';
+import { isHardwareProfileWithAcceleratorPrefix } from '@odh-dashboard/hardware-profiles/shared';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
@@ -10,7 +11,6 @@ import { NumReplicasField } from '../fields/NumReplicasField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isNonSingleNodeTopologyActive } from '../topologyUtils';
-import { ModelLocationType } from '../../../shared/types/form-data';
 
 const EXPLICIT_TOPOLOGY_FIELD_IDS = [
   'llmd-serving/topology-type',
@@ -32,7 +32,15 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   hideProjectSection,
 }) => {
   const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
-  const isNimWizard = wizardState.state.modelLocationData.data?.type === ModelLocationType.NIM;
+  const preferredAccelerator = wizardState.computedOverrides.hardwareProfile?.preferredAccelerator;
+
+  const isHardwareProfilePreferred = React.useMemo(
+    (): ((profile: HardwareProfileKind) => boolean) | undefined =>
+      preferredAccelerator
+        ? (profile) => isHardwareProfileWithAcceleratorPrefix(profile, preferredAccelerator)
+        : undefined,
+    [preferredAccelerator],
+  );
 
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
@@ -91,7 +99,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             project={projectName}
             hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
             isEditing={wizardState.initialData?.isEditing}
-            isHardwareProfilePreferred={isNimWizard ? isNvidiaHardwareProfile : undefined}
+            isHardwareProfilePreferred={isHardwareProfilePreferred}
           />
         )}
         {wizardState.state.modelFormatState.isVisible && (
