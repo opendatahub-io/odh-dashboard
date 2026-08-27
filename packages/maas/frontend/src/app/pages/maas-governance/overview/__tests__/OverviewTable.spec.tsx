@@ -2,14 +2,14 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
-import OverviewTable from '~/app/pages/subscription-management/overview/OverviewTable';
+import OverviewTable from '~/app/pages/maas-governance/overview/OverviewTable';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => jest.fn(),
 }));
 
-jest.mock('~/app/pages/subscription-management/overview/OverviewTableRow', () => {
+jest.mock('~/app/pages/maas-governance/overview/OverviewTableRow', () => {
   const MockOverviewTableRow: React.FC<{ row: { id: string } }> = ({ row }) => (
     <tbody data-testid={`mock-row-${row.id}`}>
       <tr>
