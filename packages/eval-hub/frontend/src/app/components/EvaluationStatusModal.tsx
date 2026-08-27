@@ -441,7 +441,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       variant="medium"
       aria-label="Evaluation run status"
       data-testid="evaluation-status-modal"
-      className="evalhub-status-modal evalhub-status-modal--full-height"
+      className={`evalhub-status-modal${activeTab === 'events-log' ? ' evalhub-status-modal--full-height' : ''}`}
     >
       <ModalHeader>
         <div className="evalhub-status-modal__title">
