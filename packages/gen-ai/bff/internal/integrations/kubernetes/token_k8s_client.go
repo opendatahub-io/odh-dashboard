@@ -1375,7 +1375,9 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 // false (conservatively) on any read/parse error so the caller falls through to
 // the legacy "already exists" error path.
 func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Context, server *ogxapi.OGXServer, namespace string) bool {
-	if server.Spec.OverrideConfig == nil {
+	if server.Spec.OverrideConfig == nil ||
+		server.Spec.OverrideConfig.Name == "" ||
+		server.Spec.OverrideConfig.Key == "" {
 		return false
 	}
 	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace)
