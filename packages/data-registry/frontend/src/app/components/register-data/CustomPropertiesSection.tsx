@@ -10,15 +10,15 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext } from 'react-hook-form';
-import { RegisterVolumeFormData } from '~/app/schemas/registerVolume.schema';
+import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 
 const CustomPropertiesSection: React.FC = () => {
-  const { control, register } = useFormContext<RegisterVolumeFormData>();
+  const { control, register } = useFormContext<RegisterDataFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'customProperties' });
 
   return (
     <FormSection title="Custom properties" titleElement="h2">
-      <FormGroup fieldId="volume-custom-properties">
+      <FormGroup fieldId="data-custom-properties">
         <Content component="p">
           Add key/value pair annotations to attach metadata to this asset.
         </Content>
@@ -26,7 +26,7 @@ const CustomPropertiesSection: React.FC = () => {
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={() => append({ id: Date.now(), key: '', value: '' })}
-          data-testid="add-custom-property"
+          data-testid="data-add-custom-property"
         >
           Add key/value pair
         </Button>
@@ -36,14 +36,14 @@ const CustomPropertiesSection: React.FC = () => {
               <TextInput
                 {...register(`customProperties.${index}.key`)}
                 placeholder="Key"
-                data-testid={`custom-property-key-${index}`}
+                data-testid={`data-custom-property-key-${index}`}
               />
             </FlexItem>
             <FlexItem grow={{ default: 'grow' }}>
               <TextInput
                 {...register(`customProperties.${index}.value`)}
                 placeholder="Value"
-                data-testid={`custom-property-value-${index}`}
+                data-testid={`data-custom-property-value-${index}`}
               />
             </FlexItem>
             <FlexItem>
@@ -51,7 +51,7 @@ const CustomPropertiesSection: React.FC = () => {
                 variant="plain"
                 onClick={() => remove(index)}
                 aria-label="Remove property"
-                data-testid={`custom-property-remove-${index}`}
+                data-testid={`data-custom-property-remove-${index}`}
               >
                 Remove
               </Button>
