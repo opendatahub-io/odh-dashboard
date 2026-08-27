@@ -9,7 +9,6 @@ import {
   Content,
   Label,
   LabelGroup,
-  Tooltip,
 } from '@patternfly/react-core';
 import { FlatBenchmark } from '~/app/types';
 import {
@@ -59,11 +58,9 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         >
           {benchmark.name}
         </Button>
-        <Tooltip content={`${benchmark.id} · ${benchmark.providerName}`} position="bottom">
-          <Content component="p" className="evalhub-benchmark-card__subtitle">
-            {benchmark.id} · {benchmark.providerName}
-          </Content>
-        </Tooltip>
+        <Content component="p" className="evalhub-benchmark-card__subtitle">
+          {benchmark.id} · {benchmark.providerName}
+        </Content>
       </CardTitle>
 
       <CardBody>
