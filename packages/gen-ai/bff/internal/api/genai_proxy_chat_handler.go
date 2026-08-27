@@ -178,9 +178,8 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 			w.Header().Add(key, v)
 		}
 	}
-	w.WriteHeader(resp.StatusCode)
-
 	if isStreaming {
+		w.WriteHeader(resp.StatusCode)
 		flusher, canFlush := w.(http.Flusher)
 		buf := make([]byte, 4096)
 		for {
@@ -218,6 +217,7 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 			})
 			return
 		}
+		w.WriteHeader(resp.StatusCode)
 		_, _ = w.Write(respBody)
 	}
 }
