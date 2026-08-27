@@ -81,9 +81,9 @@ describe('EvaluationStatusModal tab defaults', () => {
     expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('should keep a stable modal height on the progress and events-log tabs', () => {
+  it('should only apply full-height on the events-log tab', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
-    expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
+    expect(screen.getByTestId('evaluation-status-modal')).not.toHaveClass(
       'evalhub-status-modal--full-height',
     );
 
