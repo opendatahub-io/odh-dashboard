@@ -9,6 +9,7 @@ module.exports = {
         './extensions': './src/odh/extensions',
         './extension-points': './src/odh/extension-points',
       },
+      dts: true,
     }),
   ],
 };
