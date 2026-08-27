@@ -43,37 +43,29 @@ describe('agent-ops extensions', () => {
     });
   });
 
-  it('makes OpenShell the default Agents landing (sandboxes tab has the lowest group)', () => {
+  it('contributes exactly one tab so core hides the tab bar (single-tab mode)', () => {
+    // The target IA has no sub-tabs: workspaces are a selector and native CRs a
+    // top-right link. A single contributed tab makes core render single-tab mode.
+    expect(tabs()).toHaveLength(1);
     const sandboxes = findTab('sandboxes');
     expect(sandboxes).toMatchObject({
       type: 'app.tab-route/tab',
       flags: { required: [AGENT_OPS] },
       properties: { pageId: 'agents-tab-page', id: 'sandboxes', group: '1_sandboxes' },
     });
-    // Default tab = lowest group; OpenShell sandboxes must sort ahead of the
-    // native "In your projects" tab.
-    const groups = tabs()
-      .filter((e) => e.type === 'app.tab-route/tab')
-      .map((e) => (e.type === 'app.tab-route/tab' ? e.properties.group ?? '' : ''))
-      .sort();
-    expect(groups[0]).toBe('1_sandboxes');
   });
 
-  it('keeps the native sandboxes view as a separate, demoted tab (Token A)', () => {
-    const deployments = findTab('deployments');
-    expect(deployments).toMatchObject({
-      type: 'app.tab-route/tab',
+  it('exposes the native sandboxes view as a standalone route, not a tab (Token A)', () => {
+    // Demoted from a peer tab to a discreet top-right link → standalone page.
+    expect(findTab('deployments')).toBeUndefined();
+    expect(routePaths()).toContain(`${agentDeploymentsPath}/*`);
+    const nativeList = routes().find(
+      (e) => e.type === 'app.route' && e.properties.path === `${agentDeploymentsPath}/*`,
+    );
+    expect(nativeList).toMatchObject({
+      type: 'app.route',
       flags: { required: [AGENT_OPS] },
-      properties: {
-        pageId: 'agents-tab-page',
-        id: 'deployments',
-        title: 'In your projects',
-        group: '3_your_projects',
-      },
     });
-    expect(
-      deployments?.type === 'app.tab-route/tab' && deployments.properties.component,
-    ).toBeTruthy();
   });
 
   it('registers the OpenShell OIDC callback routes outside the /openshell proxy prefix', () => {

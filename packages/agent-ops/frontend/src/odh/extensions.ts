@@ -23,21 +23,19 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
   },
   // --- Native agent-sandbox CRs (RHOAI login / Token A) ---
-  // Demoted below OpenShell (which is the default landing). This is a separate,
-  // one-click view of sandboxes in the user's own projects — no OpenShell auth.
-  // NOTE: this is still a peer tab; the target IA is a separate nav page (see
-  // double-auth-poc.md "native page repoint recipe").
+  // Demoted from a peer tab to a discreet top-right link on the OpenShell
+  // landing (see OpenShellProviders). This is a standalone page (not a tab) so
+  // it is less first-class than OpenShell, per the target IA. The splat path
+  // lets AgentDeploymentsRoutes resolve its own index + :namespace; the more
+  // specific detail/wizard routes below out-rank it.
   {
-    type: 'app.tab-route/tab',
+    type: 'app.route',
     flags: {
       required: [AGENT_OPS],
     },
     properties: {
-      pageId: AGENTS_TAB_PAGE,
-      id: 'deployments',
-      title: 'In your projects',
+      path: '/ai-hub/agents/deployments/*',
       component: () => import('./AgentDeploymentsWrapper.tsx'),
-      group: '3_your_projects',
     },
   },
   {
@@ -60,7 +58,12 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
-  // --- OpenShell (separate service / Token B) — the DEFAULT Agents landing ---
+  // --- OpenShell (separate service / Token B) — the Agents landing ---
+  // The SINGLE tab contributed to the page. Core's TabRoutePage renders
+  // single-tab mode: the tab bar is hidden and only the page title + this
+  // component show. Workspaces are a selector inside the landing (not a tab),
+  // and native CRs are a top-right link — so the AI-hub tab space stays free
+  // for future siblings (deployments, catalog, registry).
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -72,19 +75,6 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       title: 'Sandboxes',
       component: () => import('./openshell/SandboxesWrapper'),
       group: '1_sandboxes',
-    },
-  },
-  {
-    type: 'app.tab-route/tab',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      pageId: AGENTS_TAB_PAGE,
-      id: 'workspaces',
-      title: 'Workspaces',
-      component: () => import('./openshell/WorkspacesWrapper'),
-      group: '2_workspaces',
     },
   },
   // --- OpenShell OIDC (Token B) redirect + silent-renew callbacks ---

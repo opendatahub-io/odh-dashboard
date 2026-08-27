@@ -18,7 +18,7 @@ import {
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
 import { setAuthTokenGetter, setAuthTokenHeader } from 'openshell-dashboard/api';
-import { OPENSHELL_AUTH_HEADER } from './openShellAuth';
+import { OPENSHELL_AUTH_HEADER, NATIVE_SANDBOXES_PATH } from './openShellAuth';
 import {
   connectOpenShell,
   disconnectOpenShell,
@@ -28,10 +28,6 @@ import {
   OPENSHELL_SESSION_EXPIRED_EVENT,
   type OpenShellConnectionState,
 } from './openShellAuth';
-
-// Sibling page for native agent-sandbox CRs (Token A only) — reachable without
-// the OpenShell second auth. Kept in sync with the nav registration.
-const NATIVE_SANDBOXES_PATH = '/ai-hub/agent-sandboxes';
 
 type OpenShellConnectionContextValue = {
   state: OpenShellConnectionState;

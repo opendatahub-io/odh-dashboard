@@ -2,15 +2,18 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { SandboxListPage } from 'openshell-dashboard/pages';
-import { useWorkspaces } from 'openshell-dashboard/api';
 import OpenShellProviders from './OpenShellProviders';
+import WorkspaceSelector from './WorkspaceSelector';
+import { useSelectedWorkspace } from './WorkspaceContext';
 
+// The OpenShell landing: sandboxes are the content, scoped to the workspace
+// chosen in the top-bar selector. No sub-tabs — core's TabRoutePage hides the
+// tab bar when the module contributes a single tab.
 const SandboxesContent: React.FC = () => {
   const navigate = useNavigate();
-  const workspaces = useWorkspaces();
-  const workspace = workspaces.data?.[0]?.metadata?.name ?? 'default';
+  const { workspace, isLoading } = useSelectedWorkspace();
 
-  if (workspaces.isLoading) {
+  if (isLoading) {
     return (
       <Bullseye>
         <Spinner aria-label="Loading workspaces" />
@@ -35,7 +38,7 @@ const SandboxesContent: React.FC = () => {
 };
 
 const SandboxesWrapper: React.FC = () => (
-  <OpenShellProviders>
+  <OpenShellProviders toolbarStart={<WorkspaceSelector />}>
     <SandboxesContent />
   </OpenShellProviders>
 );

@@ -51,6 +51,10 @@ export const OPENSHELL_SESSION_EXPIRED_EVENT = 'openshell:session-expired';
 // x-forwarded-access-token. Must match OpenShellAuthHeader in openshell_handler.go.
 export const OPENSHELL_AUTH_HEADER = 'X-OpenShell-Authorization';
 
+// Native agent-sandbox CRs (RHOAI login / Token A) — a separate, less first-class
+// view of sandboxes in the user's own projects, reached from a top-right link.
+export const NATIVE_SANDBOXES_PATH = '/ai-hub/agents/deployments';
+
 // App routes the SPA registers to complete the OIDC redirect / silent-renew.
 // Intentionally OUTSIDE the /openshell/* prefix (which is reverse-proxied to the
 // BFF) so these resolve as SPA routes. Register both as redirect URIs in Keycloak.

@@ -1,15 +1,18 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { AlertProvider } from 'openshell-dashboard/components';
 import { SlotProvider } from 'openshell-dashboard/slots';
 import { setApiBasePath, setSessionExpiredHandler } from 'openshell-dashboard/api';
-import { OPENSHELL_SESSION_EXPIRED_EVENT } from './openShellAuth';
+import { OPENSHELL_SESSION_EXPIRED_EVENT, NATIVE_SANDBOXES_PATH } from './openShellAuth';
 import {
   OpenShellConnectionProvider,
   OpenShellConnectionChip,
   OpenShellConnectGate,
 } from './OpenShellConnection';
+import { SelectedWorkspaceProvider } from './WorkspaceContext';
 
 setApiBasePath('/openshell');
 // When embedded in RHOAI, the OpenShell (Token B) session is independent of the
@@ -28,25 +31,48 @@ const queryClient = new QueryClient({
 
 type OpenShellProvidersProps = {
   children: React.ReactNode;
+  // Rendered at the start (left) of the top bar — e.g. the workspace selector on
+  // the landing page. Detail pages omit it.
+  toolbarStart?: React.ReactNode;
 };
 
-const OpenShellProviders: React.FC<OpenShellProvidersProps> = ({ children }) => (
+const OpenShellProviders: React.FC<OpenShellProvidersProps> = ({ children, toolbarStart }) => (
   <QueryClientProvider client={queryClient}>
     <OpenShellConnectionProvider>
       <SlotProvider slots={{}}>
         <AlertProvider>
-          <Stack hasGutter>
-            <StackItem>
-              <Flex justifyContent={{ default: 'justifyContentFlexEnd' }}>
-                <FlexItem>
-                  <OpenShellConnectionChip />
-                </FlexItem>
-              </Flex>
-            </StackItem>
-            <StackItem isFilled>
-              <OpenShellConnectGate>{children}</OpenShellConnectGate>
-            </StackItem>
-          </Stack>
+          <SelectedWorkspaceProvider>
+            <Stack hasGutter>
+              <StackItem>
+                <Flex
+                  justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>{toolbarStart}</FlexItem>
+                  <FlexItem>
+                    <Flex
+                      gap={{ default: 'gapMd' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
+                      {/* Native agent-sandbox CRs (Token A) — intentionally demoted
+                          to a discreet top-right link, not a first-class tab. */}
+                      <FlexItem>
+                        <Link to={NATIVE_SANDBOXES_PATH} data-testid="native-projects-link">
+                          In your projects <ExternalLinkAltIcon />
+                        </Link>
+                      </FlexItem>
+                      <FlexItem>
+                        <OpenShellConnectionChip />
+                      </FlexItem>
+                    </Flex>
+                  </FlexItem>
+                </Flex>
+              </StackItem>
+              <StackItem isFilled>
+                <OpenShellConnectGate>{children}</OpenShellConnectGate>
+              </StackItem>
+            </Stack>
+          </SelectedWorkspaceProvider>
         </AlertProvider>
       </SlotProvider>
     </OpenShellConnectionProvider>
