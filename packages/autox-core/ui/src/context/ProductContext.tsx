@@ -4,10 +4,6 @@ import { createK8sApi, createS3Api, createPipelinesApi } from '../api';
 
 export type Product = 'automl' | 'autorag';
 
-export type PipelineRunBehavior = {
-  parseErrorStatus: (error: Error) => number | undefined;
-};
-
 export type ProductApi = {
   k8s: K8sApi;
   s3: S3Api;
@@ -18,7 +14,6 @@ export type ProductContextProviderProps = React.PropsWithChildren<{
   product: Product;
   apiPrefix: string;
   bffApiVersion: string;
-  parseErrorStatus: PipelineRunBehavior['parseErrorStatus'];
 }>;
 
 export type ProductContextValue = {
@@ -26,7 +21,6 @@ export type ProductContextValue = {
   apiPrefix: string;
   bffApiVersion: string;
   api: ProductApi;
-  parseErrorStatus: PipelineRunBehavior['parseErrorStatus'];
 };
 
 const ProductContext = React.createContext<ProductContextValue | undefined>(undefined);
@@ -36,7 +30,6 @@ export const ProductContextProvider: React.FC<ProductContextProviderProps> = ({
   product,
   apiPrefix,
   bffApiVersion,
-  parseErrorStatus,
 }) => {
   const contextValue = React.useMemo<ProductContextValue>(
     () => ({
@@ -48,9 +41,8 @@ export const ProductContextProvider: React.FC<ProductContextProviderProps> = ({
         s3: createS3Api(apiPrefix, bffApiVersion),
         pipelines: createPipelinesApi(apiPrefix, bffApiVersion),
       },
-      parseErrorStatus,
     }),
-    [product, apiPrefix, bffApiVersion, parseErrorStatus],
+    [product, apiPrefix, bffApiVersion],
   );
 
   return <ProductContext.Provider value={contextValue}>{children}</ProductContext.Provider>;

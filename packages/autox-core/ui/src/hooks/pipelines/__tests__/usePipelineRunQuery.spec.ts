@@ -21,8 +21,6 @@ jest.mock('../../../api', () => ({
   createPipelinesApi: jest.fn(() => mockPipelinesApi),
 }));
 
-const parseErrorStatus = jest.fn().mockReturnValue(undefined);
-
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
@@ -32,7 +30,6 @@ const createWrapper = () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        parseErrorStatus,
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
     );
@@ -51,7 +48,6 @@ describe('usePipelineRunQuery', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    parseErrorStatus.mockReturnValue(undefined);
   });
 
   it('should be disabled when runId or namespace is undefined', () => {
@@ -89,7 +85,6 @@ describe('usePipelineRunQuery', () => {
             product: 'automl',
             apiPrefix: '/automl',
             bffApiVersion: 'v1',
-            parseErrorStatus,
           },
           React.createElement(
             QueryClientProvider,
@@ -108,7 +103,6 @@ describe('usePipelineRunQuery', () => {
   it('should not retry on a 4xx error status', async () => {
     const httpError = new Error('status code 404');
     getPipelineRunFromBFF.mockRejectedValue(httpError);
-    parseErrorStatus.mockReturnValue(404);
     const { result } = renderHook(() => usePipelineRunQuery('run-1', 'ns'), {
       wrapper: createWrapper(),
     });

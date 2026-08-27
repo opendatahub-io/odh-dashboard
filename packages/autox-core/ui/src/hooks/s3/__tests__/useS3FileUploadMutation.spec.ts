@@ -26,7 +26,6 @@ const createWrapper = () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        parseErrorStatus: () => undefined,
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
     );

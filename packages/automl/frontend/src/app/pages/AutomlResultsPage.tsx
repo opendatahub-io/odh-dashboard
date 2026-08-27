@@ -12,6 +12,7 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
@@ -29,7 +30,7 @@ import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import { isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
 import {
   AUTOML_EVENTS,
   fireAutomlResultsViewed,

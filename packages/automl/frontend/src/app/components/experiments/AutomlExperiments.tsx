@@ -3,6 +3,7 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { EmptyExperimentsState } from '@odh-dashboard/autox-core/ui/components/feature';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
@@ -15,7 +16,6 @@ import {
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
 
 export type AutomlExperimentsListStatus = {
   /** True once pipeline definitions and runs have finished loading without a blocking list error. */

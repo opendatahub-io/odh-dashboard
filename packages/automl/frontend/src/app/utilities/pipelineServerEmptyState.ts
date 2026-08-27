@@ -1,6 +1,6 @@
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 
 /**
  * True when the error indicates no DSPipelineApplication CR exists in the namespace.

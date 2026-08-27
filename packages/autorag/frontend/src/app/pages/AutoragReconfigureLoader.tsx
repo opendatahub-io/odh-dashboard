@@ -1,5 +1,6 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/confi
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
-import { parseErrorStatus, generateReconfigureName } from '~/app/utilities/utils';
+import { generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();

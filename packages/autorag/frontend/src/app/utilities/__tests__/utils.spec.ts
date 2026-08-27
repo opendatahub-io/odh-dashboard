@@ -9,7 +9,6 @@ import {
   isRunInProgress,
   isRunRetryable,
   isRunDeletable,
-  parseErrorStatus,
   getOptimizedMetricForRAG,
   getOptimizedScore,
   formatMetricValue,
@@ -156,58 +155,6 @@ describe('isRunDeletable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunDeletable(undefined)).toBe(false);
     expect(isRunDeletable('')).toBe(false);
-  });
-});
-
-describe('parseErrorStatus', () => {
-  it('should extract status code from "status code XXX" format', () => {
-    const error = new Error('Request failed with status code 404');
-    expect(parseErrorStatus(error)).toBe(404);
-  });
-
-  it('should extract status code from "status: XXX" format', () => {
-    const error = new Error('Error: status: 403 - Forbidden');
-    expect(parseErrorStatus(error)).toBe(403);
-  });
-
-  it('should extract status code from standalone number format', () => {
-    const error = new Error('Failed to fetch: 503');
-    expect(parseErrorStatus(error)).toBe(503);
-  });
-
-  it('should handle case-insensitive status code patterns', () => {
-    const error = new Error('Request failed with Status Code 500');
-    expect(parseErrorStatus(error)).toBe(500);
-  });
-
-  it('should return undefined for non-matching error messages', () => {
-    const error = new Error('Network timeout occurred');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for invalid status codes', () => {
-    const error = new Error('Invalid status code 999');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for status codes below 100', () => {
-    const error = new Error('status code 99');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should return undefined for status codes 600 or above', () => {
-    const error = new Error('status code 600');
-    expect(parseErrorStatus(error)).toBeUndefined();
-  });
-
-  it('should handle multiple numbers and extract valid status codes', () => {
-    const error = new Error('Attempt 3 failed with status code 401');
-    expect(parseErrorStatus(error)).toBe(401);
-  });
-
-  it('should extract first valid status code when multiple are present', () => {
-    const error = new Error('status code 400 after status 200');
-    expect(parseErrorStatus(error)).toBe(400);
   });
 });
 

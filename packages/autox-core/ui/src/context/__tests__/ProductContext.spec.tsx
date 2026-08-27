@@ -19,7 +19,6 @@ const createProps = (
   product: 'automl',
   apiPrefix: '/automl',
   bffApiVersion: 'v1',
-  parseErrorStatus: () => undefined,
   ...overrides,
 });
 
@@ -35,9 +34,8 @@ describe('ProductContextProvider', () => {
   });
 
   it('should provide product configuration, strategies, and URL-bound clients', async () => {
-    const parseErrorStatus = jest.fn().mockReturnValue(404);
     const { result } = renderHook(() => useProductContext(), {
-      wrapper: createWrapper(createProps({ parseErrorStatus })),
+      wrapper: createWrapper(createProps()),
     });
 
     expect(result.current).toEqual(
@@ -45,7 +43,6 @@ describe('ProductContextProvider', () => {
         product: 'automl',
         apiPrefix: '/automl',
         bffApiVersion: 'v1',
-        parseErrorStatus,
         api: {
           k8s: expect.any(Object),
           s3: expect.any(Object),

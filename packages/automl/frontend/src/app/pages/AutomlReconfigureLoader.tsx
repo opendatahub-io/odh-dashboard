@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
@@ -18,7 +19,7 @@ import {
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
-import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 

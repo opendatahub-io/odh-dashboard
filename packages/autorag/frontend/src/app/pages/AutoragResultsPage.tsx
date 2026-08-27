@@ -12,6 +12,7 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
@@ -37,7 +38,6 @@ import {
   getOptimizedMetricForRAG,
   isRunTerminatable,
   isRunRetryable,
-  parseErrorStatus,
 } from '~/app/utilities/utils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
