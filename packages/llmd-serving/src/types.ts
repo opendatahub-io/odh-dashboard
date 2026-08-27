@@ -161,6 +161,14 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
     };
   };
   spec?: LLMInferenceServiceSpec;
+  status?: {
+    referencedBy?: {
+      name?: string;
+      namespace?: string;
+      kind?: string;
+      apiVersion?: string;
+    }[];
+  };
 };
 export const isLLMInferenceServiceConfig = (
   resource?: K8sResourceCommon,

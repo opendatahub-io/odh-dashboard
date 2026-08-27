@@ -220,6 +220,7 @@ export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStr
 
 export type DeploymentWizardFieldId =
   | 'modelType'
+  | 'modelLocation'
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
@@ -342,6 +343,15 @@ export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
   forced?: boolean;
 };
+export type ModelLocationFieldOverride = DeploymentWizardFieldBase<'modelLocation'> & {
+  /** Model location option key this override applies to (e.g. nvidia-nim). */
+  locationKey: string;
+  /** Disable the location select when editing a deployment with this location. */
+  disableWhenEditing?: boolean;
+  disabledTooltip?: string;
+  /** Hide this location option when editing a deployment with a different location. */
+  hideOptionWhenEditingOtherLocation?: boolean;
+};
 export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (
@@ -363,6 +373,7 @@ export type TokenAuthFieldOverride = DeploymentWizardFieldBase<'tokenAuth'> & {
 
 export type DeploymentWizardFieldOverride =
   | ModelTypeFieldOverride
+  | ModelLocationFieldOverride
   | ModelServerTemplateFieldOverride
   | ModelAvailabilityFieldOverride
   | ExternalRouteFieldOverride
@@ -374,6 +385,11 @@ export const isModelTypeFieldOverride = (
   field: DeploymentWizardFieldOverride,
 ): field is ModelTypeFieldOverride => {
   return field.id === 'modelType';
+};
+export const isModelLocationFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ModelLocationFieldOverride => {
+  return field.id === 'modelLocation';
 };
 export const isModelServerTemplateFieldOverride = (
   field: DeploymentWizardFieldOverride,

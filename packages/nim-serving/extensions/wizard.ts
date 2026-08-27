@@ -48,6 +48,20 @@ const nimModelTypeOverride: DeploymentWizardFieldOverrideExtension = {
   },
 };
 
+const nimModelLocationOverride: DeploymentWizardFieldOverrideExtension = {
+  type: 'model-serving.deployment/wizard-field-override',
+  properties: {
+    platform: 'nim-wizard',
+    field: () =>
+      import('../src/wizardFields/overrides/NIMModelLocationOverride').then(
+        (m) => m.NIMModelLocationOverride,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
 /**
  * The NIM-specific fields rendered inside the model deployment wizard.
  */
@@ -66,6 +80,7 @@ const extensions: (
     },
   },
   nimModelTypeOverride,
+  nimModelLocationOverride,
   nimImageFieldExtension,
   nimPVCFieldExtension,
 ];
