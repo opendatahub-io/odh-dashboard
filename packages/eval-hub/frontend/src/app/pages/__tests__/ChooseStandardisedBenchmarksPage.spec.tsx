@@ -177,4 +177,49 @@ describe('ChooseStandardisedBenchmarksPage', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it('should filter benchmarks by ID case-insensitively', () => {
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText('Filter by name or ID'), {
+      target: { value: 'ARC_EASY' },
+    });
+    expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-card-lm_evaluation_harness-inspect/arc'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should restore all benchmarks after removing the name/ID filter chip', () => {
+    renderPage();
+    fireEvent.change(screen.getByPlaceholderText('Filter by name or ID'), {
+      target: { value: 'arc_easy' },
+    });
+    expect(
+      screen.queryByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close arc_easy' }));
+
+    expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-card-lm_evaluation_harness-inspect/arc'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
+    ).toBeInTheDocument();
+  });
+
+  it('should show a loading spinner while providers are loading', () => {
+    mockUseProviders.mockReturnValue({
+      providers: [],
+      loaded: false,
+      loadError: undefined,
+    });
+    renderPage();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Filter by name or ID')).not.toBeInTheDocument();
+  });
 });
