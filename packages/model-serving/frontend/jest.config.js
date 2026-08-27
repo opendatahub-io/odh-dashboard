@@ -13,7 +13,6 @@ module.exports = {
       '<rootDir>/config/transform.file.js',
     '^react$': '<rootDir>/../../../node_modules/react',
     '^react-dom$': '<rootDir>/../../../node_modules/react-dom',
-    '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',
     '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },

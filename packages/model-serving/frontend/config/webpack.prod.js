@@ -32,7 +32,7 @@ module.exports = merge(
       }),
     ],
   },
-  webpackCommon('production'),
+  webpackCommon(),
   {
     mode: 'production',
     devtool: 'source-map',

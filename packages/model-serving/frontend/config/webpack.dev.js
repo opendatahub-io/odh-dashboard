@@ -94,7 +94,7 @@ module.exports = smp.wrap(
         }),
       ],
     },
-    webpackCommon('development'),
+    webpackCommon(),
     {
       mode: 'development',
       devtool: 'eval-source-map',
