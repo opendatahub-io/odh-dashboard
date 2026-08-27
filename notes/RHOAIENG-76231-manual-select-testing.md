@@ -82,6 +82,14 @@ Re-run `make login` and restart the dev server if the session expires.
 - NIM deploy paths: enable NIM / gen-ai flags via dev banner or `?devFeatureFlags=...` if your cluster uses them
 - Model Registry: requires MR operator + registry instance
 
+### Record project ownership
+
+```bash
+oc get project manual-76231-test 2>/dev/null && echo "EXISTS" || echo "NEW"
+```
+
+Record the result. Phase 5 cleanup uses it to decide whether to delete the project or only its test resources.
+
 ---
 
 ## Phase 1 — CHANGED vs main (ticket AC — do first)
@@ -372,15 +380,13 @@ Skip any row if the operator / feature flag is unavailable.
 
 ## Phase 5 — Cleanup
 
-Record whether `manual-76231-test` existed before this run.
-
-If this run created the project, delete it after testing:
+If Phase 0 recorded `NEW`, delete the project after testing:
 
 ```bash
 oc delete project manual-76231-test --wait=true
 ```
 
-If the project pre-existed, delete only the connections, PVCs, storage, and optional serving resources created by this run, and remove their test secrets.
+If Phase 0 recorded `EXISTS`, delete only the connections, PVCs, storage, and optional serving resources created by this run, and remove their test secrets.
 
 ---
 

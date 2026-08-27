@@ -456,8 +456,14 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(within(dialog).getByRole('option', { name: 'Connection 1' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('option', { name: 'Connection 2' })).toBeInTheDocument();
+    // Options must be inside the dialog but outside the combobox toggle anchor
+    // (inline render would also satisfy within(dialog)).
+    const option1 = within(dialog).getByRole('option', { name: 'Connection 1' });
+    const option2 = within(dialog).getByRole('option', { name: 'Connection 2' });
+    expect(dialog.contains(option1)).toBe(true);
+    expect(combobox.contains(option1)).toBe(false);
+    expect(dialog.contains(option2)).toBe(true);
+    expect(combobox.contains(option2)).toBe(false);
   });
 
   it('should select options when option id is numeric', async () => {

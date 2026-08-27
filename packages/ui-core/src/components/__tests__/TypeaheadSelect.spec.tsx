@@ -65,9 +65,11 @@ describe('TypeaheadSelect', () => {
     expect(dialog.style.overflow).toBe('visible');
     expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
 
+    // Option must be inside the dialog but outside the combobox toggle anchor
+    // (inline render would also satisfy within(dialog)).
     const option = within(dialog).getByRole('option', { name: 'S3' });
-    expect(option).toBeInTheDocument();
     expect(dialog.contains(option)).toBe(true);
+    expect(combobox.contains(option)).toBe(false);
   });
 
   it('should restore modal overflow when the menu closes', async () => {

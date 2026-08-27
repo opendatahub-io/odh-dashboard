@@ -158,10 +158,15 @@ describe('useMenuPopperInModal', () => {
     const anchorRef = React.createRef<HTMLInputElement>();
     const onEscapeClose = jest.fn();
 
+    const anchor = document.createElement('input');
+    document.body.appendChild(anchor);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (anchorRef as React.MutableRefObject<HTMLInputElement | null>).current = anchor;
+
     renderHook(() => useMenuPopperInModal(false, anchorRef, undefined, { onEscapeClose }));
 
     act(() => {
-      document.dispatchEvent(
+      anchor.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
       );
     });
@@ -173,14 +178,16 @@ describe('useMenuPopperInModal', () => {
     const anchorRef = React.createRef<HTMLInputElement>();
     const modalEscapeListener = jest.fn();
 
-    const menu = document.createElement('div');
-    document.body.appendChild(menu);
+    const anchor = document.createElement('input');
+    document.body.appendChild(anchor);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (anchorRef as React.MutableRefObject<HTMLInputElement | null>).current = anchor;
     listenBodyKeydown(modalEscapeListener);
 
     renderHook(() => useMenuPopperInModal(true, anchorRef));
 
     act(() => {
-      menu.dispatchEvent(
+      anchor.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
       );
     });

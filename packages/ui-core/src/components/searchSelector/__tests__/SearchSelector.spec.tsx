@@ -61,8 +61,11 @@ describe('SearchSelector', () => {
     expect(dialog.style.overflow).toBe('visible');
     expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
 
+    // Menu must be inside the dialog but outside the toggle anchor
+    // (inline render would also satisfy within(dialog)).
     const menu = within(dialog).getByTestId('project-search-menu');
     expect(dialog.contains(menu)).toBe(true);
+    expect(toggle.contains(menu)).toBe(false);
     expect(screen.getByRole('menuitem', { name: 'Project A' })).toBeInTheDocument();
   });
 
