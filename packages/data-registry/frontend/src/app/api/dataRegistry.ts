@@ -83,7 +83,9 @@ export const fetchGenericTable = (
 ): Promise<AssetResponse> =>
   fetchJSON(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
     ),
   );
 
@@ -94,7 +96,9 @@ export const deleteGenericTable = (
 ): Promise<void> =>
   fetchRequest(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
     ),
     'DELETE',
   ).then(() => undefined);
@@ -124,14 +128,18 @@ export const fetchVolume = (
 ): Promise<VolumeInfo> =>
   fetchJSON(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
     ),
   );
 
 export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
   fetchRequest(
     registryUrl(
-      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
     ),
     'DELETE',
   ).then(() => undefined);
@@ -149,6 +157,67 @@ export const createGenericTable = async (
     data,
   );
   return response.json();
+};
+
+// Update assets
+
+export type UpdateGenericTableRequest = {
+  description?: string;
+  format?: string;
+  location?: string;
+  connection_ref?: { type: string; secret_name?: string; id?: string };
+  purpose?: string;
+  license?: string;
+  maturity?: string;
+  pii?: string;
+  owner?: string;
+  add_labels?: string[];
+  remove_labels?: string[];
+  schema_fields?: { name: string; type: string; description?: string; nullable?: boolean }[];
+  properties?: Record<string, string>;
+};
+
+export const updateGenericTable = async (
+  project: string,
+  collection: string,
+  name: string,
+  data: UpdateGenericTableRequest,
+): Promise<void> => {
+  await fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+    'PATCH',
+    data,
+  );
+};
+
+export type UpdateVolumeRequest = {
+  comment?: string;
+  'storage-location'?: string;
+  owner?: string;
+  add_labels?: string[];
+  remove_labels?: string[];
+  properties?: Record<string, string>;
+};
+
+export const updateVolume = async (
+  project: string,
+  collection: string,
+  name: string,
+  data: UpdateVolumeRequest,
+): Promise<void> => {
+  await fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(
+        collection,
+      )}/volumes/${encodeURIComponent(name)}`,
+    ),
+    'PATCH',
+    data,
+  );
 };
 
 // Labels
