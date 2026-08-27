@@ -2,6 +2,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -27,33 +28,59 @@ const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules'
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
 
-const getProxyHeaders = () => {
-  if (AUTH_METHOD === 'user_token') {
-    if (!['localhost', '127.0.0.1', '::1'].includes(HOST)) {
-      throw new Error('AUTH_METHOD=user_token requires a loopback HOST');
-    }
+const assertLoopbackHost = () => {
+  if (AUTH_METHOD === 'user_token' && !['localhost', '127.0.0.1', '::1'].includes(HOST)) {
+    throw new Error('AUTH_METHOD=user_token requires a loopback HOST');
+  }
+};
 
-    try {
-      const token = execSync(
-        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-      )
-        .toString()
-        .trim();
-      if (!token) {
-        console.error('Failed to get Kubernetes token: kubectl returned an empty token');
-        return {};
-      }
-      console.info('Kubernetes authentication configured');
-      return {
-        Authorization: `Bearer ${token}`,
-        'x-forwarded-access-token': token,
-      };
-    } catch (error) {
-      console.error('Failed to get Kubernetes token:', error.message);
-      return {};
+const getKubeconfigToken = () => {
+  assertLoopbackHost();
+  try {
+    const token = execSync(
+      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+    )
+      .toString()
+      .trim();
+    if (!token) {
+      console.error('Failed to get Kubernetes token: kubectl returned an empty token');
+      return '';
     }
+    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
+      .toString()
+      .trim();
+    console.info('Logged in as user:', username);
+    return token;
+  } catch (error) {
+    console.error('Failed to get Kubernetes token:', error.message);
+    return '';
+  }
+};
+
+const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
+
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'internal') {
+    return {
+      'kubeflow-userid': 'user@example.com',
+    };
   }
   return {};
+};
+
+const onProxyReq = (proxyReq, req) => {
+  if (AUTH_METHOD !== 'user_token') {
+    return;
+  }
+  const incomingAuth = req.headers.authorization;
+  if (incomingAuth) {
+    proxyReq.setHeader('Authorization', incomingAuth);
+    const token = incomingAuth.replace(/^Bearer\s+/i, '');
+    proxyReq.setHeader('x-forwarded-access-token', token);
+  } else if (fallbackToken) {
+    proxyReq.setHeader('Authorization', `Bearer ${fallbackToken}`);
+    proxyReq.setHeader('x-forwarded-access-token', fallbackToken);
+  }
 };
 
 module.exports = smp.wrap(
@@ -92,6 +119,7 @@ module.exports = smp.wrap(
             },
             changeOrigin: true,
             headers: getProxyHeaders(),
+            onProxyReq,
           },
         ],
         devMiddleware: {
@@ -131,7 +159,10 @@ module.exports = smp.wrap(
           },
         ],
       },
-      plugins: [new ReactRefreshWebpackPlugin({ overlay: false })],
+      plugins: [
+        new ForkTsCheckerWebpackPlugin(),
+        new ReactRefreshWebpackPlugin({ overlay: false }),
+      ],
     },
   ),
 );
