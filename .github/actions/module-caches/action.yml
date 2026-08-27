@@ -155,6 +155,19 @@ runs:
       shell: bash
       run: npm install --prefix packages/mlflow/frontend
 
+    - name: model-serving node_modules cache
+      id: model-serving-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: packages/model-serving/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-serving-${{ hashFiles('packages/model-serving/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-serving-
+    - name: Install model-serving dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.model-serving-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/model-serving/frontend
+
     - name: model-registry node_modules cache
       id: model-registry-cache
       if: inputs.include-modules == 'true'
