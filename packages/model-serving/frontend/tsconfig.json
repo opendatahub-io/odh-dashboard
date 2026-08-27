@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
     "target": "es2021",
@@ -19,8 +20,7 @@
     "baseUrl": "./src",
     "paths": {
       "~/*": ["./*"],
-      "@odh-dashboard/internal/*": ["../../../../frontend/src/*"],
-      "#~/*": ["../../../../frontend/src/*"]
+      "@odh-dashboard/internal/*": ["../../../frontend/src/*"]
     },
     "importHelpers": true,
     "skipLibCheck": true,
@@ -28,6 +28,13 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx", "./**/*.jsx", "./**/*.js", "../extensions/**/*.ts", "../extension-points/**/*.ts", "../src/**/*.ts", "../src/**/*.tsx"],
-  "exclude": ["node_modules", "dist", "../cypress", "../src/**/__tests__/**", "../src/**/__mocks__/**"]
+  "include": ["./**/*.ts", "./**/*.tsx", "./**/*.jsx", "./**/*.js"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "public-cypress",
+    "src/__tests__/cypress",
+    "src/odh/extensions.ts",
+    "src/odh/extension-points"
+  ]
 }
