@@ -105,7 +105,7 @@ describe('AutoragConnectionModal', () => {
     );
 
     await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
+      screen.getByRole('button', { name: 'Connection type' }).click();
     });
     expect(screen.getByRole('option', { name: /type one/ })).toBeTruthy();
     expect(screen.getByRole('option', { name: /type two/ })).toBeTruthy();
@@ -297,7 +297,7 @@ describe('AutoragConnectionModal', () => {
     );
 
     await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
+      screen.getByRole('button', { name: 'Connection type' }).click();
     });
     await act(async () => {
       screen.getByRole('option', { name: /type one/ }).click();
@@ -322,7 +322,7 @@ describe('AutoragConnectionModal', () => {
     expect(screen.getByRole('textbox', { name: 'Short text 1' })).toHaveValue('one field');
 
     await act(async () => {
-      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
+      screen.getByRole('button', { name: 'Connection type' }).click();
     });
     await act(async () => {
       const optionTwo = await screen.findByRole('option', { name: /type two/ });

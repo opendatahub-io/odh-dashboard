@@ -94,6 +94,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
             }}
             previewDescription={false}
             dataTestId="cluster-storage-workbench-select"
+            ariaLabel="Workbench"
           />
         ) : (
           <>

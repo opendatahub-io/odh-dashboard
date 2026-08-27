@@ -25,21 +25,22 @@ describe('MultiSelection', () => {
     );
 
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
+    expect(combobox).not.toHaveAttribute('aria-controls');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
     expect(combobox).toHaveAttribute('aria-controls', 'test-select-listbox');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-1');
+    expect(document.getElementById('test-select-option-s-connection-1')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
-    expect(document.getElementById('test-select-option-connection-1')).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
-    });
-
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
-    expect(document.getElementById('test-select-option-connection-2')).toBeInTheDocument();
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-2');
+    expect(document.getElementById('test-select-option-s-connection-2')).toBeInTheDocument();
   });
 
   it('should expose a listbox id linked from aria-controls', async () => {
@@ -78,7 +79,7 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-2');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });
@@ -158,13 +159,13 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-1');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowUp' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-3');
   });
 
   it('should close the menu on Escape and Tab', async () => {
@@ -200,6 +201,33 @@ describe('MultiSelection', () => {
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'Tab' });
+      await Promise.resolve();
+    });
+
+    expect(combobox).toHaveAttribute('aria-expanded', 'false');
+    expect(combobox).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('should close the menu only once when Tab races with PatternFly close', async () => {
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={defaultOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'Tab' });
+      fireEvent.keyDown(combobox, { key: 'Escape' });
+      await Promise.resolve();
     });
 
     expect(combobox).toHaveAttribute('aria-expanded', 'false');
@@ -221,22 +249,22 @@ describe('MultiSelection', () => {
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-1');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-2');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-2');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-3');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-1');
   });
 
   it('should announce no results found when the menu opens with no options', async () => {
@@ -276,13 +304,13 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-1');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-s-connection-3');
   });
 
   it('should produce distinct aria-activedescendant ids for slash and encoded slash-like ids', async () => {
@@ -306,8 +334,8 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    const slashDescendant = 'test-select-option-coreu47upods';
-    const encodedDescendant = 'test-select-option-coreuu47uupods';
+    const slashDescendant = 'test-select-option-s-coreu47upods';
+    const encodedDescendant = 'test-select-option-s-coreuu47uupods';
 
     expect(combobox).toHaveAttribute('aria-activedescendant', slashDescendant);
     expect(document.getElementById(slashDescendant)).toBeInTheDocument();
@@ -454,8 +482,8 @@ describe('MultiSelection', () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
-    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-1');
-    expect(document.getElementById('test-select-option-1')).toBeInTheDocument();
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-n-1');
+    expect(document.getElementById('test-select-option-n-1')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'Enter' });

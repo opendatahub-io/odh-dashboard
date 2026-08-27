@@ -15,10 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { omit } from 'lodash-es';
 import TruncatedText from './TruncatedText';
-import {
-  resolveSelectPopperAppendTo,
-  useModalOverflowUnlock,
-} from '../utilities/useModalOverflowUnlock';
+import { useMenuPopperInModal } from '../utilities/useMenuPopperInModal';
 
 import './SimpleSelect.scss';
 
@@ -89,20 +86,27 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
-
-  useModalOverflowUnlock(open, menuToggleRef);
-
-  const mergedPopperProps = React.useMemo(() => {
-    if (popperProps?.appendTo !== undefined) {
-      return { maxWidth: 'trigger' as const, ...popperProps };
+  const listboxId = React.useId();
+  const groupListboxIds = React.useMemo(
+    () => (groupedOptions ?? []).map((_, index) => `${listboxId}-g${index}`),
+    [groupedOptions, listboxId],
+  );
+  const ungroupedListboxId = `${listboxId}-ungrouped`;
+  const openListboxControls = React.useMemo(() => {
+    const ids = [...groupListboxIds];
+    if (options?.length) {
+      ids.push(ungroupedListboxId);
     }
-    return {
-      maxWidth: 'trigger' as const,
-      ...popperProps,
-      // Portal into the dialog only inside modals; otherwise keep PatternFly inline default.
-      appendTo: () => resolveSelectPopperAppendTo(menuToggleRef.current),
-    };
-  }, [popperProps]);
+    return ids.join(' ');
+  }, [groupListboxIds, options?.length, ungroupedListboxId]);
+
+  const menuPopperProps = useMenuPopperInModal(open, menuToggleRef, popperProps, {
+    onEscapeClose: () => setOpen(false),
+  });
+  const mergedPopperProps = React.useMemo(
+    () => ({ maxWidth: 'trigger' as const, ...menuPopperProps }),
+    [menuPopperProps],
+  );
 
   const groupedOptionsFlat = React.useMemo(
     () =>
@@ -172,6 +176,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
               innerRef={toggleRef}
               data-testid={dataTestId}
               {...(toggleAriaLabel ? { 'aria-label': toggleAriaLabel } : {})}
+              {...(open && openListboxControls ? { 'aria-controls': openListboxControls } : {})}
               onClick={() => setOpen((currentOpen) => !currentOpen)}
               icon={icon}
               isExpanded={open}
@@ -196,7 +201,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           <React.Fragment key={group.key}>
             {index > 0 ? <Divider /> : null}
             <SelectGroup label={group.label}>
-              <SelectList>
+              <SelectList id={groupListboxIds[index]}>
                 {group.options.map(
                   ({
                     key,
@@ -231,7 +236,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         {options?.length ? (
           <>
             {groupedOptions?.length ? <Divider /> : null}
-            <SelectList>
+            <SelectList id={ungroupedListboxId}>
               {options.map(
                 ({
                   key,
