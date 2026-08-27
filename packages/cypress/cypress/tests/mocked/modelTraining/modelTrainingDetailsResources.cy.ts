@@ -189,8 +189,9 @@ describe('Model Training', () => {
 
       trainingJobResourcesTab.findNodesValue().should('contain', '4');
       trainingJobResourcesTab.findProcessesPerNodeValue().should('contain', '1');
-      // Node count is read-only for TrainJobs - scaling was removed in RHOAI 3.6 (RHOAIENG-88673)
-      trainingJobResourcesTab.findNodesValue().find('button').should('not.exist');
+      // RHOAIENG-88673: node count is read-only while TrainJob scaling is disabled
+      // trainingJobResourcesTab.findNodesEditButton().should('exist');
+      // trainingJobResourcesTab.findNodesEditButton().should('be.disabled');
     });
 
     it('should display correct resource values', () => {

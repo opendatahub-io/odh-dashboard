@@ -5,11 +5,15 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Title,
+  // RHOAIENG-88673: Button unused while scale affordance is disabled
+  // Button,
   StackItem,
   Stack,
   Skeleton,
   Content,
 } from '@patternfly/react-core';
+// RHOAIENG-88673: scale affordance disabled - see note below
+// import { PencilAltIcon } from '@patternfly/react-icons';
 import { getAllConsumedResources } from './utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
@@ -20,9 +24,17 @@ import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
   nodesCount: number;
+  // RHOAIENG-88673: scale props disabled - see note below
+  // canScaleNodes?: boolean;
+  // onScaleNodes?: () => void;
 };
 
-const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job, nodesCount }) => {
+const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
+  job,
+  nodesCount,
+  // canScaleNodes = false,
+  // onScaleNodes,
+}) => {
   const { project, projects } = useModelTrainingContext();
 
   // Use the selected project if available, otherwise find the project for this job's namespace
@@ -54,6 +66,23 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job, 
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes:</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
+              {/* RHOAIENG-88673: TrainJob node scaling disabled for RHOAI 3.6 - Kubeflow
+                  Trainer 2.2 made `spec.trainer` immutable (kubeflow/trainer#3157), so the
+                  numNodes PATCH is rejected by the TrainJob validating webhook. Node count is
+                  read-only until upstream supports post-create scaling.
+              <Button
+                variant="link"
+                isInline
+                icon={<PencilAltIcon />}
+                iconPosition="end"
+                style={{ fontSize: 'inherit', padding: 0 }}
+                isDisabled={!canScaleNodes}
+                onClick={onScaleNodes}
+                data-testid="nodes-edit-button"
+              >
+                {nodesCount || '-'}
+              </Button>
+              */}
               {nodesCount || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>

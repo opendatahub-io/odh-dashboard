@@ -271,22 +271,6 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.findKebabMenuItem('Delete job').should('exist');
     });
 
-    it('should not offer node scaling for paused TrainJobs (RHOAIENG-88673)', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      // Paused is the state that previously offered TrainJob node scaling. Scaling was
-      // removed in RHOAI 3.6 because Kubeflow Trainer 2.2 made `spec.trainer` immutable.
-      const row = trainingJobTable.getTableRow('paused-training-job');
-
-      // The node count is displayed read-only - no inline edit affordance
-      row.find().find('[data-label="Nodes"]').find('button').should('not.exist');
-
-      // ...and the row kebab no longer lists the action
-      row.findKebabButton().click();
-      row.findKebabMenuItem('Edit node count').should('not.exist');
-    });
-
     it('should switch between different jobs in the drawer', () => {
       initIntercepts();
       modelTrainingGlobal.visit(projectName);

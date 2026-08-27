@@ -24,6 +24,8 @@ import TrainingJobResourcesTab from './TrainingJobResourcesTab';
 import TrainingJobPodsTab from './TrainingJobPodsTab';
 import TrainingJobLogsTab from './TrainingJobLogsTab';
 import TrainingJobDetailsTab from './TrainingJobDetailsTab';
+// RHOAIENG-88673: scale flow disabled - see note at the hook call below
+// import ScaleNodesModal from '../trainingJobList/ScaleNodesModal';
 import PauseTrainingJobModal from '../trainingJobList/PauseTrainingJobModal';
 import { useTrainingJobPauseResume } from '../trainingJobList/hooks/useTrainingJobPauseResume';
 import { getStatusFlags } from '../trainingJobList/utils';
@@ -57,7 +59,17 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     string | undefined
   >(undefined);
 
-  const { nodesCount } = useTrainingJobNodeScaling(job);
+  // RHOAIENG-88673: TrainJob node scaling disabled for RHOAI 3.6 - Kubeflow Trainer 2.2
+  // made `spec.trainer` immutable (kubeflow/trainer#3157), so the numNodes PATCH is rejected
+  // by the TrainJob validating webhook. Uncomment once upstream supports post-create scaling.
+  const {
+    nodesCount,
+    // canScaleNodes,
+    // isScaling,
+    // scaleNodesModalOpen,
+    // setScaleNodesModalOpen,
+    // handleScaleNodes,
+  } = useTrainingJobNodeScaling(job, jobStatus);
 
   const {
     isToggling,
@@ -143,6 +155,20 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                 shouldFocusToggleOnSelect
               >
                 <DropdownList>
+                  {/* RHOAIENG-88673: scale action disabled - see note above
+                  {canScaleNodes && (
+                    <DropdownItem
+                      key="scale-nodes"
+                      data-testid="edit-node-count-action"
+                      onClick={() => {
+                        setIsKebabOpen(false);
+                        setScaleNodesModalOpen(true);
+                      }}
+                    >
+                      Edit node count
+                    </DropdownItem>
+                  )}
+                  */}
                   {canPauseResume && (
                     <DropdownItem
                       key="pause-resume"
@@ -153,6 +179,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                       {isPaused ? 'Resume job' : 'Pause job'}
                     </DropdownItem>
                   )}
+                  {/* RHOAIENG-88673: was (canScaleNodes || canPauseResume) */}
                   {canPauseResume && <Divider component="li" key="separator" />}
                   <DropdownItem
                     key="delete"
@@ -181,7 +208,13 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <TrainingJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-            <TrainingJobResourcesTab job={job} nodesCount={nodesCount} />
+            <TrainingJobResourcesTab
+              job={job}
+              nodesCount={nodesCount}
+              // RHOAIENG-88673: scale props disabled - see note above
+              // canScaleNodes={canScaleNodes}
+              // onScaleNodes={() => setScaleNodesModalOpen(true)}
+            />
           </Tab>
 
           <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
@@ -197,6 +230,18 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
           </Tab>
         </Tabs>
       </DrawerPanelBody>
+
+      {/* RHOAIENG-88673: scale modal disabled - see note above
+      {scaleNodesModalOpen && (
+        <ScaleNodesModal
+          job={job}
+          currentNodeCount={nodesCount}
+          isScaling={isScaling}
+          onClose={() => setScaleNodesModalOpen(false)}
+          onConfirm={handleScaleNodes}
+        />
+      )}
+      */}
 
       {pauseModalOpen && (
         <PauseTrainingJobModal

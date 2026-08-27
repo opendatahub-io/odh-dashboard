@@ -1,6 +1,15 @@
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { Timestamp, Flex, FlexItem, TimestampTooltipVariant, Button } from '@patternfly/react-core';
+import {
+  Timestamp,
+  Flex,
+  FlexItem,
+  TimestampTooltipVariant,
+  Button,
+  // RHOAIENG-88673: only used by the disabled scale affordance
+  // Tooltip,
+} from '@patternfly/react-core';
+// RHOAIENG-88673: PencilAltIcon only used by the disabled scale affordance
 import { CubesIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
@@ -8,6 +17,8 @@ import JobProject from './JobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import PauseTrainingJobModal from './PauseTrainingJobModal';
+// RHOAIENG-88673: scale flow disabled - see note at the hook call below
+// import ScaleNodesModal from './ScaleNodesModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import TrainingJobStatusModal from './TrainingJobStatusModal';
 import StateActionToggle from './StateActionToggle';
@@ -38,8 +49,18 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
 
   const displayName = getDisplayNameFromK8sResource(job);
 
-  // Use custom hook to resolve the node count for display
-  const { nodesCount } = useTrainingJobNodeScaling(job);
+  // Use custom hook for node scaling functionality
+  // RHOAIENG-88673: TrainJob node scaling disabled for RHOAI 3.6 - Kubeflow Trainer 2.2
+  // made `spec.trainer` immutable (kubeflow/trainer#3157), so the numNodes PATCH is rejected
+  // by the TrainJob validating webhook. Uncomment once upstream supports post-create scaling.
+  const {
+    nodesCount,
+    // canScaleNodes,
+    // isScaling,
+    // scaleNodesModalOpen,
+    // setScaleNodesModalOpen,
+    // handleScaleNodes,
+  } = useTrainingJobNodeScaling(job, jobStatus);
 
   // Use custom hook for pause/resume functionality
   const {
@@ -63,7 +84,15 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    // 1. Pause/Resume job (only when allowed)
+    // 1. Edit node count (only when allowed) - RHOAIENG-88673: disabled, see note above
+    // if (canScaleNodes) {
+    //   items.push({
+    //     title: <span data-testid="edit-node-count-action">Edit node count</span>,
+    //     onClick: () => setScaleNodesModalOpen(true),
+    //   });
+    // }
+
+    // 2. Pause/Resume job (only when allowed)
     if (canPauseResume) {
       items.push({
         title: isPaused ? 'Resume job' : 'Pause job',
@@ -71,7 +100,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
       });
     }
 
-    // 2. View more details
+    // 3. View more details
     items.push({
       title: 'View more details',
       onClick: () => onSelectJob(job),
@@ -82,14 +111,24 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
       isSeparator: true,
     });
 
-    // 3. Delete job
+    // 4. Delete job
     items.push({
       title: 'Delete job',
       onClick: () => onDelete(job),
     });
 
     return items;
-  }, [canPauseResume, isPaused, job, onDelete, onSelectJob, handleResume, onPauseClick]);
+  }, [
+    // canScaleNodes,
+    canPauseResume,
+    isPaused,
+    job,
+    onDelete,
+    onSelectJob,
+    // setScaleNodesModalOpen,
+    handleResume,
+    onPauseClick,
+  ]);
 
   return (
     <>
@@ -105,12 +144,37 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
         <Td dataLabel="Nodes">
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
-            spaceItems={{ default: 'spaceItemsXs' }}
+            spaceItems={{ default: 'spaceItemsSm' }}
           >
             <FlexItem>
-              <CubesIcon />
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                spaceItems={{ default: 'spaceItemsXs' }}
+              >
+                <FlexItem>
+                  <CubesIcon />
+                </FlexItem>
+                <FlexItem>{nodesCount}</FlexItem>
+              </Flex>
             </FlexItem>
-            <FlexItem>{nodesCount}</FlexItem>
+            {/* RHOAIENG-88673: inline scale affordance disabled - see note above
+            {canScaleNodes && (
+              <FlexItem>
+                <Tooltip content="Click to scale nodes">
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => setScaleNodesModalOpen(true)}
+                    className="pf-u-p-0 pf-u-color-200"
+                    aria-label="Scale nodes"
+                    icon={<PencilAltIcon />}
+                    style={{ fontSize: 'inherit', padding: 0 }}
+                    isDisabled={!canScaleNodes}
+                  />
+                </Tooltip>
+              </FlexItem>
+            )}
+            */}
           </Flex>
         </Td>
         <Td dataLabel="Cluster queue">
@@ -181,6 +245,18 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
           isToggling={isToggling}
         />
       )}
+
+      {/* RHOAIENG-88673: scale modal disabled - see note above
+      {scaleNodesModalOpen && (
+        <ScaleNodesModal
+          job={job}
+          currentNodeCount={nodesCount}
+          isScaling={isScaling}
+          onClose={() => setScaleNodesModalOpen(false)}
+          onConfirm={handleScaleNodes}
+        />
+      )}
+      */}
     </>
   );
 };
