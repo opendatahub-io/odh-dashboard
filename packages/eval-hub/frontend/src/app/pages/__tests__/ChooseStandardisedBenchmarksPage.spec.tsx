@@ -201,7 +201,7 @@ describe('ChooseStandardisedBenchmarksPage', () => {
       screen.queryByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close arc_easy' }));
+    fireEvent.click(screen.getByRole('button', { name: /arc_easy/i }));
 
     expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toBeInTheDocument();
     expect(
