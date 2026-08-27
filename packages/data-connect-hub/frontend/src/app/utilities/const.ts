@@ -1,17 +1,17 @@
 import { DeploymentMode, asEnumMember } from 'mod-arch-core';
 
-const STYLE_THEME = process.env.STYLE_THEME || 'patternfly-theme';
+const STYLE_THEME = process.env.STYLE_THEME ?? 'patternfly-theme';
 const DEPLOYMENT_MODE =
-  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
+  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) ?? DeploymentMode.Federated;
 const DEV_MODE = process.env.APP_ENV === 'development';
 const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
-const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'user@example.com';
-const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
-const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
-const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
+const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME ?? 'user@example.com';
+const IMAGE_DIR = process.env.IMAGE_DIR ?? 'images';
+const LOGO_LIGHT = process.env.LOGO ?? 'logo-light-theme.svg';
+const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE ?? undefined;
 const URL_PREFIX = '/data-connect-hub';
 const BFF_API_VERSION = 'v1';
-const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
+const COMPANY_URI = process.env.COMPANY_URI ?? 'oci://odh.io';
 
 export {
   STYLE_THEME,

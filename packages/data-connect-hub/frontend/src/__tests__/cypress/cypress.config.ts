@@ -3,10 +3,10 @@ import fs from 'fs';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore no types available
+// @ts-expect-error no types available
 import webpack from '@cypress/webpack-preprocessor';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore no types available
+// @ts-expect-error no types available
 import cypressHighResolution from 'cypress-high-resolution';
 import { mergeFiles } from 'junit-report-merger';
 import { env, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';

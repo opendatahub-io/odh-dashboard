@@ -17,7 +17,11 @@ import {
 } from '~/app/utilities/const';
 import App from '~/app/App';
 
-const root = ReactDOM.createRoot(document.getElementById('root')!);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Root element not found');
+}
+const root = ReactDOM.createRoot(rootElement);
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
