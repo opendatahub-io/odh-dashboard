@@ -75,7 +75,7 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
     it('admin sees the settings link and no WhosMyAdministrator', () => {
       asClusterAdminUser();
       initNoRegistries();
-      modelRegistry.visit();
+      modelRegistry.visitEmptyState();
 
       cy.findByTestId('empty-model-registries-state').should('be.visible');
       cy.findByTestId('empty-model-registries-state').within(() => {
@@ -90,7 +90,7 @@ describe('AdminHelpAction - admin vs non-admin messaging', () => {
       asProjectEditUser();
       initNoRegistries();
 
-      modelRegistry.visit();
+      modelRegistry.visitEmptyState();
 
       cy.findByTestId('empty-model-registries-state', { timeout: 10000 })
         .should('be.visible')

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Popover, PopoverPosition } from '@patternfly/react-core';
+import { Button, Popover, PopoverPosition, Stack, StackItem } from '@patternfly/react-core';
 import { WhosMyAdministrator, KubeflowDocs } from 'mod-arch-shared';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useAdminStatus } from '~/odh/context/AdminStatusContext';
@@ -34,15 +34,16 @@ const AdminHelpAction: React.FC<AdminHelpActionProps> = ({
       <Popover
         headerContent={headerContent}
         bodyContent={
-          <div data-testid={contentTestId}>
-            <p>
+          <Stack hasGutter data-testid={contentTestId}>
+            <StackItem>
               To create a new model registry, go to the <b>{settingsTitle}</b> page.
-            </p>
-            <br />
-            <Link to={settingsUrl}>
-              Go to <b>{settingsTitle}</b>
-            </Link>
-          </div>
+            </StackItem>
+            <StackItem>
+              <Link to={settingsUrl}>
+                Go to <b>{settingsTitle}</b>
+              </Link>
+            </StackItem>
+          </Stack>
         }
         position={popoverPosition}
       >
