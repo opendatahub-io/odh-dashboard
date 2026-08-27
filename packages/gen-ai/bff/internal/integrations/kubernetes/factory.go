@@ -103,9 +103,7 @@ func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*in
 	// provider sends the user JWT this way on proxy endpoints.
 	if raw == "" {
 		if auth := httpHeader.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
-			raw = auth
-			// Use "Bearer " as the effective prefix for this request
-			token := strings.TrimPrefix(raw, "Bearer ")
+			token := strings.TrimPrefix(auth, "Bearer ")
 			return &integrations.RequestIdentity{
 				Token: strings.TrimSpace(token),
 			}, nil
