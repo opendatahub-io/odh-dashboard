@@ -221,6 +221,7 @@ class TrainingJobTableRow extends TableRow {
     return this.find().findByLabelText('Kebab toggle');
   }
 
+  /** Ray job rows only - TrainJob node scaling was removed in RHOAI 3.6 (RHOAIENG-88673). */
   findEditNodeCountButton() {
     return this.find().find('[data-label="Nodes"]').findByTestId('edit-node-count-button');
   }
@@ -329,10 +330,6 @@ class TrainingJobDetailsDrawer {
   findKebabMenuItem(itemName: string) {
     return cy.findByRole('menuitem', { name: itemName });
   }
-
-  findEditNodeCountAction() {
-    return cy.findByTestId('edit-node-count-action');
-  }
 }
 
 class TrainingJobResourcesTab {
@@ -346,10 +343,6 @@ class TrainingJobResourcesTab {
 
   findProcessesPerNodeValue() {
     return cy.findByTestId('processes-per-node-value');
-  }
-
-  findNodesEditButton() {
-    return cy.findByTestId('nodes-edit-button');
   }
 
   findResourcesPerNodeSection() {
@@ -611,64 +604,6 @@ class TrainingJobLogsTab {
   }
 }
 
-class ScaleNodesModal extends Modal {
-  constructor() {
-    super('Edit node count');
-  }
-
-  find() {
-    return cy.findByTestId('scale-nodes-modal');
-  }
-
-  shouldBeOpen(open = true) {
-    if (open) {
-      this.find().should('be.visible');
-    } else {
-      this.find().should('not.exist');
-    }
-    return this;
-  }
-
-  findNodeCountInput() {
-    return cy.findByTestId('node-count-input');
-  }
-
-  findPlusButton() {
-    return this.find().find('button[aria-label="Plus"]');
-  }
-
-  findMinusButton() {
-    return this.find().find('button[aria-label="Minus"]');
-  }
-
-  setNodeCount(count: number) {
-    this.findNodeCountInput().clear();
-    this.findNodeCountInput().type(count.toString());
-    return this;
-  }
-
-  findSaveButton() {
-    return cy.findByRole('button', { name: 'Save' });
-  }
-
-  findCancelButton() {
-    return cy.findByRole('button', { name: 'Cancel' });
-  }
-
-  findErrorMessage() {
-    return cy.get('.pf-v6-c-helper-text__item-text');
-  }
-
-  save() {
-    this.findSaveButton().click();
-    return this;
-  }
-
-  cancel() {
-    this.findCancelButton().click();
-    return this;
-  }
-}
 class PauseTrainingJobModal extends Modal {
   constructor() {
     super('Pause training job?');
@@ -1056,7 +991,6 @@ export const trainingJobResourcesTab = new TrainingJobResourcesTab();
 export const trainingJobPodsTab = new TrainingJobPodsTab();
 export const trainingJobLogsTab = new TrainingJobLogsTab();
 export const trainingJobStatusModal = new TrainingJobStatusModal();
-export const scaleNodesModal = new ScaleNodesModal();
 export const pauseTrainingJobModal = new PauseTrainingJobModal();
 export const pauseRayJobModal = new PauseRayJobModal();
 export const trainingJobDetailsTab = new TrainingJobDetailsTab();

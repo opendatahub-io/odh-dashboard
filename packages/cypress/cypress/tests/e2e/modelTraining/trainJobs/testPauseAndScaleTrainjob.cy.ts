@@ -5,7 +5,6 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   deleteTrainingRuntime,
-  getTrainJobNumNodes,
   setupTrainingResources,
   verifyTrainJobDeleted,
 } from '../../../../utils/oc_commands/trainingJobs';
@@ -13,7 +12,6 @@ import { deleteKueueResources } from '../../../../utils/oc_commands/distributedW
 import {
   modelTrainingGlobal,
   pauseTrainingJobModal,
-  scaleNodesModal,
   trainingJobDetailsDrawer,
   trainingJobResourcesTab,
   trainingJobStatusModal,
@@ -25,11 +23,12 @@ import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
 import type { TrainJobTestData } from '../../../../types';
 
-// Node count constants - initial is defined in train-job.yaml, updated is the target after scaling
+// Node count is defined in train-job.yaml and is read-only in the UI. Post-create node
+// scaling was removed in RHOAI 3.6 (RHOAIENG-88673) because Kubeflow Trainer 2.2 made
+// `spec.trainer` immutable (kubeflow/trainer#3157).
 const INITIAL_NODE_COUNT = 1;
-const UPDATED_NODE_COUNT = 2;
 
-describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
+describe('Verify Pause and Resume Training Job', () => {
   let testData: TrainJobTestData;
   let skipTest = false;
   let projectName: string;
@@ -115,7 +114,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
   });
 
   it(
-    'Should pause running job, update node count, resume, and complete training',
+    'Should pause running job, resume, and complete training',
     {
       tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@ModelTrainingCI'],
     },
@@ -193,34 +192,6 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
 
       cy.step('Verify initial node count in UI');
       trainingJobResourcesTab.findNodesValue().should('contain', INITIAL_NODE_COUNT.toString());
-
-      cy.step('Click Edit node count via kebab menu');
-      trainingJobDetailsDrawer.clickKebabMenu();
-      trainingJobDetailsDrawer.findEditNodeCountAction().click();
-
-      cy.step('Verify scale nodes modal opens');
-      scaleNodesModal.shouldBeOpen();
-      scaleNodesModal.findNodeCountInput().should('have.value', INITIAL_NODE_COUNT.toString());
-
-      cy.step(
-        `Update node count from ${INITIAL_NODE_COUNT} to ${UPDATED_NODE_COUNT} using plus button`,
-      );
-      // Click plus button to increment from 1 to 2 (avoids input append issue)
-      scaleNodesModal.findPlusButton().click();
-      scaleNodesModal.findNodeCountInput().should('have.value', UPDATED_NODE_COUNT.toString());
-      scaleNodesModal.findSaveButton().should('not.be.disabled');
-      scaleNodesModal.save();
-
-      cy.step('Verify scale nodes modal closes');
-      scaleNodesModal.shouldBeOpen(false);
-
-      cy.step('Verify updated node count in UI');
-      trainingJobResourcesTab.findNodesValue().should('contain', UPDATED_NODE_COUNT.toString());
-
-      cy.step('Verify backend TrainJob has updated numNodes');
-      getTrainJobNumNodes(trainJobName, projectName).then((numNodes) => {
-        expect(numNodes).to.equal(UPDATED_NODE_COUNT);
-      });
 
       cy.step('Close the details drawer');
       trainingJobDetailsDrawer.close();

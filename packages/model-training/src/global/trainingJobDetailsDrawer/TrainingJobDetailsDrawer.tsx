@@ -24,7 +24,6 @@ import TrainingJobResourcesTab from './TrainingJobResourcesTab';
 import TrainingJobPodsTab from './TrainingJobPodsTab';
 import TrainingJobLogsTab from './TrainingJobLogsTab';
 import TrainingJobDetailsTab from './TrainingJobDetailsTab';
-import ScaleNodesModal from '../trainingJobList/ScaleNodesModal';
 import PauseTrainingJobModal from '../trainingJobList/PauseTrainingJobModal';
 import { useTrainingJobPauseResume } from '../trainingJobList/hooks/useTrainingJobPauseResume';
 import { getStatusFlags } from '../trainingJobList/utils';
@@ -58,14 +57,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
     string | undefined
   >(undefined);
 
-  const {
-    nodesCount,
-    canScaleNodes,
-    isScaling,
-    scaleNodesModalOpen,
-    setScaleNodesModalOpen,
-    handleScaleNodes,
-  } = useTrainingJobNodeScaling(job, jobStatus);
+  const { nodesCount } = useTrainingJobNodeScaling(job);
 
   const {
     isToggling,
@@ -151,18 +143,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                 shouldFocusToggleOnSelect
               >
                 <DropdownList>
-                  {canScaleNodes && (
-                    <DropdownItem
-                      key="scale-nodes"
-                      data-testid="edit-node-count-action"
-                      onClick={() => {
-                        setIsKebabOpen(false);
-                        setScaleNodesModalOpen(true);
-                      }}
-                    >
-                      Edit node count
-                    </DropdownItem>
-                  )}
                   {canPauseResume && (
                     <DropdownItem
                       key="pause-resume"
@@ -173,7 +153,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
                       {isPaused ? 'Resume job' : 'Pause job'}
                     </DropdownItem>
                   )}
-                  {(canScaleNodes || canPauseResume) && <Divider component="li" key="separator" />}
+                  {canPauseResume && <Divider component="li" key="separator" />}
                   <DropdownItem
                     key="delete"
                     onClick={() => {
@@ -201,12 +181,7 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
             <TrainingJobDetailsTab job={job} />
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Resources</TabTitleText>} aria-label="Resources">
-            <TrainingJobResourcesTab
-              job={job}
-              nodesCount={nodesCount}
-              canScaleNodes={canScaleNodes}
-              onScaleNodes={() => setScaleNodesModalOpen(true)}
-            />
+            <TrainingJobResourcesTab job={job} nodesCount={nodesCount} />
           </Tab>
 
           <Tab eventKey={2} title={<TabTitleText>Pods</TabTitleText>} aria-label="Pods">
@@ -222,16 +197,6 @@ const TrainingJobDetailsDrawer: React.FC<TrainingJobDetailsDrawerProps> = ({
           </Tab>
         </Tabs>
       </DrawerPanelBody>
-
-      {scaleNodesModalOpen && (
-        <ScaleNodesModal
-          job={job}
-          currentNodeCount={nodesCount}
-          isScaling={isScaling}
-          onClose={() => setScaleNodesModalOpen(false)}
-          onConfirm={handleScaleNodes}
-        />
-      )}
 
       {pauseModalOpen && (
         <PauseTrainingJobModal

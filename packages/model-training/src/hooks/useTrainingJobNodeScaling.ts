@@ -1,42 +1,31 @@
 import * as React from 'react';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import useClusterTrainingRuntime from './useClusterTrainingRuntime';
-import { scaleNodes } from '../api';
-import { getStatusFlags, getTrainingJobStatusSync } from '../global/trainingJobList/utils';
 import { TrainJobKind } from '../k8sTypes';
-import { JobDisplayState } from '../types';
 
 type UseTrainingJobNodeScalingReturn = {
   nodesCount: number;
-  canScaleNodes: boolean;
-  isScaling: boolean;
-  scaleNodesModalOpen: boolean;
-  setScaleNodesModalOpen: (open: boolean) => void;
-  handleScaleNodes: (newNodeCount: number) => Promise<void>;
 };
 
 /**
- * Custom hook to manage node scaling functionality for training jobs
- * Handles node count calculation, scaling eligibility, and scaling operations
+ * Custom hook to resolve the node count of a training job for display.
  *
- * Node scaling is enabled when the job is in one of these statuses:
- * - Paused: Job is paused
- * - Queued: Job is waiting for resources
- * - Inadmissible: Job cannot be admitted due to quota/resource constraints
- * - Preempted: Job was preempted by higher priority workloads
+ * Post-create node scaling was removed for RHOAI 3.6 (RHOAIENG-88673). Kubeflow
+ * Trainer 2.2 made `spec.trainer` immutable (kubeflow/trainer#3157), so PATCHing
+ * `spec.trainer.numNodes` after create is rejected by the TrainJob validating
+ * webhook, and upstream has not shipped a replacement API for scaling a job after
+ * it has been created. Rather than leave a broken action in the product, the scale
+ * modal, its API client and every entry point were removed. To restore the feature
+ * once upstream supports it again, revert the commit referencing RHOAIENG-88673.
  *
- * @param job - The training job to manage scaling for (can be undefined)
- * @param jobStatus - Optional pre-fetched job status (falls back to sync calculation)
- * @returns Object containing node count, scaling state, and handlers
+ * The node count itself is still resolved here, because the jobs table and the
+ * details drawer display it read-only.
+ *
+ * @param job - The training job to resolve the node count for (can be undefined)
+ * @returns Object containing the resolved node count
  */
 export const useTrainingJobNodeScaling = (
   job: TrainJobKind | undefined,
-  jobStatus?: JobDisplayState,
 ): UseTrainingJobNodeScalingReturn => {
-  const notification = useNotification();
-  const [scaleNodesModalOpen, setScaleNodesModalOpen] = React.useState(false);
-  const [isScaling, setIsScaling] = React.useState(false);
-
   // Fetch ClusterTrainingRuntime if trainer spec is not available
   const runtimeName =
     job?.spec.runtimeRef.kind === 'ClusterTrainingRuntime' ? job.spec.runtimeRef.name : null;
@@ -58,51 +47,7 @@ export const useTrainingJobNodeScaling = (
     return 0;
   }, [job, runtimeLoaded, clusterTrainingRuntime]);
 
-  // Determine if scaling is allowed
-  const status = job && jobStatus ? jobStatus : job ? getTrainingJobStatusSync(job) : undefined;
-  const { isPaused, isQueued, isInadmissible, isPreempted } = status
-    ? getStatusFlags(status)
-    : {
-        isPaused: false,
-        isQueued: false,
-        isInadmissible: false,
-        isPreempted: false,
-      };
-  const canScaleNodes =
-    job !== undefined &&
-    jobStatus !== undefined &&
-    (isPaused || isQueued || isInadmissible || isPreempted);
-
-  const handleScaleNodes = React.useCallback(
-    async (newNodeCount: number) => {
-      if (!job) {
-        return;
-      }
-      setIsScaling(true);
-      try {
-        await scaleNodes(job, newNodeCount);
-        notification.success('Node scaling successful', `Scaled to ${newNodeCount} nodes`);
-        // Note: The job will be refreshed by the watch mechanism
-      } catch (error) {
-        console.error('Error scaling nodes:', error);
-        notification.error(
-          'Failed to scale nodes',
-          error instanceof Error ? error.message : 'Unknown error occurred',
-        );
-      } finally {
-        setIsScaling(false);
-        setScaleNodesModalOpen(false);
-      }
-    },
-    [job, notification],
-  );
-
   return {
     nodesCount,
-    canScaleNodes,
-    isScaling,
-    scaleNodesModalOpen,
-    setScaleNodesModalOpen,
-    handleScaleNodes,
   };
 };

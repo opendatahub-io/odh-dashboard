@@ -5,13 +5,11 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Title,
-  Button,
   StackItem,
   Stack,
   Skeleton,
   Content,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
 import { getAllConsumedResources } from './utils';
 import useClusterQueueFromLocalQueue from '../../hooks/useClusterQueueFromLocalQueue';
 import useClusterQueue from '../../hooks/useClusterQueue';
@@ -22,16 +20,9 @@ import { KUEUE_MANAGED_LABEL, KUEUE_QUEUE_LABEL } from '../../const';
 type TrainingJobResourcesTabProps = {
   job: TrainJobKind;
   nodesCount: number;
-  canScaleNodes?: boolean;
-  onScaleNodes?: () => void;
 };
 
-const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
-  job,
-  nodesCount,
-  canScaleNodes = false,
-  onScaleNodes,
-}) => {
+const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({ job, nodesCount }) => {
   const { project, projects } = useModelTrainingContext();
 
   // Use the selected project if available, otherwise find the project for this job's namespace
@@ -63,18 +54,7 @@ const TrainingJobResourcesTab: React.FC<TrainingJobResourcesTabProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm style={{ fontWeight: 'normal' }}>Nodes:</DescriptionListTerm>
             <DescriptionListDescription data-testid="nodes-value">
-              <Button
-                variant="link"
-                isInline
-                icon={<PencilAltIcon />}
-                iconPosition="end"
-                style={{ fontSize: 'inherit', padding: 0 }}
-                isDisabled={!canScaleNodes}
-                onClick={onScaleNodes}
-                data-testid="nodes-edit-button"
-              >
-                {nodesCount || '-'}
-              </Button>
+              {nodesCount || '-'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>

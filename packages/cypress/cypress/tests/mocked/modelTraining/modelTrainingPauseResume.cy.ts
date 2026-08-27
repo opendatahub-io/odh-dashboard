@@ -428,6 +428,21 @@ describe('Model Training Pause/Resume', () => {
       trainingJobDetailsDrawer.findKebabMenuItem('Resume job').should('exist');
     });
 
+    it('should not offer "Edit node count" for paused jobs (RHOAIENG-88673)', () => {
+      initIntercepts();
+      modelTrainingGlobal.visit(projectName);
+
+      // Paused is the state that previously offered TrainJob node scaling. Scaling was
+      // removed in RHOAI 3.6 because Kubeflow Trainer 2.2 made `spec.trainer` immutable.
+      const row = trainingJobTable.getTableRow('paused-job');
+      row.findNameLink().click();
+
+      trainingJobDetailsDrawer.shouldBeOpen();
+      trainingJobDetailsDrawer.clickKebabMenu();
+      trainingJobDetailsDrawer.findKebabMenuItem('Resume job').should('exist');
+      trainingJobDetailsDrawer.findKebabMenuItem('Edit node count').should('not.exist');
+    });
+
     it('should not show pause/resume option for completed jobs', () => {
       initIntercepts();
       modelTrainingGlobal.visit(projectName);

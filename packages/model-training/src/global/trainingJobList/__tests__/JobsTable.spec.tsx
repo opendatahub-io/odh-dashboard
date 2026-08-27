@@ -27,11 +27,6 @@ jest.mock('../TrainingJobClusterQueue', () => {
 jest.mock('../../../hooks/useTrainingJobNodeScaling', () => ({
   useTrainingJobNodeScaling: jest.fn().mockReturnValue({
     nodesCount: 4,
-    canScaleNodes: false,
-    isScaling: false,
-    scaleNodesModalOpen: false,
-    setScaleNodesModalOpen: jest.fn(),
-    handleScaleNodes: jest.fn(),
   }),
 }));
 
