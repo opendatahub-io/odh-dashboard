@@ -515,7 +515,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	providerData, err := app.getProviderData(ctx, createRequest.Subscription)
 	if err != nil {
 		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
@@ -793,9 +793,9 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 
 // getProviderData retrieves provider data for OGX requests.
 // All models route through the genai-bff-proxy passthrough provider. Provider data
-// includes the user JWT (as passthrough_api_key) for auth, plus model-specific
-// credentials that OGX forwards to the BFF proxy via X-OGX-Provider-Data.
-func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, _ []string) (map[string]interface{}, error) {
+// includes the user JWT (as passthrough_api_key) for auth, plus the MaaS subscription
+// name so the proxy handler can issue properly-scoped ephemeral tokens.
+func (app *App) getProviderData(ctx context.Context, subscription string) (map[string]interface{}, error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil || identity.Token == "" {
 		return nil, nil
@@ -805,28 +805,10 @@ func (app *App) getProviderData(ctx context.Context, modelID string, modelSource
 		"passthrough_api_key": identity.Token,
 	}
 
-	// For MaaS models, pre-fetch the ephemeral token and include it in provider data.
-	// OGX forwards this to the BFF proxy so it doesn't need to call the MaaS BFF again.
-	// Strip the passthrough provider prefix before checking for maas- prefix, since the
-	// model ID from the frontend includes the full OGX-style ID (e.g. "genai-bff-proxy/maas-...").
-	modelIDForCheck := strings.TrimPrefix(modelID, constants.PassthroughProviderID+"/")
-	isMaaS := modelSourceType == string(models.ModelSourceTypeMaaS) ||
-		strings.HasPrefix(modelIDForCheck, constants.MaaSProviderPrefix)
-	if isMaaS && app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
-		namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get Kubernetes client for MaaS token: %w", err)
-		}
-
-		// Strip maas- prefix to get raw MaaS model ID for token request
-		maasModelID := strings.TrimPrefix(modelIDForCheck, constants.MaaSProviderPrefix)
-		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, subscription)
-		if token != "" {
-			providerData["maas_ephemeral_api_token"] = token
-		} else {
-			app.logger.Warn("Failed to pre-fetch MaaS token for provider data", "model", modelID)
-		}
+	// For MaaS models, forward the subscription name so the proxy handler can issue
+	// its own properly-scoped ephemeral token via getMaaSTokenForModel.
+	if subscription != "" {
+		providerData["maas_subscription"] = subscription
 	}
 
 	return providerData, nil

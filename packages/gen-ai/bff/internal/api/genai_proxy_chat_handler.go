@@ -82,11 +82,11 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 	isStreaming := reqBody.Stream != nil && *reqBody.Stream
 
-	// Extract pre-fetched MaaS token from provider data (forwarded by OGX).
-	maasToken := extractMaaSTokenFromProviderData(r)
+	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
+	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
 
 	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasToken)
+	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isProxyInfraError(resolveErr) {
@@ -223,9 +223,10 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 }
 
 // resolveProxyModelEndpoint resolves a model ID to its upstream endpoint URL and API key.
-// maasToken is an optional pre-fetched MaaS ephemeral token (from X-OGX-Provider-Data);
-// if non-empty, it's used directly instead of calling the MaaS BFF for a new token.
-func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasToken string) (baseURL, apiKey string, err error) {
+// maasSubscription is the optional MaaS subscription name (from X-MaaS-Subscription header,
+// forwarded by OGX via forward_headers). When non-empty, getMaaSTokenForModel uses it to
+// issue a properly-scoped ephemeral token.
+func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", fmt.Errorf("missing RequestIdentity in context")
@@ -261,12 +262,7 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
 
-		// Use pre-fetched MaaS token from provider data if available (forwarded by OGX
-		// via X-OGX-Provider-Data). Falls back to fetching a new token directly.
-		token := maasToken
-		if token == "" {
-			token = app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, "")
-		}
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, maasSubscription)
 		if token == "" {
 			return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
 		}
@@ -322,11 +318,4 @@ func isProxyInfraError(err error) bool {
 		return true
 	}
 	return strings.Contains(err.Error(), "failed to get Kubernetes client")
-}
-
-// extractMaaSTokenFromProviderData reads the pre-fetched MaaS ephemeral token
-// from the request header. OGX's forward_headers config maps the
-// maas_ephemeral_api_token provider data key to this header.
-func extractMaaSTokenFromProviderData(r *http.Request) string {
-	return r.Header.Get(constants.MaaSEphemeralTokenHeader)
 }

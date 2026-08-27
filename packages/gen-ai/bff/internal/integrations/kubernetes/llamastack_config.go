@@ -415,7 +415,7 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 			"base_url": baseURL,
 			"api_key":  "",
 			"forward_headers": map[string]interface{}{
-				"maas_ephemeral_api_token": constants.MaaSEphemeralTokenHeader,
+				"maas_subscription": constants.MaaSSubscriptionHeader,
 			},
 		},
 	}

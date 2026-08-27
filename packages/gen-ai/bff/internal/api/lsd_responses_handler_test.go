@@ -1333,43 +1333,35 @@ func TestGetProviderDataRouting(t *testing.T) {
 		memoryStore:             memStore,
 	}
 
-	t.Run("returns passthrough_api_key with user JWT for any model type", func(t *testing.T) {
+	t.Run("returns passthrough_api_key with user JWT", func(t *testing.T) {
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "test-token",
 		})
 
-		providerData, err := app.getProviderData(ctx, "my-namespace-model", "namespace", "", nil)
+		providerData, err := app.getProviderData(ctx, "")
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
 	})
 
-	t.Run("returns passthrough_api_key for MaaS models", func(t *testing.T) {
+	t.Run("includes maas_subscription when provided", func(t *testing.T) {
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
 			Token: "test-token",
 		})
 
-		providerData, err := app.getProviderData(ctx, "maas-publishers/llm/models/gemini", "maas", "", nil)
+		providerData, err := app.getProviderData(ctx, "my-subscription")
 		require.NoError(t, err)
-		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
-	})
-
-	t.Run("returns passthrough_api_key for custom endpoint models", func(t *testing.T) {
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
-			Token: "test-token",
-		})
-
-		providerData, err := app.getProviderData(ctx, "endpoint-1/gpt-4o", "custom_endpoint", "", nil)
-		require.NoError(t, err)
-		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
+		assert.Equal(t, map[string]interface{}{
+			"passthrough_api_key": "test-token",
+			"maas_subscription":  "my-subscription",
+		}, providerData)
 	})
 
 	t.Run("returns nil when identity is missing", func(t *testing.T) {
 		ctx := context.Background()
 
-		providerData, err := app.getProviderData(ctx, "test-model", "", "", nil)
+		providerData, err := app.getProviderData(ctx, "")
 		require.NoError(t, err)
 		assert.Nil(t, providerData)
 	})
@@ -1380,7 +1372,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 			Token: "",
 		})
 
-		providerData, err := app.getProviderData(ctx, "test-model", "", "", nil)
+		providerData, err := app.getProviderData(ctx, "")
 		require.NoError(t, err)
 		assert.Nil(t, providerData)
 	})
@@ -1410,14 +1402,8 @@ func TestGetPassthroughEmbeddingSecret(t *testing.T) {
 	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-namespace")
 
-	t.Run("returns only passthrough_api_key even with vectorStoreIDs", func(t *testing.T) {
-		providerData, err := app.getProviderData(ctx, "inf-model", "", "", []string{"vs-1"})
-		require.NoError(t, err)
-		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
-	})
-
-	t.Run("returns only passthrough_api_key when vectorStoreIDs is empty", func(t *testing.T) {
-		providerData, err := app.getProviderData(ctx, "inf-model", "", "", nil)
+	t.Run("returns only passthrough_api_key without subscription", func(t *testing.T) {
+		providerData, err := app.getProviderData(ctx, "")
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{"passthrough_api_key": "test-token"}, providerData)
 	})

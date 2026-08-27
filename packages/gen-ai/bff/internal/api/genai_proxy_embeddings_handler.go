@@ -61,8 +61,11 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
+	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
+
 	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace)
+	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isInfraError(resolveErr) {
@@ -183,7 +186,7 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 //  1. Custom endpoint (provider-qualified with known provider) → ConfigMap + Secret
 //  2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 //  3. Namespace (bare name) → InferenceService/LLMInferenceService URL + user JWT
-func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace string) (baseURL, apiKey string, err error) {
+func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", fmt.Errorf("missing RequestIdentity in context")
@@ -210,7 +213,7 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 		if urlErr != nil {
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
-		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, "")
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, maasSubscription)
 		if token == "" {
 			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
 		}

@@ -1564,7 +1564,7 @@ func TestNewPassthroughProvider(t *testing.T) {
 	// forward_headers maps provider data keys to outbound HTTP headers
 	fh, ok := provider.Config["forward_headers"].(map[string]interface{})
 	assert.True(t, ok, "forward_headers should be a map")
-	assert.Equal(t, "X-MaaS-Ephemeral-Token", fh["maas_ephemeral_api_token"])
+	assert.Equal(t, "X-MaaS-Subscription", fh["maas_subscription"])
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
