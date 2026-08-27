@@ -434,6 +434,72 @@ describe('getResultScore', () => {
     };
     expect(getResultScore(job)).toBe('42%');
   });
+
+  it('should match first result benchmark by resolved index when duplicate IDs have explicit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 1,
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 0,
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 1,
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
+  it('should match first result benchmark by position when duplicate IDs omit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getResultScore(job)).toBe('85%');
+  });
   /* eslint-enable camelcase */
 
   it('should return dash when benchmarks have no test and no metrics', () => {
@@ -551,6 +617,74 @@ describe('getBenchmarkResultScore', () => {
       ],
     };
     expect(getBenchmarkResultScore(job, 'custom_bench')).toBe('65%');
+  });
+
+  it('should select correct config when duplicate IDs have explicit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 1,
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 0,
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          benchmark_index: 1,
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'arc_easy', 0)).toBe('85%');
+    expect(getBenchmarkResultScore(job, 'arc_easy', 1)).toBe('92%');
+  });
+
+  it('should select correct config when duplicate IDs omit benchmark_index', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = [
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'acc_norm', lower_is_better: false },
+      },
+      {
+        id: 'arc_easy',
+        provider_id: 'lm_evaluation_harness',
+        primary_score: { metric: 'f1_score', lower_is_better: false },
+      },
+    ];
+    job.results = {
+      benchmarks: [
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.85, f1_score: 0.6 },
+        },
+        {
+          id: 'arc_easy',
+          provider_id: 'lm_evaluation_harness',
+          metrics: { acc_norm: 0.4, f1_score: 0.92 },
+        },
+      ],
+    };
+    expect(getBenchmarkResultScore(job, 'arc_easy', 0)).toBe('85%');
+    expect(getBenchmarkResultScore(job, 'arc_easy', 1)).toBe('92%');
   });
   /* eslint-enable camelcase */
 });

@@ -129,7 +129,10 @@ export const getResultScore = (job: EvaluationJob): string => {
   }
   if (job.results.benchmarks?.length) {
     const resultBenchmark = job.results.benchmarks[0];
-    const configBenchmark = getJobBenchmarks(job).find((b) => b.id === resultBenchmark.id);
+    const resolvedIndex = resultBenchmark.benchmark_index ?? 0;
+    const configBenchmark = getJobBenchmarks(job).find(
+      (b, idx) => b.id === resultBenchmark.id && (b.benchmark_index ?? idx) === resolvedIndex,
+    );
     return formatBenchmarkScore(resultBenchmark, configBenchmark?.primary_score?.metric) ?? '-';
   }
   return '-';
@@ -149,9 +152,9 @@ export const getBenchmarkResultScore = (
     return '-';
   }
   const configBenchmark = getJobBenchmarks(job).find(
-    (b) =>
+    (b, idx) =>
       b.id === benchmarkId &&
-      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
   );
   return formatBenchmarkScore(benchmark, configBenchmark?.primary_score?.metric) ?? '-';
 };
