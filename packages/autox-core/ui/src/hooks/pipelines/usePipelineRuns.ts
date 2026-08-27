@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- PipelineRunsData uses snake_case to match BFF API */
 import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
-import type { PipelineRun } from '../../api/pipelines';
+import { DEFAULT_PAGE_SIZE, type PipelineRun } from '../../api/pipelines';
 import { useAutoXApi } from '../../context';
 
 export type PipelineRunsResult<TParams = Record<string, unknown>> = {
@@ -22,12 +22,11 @@ export type PipelineRunsResult<TParams = Record<string, unknown>> = {
  */
 export function usePipelineRuns<TParams = Record<string, unknown>>(
   namespace: string,
-  defaultPageSize = 20,
   pollInterval = 30000,
 ): PipelineRunsResult<TParams> {
   const { pipelines: pipelinesApi } = useAutoXApi();
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(defaultPageSize);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
 
   const fetchCallback = React.useCallback<
     FetchStateCallbackPromise<{

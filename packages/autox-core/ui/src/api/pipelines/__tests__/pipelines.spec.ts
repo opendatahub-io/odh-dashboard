@@ -27,7 +27,7 @@ const mockRuns: PipelineRun[] = [
 ];
 
 const { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines } =
-  createPipelinesApi('/test-product', 'v1', 20);
+  createPipelinesApi('/test-product', 'v1');
 
 describe('createPipelinesApi', () => {
   beforeEach(() => {
@@ -77,7 +77,7 @@ describe('createPipelinesApi', () => {
       );
     });
 
-    it('should call restGET with correct URL and query params, using the configured default page size', async () => {
+    it('should call restGET with correct URL and query params, using the default page size', async () => {
       mockRestGET.mockResolvedValue({ data: { runs: [], total_size: 0, next_page_token: '' } });
       mockIsModArchResponse.mockReturnValue(true);
 
@@ -159,7 +159,7 @@ describe('createPipelinesApi', () => {
       );
     });
 
-    it('should fall back to a page size of 20 when the factory is created without one', async () => {
+    it('should use the default page size when the factory is created', async () => {
       const { getPipelineRunsFromBFF: getRunsNoDefault } = createPipelinesApi(
         '/other-product',
         'v1',

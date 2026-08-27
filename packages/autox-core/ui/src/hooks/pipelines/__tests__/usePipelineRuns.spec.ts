@@ -127,9 +127,9 @@ describe('usePipelineRuns', () => {
     expect(result.current.loaded).toBe(false);
   });
 
-  it('should pass a custom defaultPageSize and pollInterval to useFetchState for polling', () => {
+  it('should pass a custom pollInterval to useFetchState for polling', () => {
     getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
-    renderHook(() => usePipelineRuns('my-namespace', 50, 5000), { wrapper: createWrapper() });
+    renderHook(() => usePipelineRuns('my-namespace', 5000), { wrapper: createWrapper() });
 
     expect(useFetchStateMock).toHaveBeenCalledWith(
       expect.any(Function),
@@ -190,6 +190,24 @@ describe('usePipelineRuns', () => {
 
       expect(typeof result.current.setPage).toBe('function');
       expect(typeof result.current.setPageSize).toBe('function');
+    });
+
+    it('should preserve a user-controlled page size', async () => {
+      getPipelineRunsFromBFF.mockResolvedValue(mockPipelineRunsData);
+
+      const { result } = renderHook(() => usePipelineRuns('my-namespace'), {
+        wrapper: createWrapper(),
+      });
+      await waitFor(() => expect(result.current.loaded).toBe(true));
+
+      result.current.setPageSize(50);
+
+      await waitFor(() => expect(result.current.pageSize).toBe(50));
+      expect(getPipelineRunsFromBFF).toHaveBeenLastCalledWith('', {
+        namespace: 'my-namespace',
+        pageSize: 50,
+        page: 1,
+      });
     });
 
     it('should call refresh directly when on page 1', async () => {

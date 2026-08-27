@@ -5,4 +5,4 @@ import {
 import { POLL_INTERVAL } from '~/app/utilities/const';
 
 export const usePipelineRuns = (namespace: string): PipelineRunsResult =>
-  useCorePipelineRuns(namespace, undefined, POLL_INTERVAL);
+  useCorePipelineRuns(namespace, POLL_INTERVAL);

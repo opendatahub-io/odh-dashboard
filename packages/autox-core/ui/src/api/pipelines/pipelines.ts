@@ -8,6 +8,8 @@ import {
 } from 'mod-arch-core';
 import type { GetPipelineRunsFromBFFParams, PipelineRun, PipelineRunsData } from './types';
 
+export const DEFAULT_PAGE_SIZE = 20;
+
 type PipelineRunsApiResponse<TParams> = {
   runs?: PipelineRun<TParams>[];
   total_size?: number;
@@ -49,7 +51,6 @@ export type PipelinesApi<TParams = Record<string, unknown>> = {
 export function createPipelinesApi<TParams = Record<string, unknown>>(
   urlPrefix: string,
   bffApiVersion: string,
-  defaultPageSize = 20,
 ): PipelinesApi<TParams> {
   /**
    * Fetches pipeline runs from the BFF API.
@@ -62,7 +63,7 @@ export function createPipelinesApi<TParams = Record<string, unknown>>(
   ): Promise<PipelineRunsData<TParams>> {
     const queryParams: Record<string, string> = {
       namespace: params.namespace,
-      pageSize: String(params.pageSize ?? defaultPageSize),
+      pageSize: String(params.pageSize ?? DEFAULT_PAGE_SIZE),
     };
     if (params.pipelineVersionId) {
       queryParams.pipelineVersionId = params.pipelineVersionId;

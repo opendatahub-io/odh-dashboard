@@ -6,7 +6,7 @@ import * as z from 'zod';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { BFF_API_VERSION, DEFAULT_PAGE_SIZE, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 export type { GetPipelineRunsFromBFFParams } from '@odh-dashboard/autox-core/ui/api';
 
@@ -33,11 +33,7 @@ const createPipelineRunResponseSchema = z.object({
  * Pipeline-runs API surface for the AutoML BFF.
  * @see packages/automl/docs/pipeline-runs-api.md
  */
-export const pipelinesApi = createPipelinesApi<ConfigureSchema>(
-  URL_PREFIX,
-  BFF_API_VERSION,
-  DEFAULT_PAGE_SIZE,
-);
+export const pipelinesApi = createPipelinesApi<ConfigureSchema>(URL_PREFIX, BFF_API_VERSION);
 
 export const { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines } =
   pipelinesApi;
