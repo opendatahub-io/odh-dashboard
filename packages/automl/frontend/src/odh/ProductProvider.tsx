@@ -1,9 +1,11 @@
 import React from 'react';
-import { ProductContextProvider } from '@odh-dashboard/autox-core/ui/context';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
+import { k8sApi } from '~/app/api/k8s';
+import { s3Api } from '~/app/api/s3';
+import { pipelinesApi } from '~/app/api/pipelines';
 
 export const ProductProvider: React.FC<React.PropsWithChildren> = ({ children }) => (
-  <ProductContextProvider product="automl" apiPrefix={URL_PREFIX} bffApiVersion={BFF_API_VERSION}>
+  <AutoXApiProvider api={{ k8s: k8sApi, s3: s3Api, pipelines: pipelinesApi }}>
     {children}
-  </ProductContextProvider>
+  </AutoXApiProvider>
 );

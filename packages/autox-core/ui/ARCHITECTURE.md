@@ -154,18 +154,18 @@ sufficient before reaching for the next one:
 2. Page-level context
 3. Global state (zustand) — last resort
 
-## ProductContext
+## AutoX API Context
 
-`context/ProductContext.tsx` is the single core-owned context for product runtime
-configuration. Each consuming product must place its provider at the product
-application boundary, above any autox-core feature or hook that reads it. Product
-code supplies the product identity, BFF URL prefix/version, and error-status parsing.
+`context/AutoXApiContext.tsx` provides dependency injection for shared AutoX API
+clients. Each consuming product must place `AutoXApiProvider` at its application
+boundary, above any autox-core feature or hook that reads it. The product owns
+construction and configuration of its `AutoXApi` object, including the BFF URL
+prefix/version and any product-specific typed pipeline behavior or validation.
 
-The context owns URL-bound API clients and exposes them together as `api` (`k8s`,
-`s3`, and `pipelines`). It must not import types or implementations from
-`hooks/**`, and it does not own product pages, product provider wrappers, or
-product-specific data schemas. Hooks consume this context; they do not create
-product clients or accept product-specific fetch functions.
+The context is intentionally API-only: `useAutoXApi()` returns `k8s`, `s3`, and
+`pipelines` as top-level values. It does not know the product identity, URL
+configuration, product pages, product provider wrappers, or product-specific data
+schemas. It must not import types or implementations from `hooks/**`.
 
 ## `api/` and `hooks/`
 
@@ -176,9 +176,10 @@ product clients or accept product-specific fetch functions.
 - `hooks/common/` — generic, non-domain-specific hooks (e.g. `useNotification`).
   Has no `api/common/` counterpart.
 
-Raw network access belongs only in `api/`. Context constructs and groups API
-clients, while hooks may call those clients and add React state/query behavior;
-neither context nor hooks should duplicate raw fetch logic.
+Raw network access belongs only in `api/`. Product `app/api` modules construct
+URL-bound clients once and supply them to the context; hooks call the injected
+clients and add React state/query behavior. Neither context nor hooks should
+duplicate raw fetch logic.
 
 ## Known Issues: Peer Dependency Version Skew
 

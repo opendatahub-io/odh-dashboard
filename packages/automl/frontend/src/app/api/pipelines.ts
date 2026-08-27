@@ -33,7 +33,7 @@ const createPipelineRunResponseSchema = z.object({
  * Pipeline-runs API surface for the AutoML BFF.
  * @see packages/automl/docs/pipeline-runs-api.md
  */
-const pipelinesApi = createPipelinesApi<ConfigureSchema>(
+export const pipelinesApi = createPipelinesApi<ConfigureSchema>(
   URL_PREFIX,
   BFF_API_VERSION,
   DEFAULT_PAGE_SIZE,

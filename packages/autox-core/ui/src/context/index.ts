@@ -1,8 +1,7 @@
 export {
-  ProductContextProvider,
-  useProductContext,
-  type Product,
-  type ProductContextProviderProps,
-  type ProductContextValue,
-  type ProductApi,
-} from './ProductContext';
+  AutoXApiProvider,
+  useAutoXApi,
+  type AutoXApi,
+  type AutoXApiProviderProps,
+  type AutoXApiContextValue,
+} from './AutoXApiContext';

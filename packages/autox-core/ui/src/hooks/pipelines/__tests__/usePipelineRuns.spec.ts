@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFetchState } from 'mod-arch-core';
 import React from 'react';
 import type { PipelineRun, PipelinesApi } from '../../../api/pipelines';
-import { ProductContextProvider } from '../../../context';
+import { AutoXApiProvider } from '../../../context';
 import { usePipelineRuns } from '../usePipelineRuns';
 
 const mockPipelinesApi: PipelinesApi = {
@@ -46,11 +46,9 @@ const createWrapper = () => {
   const queryClient = new QueryClient();
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      ProductContextProvider,
+      AutoXApiProvider,
       {
-        product: 'automl',
-        apiPrefix: '/automl',
-        bffApiVersion: 'v1',
+        api: { k8s: {} as never, s3: {} as never, pipelines: mockPipelinesApi },
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
     );

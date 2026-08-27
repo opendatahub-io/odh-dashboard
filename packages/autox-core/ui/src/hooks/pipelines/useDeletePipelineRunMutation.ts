@@ -1,13 +1,11 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { useProductContext } from '../../context';
+import { useAutoXApi } from '../../context';
 
 export function useDeletePipelineRunMutation(
   namespace: string,
   runId: string,
 ): UseMutationResult<void, Error, void, unknown> {
-  const {
-    api: { pipelines: pipelinesApi },
-  } = useProductContext();
+  const { pipelines: pipelinesApi } = useAutoXApi();
   return useMutation({
     mutationKey: ['deletePipelineRun', runId],
     mutationFn: () => pipelinesApi.deletePipelineRun(namespace, runId),

@@ -1,6 +1,6 @@
 import React from 'react';
 import * as z from 'zod';
-import { useProductContext, type ProductApi } from '@odh-dashboard/autox-core/ui/context';
+import { useAutoXApi, type AutoXApi } from '@odh-dashboard/autox-core/ui/context';
 import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import { useS3FileFetchers, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { isRunInTerminalState } from '@odh-dashboard/autox-core/ui/api/pipelines/kfTypes';
@@ -360,7 +360,7 @@ async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
-  s3Api: ProductApi['s3'],
+  s3Api: AutoXApi['s3'],
 ): Promise<string | undefined> {
   const result: S3ListObjectsResponse = await s3Api.getFiles(
     '',
@@ -379,7 +379,7 @@ async function fetchComponentStatus(
   s3Prefix: string,
   signal: AbortSignal,
   fetchers: S3FileFetchers,
-  s3Api: ProductApi['s3'],
+  s3Api: AutoXApi['s3'],
 ): Promise<ComponentStatusFile | undefined> {
   const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, s3Api);
   if (!jsonPath) {
@@ -397,7 +397,7 @@ export async function fetchComponentStatusForComponent(
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
   fetchers?: S3FileFetchers,
-  s3Api?: ProductApi['s3'],
+  s3Api?: AutoXApi['s3'],
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
@@ -433,9 +433,7 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
-  const {
-    api: { s3: s3Api },
-  } = useProductContext();
+  const { s3: s3Api } = useAutoXApi();
   const fetchers = useS3FileFetchers();
   const { rootDir } = useAutoragOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);

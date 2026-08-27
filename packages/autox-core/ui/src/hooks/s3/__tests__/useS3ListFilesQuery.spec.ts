@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import type { S3Api } from '../../../api/s3';
-import { ProductContextProvider } from '../../../context';
+import { AutoXApiProvider } from '../../../context';
 import { useS3ListFilesQuery } from '../useS3ListFilesQuery';
 
 const mockS3Api: S3Api = {
@@ -22,11 +22,9 @@ const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      ProductContextProvider,
+      AutoXApiProvider,
       {
-        product: 'automl',
-        apiPrefix: '/automl',
-        bffApiVersion: 'v1',
+        api: { k8s: {} as never, s3: mockS3Api, pipelines: {} as never },
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
     );

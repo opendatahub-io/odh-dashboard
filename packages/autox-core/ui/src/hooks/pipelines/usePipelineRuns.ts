@@ -2,7 +2,7 @@
 import { useFetchState, FetchStateCallbackPromise } from 'mod-arch-core';
 import React from 'react';
 import type { PipelineRun } from '../../api/pipelines';
-import { useProductContext } from '../../context';
+import { useAutoXApi } from '../../context';
 
 export type PipelineRunsResult<TParams = Record<string, unknown>> = {
   runs: PipelineRun<TParams>[];
@@ -18,16 +18,14 @@ export type PipelineRunsResult<TParams = Record<string, unknown>> = {
 };
 
 /**
- * Fetches paginated pipeline runs using the API client configured by ProductContext.
+ * Fetches paginated pipeline runs using the injected API client.
  */
 export function usePipelineRuns<TParams = Record<string, unknown>>(
   namespace: string,
   defaultPageSize = 20,
   pollInterval = 30000,
 ): PipelineRunsResult<TParams> {
-  const {
-    api: { pipelines: pipelinesApi },
-  } = useProductContext();
+  const { pipelines: pipelinesApi } = useAutoXApi();
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(defaultPageSize);
 

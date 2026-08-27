@@ -1,17 +1,15 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import type { S3ListObjectsResponse } from '../../api/s3';
-import { useProductContext } from '../../context';
+import { useAutoXApi } from '../../context';
 
 /**
- * Lists S3 files using the API client configured by ProductContext.
+ * Lists S3 files using the injected API client.
  */
 export function useS3ListFilesQuery(
   namespace?: string,
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
-  const {
-    api: { s3: s3Api },
-  } = useProductContext();
+  const { s3: s3Api } = useAutoXApi();
 
   return useQuery({
     queryKey: ['s3Files', namespace, path],

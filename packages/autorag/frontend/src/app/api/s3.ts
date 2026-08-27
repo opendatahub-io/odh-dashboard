@@ -7,7 +7,8 @@ export type {
   GetFilesOptions,
 } from '@odh-dashboard/autox-core/ui/api';
 
-export const { uploadFileToS3, getFiles } = createS3Api(URL_PREFIX, BFF_API_VERSION);
+export const s3Api = createS3Api(URL_PREFIX, BFF_API_VERSION);
+export const { uploadFileToS3, getFiles } = s3Api;
 
 export function uploadToStorage(
   namespace: string,

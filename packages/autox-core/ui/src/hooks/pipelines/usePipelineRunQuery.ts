@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import type { PipelineRun } from '../../api/pipelines';
 import { isRunInTerminalState } from '../../api/pipelines/kfTypes';
-import { useProductContext } from '../../context';
+import { useAutoXApi } from '../../context';
 import { parseErrorStatus } from '../../utils/parseErrorStatus';
 
 const POLL_INTERVAL_MS = 10000;
@@ -9,7 +9,7 @@ const RETRY_DELAY_MS = 5000;
 const MAX_RETRY_ATTEMPTS = 5;
 
 /**
- * Fetches one pipeline run using the API client configured by ProductContext.
+ * Fetches one pipeline run using the injected API client.
  */
 export function usePipelineRunQuery<
   TParams = Record<string, unknown>,
@@ -19,15 +19,13 @@ export function usePipelineRunQuery<
   namespace?: string,
   select?: (run: PipelineRun<TParams>) => TData,
 ): UseQueryResult<TData, Error> {
-  const {
-    api: { pipelines: pipelinesApi },
-  } = useProductContext();
+  const { pipelines: pipelinesApi } = useAutoXApi();
 
   return useQuery<PipelineRun<TParams>, Error, TData>({
     queryKey: ['pipelineRun', runId, namespace],
     queryFn: async ({ signal }) => {
       const run = await pipelinesApi.getPipelineRunFromBFF('', runId!, namespace!, { signal });
-      // ProductContext owns the runtime client; the caller supplies the run parameter type.
+      // The caller supplies the product-specific run parameter type.
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return run as PipelineRun<TParams>;
     },

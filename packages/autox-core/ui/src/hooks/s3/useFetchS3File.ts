@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import type { FetchS3FileOptions } from '../../api/s3';
-import { useProductContext } from '../../context';
+import { useAutoXApi } from '../../context';
 
 export function useFetchS3File(): (
   namespace: string,
@@ -9,9 +9,7 @@ export function useFetchS3File(): (
   options?: FetchS3FileOptions,
 ) => Promise<Blob> {
   const queryClient = useQueryClient();
-  const {
-    api: { s3: s3Api },
-  } = useProductContext();
+  const { s3: s3Api } = useAutoXApi();
 
   return useCallback(
     (namespace: string, key: string, options?: FetchS3FileOptions) =>

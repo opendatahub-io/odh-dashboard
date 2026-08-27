@@ -44,7 +44,7 @@ const createPipelineRunResponseSchema = z.object({
  * Pipeline-runs API surface for the AutoRAG BFF.
  * @see packages/autorag/docs/pipeline-runs-api.md
  */
-const pipelinesApi = createPipelinesApi(URL_PREFIX, BFF_API_VERSION);
+export const pipelinesApi = createPipelinesApi(URL_PREFIX, BFF_API_VERSION);
 
 export const { getPipelineRunsFromBFF, getPipelineRunFromBFF, enableManagedPipelines } =
   pipelinesApi;
