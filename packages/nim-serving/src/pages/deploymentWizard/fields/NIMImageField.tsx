@@ -181,7 +181,16 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [images, value],
   );
 
+  const projectName = externalData?.data.nimImages.projectName;
+  const editContextKey = isEditing ? projectName ?? '__no_project__' : null;
+  const previousEditContextRef = React.useRef<string | null>(editContextKey);
   const reselectionUnlockedRef = React.useRef(false);
+
+  if (previousEditContextRef.current !== editContextKey) {
+    reselectionUnlockedRef.current = false;
+    previousEditContextRef.current = editContextKey;
+  }
+
   if (isEditing && existingOptionNotFound && externalData?.loaded && images.length > 0) {
     reselectionUnlockedRef.current = true;
   }
@@ -210,7 +219,6 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [options, onChange, isImageSelectionLocked],
   );
 
-  const projectName = externalData?.data.nimImages.projectName;
   const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
 
   if (!externalData || !externalData.loaded) {

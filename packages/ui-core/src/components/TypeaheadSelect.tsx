@@ -451,7 +451,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
             />
           </FlexItem>
           {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
-          {(isFiltering && filterValue) || (allowClear && selected && !isToggleDisabled) ? (
+          {((isFiltering && filterValue) || (allowClear && selected)) && !isToggleDisabled ? (
             <FlexItem>
               <TextInputGroupUtilities>
                 <Button

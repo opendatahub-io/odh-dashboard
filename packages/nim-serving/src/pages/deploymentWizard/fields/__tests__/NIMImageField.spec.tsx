@@ -289,4 +289,50 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByPlaceholderText('Select NVIDIA NIM image')).toBeInTheDocument();
     expect(screen.getByTestId('nim-image-not-found-warning')).toBeInTheDocument();
   });
+
+  it('should reset reselection unlock when the edit project context changes', () => {
+    const NIMImageFieldModule = require('../NIMImageField');
+    const NIMImageFieldComponent = NIMImageFieldModule.NIMImageFieldWizardField
+      .component as React.FC<{
+      value?: { repository: string; tag: string };
+      onChange: (value: { repository: string; tag: string }) => void;
+      externalData?: { data: NIMImageFieldExternalData; loaded: boolean; loadError?: Error };
+      isEditing?: boolean;
+    }>;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <NIMImageFieldComponent
+          value={{ repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' }}
+          onChange={mockOnChange}
+          externalData={configuredExternalData}
+          isEditing
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Clear input value' })).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <NIMImageFieldComponent
+          value={{ repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' }}
+          onChange={mockOnChange}
+          externalData={{
+            ...configuredExternalData,
+            data: {
+              ...configuredExternalData.data,
+              nimImages: {
+                ...configuredExternalData.data.nimImages,
+                projectName: 'another-project',
+              },
+            },
+          }}
+          isEditing
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+  });
 });
