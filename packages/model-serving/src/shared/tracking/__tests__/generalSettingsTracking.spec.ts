@@ -1,4 +1,3 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { DeploymentStrategy } from '../../../components/settings/DeploymentStrategySettings';
 import {
@@ -7,11 +6,7 @@ import {
   fireDeploymentStrategyChanged,
 } from '../generalSettingsTracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockTrackEvent = jest.fn();
 
 describe('firePlatformSettingChanged', () => {
   beforeEach(() => {
@@ -19,14 +14,14 @@ describe('firePlatformSettingChanged', () => {
   });
 
   it('should fire the Platform Setting Changed event with the setting key and new value', () => {
-    firePlatformSettingChanged({
+    firePlatformSettingChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       setting: 'llmd_enabled',
       enabled: true,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GeneralSettingsTrackingEvent.PLATFORM_SETTING_CHANGED,
       {
         outcome: TrackingOutcome.submit,
@@ -38,28 +33,28 @@ describe('firePlatformSettingChanged', () => {
   });
 
   it('should support the model_serving_enabled setting toggled off', () => {
-    firePlatformSettingChanged({
+    firePlatformSettingChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       setting: 'model_serving_enabled',
       enabled: false,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GeneralSettingsTrackingEvent.PLATFORM_SETTING_CHANGED,
       expect.objectContaining({ setting: 'model_serving_enabled', enabled: false }),
     );
   });
 
   it('should support the llmd_default_for_generative setting', () => {
-    firePlatformSettingChanged({
+    firePlatformSettingChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       setting: 'llmd_default_for_generative',
       enabled: true,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GeneralSettingsTrackingEvent.PLATFORM_SETTING_CHANGED,
       expect.objectContaining({ setting: 'llmd_default_for_generative' }),
     );
@@ -72,26 +67,26 @@ describe('fireDeploymentStrategyChanged', () => {
   });
 
   it('should fire the Deployment Strategy Changed event with the strategy', () => {
-    fireDeploymentStrategyChanged({
+    fireDeploymentStrategyChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       strategy: DeploymentStrategy.ROLLING,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GeneralSettingsTrackingEvent.DEPLOYMENT_STRATEGY_CHANGED,
       { outcome: TrackingOutcome.submit, success: true, strategy: DeploymentStrategy.ROLLING },
     );
   });
 
   it('should support the recreate strategy', () => {
-    fireDeploymentStrategyChanged({
+    fireDeploymentStrategyChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       strategy: DeploymentStrategy.RECREATE,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GeneralSettingsTrackingEvent.DEPLOYMENT_STRATEGY_CHANGED,
       expect.objectContaining({ strategy: DeploymentStrategy.RECREATE }),
     );

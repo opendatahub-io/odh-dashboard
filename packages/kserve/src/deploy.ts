@@ -3,8 +3,8 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { KServeDeployment } from './types';
-import { setUpTokenAuth } from './deployUtils';
 import { assembleServingRuntime, createServingRuntime } from './deployServer';
 import {
   assembleInferenceService,
@@ -91,11 +91,12 @@ export const deployKServeDeployment = async (
 
   if (wizardData.canCreateRoleBindings) {
     await setUpTokenAuth(
-      inferenceServiceData,
-      inferenceServiceData.k8sName,
-      projectName,
+      inferenceServiceData.tokenAuth,
+      inferenceServiceResult.metadata.name,
+      inferenceServiceResult.metadata.namespace,
       createTokenAuth,
       inferenceServiceResult,
+      'inferenceservices',
       initialWizardData?.existingAuthTokens,
       { dryRun: dryRun ?? false },
     );

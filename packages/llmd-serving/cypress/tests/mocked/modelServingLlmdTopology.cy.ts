@@ -1,3 +1,4 @@
+import type { Interception } from 'cypress/types/net-stubbing';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -76,12 +77,24 @@ const mockRouterConfigs = [
   }),
 ];
 
+const mockAcceleratorConfigs = [
+  mockLLMInferenceServiceConfigK8sResource({
+    name: 'vllm-rocm',
+    displayName: 'vLLM ROCm',
+    configType: ConfigType.ACCELERATOR,
+    recommendedAccelerators: 'amd.com/gpu',
+    supportedTopologies: [TopologyType.SINGLE_NODE],
+  }),
+];
+
 const initIntercepts = ({
   topologyConfigs = mockTopologyConfigs,
   routerConfigs = mockRouterConfigs,
+  acceleratorConfigs = mockAcceleratorConfigs,
 }: {
   topologyConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
   routerConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+  acceleratorConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
 } = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -147,7 +160,7 @@ const initIntercepts = ({
   cy.interceptK8sList(LLMInferenceServiceModel, mockK8sResourceList([]));
   cy.interceptK8sList(
     { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
-    mockK8sResourceList([...topologyConfigs, ...routerConfigs]),
+    mockK8sResourceList([...topologyConfigs, ...routerConfigs, ...acceleratorConfigs]),
   );
   cy.interceptK8sList(
     { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
@@ -691,6 +704,115 @@ describe('Model Serving LLMD Topology & Routing', () => {
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+    });
+
+    it('should create an accelerator config and append its baseRef after the topology baseRef', () => {
+      const deploymentName = 'test-accelerator-config';
+      const localTopologyConfigName = `${deploymentName}-single-node-config`;
+      const localAcceleratorConfigName = `${deploymentName}-vllm-rocm`;
+      initIntercepts();
+      initDeployIntercepts(deploymentName);
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
+
+      // Stay on Single node topology — the accelerator field's isActive only renders it for
+      // Single node (see AcceleratorConfigField.tsx isActive). Pick a real (non-default) single
+      // node topology config so we can assert ordering: topology baseRef is added first, then
+      // the accelerator baseRef is appended after it.
+      cy.findByTestId('topology-type-select').should('contain.text', 'Single node');
+      cy.findByTestId('custom-topology-config-select').click();
+      cy.findByTestId('topology-config-option-single-node-config').click();
+      cy.findByTestId('custom-topology-config-select').should('contain.text', 'Single Node Config');
+
+      // The accelerator field uses the shared ModelServerTemplateSelectField (Manual selection is
+      // the default). Open the manual dropdown and pick the ROCm config; the selected config's
+      // display name shows in the dropdown toggle.
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption('vLLM ROCm');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM ROCm');
+
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      completeWizard();
+
+      // Actual requests — the accelerator config is created in the project namespace
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+      });
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.deep.equal([
+          { name: localTopologyConfigName },
+          { name: localAcceleratorConfigName },
+        ]);
+      });
+
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs).to.deep.equal([
+          { name: localTopologyConfigName },
+          { name: localAcceleratorConfigName },
+        ]);
+      });
+
+      cy.get<Interception[]>('@createLLMInferenceServiceConfig.all').then((interceptions) => {
+        const names = interceptions.map((i) => i.request.body.metadata.name);
+        expect(names).to.include(localAcceleratorConfigName);
+        expect(names).to.include(localTopologyConfigName);
+        expect(interceptions).to.have.length(4); // 2 configs x (1 dry-run + 1 actual)
+      });
+    });
+
+    it('should not create an accelerator config when left at "Built-in image (default)"', () => {
+      const deploymentName = 'test-accelerator-default';
+      initIntercepts();
+      initDeployIntercepts(deploymentName);
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
+
+      // Defaults: Single node topology, accelerator field left at the built-in image default
+      // (the shared ModelServerTemplateSelectField shows it as the manual selection).
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Built-in image (default)');
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      completeWizard();
+
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs ?? []).to.have.length(0);
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.spec.baseRefs ?? []).to.have.length(0);
+      });
+
+      cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.get('@createLLMInferenceServiceConfig.all').should('have.length', 0);
     });
 
     it('should clean old resource when changing to "Single node (default)" ', () => {

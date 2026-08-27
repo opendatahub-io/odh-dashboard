@@ -24,7 +24,7 @@
     "name": "notebooks",
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
-    "tls": false,
+    "tls": true,
     "proxy": [
       {
         "path": "/notebooks/api",

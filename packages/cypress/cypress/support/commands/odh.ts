@@ -67,7 +67,6 @@ import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookControll
 import type { StatusResponse } from '@odh-dashboard/internal/redux/types';
 import type {
   BYONImage,
-  ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
   OdhDocument,
@@ -75,6 +74,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {

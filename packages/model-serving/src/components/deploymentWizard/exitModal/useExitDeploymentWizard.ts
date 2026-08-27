@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
 
 type UseExitWizardOptions = {
@@ -21,6 +22,7 @@ export const useExitDeploymentWizard = ({
   cancelReturnRoute,
 }: UseExitWizardOptions): UseExitWizardReturn => {
   const navigate = useNavigate();
+  const trackEvent = useTrackEvent();
 
   const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
 
@@ -41,10 +43,10 @@ export const useExitDeploymentWizard = ({
   }, [navigate, returnRoute]);
 
   const handleExitConfirm = React.useCallback(() => {
-    fireModelDeployed({ outcome: TrackingOutcome.cancel });
+    fireModelDeployed(trackEvent, { outcome: TrackingOutcome.cancel });
     setIsExitModalOpen(false);
     exitWizardOnCancel();
-  }, [exitWizardOnCancel]);
+  }, [trackEvent, exitWizardOnCancel]);
 
   return {
     isExitModalOpen,
