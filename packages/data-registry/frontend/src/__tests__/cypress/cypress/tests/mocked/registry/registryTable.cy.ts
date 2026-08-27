@@ -52,6 +52,7 @@ const mockVolumesResponse = {
       owner: null,
       'created-at': '2026-01-01',
       'updated-at': null,
+      labels: ['source-docs'],
       properties: { description: 'PDF documents' },
       config: {},
     },
@@ -214,5 +215,146 @@ describe('Registry Table', () => {
     cy.findByTestId('confirm-delete-input').type('empty-collection');
     cy.findByTestId('confirm-delete-button').should('be.enabled').click();
     cy.wait('@deleteCollection');
+  });
+});
+
+describe('Register Volume', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should open register data modal', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('register-volume-modal').should('exist');
+    cy.contains('Register data').should('exist');
+    cy.contains(
+      'Create a new data asset and configure its source location, metadata, and schema.',
+    ).should('exist');
+  });
+
+  it('should show validation errors when submitting without required fields', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('register-volume-submit').click();
+
+    cy.contains('Asset name is required').should('exist');
+    cy.contains('Collection is required').should('exist');
+  });
+
+  it('should submit volume with all fields', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'new-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'documents',
+        'storage-location': '/data/docs',
+        labels: ['production'],
+        properties: {
+          description: 'Test volume',
+          purpose: 'ML training',
+          license: 'apache-2.0',
+          maturity: 'production',
+          pii_status: 'none',
+        },
+        config: {},
+      },
+    }).as('createVolume');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('volume-name-input').type('new-volume');
+    cy.findByTestId('volume-description-input').type('Test volume');
+
+    cy.findByTestId('volume-format-toggle').click();
+    cy.contains('Documents').click();
+
+    cy.findByTestId('volume-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('volume-path-input').clear();
+    cy.findByTestId('volume-path-input').type('/data/docs');
+
+    cy.findByTestId('volume-purpose-input').type('ML training');
+
+    cy.findByTestId('volume-license-toggle').click();
+    cy.contains('Apache 2.0').click();
+
+    cy.findByTestId('volume-maturity-toggle').click();
+    cy.contains('Production').click();
+
+    cy.findByTestId('volume-pii-toggle').click();
+    cy.contains('None').click();
+
+    cy.findByTestId('register-volume-submit').click();
+
+    cy.wait('@createVolume').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'new-volume',
+        content_type: 'documents',
+        description: 'Test volume',
+        location: '/data/docs',
+      });
+      expect(interception.request.body.properties).to.deep.include({
+        purpose: 'ML training',
+        license: 'apache-2.0',
+        maturity: 'production',
+        pii_status: 'none',
+      });
+    });
+
+    cy.findByTestId('register-volume-modal').should('not.exist');
+  });
+
+  it('should display error on 409 conflict', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 409,
+      body: {
+        error: { message: 'Volume already exists', type: 'AlreadyExistsException', code: 409 },
+      },
+    }).as('createVolumeConflict');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('volume-name-input').type('existing-volume');
+    cy.findByTestId('volume-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-volume-submit').click();
+
+    cy.wait('@createVolumeConflict');
+    cy.contains('Error registering volume').should('exist');
+    cy.findByTestId('register-volume-modal').should('exist');
+  });
+
+  it('should close modal and reset form on cancel', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('volume-name-input').type('test-volume');
+    cy.contains('Cancel').click();
+    cy.findByTestId('register-volume-modal').should('not.exist');
+
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('volume-name-input').should('have.value', '');
+  });
+
+  it('should show asset type as disabled Unstructured', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('asset-type-toggle').should('have.class', 'pf-m-disabled');
+    cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
+  });
+
+  it('should show "Create new collection" in collection dropdown', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+    cy.findByTestId('volume-collection-toggle').click();
+    cy.contains('Create new collection').should('exist');
   });
 });

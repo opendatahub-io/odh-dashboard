@@ -48,7 +48,7 @@
     "./types/maas-model": "./frontend/src/app/types/maas-model.ts",
     "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts",
     "./types/external-models": "./frontend/src/app/types/external-models.ts",
-    "./extensions/portal": "./frontend/src/odh/odhExtensions/portalExtensions.ts"
+    "./extensions/static": "./frontend/src/odh/odhExtensions/odhExtensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/gen-ai": "*",

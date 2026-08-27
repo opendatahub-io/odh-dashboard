@@ -31,6 +31,10 @@ class AgentsCatalogPage {
   findFirstAgentCardDetailLink() {
     return cy.findAllByTestId(/^agent-catalog-card-detail-link-/).first();
   }
+
+  findSearchInput() {
+    return cy.findByTestId('agents-catalog-search-input');
+  }
 }
 
 class AgentDetailsPage {
