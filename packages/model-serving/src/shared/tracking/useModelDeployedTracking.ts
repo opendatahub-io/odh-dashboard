@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   fireModelDeployed as fireDeploymentFormTracking,
   type DeploymentTrackingProperties,
@@ -73,6 +74,7 @@ export const useModelDeployedTracking = (
   ) => Promise<void>;
 } => {
   const location = useLocation();
+  const trackEvent = useTrackEvent();
   const { getTrackingProperties } = useWizardTrackingProperties(formState, platformId);
 
   const fireModelDeployedTracking = React.useCallback(
@@ -94,9 +96,18 @@ export const useModelDeployedTracking = (
         },
       });
 
-      fireDeploymentFormTracking(toDeploymentTrackingProperties(wizardProperties, errorMessage));
+      fireDeploymentFormTracking(
+        trackEvent,
+        toDeploymentTrackingProperties(wizardProperties, errorMessage),
+      );
     },
-    [location.state, initialWizardData?.validatedConfigurations, formState, getTrackingProperties],
+    [
+      location.state,
+      initialWizardData?.validatedConfigurations,
+      formState,
+      getTrackingProperties,
+      trackEvent,
+    ],
   );
 
   return { fireModelDeployedTracking };

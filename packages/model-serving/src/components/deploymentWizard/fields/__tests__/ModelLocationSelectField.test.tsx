@@ -257,11 +257,6 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
 const mockConnections: Connection[] = [];
 const mockPvcs: PersistentVolumeClaimKind[] = [];
 
-jest.mock('@odh-dashboard/internal/pages/modelServing/usePvcs', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({ data: mockPvcs, loaded: true, error: undefined })),
-}));
-
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
     activeStep: { index: 1, name: 'test-step', id: 'test-step', parentId: undefined },

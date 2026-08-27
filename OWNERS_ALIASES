@@ -188,6 +188,9 @@ aliases:
     - ederign
     - harshad16
     - paulovmr
+    - thaorell
+    - jesuino
+    - bobbravo2 
   notebooks-reviewers:
     - andyatmiami
     - ederign
@@ -196,6 +199,8 @@ aliases:
     - caponetto
     - jenny-s51
     - thaorell
+    - jesuino
+    - bobbravo2
 
   # NIM / Ecosystem Engineering
   nim-serving-approvers:

@@ -10,7 +10,6 @@ import {
   getLSDStatus,
   installLSD,
   deleteLSD,
-  getMaaSModels,
   getAAModels,
   getMCPServers,
   getMCPServerStatus,
@@ -35,7 +34,6 @@ import {
   mockCodeExportResponseData,
   mockInstallModels,
   mockMaaSModelsForInstall,
-  mockMaaSModels,
   mockAAModels,
   mockMCPServers,
   mockEmptyMCPServers,
@@ -1045,51 +1043,6 @@ describe('llamaStackService', () => {
         expect.objectContaining({ namespace: project }),
         {},
       );
-    });
-  });
-
-  describe('getMaaSModels', () => {
-    it('should fetch MaaS models successfully', async () => {
-      mockedRestGET.mockResolvedValueOnce({ data: mockMaaSModels });
-
-      const result = await getMaaSModels(URL_PREFIX, { namespace: TEST_NAMESPACE })();
-
-      expect(result).toEqual(mockMaaSModels);
-      expect(mockedRestGET).toHaveBeenCalledWith(
-        URL_PREFIX,
-        '/maas/models',
-        expect.objectContaining({ namespace: TEST_NAMESPACE }),
-        {},
-      );
-    });
-
-    it('should handle empty MaaS models response', async () => {
-      mockedRestGET.mockResolvedValueOnce({ data: null });
-
-      const result = await getMaaSModels(URL_PREFIX, { namespace: TEST_NAMESPACE })();
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle API error with error message', async () => {
-      const mockError = new Error('MaaS service unavailable');
-      mockedRestGET.mockRejectedValueOnce(mockError);
-
-      await expect(getMaaSModels(URL_PREFIX, { namespace: TEST_NAMESPACE })()).rejects.toThrow();
-    });
-
-    it('should handle network error', async () => {
-      const mockError = new Error('Network error');
-      mockedRestGET.mockRejectedValueOnce(mockError);
-
-      await expect(getMaaSModels(URL_PREFIX, { namespace: TEST_NAMESPACE })()).rejects.toThrow();
-    });
-
-    it('should handle error without response', async () => {
-      const mockError = new Error('Failed to fetch MaaS models');
-      mockedRestGET.mockRejectedValueOnce(mockError);
-
-      await expect(getMaaSModels(URL_PREFIX, { namespace: TEST_NAMESPACE })()).rejects.toThrow();
     });
   });
 

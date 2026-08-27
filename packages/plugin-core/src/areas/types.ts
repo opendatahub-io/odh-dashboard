@@ -130,6 +130,9 @@ export enum SupportedArea {
 
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
+
+  /* Guided tour (What's New) — hidden until tour content matches the installed version */
+  GUIDED_TOUR = 'guided-tour',
 }
 
 export type SupportedAreaType = SupportedArea | string;
