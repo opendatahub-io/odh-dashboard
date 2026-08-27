@@ -1,25 +1,20 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
-import { createK8sApi, createPipelinesApi, createS3Api } from '../../api';
-import { AutoXApiProvider, useAutoXApi, type AutoXApi } from '..';
+import { AutoXApiProvider, useAutoXApi } from '..';
 
-const createApi = (prefix: string): AutoXApi => ({
-  k8s: createK8sApi(prefix, 'v1'),
-  s3: createS3Api(prefix, 'v1'),
-  pipelines: createPipelinesApi(prefix, 'v1'),
-});
-
-const createWrapper = (api: AutoXApi) =>
+const createWrapper = (apiPrefix: string) =>
   function Wrapper({ children }: React.PropsWithChildren) {
-    return <AutoXApiProvider api={api}>{children}</AutoXApiProvider>;
+    return (
+      <AutoXApiProvider apiPrefix={apiPrefix} bffApiVersion="v1">
+        {children}
+      </AutoXApiProvider>
+    );
   };
 
 describe('AutoXApiProvider', () => {
-  it('should provide the injected APIs at the top level', () => {
-    const api = createApi('/automl');
-    const { result } = renderHook(() => useAutoXApi(), { wrapper: createWrapper(api) });
+  it('should provide the shared APIs at the top level', () => {
+    const { result } = renderHook(() => useAutoXApi(), { wrapper: createWrapper('/automl') });
 
-    expect(result.current).toBe(api);
     expect(result.current).toEqual({
       k8s: expect.any(Object),
       s3: expect.any(Object),
@@ -27,10 +22,9 @@ describe('AutoXApiProvider', () => {
     });
   });
 
-  it('should preserve the injected API object when rerendered', () => {
-    const api = createApi('/automl');
+  it('should preserve the shared API object when rerendered', () => {
     const { result, rerender } = renderHook(() => useAutoXApi(), {
-      wrapper: createWrapper(api),
+      wrapper: createWrapper('/automl'),
     });
     const initialValue = result.current;
 
@@ -50,18 +44,21 @@ describe('AutoXApiProvider', () => {
     }
   });
 
-  it('should isolate nested providers', () => {
-    const outer = createApi('/outer');
-    const inner = createApi('/inner');
+  it('should isolate nested providers by configuration', () => {
     const { result } = renderHook(() => useAutoXApi(), {
       wrapper: ({ children }) => (
-        <AutoXApiProvider api={outer}>
-          <AutoXApiProvider api={inner}>{children}</AutoXApiProvider>
+        <AutoXApiProvider apiPrefix="/outer" bffApiVersion="v1">
+          <AutoXApiProvider apiPrefix="/inner" bffApiVersion="v1">
+            {children}
+          </AutoXApiProvider>
         </AutoXApiProvider>
       ),
     });
 
-    expect(result.current).toBe(inner);
-    expect(result.current).not.toBe(outer);
+    expect(result.current).toEqual({
+      k8s: expect.any(Object),
+      s3: expect.any(Object),
+      pipelines: expect.any(Object),
+    });
   });
 });

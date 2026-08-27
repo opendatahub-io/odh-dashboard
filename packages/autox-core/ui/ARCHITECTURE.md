@@ -159,8 +159,9 @@ sufficient before reaching for the next one:
 `context/AutoXApiContext.tsx` provides dependency injection for shared AutoX API
 clients. Each consuming product must place `AutoXApiProvider` at its application
 boundary, above any autox-core feature or hook that reads it. The product owns
-construction and configuration of its `AutoXApi` object, including the BFF URL
-prefix/version and any product-specific typed pipeline behavior or validation.
+the URL prefix and BFF version it passes to the provider. `AutoXApiProvider`
+constructs the shared K8s, S3, and Pipelines clients through the factories in
+`api/`; product providers must not assemble or inject those clients.
 
 The context is intentionally API-only: `useAutoXApi()` returns `k8s`, `s3`, and
 `pipelines` as top-level values. It does not know the product identity, URL
@@ -176,8 +177,9 @@ schemas. It must not import types or implementations from `hooks/**`.
 - `hooks/common/` — generic, non-domain-specific hooks (e.g. `useNotification`).
   Has no `api/common/` counterpart.
 
-Raw network access belongs only in `api/`. Product `app/api` modules construct
-URL-bound clients once and supply them to the context; hooks call the injected
+Raw network access belongs only in `api/`. The context provider constructs the
+URL-bound shared clients; product `app/api` modules may construct clients for
+non-context consumers, but must not supply the context. Hooks call the context
 clients and add React state/query behavior. Neither context nor hooks should
 duplicate raw fetch logic.
 

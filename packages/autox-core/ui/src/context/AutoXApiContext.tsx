@@ -1,4 +1,5 @@
 import React from 'react';
+import { createK8sApi, createPipelinesApi, createS3Api } from '../api';
 import type { K8sApi, S3Api, PipelinesApi } from '../api';
 
 export type AutoXApi = {
@@ -8,15 +9,27 @@ export type AutoXApi = {
 };
 
 export type AutoXApiProviderProps = React.PropsWithChildren<{
-  api: AutoXApi;
+  apiPrefix: string;
+  bffApiVersion: string;
 }>;
 
 export type AutoXApiContextValue = AutoXApi;
 
 const AutoXApiContext = React.createContext<AutoXApiContextValue | undefined>(undefined);
 
-export const AutoXApiProvider: React.FC<AutoXApiProviderProps> = ({ children, api }) => {
-  const contextValue = React.useMemo<AutoXApiContextValue>(() => api, [api]);
+export const AutoXApiProvider: React.FC<AutoXApiProviderProps> = ({
+  children,
+  apiPrefix,
+  bffApiVersion,
+}) => {
+  const contextValue = React.useMemo<AutoXApiContextValue>(
+    () => ({
+      k8s: createK8sApi(apiPrefix, bffApiVersion),
+      s3: createS3Api(apiPrefix, bffApiVersion),
+      pipelines: createPipelinesApi(apiPrefix, bffApiVersion),
+    }),
+    [apiPrefix, bffApiVersion],
+  );
 
   return <AutoXApiContext.Provider value={contextValue}>{children}</AutoXApiContext.Provider>;
 };

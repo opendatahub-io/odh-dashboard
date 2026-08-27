@@ -1,11 +1,9 @@
 import React from 'react';
 import { AutoXApiProvider } from '@odh-dashboard/autox-core/ui/context';
-import { k8sApi } from '~/app/api/k8s';
-import { s3Api } from '~/app/api/s3';
-import { pipelinesApi } from '~/app/api/pipelines';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 export const ProductProvider: React.FC<React.PropsWithChildren> = ({ children }) => (
-  <AutoXApiProvider api={{ k8s: k8sApi, s3: s3Api, pipelines: pipelinesApi }}>
+  <AutoXApiProvider apiPrefix={URL_PREFIX} bffApiVersion={BFF_API_VERSION}>
     {children}
   </AutoXApiProvider>
 );

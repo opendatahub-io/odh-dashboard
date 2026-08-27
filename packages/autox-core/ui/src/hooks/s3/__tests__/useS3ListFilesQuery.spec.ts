@@ -24,7 +24,8 @@ const createWrapper = () => {
     React.createElement(
       AutoXApiProvider,
       {
-        api: { k8s: {} as never, s3: mockS3Api, pipelines: {} as never },
+        apiPrefix: '/test',
+        bffApiVersion: 'v1',
       },
       React.createElement(QueryClientProvider, { client: queryClient }, children),
     );
