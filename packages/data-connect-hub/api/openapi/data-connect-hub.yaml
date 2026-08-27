@@ -19,7 +19,7 @@ paths:
         - K8SOperation
       responses:
         "200":
-          description: "Ok"
+          $ref: "#/components/responses/HealthCheckResponse"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: healthcheck
@@ -34,21 +34,7 @@ paths:
         - K8SOperation
       responses:
         "200":
-          description: "Ok"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  metadata:
-                    type: object
-                    description: Metadata about the response
-                  data:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                        example: default-namespace
+          $ref: "#/components/responses/NamespacesResponse"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: getNamespaces
@@ -164,6 +150,34 @@ components:
       type: string
 
   responses:
+    HealthCheckResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: healthy
+      description: Health check response
+    NamespacesResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: default-namespace
+      description: List of available namespaces
     NotFound:
       content:
         application/json:

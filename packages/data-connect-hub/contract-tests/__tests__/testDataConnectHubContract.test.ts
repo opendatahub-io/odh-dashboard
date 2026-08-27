@@ -17,10 +17,10 @@ describe('Data Connect Hub BFF Contract Tests', () => {
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.status).toBe(200);
-      }
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
+        status: 200,
+      });
     });
   });
 
@@ -37,10 +37,10 @@ describe('Data Connect Hub BFF Contract Tests', () => {
   describe('Namespaces Endpoint', () => {
     it('should successfully retrieve namespaces', async () => {
       const result = await apiClient.get('/api/v1/namespaces');
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.status).toBe(200);
-      }
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/NamespacesResponse/content/application~1json/schema',
+        status: 200,
+      });
     });
   });
 });
