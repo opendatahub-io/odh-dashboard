@@ -1981,171 +1981,102 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	)
 	config.AddModel(embeddingModel)
 
-	// When passthrough is enabled, inference models are NOT registered in OGX's config.
-	// OGX's Responses API resolves models per-request, bypassing the model registry
-	// entirely — it forwards inference to the sole configured passthrough provider,
-	// and the BFF proxy handles routing to the actual model endpoint.
-	//
-	// When passthrough is disabled (legacy/local-dev), models are registered with
-	// individual providers (remote::vllm, remote::custom_endpoint, etc.) as before.
-	if kc.EnvConfig.GatewayDomain == "" {
-		// Legacy path: register each model with its own provider in OGX config.
-		maasModelsMap := make(map[string]*models.MaaSModel)
-		if bffClient != nil {
-			hasMaaSModels := false
-			for _, model := range installModels {
-				if model.ModelSourceType == models.ModelSourceTypeMaaS {
-					hasMaaSModels = true
-					break
-				}
-			}
-
-			if hasMaaSModels {
-				if userAuthToken == "" {
-					return "", fmt.Errorf("user auth token is required to list MaaS models")
-				}
-
-				// Call MaaS BFF /models endpoint using BFF client
-				// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
-				// Note: MaaS BFF determines namespace scope via the forwarded authentication token
-				// (x-forwarded-access-token header), not via query parameters
-				var bffResponse models.MaaSBFFModelsResponse
-				err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
-				if err != nil {
-					kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
-					return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
-				}
-
-				bffModels := bffResponse.Data.Data
-				for i := range bffModels {
-					bffModel := &bffModels[i]
-					maasModel := &models.MaaSModel{
-						ID:      bffModel.ID,
-						Object:  bffModel.Object,
-						Created: bffModel.Created,
-						OwnedBy: bffModel.OwnedBy,
-						Ready:   bffModel.Ready,
-						URL:     bffModel.URL,
-					}
-					maasModelsMap[maasModel.ID] = maasModel
-				}
-				kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
-			}
-		}
-
-		var externalModelsConfig *models.ExternalModelsConfig
+	// Validate all requested models exist and are ready. OGX's Responses API resolves
+	// inference models per-request via the passthrough provider, so they are NOT
+	// registered in the config — but we validate at install time to give early feedback.
+	// Embedding models are the exception: they must be registered because OGX's vector
+	// store path lacks per-request model resolution.
+	maasModelsMap := make(map[string]*models.MaaSModel)
+	if bffClient != nil {
+		hasMaaSModels := false
 		for _, model := range installModels {
-			if models.IsExternalModelSource(model.ModelSourceType) {
-				cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
-				if err != nil {
-					if apierrors.IsNotFound(err) {
-						return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
-					}
-					return "", fmt.Errorf("failed to get external models ConfigMap: %w", err)
-				}
-				externalModelsConfig = cfg
-				kc.Logger.Debug("loaded external models ConfigMap", "namespace", namespace)
+			if model.ModelSourceType == models.ModelSourceTypeMaaS {
+				hasMaaSModels = true
 				break
 			}
 		}
 
-		for i, model := range installModels {
-			kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-
-			// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
-			if model.ModelType == string(models.ModelTypeTranscription) {
-				kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
-				continue
+		if hasMaaSModels {
+			if userAuthToken == "" {
+				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
 
-			if model.ModelSourceType == models.ModelSourceTypeMaaS {
-				// Handle MaaS models using the pre-loaded map
-				maasModel, exists := maasModelsMap[model.ModelName]
-				if !exists {
-					kc.Logger.Error("MaaS model not found in map", "model", model.ModelName)
-					return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
-				}
-
-				// Check if model is ready
-				if !maasModel.Ready {
-					kc.Logger.Error("MaaS model is not ready", "model", model.ModelName, "modelID", maasModel.ID)
-					return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
-				}
-
-				// Create provider and model for MaaS model
-				providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
-				endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-				resolvedMaaSType := model.ModelType
-				if resolvedMaaSType == "" {
-					resolvedMaaSType = "llm"
-				}
-				config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
-				kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
-			} else if models.IsExternalModelSource(model.ModelSourceType) {
-				// Handle external models from ConfigMap
-				kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-				extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
-				if err != nil {
-					kc.Logger.Error("failed to get external model details", "model", model.ModelName, "error", err)
-					return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
-				}
-
-				// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
-				resolvedExtType := model.ModelType
-				if resolvedExtType == "" {
-					resolvedExtType = extDetails.modelType
-				}
-				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
-				kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
-			} else {
-				// Handle regular cluster models (InferenceService/LLMInferenceService)
-				kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
-				details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
-				if err != nil {
-					kc.Logger.Error("failed to get model details from serving runtime", "model", model.ModelName, "error", err)
-					return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
-				}
-
-				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-
-				resolvedClusterType := model.ModelType
-				if resolvedClusterType == "" {
-					resolvedClusterType = details.modelType
-				}
-				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
-				kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
+			var bffResponse models.MaaSBFFModelsResponse
+			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+			if err != nil {
+				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
+				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 			}
+
+			bffModels := bffResponse.Data.Data
+			for i := range bffModels {
+				bffModel := &bffModels[i]
+				maasModelsMap[bffModel.ID] = &models.MaaSModel{
+					ID:      bffModel.ID,
+					Object:  bffModel.Object,
+					Created: bffModel.Created,
+					OwnedBy: bffModel.OwnedBy,
+					Ready:   bffModel.Ready,
+					URL:     bffModel.URL,
+				}
+			}
+			kc.Logger.Debug("loaded MaaS models for validation", "count", len(maasModelsMap))
 		}
-	} else {
-		// Passthrough enabled — skip registration of any models that do not require explicit registration in the config.
-		kc.Logger.Info("Passthrough enabled — skipping registration of any models that do not require explicit registration in the config (embedding models require explicit registration and can't use the passthrough path)")
+	}
 
-		for i, model := range installModels {
-			if model.ModelType != string(models.ModelTypeEmbedding) {
-				continue
+	var externalModelsConfig *models.ExternalModelsConfig
+	for _, model := range installModels {
+		if models.IsExternalModelSource(model.ModelSourceType) {
+			cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
+				}
+				return "", fmt.Errorf("failed to get external models ConfigMap: %w", err)
 			}
+			externalModelsConfig = cfg
+			kc.Logger.Debug("loaded external models ConfigMap", "namespace", namespace)
+			break
+		}
+	}
 
-			kc.Logger.Debug("Registering embedding model (required for vector stores)", "model", model.ModelName)
+	for i, model := range installModels {
+		if model.ModelType == string(models.ModelTypeTranscription) {
+			kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
+			continue
+		}
 
-			if models.IsExternalModelSource(model.ModelSourceType) {
-				externalModelsConfig, err := kc.GetExternalModelsConfig(ctx, namespace)
-				if err != nil {
-					return "", fmt.Errorf("failed to get external models ConfigMap for embedding model: %w", err)
-				}
-				extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
-				if err != nil {
-					return "", fmt.Errorf("cannot find external embedding model '%s': %w", model.ModelName, err)
-				}
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
+			maasModel, exists := maasModelsMap[model.ModelName]
+			if !exists {
+				return "", fmt.Errorf("MaaS model '%s' not found", model.ModelName)
+			}
+			if !maasModel.Ready {
+				return "", fmt.Errorf("MaaS model '%s' is not ready (status: %t)", model.ModelName, maasModel.Ready)
+			}
+			kc.Logger.Info("Validated MaaS model", "model", maasModel.ID)
+		} else if models.IsExternalModelSource(model.ModelSourceType) {
+			extDetails, err := kc.getExternalModelDetails(externalModelsConfig, model.ModelName)
+			if err != nil {
+				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
+			}
+			if model.ModelType == string(models.ModelTypeEmbedding) {
 				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
-				kc.Logger.Info("Added embedding model (custom endpoint) to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID)
+				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			} else {
-				details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
-				if err != nil {
-					return "", fmt.Errorf("cannot determine endpoint for embedding model '%s': %w", model.ModelName, err)
-				}
+				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
+			}
+		} else {
+			details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, model.ModelName)
+			if err != nil {
+				return "", fmt.Errorf("cannot determine endpoint for model '%s': %w", model.ModelName, err)
+			}
+			if model.ModelType == string(models.ModelTypeEmbedding) {
 				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
 				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension)
-				kc.Logger.Info("Added embedding model (cluster) to configuration", "model", details.modelID, "providerID", providerID)
+				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
+			} else {
+				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)
 			}
 		}
 	}

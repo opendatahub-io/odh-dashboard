@@ -156,16 +156,13 @@ func TestCanListOGXServersSARStructure(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
-	t.Run("should handle MaaS models correctly", func(t *testing.T) {
-		// Create a mock BFF client for MaaS
+	t.Run("should validate MaaS models without registering them", func(t *testing.T) {
 		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
-		// Create a token client
 		client := &TokenKubernetesClient{
 			Logger: slog.Default(),
 		}
 
-		// Test models with only MaaS models (no regular models to avoid Kubernetes client issues)
 		models := []models.InstallModel{
 			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 			{ModelName: "granite-7b-lab", ModelSourceType: models.ModelSourceTypeMaaS},
@@ -173,19 +170,14 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Test the MaaS model handling logic (with empty guardrails)
 		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
-		// This should succeed since we're only using MaaS models
-		assert.NoError(t, err)
+		assert.NoError(t, err, "validation should pass for ready MaaS models")
 		assert.NotEmpty(t, result)
 
-		// Verify the result contains MaaS model configurations
-		assert.Contains(t, result, "llama-2-7b-chat")
-		assert.Contains(t, result, "granite-7b-lab")
-		assert.Contains(t, result, "maas-vllm-inference")
-
-		// Verify models are also added to registered_resources
+		// MaaS inference models are validated but NOT registered in config —
+		// passthrough resolves them per-request. Only the default embedding model
+		// should appear in registered_resources.
 		var cfg LlamaStackConfig
 		err = cfg.FromYAML(result)
 		assert.NoError(t, err)
@@ -194,8 +186,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 			registered[m.ModelID] = true
 		}
 		assert.True(t, registered[constants.DefaultEmbeddingModel().ModelID], "default embedding model should be registered")
-		assert.True(t, registered["llama-2-7b-chat"], "MaaS model should be registered")
-		assert.True(t, registered["granite-7b-lab"], "MaaS model should be registered")
+		assert.False(t, registered["llama-2-7b-chat"], "MaaS inference model should NOT be registered (passthrough resolves per-request)")
+		assert.False(t, registered["granite-7b-lab"], "MaaS inference model should NOT be registered (passthrough resolves per-request)")
 	})
 
 	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
@@ -1029,11 +1021,10 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	t.Run("should successfully generate config with custom_endpoint model", func(t *testing.T) {
-		scheme := runtime.NewScheme()
-		require.NoError(t, corev1.AddToScheme(scheme))
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
 
-		configMapYAML := `
+	configMapYAML := `
 providers:
   inference:
     - provider_id: "endpoint-1"
@@ -1046,16 +1037,17 @@ registered_resources:
       provider_id: "endpoint-1"
       model_type: "llm"
 `
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      constants.ExternalModelsConfigMapName,
-				Namespace: "test-namespace",
-			},
-			Data: map[string]string{
-				"config.yaml": configMapYAML,
-			},
-		}
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ExternalModelsConfigMapName,
+			Namespace: "test-namespace",
+		},
+		Data: map[string]string{
+			"config.yaml": configMapYAML,
+		},
+	}
 
+	t.Run("should validate custom_endpoint model without registering it", func(t *testing.T) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(configMap).
@@ -1076,11 +1068,45 @@ registered_resources:
 		ctx := context.Background()
 		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
 
-		require.NoError(t, err)
+		require.NoError(t, err, "validation should pass for existing custom endpoint model")
 		require.NotEmpty(t, result)
-		assert.Contains(t, result, "gpt-4o")
-		assert.Contains(t, result, "endpoint-1")
-		assert.Contains(t, result, "api.openai.com")
+
+		// Non-embedding external models are validated but NOT registered —
+		// passthrough resolves them per-request.
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		registered := map[string]bool{}
+		for _, m := range cfg.RegisteredResources.Models {
+			registered[m.ModelID] = true
+		}
+		assert.False(t, registered["gpt-4o"], "non-embedding external model should NOT be registered (passthrough resolves per-request)")
+	})
+
+	t.Run("should fail when custom_endpoint model is not in ConfigMap", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(configMap).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		installModels := []models.InstallModel{
+			{
+				ModelName:       "nonexistent-model",
+				ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+			},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
+
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "cannot find external model")
 	})
 }
 
