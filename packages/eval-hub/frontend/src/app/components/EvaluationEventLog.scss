@@ -2,6 +2,8 @@
 .evalhub-log-viewer {
   height: 100%;
   overflow: auto;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
 }
 
 .evalhub-event-log__log-item {
@@ -32,7 +34,10 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs) 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)
+      var(--pf-t--global--spacer--xs) 0;
     font-weight: var(--pf-t--global--font--weight--heading--bold);
     color: var(--pf-t--global--text--color--regular);
     background-color: var(--pf-t--global--background--color--primary--default);
@@ -97,6 +102,11 @@
   gap: var(--pf-t--global--spacer--xs);
   justify-content: flex-end;
   margin-right: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-event-log__benchmark-select {
+  min-width: 12rem;
+  max-width: 100%;
 }
 
 .evalhub-log-viewer__tail-notice {

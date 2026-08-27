@@ -1135,9 +1135,12 @@ function AutomlConfigure({
                         <Divider />
                         <StackItem>
                           <Card data-testid="optimization-metric-card">
-                            <CardHeader
-                              actions={{
-                                actions: (
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
                                   <Button
                                     variant="secondary"
                                     isDisabled={formIsSubmitting}
@@ -1146,10 +1149,8 @@ function AutomlConfigure({
                                   >
                                     Edit
                                   </Button>
-                                ),
-                              }}
-                            >
-                              <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                              </Split>
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">
