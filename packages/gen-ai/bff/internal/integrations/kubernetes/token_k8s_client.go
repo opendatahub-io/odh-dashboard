@@ -1871,17 +1871,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	return ogxServer, nil
 }
 
-// ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
-func ensureVLLMCompatibleURL(url string) string {
-	// Remove any trailing slashes
-	url = strings.TrimSuffix(url, "/")
-	// Check if URL already ends with /v1
-	if strings.HasSuffix(url, "/v1") {
-		return url
-	}
-	// Add /v1 suffix
-	return url + "/v1"
-}
 
 // pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
 // env config. Returns a zero-value Connection (IsConfigured() == false) when
