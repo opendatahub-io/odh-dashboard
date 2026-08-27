@@ -60,7 +60,7 @@ func (app *App) passthroughModelsHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
+	if !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, fmt.Errorf("missing authentication identity"))
 		return
 	}
