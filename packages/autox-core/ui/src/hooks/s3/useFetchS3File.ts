@@ -14,9 +14,18 @@ export function useFetchS3File(): (
   return useCallback(
     (namespace: string, key: string, options?: FetchS3FileOptions) =>
       queryClient.fetchQuery({
-        queryKey: ['s3File', namespace, key, options?.secretName, options?.bucket, options?.view],
+        queryKey: [
+          's3Download',
+          namespace,
+          key,
+          options?.secretName,
+          options?.bucket,
+          options?.view,
+          options?.maxBytes,
+        ],
         queryFn: ({ signal }) => s3Api.fetchS3File(namespace, key, { ...options, signal }),
         staleTime: 0,
+        gcTime: 0,
       }),
     [queryClient, s3Api],
   );
