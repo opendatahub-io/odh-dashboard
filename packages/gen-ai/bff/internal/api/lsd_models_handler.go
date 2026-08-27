@@ -53,12 +53,11 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 func (app *App) passthroughModelsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	namespace := ctx.Value(constants.NamespaceQueryParameterKey)
-	if namespace == nil || namespace.(string) == "" {
+	ns, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || ns == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing namespace"))
 		return
 	}
-	ns := namespace.(string)
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
