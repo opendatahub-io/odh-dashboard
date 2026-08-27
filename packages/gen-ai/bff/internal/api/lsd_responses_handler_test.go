@@ -1354,7 +1354,7 @@ func TestGetProviderDataRouting(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, map[string]interface{}{
 			"passthrough_api_key": "test-token",
-			"maas_subscription":  "my-subscription",
+			"maas_subscription":   "my-subscription",
 		}, providerData)
 	})
 
