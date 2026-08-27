@@ -161,6 +161,9 @@ module.exports = {
     },
     {
       files: ['**/cypress/**/*.{js,jsx,ts,tsx}', '**/__tests__/cypress/**/*.{js,jsx,ts,tsx}'],
+      parserOptions: {
+        project: null,
+      },
       env: {
         node: true,
       },
@@ -174,8 +177,15 @@ module.exports = {
         context: 'readonly',
       },
       rules: {
+        // Disable type-aware rules since Cypress files are excluded from tsconfig
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
+        '@typescript-eslint/dot-notation': 'off',
+        '@typescript-eslint/prefer-nullish-coalescing': 'off',
+        '@typescript-eslint/prefer-optional-chain': 'off',
+        '@typescript-eslint/prefer-readonly': 'off',
+        '@typescript-eslint/prefer-return-this-type': 'off',
+        '@typescript-eslint/naming-convention': 'off',
         'import/no-unresolved': 'off',
         'no-only-tests/no-only-tests': 'off',
       },
