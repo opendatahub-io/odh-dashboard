@@ -38,7 +38,9 @@ module.exports = () => ({
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/, /cypress/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-          { loader: 'swc-loader' },
+          COVERAGE === 'true'
+            ? { loader: 'swc-loader', options: { sourceMaps: false } }
+            : { loader: 'swc-loader' },
         ].filter(Boolean),
       },
       {
