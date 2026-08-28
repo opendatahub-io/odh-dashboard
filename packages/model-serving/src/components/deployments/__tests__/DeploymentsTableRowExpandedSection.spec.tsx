@@ -7,15 +7,6 @@ import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpandedSection';
 
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/app/AppContext', () => ({
-  useAppContext: () => ({
-    dashboardConfig: {
-      spec: {
-        modelServerSizes: [],
-      },
-    },
-  }),
-}));
 
 jest.mock('../../../../src/concepts/extensionUtils', () => ({
   useResolvedDeploymentExtension: () => [
@@ -35,10 +26,6 @@ jest.mock('../../../../src/concepts/extensionUtils', () => ({
       },
     },
   ],
-}));
-
-jest.mock('@odh-dashboard/internal/redux/hooks', () => ({
-  useAppSelector: jest.fn((selector) => selector({ dashboardNamespace: 'test-namespace' })),
 }));
 
 const mockUseAssignHardwareProfile = jest.fn();

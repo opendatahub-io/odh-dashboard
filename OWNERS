@@ -169,7 +169,7 @@ filters:
       - 'area/maas'
 
   # Notebooks
-  'packages/notebooks/.*':
+  '(manifests/modules/notebooks|packages/notebooks)/.*':
     approvers:
       - notebooks-approvers
     reviewers:

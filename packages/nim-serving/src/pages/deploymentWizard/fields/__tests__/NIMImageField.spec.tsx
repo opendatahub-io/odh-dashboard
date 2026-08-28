@@ -15,10 +15,14 @@ const mockUseAccessReview = jest.mocked(useAccessReview);
 describe('NIMImageFieldComponent', () => {
   const mockOnChange = jest.fn();
 
-  const renderComponent = (externalData?: {
-    data: NIMImageFieldExternalData;
-    loaded: boolean;
-    loadError?: Error;
+  const renderComponent = (props?: {
+    value?: { repository: string; tag: string };
+    isEditing?: boolean;
+    externalData?: {
+      data: NIMImageFieldExternalData;
+      loaded: boolean;
+      loadError?: Error;
+    };
   }) => {
     // Dynamic import to pick up mocks
     const NIMImageFieldModule = require('../NIMImageField');
@@ -27,14 +31,16 @@ describe('NIMImageFieldComponent', () => {
       value?: { repository: string; tag: string };
       onChange: (value: { repository: string; tag: string }) => void;
       externalData?: { data: NIMImageFieldExternalData; loaded: boolean; loadError?: Error };
+      isEditing?: boolean;
     }>;
 
     return render(
       <MemoryRouter>
         <NIMImageFieldComponent
-          value={{ repository: '', tag: '' }}
+          value={props?.value ?? { repository: '', tag: '' }}
           onChange={mockOnChange}
-          externalData={externalData}
+          externalData={props?.externalData}
+          isEditing={props?.isEditing}
         />
       </MemoryRouter>,
     );
@@ -47,11 +53,13 @@ describe('NIMImageFieldComponent', () => {
 
   it('should show info alert when no project is selected', () => {
     renderComponent({
-      data: {
-        nimImages: { images: [] },
-        accountStatus: NIMAccountStatus.NOT_FOUND,
+      externalData: {
+        data: {
+          nimImages: { images: [] },
+          accountStatus: NIMAccountStatus.NOT_FOUND,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(screen.getByText('Select a project to load available NIM images.')).toBeInTheDocument();
@@ -62,11 +70,13 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([true, true]);
 
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.NOT_FOUND,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.NOT_FOUND,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -80,11 +90,13 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([false, true]);
 
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.NOT_FOUND,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.NOT_FOUND,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -104,11 +116,13 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([true, true]);
 
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.ERROR,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.ERROR,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -123,11 +137,13 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([false, true]);
 
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.ERROR,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.ERROR,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -146,11 +162,13 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([false, false]);
 
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.NOT_FOUND,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.NOT_FOUND,
+        },
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -161,11 +179,13 @@ describe('NIMImageFieldComponent', () => {
 
   it('should show skeleton while account status and images are loading', () => {
     renderComponent({
-      data: {
-        nimImages: { images: [], projectName: 'test-project' },
-        accountStatus: NIMAccountStatus.LOADING,
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.LOADING,
+        },
+        loaded: false,
       },
-      loaded: false,
     });
 
     expect(screen.getByText('NIM image')).toBeInTheDocument();
@@ -174,23 +194,43 @@ describe('NIMImageFieldComponent', () => {
     ).not.toBeInTheDocument();
   });
 
+  const configuredExternalData = {
+    data: {
+      nimImages: {
+        images: [
+          {
+            name: 'test-model',
+            displayName: 'Test Model',
+            namespace: 'nim/test',
+            tags: ['1.0.0'],
+          },
+        ],
+        projectName: 'test-project',
+      },
+      accountStatus: NIMAccountStatus.READY,
+    },
+    loaded: true,
+  };
+
   it('should show typeahead selector when NIM is configured with models', () => {
     renderComponent({
-      data: {
-        nimImages: {
-          images: [
-            {
-              name: 'test-model',
-              displayName: 'Test Model',
-              namespace: 'nim/test',
-              tags: ['1.0.0', '2.0.0'],
-            },
-          ],
-          projectName: 'test-project',
+      externalData: {
+        data: {
+          nimImages: {
+            images: [
+              {
+                name: 'test-model',
+                displayName: 'Test Model',
+                namespace: 'nim/test',
+                tags: ['1.0.0', '2.0.0'],
+              },
+            ],
+            projectName: 'test-project',
+          },
+          accountStatus: NIMAccountStatus.READY,
         },
-        accountStatus: NIMAccountStatus.READY,
+        loaded: true,
       },
-      loaded: true,
     });
 
     expect(
@@ -200,5 +240,99 @@ describe('NIMImageFieldComponent', () => {
       screen.queryByText('The NVIDIA NIM key for this project is invalid', { exact: false }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('NIM image')).toBeInTheDocument();
+  });
+
+  it('should not unlock image selection while the catalog is still empty on load', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.READY,
+        },
+        loaded: true,
+      },
+    });
+
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+  });
+
+  it('should disable image selection when editing with a valid image', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' },
+      externalData: configuredExternalData,
+    });
+
+    expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+  });
+
+  it('should allow image selection when editing with a missing image', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: '', tag: '' },
+      externalData: configuredExternalData,
+    });
+
+    expect(screen.getByPlaceholderText('Select NVIDIA NIM image')).toBeInTheDocument();
+  });
+
+  it('should allow image selection when editing with an image not found in the catalog', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
+      externalData: configuredExternalData,
+    });
+
+    expect(screen.getByPlaceholderText('Select NVIDIA NIM image')).toBeInTheDocument();
+    expect(screen.getByTestId('nim-image-not-found-warning')).toBeInTheDocument();
+  });
+
+  it('should reset reselection unlock when the edit project context changes', () => {
+    const NIMImageFieldModule = require('../NIMImageField');
+    const NIMImageFieldComponent = NIMImageFieldModule.NIMImageFieldWizardField
+      .component as React.FC<{
+      value?: { repository: string; tag: string };
+      onChange: (value: { repository: string; tag: string }) => void;
+      externalData?: { data: NIMImageFieldExternalData; loaded: boolean; loadError?: Error };
+      isEditing?: boolean;
+    }>;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <NIMImageFieldComponent
+          value={{ repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' }}
+          onChange={mockOnChange}
+          externalData={configuredExternalData}
+          isEditing
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Clear input value' })).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <NIMImageFieldComponent
+          value={{ repository: 'nvcr.io/nim/test/test-model', tag: '1.0.0' }}
+          onChange={mockOnChange}
+          externalData={{
+            ...configuredExternalData,
+            data: {
+              ...configuredExternalData.data,
+              nimImages: {
+                ...configuredExternalData.data.nimImages,
+                projectName: 'another-project',
+              },
+            },
+          }}
+          isEditing
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
   });
 });

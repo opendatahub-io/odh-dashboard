@@ -21,6 +21,7 @@ import {
 import { getDashboardPvcs } from '#~/api/k8s/pvcs';
 import { addSupportServingPlatformProject, createProject } from '#~/api/k8s/projects';
 import { fetchDashboardConfig } from '#~/services/dashboardConfigService';
+import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { useTemplates } from '#~/api/k8s/templates';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
@@ -50,6 +51,8 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
       checkAccess,
       trackEvent: fireMiscTrackingEvent,
       fetchDashboardConfig,
+      fetchClusterSettings,
+      updateClusterSettings,
     }),
     [dashboardNamespace],
   );

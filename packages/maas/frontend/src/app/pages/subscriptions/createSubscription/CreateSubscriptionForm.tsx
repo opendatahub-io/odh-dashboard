@@ -28,7 +28,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';

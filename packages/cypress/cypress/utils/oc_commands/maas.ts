@@ -293,7 +293,7 @@ EOF`;
 export const createMaaSModelRef = (
   projectName: string,
   modelName: string,
-  fixturePath = 'resources/modelsAsService/MaaSModelRef.yaml',
+  fixturePath = 'resources/maas/MaaSModelRef.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
 
@@ -318,7 +318,7 @@ export const createMaaSSubscription = (
   subscriptionDescription: string,
   projectName: string,
   modelName: string,
-  fixturePath = 'resources/modelsAsService/MaaSSubscription.yaml',
+  fixturePath = 'resources/maas/MaaSSubscription.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating MaaSSubscription "${subscriptionName} through yaml"`);
   return cy.fixture(fixturePath).then((yamlContent: string) => {
@@ -341,7 +341,7 @@ export const createMaaSAuthPolicy = (
   policyName: string,
   projectName: string,
   modelName: string,
-  fixturePath = 'resources/modelsAsService/MaaSAuthPolicy.yaml',
+  fixturePath = 'resources/maas/MaaSAuthPolicy.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating MaaSAuthPolicy "${policyName} through yaml"`);
   return cy.fixture(fixturePath).then((yamlContent: string) => {
@@ -383,28 +383,28 @@ EOF`;
 export const createExternalProviderSecret = (
   projectName: string,
   resourceName: string,
-  fixturePath = 'resources/modelsAsService/ExternalProviderSecret.yaml',
+  fixturePath = 'resources/maas/ExternalProviderSecret.yaml',
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('Secret', projectName, resourceName, fixturePath);
 
 export const createExternalProvider = (
   projectName: string,
   resourceName: string,
-  fixturePath = 'resources/modelsAsService/ExternalProvider.yaml',
+  fixturePath = 'resources/maas/ExternalProvider.yaml',
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('ExternalProvider', projectName, resourceName, fixturePath);
 
 export const createExternalModel = (
   projectName: string,
   resourceName: string,
-  fixturePath = 'resources/modelsAsService/ExternalModel.yaml',
+  fixturePath = 'resources/maas/ExternalModel.yaml',
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('ExternalModel', projectName, resourceName, fixturePath);
 
 export const createMaaSModelRefForExternalModel = (
   projectName: string,
   resourceName: string,
-  fixturePath = 'resources/modelsAsService/MaaSModelRefExternalModel.yaml',
+  fixturePath = 'resources/maas/MaaSModelRefExternalModel.yaml',
 ): Cypress.Chainable<CommandLineResult> =>
   applyExternalModelsFixture('MaaSModelRef', projectName, resourceName, fixturePath, false);
 

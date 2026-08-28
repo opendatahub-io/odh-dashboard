@@ -38,6 +38,7 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         error={undefined}
         labels={mockLabels}
         onManageCollections={jest.fn()}
+        onRegisterData={jest.fn()}
         {...props}
       />
     </MemoryRouter>,
