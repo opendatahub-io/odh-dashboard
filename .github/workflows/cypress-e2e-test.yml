@@ -695,8 +695,8 @@ jobs:
             MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
           fi
           
-          # Convert to objects with dynamic timeout: 30 min base + 7 min per tag
-          MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: (30 + 7 * (split(" ") | length))}]')
+          # Convert to objects with dynamic timeout: 30 min base + 7 min per tag, capped at 360 min
+          MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), 360] | min}]')
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT

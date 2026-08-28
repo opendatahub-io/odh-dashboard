@@ -7,8 +7,9 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
 
 # The jq expression under test (must match cypress-e2e-test.yml "Build test matrix" step)
+MAX_TIMEOUT=360
 compute_timeout() {
-  echo "$1" | jq -c '[.[] | {tag: ., timeout: (30 + 7 * (split(" ") | length))}]'
+  echo "$1" | jq -c --argjson cap "$MAX_TIMEOUT" '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), $cap] | min}]'
 }
 
 # --- Single tag: 30 + 7*1 = 37 ---
@@ -44,6 +45,24 @@ pass "mixed matrix -> [37, 51]"
 OUT=$(compute_timeout '[]')
 echo "$OUT" | jq -e 'length == 0' >/dev/null || fail "empty input should produce empty array"
 pass "empty array -> []"
+
+# --- At the cap boundary: 47 tags → 30 + 7*47 = 359 (just under cap) ---
+TAGS_47=$(printf '@T%d ' $(seq 1 47) | sed 's/ $//')
+OUT=$(compute_timeout "[\"$TAGS_47\"]")
+echo "$OUT" | jq -e '.[0].timeout == 359' >/dev/null || fail "47 tags should be 359 (under cap), got $(echo "$OUT" | jq '.[0].timeout')"
+pass "47 tags -> 359 min (just under cap)"
+
+# --- Exactly at cap: 48 tags → 30 + 7*48 = 366, capped to 360 ---
+TAGS_48=$(printf '@T%d ' $(seq 1 48) | sed 's/ $//')
+OUT=$(compute_timeout "[\"$TAGS_48\"]")
+echo "$OUT" | jq -e ".[0].timeout == $MAX_TIMEOUT" >/dev/null || fail "48 tags should be capped at $MAX_TIMEOUT, got $(echo "$OUT" | jq '.[0].timeout')"
+pass "48 tags -> $MAX_TIMEOUT min (capped)"
+
+# --- Well above cap: 100 tags → 30 + 7*100 = 730, capped to 360 ---
+TAGS_100=$(printf '@T%d ' $(seq 1 100) | sed 's/ $//')
+OUT=$(compute_timeout "[\"$TAGS_100\"]")
+echo "$OUT" | jq -e ".[0].timeout == $MAX_TIMEOUT" >/dev/null || fail "100 tags should be capped at $MAX_TIMEOUT, got $(echo "$OUT" | jq '.[0].timeout')"
+pass "100 tags -> $MAX_TIMEOUT min (capped)"
 
 echo ""
 echo "All tests passed."
