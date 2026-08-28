@@ -90,7 +90,7 @@ type UseAutoragResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
-  refetch: () => void;
+  refetch: () => Promise<void>;
   ragPatternsBasePath?: string;
 };
 
@@ -140,7 +140,6 @@ export function useAutoragResults(
     isLoading: isTemplatesOptimizationLoading,
     isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
-    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory
@@ -380,11 +379,13 @@ export function useAutoragResults(
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
   const queryClient = useQueryClient();
-  const refetch = React.useCallback(() => {
-    refetchTemplatesOptimization();
-    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
-  }, [refetchTemplatesOptimization, queryClient, namespace]);
+  const refetch = React.useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
+      queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] }),
+      queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] }),
+    ]);
+  }, [queryClient, namespace]);
 
   return {
     patterns,

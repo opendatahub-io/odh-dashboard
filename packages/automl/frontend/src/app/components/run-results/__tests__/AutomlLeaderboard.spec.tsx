@@ -195,7 +195,7 @@ interface RenderWithContextOptions {
   modelsLoading?: boolean;
   modelsError?: boolean;
   modelsLoadError?: Error;
-  onRetryModels?: () => void;
+  onRetryModels?: () => Promise<void>;
   taskType?: string;
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;

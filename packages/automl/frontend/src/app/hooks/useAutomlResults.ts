@@ -26,7 +26,7 @@ type UseAutomlResultsReturn = {
   isError: boolean;
   error: Error | undefined;
   modelsBasePath?: string;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 };
 
 /**
@@ -91,7 +91,6 @@ export function useAutomlResults(
     data: runLevelFiles,
     isLoading: isRunLevelLoading,
     isError: isRunLevelError,
-    refetch: refetchRunLevel,
   } = useS3ListFilesQuery(namespace, runLevelPrefix);
 
   // Find the training task directory whose name starts with the expected pattern
@@ -109,7 +108,6 @@ export function useAutomlResults(
     isLoading: isS3Loading,
     isFetching: isS3Fetching,
     isError: isS3Error,
-    refetch: refetchS3Files,
   } = useS3ListFilesQuery(namespace, candidateModelsPrefix);
 
   // Only expose modelsBasePath when S3 listing succeeded and returned results
@@ -333,12 +331,13 @@ export function useAutomlResults(
     : undefined;
 
   const queryClient = useQueryClient();
-  const refetch = React.useCallback(() => {
-    refetchRunLevel();
-    refetchS3Files();
-    queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
-    queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
-  }, [refetchRunLevel, refetchS3Files, queryClient, namespace]);
+  const refetch = React.useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['s3Files', namespace] }),
+      queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] }),
+      queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] }),
+    ]);
+  }, [queryClient, namespace]);
 
   return {
     models,

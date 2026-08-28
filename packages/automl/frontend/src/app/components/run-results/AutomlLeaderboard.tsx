@@ -857,7 +857,10 @@ function AutomlLeaderboard({
           <EmptyStateBody>An error occurred while loading model results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryModels}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryModels?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>

@@ -223,7 +223,7 @@ interface RenderWithContextOptions {
   patternsLoading?: boolean;
   patternsError?: boolean;
   patternsLoadError?: Error;
-  onRetryPatterns?: () => void;
+  onRetryPatterns?: () => Promise<void>;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';

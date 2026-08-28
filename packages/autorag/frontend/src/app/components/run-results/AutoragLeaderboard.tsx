@@ -970,7 +970,10 @@ function AutoragLeaderboard({
           <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryPatterns}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryPatterns?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>
