@@ -695,9 +695,9 @@ jobs:
             MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
           fi
           
-          # Ensure compact JSON for GitHub Actions output
-          MATRIX=$(echo "$MATRIX" | jq -c '.')
-          
+          # Convert to objects with dynamic timeout: 30 min base + 7 min per tag
+          MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: (30 + 7 * (split(" ") | length))}]')
+
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
           echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
@@ -774,11 +774,11 @@ jobs:
       !cancelled() && !failure() &&
       needs.select-cluster.result == 'success'
     runs-on: self-hosted
-    timeout-minutes: 90
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
-        tag: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
+        include: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
