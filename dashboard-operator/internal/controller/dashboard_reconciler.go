@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -18,10 +19,16 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -1020,11 +1027,80 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	// resources trigger re-reconciliation. During Removed state the extra
 	// reconcile is harmless — teardown is idempotent and bounded by the
 	// number of owned resources.
+	//
+	// Watches() on ConfigMap tracks the platform config ConfigMaps that feed
+	// reconcile inputs but are not owned by the Dashboard CR (they are managed
+	// by the platform operator). Without this, a platform-driven change such as
+	// a platformVersion bump in odh-dashboard-config would not trigger a
+	// reconcile, leaving status.releases[platform].version stale until an
+	// unrelated event fired (RHOAIENG-81919).
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
+			builder.WithPredicates(r.configMapPredicate()),
+		).
 		Complete(r)
+}
+
+// watchedConfigMaps returns the set of ConfigMap names, in the operator
+// namespace, whose contents feed reconcile inputs: platform version and
+// distribution identity (odh-dashboard-config), and the reconcile interval
+// (dashboard-operator-config). Changes to these must trigger a reconcile so the
+// Dashboard status stays fresh even when nothing else touches the CR
+// (RHOAIENG-81919).
+func watchedConfigMaps() map[string]bool {
+	return map[string]bool{
+		distributionConfigMapName: true,
+		operatorConfigMapName:     true,
+	}
+}
+
+// mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
+// one of the watched config ConfigMaps in the operator namespace changes.
+func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
+	if obj.GetNamespace() != r.Namespace || !watchedConfigMaps()[obj.GetName()] {
+		return nil
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	}}
+}
+
+// configMapPredicate limits ConfigMap events to the watched config ConfigMaps in
+// the operator namespace. For updates it fires only when Data or Annotations
+// changed, avoiding no-op reconciles from metadata churn (e.g. resourceVersion
+// bumps or managed-field rewrites). Annotations are compared because the
+// distribution identity may arrive as orchestrator annotations, not just data
+// keys (see readDistributionConfig).
+func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
+	isWatched := func(obj client.Object) bool {
+		return obj != nil && obj.GetNamespace() == r.Namespace && watchedConfigMaps()[obj.GetName()]
+	}
+
+	return predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return isWatched(e.Object) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return isWatched(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return isWatched(e.Object) },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if !isWatched(e.ObjectNew) {
+				return false
+			}
+
+			oldCM, oldOK := e.ObjectOld.(*corev1.ConfigMap)
+			newCM, newOK := e.ObjectNew.(*corev1.ConfigMap)
+			if !oldOK || !newOK {
+				return true
+			}
+
+			return !maps.Equal(oldCM.Data, newCM.Data) ||
+				!maps.Equal(oldCM.Annotations, newCM.Annotations)
+		},
+	}
 }
