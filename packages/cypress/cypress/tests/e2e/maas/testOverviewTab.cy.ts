@@ -110,7 +110,7 @@ describe('MaaS Governance Overview tab', () => {
 
   it(
     'should render the overview table and support group-chip highlighting within a model row',
-    { tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent', '@MaaSCI'] },
+    { tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@MaaSCI'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
