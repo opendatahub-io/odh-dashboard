@@ -3,8 +3,7 @@
 projectResourceName: 'test-maas-overview-tab'
 singleModelName: 'test-maas-overview-model'
 singleModelDescription: 'Model for testing MaaS'
-connectionNameSuffix: '-connection'
-modelLocationURI: 'hf://facebook/opt-125m'
+llmInferenceServiceFixturePath: 'resources/maas/llmInferenceserviceWithMaasEnabled.yaml'
 # Subscriptions
 subscriptionName: 'test-maas-overview-sub'
 subscriptionDescription: 'Cypress test: MaaS subscription for overview tab'

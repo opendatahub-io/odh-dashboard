@@ -245,7 +245,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   it(
     'Verify auth policy group removal revokes model access',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaSCI', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@MaaSCI'],
     },
     () => {
       cy.step('Log into the application as admin');

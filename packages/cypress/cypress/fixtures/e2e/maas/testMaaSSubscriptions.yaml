@@ -1,5 +1,4 @@
 # testMaaSSubscriptions.cy.ts Test Data #
-modelLocationURI: 'hf://placeholder/no-model'
 projectResourceName: 'maas-subs-project'
 singleModelName: 'maasmodel'
 singleModelDescription: 'Model for testing MaaS'
