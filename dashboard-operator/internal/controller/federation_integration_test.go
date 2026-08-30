@@ -61,6 +61,21 @@ func TestIntegration_AddInterBFFParams(t *testing.T) {
 	maasParams := readParamsEnv(t, filepath.Join(manifests, "modules", "maas", "params.env"))
 	assert.NotContains(t, maasParams, "BFF_MAAS_SERVICE_NAME")
 	assert.NotContains(t, maasParams, "BFF_MAAS_SERVICE_PORT")
+
+	// Disable maas and reconcile again. gen-ai stays deployed (it has no hard
+	// dependency on maas), so its params.env is rewritten — the now-stale maas
+	// service coordinates must be removed rather than lingering.
+	dashboard = getDashboard(t)
+	dashboard.Spec.Modules = disableAllModulesExcept("genAi")
+	require.NoError(t, k8sClient.Update(ctx, dashboard))
+
+	reconcile(t, r)
+
+	genAiParams = readParamsEnv(t, filepath.Join(manifests, "modules", "gen-ai", "params.env"))
+	assert.NotContains(t, genAiParams, "BFF_MAAS_SERVICE_NAME",
+		"stale maas coordinates should be removed once maas is disabled")
+	assert.NotContains(t, genAiParams, "BFF_MAAS_SERVICE_PORT",
+		"stale maas coordinates should be removed once maas is disabled")
 }
 
 // TestIntegration_FederationConfigMap_AllModulesEnabled verifies that with all

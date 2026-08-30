@@ -345,6 +345,12 @@ func addInterBFFParams(params map[string]string, moduleName string, statuses map
 		return
 	}
 	for _, dep := range mod.InterBFFDeps {
+		// Clear any previously written coordinates first. params.env persists across
+		// reconciles, so a dependency that is no longer deployed must not leave stale
+		// service coordinates behind.
+		delete(params, dep.EnvServiceName)
+		delete(params, dep.EnvServicePort)
+
 		targetMod, ok := moduleRegistry[dep.TargetModule]
 		if !ok {
 			continue
