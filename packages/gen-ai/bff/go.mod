@@ -1,8 +1,6 @@
 module github.com/opendatahub-io/gen-ai
 
-go 1.24.6
-
-toolchain go1.24.7
+go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
@@ -80,7 +78,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.7 // indirect
-	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
+	github.com/google/pprof v0.0.0-20260825171938-4d453200e7d9 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
