@@ -4,6 +4,9 @@
   "private": true,
   "description": "Cypress tests for the ODH Dashboard.",
   "types": "./cypress/support/commands/index.ts",
+  "nyc": {
+    "reporter": ["json", "lcovonly", "text-summary"]
+  },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
