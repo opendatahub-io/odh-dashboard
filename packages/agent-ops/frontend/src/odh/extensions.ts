@@ -22,42 +22,6 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       featureFlags: ['agentOpsDeploy'],
     },
   },
-  // --- Native agent-sandbox CRs (RHOAI login / Token A) ---
-  // Demoted from a peer tab to a discreet top-right link on the OpenShell
-  // landing (see OpenShellProviders). This is a standalone page (not a tab) so
-  // it is less first-class than OpenShell, per the target IA. The splat path
-  // lets AgentDeploymentsRoutes resolve its own index + :namespace; the more
-  // specific detail/wizard routes below out-rank it.
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/deployments/*',
-      component: () => import('./AgentDeploymentsWrapper.tsx'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS, 'agent-ops-deploy'],
-    },
-    properties: {
-      path: '/ai-hub/agents/deployments/:namespace/:agentId/*',
-      component: () => import('./AgentDeploymentDetailRoutes.tsx'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS, 'agent-ops-deploy'],
-    },
-    properties: {
-      path: '/ai-hub/agents/deployments/deploy',
-      component: () => import('./AgentDeployWizardRoutes.tsx'),
-    },
-  },
   // --- Provider chooser — the "Deployments" tab ---
   // ONE tab on the shared `agents-tab-page` (model-registry contributes
   // "Catalog", a future module "Registry"). Its landing compares sandbox
@@ -66,8 +30,6 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   // only this one is active, core's single-tab mode hides the lone bar and
   // renders just the page title + this component. Workspaces/projects are
   // selectors inside their provider views, never tables or tabs.
-  // id 'openshell' (not 'deployments') so the landing URL doesn't collide with
-  // the native /ai-hub/agents/deployments route.
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -75,7 +37,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
     properties: {
       pageId: AGENTS_TAB_PAGE,
-      id: 'openshell',
+      id: 'deployments',
       title: 'Deployments',
       singleTabTitle: 'Agents',
       component: () => import('./openshell/DeploymentsWrapper'),
@@ -101,36 +63,6 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     properties: {
       path: '/ai-hub/agents/oidc/silent-callback',
       component: () => import('./openshell/OpenShellOidcCallback'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace',
-      component: () => import('./openshell/WorkspaceDetailWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace/sandboxes/:sandbox',
-      component: () => import('./openshell/SandboxDetailWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace/providers/:provider',
-      component: () => import('./openshell/ProviderDetailWrapper'),
     },
   },
 ];

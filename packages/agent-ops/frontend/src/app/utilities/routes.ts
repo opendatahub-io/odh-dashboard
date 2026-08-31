@@ -1,24 +1,26 @@
-export const agentOpsRootPath = '/ai-hub/agents';
+export const agentsRootPath = '/ai-hub/agents';
+export const agentDeploymentsPath = `${agentsRootPath}/deployments`;
+export const openShellProviderPath = `${agentDeploymentsPath}/providers/openshell`;
+export const nativeProviderPath = `${agentDeploymentsPath}/providers/native`;
+export const nativeProviderProjectPathPattern = `${nativeProviderPath}/projects/:namespace`;
+export const nativeProviderSandboxPathPattern = `${nativeProviderProjectPathPattern}/sandboxes/:agentId/*`;
+export const nativeProviderCreatePathPattern = `${nativeProviderProjectPathPattern}/create`;
 
-export const globAgentOpsAll = `${agentOpsRootPath}/*`;
-
-export const agentDeploymentsPath = `${agentOpsRootPath}/deployments`;
-
-export const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
-
-/** Paths registered as full-page app.route breakouts (outside the Agents tab layout). */
-export const agentOpsStandaloneRoutePaths = [
-  agentDeployWizardPath,
-  `${agentDeploymentsPath}/:namespace/:agentId/*`,
-] as const;
-
-export const getAgentDeployWizardRoute = (): string => agentDeployWizardPath;
+export const openShellSandboxRoute = (workspace: string, sandbox: string, tab?: string): string =>
+  `${openShellProviderPath}/workspaces/${encodeURIComponent(workspace)}/sandboxes/${encodeURIComponent(
+    sandbox,
+  )}${tab ? `?tab=${encodeURIComponent(tab)}` : ''}`;
 
 export const agentOpsDeploymentsRoute = (namespace?: string): string =>
-  !namespace ? agentDeploymentsPath : `${agentDeploymentsPath}/${encodeURIComponent(namespace)}`;
+  !namespace
+    ? nativeProviderPath
+    : `${nativeProviderPath}/projects/${encodeURIComponent(namespace)}`;
 
 export const agentOpsDeploymentDetailRoute = (namespace: string, agentId: string): string =>
-  `${agentDeploymentsPath}/${encodeURIComponent(namespace)}/${encodeURIComponent(agentId)}`;
+  `${agentOpsDeploymentsRoute(namespace)}/sandboxes/${encodeURIComponent(agentId)}`;
+
+export const getAgentDeployWizardRoute = (namespace: string): string =>
+  `${agentOpsDeploymentsRoute(namespace)}/create`;
 
 /** Guards in-app navigation targets passed via location.state. */
 export const isSafeAgentOpsInternalRoute = (path: unknown): boolean => {
@@ -39,7 +41,7 @@ export const isSafeAgentOpsInternalRoute = (path: unknown): boolean => {
 
   try {
     const { pathname } = new URL(path, 'http://localhost');
-    return pathname === agentOpsRootPath || pathname.startsWith(`${agentOpsRootPath}/`);
+    return pathname === nativeProviderPath || pathname.startsWith(`${nativeProviderPath}/`);
   } catch {
     return false;
   }

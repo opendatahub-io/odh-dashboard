@@ -49,7 +49,11 @@ const persistTab = (pageId: string, tabId: string): void => {
 const getDefaultTab = (
   pageId: string,
   tabExtensions: LoadedExtension<TabRouteTabExtension>[],
+  configuredDefault?: string,
 ): string => {
+  if (configuredDefault && tabExtensions.some((tab) => tab.properties.id === configuredDefault)) {
+    return configuredDefault;
+  }
   const persisted = getPersistedTab(pageId);
   if (persisted && tabExtensions.some((t) => t.properties.id === persisted)) {
     return persisted;
@@ -66,6 +70,7 @@ type MultiTabContentProps = {
   extension: LoadedExtension<TabRoutePageExtension>;
   defaultTab: string;
   tabContentFallback: React.ReactNode;
+  notFoundOnUnknownTab?: boolean;
 };
 
 const MultiTabContent: React.FC<MultiTabContentProps> = ({
@@ -74,6 +79,7 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
   extension,
   defaultTab,
   tabContentFallback,
+  notFoundOnUnknownTab = false,
 }) => {
   const { tabId = '' } = useParams<{ tabId: string }>();
   const navigate = useNavigate();
@@ -81,7 +87,7 @@ const MultiTabContent: React.FC<MultiTabContentProps> = ({
   const activeTab = tabExtensions.find((t) => t.properties.id === tabId);
 
   if (!activeTab) {
-    return <Navigate to={`../${defaultTab}`} replace />;
+    return notFoundOnUnknownTab ? <NotFound /> : <Navigate to={`../${defaultTab}`} replace />;
   }
 
   return (
@@ -162,7 +168,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     </PageSection>
   );
 
-  const defaultTab = getDefaultTab(pageId, tabExtensions);
+  const defaultTab = getDefaultTab(pageId, tabExtensions, extension.properties.defaultTab);
 
   const isSingleTab = tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar;
   const singleTab = isSingleTab ? tabExtensions[0] : undefined;
@@ -194,6 +200,12 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     return (
       <Routes>
         <Route
+          index
+          element={
+            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
+          }
+        />
+        <Route
           path={`${singleTab.properties.id}/*`}
           element={
             <>
@@ -208,7 +220,11 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
         <Route
           path="*"
           element={
-            <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
+            extension.properties.notFoundOnUnknownTab ? (
+              <NotFound />
+            ) : (
+              <Navigate to={`${extension.properties.href}/${singleTab.properties.id}`} replace />
+            )
           }
         />
       </Routes>
@@ -219,6 +235,10 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   return (
     <Routes>
       <Route
+        index
+        element={<Navigate to={`${extension.properties.href}/${defaultTab}`} replace />}
+      />
+      <Route
         path=":tabId/*"
         element={
           <MultiTabContent
@@ -227,12 +247,19 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
             extension={extension}
             defaultTab={defaultTab}
             tabContentFallback={tabContentFallback}
+            notFoundOnUnknownTab={extension.properties.notFoundOnUnknownTab}
           />
         }
       />
       <Route
         path="*"
-        element={<Navigate to={`${extension.properties.href}/${defaultTab}`} replace />}
+        element={
+          extension.properties.notFoundOnUnknownTab ? (
+            <NotFound />
+          ) : (
+            <Navigate to={`${extension.properties.href}/${defaultTab}`} replace />
+          )
+        }
       />
     </Routes>
   );

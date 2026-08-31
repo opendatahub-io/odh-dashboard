@@ -252,6 +252,25 @@ describe('TabRoutePage', () => {
       // Should redirect to default (first sorted) tab and render its content
       expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
     });
+
+    it('should render Not Found for an invalid tab when configured', () => {
+      mockUseExtensions.mockReturnValue([tab1, tab2]);
+      const extension = createPageExtension({ notFoundOnUnknownTab: true });
+
+      renderWithRouter(extension, '/test/nonexistent');
+
+      expect(screen.getByTestId('not-found')).toBeInTheDocument();
+    });
+
+    it('should prefer the configured default over the remembered tab', () => {
+      sessionStorage.setItem(`${SESSION_STORAGE_PREFIX}test-page`, 'tab-a');
+      mockUseExtensions.mockReturnValue([tab1, tab2]);
+      const extension = createPageExtension({ defaultTab: 'tab-b' });
+
+      renderWithRouter(extension, '/test');
+
+      expect(sessionStorage.getItem(`${SESSION_STORAGE_PREFIX}test-page`)).toBe('tab-b');
+    });
   });
 
   describe('session storage', () => {

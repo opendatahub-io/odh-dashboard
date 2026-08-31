@@ -3,6 +3,11 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AgentDeploymentDetailGate from '~/app/components/AgentDeploymentDetailGate';
+import {
+  agentOpsDeploymentDetailRoute,
+  nativeProviderProjectPathPattern,
+  nativeProviderSandboxPathPattern,
+} from '~/app/utilities/routes';
 
 const mockUseAgentOpsDeploy = jest.fn();
 
@@ -15,10 +20,10 @@ describe('AgentDeploymentDetailGate', () => {
     mockUseAgentOpsDeploy.mockReturnValue(false);
 
     render(
-      <MemoryRouter initialEntries={['/ai-hub/agents/deployments/team1/my-agent']}>
+      <MemoryRouter initialEntries={[agentOpsDeploymentDetailRoute('team1', 'my-agent')]}>
         <Routes>
           <Route
-            path="/ai-hub/agents/deployments/:namespace/:agentId/*"
+            path={nativeProviderSandboxPathPattern}
             element={
               <AgentDeploymentDetailGate>
                 <div data-testid="detail-content">Detail page</div>
@@ -26,7 +31,7 @@ describe('AgentDeploymentDetailGate', () => {
             }
           />
           <Route
-            path="/ai-hub/agents/deployments/:namespace"
+            path={nativeProviderProjectPathPattern}
             element={<div data-testid="list-page">List</div>}
           />
         </Routes>
@@ -41,10 +46,10 @@ describe('AgentDeploymentDetailGate', () => {
     mockUseAgentOpsDeploy.mockReturnValue(true);
 
     render(
-      <MemoryRouter initialEntries={['/ai-hub/agents/deployments/team1/my-agent']}>
+      <MemoryRouter initialEntries={[agentOpsDeploymentDetailRoute('team1', 'my-agent')]}>
         <Routes>
           <Route
-            path="/ai-hub/agents/deployments/:namespace/:agentId/*"
+            path={nativeProviderSandboxPathPattern}
             element={
               <AgentDeploymentDetailGate>
                 <div data-testid="detail-content">Detail page</div>

@@ -36,6 +36,10 @@ export type TabRoutePageExtension = Extension<
     objectType?: string;
     /** When true, renders the tab bar even if only one tab is registered. */
     alwaysShowTabBar?: boolean;
+    /** Preferred tab for the page root. Falls back to the remembered or first available tab. */
+    defaultTab?: string;
+    /** Render Not Found instead of redirecting when the URL names an unknown tab. */
+    notFoundOnUnknownTab?: boolean;
   }
 >;
 

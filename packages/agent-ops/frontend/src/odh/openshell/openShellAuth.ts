@@ -1,4 +1,5 @@
 import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts';
+import { openShellProviderPath } from '~/app/utilities/routes';
 
 /**
  * Browser-side OpenShell (Token B) authentication for the RHOAI double-auth
@@ -58,7 +59,7 @@ export const OPENSHELL_AUTH_HEADER = 'X-OpenShell-Authorization';
 // Intentionally OUTSIDE the /openshell/* prefix (which is reverse-proxied to the
 // BFF) so these resolve as SPA routes. Register both as redirect URIs in Keycloak.
 const AGENTS_ROOT = '/ai-hub/agents';
-const OPENSHELL_HOME = '/ai-hub/agents/openshell/provider/openshell';
+const OPENSHELL_HOME = openShellProviderPath;
 export const OIDC_CALLBACK_PATH = `${AGENTS_ROOT}/oidc/callback`;
 export const OIDC_SILENT_CALLBACK_PATH = `${AGENTS_ROOT}/oidc/silent-callback`;
 

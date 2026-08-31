@@ -26,7 +26,7 @@ export const useNavigateToDeployAgentWizard = (): ((namespace?: string) => void)
         returnRoute,
       };
 
-      navigate(getAgentDeployWizardRoute(), { state });
+      navigate(getAgentDeployWizardRoute(namespace), { state });
     },
     [navigate, location.pathname],
   );

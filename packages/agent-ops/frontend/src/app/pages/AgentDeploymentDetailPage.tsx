@@ -33,7 +33,7 @@ import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import { hasEnrichedAgentCard } from '~/app/utilities/agentCardUtils';
 import { getAgentRuntimeStatusMessage } from '~/app/utilities/agentRuntimeConditions';
 import { readSparseRuntimeDetailTitle } from '~/app/utilities/sparseApiFields';
-import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
+import { agentDeploymentsPath, agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 const AgentDeploymentDetailPage: React.FC = () => {
   const { namespace, agentId } = useParams<{ namespace: string; agentId: string }>();
@@ -45,7 +45,10 @@ const AgentDeploymentDetailPage: React.FC = () => {
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={agentOpsDeploymentsRoute(namespace)}>Agent deployments</Link>
+        <Link to={agentDeploymentsPath}>All providers</Link>
+      </BreadcrumbItem>
+      <BreadcrumbItem>
+        <Link to={agentOpsDeploymentsRoute(namespace)}>Agent sandbox CRs</Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{detail?.name ?? agentId}</BreadcrumbItem>
     </Breadcrumb>
@@ -73,24 +76,24 @@ const AgentDeploymentDetailPage: React.FC = () => {
           isAccessDenied
             ? 'Access permissions needed'
             : isNotFound
-            ? 'Agent not found'
-            : 'Error loading agent'
+              ? 'Agent not found'
+              : 'Error loading agent'
         }
         variant={EmptyStateVariant.lg}
         data-testid={
           isAccessDenied
             ? 'agent-detail-access-denied'
             : isNotFound
-            ? 'agent-detail-not-found'
-            : 'agent-detail-error'
+              ? 'agent-detail-not-found'
+              : 'agent-detail-error'
         }
       >
         <EmptyStateBody>
           {isAccessDenied
             ? 'You do not have permission to view this agent deployment.'
             : isNotFound
-            ? `No agent "${agentId ?? 'unknown'}" was found in project "${namespace ?? 'unknown'}".`
-            : 'Unable to load agent details. Please try again later.'}
+              ? `No agent "${agentId ?? 'unknown'}" was found in project "${namespace ?? 'unknown'}".`
+              : 'Unable to load agent details. Please try again later.'}
         </EmptyStateBody>
       </EmptyState>
     </PageSection>

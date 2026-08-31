@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import AgentDeploymentDetailGate from '~/app/components/AgentDeploymentDetailGate';
 import AgentDeployWizardPage from '~/app/deployWizard/AgentDeployWizardPage';
 import AgentOpsFederatedProviders from './AgentOpsFederatedProviders';
 import ProjectsBridgeProviderWrapper from './components/ProjectsBridgeProviderWrapper';
@@ -7,9 +7,9 @@ import ProjectsBridgeProviderWrapper from './components/ProjectsBridgeProviderWr
 const AgentDeployWizardRoutes: React.FC = () => (
   <AgentOpsFederatedProviders>
     <ProjectsBridgeProviderWrapper>
-      <Routes>
-        <Route path="*" element={<AgentDeployWizardPage />} />
-      </Routes>
+      <AgentDeploymentDetailGate>
+        <AgentDeployWizardPage />
+      </AgentDeploymentDetailGate>
     </ProjectsBridgeProviderWrapper>
   </AgentOpsFederatedProviders>
 );

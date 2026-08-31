@@ -5,6 +5,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { DeployAgentWizardFormData } from '~/app/deployWizard/types';
 import { useDeployAgentSubmit } from '~/app/deployWizard/useDeployAgentSubmit';
+import { agentOpsDeploymentDetailRoute } from '~/app/utilities/routes';
 
 const mockNavigate = jest.fn();
 const mockDeployAgent = jest.fn();
@@ -105,7 +106,7 @@ describe('useDeployAgentSubmit', () => {
       }),
     );
     expect(mockSuccess).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1/my-agent');
+    expect(mockNavigate).toHaveBeenCalledWith(agentOpsDeploymentDetailRoute('team1', 'my-agent'));
     expect(result.current.deployError).toBeNull();
   });
 

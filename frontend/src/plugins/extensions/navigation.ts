@@ -82,6 +82,8 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       section: 'ai-hub',
       objectType: 'agent-ops',
       label: 'Dev Preview',
+      defaultTab: 'deployments',
+      notFoundOnUnknownTab: true,
     },
   },
   {

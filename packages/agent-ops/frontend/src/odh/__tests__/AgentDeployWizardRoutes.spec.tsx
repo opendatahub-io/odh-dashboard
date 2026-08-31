@@ -5,7 +5,12 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AgentDeployWizardPage from '~/app/deployWizard/AgentDeployWizardPage';
 import AgentDeployWizardRoutes from '~/odh/AgentDeployWizardRoutes';
-import { agentDeployWizardPath } from '~/app/utilities/routes';
+import {
+  agentOpsDeploymentsRoute,
+  getAgentDeployWizardRoute,
+  nativeProviderCreatePathPattern,
+  nativeProviderPath,
+} from '~/app/utilities/routes';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -116,10 +121,15 @@ jest.mock('~/odh/components/ProjectsBridgeProviderWrapper', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+jest.mock('~/app/hooks/useAgentOpsDeploy', () => ({
+  useAgentOpsDeploy: () => true,
+}));
+
 const wizardLocationState = {
   namespace: 'aa-fede',
-  returnRoute: '/ai-hub/agents/deployments/aa-fede',
+  returnRoute: agentOpsDeploymentsRoute('aa-fede'),
 };
+const wizardPath = getAgentDeployWizardRoute('aa-fede');
 
 const renderWithQueryClient = (ui: React.ReactElement) => {
   const queryClient = new QueryClient({
@@ -133,37 +143,36 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
 };
 
 describe('AgentDeployWizardRoutes', () => {
-  it('renders the deploy wizard when mounted as a host app.route breakout', () => {
+  it('renders the deploy wizard at the canonical nested route', () => {
     renderWithQueryClient(
       <MemoryRouter
         initialEntries={[
           {
-            pathname: agentDeployWizardPath,
+            pathname: wizardPath,
             state: wizardLocationState,
           },
         ]}
       >
         <Routes>
-          <Route path={agentDeployWizardPath} element={<AgentDeployWizardRoutes />} />
+          <Route path={nativeProviderCreatePathPattern} element={<AgentDeployWizardRoutes />} />
         </Routes>
       </MemoryRouter>,
     );
 
     expect(screen.getByText('Deploy agent')).toBeInTheDocument();
-    expect(screen.getByTestId('deploy-agent-project-select')).toBeInTheDocument();
+    expect(screen.getByTestId('deploy-agent-container-image')).toBeInTheDocument();
   });
 
-  it('redirects to deployments when wizard state is missing', () => {
-    render(
-      <MemoryRouter initialEntries={[agentDeployWizardPath]}>
+  it('supports a direct canonical URL without location state', () => {
+    renderWithQueryClient(
+      <MemoryRouter initialEntries={[wizardPath]}>
         <Routes>
-          <Route path={agentDeployWizardPath} element={<AgentDeployWizardPage />} />
-          <Route path="/ai-hub/agents/deployments" element={<div>Deployments list</div>} />
+          <Route path={nativeProviderCreatePathPattern} element={<AgentDeployWizardPage />} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Deployments list')).toBeInTheDocument();
+    expect(screen.getByText('Deploy agent')).toBeInTheDocument();
   });
 
   it('redirects to deployments when namespace is invalid', () => {
@@ -171,17 +180,17 @@ describe('AgentDeployWizardRoutes', () => {
       <MemoryRouter
         initialEntries={[
           {
-            pathname: agentDeployWizardPath,
+            pathname: getAgentDeployWizardRoute('INVALID_NAME'),
             state: {
               namespace: 'INVALID_NAME',
-              returnRoute: '/ai-hub/agents/deployments/INVALID_NAME',
+              returnRoute: agentOpsDeploymentsRoute('INVALID_NAME'),
             },
           },
         ]}
       >
         <Routes>
-          <Route path={agentDeployWizardPath} element={<AgentDeployWizardPage />} />
-          <Route path="/ai-hub/agents/deployments" element={<div>Deployments list</div>} />
+          <Route path={nativeProviderCreatePathPattern} element={<AgentDeployWizardPage />} />
+          <Route path={nativeProviderPath} element={<div>Deployments list</div>} />
         </Routes>
       </MemoryRouter>,
     );

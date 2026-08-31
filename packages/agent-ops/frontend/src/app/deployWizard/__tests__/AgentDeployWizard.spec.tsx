@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import AgentDeployWizard from '~/app/deployWizard/AgentDeployWizard';
 import { DeployAgentWizardStepTitle } from '~/app/deployWizard/types';
+import { agentOpsDeploymentDetailRoute, agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 const mockNavigate = jest.fn();
 const mockDeployAgent = jest.fn();
@@ -283,16 +284,16 @@ describe('AgentDeployWizard', () => {
     renderWizard();
 
     await user.click(screen.getByTestId('deploy-agent-wizard-cancel'));
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
+    expect(mockNavigate).toHaveBeenCalledWith(agentOpsDeploymentsRoute('team1'));
   });
 
   it('navigates to returnRoute on cancel when provided', async () => {
     const user = userEvent.setup();
 
-    renderWizard({ returnRoute: '/ai-hub/agents/deployments/team1/my-agent' });
+    renderWizard({ returnRoute: agentOpsDeploymentDetailRoute('team1', 'my-agent') });
 
     await user.click(screen.getByTestId('deploy-agent-wizard-cancel'));
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1/my-agent');
+    expect(mockNavigate).toHaveBeenCalledWith(agentOpsDeploymentDetailRoute('team1', 'my-agent'));
   });
 
   it('keeps Next disabled when agent name is cleared', async () => {
@@ -317,7 +318,7 @@ describe('AgentDeployWizard', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
 
     await user.click(screen.getByTestId('exit-deploy-agent-discard-button'));
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
+    expect(mockNavigate).toHaveBeenCalledWith(agentOpsDeploymentsRoute('team1'));
   });
 
   it('closes exit modal on cancel without navigating', async () => {
@@ -372,7 +373,7 @@ describe('AgentDeployWizard', () => {
   it('deploys agent and navigates to detail page when submitted on the final step', async () => {
     const user = userEvent.setup();
 
-    renderWizard({ returnRoute: '/ai-hub/agents/deployments/team1' });
+    renderWizard({ returnRoute: agentOpsDeploymentsRoute('team1') });
 
     await user.type(screen.getByTestId('deploy-agent-container-image'), 'quay.io/myorg/my-agent');
     await user.click(screen.getByTestId('deploy-agent-wizard-next'));
@@ -410,7 +411,7 @@ describe('AgentDeployWizard', () => {
       );
     });
     expect(mockNotificationSuccess).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1/my-agent');
+    expect(mockNavigate).toHaveBeenCalledWith(agentOpsDeploymentDetailRoute('team1', 'my-agent'));
   });
 
   it('shows networking step subtitle once without external access controls', async () => {

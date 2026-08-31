@@ -24,7 +24,6 @@ const SandboxDetailWrapper: React.FC = () => {
           <BreadcrumbItem>
             <Link to={OPENSHELL_PROVIDER_PATH}>OpenShell</Link>
           </BreadcrumbItem>
-          <BreadcrumbItem>{workspace}</BreadcrumbItem>
           <BreadcrumbItem isActive>{sandbox}</BreadcrumbItem>
         </Breadcrumb>
       </PageBreadcrumb>
