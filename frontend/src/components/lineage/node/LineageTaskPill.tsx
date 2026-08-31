@@ -118,6 +118,27 @@ const calculatePillDimensions = (
   };
 };
 
+const adjustDimensionsForAccentStrip = (
+  dimensions: TaskPillDimensions,
+  accentStripWidth: number,
+  paddingX: number,
+): TaskPillDimensions => {
+  const minTextStartX = accentStripWidth + paddingX;
+  if (dimensions.textStartX >= minTextStartX) {
+    return dimensions;
+  }
+
+  const textOffsetDelta = minTextStartX - dimensions.textStartX;
+  return {
+    ...dimensions,
+    textStartX: minTextStartX,
+    badgeStartX: dimensions.badgeStartX + textOffsetDelta,
+    actionStartX: dimensions.actionStartX + textOffsetDelta,
+    contextStartX: dimensions.contextStartX + textOffsetDelta,
+    pillWidth: dimensions.pillWidth + textOffsetDelta,
+  };
+};
+
 /**
  * Stores pill dimensions in element data for anchor positioning
  * Optimized to avoid unnecessary object creation and updates
@@ -258,7 +279,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
     // Memoize dimension calculation to avoid recalculation when inputs haven't changed
     const dimensions = useMemo(() => {
-      return calculatePillDimensions(
+      const baseDimensions = calculatePillDimensions(
         textSize,
         textHeight,
         textWidth,
@@ -280,6 +301,13 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         taskIconPadding,
         statusIconSize,
       );
+
+      if (!pillAccentColor) {
+        return baseDimensions;
+      }
+
+      const accentStripWidth = baseDimensions.statusStartX + statusIconSize + paddingX;
+      return adjustDimensionsForAccentStrip(baseDimensions, accentStripWidth, paddingX);
     }, [
       textSize,
       textHeight,
@@ -301,6 +329,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       taskIcon,
       taskIconPadding,
       statusIconSize,
+      pillAccentColor,
     ]);
 
     // Store dimensions immediately after calculation (synchronous)

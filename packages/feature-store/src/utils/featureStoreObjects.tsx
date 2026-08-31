@@ -86,23 +86,21 @@ export const getEntityTypeIcon = (
 
   switch (entityType) {
     case 'entity':
-      return <EntityIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return <EntityIcon style={{ color: iconColor || chartColorBlack.var, ...iconSize }} />;
     case 'batch_data_source':
     case 'push_data_source':
     case 'request_data_source':
-      return <DataSourceIcon style={{ color: iconColor || chartColorBlue.value, ...iconSize }} />;
+      return <DataSourceIcon style={{ color: iconColor || chartColorBlue.var, ...iconSize }} />;
     case 'batch_feature_view':
     case 'on_demand_feature_view':
     case 'stream_feature_view':
-      return (
-        <FeatureViewIcon style={{ color: iconColor || chartColorPurple.value, ...iconSize }} />
-      );
+      return <FeatureViewIcon style={{ color: iconColor || chartColorPurple.var, ...iconSize }} />;
     case 'feature_service':
       return (
-        <FeatureServiceIcon style={{ color: iconColor || chartColorGreen.value, ...iconSize }} />
+        <FeatureServiceIcon style={{ color: iconColor || chartColorGreen.var, ...iconSize }} />
       );
     default:
-      return <CubeIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return <CubeIcon style={{ color: iconColor || chartColorBlack.var, ...iconSize }} />;
   }
 };
 

@@ -1,12 +1,18 @@
+import React from 'react';
 import {
+  chart_color_blue_200 as chartColorBlue,
   chart_color_blue_300 as chartColorBlueAccent,
+  chart_color_green_200 as chartColorGreen,
   chart_color_green_300 as chartColorGreenAccent,
+  chart_color_purple_200 as chartColorPurple,
   chart_color_purple_300 as chartColorPurpleAccent,
+  chart_color_black_500 as chartColorBlack,
   chart_color_black_500 as chartColorBlackAccent,
 } from '@patternfly/react-tokens';
 import {
   getEntityTypeBackgroundColor,
   getEntityTypeAccentColor,
+  getEntityTypeIcon,
   LINEAGE_OBJECT_TYPE_LEGEND,
 } from '../featureStoreObjects';
 
@@ -42,6 +48,20 @@ describe('getEntityTypeAccentColor', () => {
     expect(getEntityTypeAccentColor('batch_data_source')).toBe(chartColorBlueAccent.var);
     expect(getEntityTypeAccentColor('batch_feature_view')).toBe(chartColorPurpleAccent.var);
     expect(getEntityTypeAccentColor('feature_service')).toBe(chartColorGreenAccent.var);
+  });
+});
+
+describe('getEntityTypeIcon', () => {
+  it('uses chart color tokens for unselected icons', () => {
+    const entityIcon = getEntityTypeIcon('entity', false) as React.ReactElement;
+    const dataSourceIcon = getEntityTypeIcon('batch_data_source', false) as React.ReactElement;
+    const featureViewIcon = getEntityTypeIcon('batch_feature_view', false) as React.ReactElement;
+    const featureServiceIcon = getEntityTypeIcon('feature_service', false) as React.ReactElement;
+
+    expect(entityIcon.props.style?.color).toBe(chartColorBlack.var);
+    expect(dataSourceIcon.props.style?.color).toBe(chartColorBlue.var);
+    expect(featureViewIcon.props.style?.color).toBe(chartColorPurple.var);
+    expect(featureServiceIcon.props.style?.color).toBe(chartColorGreen.var);
   });
 });
 

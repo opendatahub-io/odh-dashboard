@@ -61,9 +61,11 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
 
     const hasTypeColors = !selected && !!data?.entityType;
     const entityIcon = data?.entityType ? (
-      getEntityTypeIcon(data.entityType, selected)
+      <g aria-hidden="true">{getEntityTypeIcon(data.entityType, selected)}</g>
     ) : (
-      <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.value }} />
+      <g aria-hidden="true">
+        <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.var }} />
+      </g>
     );
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
@@ -149,10 +151,14 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
             return 60;
           })();
 
+    const accessibleName = badge ? `${element.getLabel()}, ${badge}` : element.getLabel();
+
     return (
       <g
         ref={hoverRef}
         className={nodeClassName}
+        role="img"
+        aria-label={accessibleName}
         style={{
           filter: isConnectedToSelection
             ? 'drop-shadow(0 0 6px rgba(0, 123, 255, 0.6))'
