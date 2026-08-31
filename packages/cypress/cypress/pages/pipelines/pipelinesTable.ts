@@ -168,6 +168,10 @@ class PipelinesTable {
     return cy.findByTestId(this.testId);
   }
 
+  findPipelineLinkByName(name: string, timeout?: number) {
+    return this.find().contains('a', name, { timeout });
+  }
+
   findRows() {
     return this.find().find('tbody tr');
   }

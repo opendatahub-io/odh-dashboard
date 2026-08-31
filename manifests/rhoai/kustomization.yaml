@@ -1,5 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# 3-container pod (rhods-dashboard, kube-rbac-proxy, core-bff).
+# BFF modules are deployed as separate pods by the operator.
+# Core RHOAI renames applied.
 commonLabels:
   app: rhods-dashboard
   app.kubernetes.io/part-of: rhods-dashboard
@@ -8,15 +11,82 @@ commonLabels:
   # so the selector must match what the old operator wrote to existing Deployments.
   app.opendatahub.io/rhods-dashboard: "true"
 resources:
-  - ./apps
-  - ./base
+  - ../base
   - ./consolelink
   - ./odhdashboardconfig
+  - ./apps
 configMapGenerator:
   - name: rhoai-dashboard-params
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
+patchesJson6902:
+  # Core RHOAI renames
+  - path: deployment.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: odh-dashboard
+  - path: service-account.yaml
+    target:
+      version: v1
+      kind: ServiceAccount
+      name: odh-dashboard
+  - path: role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: odh-dashboard
+  - path: cluster-role.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRole
+      name: odh-dashboard
+  - path: role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: RoleBinding
+      name: odh-dashboard
+  - path: cluster-role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard
+  - path: auth-delegator.clusterrolebinding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-auth-delegator
+  - path: cluster-monitoring-role-binding.yaml
+    target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: odh-dashboard-monitoring
+  - path: service.yaml
+    target:
+      version: v1
+      kind: Service
+      name: odh-dashboard
+  - path: httproute.yaml
+    target:
+      group: gateway.networking.k8s.io
+      version: v1
+      kind: HTTPRoute
+      name: odh-dashboard
+  # No NetworkPolicy patch needed (each module has its own NetworkPolicy).
+  - path: pdb.yaml
+    target:
+      group: policy
+      version: v1
+      kind: PodDisruptionBudget
+      name: odh-dashboard
 replacements:
   - source:
       kind: ConfigMap
@@ -98,6 +168,3 @@ replacements:
           name: rhods-dashboard
         fieldPaths:
           - spec.template.spec.containers.[name=rhods-dashboard].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=model-registry-ui].env.[name=GATEWAY_DOMAIN].value
-          - spec.template.spec.containers.[name=maas-ui].env.[name=GATEWAY_DOMAIN].value

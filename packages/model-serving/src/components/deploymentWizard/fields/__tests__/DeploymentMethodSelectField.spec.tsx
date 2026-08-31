@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
 import {
   DeploymentMethodSelectFieldWizardField,
@@ -11,12 +10,11 @@ import {
 } from '../DeploymentMethodSelectField';
 import type { DeploymentMethodFieldOverride } from '../../../../shared/types/form-data';
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useHostApiCore: jest.fn(),
-}));
-
 const mockTrackEvent = jest.fn();
-(useHostApiCore as jest.Mock).mockReturnValue({ trackEvent: mockTrackEvent });
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
+  useTrackEvent: () => mockTrackEvent,
+}));
 
 const DeploymentMethodSelectFieldComponent = DeploymentMethodSelectFieldWizardField.component;
 

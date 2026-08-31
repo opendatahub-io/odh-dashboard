@@ -4,6 +4,11 @@ import type {
   ValidatedConfigurationOption,
 } from '../../../../shared/types/form-data';
 
+/** render validated-configuration cards when at least one option exists. */
+export const hasValidatedConfigurationOptions = (
+  configurations: ValidatedConfiguration[] | undefined,
+): boolean => Boolean(configurations?.some((configuration) => configuration.options.length > 0));
+
 /**
  * Formats a validated configuration option value for display in the "View arguments" popover.
  * Normalizes line-continuation backslashes while preserving individual CLI arguments.

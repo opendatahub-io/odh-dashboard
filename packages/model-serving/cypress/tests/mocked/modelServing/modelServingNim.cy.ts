@@ -428,11 +428,16 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findModelSourceStep().should('be.enabled');
     modelServingWizardEdit
       .findModelLocationSelect()
-      .should('contain.text', ModelLocationSelectOption.NIM);
+      .should('contain.text', ModelLocationSelectOption.NIM)
+      .should('be.disabled');
     modelServingWizardEdit.nim
       .findImageSelect()
       .find('input')
       .should('have.value', 'Snowflake Arctic Embed Large Embedding - 1.0.1');
+    modelServingWizardEdit.nim
+      .findImageSelect()
+      .find('[aria-label="Clear input value"]')
+      .should('not.exist');
     modelServingWizardEdit.nim.findImageNotFoundWarning().should('not.exist');
     // NIM forces the model type - it cannot be changed
     modelServingWizardEdit.findModelTypeSelect().should('contain.text', ModelTypeLabel.NIM);
@@ -462,10 +467,9 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
     modelServingWizardEdit.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizardEdit.findServiceAccountNameInput().should('have.value', 'my-existing-sa');
-    modelServingWizardEdit.findRuntimeArgsCheckbox().should('be.checked');
     modelServingWizardEdit
       .findRuntimeArgsTextBox()
-      .should('have.value', '--verbose\n--log-level=debug');
+      .should('contain.value', '--verbose\n--log-level=debug');
     modelServingWizardEdit.findEnvVariablesCheckbox().should('be.checked');
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');

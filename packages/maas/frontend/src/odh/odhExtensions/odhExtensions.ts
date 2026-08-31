@@ -40,7 +40,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      id: 'maas-subscription-management-view',
+      id: 'maas-governance-view',
       title: 'MaaS governance',
       href: '/maas/maas-governance',
       section: 'settings',

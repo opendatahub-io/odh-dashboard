@@ -106,6 +106,57 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 	assert.True(t, names["modelRegistry"], "deployed module must be included")
 }
 
+func TestBuildFederationConfigMap_NotebooksTLSFalse(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	statuses := allDeployedStatuses()
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	data := cm.Data["module-federation-config.json"]
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(data), &entries))
+
+	expected := map[string]bool{
+		"notebooks":     false,
+		"modelRegistry": true,
+		"genAi":         true,
+		"mlflow":        true,
+		"maas":          true,
+		"evalHub":       true,
+		"automl":        true,
+		"autorag":       true,
+		"agentOps":      true,
+	}
+
+	found := make(map[string]bool)
+	for _, entry := range entries {
+		name, _ := entry["name"].(string)
+		tls, _ := entry["tls"].(bool)
+		if wantTLS, ok := expected[name]; ok {
+			found[name] = true
+			if wantTLS {
+				assert.True(t, tls, "%s must have tls=true", name)
+			} else {
+				assert.False(t, tls, "%s must have tls=false", name)
+			}
+		}
+	}
+
+	for name := range expected {
+		assert.True(t, found[name], "expected module %s must be present in federation config", name)
+	}
+}
+
 func TestBuildFederationConfigMap_NoEnabledField(t *testing.T) {
 	s := testScheme(t)
 	cli := fake.NewClientBuilder().WithScheme(s).Build()

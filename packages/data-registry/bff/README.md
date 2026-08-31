@@ -109,6 +109,14 @@ GET /api/v1/namespaces   (dev / mock mode only)
 
 Static assets (index.html fallback) are also served for any other path.
 
+### OpenAPI Specification
+
+The BFF's own contract — covering `/healthcheck`, `/api/v1/user`, `/api/v1/namespaces`, and every
+Data Registry proxy route below — is documented at
+[`openapi/src/data-registry.yaml`](openapi/src/data-registry.yaml). Proxy route schemas are referenced via
+cross-file `$ref` into the vendored [`openapi/src/data-registry-api.yaml`](openapi/src/data-registry-api.yaml)
+contract described next, since responses are relayed verbatim.
+
 ### Sample local calls
 
 When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.

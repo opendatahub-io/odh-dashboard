@@ -50,6 +50,7 @@ import (
 func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
+	var certFile, keyFile string
 	flag.IntVar(&cfg.Port,
 		"port",
 		getEnvAsInt("PORT", 4000),
@@ -124,7 +125,18 @@ func main() {
 		"Scheme used in the Swagger UI (http or https)",
 	)
 
-	// Override Swagger metadata with runtime config
+	flag.StringVar(
+		&cfg.StaticAssetsDir,
+		"static-assets-dir",
+		getEnvAsStr("STATIC_ASSETS_DIR", "/static"),
+		"Directory containing frontend static assets",
+	)
+	flag.StringVar(&certFile, "cert-file", getEnvAsStr("CERT_FILE", ""), "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", getEnvAsStr("KEY_FILE", ""), "Path to TLS key file")
+
+	flag.Parse()
+
+	// Override Swagger metadata with runtime config (must be after flag.Parse)
 	if cfg.SwaggerEnabled {
 		openapi.SwaggerInfo.Host = cfg.SwaggerHost
 		openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
@@ -193,7 +205,7 @@ func main() {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)
 	}
-	svr, err := server.NewServer(app, logger)
+	svr, err := server.NewServer(app, logger, certFile, keyFile)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
 		os.Exit(1)

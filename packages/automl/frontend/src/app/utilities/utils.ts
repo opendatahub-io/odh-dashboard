@@ -286,17 +286,24 @@ export function formatMetricName(key: string): string {
 }
 
 /**
+ * Decimal places for AutoML leaderboard / evaluation metric display.
+ * Matches the HTML leaderboard artifact precision (RHOAIENG-77854).
+ */
+export const METRIC_DISPLAY_DECIMAL_PLACES = 4;
+
+/**
  * Format metric values for display.
- * Uses scientific notation for non-zero values that would round to 0.000.
+ * Uses scientific notation for non-zero values that would round to 0.0000.
  */
 export function formatMetricValue(value: number | string): string {
   if (typeof value === 'string') {
     return value;
   }
-  // If the value would round to 0.000 but is actually non-zero, use scientific notation
-  const fixed = value.toFixed(3);
-  if ((fixed === '0.000' || fixed === '-0.000') && value !== 0) {
-    return value.toExponential(3);
+  // If the value would round to all zeros but is actually non-zero, use scientific notation
+  const fixed = value.toFixed(METRIC_DISPLAY_DECIMAL_PLACES);
+  const roundedZero = (0).toFixed(METRIC_DISPLAY_DECIMAL_PLACES);
+  if ((fixed === roundedZero || fixed === `-${roundedZero}`) && value !== 0) {
+    return value.toExponential(METRIC_DISPLAY_DECIMAL_PLACES);
   }
   return fixed;
 }
