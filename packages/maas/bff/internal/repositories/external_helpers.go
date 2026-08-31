@@ -229,3 +229,10 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 
 	return summary
 }
+
+func normalizeEndpointURL(raw string) string {
+	s := strings.TrimSpace(raw)
+	s = strings.TrimPrefix(s, "https://")
+	s = strings.TrimPrefix(s, "http://")
+	return strings.TrimRight(s, "/")
+}
