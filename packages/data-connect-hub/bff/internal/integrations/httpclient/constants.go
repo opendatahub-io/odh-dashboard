@@ -1,3 +1,3 @@
-package mrserver
+package integrations
 
 const ClientServiceComponentSelector = "client-server"

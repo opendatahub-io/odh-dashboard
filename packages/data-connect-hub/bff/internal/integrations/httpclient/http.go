@@ -1,4 +1,4 @@
-package mrserver
+package integrations
 
 import (
 	"crypto/tls"
