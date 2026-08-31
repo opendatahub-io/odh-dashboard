@@ -8,6 +8,7 @@ import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wiz
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { TemplateKind } from '@odh-dashboard/k8s-core';
+import { getNIMHardwareProfileFieldOverrides } from './nimHardwareProfileOverrides';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
@@ -313,6 +314,7 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
       existingFieldData ?? { repository: '', tag: '' },
     validationSchema: nimImageFieldSchema,
     resolveDependencies: (formData) => ({ project: formData.project }),
+    getFieldOverrides: getNIMHardwareProfileFieldOverrides,
   },
   component: NIMImageFieldComponent,
   externalDataHook: useNIMImageFieldExternalData,

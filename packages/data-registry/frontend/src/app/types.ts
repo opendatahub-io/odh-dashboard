@@ -112,6 +112,14 @@ export type LabelListResponse = {
   labels: string[];
 };
 
+export type CreateLabelRequest = {
+  name: string;
+};
+
+export type LabelResponse = {
+  name: string;
+};
+
 export type ErrorResponse = {
   error: {
     message: string;

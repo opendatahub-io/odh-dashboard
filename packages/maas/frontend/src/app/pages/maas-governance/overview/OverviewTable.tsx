@@ -110,7 +110,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
           ))
         )}
       </Table>
-      {data.length > pageSize && (
+      {data.length > 0 && (
         <Pagination
           itemCount={data.length}
           perPage={pageSize}

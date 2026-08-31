@@ -48,3 +48,26 @@ type ExternalProviderSummary struct {
 	StatusMessage       string            `json:"statusMessage,omitempty"`
 	Reason              string            `json:"reason,omitempty"`
 }
+
+// CreateExternalProviderRequest is the request body for creating an ExternalProvider.
+type CreateExternalProviderRequest struct {
+	Name                string            `json:"name"`
+	Namespace           string            `json:"namespace"`
+	DisplayName         string            `json:"displayName,omitempty"`
+	Description         string            `json:"description,omitempty"`
+	EndpointUrl         string            `json:"endpointUrl"`
+	AuthMechanism       AuthMechanism     `json:"authMechanism"`
+	CredentialSecretRef string            `json:"credentialSecretRef"`
+	Provider            string            `json:"provider"`
+	Config              map[string]string `json:"config,omitempty"`
+}
+
+// UpdateExternalProviderRequest is the request body for updating an ExternalProvider.
+type UpdateExternalProviderRequest struct {
+	DisplayName         *string           `json:"displayName,omitempty"`
+	Description         *string           `json:"description,omitempty"`
+	EndpointUrl         string            `json:"endpointUrl,omitempty"`
+	AuthMechanism       *AuthMechanism    `json:"authMechanism,omitempty"`
+	CredentialSecretRef string            `json:"credentialSecretRef,omitempty"`
+	Config              map[string]string `json:"config,omitempty"`
+}
