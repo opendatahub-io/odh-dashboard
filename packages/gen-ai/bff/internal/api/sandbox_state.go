@@ -7,6 +7,8 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 )
 
+const sandboxProbeTimeout = 10 * time.Second
+
 const sandboxDiscoveryInterval = 30 * time.Second
 
 // sandboxState groups the fields on App that are protected by sandboxMu.
@@ -21,7 +23,9 @@ func (app *App) isSandboxAvailable() bool {
 }
 
 func (app *App) refreshSandboxState() {
-	available := helper.CheckAgentSandboxCRDAvailable(context.Background(), app.logger)
+	ctx, cancel := context.WithTimeout(context.Background(), sandboxProbeTimeout)
+	defer cancel()
+	available := helper.CheckAgentSandboxCRDAvailable(ctx, app.logger)
 
 	app.sandboxMu.Lock()
 	defer app.sandboxMu.Unlock()
