@@ -52,17 +52,18 @@ npm run clean
 # Generate a webpack bundle profile
 npm run build:bundle-profile
 
-# Starts the bff for cypress tests
+# Build a production bundle and serve it from the mock BFF
+npm run cypress:server:build
 npm run cypress:server
 
-# Runs cypress end-to-end tests in CI mode
+# Build, serve via mock BFF, and run Cypress mock tests (CI)
 npm run test:cypress-ci
 ```
 
 ## Configurations
 
 - [TypeScript Config](./tsconfig.json)
-- [Webpack Config](./webpack.common.js)
+- [Rspack Config](./rspack.common.js)
 - [Jest Config](./jest.config.js)
 - [Editor Config](./.editorconfig)
 
@@ -93,7 +94,7 @@ import logo from '~/app/assets/images/logo.svg';
 <span dangerouslySetInnerHTML={{ __html: logo }} />;
 ```
 
-You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [webpack.common.js](./webpack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
+You can also use SVG when applying background images with CSS. To do this, your SVG's must live under a `bgimages` directory (this directory name is configurable in [rspack.common.js](./rspack.common.js#L5)). This is necessary because you may need to use SVG's in several other context (inline images, fonts, icons, etc.) and so we need to be able to differentiate between these usages so the appropriate loader is invoked.
 
 ```css
 body {
