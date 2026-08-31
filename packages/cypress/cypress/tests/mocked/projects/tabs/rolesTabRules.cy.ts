@@ -116,6 +116,36 @@ describe('Remove rule', () => {
   });
 });
 
+describe('Import template button visibility', () => {
+  beforeEach(() => {
+    asProjectAdminUser();
+    initIntercepts();
+    projectRoles.visitCreateRole(NAMESPACE);
+  });
+
+  it('should show the import template button when no rules exist', () => {
+    projectRoles.findPermissionsEmptyState().should('exist');
+    projectRoles.findImportTemplateButton().should('exist');
+  });
+
+  it('should hide the import template button once a rule is added', () => {
+    addRule('apps', 'deployments', 'Deployments', 'get');
+
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
+    projectRoles.findImportTemplateButton().should('not.exist');
+  });
+
+  it('should show the import template button again after the last rule is removed', () => {
+    addRule('apps', 'deployments', 'Deployments', 'get');
+    projectRoles.findImportTemplateButton().should('not.exist');
+
+    projectRoles.findRuleRemoveButton(0).click();
+
+    projectRoles.findPermissionsEmptyState().should('exist');
+    projectRoles.findImportTemplateButton().should('exist');
+  });
+});
+
 describe('Add Rule modal validation', () => {
   beforeEach(() => {
     asProjectAdminUser();
