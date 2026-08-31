@@ -242,6 +242,19 @@ runs:
           if [ -z "$BUILD_PATH" ]; then
             echo "❌ Missing build for $name in $workspace/**/public-cypress"
             MISSING="$MISSING $name"
+            continue
+          fi
+
+          WAIT_TARGET=""
+          if [ "$workspace" = "frontend" ]; then
+            WAIT_TARGET="$BUILD_PATH/index.html"
+          else
+            WAIT_TARGET="$BUILD_PATH/remoteEntry.js"
+          fi
+
+          if [ ! -f "$WAIT_TARGET" ]; then
+            echo "❌ Missing Cypress wait target for $name at $WAIT_TARGET"
+            MISSING="$MISSING $name"
           else
             echo "✅ Found build for $name at $BUILD_PATH"
           fi

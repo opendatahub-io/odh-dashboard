@@ -110,14 +110,19 @@ const findPublicCypressDir = (workspacePath, root) => {
  */
 const listMockFederationServers = (root) => {
   const packages = listWorkspacePackagesFromManifest(root);
+  const hostPublicCypressDir = findPublicCypressDir('frontend', root);
+  if (!hostPublicCypressDir) {
+    throw new Error('Missing public-cypress for odh-dashboard-frontend (frontend)');
+  }
+
   /** @type {MockFederationServer[]} */
   const servers = [
     {
       packageName: 'odh-dashboard-frontend',
       moduleName: 'host',
       port: HOST_PORT,
-      publicCypressDir: path.join(root, 'frontend', 'public-cypress'),
-      waitPath: '/',
+      publicCypressDir: hostPublicCypressDir,
+      waitPath: '/index.html',
     },
   ];
 
@@ -165,19 +170,64 @@ const listMockFederationServers = (root) => {
 };
 
 /**
+ * @param {MockFederationServer} server
+ * @returns {string} path relative to public-cypress root
+ */
+const getWaitTargetRelativePath = (server) => {
+  const waitPath = server.waitPath.startsWith('/') ? server.waitPath.slice(1) : server.waitPath;
+  return waitPath || 'index.html';
+};
+
+/**
+ * @param {MockFederationServer} server
+ * @returns {string} absolute path to the file that must exist before serving
+ */
+const getWaitTargetFilePath = (server) =>
+  path.join(server.publicCypressDir, getWaitTargetRelativePath(server));
+
+/**
+ * Fail fast when restored CI artifacts are incomplete. wait-on http-get would hang forever on 404.
+ * @param {MockFederationServer[]} servers
+ * @param {string} root absolute repo root
+ */
+const assertWaitTargetsReady = (servers, root) => {
+  /** @type {string[]} */
+  const missing = [];
+
+  for (const server of servers) {
+    const targetPath = getWaitTargetFilePath(server);
+    if (!fs.existsSync(targetPath)) {
+      missing.push(
+        `${server.packageName} (expected ${path.relative(root, targetPath)} for :${server.port})`,
+      );
+    }
+  }
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  for (const entry of missing) {
+    console.error(`Missing Cypress mock wait target for ${entry}`);
+  }
+  throw new Error('Cypress mock federation wait targets are missing');
+};
+
+/**
+ * Wait for static serve listeners. Use TCP (not http-get) so a running server that returns 404
+ * cannot block CI until the job timeout.
  * @param {MockFederationServer[]} servers
  * @returns {string[]}
  */
-const getWaitUrls = (servers) =>
-  servers.map((server) => {
-    const waitPath = server.waitPath.startsWith('/') ? server.waitPath : `/${server.waitPath}`;
-    return `http-get://localhost:${server.port}${waitPath}`;
-  });
+const getWaitUrls = (servers) => servers.map((server) => `tcp:127.0.0.1:${server.port}`);
 
 module.exports = {
   HOST_PORT,
+  assertWaitTargetsReady,
   convertModuleFederationConfig,
   findPublicCypressDir,
+  getWaitTargetFilePath,
+  getWaitTargetRelativePath,
   getWaitUrls,
   listMockFederationServers,
   normalizeModuleFederationConfig,
