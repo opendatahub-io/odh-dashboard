@@ -68,13 +68,15 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+        // Transpile host sources and workspace packages only. Do not add node_modules/@odh-dashboard
+        // here — with symlinks enabled, pnpm workspace links resolve to packages/ paths. Listing
+        // node_modules/@odh-dashboard caused istanbul to instrument the entire hoisted tree and
+        // made the Cypress coverage build hang until CI killed the runner (~4 min SIGTERM).
         include: [
           SRC_DIR,
           COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, '../packages'),
           path.resolve(RELATIVE_DIRNAME, '../plugins'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@odh-dashboard'),
-          path.resolve(ROOT_NODE_MODULES, '@odh-dashboard'),
         ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
@@ -298,7 +300,9 @@ module.exports = (env) => ({
     alias: {
       ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
-    symlinks: false,
+    // shamefullyHoist keeps an npm-like layout; follow symlinks so workspace packages resolve
+    // under packages/ instead of scanning the full node_modules/.pnpm tree (symlinks: false).
+    symlinks: true,
     cacheWithContext: false,
   },
 });
