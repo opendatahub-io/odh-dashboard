@@ -3,7 +3,7 @@
 projectResourceName: 'test-maas-overview-tab'
 singleModelName: 'test-maas-overview-model'
 singleModelDescription: 'Model for testing MaaS'
-llmInferenceServiceFixturePath: 'resources/maas/llmInferenceserviceWithMaasEnabled.yaml'
+llmInferenceServiceFixturePath: 'resources/maas/llmInferenceServiceSimulatorPremium.yaml'
 # Subscriptions
 subscriptionName: 'test-maas-overview-sub'
 subscriptionDescription: 'Cypress test: MaaS subscription for overview tab'
