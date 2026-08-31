@@ -48,6 +48,7 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
               onChange={() => {
                 setUploadOption(PipelineUploadOption.FILE_UPLOAD);
                 setPipelineUrl('');
+                setIsUrlValid(true);
               }}
               label="Upload a file"
               id="upload-file"
