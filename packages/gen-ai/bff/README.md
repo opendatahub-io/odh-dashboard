@@ -635,16 +635,39 @@ which starts the MaaS BFF alongside the gen-ai BFF (see [Inter-BFF Communication
 #### 6. Mock MLflow Client
 
 The MLflow mock connects to a real local MLflow instance (unlike other mocks that use hardcoded data).
-When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically starts MLflow as a child process on port 5001, seeds it with sample prompts, and stops it on shutdown. If MLflow is already running (e.g. from `make mlflow-up`), the BFF will use the existing instance without seeding.
+When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically:
 
-When `MLFLOW_TRACKING_URI` is already set, the BFF assumes MLflow is externally managed and skips the child process.
+1. Starts a local MLflow server as a child process on port 5001 (via `uv run mlflow server`)
+2. Seeds it with sample **prompt templates** (vet appointments, pet health, medication reminders)
+3. Seeds the **MCP registry** with a draft server and optionally a real Kubernetes MCP server
+4. Stops MLflow on BFF shutdown and cleans up the local database
+
+Seeding is **idempotent**: prompts and MCP servers that already exist are skipped on restart.
+
+If MLflow is already running on port 5001 (e.g. from `make mlflow-up`), the BFF reuses it and seeds without restarting. If `MLFLOW_TRACKING_URI` is already set, the BFF skips managing MLflow entirely and connects to that URI.
 
 **Environment Variables:**
 
-- `MOCK_MLFLOW_CLIENT=true`: Enables mock MLflow client (auto-starts and seeds local MLflow on port 5001)
+- `MOCK_MLFLOW_CLIENT=true`: Enables mock MLflow client (auto-starts, seeds, and stops local MLflow)
 - `MOCK_MLFLOW_CLIENT=false` (or not set): Uses configured `MLFLOW_URL`
 - `MLFLOW_URL`: MLflow tracking server URL (production/real mode)
 - `MLFLOW_TRACKING_URI`: When set, the BFF skips starting MLflow and connects to this URI instead
+- `PLAYGROUND_NAMESPACE`: OpenShift project namespace — the BFF creates a matching MLflow workspace and seeds both `default` and this workspace with prompts + MCP servers (reads from env, not a CLI flag)
+- `KUBERNETES_MCP_SERVER_URL`: Route URL for a real Kubernetes MCP server to register in the MCP registry (e.g. `https://kubernetes-mcp-server-mcp-servers.apps.<cluster>/mcp`); skipped if unset
+
+**Optional one-time cluster setup (Kubernetes MCP server):**
+
+```bash
+# From packages/gen-ai — deploys bff/testdata/kubernetes-mcp-server.yaml and prints the route URL
+make deploy-k8s-mcp
+
+# Output:
+#   Add to .env.local:
+#   KUBERNETES_MCP_SERVER_URL=https://kubernetes-mcp-server-mcp-servers.apps.<cluster>/mcp
+#   INSECURE_SKIP_VERIFY=true
+```
+
+Copy the printed values to `packages/gen-ai/.env.local`. On the next `make dev-start`, the BFF registers the server in the MCP registry automatically.
 
 #### 7. Combined Mock Mode (All Services)
 
@@ -1238,7 +1261,7 @@ curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-
 }
 ```
 
-> **Note:** Timestamps and exact values will vary. Sample prompts are automatically seeded when the BFF starts MLflow as a child process. If using an externally managed MLflow instance, run `make mlflow-seed` (from `bff/`) to seed data manually.
+> **Note:** Timestamps and exact values will vary. Sample prompts and MCP registry rows are seeded automatically when the gen-ai BFF starts with `MOCK_MLFLOW_CLIENT=true` (`SetupMLflow` on BFF init).
 
 #### Register Chat Prompt (Mock MLflow)
 
@@ -1433,7 +1456,7 @@ make dev-start-maas
 This starts:
 - MaaS BFF on `:8081` (connected to cluster maas-api via `MAAS_URL`)
 - Gen-AI BFF on `:8080` (connected to local MaaS BFF via `BFF_MAAS_DEV_URL=http://localhost:8081/api/v1`)
-- Frontend on `:4010`
+- Frontend on `:9102` (webpack dev server; proxies API to BFF on `:8080`)
 - Port-forwards for Llama Stack (`:8321`) and optional ASR
 
 **Manual multi-terminal setup (if you need separate control):**
@@ -1460,6 +1483,91 @@ oc port-forward -n <namespace> svc/lsd-genai-playground-service 8321:8321
 cd packages/gen-ai
 make dev-start-mock
 ```
+
+## Inter-BFF Communication (Gen-AI → MLflow)
+
+The Gen-AI BFF calls the MLflow BFF for prompts and other MLflow-backed APIs via inter-BFF HTTP (`BFF_MLFLOW_DEV_URL`).
+
+### Local Dev Flow (recommended)
+
+The simplest way to develop against a local MLflow instance — **no separate MLflow process to manage**:
+
+1. Add to `packages/gen-ai/.env.local`:
+
+   ```bash
+   MOCK_MLFLOW_CLIENT=true
+   MLFLOW_URL=http://localhost:5001
+   PLAYGROUND_NAMESPACE=<your-openshift-namespace>   # optional but recommended
+   ```
+
+2. Run as normal:
+
+   ```bash
+   # From packages/gen-ai — with cluster port-forwards
+   make dev-start
+
+   # From packages/gen-ai — fully local, no cluster required
+   make dev-start-mock
+   ```
+
+When the BFF starts, `SetupMLflow` automatically:
+- Starts a local MLflow server on `:5001`
+- Seeds sample **prompts** in the `default` workspace (and `PLAYGROUND_NAMESPACE` if set)
+- Seeds the **MCP registry** with a draft server (and a Kubernetes MCP server if `KUBERNETES_MCP_SERVER_URL` is set)
+- Shuts down MLflow and removes its local database on BFF exit
+
+### Seeding Summary
+
+| What | Workspaces | Source | Without env var |
+|------|-----------|--------|----------------|
+| Prompt templates (4 samples) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
+| Draft MCP server (`io.github.example/tools-draft`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
+| Kubernetes MCP server (`com.example/kubernetes`) | `default` + `PLAYGROUND_NAMESPACE` | `KUBERNETES_MCP_SERVER_URL` env var | skipped — only the draft server is registered |
+
+Seeding is idempotent — prompts and MCP servers that already exist are skipped on restart.
+
+> **Failsafe:** If `KUBERNETES_MCP_SERVER_URL` is not set, seeding still succeeds with just the draft MCP server registered. You can add the env var later and restart the BFF to pick it up — no data is lost.
+
+### Optional: Deploy Kubernetes MCP Server to Cluster
+
+To register a real Kubernetes MCP server in the local MLflow MCP registry:
+
+```bash
+# From packages/gen-ai (one-time, requires oc login)
+make deploy-k8s-mcp
+```
+
+This deploys `bff/testdata/kubernetes-mcp-server.yaml` to the `mcp-servers` namespace and prints:
+
+```
+Add to .env.local:
+KUBERNETES_MCP_SERVER_URL=https://kubernetes-mcp-server-mcp-servers.apps.<cluster>/mcp
+INSECURE_SKIP_VERIFY=true
+```
+
+Copy those two lines to `.env.local`. On the next BFF startup, the server is registered in the MCP registry automatically.
+
+### Manual Seed (without restarting BFF)
+
+To re-seed a running local MLflow instance manually:
+
+```bash
+# From packages/gen-ai/bff — seeds both prompts and MCP registry
+make mlflow-seed
+```
+
+Requires `MLFLOW_TRACKING_URI=http://127.0.0.1:5001` (set automatically when BFF starts MLflow) or `make mlflow-up` running in another terminal.
+
+### Gen-AI MLflow Inter-BFF Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MOCK_MLFLOW_CLIENT` | Auto-start and seed local MLflow on `:5001` | `false` |
+| `MLFLOW_URL` | MLflow tracking server URL (real/production mode) | - |
+| `MLFLOW_TRACKING_URI` | When set, BFF skips managing MLflow and connects here | - |
+| `PLAYGROUND_NAMESPACE` | OpenShift namespace — creates matching MLflow workspace, seeds it alongside `default` | - |
+| `KUBERNETES_MCP_SERVER_URL` | Kubernetes MCP server route URL to register in the MCP registry | - |
+| `BFF_MLFLOW_DEV_URL` | Dev override URL for local MLflow BFF (inter-BFF mode) | - |
 
 ### Gen-AI Specific Environment Variables
 

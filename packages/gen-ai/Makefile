@@ -17,7 +17,7 @@ include ${ENV_FILE}
 export $(shell sed 's/=.*//' ${ENV_FILE})
 endif
 
-.PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward dev-start-maas dev-maas-bff dev-bff-maas clean clean-all
+.PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward dev-start-maas dev-maas-bff dev-bff-maas deploy-k8s-mcp clean clean-all
 
 help: ## Display this help message
 	@echo "Available commands:"
@@ -68,9 +68,11 @@ dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
 	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev"
 
 MLFLOW_BFF_MOCK_PORT ?= 4020
+export GOTMPDIR ?= /tmp/go-tmp
 
 .PHONY: dev-mlflow-bff-mock
 dev-mlflow-bff-mock: ## Run MLflow BFF in mock mode pointing at local MLflow server (started by gen-ai BFF)
+	@mkdir -p $(GOTMPDIR)
 	cd ../mlflow/bff && make run PORT="$(MLFLOW_BFF_MOCK_PORT)" MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-start-mock
@@ -162,6 +164,20 @@ endif
 dev-start-maas: dev-portforward ## Start MaaS BFF + gen-ai BFF + frontend + port-forwards (full MaaS dev)
 	@sleep 2
 	make -j 3 dev-maas-bff dev-bff-maas dev-frontend
+
+.PHONY: deploy-k8s-mcp
+deploy-k8s-mcp: ## Deploy Kubernetes MCP server to mcp-servers namespace
+	@oc apply -f bff/testdata/kubernetes-mcp-server.yaml
+	@echo ""
+	@route_host=$$(oc get route kubernetes-mcp-server -n mcp-servers -o jsonpath='{.spec.host}' 2>/dev/null); \
+	if [ -z "$$route_host" ]; then \
+		echo "Route not found. Inspect: oc get route -n mcp-servers"; \
+		exit 0; \
+	fi; \
+	echo ""; \
+	echo "Add to .env.local:"; \
+	echo "KUBERNETES_MCP_SERVER_URL=https://$$route_host/mcp"; \
+	echo "INSECURE_SKIP_VERIFY=true"
 
 clean: ## Clean build artifacts and node_modules
 	@echo "Cleaning root dist..."

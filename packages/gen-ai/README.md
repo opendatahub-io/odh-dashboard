@@ -134,6 +134,36 @@ make run MOCK_MAAS_CLIENT=true
 make dev-bff-mock
 ```
 
+### Local MLflow + MCP Registry
+
+When `MOCK_MLFLOW_CLIENT=true` is set (recommended for local dev), the BFF automatically starts a local MLflow instance, seeds it with sample prompts and MCP registry entries, and shuts it down on exit. No separate process management required.
+
+**Quick start:**
+
+1. Add to `packages/gen-ai/.env.local`:
+
+   ```bash
+   MOCK_MLFLOW_CLIENT=true
+   PLAYGROUND_NAMESPACE=<your-openshift-namespace>   # optional — creates a matching MLflow workspace
+   ```
+
+2. Run as normal — seeding happens automatically on BFF startup:
+
+   ```bash
+   make dev-start        # with cluster port-forwards
+   make dev-start-mock   # fully local, no cluster required
+   ```
+
+**Optional: register a real Kubernetes MCP server (one-time cluster setup):**
+
+```bash
+# Deploys the K8s MCP server to the cluster and prints the URL to add to .env.local
+cd packages/gen-ai
+make deploy-k8s-mcp
+```
+
+For full details on seeding behavior, env variables, and manual seed commands, see [bff/README.md](bff/README.md#inter-bff-communication-gen-ai--mlflow).
+
 ## Running Frontend and BFF Together
 
 For convenience, you can start both the frontend and BFF simultaneously using these Makefile targets from the root of the gen-ai package:

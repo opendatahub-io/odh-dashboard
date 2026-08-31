@@ -1,18 +1,256 @@
 package mlflowmocks
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/opendatahub-io/mlflow-go/mlflow"
+	"github.com/opendatahub-io/mlflow-go/mlflow/mcpregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 )
 
 const seedTimeout = 30 * time.Second
 
+const (
+	kubernetesMCPRegistryName = "com.example/kubernetes"
+	draftMCPRegistryName      = "io.github.example/tools-draft"
+	kubernetesMCPVersion      = "1.0.0"
+	draftMCPVersion           = "0.1.0"
+)
+
+// SeedMCPRegistry registers sample MCP servers in the local MLflow MCP Registry.
+//
+// It reads PLAYGROUND_NAMESPACE and KUBERNETES_MCP_SERVER_URL directly from the
+// environment via os.Getenv (these are dev-only values exported by the parent Makefile
+// from packages/gen-ai/.env.local).
+//
+// Workspaces seeded: always "default"; additionally the PLAYGROUND_NAMESPACE workspace
+// if that env var is non-empty.
+//
+// Servers registered per workspace:
+//   - A draft server (io.github.example/tools-draft) — always seeded
+//   - A Kubernetes MCP server (com.example/kubernetes) — seeded only when
+//     KUBERNETES_MCP_SERVER_URL is set; skipped with a log message otherwise
+//
+// Errors are returned to the caller; SetupMLflow logs them as warnings (non-fatal).
+func SeedMCPRegistry(trackingURI string, logger *slog.Logger) error {
+	playgroundNamespace := strings.TrimSpace(os.Getenv("PLAYGROUND_NAMESPACE"))
+	kubernetesMCPServerURL := strings.TrimSpace(os.Getenv("KUBERNETES_MCP_SERVER_URL"))
+	workspaces := devMLflowWorkspaces(playgroundNamespace)
+	for _, workspace := range workspaces {
+		if err := ensureMLflowWorkspace(trackingURI, workspace, logger); err != nil {
+			return fmt.Errorf("failed to ensure MLflow workspace %q: %w", workspace, err)
+		}
+		if err := seedMCPRegistryInWorkspace(trackingURI, workspace, kubernetesMCPServerURL, logger); err != nil {
+			return fmt.Errorf("failed to seed MCP registry for workspace %q: %w", workspace, err)
+		}
+	}
+
+	logger.Info("Seeded MLflow MCP registry", slog.Any("workspaces", workspaces))
+	return nil
+}
+
+func devMLflowWorkspaces(playgroundNamespace string) []string {
+	seen := map[string]bool{"default": true}
+	workspaces := []string{"default"}
+
+	add := func(workspace string) {
+		workspace = strings.TrimSpace(workspace)
+		if workspace == "" || seen[workspace] {
+			return
+		}
+		seen[workspace] = true
+		workspaces = append(workspaces, workspace)
+	}
+
+	add(playgroundNamespace)
+
+	return workspaces
+}
+
+func ensureMLflowWorkspace(trackingURI, workspace string, logger *slog.Logger) error {
+	if workspace == "" || workspace == "default" {
+		return nil
+	}
+
+	body, err := json.Marshal(map[string]string{"name": workspace})
+	if err != nil {
+		return err
+	}
+
+	url := strings.TrimSuffix(trackingURI, "/") + "/ajax-api/3.0/mlflow/workspaces"
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+		logger.Info("Created MLflow workspace", slog.String("workspace", workspace))
+		return nil
+	}
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusBadRequest && strings.Contains(string(respBody), "RESOURCE_ALREADY_EXISTS") {
+		logger.Debug("MLflow workspace already exists", slog.String("workspace", workspace))
+		return nil
+	}
+
+	return fmt.Errorf("create workspace %q: status %d: %s", workspace, resp.StatusCode, string(respBody))
+}
+
+func seedMCPRegistryInWorkspace(trackingURI, workspace, kubernetesMCPServerURL string, logger *slog.Logger) error {
+	clientOpts := []mlflow.Option{
+		mlflow.WithTrackingURI(trackingURI),
+		mlflow.WithInsecure(),
+	}
+	if workspace != "" && workspace != "default" {
+		clientOpts = append(clientOpts, mlflow.WithHeaders(map[string]string{
+			"X-MLFLOW-WORKSPACE": workspace,
+		}))
+	}
+
+	client, err := mlflow.NewClient(clientOpts...)
+	if err != nil {
+		return fmt.Errorf("failed to create MLflow client for MCP registry seed: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), seedTimeout)
+	defer cancel()
+
+	return seedKubernetesMCPInRegistry(ctx, client.MCPRegistry(), kubernetesMCPServerURL, logger)
+}
+
+func seedKubernetesMCPInRegistry(ctx context.Context, reg *mcpregistry.Client, kubernetesMCPServerURL string, logger *slog.Logger) error {
+	if err := seedDraftMCPServer(ctx, reg, logger); err != nil {
+		return err
+	}
+
+	kubernetesURL := strings.TrimSpace(kubernetesMCPServerURL)
+	if kubernetesURL == "" {
+		logger.Info("KUBERNETES_MCP_SERVER_URL unset — skipping kubernetes MCP registry seed")
+		return nil
+	}
+
+	if err := seedActiveMCPServer(
+		ctx,
+		reg,
+		logger,
+		kubernetesMCPRegistryName,
+		"Kubernetes MCP Server",
+		"Manage resources in a Kubernetes cluster.",
+		kubernetesMCPVersion,
+		kubernetesURL,
+	); err != nil {
+		return err
+	}
+
+	logger.Info("Seeded kubernetes MCP server in registry",
+		slog.String("name", kubernetesMCPRegistryName),
+		slog.String("endpoint", kubernetesURL),
+	)
+	return nil
+}
+
+func seedDraftMCPServer(ctx context.Context, reg *mcpregistry.Client, logger *slog.Logger) error {
+	if _, err := reg.GetMCPServer(ctx, draftMCPRegistryName); err == nil {
+		logger.Debug("MCP registry server already exists, skipping seed",
+			slog.String("name", draftMCPRegistryName),
+		)
+		return nil
+	}
+
+	_, err := reg.CreateMCPServer(ctx, draftMCPRegistryName,
+		mcpregistry.WithServerDescription("Draft MCP server for filter and status UI testing."),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create draft MCP server %s: %w", draftMCPRegistryName, err)
+	}
+
+	serverJSON := map[string]any{
+		"name":        draftMCPRegistryName,
+		"description": "Draft tools server for local dev.",
+		"version":     draftMCPVersion,
+	}
+
+	_, err = reg.CreateMCPServerVersion(ctx, draftMCPRegistryName, serverJSON,
+		mcpregistry.WithVersionStatus(mcpregistry.MCPServerVersionStatusDraft),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create draft MCP server version %s: %w", draftMCPRegistryName, err)
+	}
+
+	logger.Debug("Seeded draft MCP registry server", slog.String("name", draftMCPRegistryName))
+	return nil
+}
+
+func seedActiveMCPServer(
+	ctx context.Context,
+	reg *mcpregistry.Client,
+	logger *slog.Logger,
+	name, displayName, description, version, endpointURL string,
+) error {
+	if _, err := reg.GetMCPServer(ctx, name); err == nil {
+		logger.Debug("MCP registry server already exists, skipping seed", slog.String("name", name))
+		return nil
+	}
+
+	_, err := reg.CreateMCPServer(ctx, name,
+		mcpregistry.WithServerDescription(description),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create MCP server %s: %w", name, err)
+	}
+
+	serverJSON := map[string]any{
+		"name":        name,
+		"description": description,
+		"version":     version,
+	}
+
+	_, err = reg.CreateMCPServerVersion(ctx, name, serverJSON,
+		mcpregistry.WithVersionDisplayName(displayName),
+		mcpregistry.WithVersionStatus(mcpregistry.MCPServerVersionStatusActive),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create MCP server version %s: %w", name, err)
+	}
+
+	transport := mcpregistry.MCPTransportStreamableHTTP
+	if strings.HasSuffix(endpointURL, "/sse") || strings.Contains(endpointURL, "/sse/") {
+		transport = mcpregistry.MCPTransportSSE
+	}
+
+	_, err = reg.CreateMCPAccessEndpoint(ctx, name, endpointURL,
+		mcpregistry.WithAccessEndpointTransportType(transport),
+		mcpregistry.WithAccessEndpointServerVersion(version),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create MCP access endpoint for %s: %w", name, err)
+	}
+
+	return nil
+}
+
 // SeedPrompts registers sample prompts in the local MLflow instance.
+//
+// Seeding is idempotent: any prompt whose name already exists in the registry is
+// skipped entirely (all its versions), so restarting the BFF against an already-running
+// MLflow instance does not create duplicate prompt versions.
 func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 	client, err := mlflow.NewClient(
 		mlflow.WithTrackingURI(trackingURI),
@@ -110,6 +348,14 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 	}
 
 	for _, p := range prompts {
+		// Idempotency guard: if the prompt already has any version, skip it entirely.
+		// This prevents duplicate versions from accumulating on BFF restarts against
+		// an already-running MLflow instance.
+		if _, err := reg.LoadPrompt(ctx, p.name); err == nil {
+			logger.Debug("Prompt already exists, skipping seed", slog.String("name", p.name))
+			continue
+		}
+
 		for _, v := range p.versions {
 			var pv *promptregistry.PromptVersion
 			var regErr error
