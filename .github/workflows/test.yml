@@ -245,7 +245,8 @@ jobs:
 
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
-    runs-on: ubuntu-latest
+    # Frontend Cypress build is the heaviest matrix job (full MF host + coverage + source maps).
+    runs-on: ${{ matrix.package.name == 'odh-dashboard-frontend' && 'ubuntu-latest-4-cores' || 'ubuntu-latest' }}
     timeout-minutes: 90
     permissions:
       contents: read
@@ -257,6 +258,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/pnpm-setup
         with:

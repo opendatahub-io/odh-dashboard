@@ -25,6 +25,14 @@ describe('pnpmResolverIncludes', () => {
     assert.equal(isPatternFlyCss(nestedPfCss, FRONTEND_DIR, ROOT_NODE_MODULES), true);
   });
 
+  it('matches @patternfly extension CSS under .pnpm dist/css paths', () => {
+    const catalogCss = path.join(
+      ROOT_NODE_MODULES,
+      '.pnpm/@patternfly+react-catalog-view-extension@6.5.0_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css',
+    );
+    assert.equal(isPatternFlyCss(catalogCss, FRONTEND_DIR, ROOT_NODE_MODULES), true);
+  });
+
   it('matches font assets under .pnpm paths', () => {
     const fontPath = path.join(
       ROOT_NODE_MODULES,

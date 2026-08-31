@@ -101,7 +101,6 @@ runs:
       env:
         PKG_WORKSPACE: ${{ inputs.package-workspace }}
         PKG_NAME: ${{ inputs.package-name }}
-        NODE_OPTIONS: --max-old-space-size=8192
       run: |
         ARTIFACT_NAME="cypress-build-$(echo "$PKG_WORKSPACE" | tr '/' '-')"
         echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
