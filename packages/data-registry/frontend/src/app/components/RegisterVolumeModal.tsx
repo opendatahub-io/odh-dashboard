@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createVolume } from '~/app/api/dataRegistry';
+import { createVolume, createLabel, ApiError } from '~/app/api/dataRegistry';
 import { CreateVolumeRequest } from '~/app/types';
 import {
   registerVolumeSchema,
@@ -100,6 +100,18 @@ const RegisterVolumeModal: React.FC<RegisterVolumeModalProps> = ({
       setIsSubmitting(true);
       setError('');
       try {
+        if (data.labels.length > 0) {
+          await Promise.all(
+            data.labels.map((label) =>
+              createLabel(project, { name: label }).catch((err) => {
+                if (err instanceof ApiError && err.status === 409) {
+                  return;
+                }
+                throw err;
+              }),
+            ),
+          );
+        }
         await createVolume(project, data.collection, buildRequest(data));
         form.reset(registerVolumeDefaults);
         onCreated();
@@ -130,7 +142,7 @@ const RegisterVolumeModal: React.FC<RegisterVolumeModalProps> = ({
       />
       <ModalBody>
         {error ? (
-          <Alert variant="danger" isInline title="Error registering volume">
+          <Alert variant="danger" isInline title="Error registering data">
             {error}
           </Alert>
         ) : null}

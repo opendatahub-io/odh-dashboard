@@ -7,6 +7,8 @@ import {
   CreateVolumeRequest,
   VolumeInfo,
   LabelListResponse,
+  CreateLabelRequest,
+  LabelResponse,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -94,3 +96,15 @@ export const createVolume = async (
 
 export const fetchLabels = (project: string): Promise<LabelListResponse> =>
   fetchJSON(registryUrl(`/${project}/labels`));
+
+export const createLabel = async (
+  project: string,
+  data: CreateLabelRequest,
+): Promise<LabelResponse> => {
+  const response = await fetchRequest(registryUrl(`/${project}/labels`), 'POST', data);
+  return response.json();
+};
+
+export const deleteLabel = async (project: string, label: string): Promise<void> => {
+  await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
+};
