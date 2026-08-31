@@ -14,10 +14,7 @@ import {
   PageSection,
   Popover,
 } from '@patternfly/react-core';
-import {
-  MultiSelection,
-  SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -598,8 +595,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                 ? 'Saving...'
                 : 'Save'
               : isSubmitting
-                ? 'Creating...'
-                : 'Create subscription'}
+              ? 'Creating...'
+              : 'Create subscription'}
           </Button>
           <Button
             variant="link"

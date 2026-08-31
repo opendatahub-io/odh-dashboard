@@ -1,5 +1,5 @@
 import { capitalize } from '@patternfly/react-core';
-import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
+import type { DeployPrefillData } from '@odh-dashboard/model-serving/extension-points/deploy-prefill';
 import {
   CatalogArtifacts,
   CatalogArtifactType,

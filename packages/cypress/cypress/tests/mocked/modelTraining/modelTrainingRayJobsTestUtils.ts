@@ -15,14 +15,8 @@ import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/moc
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
-import {
-  ClusterQueueModel,
-  LocalQueueModel,
-  RayClusterModel,
-  RayJobModel,
-  TrainJobModel,
-  WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { RayClusterModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { ProjectModel, PodModel } from '../../../utils/models';
 
 export const projectName = 'test-rayjobs-project';

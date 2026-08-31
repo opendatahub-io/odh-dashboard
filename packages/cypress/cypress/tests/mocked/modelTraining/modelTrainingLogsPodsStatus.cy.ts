@@ -7,12 +7,8 @@ import { mockPodLogs } from '@odh-dashboard/internal/__mocks__';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
-import {
-  ClusterQueueModel,
-  LocalQueueModel,
-  TrainJobModel,
-  WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   projectName,

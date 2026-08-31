@@ -7,7 +7,7 @@ import type {
   ServingRuntimeKind,
   CreatingServingRuntimeObject,
 } from '@odh-dashboard/model-serving/shared';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/extension-points/deploy-prefill';
 import {
   ServingRuntimePlatform,
   getDisplayNameFromServingRuntimeTemplate,

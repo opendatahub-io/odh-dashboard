@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import type { RegisteredModelRef } from '@odh-dashboard/model-registry/shared';
+import type { RegisteredModelRef } from '../extension-points/deploy-prefill';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{

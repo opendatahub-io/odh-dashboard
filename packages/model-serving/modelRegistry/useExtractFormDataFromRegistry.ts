@@ -11,8 +11,8 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { ConnectionTypeValueType } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { getModelRegistryMetadata } from './utils/deployUtils';
+import type { ModelDeployPrefillInfo } from '../extension-points/deploy-prefill';
 import {
   ModelLocationData,
   ModelLocationType,

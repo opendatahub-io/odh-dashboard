@@ -18,7 +18,21 @@
     "./__mocks__/mockProjectK8sResource": "./src/__mocks__/mockProjectK8sResource.ts",
     "./__mocks__/mockRouteK8sResource": "./src/__mocks__/mockRouteK8sResource.ts",
     "./__mocks__/mockSecretK8sResource": "./src/__mocks__/mockSecretK8sResource.ts",
-    "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts"
+    "./__mocks__/mockTrustyAIServiceK8sResource": "./src/__mocks__/mockTrustyAIServiceK8sResource.ts",
+    "./api/models": "./src/api/models.ts",
+    "./api/secrets": "./src/api/secrets.ts",
+    "./api/serviceAccounts": "./src/api/serviceAccounts.ts",
+    "./api/roles": "./src/api/roles.ts",
+    "./api/roleBindings": "./src/api/roleBindings.ts",
+    "./api/k8sUtils": "./src/api/k8sUtils.ts",
+    "./api/errorUtils": "./src/api/errorUtils.ts",
+    "./api/configMaps": "./src/api/configMaps.ts",
+    "./api/localQueues": "./src/api/localQueues.ts",
+    "./api/clusterQueues": "./src/api/clusterQueues.ts",
+    "./api/workloads": "./src/api/workloads.ts",
+    "./kueue/types": "./src/kueue/types.ts",
+    "./kueue/messageUtils": "./src/kueue/messageUtils.ts",
+    "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -29,6 +43,7 @@
     "@odh-dashboard/foundation": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
+    "axios": "^1",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
