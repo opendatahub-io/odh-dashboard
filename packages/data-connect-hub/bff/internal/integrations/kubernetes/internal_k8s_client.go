@@ -185,28 +185,37 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 }
 
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	crbList, err := kc.Client.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	// We cannot list ClusterRoleBindings here because the service account
+	// running this backend typically does not have permissions to read cluster-scoped RBAC resources.
+	// Instead, we use a SubjectAccessReview with wildcard '*' verb and resource,
+	// which safely asks the Kubernetes API server: "Can this user do everything?"
+	// If the review returns allowed=true, it means the user has cluster-admin-equivalent permissions.
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:     "*",
+				Resource: "*",
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to list ClusterRoleBindings", "error", err)
-		return false, fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
+		kc.Logger.Error("failed to perform cluster-admin SAR", "user", identity.UserID, "error", err)
+		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
-	for _, crb := range crbList.Items {
-		if crb.RoleRef.Kind != "ClusterRole" || crb.RoleRef.Name != "cluster-admin" {
-			continue
-		}
-		for _, subject := range crb.Subjects {
-			if subject.Kind == "User" && subject.Name == identity.UserID {
-				return true, nil
-			}
-		}
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user is not cluster-admin", "user", identity.UserID)
+		return false, nil
 	}
 
-	kc.Logger.Info("user is not cluster-admin", "user", identity.UserID)
-	return false, nil
+	return true, nil
 }
 
 func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, error) {
