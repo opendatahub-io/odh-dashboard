@@ -25,6 +25,7 @@ USER default
 RUN pnpm install --frozen-lockfile
 
 ENV TURBO_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=8192
 RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
       echo "Setting up RHOAI vars.."; \
       echo '#!/bin/sh' > /tmp/env.sh; \

@@ -1,5 +1,6 @@
 import { k8sDeleteResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import type { LLMInferenceServiceConfigKind } from '../../types';
 import {
   ConfigInUseError,
   deleteLlmInferenceServiceConfigIfUnreferenced,
@@ -22,12 +23,13 @@ describe('deleteLlmInferenceServiceConfigIfUnreferenced', () => {
   });
 
   it('should throw ConfigInUseError when status.referencedBy is populated', async () => {
-    mockK8sGetResource.mockResolvedValue({
+    const configWithReferences: LLMInferenceServiceConfigKind = {
       ...defaultConfig,
       status: {
         referencedBy: [{ name: 'my-deployment', namespace: 'test-project' }],
       },
-    });
+    };
+    mockK8sGetResource.mockResolvedValue(configWithReferences);
 
     await expect(
       deleteLlmInferenceServiceConfigIfUnreferenced('router-config', 'opendatahub', 'routing'),
@@ -76,7 +78,7 @@ describe('deleteLlmInferenceServiceConfigIfUnreferenced', () => {
       message: '',
       reason: '',
     });
-    mockK8sGetResource.mockResolvedValueOnce(defaultConfig).mockResolvedValueOnce({
+    const terminatingReferencedConfig: LLMInferenceServiceConfigKind = {
       ...defaultConfig,
       metadata: {
         ...defaultConfig.metadata,
@@ -86,7 +88,10 @@ describe('deleteLlmInferenceServiceConfigIfUnreferenced', () => {
       status: {
         referencedBy: [{ name: 'my-deployment', namespace: 'test-project' }],
       },
-    });
+    };
+    mockK8sGetResource
+      .mockResolvedValueOnce(defaultConfig)
+      .mockResolvedValueOnce(terminatingReferencedConfig);
 
     await expect(
       deleteLlmInferenceServiceConfigIfUnreferenced('router-config', 'opendatahub', 'routing'),

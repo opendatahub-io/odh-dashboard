@@ -1,6 +1,7 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
+const { pnpmJestModuleNameMapper } = require('../../scripts/jest/pnpmModuleNameMapper');
 const { pnpmTransformIgnorePatterns } = require('../../scripts/jest/pnpmTransformIgnorePatterns');
 
 export default {
@@ -20,6 +21,7 @@ export default {
 
   // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
+    ...pnpmJestModuleNameMapper(),
     '\\.(css|less|sass|scss)$': require.resolve('./config/transform.style.js'),
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       require.resolve('./config/transform.file.js'),
