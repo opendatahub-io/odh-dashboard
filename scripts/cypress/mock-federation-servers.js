@@ -10,7 +10,13 @@ const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const { getWaitUrls, listMockFederationServers } = require('./lib/mock-federation-servers');
+const {
+  assertWaitTargetsReady,
+  getWaitUrls,
+  listMockFederationServers,
+} = require('./lib/mock-federation-servers');
+
+const WAIT_ON_TIMEOUT_MS = 180_000;
 
 const findRepoRoot = (start) => {
   let dir = start;
@@ -36,9 +42,13 @@ const resolveServeCommand = (root) => {
     }
   }
 
-  const serveBin = path.join(root, 'frontend', 'node_modules', '.bin', 'serve');
-  if (fs.existsSync(serveBin)) {
-    return { command: serveBin, argsPrefix: [] };
+  for (const serveBin of [
+    path.join(root, 'node_modules', '.bin', 'serve'),
+    path.join(root, 'frontend', 'node_modules', '.bin', 'serve'),
+  ]) {
+    if (fs.existsSync(serveBin)) {
+      return { command: serveBin, argsPrefix: [] };
+    }
   }
 
   throw new Error('serve CLI not found. Run pnpm install from the repo root.');
@@ -79,22 +89,49 @@ const assertBuildsPresent = (servers, root) => {
 
 const runWait = (servers, root) => {
   assertBuildsPresent(servers, root);
+  assertWaitTargetsReady(servers, root);
   const waitOn = resolveWaitOnCommand(root);
   const urls = getWaitUrls(servers);
-  console.log(`Waiting for ${urls.length} Cypress mock servers...`);
-  const result = spawnSync(waitOn.command, [...waitOn.argsPrefix, '-i', '1000', ...urls], {
-    stdio: 'inherit',
-  });
+  console.log(
+    `Waiting for ${urls.length} Cypress mock servers (${WAIT_ON_TIMEOUT_MS / 1000}s timeout)...`,
+  );
+  const result = spawnSync(
+    waitOn.command,
+    [...waitOn.argsPrefix, '-i', '1000', '-t', String(WAIT_ON_TIMEOUT_MS), ...urls],
+    {
+      stdio: 'inherit',
+    },
+  );
+  if ((result.status ?? 1) !== 0) {
+    console.error(`Timed out or failed waiting for: ${urls.join(' ')}`);
+  }
   process.exitCode = result.status ?? 1;
 };
 
 const runStart = (servers, root) => {
   assertBuildsPresent(servers, root);
+  assertWaitTargetsReady(servers, root);
   const serve = resolveServeCommand(root);
   /** @type {import('child_process').ChildProcess[]} */
   const children = [];
+  let shuttingDown = false;
+  /** @type {NodeJS.Timeout} */
+  let keepAlive;
+
+  const failStart = (message) => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    clearInterval(keepAlive);
+    shutdown('SIGTERM');
+    setImmediate(() => {
+      throw new Error(message);
+    });
+  };
 
   const shutdown = (signal) => {
+    shuttingDown = true;
     for (const child of children) {
       if (!child.killed) {
         child.kill(signal);
@@ -103,10 +140,12 @@ const runStart = (servers, root) => {
   };
 
   process.on('SIGINT', () => {
+    clearInterval(keepAlive);
     shutdown('SIGINT');
     process.exitCode = 0;
   });
   process.on('SIGTERM', () => {
+    clearInterval(keepAlive);
     shutdown('SIGTERM');
     process.exitCode = 0;
   });
@@ -121,18 +160,32 @@ const runStart = (servers, root) => {
     const child = spawn(
       serve.command,
       [...serve.argsPrefix, server.publicCypressDir, '-p', String(server.port), '-s', '-L'],
-      { stdio: 'ignore' },
+      { stdio: ['ignore', 'pipe', 'pipe'] },
     );
     child.on('error', (error) => {
-      console.error(`Failed to start serve on port ${server.port}:`, error.message);
-      shutdown('SIGTERM');
-      throw error;
+      failStart(`Failed to start serve on port ${server.port}: ${error.message}`);
+    });
+    child.on('exit', (code, signal) => {
+      if (shuttingDown || signal === 'SIGTERM' || signal === 'SIGINT') {
+        return;
+      }
+      failStart(
+        `serve for ${server.moduleName} on :${server.port} exited unexpectedly (code=${
+          code ?? 'null'
+        }, signal=${signal ?? 'null'})`,
+      );
+    });
+    child.stderr?.on('data', (chunk) => {
+      const message = String(chunk).trim();
+      if (message) {
+        console.error(`[serve :${server.port}] ${message}`);
+      }
     });
     children.push(child);
   }
 
   // Keep the process alive until concurrently sends SIGTERM.
-  setInterval(() => {}, 1 << 30);
+  keepAlive = setInterval(() => {}, 1 << 30);
 };
 
 const main = () => {
