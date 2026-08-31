@@ -154,7 +154,7 @@ describe('RegisterVolumeModal', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Error registering volume')).toBeTruthy();
+      expect(screen.getByText('Error registering data')).toBeTruthy();
       expect(screen.getByText('API error 409: Volume already exists')).toBeTruthy();
     });
 
