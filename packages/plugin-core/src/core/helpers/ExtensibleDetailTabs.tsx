@@ -14,6 +14,7 @@ import type { DetailTabProperties } from '../../extension-points/detail-tabs';
 import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-points/utils';
 
 const DEFAULT_GROUP = '5_default';
+const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
 
 /**
  * Evaluates `shouldShow` predicates for extension tabs, supporting both sync
@@ -28,6 +29,18 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
 
   React.useEffect(() => {
     let cancelled = false;
+
+    setResults((prev) => {
+      const uids = extensions
+        .filter((ext) => ext.properties.shouldShow && ext.uid in prev)
+        .map((ext) => ext.uid);
+      if (uids.length === 0) {
+        return prev;
+      }
+      const next = { ...prev };
+      uids.forEach((uid) => delete next[uid]);
+      return next;
+    });
 
     extensions.forEach((ext) => {
       const { shouldShow } = ext.properties;
@@ -143,7 +156,10 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   unmountOnExit = false,
   tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
-  const shouldShowResults = useShouldShowResults(extensionTabs, componentProps ?? {});
+  const shouldShowResults = useShouldShowResults(
+    extensionTabs,
+    componentProps ?? EMPTY_COMPONENT_PROPS,
+  );
 
   const filteredExtensions = React.useMemo(
     () =>
@@ -176,6 +192,15 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
     [staticTabs, filteredExtensions],
   );
 
+  const effectiveActiveKey =
+    allTabs.length > 0 && !allTabs.some((tab) => tab.id === activeKey) ? allTabs[0].id : activeKey;
+
+  React.useEffect(() => {
+    if (effectiveActiveKey !== activeKey) {
+      onSelect(effectiveActiveKey);
+    }
+  }, [effectiveActiveKey, activeKey, onSelect]);
+
   if (allTabs.length === 0) {
     return null;
   }
@@ -195,7 +220,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
 
   return (
     <Tabs
-      activeKey={activeKey}
+      activeKey={effectiveActiveKey}
       aria-label={ariaLabel}
       role="region"
       data-testid={testId}

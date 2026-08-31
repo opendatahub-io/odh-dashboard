@@ -70,7 +70,7 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
             return false;
           }
           const json: { data?: { items?: unknown[] } } = await resp.json();
-          return (json.data?.items?.length ?? 0) > 0;
+          return Array.isArray(json.data?.items) && json.data.items.length > 0;
         } catch {
           return false;
         }
