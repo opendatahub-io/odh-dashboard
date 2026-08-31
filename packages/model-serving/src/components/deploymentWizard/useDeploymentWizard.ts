@@ -213,12 +213,17 @@ export const useModelDeploymentWizard = (
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
     useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
 
-  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const tokenAuthOverrides = React.useMemo(
+    () => computedOverrides.tokenAuthentication ?? {},
+    [computedOverrides.tokenAuthentication],
+  );
+  const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
       ...state,
       tokenAuthentication: {
         ...state.tokenAuthentication,
+        ...tokenAuthOverrides,
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
@@ -227,7 +232,7 @@ export const useModelDeploymentWizard = (
         ...computedOverrides['llmd-serving/gateway'],
       },
     }),
-    [state, tokenAuthDisabled, computedOverrides],
+    [state, tokenAuthDisabled, tokenAuthOverrides, computedOverrides],
   );
 
   return {
