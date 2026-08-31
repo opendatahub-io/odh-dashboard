@@ -39,9 +39,7 @@ export * from './pipelines/k8s';
 
 // Prometheus queries
 export * from './prometheus/pvcs';
-export * from './prometheus/serving';
 export * from './prometheus/distributedWorkloads';
-export * from './prometheus/kservePerformanceMetrics';
 
 // Network error handling
 export * from './errorUtils';
@@ -51,11 +49,6 @@ export * from './models';
 
 // Rules access review hook
 export * from './useRulesReview';
-
-// Explainability
-export * from './trustyai/custom';
-export * from './trustyai/rawTypes';
-export * from './trustyai/k8s';
 
 // Generic K8s utils
 export * from './k8sUtils';

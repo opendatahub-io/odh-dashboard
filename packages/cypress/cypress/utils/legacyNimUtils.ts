@@ -159,11 +159,12 @@ export const initInterceptsToDeployNimInWizard = ({
   // NIM PVC caching field
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptK8sList({ model: PVCModel, ns: namespace }, mockK8sResourceList([]));
+  cy.interceptK8s('POST', { model: PVCModel, ns: namespace }, mockNimModelPVC()).as('createPVC');
 
   cy.interceptK8s(
     'POST',
     { model: InferenceServiceModel, ns: namespace },
-    { statusCode: 200, body: mockNimInferenceService({ namespace }) },
+    { statusCode: 200, body: mockNimInferenceService({ name: modelName, namespace }) },
   ).as('createInferenceService');
 
   cy.interceptK8s(

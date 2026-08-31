@@ -18,14 +18,30 @@ const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
-
-let mockLocationState: { from?: string } | null = null;
+let mockLocationState: { from?: string } | undefined;
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
   useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
+  ),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   Link: ({
     to,
     children,
@@ -237,8 +253,8 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutomlConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLocationState = null;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    mockLocationState = undefined;
   });
 
   describe('Initial state', () => {
@@ -431,15 +447,23 @@ describe('AutomlConfigurePage', () => {
     });
 
     it('should display breadcrumb in configure step', async () => {
-      expect(await screen.findByText('AutoML: test-namespace')).toBeInTheDocument();
+      expect(await screen.findByTestId('experiment-breadcrumb-home')).toHaveTextContent(
+        /AutoML in/,
+      );
+      expect(await screen.findByTestId('experiment-breadcrumb-home')).toHaveTextContent(
+        'test-namespace',
+      );
+      expect(await screen.findByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(
+        /Go to/,
+      );
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
-      expect(breadcrumbName).toHaveTextContent('My Experiment');
+      expect(breadcrumbName).toHaveTextContent('Run configurations');
     });
 
     it('should fire AutoML Flow Exited with trainingData and experimentsList when the breadcrumb is clicked', async () => {
       const user = userEvent.setup();
-      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'trainingData',
@@ -464,8 +488,8 @@ describe('AutomlConfigurePage', () => {
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
 
-      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-      await user.click(breadcrumbLink);
+      const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
+      await user.click(homeLink!);
 
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
@@ -977,20 +1001,24 @@ describe('AutomlConfigurePage', () => {
       );
 
       const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
-      expect(sourceRunBreadcrumb).toBeInTheDocument();
       expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
-
-      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
-      expect(sourceRunLink).toHaveAttribute(
+      expect(sourceRunBreadcrumb.querySelector('a')).toHaveAttribute(
         'href',
         '/develop-train/automl/results/test-namespace/prev-run-456',
       );
-
+      const homeBreadcrumb = await screen.findByTestId('experiment-breadcrumb-home');
+      expect(homeBreadcrumb.querySelector('a')).toHaveAttribute(
+        'href',
+        '/develop-train/automl/experiments/test-namespace',
+      );
+      expect(await screen.findByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(
+        /Go to/,
+      );
       const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
       expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
     });
 
-    it('should NOT display source run breadcrumb when navigating from experiments page', async () => {
+    it('should display Reconfigure breadcrumb without source run when navigating from experiments page', async () => {
       renderWithProviders(
         <AutomlConfigurePage
           initialValues={{ display_name: 'Original Run - 1' }}
@@ -1074,7 +1102,7 @@ describe('AutomlConfigurePage', () => {
       expect(descInput).toHaveValue('A reconfigured experiment');
     });
 
-    it('should show the pre-filled name in breadcrumb after navigating to configure step', async () => {
+    it('should show Reconfigure in breadcrumb after navigating to configure step', async () => {
       const user = userEvent.setup();
       renderWithProviders(
         <AutomlConfigurePage
@@ -1437,8 +1465,10 @@ describe('AutomlConfigurePage', () => {
         // the create flow's progressive trainingData → predictionType unlocking to report.
         await screen.findByTestId('target_column-select');
 
-        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
@@ -1470,8 +1500,10 @@ describe('AutomlConfigurePage', () => {
         const columnOption = await screen.findByRole('option', { name: /column2/i });
         await user.click(columnOption);
 
-        const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
-        await user.click(breadcrumbLink);
+        const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector(
+          'a',
+        );
+        await user.click(homeLink!);
 
         expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',

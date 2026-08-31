@@ -11,6 +11,7 @@ on:
       - v*-branch
   pull_request:
     paths:
+      - .github/workflows/ws-frontend-test.yml
       - releasing/version/VERSION
       - workspaces/frontend/**
     branches:
@@ -63,7 +64,32 @@ jobs:
         # use id to skip archiving artifacts if running the tests was skipped, usually due to failure in steps above
         # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
         id: run-tests
-        run: npm run test
+        run: |
+          npm run prettier:check
+          npm run test:lint
+          npm run test:type-check
+          npm run test:jest:coverage
+          npm run test:cypress-ci
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        if: "!cancelled() && steps.run-tests.outcome != 'skipped'"
+        with:
+          files: workspaces/frontend/jest-coverage/lcov.info
+          flags: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Cypress test report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -87,18 +113,6 @@ jobs:
         with:
           name: cypress-videos
           path: workspaces/frontend/src/__tests__/cypress/results/mocked/videos
-
-      - name: Check if there are uncommitted file changes
-        working-directory: workspaces/frontend
-        run: |
-          clean=$(git status --porcelain)
-          if [[ -z "$clean" ]]; then
-              echo "Empty git status --porcelain: $clean"
-          else
-              echo "Uncommitted file changes detected: $clean"
-              git diff
-              exit 1
-          fi
 
   image-build:
     uses: ./.github/workflows/ws-build-image.yml

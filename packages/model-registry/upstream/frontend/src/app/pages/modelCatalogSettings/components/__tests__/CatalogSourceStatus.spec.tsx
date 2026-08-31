@@ -7,6 +7,7 @@ import {
 } from '~/app/context/modelCatalogSettings/ModelCatalogSettingsContext';
 import { CatalogSourceConfig, CatalogSourceType } from '~/app/modelCatalogTypes';
 import CatalogSourceStatus from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatus';
+import { CatalogSourceStatus as CatalogSourceStatusEnum } from '~/concepts/modelCatalogSettings/const';
 
 const mockConfig: CatalogSourceConfig = {
   id: 'test-source',
@@ -35,6 +36,8 @@ const renderWithContext = (
     catalogSourcesLoaded: true,
     catalogSourcesLoadError: undefined,
     refreshCatalogSources: jest.fn(),
+    pendingSourceIds: new Map(),
+    markSourcePending: jest.fn(),
     ...contextOverrides,
   };
 
@@ -96,6 +99,27 @@ describe('CatalogSourceStatus', () => {
     const label = screen.getByTestId('source-status-starting-test-source');
     expect(screen.getByText('Starting')).toBeVisible();
     expect(label.className).toMatch(/outline/);
+  });
+
+  it('renders "Starting" label when source is pending after mutation', () => {
+    renderWithContext(mockConfig, {
+      catalogSources: {
+        ...defaultPagination,
+        items: [
+          {
+            id: 'test-source',
+            name: 'Test',
+            labels: [],
+            status: CatalogSourceStatusEnum.AVAILABLE,
+          },
+        ],
+      },
+      catalogSourcesLoaded: true,
+      pendingSourceIds: new Map([['test-source', CatalogSourceStatusEnum.AVAILABLE]]),
+    });
+
+    expect(screen.getByTestId('source-status-starting-test-source')).toBeInTheDocument();
+    expect(screen.getByText('Starting')).toBeVisible();
   });
 
   it('renders "Unknown" label with outline variant when there is a load error', () => {

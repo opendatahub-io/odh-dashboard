@@ -30,7 +30,11 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import type {
+  Deployment,
+  DeploymentEndpoint,
+  DeploymentHookPayload,
+} from '../../../extension-points';
 import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
@@ -67,6 +71,16 @@ export const getTokenAuthenticationFromDeployment = (
 
   return [];
 };
+
+// Deploy paths that assemble the model internally (e.g. KServe) don't provide
+// a pre-assembled model resource, so `model` may be undefined here. The
+// preDeploy/postDeploy hooks still need to run — they create side-effect
+// resources (PVCs, secrets, etc.) that don't depend on the model resource.
+const toDeploymentHookPayload = (
+  platform: string,
+  model?: Deployment['model'],
+  server?: Deployment['server'],
+): DeploymentHookPayload => ({ modelServingPlatformId: platform, model, server });
 
 export const deployModel = async (
   wizardState: WizardFormData['state'],
@@ -118,14 +132,10 @@ export const deployModel = async (
       wizardState.modelLocationData.selectedConnection,
     ),
   );
-  if (runPreDeploy && dryRunModelResource) {
+  if (runPreDeploy) {
     dryRuns.push(
       runPreDeploy(
-        {
-          modelServingPlatformId: deployMethod.platform,
-          model: dryRunModelResource,
-          server: serverResource,
-        },
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -150,14 +160,10 @@ export const deployModel = async (
       ),
     );
   }
-  if (runPostDeploy && dryRunModelResource) {
+  if (runPostDeploy) {
     dryRuns.push(
       runPostDeploy(
-        {
-          modelServingPlatformId: deployMethod.platform,
-          model: dryRunModelResource,
-          server: serverResource,
-        },
+        toDeploymentHookPayload(deployMethod.platform, dryRunModelResource, serverResource),
         existingDeployment,
         true,
       ),
@@ -187,13 +193,9 @@ export const deployModel = async (
     modelResourceWithConnection.metadata.annotations[MetadataAnnotation.ConnectionName] =
       createdSecretName;
   }
-  if (runPreDeploy && modelResourceWithConnection) {
+  if (runPreDeploy) {
     await runPreDeploy(
-      {
-        modelServingPlatformId: deployMethod.platform,
-        model: modelResourceWithConnection,
-        server: serverResource,
-      },
+      toDeploymentHookPayload(deployMethod.platform, modelResourceWithConnection, serverResource),
       existingDeployment,
     );
   }

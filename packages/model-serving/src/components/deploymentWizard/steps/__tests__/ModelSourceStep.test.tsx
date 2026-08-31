@@ -31,10 +31,30 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn().mockReturnValue([]),
 }));
 
+const StubConnectionTypeFormFields: React.FC<{
+  fields?: { type: string; envVar?: string }[];
+  connectionValues?: Record<string, unknown>;
+  onChange?: (field: { type: string; envVar?: string }, value: unknown) => void;
+}> = ({ fields, connectionValues, onChange }) => (
+  <>
+    {fields
+      ?.filter((f): f is { type: string; envVar: string } => f.type !== 'section' && !!f.envVar)
+      .map((field) => (
+        <input
+          key={field.envVar}
+          data-testid={`field ${field.envVar}`}
+          value={String(connectionValues?.[field.envVar] ?? '')}
+          onChange={(e) => onChange?.(field, e.target.value)}
+        />
+      ))}
+  </>
+);
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useWatchConnectionTypes: jest.fn(() => [[], true]),
   useServingConnections: jest.fn(() => [[], true]),
-  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
+  useHostApi: jest.fn(() => ({
+    ConnectionTypeFormFields: StubConnectionTypeFormFields,
+  })),
   useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
   useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
@@ -226,6 +246,11 @@ describe('ModelSourceStep', () => {
                   annotations: {
                     'opendatahub.io/connection-type': 'uri - v1',
                   },
+                },
+                data: {
+                  fields: [
+                    { envVar: 'URI', name: 'URI', required: true, type: 'uri', properties: {} },
+                  ],
                 },
               },
               additionalFields: {},

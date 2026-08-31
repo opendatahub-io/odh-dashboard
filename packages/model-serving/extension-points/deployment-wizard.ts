@@ -4,7 +4,7 @@ import type {
   useHardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { Deployment, ExtractionResult } from './index';
+import type { Deployment, DeploymentHookPayloadFor, ExtractionResult } from './index';
 import type {
   InitialWizardFormData,
   WizardFormData,
@@ -19,6 +19,16 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
   'model-serving.deployment/form-data',
   {
     platform: D['modelServingPlatformId'];
+    /**
+     * Whether this extension is active for the given deployment. When multiple form-data
+     * extensions share a `platform`, the active one with the highest `priority` wins.
+     * Evaluated at extraction time from an existing deployment, so it must not rely on wizard state.
+     */
+    isActive: CodeRef<(deployment: D) => boolean> | true;
+    /**
+     * Priority among active extensions WITH the same `platform`. Higher number wins.
+     */
+    priority: number | 0;
     hardwareProfilePaths: CodeRef<CrPathConfig>;
     extractHardwareProfileConfig: CodeRef<
       (deployment: D) => ExtractionResult<Parameters<typeof useHardwareProfileConfig> | null>
@@ -257,10 +267,10 @@ export type WizardFieldDeploymentFunctionsExtension<
       (
         fieldData: T,
         wizardState: WizardFormData['state'],
-        deployment: D,
+        deployment: DeploymentHookPayloadFor<D>,
         existingDeployment?: D,
         dryRun?: boolean,
-      ) => Promise<D>
+      ) => Promise<DeploymentHookPayloadFor<D>>
     >;
     /**
      * Async function that runs after the deployment is saved.
@@ -276,7 +286,12 @@ export type WizardFieldDeploymentFunctionsExtension<
      * @param dryRun - True for the validation pass, falsy for the real pass
      */
     postDeploy: null | CodeRef<
-      (fieldData: T, deployedModel: D, existingDeployment?: D, dryRun?: boolean) => Promise<void>
+      (
+        fieldData: T,
+        deployedModel: DeploymentHookPayloadFor<D>,
+        existingDeployment?: D,
+        dryRun?: boolean,
+      ) => Promise<void>
     >;
   }
 >;

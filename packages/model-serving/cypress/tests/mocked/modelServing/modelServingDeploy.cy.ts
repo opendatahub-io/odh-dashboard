@@ -724,7 +724,6 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('exist');
 
     //Configuration Parameters
-    modelServingWizard.findRuntimeArgsCheckbox().should('exist').click();
     modelServingWizard.findRuntimeArgsTextBox().type('--arg=value1');
     modelServingWizard.findEnvVariablesCheckbox().should('exist').click();
     modelServingWizard.findAddVariableButton().should('exist').click();

@@ -1,5 +1,5 @@
 import { K8sResourceBaseOptions } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyK8sAPIOptions, mergeRequestInit } from '#~/api/apiMergeUtils';
+import { applyK8sAPIOptions, mergeRequestInit } from '@odh-dashboard/k8s-core';
 import { ConfigMapModel } from '#~/api/models';
 
 const { signal } = new AbortController();

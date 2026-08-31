@@ -11,15 +11,16 @@ const mockServices: HostApiServices = {
   useServingConnections: jest.fn(() => [[], false, undefined, jest.fn()]),
   getDashboardConfigTemplateOrder: jest.fn(),
   getDashboardConfigTemplateDisablement: jest.fn(),
-  useModelServingMetrics: jest.fn(() => ({ data: {}, refresh: jest.fn() })),
-  useServingPlatformStatuses: jest.fn(() => ({
-    kServe: { enabled: false, installed: false },
-    kServeNIM: { enabled: false, installed: false },
-    platformEnabledCount: 0,
-    refreshNIMAvailability: jest.fn(),
-  })),
   isProjectNIMSupported: jest.fn(() => false),
-  registeredModelDeploymentsRoute: jest.fn(() => ''),
+  createProject: jest.fn(),
+  ConnectionTypeFormFields: jest.fn(),
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ProjectDetailsContext: React.createContext<any>(null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+    ModelServingContext: React.createContext<any>(null),
+    ModelServingContextProvider: jest.fn(),
+  },
 };
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>

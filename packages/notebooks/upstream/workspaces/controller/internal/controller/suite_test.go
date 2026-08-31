@@ -41,6 +41,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
@@ -92,6 +94,10 @@ var _ = BeforeSuite(func() {
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = istiov1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = gatewayv1.Install(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = gatewayv1beta1.Install(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

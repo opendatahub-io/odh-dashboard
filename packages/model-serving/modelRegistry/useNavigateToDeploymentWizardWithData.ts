@@ -81,6 +81,10 @@ export const useNavigateToDeploymentWizardWithData = (
     prefillInfo,
     deployPrefillData.returnRouteValue,
     deployPrefillData.cancelReturnRouteValue,
+    {
+      fromCatalog: true,
+      catalogModelId: deployPrefillData.catalogModelId,
+    },
   );
 
   const isReady = !!uri && connectionTypesLoaded && !!connectionTypeObject;

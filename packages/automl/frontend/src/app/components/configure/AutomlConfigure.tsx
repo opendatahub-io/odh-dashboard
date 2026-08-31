@@ -106,6 +106,8 @@ import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
 
+const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be selected.';
+
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
@@ -1133,9 +1135,12 @@ function AutomlConfigure({
                         <Divider />
                         <StackItem>
                           <Card data-testid="optimization-metric-card">
-                            <CardHeader
-                              actions={{
-                                actions: (
+                            <CardHeader>
+                              <Split hasGutter className="pf-v6-u-w-100">
+                                <SplitItem isFilled>
+                                  <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                                <SplitItem>
                                   <Button
                                     variant="secondary"
                                     isDisabled={formIsSubmitting}
@@ -1144,10 +1149,8 @@ function AutomlConfigure({
                                   >
                                     Edit
                                   </Button>
-                                ),
-                              }}
-                            >
-                              <CardTitle>Optimization Metric</CardTitle>
+                                </SplitItem>
+                              </Split>
                             </CardHeader>
                             <CardBody>
                               <Content component="p" data-testid="optimization-metric-value">
@@ -1220,10 +1223,10 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
-        disabledPaths={[
-          '/autogluon-tabular-training-pipeline',
-          '/autogluon-timeseries-training-pipeline',
-        ]}
+        disabledPaths={{
+          '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+          '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
+        }}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}

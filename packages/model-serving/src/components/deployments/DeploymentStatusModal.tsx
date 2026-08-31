@@ -39,6 +39,8 @@ import {
 } from '@patternfly/react-tokens';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { ClusterQueueModel } from '@odh-dashboard/internal/api/models/kueue';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
 import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
@@ -248,10 +250,16 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const localQueueName = deployment.model.metadata.labels?.[KUEUE_QUEUE_LABEL];
+  const [canViewClusterQueue] = useAccessReview(
+    { group: ClusterQueueModel.apiGroup, resource: ClusterQueueModel.plural, verb: 'get' },
+    Boolean(isKueueFeatureEnabled && isProjectKueueEnabled),
+  );
   // Tab visibility depends only on Kueue being enabled for this project — not on whether this
   // particular deployment has a queue label. A missing label is handled as an empty state inside
   // DeploymentResourcesTab, so the tab strip stays consistent across all deployment states.
-  const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
+  const showResourcesTab = Boolean(
+    isKueueFeatureEnabled && isProjectKueueEnabled && canViewClusterQueue,
+  );
 
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 

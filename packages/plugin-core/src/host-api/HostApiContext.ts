@@ -23,8 +23,14 @@ export const HostApiContext = React.createContext<HostApiServices>({
   useServingConnections: notProvided('useServingConnections'),
   getDashboardConfigTemplateOrder: notProvided('getDashboardConfigTemplateOrder'),
   getDashboardConfigTemplateDisablement: notProvided('getDashboardConfigTemplateDisablement'),
-  useModelServingMetrics: notProvided('useModelServingMetrics'),
-  useServingPlatformStatuses: notProvided('useServingPlatformStatuses'),
   isProjectNIMSupported: notProvided('isProjectNIMSupported'),
-  registeredModelDeploymentsRoute: notProvided('registeredModelDeploymentsRoute'),
+  createProject: notProvided('createProject'),
+  ConnectionTypeFormFields: notProvided('ConnectionTypeFormFields'),
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder context; overridden by HostApiProvider
+    ProjectDetailsContext: React.createContext<any>(null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder context; overridden by HostApiProvider
+    ModelServingContext: React.createContext<any>(null),
+    ModelServingContextProvider: notProvided('ModelServingContextProvider'),
+  },
 });

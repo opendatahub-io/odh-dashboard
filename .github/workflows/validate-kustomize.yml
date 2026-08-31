@@ -32,10 +32,6 @@ jobs:
             path: manifests/rhoai
           - name: ODH
             path: manifests/odh
-          - name: RHOAI Standalone
-            path: manifests/rhoai/standalone
-          - name: ODH Standalone
-            path: manifests/odh/standalone
           - name: Modules
             path: manifests/modules
     steps:
@@ -79,62 +75,6 @@ jobs:
           # Send rendered manifests to stdout sink to keep logs tidy; warnings still show on stderr.
           kustomize build "${{ matrix.target.path }}" > /dev/null
         shell: bash
-
-  params-env-sync:
-    name: Verify params.env sync
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-          sparse-checkout: |
-            manifests
-
-      - name: Check per-module params.env against sidecar parent
-        shell: bash
-        run: |
-          set -euo pipefail
-          PARENT="manifests/sidecar/params.env"
-          if [[ ! -f "$PARENT" ]]; then
-            echo "ERROR: Parent params.env not found at $PARENT"
-            exit 1
-          fi
-
-          FAILED=0
-          for module_params in manifests/modules/*/params.env; do
-            [[ -f "$module_params" ]] || continue
-            MODULE_DIR=$(dirname "$module_params")
-            MODULE_NAME=$(basename "$MODULE_DIR")
-
-            while IFS= read -r line || [[ -n "$line" ]]; do
-              [[ "$line" =~ ^#.* || -z "$line" ]] && continue
-              key="${line%%=*}"
-              value="${line#*=}"
-
-              # Skip keys that are module-specific (not in parent)
-              parent_line=$(grep "^${key}=" "$PARENT" 2>/dev/null || true)
-              [[ -n "$parent_line" ]] || continue
-
-              parent_value="${parent_line#*=}"
-              if [[ "$value" != "$parent_value" ]]; then
-                echo "DRIFT: ${MODULE_NAME}/params.env key '${key}' differs from sidecar parent"
-                echo "  module: ${value}"
-                echo "  parent: ${parent_value}"
-                FAILED=1
-              fi
-            done < "$module_params"
-          done
-
-          if [[ "$FAILED" -eq 1 ]]; then
-            echo ""
-            echo "ERROR: params.env drift detected. Run 'hack/validate-manifests.sh' locally to debug."
-            exit 1
-          fi
-
-          echo "All per-module params.env files are in sync with $PARENT"
 
   check-no-hardcoded-namespace:
     name: Check for hardcoded namespace

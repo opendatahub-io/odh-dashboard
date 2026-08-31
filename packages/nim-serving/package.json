@@ -15,7 +15,8 @@
   },
   "exports": {
     "./extensions": "./extensions/index.ts",
-    "./types": "./src/api/nimservices/types.ts"
+    "./types": "./src/api/nimservices/types.ts",
+    "./wizardFields/overrides/NIMModelLocationOverride": "./src/wizardFields/overrides/NIMModelLocationOverride.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

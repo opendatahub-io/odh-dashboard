@@ -377,14 +377,14 @@ describe('buildFormSpec', () => {
       expect(spec.authz).toEqual({ oidc: { secretRef: { name: 'oidc-secret' } } });
     });
 
-    it('should not include authz when AuthzType is NONE', () => {
+    it('should set noAuth when AuthzType is NONE', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
         authzType: AuthzType.NONE,
       });
       const spec = buildFormSpec(data, false);
-      expect(spec.authz).toBeUndefined();
+      expect(spec.authz).toEqual({ noAuth: true });
     });
 
     it('should include cronJob when provided', () => {

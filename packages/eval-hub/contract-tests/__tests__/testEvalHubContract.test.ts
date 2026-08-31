@@ -44,4 +44,16 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
   });
+
+  describe('Collection by ID Endpoint', () => {
+    it('should retrieve a single collection by ID', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/collections/collection-001?namespace=default',
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
 });

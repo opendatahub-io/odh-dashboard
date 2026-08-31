@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import type {
   AccessReviewResourceAttributes,
   Connection,
@@ -11,6 +12,7 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeFormFieldsProps } from '../extension-points/connection-types';
 
 export type { K8sWatchResult } from '@odh-dashboard/k8s-core';
 
@@ -25,22 +27,19 @@ export type HostApiFetchState<T> = [
   refresh: () => Promise<T | undefined>,
 ];
 
-/**
- * Lightweight fetch-state object used in host-api service signatures.
- * Structurally compatible with ui-core's FetchStateObject without creating a dependency.
- */
-export type HostApiFetchStateObject<T> = {
-  data: T;
-  loaded: boolean;
-  error?: Error;
-  refresh: () => Promise<T | undefined>;
+export type ModelServingPlatformEnabled = {
+  kServe: boolean;
+  LLMd: boolean;
 };
 
-export type ServingPlatformStatuses = {
-  kServe: { enabled: boolean; installed: boolean };
-  kServeNIM: { enabled: boolean; installed: boolean };
-  platformEnabledCount: number;
-  refreshNIMAvailability: () => Promise<boolean | undefined>;
+export type ClusterSettingsType = {
+  userTrackingEnabled: boolean;
+  pvcSize: number;
+  cullerTimeout: number;
+  modelServingPlatformEnabled: ModelServingPlatformEnabled;
+  isDistributedInferencingDefault?: boolean;
+  defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 /**
@@ -57,11 +56,19 @@ export type HostApiCoreServices = {
   /** Fire a tracking event with arbitrary properties. */
   trackEvent: (
     eventName: string,
-    properties: Record<string, string | number | boolean | undefined>,
+    properties: Record<string, string | number | boolean | string[] | undefined>,
   ) => void;
 
   /** Fetch (or refresh) the DashboardConfig CR that controls feature flags and platform settings. */
   fetchDashboardConfig: (forceRefresh?: boolean) => Promise<DashboardConfigKind>;
+
+  /** Fetch cluster-wide settings (PVC size, culler timeout, model serving platforms, etc.). */
+  fetchClusterSettings: () => Promise<ClusterSettingsType>;
+
+  /** Update cluster-wide settings. */
+  updateClusterSettings: (
+    settings: ClusterSettingsType,
+  ) => Promise<{ success: boolean; error: string }>;
 };
 
 /**
@@ -130,25 +137,27 @@ export type HostApiServices = {
   /** Fetch the disabled serving runtime template names from DashboardConfig. */
   getDashboardConfigTemplateDisablement: (ns: string) => Promise<string[]>;
 
-  /** Fetch model serving metrics (Prometheus queries) for a given inference service. */
-  useModelServingMetrics: (
-    type: string,
-    queries: Record<string, string>,
-    timeframe: string,
-    lastUpdateTime: number,
-    setLastUpdateTime: (time: number) => void,
-    refreshInterval: string,
-    namespace: string,
-  ) => { data: Record<string, HostApiFetchStateObject<unknown[]>>; refresh: () => void };
-
-  /** Get serving platform statuses (KServe, NIM availability). */
-  useServingPlatformStatuses: (shouldRefreshNimAvailability?: boolean) => ServingPlatformStatuses;
-
   /** Check whether a project has NIM support enabled. */
   isProjectNIMSupported: (currentProject: ProjectKind) => boolean;
 
-  /** Build the route path to registered model deployments. */
-  registeredModelDeploymentsRoute: (rmId?: string, preferredModelRegistry?: string) => string;
+  /** Create a new OpenShift project (username injected by host). */
+  createProject: (displayName: string, description: string, k8sName?: string) => Promise<string>;
+
+  /** Render connection type form fields inside the deployment wizard. */
+  ConnectionTypeFormFields: React.ComponentType<ConnectionTypeFormFieldsProps>;
+
+  /** React contexts provided by the host for use in federated modules. */
+  contexts: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.Context is invariant; unknown is not assignable from concrete context types
+    ProjectDetailsContext: React.Context<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.Context is invariant; unknown is not assignable from concrete context types
+    ModelServingContext: React.Context<any>;
+    ModelServingContextProvider: React.ComponentType<{
+      children: React.ReactNode;
+      namespace?: string;
+      getErrorComponent?: (errorMessage?: string) => React.ReactElement;
+    }>;
+  };
 };
 
 export type SecretOps = Pick<

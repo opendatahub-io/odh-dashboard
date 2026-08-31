@@ -197,9 +197,7 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    // PF Modal renders a close button
-    const closeButton = screen.getByLabelText('Close');
-    await userEvent.click(closeButton);
+    await userEvent.click(screen.getByTestId('model-details-close'));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -399,6 +397,20 @@ describe('AutomlModelDetailsModal', () => {
       expect(screen.getByTestId('print-page-feature-summary')).toBeInTheDocument();
       expect(screen.getByTestId('print-page-model-evaluation')).toBeInTheDocument();
       expect(screen.getByTestId('print-page-confusion-matrix')).toBeInTheDocument();
+
+      const featureSummaryPage = screen.getByTestId('print-page-feature-summary');
+      expect(within(featureSummaryPage).getByText('color')).toBeInTheDocument();
+      expect(within(featureSummaryPage).getByText('hair_length')).toBeInTheDocument();
+      expect(within(featureSummaryPage).getByLabelText('Feature importance')).not.toHaveClass(
+        'pf-m-grid-md',
+      );
+
+      const modelEvaluationPage = screen.getByTestId('print-page-model-evaluation');
+      expect(within(modelEvaluationPage).getByText('Accuracy')).toBeInTheDocument();
+      expect(within(modelEvaluationPage).getByText('0.6580')).toBeInTheDocument();
+      expect(within(modelEvaluationPage).getByLabelText('Evaluation metrics')).not.toHaveClass(
+        'pf-m-grid-md',
+      );
 
       // Each page should have a header with the model name
       const pages = printContainer.querySelectorAll('.automl-print-page');

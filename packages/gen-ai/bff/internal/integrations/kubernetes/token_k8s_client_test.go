@@ -490,6 +490,155 @@ func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "has no internal URL")
 	})
+
+	t.Run("prefers gateway-internal over gateway-internal-model-routing", func(t *testing.T) {
+		modelRoutingName := "gateway-internal-model-routing"
+		gatewayInternalName := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &modelRoutingName, URL: mustParseURL("http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/")},
+						{Name: &gatewayInternalName, URL: mustParseURL("http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"should pick gateway-internal with path, not gateway-internal-model-routing root URL")
+	})
+
+	t.Run("picks first gateway-internal address", func(t *testing.T) {
+		gatewayInternalName := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &gatewayInternalName, URL: mustParseURL("https://gw.openshift-ingress.svc.cluster.local/publishers/myns/models/mymodel")},
+						{Name: &gatewayInternalName, URL: mustParseURL("https://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/publishers/myns/models/mymodel/v1", endpoint,
+			"should pick the first gateway-internal address")
+	})
+
+	t.Run("realistic openshift-ai-inference gateway addresses", func(t *testing.T) {
+		externalModelRouting := "gateway-external-model-routing"
+		externalName := "gateway-external"
+		internalModelRouting := "gateway-internal-model-routing"
+		internalName := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &externalModelRouting, URL: mustParseURL("http://a7aba.elb.amazonaws.com/")},
+						{Name: &externalName, URL: mustParseURL("http://a7aba.elb.amazonaws.com/publishers/repro-85200/models/llama-32-1b-instruct")},
+						{Name: &externalName, URL: mustParseURL("http://a7aba.elb.amazonaws.com/repro-85200/llama-32-1b-instruct")},
+						{Name: &internalModelRouting, URL: mustParseURL("http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/")},
+						{Name: &internalName, URL: mustParseURL("http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/publishers/repro-85200/models/llama-32-1b-instruct")},
+						{Name: &internalName, URL: mustParseURL("http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/repro-85200/llama-32-1b-instruct")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://openshift-ai-inference-openshift-default.openshift-ingress.svc.cluster.local/publishers/repro-85200/models/llama-32-1b-instruct/v1", endpoint,
+			"should select the first gateway-internal address, not model-routing or external")
+	})
+
+	t.Run("trailing slash on gateway root URL does not produce double-slash", func(t *testing.T) {
+		modelRoutingName := "gateway-internal-model-routing"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &modelRoutingName, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/v1", endpoint,
+			"should not produce //v1 from trailing slash")
+	})
+
+	t.Run("gateway-internal with publishers path works", func(t *testing.T) {
+		gatewayInternalName := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &gatewayInternalName, URL: mustParseURL("https://gw.openshift-ingress.svc.cluster.local/publishers/ns/models/model")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://gw.openshift-ingress.svc.cluster.local/publishers/ns/models/model/v1", endpoint)
+	})
+
+	t.Run("prefers gateway-internal over internal name type", func(t *testing.T) {
+		internalName := "internal"
+		gwInternalName := "gateway-internal"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &internalName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local:8080")},
+						{Name: &gwInternalName, URL: mustParseURL("http://gw.openshift-ingress.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://gw.openshift-ingress.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"gateway-internal should be preferred over internal")
+	})
+
+	t.Run("falls back to internal name type when no gateway-internal", func(t *testing.T) {
+		internalName := "internal"
+		modelRoutingName := "internal-model-routing"
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{Name: &modelRoutingName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local/")},
+						{Name: &internalName, URL: mustParseURL("http://my-model-svc.myns.svc.cluster.local/myns/mymodel")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "http://my-model-svc.myns.svc.cluster.local/myns/mymodel/v1", endpoint,
+			"should pick internal address, not internal-model-routing")
+	})
+
+	t.Run("falls back to any internal address when no gateway-internal name match", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local/v1", endpoint,
+			"backward-compatible: addresses without Name field still work")
+	})
 }
 
 // TestInferenceServiceURLSuffixConstruction tests that InferenceService URLs
@@ -520,11 +669,25 @@ func TestInferenceServiceURLSuffixConstruction(t *testing.T) {
 			inputURL: "https://my-service.namespace.svc.cluster.local:8443/v1",
 			expected: "https://my-service.namespace.svc.cluster.local:8443/v1",
 		},
+		{
+			name:     "URL with trailing slash gets slash trimmed then /v1 added",
+			inputURL: "http://gateway.openshift-ingress.svc.cluster.local/",
+			expected: "http://gateway.openshift-ingress.svc.cluster.local/v1",
+		},
+		{
+			name:     "URL with path and trailing slash gets slash trimmed then /v1 added",
+			inputURL: "http://gateway.openshift-ingress.svc.cluster.local/ns/model/",
+			expected: "http://gateway.openshift-ingress.svc.cluster.local/ns/model/v1",
+		},
+		{
+			name:     "URL with multiple trailing slashes gets all trimmed",
+			inputURL: "http://gateway.openshift-ingress.svc.cluster.local///",
+			expected: "http://gateway.openshift-ingress.svc.cluster.local/v1",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Call the actual function used for InferenceService URLs
 			actual := EnsureV1Suffix(tt.inputURL)
 
 			assert.Equal(t, tt.expected, actual,
