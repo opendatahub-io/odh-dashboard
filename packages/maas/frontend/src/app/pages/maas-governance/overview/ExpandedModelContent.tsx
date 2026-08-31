@@ -20,7 +20,7 @@ import {
   MaaSGovernanceStatusPopoverViewedProperties,
   EventTrackingPopoverType,
   convertStringToPopoverViewedStatus,
-  SubscriptionManagementGroupLabelSelectedProperties,
+  MaaSGovernanceGroupLabelSelectedProperties,
   MaaSSettingsDetailsViewedProperties,
 } from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
@@ -437,7 +437,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
         policyCountWithSelectedGroup: policies.filter((policy) =>
           (policy.groups ?? []).includes(group),
         ).length,
-      } satisfies SubscriptionManagementGroupLabelSelectedProperties);
+      } satisfies MaaSGovernanceGroupLabelSelectedProperties);
     },
     [subscriptions, policies],
   );

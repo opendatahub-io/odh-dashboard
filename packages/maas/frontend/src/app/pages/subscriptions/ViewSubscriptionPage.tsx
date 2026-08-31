@@ -36,7 +36,7 @@ import {
   MaaSEvents,
   EventTrackingContext,
   MaaSResourceDeletedProperties,
-  SubscriptionManagementYamlViewedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -159,7 +159,7 @@ const ViewSubscriptionPage: React.FC = () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
                 context: EventTrackingContext.DETAILS,
-              } satisfies SubscriptionManagementYamlViewedProperties);
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >

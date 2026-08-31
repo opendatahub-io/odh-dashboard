@@ -6,7 +6,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import {
   MaaSEvents,
-  SubscriptionManagementOverviewRowExpandedProperties,
+  MaaSGovernanceOverviewRowExpandedProperties,
 } from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import OverviewTableRow from './OverviewTableRow';
@@ -44,7 +44,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
       fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED, {
         subscriptionCount: row.subscriptions.length,
         policyCount: row.authPolicies.length,
-      } satisfies SubscriptionManagementOverviewRowExpandedProperties);
+      } satisfies MaaSGovernanceOverviewRowExpandedProperties);
     }
     setExpandedModels((prev) => {
       const next = new Set(prev);

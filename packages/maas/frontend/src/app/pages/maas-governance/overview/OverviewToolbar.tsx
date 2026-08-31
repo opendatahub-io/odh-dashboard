@@ -7,7 +7,7 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import {
   EventTrackingFilterAttribute,
   MaaSEvents,
-  SubscriptionManagementOverviewFilteredProperties,
+  MaaSGovernanceOverviewFilteredProperties,
 } from '~/app/types/event-tracking';
 import { OverviewFilterDataType, OverviewFilterOptions, overviewFilterOptions } from './const';
 
@@ -41,7 +41,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.MODEL,
-              } satisfies SubscriptionManagementOverviewFilteredProperties);
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -58,7 +58,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.PROJECT,
-              } satisfies SubscriptionManagementOverviewFilteredProperties);
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -75,7 +75,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.GROUP,
-              } satisfies SubscriptionManagementOverviewFilteredProperties);
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -92,7 +92,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.SUBSCRIPTION,
-              } satisfies SubscriptionManagementOverviewFilteredProperties);
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />
@@ -109,7 +109,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
             onBlur: () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.POLICY,
-              } satisfies SubscriptionManagementOverviewFilteredProperties);
+              } satisfies MaaSGovernanceOverviewFilteredProperties);
             },
           }}
         />

@@ -31,7 +31,7 @@ import {
   MaaSEvents,
   EventTrackingContext,
   MaaSResourceDeletedProperties,
-  SubscriptionManagementYamlViewedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
@@ -147,7 +147,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 context: EventTrackingContext.DETAILS,
-              } satisfies SubscriptionManagementYamlViewedProperties);
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >
