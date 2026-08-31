@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -12,6 +13,7 @@ import (
 // MockExternalProvidersRepository returns mock data for development.
 type MockExternalProvidersRepository struct {
 	logger  *slog.Logger
+	mu      sync.RWMutex
 	created []models.ExternalProviderSummary
 }
 
@@ -29,6 +31,8 @@ func (r *MockExternalProvidersRepository) ListExternalProviders(_ context.Contex
 			result = append(result, item)
 		}
 	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	for _, item := range r.created {
 		if item.Namespace == namespace {
 			result = append(result, item)
@@ -39,6 +43,9 @@ func (r *MockExternalProvidersRepository) ListExternalProviders(_ context.Contex
 
 func (r *MockExternalProvidersRepository) CreateExternalProvider(_ context.Context, request models.CreateExternalProviderRequest) (*models.ExternalProviderSummary, error) {
 	r.logger.Debug("Creating ExternalProvider (mock)", slog.String("name", request.Name))
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	for _, item := range mocks.GetMockExternalProviderSummaries() {
 		if item.Name == request.Name && item.Namespace == request.Namespace {
@@ -69,6 +76,9 @@ func (r *MockExternalProvidersRepository) CreateExternalProvider(_ context.Conte
 
 func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Context, namespace, name string, request models.UpdateExternalProviderRequest) (*models.ExternalProviderSummary, error) {
 	r.logger.Debug("Updating ExternalProvider (mock)", slog.String("namespace", namespace), slog.String("name", name))
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	for i, item := range r.created {
 		if item.Name == name && item.Namespace == namespace {
@@ -126,6 +136,9 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 
 func (r *MockExternalProvidersRepository) DeleteExternalProvider(_ context.Context, namespace, name string) error {
 	r.logger.Debug("Deleting ExternalProvider (mock)", slog.String("namespace", namespace), slog.String("name", name))
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	for i, item := range r.created {
 		if item.Name == name && item.Namespace == namespace {

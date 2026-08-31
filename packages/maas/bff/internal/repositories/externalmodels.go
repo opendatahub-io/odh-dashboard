@@ -82,7 +82,7 @@ func (r *ExternalModelsRepository) DeleteExternalModel(ctx context.Context, name
 	err = client.GetDynamicClient().Resource(constants.ExternalModelGvr).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("ExternalModel '%s' not found: %w", name, err)
+			return fmt.Errorf("%w: ExternalModel '%s' not found", ErrNotFound, name)
 		}
 		return fmt.Errorf("failed to delete ExternalModel: %w", err)
 	}

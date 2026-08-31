@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 func attachExternalModelHandlers(apiRouter *httprouter.Router, app *App) {
@@ -45,7 +45,7 @@ func CreateExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 
 	var request Envelope[models.CreateExternalModelRequest, None]
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -57,7 +57,7 @@ func CreateExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 
 	result, err := app.repositories.ExternalModels.CreateExternalModel(ctx, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},
@@ -85,7 +85,7 @@ func UpdateExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 
 	var request Envelope[models.UpdateExternalModelRequest, None]
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -99,7 +99,7 @@ func UpdateExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 
 	result, err := app.repositories.ExternalModels.UpdateExternalModel(ctx, namespace, name, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrNotFound) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},
@@ -127,7 +127,7 @@ func DeleteExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 
 	if err := app.repositories.ExternalModels.DeleteExternalModel(ctx, namespace, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrNotFound) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},

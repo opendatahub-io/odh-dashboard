@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 func attachSecretHandlers(apiRouter *httprouter.Router, app *App) {
@@ -43,7 +43,7 @@ func CreateSecretHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 	ctx := r.Context()
 
 	var request Envelope[models.CreateSecretRequest, None]
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -63,7 +63,7 @@ func CreateSecretHandler(app *App, w http.ResponseWriter, r *http.Request, _ htt
 
 	result, err := app.repositories.Secrets.CreateSecret(ctx, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},

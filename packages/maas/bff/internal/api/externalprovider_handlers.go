@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 func attachExternalProviderHandlers(apiRouter *httprouter.Router, app *App) {
@@ -45,7 +45,7 @@ func CreateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 	ctx := r.Context()
 
 	var request Envelope[models.CreateExternalProviderRequest, None]
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -57,7 +57,7 @@ func CreateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 
 	result, err := app.repositories.ExternalProviders.CreateExternalProvider(ctx, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
 				Error:      ErrorPayload{Code: "409", Message: err.Error()},
@@ -85,7 +85,7 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 	}
 
 	var request Envelope[models.UpdateExternalProviderRequest, None]
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := app.ReadJSON(w, r, &request); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -94,10 +94,16 @@ func UpdateExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 		app.badRequestResponse(w, r, errors.New("authMechanism must be 'apikey', 'sigv4', or 'oauth2'"))
 		return
 	}
+	if strings.TrimSpace(request.Data.EndpointUrl) != "" {
+		if err := validateEndpointURL(request.Data.EndpointUrl); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	}
 
 	result, err := app.repositories.ExternalProviders.UpdateExternalProvider(ctx, namespace, name, request.Data)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrNotFound) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},
@@ -125,7 +131,7 @@ func DeleteExternalProviderHandler(app *App, w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := app.repositories.ExternalProviders.DeleteExternalProvider(ctx, namespace, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repositories.ErrNotFound) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},
@@ -149,8 +155,8 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	if strings.TrimSpace(request.Namespace) == "" {
 		return errors.New("namespace is required")
 	}
-	if strings.TrimSpace(request.EndpointUrl) == "" {
-		return errors.New("endpointUrl is required")
+	if err := validateEndpointURL(request.EndpointUrl); err != nil {
+		return err
 	}
 	if !request.AuthMechanism.IsValid() {
 		return errors.New("authMechanism must be 'apikey', 'sigv4', or 'oauth2'")
@@ -160,6 +166,26 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 	}
 	if strings.TrimSpace(request.Provider) == "" {
 		return errors.New("provider is required")
+	}
+	return nil
+}
+
+func validateEndpointURL(raw string) error {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return errors.New("endpointUrl is required")
+	}
+	schemeSep := strings.Index(s, "://")
+	if schemeSep == -1 {
+		return nil
+	}
+	scheme := strings.ToLower(s[:schemeSep])
+	if scheme != "http" && scheme != "https" {
+		return errors.New("endpointUrl must be an http or https URL")
+	}
+	host := strings.Trim(s[schemeSep+3:], "/")
+	if strings.TrimSpace(host) == "" {
+		return errors.New("endpointUrl must include a host")
 	}
 	return nil
 }

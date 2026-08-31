@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/mocks"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -17,6 +18,7 @@ type mockSecretRecord struct {
 // MockSecretsRepository returns mock data for development.
 type MockSecretsRepository struct {
 	logger  *slog.Logger
+	mu      sync.RWMutex
 	created []mockSecretRecord
 }
 
@@ -35,6 +37,8 @@ func (r *MockSecretsRepository) ListSecrets(_ context.Context, namespace string)
 			result = append(result, item)
 		}
 	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	for _, item := range r.created {
 		if item.namespace == namespace {
 			result = append(result, models.SecretSummary{Name: item.name})
@@ -46,14 +50,17 @@ func (r *MockSecretsRepository) ListSecrets(_ context.Context, namespace string)
 func (r *MockSecretsRepository) CreateSecret(_ context.Context, request models.CreateSecretRequest) (*models.CreateSecretResponse, error) {
 	r.logger.Debug("Creating Secret (mock)", slog.String("name", request.Name), slog.String("namespace", request.Namespace))
 
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	for _, item := range mocks.GetMockSecretSummaries() {
 		if item.Name == request.Name && request.Namespace == "maas-models" {
-			return nil, fmt.Errorf("secret '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: secret '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 	for _, item := range r.created {
 		if item.name == request.Name && item.namespace == request.Namespace {
-			return nil, fmt.Errorf("secret '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: secret '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 
