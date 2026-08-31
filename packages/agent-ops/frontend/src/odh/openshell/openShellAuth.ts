@@ -53,14 +53,14 @@ export const OPENSHELL_AUTH_HEADER = 'X-OpenShell-Authorization';
 
 // Native agent-sandbox CRs (RHOAI login / Token A) — a separate, less first-class
 // view of sandboxes in the user's own projects, reached from a top-right link.
-export const NATIVE_SANDBOXES_PATH = '/ai-hub/agents/deployments';
 
 // App routes the SPA registers to complete the OIDC redirect / silent-renew.
 // Intentionally OUTSIDE the /openshell/* prefix (which is reverse-proxied to the
 // BFF) so these resolve as SPA routes. Register both as redirect URIs in Keycloak.
-const OPENSHELL_HOME = '/ai-hub/agents';
-export const OIDC_CALLBACK_PATH = `${OPENSHELL_HOME}/oidc/callback`;
-export const OIDC_SILENT_CALLBACK_PATH = `${OPENSHELL_HOME}/oidc/silent-callback`;
+const AGENTS_ROOT = '/ai-hub/agents';
+const OPENSHELL_HOME = '/ai-hub/agents/openshell/provider/openshell';
+export const OIDC_CALLBACK_PATH = `${AGENTS_ROOT}/oidc/callback`;
+export const OIDC_SILENT_CALLBACK_PATH = `${AGENTS_ROOT}/oidc/silent-callback`;
 
 let managerPromise: Promise<UserManager | null> | null = null;
 // Whether OpenShell shares the dashboard IdP (silent SSO possible). Default
@@ -86,15 +86,18 @@ export const subscribeOpenShellConnection = (
   };
 };
 
-const usernameOf = (user: User | null): string | null => {
-  const profile = user?.profile;
-  return (
-    (profile?.preferred_username as string | undefined) ??
-    (profile?.name as string | undefined) ??
-    (profile?.email as string | undefined) ??
-    null
-  );
+const firstStringClaim = (claims: object, names: string[]): string | null => {
+  for (const name of names) {
+    const value = Reflect.get(claims, name);
+    if (typeof value === 'string' && value) {
+      return value;
+    }
+  }
+  return null;
 };
+
+const usernameOf = (user: User | null): string | null =>
+  user?.profile ? firstStringClaim(user.profile, ['preferred_username', 'name', 'email']) : null;
 
 const fetchAuthConfig = async (): Promise<OpenShellAuthConfig> => {
   try {
@@ -102,7 +105,31 @@ const fetchAuthConfig = async (): Promise<OpenShellAuthConfig> => {
     if (!res.ok) {
       return { configured: false };
     }
-    return (await res.json()) as OpenShellAuthConfig;
+    const config: unknown = await res.json();
+    if (!config || typeof config !== 'object') {
+      return { configured: false };
+    }
+    return {
+      configured: Reflect.get(config, 'configured') === true,
+      sharedSession:
+        typeof Reflect.get(config, 'sharedSession') === 'boolean'
+          ? Reflect.get(config, 'sharedSession')
+          : undefined,
+      issuer:
+        typeof Reflect.get(config, 'issuer') === 'string'
+          ? Reflect.get(config, 'issuer')
+          : undefined,
+      clientId:
+        typeof Reflect.get(config, 'clientId') === 'string'
+          ? Reflect.get(config, 'clientId')
+          : undefined,
+      audience:
+        typeof Reflect.get(config, 'audience') === 'string'
+          ? Reflect.get(config, 'audience')
+          : undefined,
+      scope:
+        typeof Reflect.get(config, 'scope') === 'string' ? Reflect.get(config, 'scope') : undefined,
+    };
   } catch {
     return { configured: false };
   }
@@ -161,6 +188,25 @@ const getDevToken = (): string | null => {
   }
 };
 
+const usernameFromDevToken = (token: string): string | null => {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) {
+      return null;
+    }
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const claims: unknown = JSON.parse(window.atob(padded));
+    if (claims && typeof claims === 'object') {
+      return firstStringClaim(claims, ['preferred_username', 'name', 'email', 'sub']);
+    }
+  } catch {
+    // The localhost escape hatch also permits opaque tokens. In that case the
+    // UI uses a generic development identity rather than failing connection.
+  }
+  return null;
+};
+
 /**
  * Per-request token provider for setAuthTokenGetter. Returns a fresh Token B.
  * An expired-but-resumable session is refreshed via its refresh token (works for
@@ -178,7 +224,7 @@ export const getOpenShellToken = async (): Promise<string | null> => {
   }
   let user = await manager.getUser();
   if (user && !user.expired) {
-    return user.access_token ?? null;
+    return user.access_token;
   }
 
   if (user) {
@@ -215,8 +261,13 @@ export const getOpenShellToken = async (): Promise<string | null> => {
  * disconnected so the connect gate is shown (explicit double-auth sign-in).
  */
 export const initOpenShellConnection = async (): Promise<void> => {
-  if (getDevToken()) {
-    setState({ status: 'connected', username: 'dev', error: null });
+  const devToken = getDevToken();
+  if (devToken) {
+    setState({
+      status: 'connected',
+      username: usernameFromDevToken(devToken) ?? 'dev',
+      error: null,
+    });
     return;
   }
   const manager = await getManager();

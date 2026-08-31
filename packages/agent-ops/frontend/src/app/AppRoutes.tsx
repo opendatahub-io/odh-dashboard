@@ -10,7 +10,7 @@ import { agentDeploymentsPath } from './utilities/routes';
 // Dev-only preview of the federated OpenShell landing (workspace selector +
 // workspace page) so it can be iterated in the standalone dev server without the
 // full core shell. Not part of the federated IA (that comes from odh/extensions).
-const OpenShellLandingPreview = React.lazy(() => import('../odh/openshell/SandboxesWrapper'));
+const OpenShellLandingPreview = React.lazy(() => import('../odh/openshell/DeploymentsWrapper'));
 
 const AppRoutes: React.FC = () => (
   <Routes>

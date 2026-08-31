@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  PageBreadcrumb,
-} from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, PageBreadcrumb } from '@patternfly/react-core';
 import { ProviderDetailPage } from 'openshell-dashboard/pages';
 import OpenShellProviders from './OpenShellProviders';
 
@@ -24,9 +20,7 @@ const ProviderDetailWrapper: React.FC = () => {
             <Link to="/ai-hub/agents/workspaces">Workspaces</Link>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <Link to={`/ai-hub/agents/workspaces/${workspace}`}>
-              {workspace}
-            </Link>
+            <Link to={`/ai-hub/agents/workspaces/${workspace}`}>{workspace}</Link>
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{provider}</BreadcrumbItem>
         </Breadcrumb>

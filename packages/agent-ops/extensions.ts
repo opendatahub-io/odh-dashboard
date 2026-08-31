@@ -1,19 +1,15 @@
-import type {
-  AreaExtension,
-  RouteExtension,
-  TabRouteTabExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
+import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { ProjectsBridgeProviderExtension } from './frontend/src/odh/extension-points';
 
-const AGENT_OPS = 'agent-ops';
-const AGENTS_TAB_PAGE = 'agents-tab-page';
+// The agent-ops UI extensions (tabs, routes) are defined in the INNER
+// frontend/src/odh/extensions.ts and delivered via the runtime module-federation
+// remote. This outer file must NOT re-declare them or the host renders each tab
+// twice (build-time discovery here + runtime remote). Keep only what the host
+// needs at build time: the feature-flag area and the projects bridge provider.
 
-const extensions: (
-  | AreaExtension
-  | TabRouteTabExtension
-  | RouteExtension
-  | ProjectsBridgeProviderExtension
-)[] = [
+const AGENT_OPS = 'agent-ops';
+
+const extensions: (AreaExtension | ProjectsBridgeProviderExtension)[] = [
   {
     type: 'agent-ops.projects/bridge-provider',
     properties: {
@@ -25,49 +21,6 @@ const extensions: (
     properties: {
       id: AGENT_OPS,
       featureFlags: ['agentOps'],
-    },
-  },
-  {
-    type: 'app.tab-route/tab',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      pageId: AGENTS_TAB_PAGE,
-      id: 'deployments',
-      title: 'Deployments',
-      component: () => import('./frontend/src/odh/openshell/WorkspacesWrapper'),
-      group: '1_deployments',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace',
-      component: () => import('./frontend/src/odh/openshell/WorkspaceDetailWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace/sandboxes/:sandbox',
-      component: () => import('./frontend/src/odh/openshell/SandboxDetailWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: '/ai-hub/agents/workspaces/:workspace/providers/:provider',
-      component: () => import('./frontend/src/odh/openshell/ProviderDetailWrapper'),
     },
   },
 ];

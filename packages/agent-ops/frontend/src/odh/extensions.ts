@@ -58,13 +58,14 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
-  // --- OpenShell (separate service / Token B) — the "Deployments" tab ---
+  // --- Provider chooser — the "Deployments" tab ---
   // ONE tab on the shared `agents-tab-page` (model-registry contributes
-  // "Catalog", a future module "Registry"). This is the OpenShell area:
-  // "Deployments". When sibling tabs are enabled the bar shows them all; when
+  // "Catalog", a future module "Registry"). Its landing compares sandbox
+  // providers; selecting OpenShell opens the workspace-scoped sandbox view.
+  // When sibling tabs are enabled the bar shows them all; when
   // only this one is active, core's single-tab mode hides the lone bar and
-  // renders just the page title + this component. Workspaces are a selector
-  // inside the content (not a tab), native CRs a top-right link — no sub-tabs.
+  // renders just the page title + this component. Workspaces/projects are
+  // selectors inside their provider views, never tables or tabs.
   // id 'openshell' (not 'deployments') so the landing URL doesn't collide with
   // the native /ai-hub/agents/deployments route.
   {
@@ -76,8 +77,8 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       pageId: AGENTS_TAB_PAGE,
       id: 'openshell',
       title: 'Deployments',
-      singleTabTitle: 'Agent deployments',
-      component: () => import('./openshell/SandboxesWrapper'),
+      singleTabTitle: 'Agents',
+      component: () => import('./openshell/DeploymentsWrapper'),
       group: '1_deployments',
     },
   },

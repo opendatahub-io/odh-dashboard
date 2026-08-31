@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  PageBreadcrumb,
-} from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, PageBreadcrumb } from '@patternfly/react-core';
 import { SandboxDetailPage } from 'openshell-dashboard/pages';
+import { OpenShellConnectGate } from './OpenShellConnection';
 import OpenShellProviders from './OpenShellProviders';
+import { DEPLOYMENTS_PATH, OPENSHELL_PROVIDER_PATH } from './providerRoutes';
 
 const SandboxDetailWrapper: React.FC = () => {
   const { workspace, sandbox } = useParams<{
@@ -17,21 +15,22 @@ const SandboxDetailWrapper: React.FC = () => {
     return null;
   }
   return (
-    <OpenShellProviders>
+    <OpenShellProviders requireConnection={false}>
       <PageBreadcrumb hasBodyWrapper={false}>
         <Breadcrumb>
           <BreadcrumbItem>
-            <Link to="/ai-hub/agents/workspaces">Workspaces</Link>
+            <Link to={DEPLOYMENTS_PATH}>All providers</Link>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <Link to={`/ai-hub/agents/workspaces/${workspace}`}>
-              {workspace}
-            </Link>
+            <Link to={OPENSHELL_PROVIDER_PATH}>OpenShell</Link>
           </BreadcrumbItem>
+          <BreadcrumbItem>{workspace}</BreadcrumbItem>
           <BreadcrumbItem isActive>{sandbox}</BreadcrumbItem>
         </Breadcrumb>
       </PageBreadcrumb>
-      <SandboxDetailPage workspace={workspace} sandboxName={sandbox} />
+      <OpenShellConnectGate>
+        <SandboxDetailPage workspace={workspace} sandboxName={sandbox} />
+      </OpenShellConnectGate>
     </OpenShellProviders>
   );
 };

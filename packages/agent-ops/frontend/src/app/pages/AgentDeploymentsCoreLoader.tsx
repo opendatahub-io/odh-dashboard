@@ -14,7 +14,15 @@ import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 import AgentDeploymentListPage from './AgentDeploymentListPage';
 
-const AgentDeploymentsCoreLoader: React.FC = () => {
+type AgentDeploymentsCoreLoaderProps = {
+  getRedirectPath?: (namespace?: string) => string;
+  embeddedProviderView?: boolean;
+};
+
+const AgentDeploymentsCoreLoader: React.FC<AgentDeploymentsCoreLoaderProps> = ({
+  getRedirectPath = agentOpsDeploymentsRoute,
+  embeddedProviderView = false,
+}) => {
   const { namespace } = useParams<{ namespace: string }>();
   const {
     bridgeActive,
@@ -31,7 +39,7 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
   } = useAgentOpsProjectNamespaces();
 
   const currentProject = namespace
-    ? (projectNamespaces.find((project) => project.name === namespace) ?? null)
+    ? projectNamespaces.find((project) => project.name === namespace) ?? null
     : null;
 
   React.useEffect(() => {
@@ -60,9 +68,7 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
     updatePreferredProject,
   ]);
 
-  const projectLoadError = bridgeActive
-    ? (bridgeLoadError ?? projectsLoadError)
-    : projectsLoadError;
+  const projectLoadError = bridgeActive ? bridgeLoadError ?? projectsLoadError : projectsLoadError;
 
   const projectsReady = bridgeActive ? bridgeLoaded || !!projectLoadError : !isLoading;
 
@@ -95,10 +101,15 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
       : undefined;
     if (projectNamespaces.length > 0) {
       const redirectName = (validPreferred ?? projectNamespaces[0]).name;
-      return <Navigate to={agentOpsDeploymentsRoute(redirectName)} replace />;
+      return <Navigate to={getRedirectPath(redirectName)} replace />;
     }
 
-    return <AgentDeploymentListPage />;
+    return (
+      <AgentDeploymentListPage
+        getRedirectPath={getRedirectPath}
+        embeddedProviderView={embeddedProviderView}
+      />
+    );
   }
 
   if (!currentProject) {
@@ -115,7 +126,12 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
     );
   }
 
-  return <AgentDeploymentListPage />;
+  return (
+    <AgentDeploymentListPage
+      getRedirectPath={getRedirectPath}
+      embeddedProviderView={embeddedProviderView}
+    />
+  );
 };
 
 export default AgentDeploymentsCoreLoader;

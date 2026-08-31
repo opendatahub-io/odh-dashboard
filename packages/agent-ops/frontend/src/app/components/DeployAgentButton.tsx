@@ -5,9 +5,14 @@ import { useCanDeployAgent } from '~/app/hooks/useCanDeployAgent';
 type DeployAgentButtonProps = {
   namespace?: string;
   onDeployAgent: () => void;
+  label?: string;
 };
 
-const DeployAgentButton: React.FC<DeployAgentButtonProps> = ({ namespace, onDeployAgent }) => {
+const DeployAgentButton: React.FC<DeployAgentButtonProps> = ({
+  namespace,
+  onDeployAgent,
+  label = 'Deploy agent',
+}) => {
   const { canDeploy, loaded, disabledReason } = useCanDeployAgent(namespace);
   const isDeployDisabled = !canDeploy || !loaded;
 
@@ -25,7 +30,7 @@ const DeployAgentButton: React.FC<DeployAgentButtonProps> = ({ namespace, onDepl
       isAriaDisabled={isDeployDisabled}
       onClick={handleDeployAgent}
     >
-      Deploy agent
+      {label}
     </Button>
   );
 

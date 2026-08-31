@@ -18,13 +18,16 @@ type SelectedWorkspaceContextValue = {
 };
 
 const DEFAULT_WORKSPACE = 'default';
-
-const SelectedWorkspaceContext = React.createContext<SelectedWorkspaceContextValue>({
+const DISCONNECTED_WORKSPACE_VALUE: SelectedWorkspaceContextValue = {
   workspace: DEFAULT_WORKSPACE,
   setWorkspace: () => undefined,
   workspaces: [],
   isLoading: false,
-});
+};
+
+const SelectedWorkspaceContext = React.createContext<SelectedWorkspaceContextValue>(
+  DISCONNECTED_WORKSPACE_VALUE,
+);
 
 export const useSelectedWorkspace = (): SelectedWorkspaceContextValue =>
   React.useContext(SelectedWorkspaceContext);
@@ -33,7 +36,7 @@ export const useSelectedWorkspace = (): SelectedWorkspaceContextValue =>
 // as a 401) before Token B exists.
 const ConnectedWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const query = useWorkspaces();
-  const workspaces: WorkspaceSummary[] = query.data ?? [];
+  const workspaces = React.useMemo<WorkspaceSummary[]>(() => query.data ?? [], [query.data]);
   const [selected, setSelected] = React.useState<string | null>(null);
   const resolved = selected ?? workspaces[0]?.metadata?.name ?? DEFAULT_WORKSPACE;
 
@@ -48,9 +51,7 @@ const ConnectedWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   );
 
   return (
-    <SelectedWorkspaceContext.Provider value={value}>
-      {children}
-    </SelectedWorkspaceContext.Provider>
+    <SelectedWorkspaceContext.Provider value={value}>{children}</SelectedWorkspaceContext.Provider>
   );
 };
 
@@ -60,14 +61,7 @@ export const SelectedWorkspaceProvider: React.FC<{ children: React.ReactNode }> 
   const { state } = useOpenShellConnection();
   if (state.status !== 'connected') {
     return (
-      <SelectedWorkspaceContext.Provider
-        value={{
-          workspace: DEFAULT_WORKSPACE,
-          setWorkspace: () => undefined,
-          workspaces: [],
-          isLoading: false,
-        }}
-      >
+      <SelectedWorkspaceContext.Provider value={DISCONNECTED_WORKSPACE_VALUE}>
         {children}
       </SelectedWorkspaceContext.Provider>
     );

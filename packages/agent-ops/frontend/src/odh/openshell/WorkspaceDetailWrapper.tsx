@@ -1,10 +1,6 @@
 import * as React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  PageBreadcrumb,
-} from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem, PageBreadcrumb } from '@patternfly/react-core';
 import { WorkspaceDetailPage } from 'openshell-dashboard/pages';
 import OpenShellProviders from './OpenShellProviders';
 

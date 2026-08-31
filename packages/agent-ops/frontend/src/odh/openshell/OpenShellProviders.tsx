@@ -1,17 +1,10 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Flex, FlexItem, PageSection } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { AlertProvider } from 'openshell-dashboard/components';
 import { SlotProvider } from 'openshell-dashboard/slots';
 import { setApiBasePath, setSessionExpiredHandler } from 'openshell-dashboard/api';
-import { OPENSHELL_SESSION_EXPIRED_EVENT, NATIVE_SANDBOXES_PATH } from './openShellAuth';
-import {
-  OpenShellConnectionProvider,
-  OpenShellConnectionChip,
-  OpenShellConnectGate,
-} from './OpenShellConnection';
+import { OPENSHELL_SESSION_EXPIRED_EVENT } from './openShellAuth';
+import { OpenShellConnectionProvider, OpenShellConnectGate } from './OpenShellConnection';
 import { SelectedWorkspaceProvider } from './WorkspaceContext';
 
 setApiBasePath('/openshell');
@@ -31,43 +24,19 @@ const queryClient = new QueryClient({
 
 type OpenShellProvidersProps = {
   children: React.ReactNode;
-  // Rendered at the start (left) of the top bar — e.g. the workspace selector on
-  // the landing page. Detail pages omit it.
-  toolbarStart?: React.ReactNode;
+  requireConnection?: boolean;
 };
 
-const OpenShellProviders: React.FC<OpenShellProvidersProps> = ({ children, toolbarStart }) => (
+const OpenShellProviders: React.FC<OpenShellProvidersProps> = ({
+  children,
+  requireConnection = true,
+}) => (
   <QueryClientProvider client={queryClient}>
     <OpenShellConnectionProvider>
       <SlotProvider slots={{}}>
         <AlertProvider>
           <SelectedWorkspaceProvider>
-            {/* Top bar in a PageSection so its horizontal padding matches the
-                rest of the dashboard (the page content below uses its own
-                PageSections). stickyTop keeps the connection controls in view. */}
-            <PageSection hasBodyWrapper={false} className="pf-v6-u-py-md">
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>{toolbarStart}</FlexItem>
-                <FlexItem>
-                  <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-                    {/* Native agent-sandbox CRs (Token A) — intentionally demoted
-                        to a discreet top-right link, not a first-class tab. */}
-                    <FlexItem>
-                      <Link to={NATIVE_SANDBOXES_PATH} data-testid="native-projects-link">
-                        In your projects <ExternalLinkAltIcon />
-                      </Link>
-                    </FlexItem>
-                    <FlexItem>
-                      <OpenShellConnectionChip />
-                    </FlexItem>
-                  </Flex>
-                </FlexItem>
-              </Flex>
-            </PageSection>
-            <OpenShellConnectGate>{children}</OpenShellConnectGate>
+            {requireConnection ? <OpenShellConnectGate>{children}</OpenShellConnectGate> : children}
           </SelectedWorkspaceProvider>
         </AlertProvider>
       </SlotProvider>

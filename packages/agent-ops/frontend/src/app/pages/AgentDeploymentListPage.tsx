@@ -34,7 +34,15 @@ import {
   emptyAgentRuntimesFilterData,
 } from './agentRuntimes/const';
 
-const AgentDeploymentListPage: React.FC = () => {
+type AgentDeploymentListPageProps = {
+  getRedirectPath?: (namespace?: string) => string;
+  embeddedProviderView?: boolean;
+};
+
+const AgentDeploymentListPage: React.FC<AgentDeploymentListPageProps> = ({
+  getRedirectPath = agentOpsDeploymentsRoute,
+  embeddedProviderView = false,
+}) => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
   const deployMode = useAgentOpsDeploy();
@@ -104,13 +112,24 @@ const AgentDeploymentListPage: React.FC = () => {
         <Content component="p">Project</Content>
       </FlexItem>
       <FlexItem>
-        <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
+        <AgentOpsProjectSelector namespace={namespace} getRedirectPath={getRedirectPath} />
       </FlexItem>
       {namespace && (
         <FlexItem>
           <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
         </FlexItem>
       )}
+    </Flex>
+  );
+
+  const providerScopeSelector = (
+    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+      <FlexItem>
+        <Content component="p">Project</Content>
+      </FlexItem>
+      <FlexItem>
+        <AgentOpsProjectSelector namespace={namespace} getRedirectPath={getRedirectPath} />
+      </FlexItem>
     </Flex>
   );
 
@@ -151,10 +170,13 @@ const AgentDeploymentListPage: React.FC = () => {
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}
+            scopeSelector={embeddedProviderView ? providerScopeSelector : undefined}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
             deployMode={deployMode}
+            deployActionLabel={embeddedProviderView ? 'Create sandbox' : undefined}
+            compactNameFilter={embeddedProviderView}
           />
         }
       />
@@ -164,11 +186,13 @@ const AgentDeploymentListPage: React.FC = () => {
   return (
     <ApplicationsPage
       noTitle // rendered inside a TabRoutePage which provides the title and tabs
-      description="View and manage agent deployments across your fleet."
-      headerContent={headerContent}
+      description={
+        embeddedProviderView ? undefined : 'View and manage agent deployments across your fleet.'
+      }
+      headerContent={embeddedProviderView ? undefined : headerContent}
       loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
       loaded={noProjectSelected ? !projectsLoading : loaded}
-      empty={noProjectSelected || (isEmpty && !isAccessDenied)}
+      empty={!embeddedProviderView && (noProjectSelected || (isEmpty && !isAccessDenied))}
       emptyStatePage={
         noProjectSelected ? (
           <EmptyState

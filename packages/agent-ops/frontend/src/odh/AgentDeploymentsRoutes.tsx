@@ -2,10 +2,34 @@ import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AgentDeploymentsCoreLoader from '~/app/pages/AgentDeploymentsCoreLoader';
 
-const AgentDeploymentsRoutes: React.FC = () => (
+type AgentDeploymentsRoutesProps = {
+  getRedirectPath?: (namespace?: string) => string;
+  embeddedProviderView?: boolean;
+};
+
+const AgentDeploymentsRoutes: React.FC<AgentDeploymentsRoutesProps> = ({
+  getRedirectPath,
+  embeddedProviderView = false,
+}) => (
   <Routes>
-    <Route index element={<AgentDeploymentsCoreLoader />} />
-    <Route path=":namespace" element={<AgentDeploymentsCoreLoader />} />
+    <Route
+      index
+      element={
+        <AgentDeploymentsCoreLoader
+          getRedirectPath={getRedirectPath}
+          embeddedProviderView={embeddedProviderView}
+        />
+      }
+    />
+    <Route
+      path=":namespace"
+      element={
+        <AgentDeploymentsCoreLoader
+          getRedirectPath={getRedirectPath}
+          embeddedProviderView={embeddedProviderView}
+        />
+      }
+    />
     <Route path="*" element={<Navigate to="." replace />} />
   </Routes>
 );

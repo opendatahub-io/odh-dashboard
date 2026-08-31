@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import {
   Button,
   Bullseye,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   EmptyState,
   EmptyStateBody,
   EmptyStateActions,
@@ -10,15 +13,14 @@ import {
   Flex,
   FlexItem,
   Label,
+  MenuToggle,
+  type MenuToggleElement,
   Spinner,
 } from '@patternfly/react-core';
-import {
-  ConnectedIcon,
-  DisconnectedIcon,
-  ExclamationCircleIcon,
-} from '@patternfly/react-icons';
+import { ConnectedIcon, DisconnectedIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { setAuthTokenGetter, setAuthTokenHeader } from 'openshell-dashboard/api';
-import { OPENSHELL_AUTH_HEADER, NATIVE_SANDBOXES_PATH } from './openShellAuth';
+import { OPENSHELL_AUTH_HEADER } from './openShellAuth';
+import { NATIVE_PROVIDER_PATH } from './providerRoutes';
 import {
   connectOpenShell,
   disconnectOpenShell,
@@ -99,6 +101,7 @@ export const OpenShellConnectionProvider: React.FC<{ children: React.ReactNode }
 /** Compact connection status shown in the OpenShell area (never the global masthead). */
 export const OpenShellConnectionChip: React.FC = () => {
   const { state, connect, disconnect } = useOpenShellConnection();
+  const [isOpen, setIsOpen] = React.useState(false);
 
   if (state.status === 'unconfigured') {
     return null;
@@ -114,22 +117,29 @@ export const OpenShellConnectionChip: React.FC = () => {
 
   if (state.status === 'connected') {
     return (
-      <Flex
-        gap={{ default: 'gapSm' }}
-        alignItems={{ default: 'alignItemsCenter' }}
+      <Dropdown
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        onSelect={() => setIsOpen(false)}
         data-testid="openshell-connection-chip"
+        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+          <MenuToggle
+            ref={toggleRef}
+            isExpanded={isOpen}
+            onClick={() => setIsOpen((open) => !open)}
+            status="success"
+          >
+            Connected{state.username ? ` as ${state.username}` : ''}
+          </MenuToggle>
+        )}
       >
-        <FlexItem>
-          <Label color="green" icon={<ConnectedIcon />}>
-            OpenShell{state.username ? ` · ${state.username}` : ''}
-          </Label>
-        </FlexItem>
-        <FlexItem>
-          <Button variant="link" isInline onClick={disconnect}>
+        <DropdownList>
+          <DropdownItem isDisabled>Connection details</DropdownItem>
+          <DropdownItem onClick={disconnect} isDanger>
             Disconnect
-          </Button>
-        </FlexItem>
-      </Flex>
+          </DropdownItem>
+        </DropdownList>
+      </Dropdown>
     );
   }
 
@@ -192,7 +202,12 @@ export const OpenShellConnectGate: React.FC<{ children: React.ReactNode }> = ({ 
         <EmptyStateFooter>
           <EmptyStateActions>
             {!unconfigured && (
-              <Button variant="primary" icon={<ConnectedIcon />} onClick={connect} data-testid="openshell-connect-button">
+              <Button
+                variant="primary"
+                icon={<ConnectedIcon />}
+                onClick={connect}
+                data-testid="openshell-connect-button"
+              >
                 Connect to OpenShell
               </Button>
             )}
@@ -200,7 +215,7 @@ export const OpenShellConnectGate: React.FC<{ children: React.ReactNode }> = ({ 
           <EmptyStateActions>
             <Flex>
               <FlexItem>
-                <Link to={NATIVE_SANDBOXES_PATH}>Go to sandboxes in your projects</Link>
+                <Link to={NATIVE_PROVIDER_PATH}>Go to sandboxes in your projects</Link>
               </FlexItem>
             </Flex>
           </EmptyStateActions>

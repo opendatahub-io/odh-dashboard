@@ -7,9 +7,7 @@ const WorkspacesWrapper: React.FC = () => {
   const navigate = useNavigate();
   return (
     <OpenShellProviders>
-      <WorkspaceListPage
-        onSelect={(name) => navigate(`/ai-hub/agents/workspaces/${name}`)}
-      />
+      <WorkspaceListPage onSelect={(name) => navigate(`/ai-hub/agents/workspaces/${name}`)} />
     </OpenShellProviders>
   );
 };
