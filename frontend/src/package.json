@@ -38,11 +38,12 @@
     ]
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
-    "@odh-dashboard/analytics": "*",
+    "axios": "^1.19.0",
     "dompurify": "^3.4.13",
     "marked": "^15.0.12",
     "react-router": "^7.18.2",
