@@ -48,12 +48,12 @@ func (r *MockSecretsRepository) CreateSecret(_ context.Context, request models.C
 
 	for _, item := range mocks.GetMockSecretSummaries() {
 		if item.Name == request.Name && request.Namespace == "maas-models" {
-			return nil, fmt.Errorf("Secret '%s' already exists", request.Name)
+			return nil, fmt.Errorf("secret '%s' already exists", request.Name)
 		}
 	}
 	for _, item := range r.created {
 		if item.name == request.Name && item.namespace == request.Namespace {
-			return nil, fmt.Errorf("Secret '%s' already exists", request.Name)
+			return nil, fmt.Errorf("secret '%s' already exists", request.Name)
 		}
 	}
 
