@@ -114,6 +114,27 @@ const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: bool
   );
 };
 
+const interceptShouldShowSecurityArtifacts = (hasData = true) => {
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(
+        `/model-registry/api/${API_VERSION}/model_catalog/sources/.*/security_artifacts/.*`,
+      ),
+    },
+    {
+      body: {
+        data: {
+          items: hasData ? [{ id: 'mock-artifact' }] : [],
+          size: hasData ? 1 : 0,
+          pageSize: 1,
+          nextPageToken: '',
+        },
+      },
+    },
+  ).as('shouldShowSecurityArtifacts');
+};
+
 const interceptSecurityArtifacts = (items = mockSecurityArtifacts()) => {
   cy.intercept(
     'GET',
@@ -128,6 +149,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
   });
 
   it('should show the security insights tab when LM eval and model catalog are enabled', () => {
+    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts([]);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
@@ -136,16 +158,18 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getSecurityArtifacts');
   });
 
-  it('should still show the security insights tab when LM eval is disabled', () => {
+  it('should hide the security insights tab when LM eval is disabled', () => {
     setupCommonIntercepts({ disableLMEval: true });
+    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts([]);
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
     modelDetailsPage.findPageTitle().should('exist');
-    modelDetailsPage.findSecurityInsightsTab().should('exist');
+    modelDetailsPage.findSecurityInsightsTab().should('not.exist');
   });
 
   it('should render security insights table content from the eval-hub API', () => {
+    interceptShouldShowSecurityArtifacts(true);
     interceptSecurityArtifacts();
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
