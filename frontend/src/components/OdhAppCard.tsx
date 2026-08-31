@@ -8,6 +8,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -136,7 +137,13 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
 
   if (isAdmin && isInternalRouteIntegrationsApp(odhApp.spec.internalRoute)) {
     dropdownItems.push(
-      <DropdownItem key="uninstall" data-testid="uninstall-app" onClick={removeApplication}>
+      <Divider key="uninstall-divider" component="li" />,
+      <DropdownItem
+        key="uninstall"
+        data-testid="uninstall-app"
+        isDanger
+        onClick={removeApplication}
+      >
         Uninstall
       </DropdownItem>,
     );
