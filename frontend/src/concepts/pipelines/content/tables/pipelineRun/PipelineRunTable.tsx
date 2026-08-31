@@ -340,7 +340,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
             actions={[
               primaryToolbarAction,
               ...(compareRunsAction ? [compareRunsAction] : []),
-              toolbarDropdownAction,
               [
                 <Tooltip
                   key="custom-metrics-columns"
@@ -361,6 +360,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   />
                 </Tooltip>,
               ],
+              toolbarDropdownAction,
             ]}
           />
         }
