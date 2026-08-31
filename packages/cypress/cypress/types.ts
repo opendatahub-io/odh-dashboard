@@ -709,6 +709,25 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+export type MultimodalTestData = {
+  image: {
+    fileName: string;
+    base64Content: string;
+    mimeType: string;
+  };
+  audio: {
+    fileName: string;
+    sampleContent: string;
+    mimeType: string;
+  };
+  validation: {
+    maxFileSizeBytes: number;
+  };
+  inference: {
+    visionTestMessage: string;
+  };
+};
+
 export type CustomEndpointTestData = {
   modelId: string;
   modelType: string;

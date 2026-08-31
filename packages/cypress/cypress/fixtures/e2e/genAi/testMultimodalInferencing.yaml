@@ -1,0 +1,21 @@
+# Test data for multimodal inferencing E2E tests
+# This file contains configuration for testing image/audio uploads and vision model inference
+
+image:
+  fileName: 'test-image.png'
+  # Base64 encoded 1x1 transparent PNG (smallest valid PNG)
+  base64Content: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  mimeType: 'image/png'
+
+audio:
+  fileName: 'test-audio.mp3'
+  # Placeholder audio content for testing
+  sampleContent: 'fake-audio-content-for-testing'
+  mimeType: 'audio/mpeg'
+
+validation:
+  # Maximum file size in bytes (20MB)
+  maxFileSizeBytes: 20971520
+
+inference:
+  visionTestMessage: 'What do you see in this image?'

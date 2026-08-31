@@ -84,8 +84,48 @@ class GenAiPlayground {
     return cy.findByTestId('settings-model-selector-toggle');
   }
 
-  findMessageInput() {
-    return cy.findByTestId('chatbot-message-bar');
+  findMessageInput(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-message-bar', options);
+  }
+
+  findImageFileInput() {
+    return cy.findByTestId('vision-file-input');
+  }
+
+  findAudioFileInput() {
+    return cy.findByTestId('audio-file-input');
+  }
+
+  findImagePreview(options?: { timeout?: number }) {
+    return cy.findByTestId('vision-file-preview', options);
+  }
+
+  findAudioFileChip(options?: { timeout?: number }) {
+    return cy.findByTestId('audio-file-chip', options);
+  }
+
+  findMediaValidationError(options?: { timeout?: number }) {
+    return cy.findByTestId('vision-validation-error', options);
+  }
+
+  findAttachmentButton() {
+    return cy.findByTestId('chatbot-message-bar').findByRole('button', { name: /attach/i });
+  }
+
+  findImageUploadMenuItem() {
+    return cy.findByTestId('upload-image-menu-item');
+  }
+
+  findAudioUploadMenuItem() {
+    return cy.findByTestId('upload-audio-menu-item');
+  }
+
+  findSendButton() {
+    return cy.findByTestId('chatbot-send-button');
+  }
+
+  findImageInUserMessage() {
+    return this.findUserMessage().find('img.chatbot-inline-image');
   }
 
   findUserMessage() {
