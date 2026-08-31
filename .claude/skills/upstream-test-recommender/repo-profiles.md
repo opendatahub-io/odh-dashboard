@@ -1,0 +1,179 @@
+# Upstream Repo Profiles
+
+Reference data for upstream repos that cause `cypress_found_bug` issues. Maps repos to their test infrastructure, known bug patterns, and fix locations.
+
+## Repo Detection
+
+Match the upstream repo from Jira issue content using these signals (in priority order):
+
+1. **Fix PR link** — most reliable. Extract org/repo from the GitHub PR URL.
+2. **Jira labels** — `dashboard-area-*` labels map to repos (see table below).
+3. **Summary keywords** — operator names, CRD kinds, pod names in the summary.
+4. **Description content** — stack traces, pod names, namespace references.
+
+## Repo Profiles
+
+### opendatahub-io/odh-model-controller
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Ginkgo + envtest |
+| envtest refs | 24+ (all run as cluster-admin) |
+| RBAC manifests | `config/rbac/role.yaml` |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions |
+| Manager entrypoint | `cmd/main.go` → `ctrl.NewManager()` |
+| Key gap | Never loads shipped ClusterRole as SA permissions |
+| Bug classes | RBAC violation, CRD watch failure |
+| Keywords | `odh-model-controller`, `model controller`, `inferenceservice`, `isvc` |
+| Area labels | `dashboard-area-model-serving` |
+
+### opendatahub-io/opendatahub-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Ginkgo + envtest |
+| envtest refs | 30+ (admin access) |
+| RBAC manifests | `config/rbac/role.yaml`, component-level roles |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions + Prow |
+| Manager entrypoint | `main.go` |
+| Key gap | CRD precondition tests only check own CRDs, not cross-component |
+| Bug classes | Deploy prerequisite, CRD ordering, bootstrap failure, CRD schema drift |
+| Keywords | `opendatahub-operator`, `dsc`, `dsci`, `datasciencecluster`, `trustyai`, `dashboard cr`, `deploymentmode` |
+| Area labels | `dashboard-area-operator` |
+
+### opendatahub-io/model-registry-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Ginkgo + envtest |
+| envtest refs | 13+ (admin access) |
+| RBAC manifests | `config/rbac/role.yaml` |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions |
+| Manager entrypoint | `cmd/main.go` |
+| Key gap | Never calls `ctrl.NewManager()` + `mgr.Start()`. PR #571 removed RBAC with zero CI failure |
+| Bug classes | RBAC violation, finalizer deadlock, bootstrap failure |
+| Keywords | `model-registry`, `model registry`, `model catalog`, `aitenant` |
+| Area labels | `dashboard-area-model-registry`, `model-registry`, `model-catalog` |
+
+### opendatahub-io/models-as-a-service
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | None (zero envtest) |
+| envtest refs | 0 |
+| RBAC manifests | `config/rbac/` |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions |
+| Key gap | Zero envtest despite being top bug source. EnvoyFilter/gateway config never validated |
+| Bug classes | EnvoyFilter scoping, gateway OOM, config drift, bootstrap deadlock, resource leak |
+| Keywords | `maas`, `gateway`, `envoyfilter`, `ext_proc`, `wasm`, `subscription`, `kuadrant` |
+| Area labels | `dashboard-area-maas` |
+
+### opendatahub-io/feast-module-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | None (zero envtest) |
+| envtest refs | 0 |
+| RBAC manifests | `config/rbac/role.yaml` |
+| CRDs | `config/crd/bases/` |
+| CI | Minimal GitHub Actions |
+| Key gap | Zero envtest. RBAC never validated. CrashLoopBackOff on missing RBAC undetectable |
+| Bug classes | RBAC violation, namespace labels, deploy prerequisite |
+| Keywords | `feast`, `feature store`, `featurestore` |
+| Area labels | `dashboard-area-feature-store` |
+
+### opendatahub-io/kserve
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Go test (no envtest) |
+| envtest refs | 0 |
+| RBAC manifests | `config/rbac/` |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions |
+| Key gap | CRD validation and reconciler ordering untested |
+| Bug classes | CRD schema drift, reconciler ordering, CRD installation |
+| Keywords | `kserve`, `inferenceservice`, `serving runtime`, `crd validation` |
+| Area labels | `dashboard-area-model-serving` |
+
+### opendatahub-io/workbenches-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Ginkgo + envtest |
+| envtest refs | 8+ (admin access) |
+| RBAC manifests | `config/rbac/role.yaml` |
+| Webhooks | `config/webhook/` |
+| CI | GitHub Actions |
+| Key gap | Webhook conflict undetectable in isolation |
+| Bug classes | Webhook conflict, deploy prerequisite |
+| Keywords | `workbench`, `notebook`, `workbenches-operator` |
+| Area labels | `dashboard-area-workbenches` |
+
+### opendatahub-io/mlflow-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Minimal envtest (2 refs) |
+| envtest refs | 2 |
+| RBAC manifests | `config/rbac/role.yaml` |
+| CRDs | `config/crd/bases/` |
+| CI | GitHub Actions |
+| Key gap | No bootstrap-to-Ready test. CRD schema mismatch undetected |
+| Bug classes | CRD schema drift, module dependency, bootstrap failure |
+| Keywords | `mlflow` |
+| Area labels | `dashboard-area-pipelines` |
+
+### opendatahub-io/data-science-pipelines-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | Ginkgo + envtest |
+| envtest refs | Several |
+| RBAC manifests | `config/rbac/` |
+| CI | GitHub Actions |
+| Key gap | MLflow integration untested |
+| Bug classes | CrashLoopBackOff, RBAC |
+| Keywords | `pipeline`, `dspa`, `data science pipeline`, `kfp` |
+| Area labels | `dashboard-area-pipelines` |
+
+### Kuadrant/kuadrant-operator
+
+| Field | Value |
+|---|---|
+| Language | Go |
+| Test framework | None (zero envtest in our context) |
+| envtest refs | 0 (for our integration surface) |
+| CI | GitHub Actions + Istio integration tests |
+| Key gap | External repo. No Konflux, no envtest, no early-gate. EnvoyFilter bleed is top bug class |
+| Bug classes | EnvoyFilter scoping, gateway config leak, resource leak |
+| Keywords | `kuadrant`, `envoyfilter`, `gateway` |
+| Note | Cross-org coordination needed |
+
+## Bug Class → Test Recipe Mapping
+
+| Bug Class | Detection Layer | Test Recipe | Effort |
+|---|---|---|---|
+| RBAC violation | Operator startup | Non-admin envtest: `ctrl.NewManager(cfg)` with shipped ClusterRole | ~15 lines Go |
+| Finalizer deadlock | envtest | Delete parent before children, assert finalizers removed | ~20 lines Go |
+| CRD schema drift | envtest | Apply CR with real values, assert admission passes | ~10 lines Go |
+| Deploy prerequisite | Operator startup | Bootstrap from empty cluster, assert all components Ready | ~25 lines Go |
+| Behavioral regression | envtest | Assert expected side effects (labels, resources created) | ~20 lines Go |
+| Webhook conflict | Static analysis | Scan webhook manifests for duplicate names | Script |
+| EnvoyFilter scoping | Static analysis | Assert workloadSelector present on all EnvoyFilters | Script |
+| Config drift | Runtime integration | Multi-component deploy test | Complex |
+| Resource leak | Load test | Memory profiling under sustained load | Complex |
+| API mismatch | Contract test | Cross-component naming/namespace validation | Medium |
