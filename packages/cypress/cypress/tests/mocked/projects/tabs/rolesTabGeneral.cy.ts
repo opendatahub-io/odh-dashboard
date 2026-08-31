@@ -317,7 +317,6 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findSelectTemplateModal().should('exist');
 
-    cy.contains('Workbench management templates').should('exist');
     cy.contains('Workbench maintainer').should('exist');
     cy.contains('Workbench reader').should('exist');
     cy.contains('Workbench updater').should('exist');

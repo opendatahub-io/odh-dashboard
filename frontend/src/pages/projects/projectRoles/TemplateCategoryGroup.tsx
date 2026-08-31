@@ -4,7 +4,6 @@ import {
   DataListItemRow,
   DataListItemCells,
   DataListCell,
-  DataListToggle,
   Button,
   Content,
   Flex,
@@ -25,42 +24,44 @@ const TemplateCategoryGroup: React.FC<TemplateCategoryGroupProps> = ({
   actionLabel,
   onSelectTemplate,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isExpanded] = React.useState(true);
 
   return (
     <>
-      <DataListItem
-        aria-labelledby={`category-${category.id}`}
-        isExpanded={isExpanded}
-        data-testid={`template-category-${category.id}`}
-      >
-        <DataListItemRow>
-          <DataListToggle
-            id={`toggle-${category.id}`}
-            onClick={() => setIsExpanded((prev) => !prev)}
-            isExpanded={isExpanded}
-            aria-label={`Toggle ${category.name}`}
-            data-testid={`toggle-category-${category.id}`}
-            // Override PF's buggy default of aria-controls="false" when no controlled region exists
-            buttonProps={{ 'aria-controls': undefined }}
-          />
-          <DataListItemCells
-            dataListCells={[
-              <DataListCell key="name">
-                <Content component="p" id={`category-${category.id}`}>
-                  {category.name}
-                </Content>
-              </DataListCell>,
-            ]}
-          />
-        </DataListItemRow>
-      </DataListItem>
+      {/* --- Uncomment once more than 1 group of rule templates is added --- */}
+      {/* <DataListItem */}
+      {/*   aria-labelledby={`category-${category.id}`} */}
+      {/*   isExpanded={isExpanded} */}
+      {/*   data-testid={`template-category-${category.id}`} */}
+      {/* > */}
+      {/*   <DataListItemRow> */}
+      {/*     <DataListToggle */}
+      {/*       id={`toggle-${category.id}`} */}
+      {/*       onClick={() => setIsExpanded((prev) => !prev)} */}
+      {/*       isExpanded={isExpanded} */}
+      {/*       aria-label={`Toggle ${category.name}`} */}
+      {/*       data-testid={`toggle-category-${category.id}`} */}
+      {/*       // Override PF's buggy default of aria-controls="false" when no controlled region exists */}
+      {/*       buttonProps={{ 'aria-controls': undefined }} */}
+      {/*     /> */}
+      {/*     <DataListItemCells */}
+      {/*       dataListCells={[ */}
+      {/*         <DataListCell key="name"> */}
+      {/*           <Content component="p" id={`category-${category.id}`}> */}
+      {/*             {category.name} */}
+      {/*           </Content> */}
+      {/*         </DataListCell>, */}
+      {/*       ]} */}
+      {/*     /> */}
+      {/*   </DataListItemRow> */}
+      {/* </DataListItem> */}
       {isExpanded &&
         category.templates.map((template) => (
           <DataListItem key={template.id} data-testid={`template-item-${template.id}`}>
             <DataListItemRow>
               <DataListItemCells
-                className="pf-v6-u-pl-3xl"
+                // Change to pf-v6-u-pl-3xl once more than 1 group of templates is added
+                className="pf-v6-u-pl-sm"
                 dataListCells={[
                   <DataListCell key="info" isFilled>
                     <Split hasGutter>
