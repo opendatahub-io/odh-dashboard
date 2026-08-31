@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { useModelRegistryFilter } from './useModelRegistryFilter';
 import {
   ModelDeploymentsContext,

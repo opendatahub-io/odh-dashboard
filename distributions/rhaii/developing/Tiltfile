@@ -30,7 +30,7 @@ enable_model_serving = os.environ.get("ENABLE_MODEL_SERVING", "false") == "true"
 
 build_args = {}
 if enable_model_serving:
-    build_args["ENABLE_MODEL_SERVING"] = "true"
+    build_args["MODEL_SERVING_REMOTE_ENTRY"] = "http://localhost:9109/remoteEntry.js"
 
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
 
@@ -65,6 +65,18 @@ k8s_resource(
 # Requires: make setup-kserve (called automatically by make tilt-up-model-serving)
 
 if enable_model_serving:
+    node_bin = os.environ.get("NVM_BIN", "")
+    remote_env = {}
+    if node_bin:
+        remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
+    local_resource(
+        "model-serving-remote",
+        serve_cmd="cd " + os.path.join(repo_root, "packages/model-serving/frontend") + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev",
+        serve_env=remote_env,
+        resource_deps=["rhaii-dashboard"],
+        labels=["model-serving"],
+    )
+
     # Stream logs from the externally-installed KServe controller for visibility
     local_resource(
         "kserve-controller",
