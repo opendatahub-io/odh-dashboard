@@ -11,6 +11,7 @@ const { getExtensionChunksFilter, getPluginChunkName } = require('./pluginChunki
 const {
   isVendorCss,
   patternFlyFontIncludes,
+  pnpmWebpackResolveAliases,
 } = require('../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
@@ -294,6 +295,9 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
+    alias: {
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
+    },
     symlinks: false,
     cacheWithContext: false,
   },

@@ -244,6 +244,7 @@ jobs:
   docker-build-odh:
     name: "Phase 1: Docker Build (ODH mode)"
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       actions: write  # for upload-artifact
@@ -280,6 +281,7 @@ jobs:
   docker-build-rhoai:
     name: "Phase 1: Docker Build (RHOAI mode)"
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       actions: write  # for upload-artifact
