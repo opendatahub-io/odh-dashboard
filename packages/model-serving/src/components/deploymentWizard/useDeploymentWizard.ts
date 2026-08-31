@@ -35,6 +35,7 @@ import {
   type InitialWizardFormData,
   type WizardField,
   type WizardFormData,
+  type WizardStateOverrides,
 } from '../../shared/types/form-data';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -49,6 +50,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     isExternalRouteVisible: boolean;
     shouldAutoCheckTokens: boolean;
   };
+  computedOverrides: WizardStateOverrides;
   dispatch: React.Dispatch<WizardFormAction>;
   fields: WizardField<unknown>[];
 };
@@ -238,6 +240,7 @@ export const useModelDeploymentWizard = (
   return {
     initialData,
     state: stateWithOverrides,
+    computedOverrides,
     dispatch,
     fields,
     loaded: {

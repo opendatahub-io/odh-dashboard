@@ -262,6 +262,10 @@ export type WizardStateOverrides = {
      */
     labelOverrides?: Record<string, string>;
   };
+  hardwareProfile?: {
+    /** Accelerator identifier prefix used to prioritize matching hardware profiles. */
+    preferredAccelerator?: string;
+  };
 };
 
 export type WizardField<
