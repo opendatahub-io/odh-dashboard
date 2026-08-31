@@ -726,6 +726,14 @@ export type MultimodalTestData = {
   inference: {
     visionTestMessage: string;
   };
+  model: {
+    modelId: string;
+    displayName: string;
+    endpointUrl: string;
+    lsdServiceName: string;
+    lsdPodPrefix: string;
+    lsdPodReadyTimeout: string;
+  };
 };
 
 export type CustomEndpointTestData = {

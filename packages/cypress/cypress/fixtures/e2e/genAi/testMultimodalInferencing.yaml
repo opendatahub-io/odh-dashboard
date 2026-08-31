@@ -19,3 +19,11 @@ validation:
 
 inference:
   visionTestMessage: 'What do you see in this image?'
+
+model:
+  modelId: 'gpt-4o'
+  displayName: 'E2E Multimodal Vision Model'
+  endpointUrl: 'https://api.openai.com/v1'
+  lsdServiceName: 'lsd-genai-playground-service'
+  lsdPodPrefix: 'lsd-genai-playground'
+  lsdPodReadyTimeout: '120s'

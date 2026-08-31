@@ -4,6 +4,15 @@ import {
   deleteOpenShiftProject,
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
+import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
+import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
+import {
+  enableExternalProviders,
+  disableExternalProviders,
+  waitForModelInLSD,
+  forceDashboardConfigRefresh,
+  createExternalModelViaAPI,
+} from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { MultimodalTestData } from '../../../types';
@@ -18,19 +27,68 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     cy.fixture('e2e/genAi/testMultimodalInferencing.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as MultimodalTestData;
 
+      const apiKey = Cypress.env('OPENAI_API_KEY');
+      if (!apiKey) {
+        throw new Error(
+          'OPENAI_API_KEY is not set in test-variables.yml — cannot run multimodal tests',
+        );
+      }
+
+      cy.step('Enable externalProviders in OdhDashboardConfig');
+      enableExternalProviders();
+
       cy.step(`Create project ${projectName}`);
       createCleanProject(projectName);
       waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
-      cy.step('Log into the application with genAiStudio enabled');
+      cy.step('Log into the application with genAiStudio and custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,modelAsService=false`,
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
+
+      cy.step('Force backend to refresh config from cluster');
+      forceDashboardConfigRefresh();
+
+      cy.step('Create external vision model endpoint via API');
+      createExternalModelViaAPI(
+        projectName,
+        testData.model.modelId,
+        testData.model.displayName,
+        testData.model.endpointUrl,
+        apiKey,
+      )
+        .its('status')
+        .should('be.oneOf', [200, 201]);
+
+      cy.step('Navigate to AI assets and add model to playground');
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground
+        .findAiModelsTable({ timeout: 30000 })
+        .should('contain', testData.model.displayName);
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      genAiPlayground.findConfigurationTable().should('be.visible');
+      genAiPlayground.ensureModelCheckboxIsChecked(testData.model.modelId);
+      genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
+
+      cy.step('Wait for OGX Server to be ready');
+      waitForOGXServerReady(projectName);
+
+      cy.step('Wait for playground service to be created');
+      waitForResource('service', testData.model.lsdServiceName, projectName);
+
+      cy.step('Wait for LSD pod to be fully ready');
+      waitForPodReady(testData.model.lsdPodPrefix, testData.model.lsdPodReadyTimeout, projectName);
+
+      cy.step('Wait for vision model to be registered in LSD');
+      waitForModelInLSD(testData.model.lsdServiceName, testData.model.modelId, projectName);
     });
   });
 
   after(() => {
+    cy.step('Revert externalProviders in OdhDashboardConfig');
+    disableExternalProviders();
+
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -41,17 +99,16 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
 
       cy.step('Upload a test image file');
-      const imageFileName = testData.image.fileName;
       genAiPlayground.findImageFileInput().selectFile(
         {
           contents: Cypress.Buffer.from(testData.image.base64Content, 'base64'),
-          fileName: imageFileName,
+          fileName: testData.image.fileName,
           mimeType: testData.image.mimeType,
         },
         { force: true },
@@ -69,7 +126,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -105,7 +162,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -133,7 +190,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -160,7 +217,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -187,7 +244,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -223,7 +280,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
@@ -246,7 +303,7 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
     },
     () => {
       cy.step('Navigate to Gen AI playground');
-      genAiPlayground.navigate(projectName);
+      genAiPlayground.navigateWithCustomEndpoints(projectName);
 
       cy.step('Wait for playground to be ready');
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
