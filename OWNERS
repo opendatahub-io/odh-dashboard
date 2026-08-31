@@ -222,7 +222,7 @@ filters:
     labels:
       - 'area/data-registry'
 
-  # Data Registry
+  # Data Connect Hub
   'packages/data-connect-hub/.*':
     approvers:
       - data-connect-hub-approvers

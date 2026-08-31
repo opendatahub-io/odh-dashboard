@@ -1,5 +1,8 @@
-# OWNERS
+approvers:
+  - data-connect-hub-approvers
 
-approvers: []
-reviewers: []
-labels: ['area/mod-arch']
+reviewers:
+  - data-connect-hub-reviewers
+
+labels:
+  - 'area/data-connect-hub'
