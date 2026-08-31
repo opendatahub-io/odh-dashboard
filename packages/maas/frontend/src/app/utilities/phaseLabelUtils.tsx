@@ -144,13 +144,17 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
     },
   },
   [PhaseResourceType.EXTERNAL_MODEL]: {
-    [PhaseStatus.READY]: {
-      headerIcon: <CheckCircleIcon />,
-      headerContent: 'Ready',
-    },
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
-      headerContent: 'Pending',
+      headerContent: 'External model pending',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external model configuration',
     },
     [PhaseStatus.FAILED]: {
       headerIcon: (
@@ -260,6 +264,8 @@ export const getStatusSubtext = (
       return getStatusSubtextForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getStatusSubtextForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getStatusSubtextForExternalModel(phase);
     default:
       return undefined;
   }
@@ -311,6 +317,19 @@ const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefin
   }
 };
 
+const getStatusSubtextForExternalModel = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external model';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External model setup failed';
+    default:
+      return undefined;
+  }
+};
+
 export const getModalSubtitle = (resourceType: PhaseResourceType): string | undefined => {
   switch (resourceType) {
     case PhaseResourceType.SUBSCRIPTION:
@@ -319,6 +338,8 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
       return 'Authorization policy status';
     case PhaseResourceType.MODEL:
       return 'Model status';
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return 'External model status';
     default:
       return undefined;
   }
@@ -343,7 +364,9 @@ export const getModalAlertProps = (
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
       phase === PhaseStatus.DEGRADED ||
-      (phase === PhaseStatus.PENDING && resourceType === PhaseResourceType.MODEL)) &&
+      (phase === PhaseStatus.PENDING &&
+        (resourceType === PhaseResourceType.MODEL ||
+          resourceType === PhaseResourceType.EXTERNAL_MODEL))) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -396,6 +419,8 @@ const getModalTitleAndChildren = (
       return getAlertContentForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getAlertContentForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getAlertContentForExternalModel(phase);
     default:
       return undefined;
   }
@@ -492,6 +517,28 @@ const getAlertContentForAuthPolicy = (
         title: 'Invalid policy configuration',
         children:
           'The policy configuration is invalid or missing required fields. Edit the policy and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForExternalModel = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External model setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External model setup failed',
+        children: 'The external model could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external model configuration',
+        children:
+          'The external model configuration is invalid or missing required fields. Edit the external model and ensure its configuration is correct.',
       };
     default:
       return undefined;

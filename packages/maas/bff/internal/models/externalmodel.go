@@ -19,21 +19,27 @@ type ExternalModelMaaSModelRefStatus struct {
 	Endpoint           string `json:"endpoint,omitempty"`
 	StatusMessage      string `json:"statusMessage,omitempty"`
 	Reason             string `json:"reason,omitempty"`
+	Status             string `json:"status,omitempty"`
+	ConditionType      string `json:"conditionType,omitempty"`
+	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
 	GovernanceAttached bool   `json:"governanceAttached"`
 }
 
 // ExternalModelSummary is the BFF representation of an ExternalModel CR.
 type ExternalModelSummary struct {
-	Name          string                           `json:"name"`
-	Namespace     string                           `json:"namespace"`
-	DisplayName   string                           `json:"displayName,omitempty"`
-	Description   string                           `json:"description,omitempty"`
-	ModelName     string                           `json:"modelName,omitempty"`
-	ProviderRefs  []ProviderRef                    `json:"providerRefs"`
-	Phase         string                           `json:"phase,omitempty"`
-	StatusMessage string                           `json:"statusMessage,omitempty"`
-	Reason        string                           `json:"reason,omitempty"`
-	MaaSModelRef  *ExternalModelMaaSModelRefStatus `json:"maaSModelRef,omitempty"`
+	Name               string                           `json:"name"`
+	Namespace          string                           `json:"namespace"`
+	DisplayName        string                           `json:"displayName,omitempty"`
+	Description        string                           `json:"description,omitempty"`
+	ModelName          string                           `json:"modelName,omitempty"`
+	ProviderRefs       []ProviderRef                    `json:"providerRefs"`
+	Phase              string                           `json:"phase,omitempty"`
+	StatusMessage      string                           `json:"statusMessage,omitempty"`
+	Reason             string                           `json:"reason,omitempty"`
+	Status             string                           `json:"status,omitempty"`
+	ConditionType      string                           `json:"conditionType,omitempty"`
+	LastTransitionTime string                           `json:"lastTransitionTime,omitempty"`
+	MaaSModelRef       *ExternalModelMaaSModelRefStatus `json:"maaSModelRef,omitempty"`
 }
 
 // CreateExternalModelRequest is the request body for creating an ExternalModel.
