@@ -171,21 +171,5 @@ func validateCreateExternalProviderRequest(request models.CreateExternalProvider
 }
 
 func validateEndpointURL(raw string) error {
-	s := strings.TrimSpace(raw)
-	if s == "" {
-		return errors.New("endpointUrl is required")
-	}
-	schemeSep := strings.Index(s, "://")
-	if schemeSep == -1 {
-		return nil
-	}
-	scheme := strings.ToLower(s[:schemeSep])
-	if scheme != "http" && scheme != "https" {
-		return errors.New("endpointUrl must be an http or https URL")
-	}
-	host := strings.Trim(s[schemeSep+3:], "/")
-	if strings.TrimSpace(host) == "" {
-		return errors.New("endpointUrl must include a host")
-	}
-	return nil
+	return repositories.ValidateEndpointURL(raw)
 }

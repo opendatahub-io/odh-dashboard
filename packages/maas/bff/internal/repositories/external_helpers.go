@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -230,14 +231,26 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 	return summary
 }
 
+var endpointFQDNPattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$`)
+
+const maxEndpointFQDNLength = 253
+
 func normalizeEndpointURL(raw string) string {
-	s := strings.TrimSpace(raw)
-	lower := strings.ToLower(s)
-	switch {
-	case strings.HasPrefix(lower, "https://"):
-		s = s[len("https://"):]
-	case strings.HasPrefix(lower, "http://"):
-		s = s[len("http://"):]
+	return strings.TrimSpace(raw)
+}
+
+// ValidateEndpointURL checks ExternalProvider spec.endpoint against the CRD:
+// FQDN, no scheme or path, 1–253 characters.
+func ValidateEndpointURL(raw string) error {
+	host := normalizeEndpointURL(raw)
+	if host == "" {
+		return fmt.Errorf("endpointUrl is required")
 	}
-	return strings.TrimRight(s, "/")
+	if len(host) > maxEndpointFQDNLength {
+		return fmt.Errorf("endpointUrl must be at most %d characters", maxEndpointFQDNLength)
+	}
+	if !endpointFQDNPattern.MatchString(host) {
+		return fmt.Errorf("endpointUrl must be an FQDN with no scheme or path (e.g. api.openai.com)")
+	}
+	return nil
 }

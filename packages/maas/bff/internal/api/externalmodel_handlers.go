@@ -173,8 +173,8 @@ func validateProviderRefs(refs []models.ProviderRef) error {
 		if strings.TrimSpace(ref.ProviderName) == "" {
 			return errors.New("providerRef.providerName is required")
 		}
-		if ref.Weight < 1 || ref.Weight > 100 {
-			return errors.New("providerRef.weight must be between 1 and 100")
+		if ref.Weight < 0 || ref.Weight > 100 {
+			return errors.New("providerRef.weight must be between 0 and 100")
 		}
 		if strings.TrimSpace(ref.APIFormat) == "" {
 			return errors.New("providerRef.apiFormat is required")

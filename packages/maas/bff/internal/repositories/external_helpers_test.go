@@ -229,3 +229,30 @@ func TestEnrichExternalModelSummaries_AuthOverride(t *testing.T) {
 		t.Fatalf("expected provider credentialSecretRef, got %q", enriched[1].ProviderRefs[0].Provider.CredentialSecretRef)
 	}
 }
+
+func TestValidateEndpointURL(t *testing.T) {
+	valid := []string{
+		"api.openai.com",
+		"bedrock.amazonaws.com",
+	}
+	for _, raw := range valid {
+		if err := ValidateEndpointURL(raw); err != nil {
+			t.Errorf("%q: unexpected error: %v", raw, err)
+		}
+	}
+
+	invalid := []string{
+		"",
+		"   ",
+		"localhost",
+		"api.openai.com/v1",
+		"https://api.openai.com",
+		"http://api.openai.com/",
+		"ftp://api.openai.com",
+	}
+	for _, raw := range invalid {
+		if err := ValidateEndpointURL(raw); err == nil {
+			t.Errorf("%q: expected error", raw)
+		}
+	}
+}

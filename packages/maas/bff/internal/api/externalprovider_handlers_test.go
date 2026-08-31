@@ -39,7 +39,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 					Name:                name,
 					Namespace:           "maas-models",
 					DisplayName:         "Test Provider",
-					EndpointUrl:         "https://api.example.com",
+					EndpointUrl:         "api.example.com",
 					AuthMechanism:       models.AuthMechanismAPIKey,
 					CredentialSecretRef: "test-api-key",
 					Provider:            "openai",

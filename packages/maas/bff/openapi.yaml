@@ -1898,7 +1898,16 @@ paths:
             type: string
       responses:
         '200':
-          description: Secret name list (values never returned)
+          description: Secret name list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SecretSummary'
     post:
       tags: [secrets]
       summary: Create a Secret
@@ -2912,8 +2921,9 @@ components:
           type: string
         weight:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 100
+          description: Relative traffic proportion. 0 disables the ref. Defaults to 1 if omitted on the CR.
         apiFormat:
           type: string
         path:
@@ -2946,6 +2956,10 @@ components:
           type: string
         endpointUrl:
           type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$'
+          description: FQDN of the external provider with no scheme or path (e.g. api.openai.com)
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
@@ -3006,6 +3020,10 @@ components:
           description: Description (from openshift.io/description annotation)
         endpointUrl:
           type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$'
+          description: FQDN of the external provider with no scheme or path (e.g. api.openai.com)
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
@@ -3038,6 +3056,10 @@ components:
           description: Optional description (openshift.io/description annotation)
         endpointUrl:
           type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$'
+          description: FQDN of the external provider with no scheme or path (e.g. api.openai.com)
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
@@ -3060,6 +3082,10 @@ components:
           type: string
         endpointUrl:
           type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$'
+          description: FQDN of the external provider with no scheme or path (e.g. api.openai.com)
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
