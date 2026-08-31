@@ -261,7 +261,7 @@ importers:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)
       tsx:
-        specifier: ^4.23.1
+        specifier: ^4.23.12
         version: 4.23.12
       wait-on:
         specifier: ^7.2.0
@@ -1215,6 +1215,9 @@ importers:
       '@odh-dashboard/ui-core':
         specifier: workspace:*
         version: link:../../packages/ui-core
+      axios:
+        specifier: ^1.17.0
+        version: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       dompurify:
         specifier: ^3.4.8
         version: 3.4.13
@@ -2650,7 +2653,7 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       tsx:
-        specifier: ^4.19.0
+        specifier: ^4.23.12
         version: 4.23.12
       wait-on:
         specifier: ^7.2.0
