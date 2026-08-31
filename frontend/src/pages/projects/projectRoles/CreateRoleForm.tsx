@@ -37,7 +37,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
   );
 
   return (
-    <Form data-testid="create-role-form">
+    <Form onSubmit={(e) => e.preventDefault()} data-testid="create-role-form">
       <K8sNameDescriptionField
         dataTestId="role"
         data={nameDescriptionData.data}

@@ -80,6 +80,13 @@ describe('EvaluationEventLog', () => {
     expect(screen.queryByTestId('benchmark-log-selector')).not.toBeInTheDocument();
   });
 
+  it('should wrap the toolbar on narrow viewports and keep a single row from md', () => {
+    renderComponent();
+    const toolbar = screen.getByTestId('event-log-toolbar');
+    expect(toolbar).toHaveClass('pf-m-wrap');
+    expect(toolbar).toHaveClass('pf-m-nowrap-on-md');
+  });
+
   describe('scrollToBottomOnNextLoad reset on benchmark change', () => {
     it('should not scroll to bottom on newly selected benchmark after a refresh was requested', () => {
       const scrollToSpy = jest.fn();
