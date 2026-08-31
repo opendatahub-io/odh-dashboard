@@ -132,6 +132,8 @@ export { default as InvalidProject } from './components/InvalidProject';
 export type { InvalidProjectProps } from './components/InvalidProject';
 
 export { default as ProjectsRoutes } from './components/ProjectsRoutes';
+export { ProjectsContext } from './context/ProjectsContext';
+export type { ProjectsContextType } from './context/ProjectsContext';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
 export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';

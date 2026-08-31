@@ -70,15 +70,11 @@ else
   kubectl apply --server-side --force-conflicts -f "$KSERVE_URL"
 fi
 
-info "Waiting for kserve-controller-manager to be ready..."
-kubectl wait deployment kserve-controller-manager \
-  -n kserve \
-  --for=condition=Available \
-  --timeout="$WAIT_TIMEOUT"
-
 # --- Configure RawDeployment mode ---------------------------------------------
 # KServe defaults to serverless (Knative) mode. We run without Knative/Istio,
-# so switch to RawDeployment mode and disable ingress creation.
+# so switch to RawDeployment mode and disable ingress creation. Configure this
+# before waiting for the controller: on cluster restart, KServe v0.19 validates
+# the persisted ingress object during startup.
 
 info "Configuring KServe for RawDeployment mode..."
 kubectl patch configmap inferenceservice-config \
@@ -87,9 +83,15 @@ kubectl patch configmap inferenceservice-config \
   -p '{
     "data": {
       "deploy": "{\"defaultDeploymentMode\": \"RawDeployment\"}",
-      "ingress": "{\"disableIngressCreation\": true}"
+      "ingress": "{\"enableGatewayApi\": false, \"kserveIngressGateway\": \"kserve/kserve-ingress-gateway\", \"ingressGateway\": \"knative-serving/knative-ingress-gateway\", \"localGateway\": \"knative-serving/knative-local-gateway\", \"localGatewayService\": \"knative-local-gateway.istio-system.svc.cluster.local\", \"ingressDomain\": \"example.com\", \"ingressClassName\": \"istio\", \"domainTemplate\": \"{{ .Name }}-{{ .Namespace }}.{{ .IngressDomain }}\", \"urlScheme\": \"http\", \"disableIstioVirtualHost\": false, \"disableIngressCreation\": true, \"disableHTTPRouteTimeout\": false}"
     }
   }'
+
+info "Waiting for kserve-controller-manager to be ready..."
+kubectl wait deployment kserve-controller-manager \
+  -n kserve \
+  --for=condition=Available \
+  --timeout="$WAIT_TIMEOUT"
 
 # --- Summary ------------------------------------------------------------------
 

@@ -23,11 +23,13 @@ COPY package.json package-lock.json* ./
 COPY frontend/package.json ./frontend/
 COPY frontend/src/ ./frontend/src/
 COPY packages/plugin-core/ ./packages/plugin-core/
+COPY packages/app-config/ ./packages/app-config/
 COPY packages/tsconfig/ ./packages/tsconfig/
 
 # Copy optional packages (always copied for npm workspace resolution;
 # only compiled into the bundle when their env flag is set)
 COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/analytics/ ./packages/analytics/
 COPY packages/trustyai/ ./packages/trustyai/
 COPY packages/foundation/ ./packages/foundation/
 COPY packages/hardware-profiles/ ./packages/hardware-profiles/
@@ -51,6 +53,8 @@ RUN npm ci --ignore-scripts
 WORKDIR /usr/src/workspace/distributions/rhaii
 ARG ENABLE_MODEL_SERVING=false
 ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
+ARG MODEL_SERVING_REMOTE_ENTRY=""
+ENV MODEL_SERVING_REMOTE_ENTRY=${MODEL_SERVING_REMOTE_ENTRY}
 RUN npm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────

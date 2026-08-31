@@ -7,7 +7,7 @@ import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/trustyai/hooks/useDoesTrustyAICRExist';
 import { byName } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import useServingPlatformStatuses from '@odh-dashboard/model-serving/hooks/useServingPlatformStatuses';

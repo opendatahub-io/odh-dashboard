@@ -112,6 +112,10 @@ module.exports = merge(
     devServer: {
       host: HOST,
       port: PORT,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
       compress: true,
       historyApiFallback: true,
       hot: true,

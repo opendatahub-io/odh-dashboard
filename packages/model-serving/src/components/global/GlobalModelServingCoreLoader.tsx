@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { byName } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ProjectsContext, ApplicationsPage } from '@odh-dashboard/ui-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';

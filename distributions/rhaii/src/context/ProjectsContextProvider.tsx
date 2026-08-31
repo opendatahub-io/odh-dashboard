@@ -1,8 +1,5 @@
 import * as React from 'react';
-import {
-  ProjectsContext,
-  type ProjectsContextType,
-} from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext, type ProjectsContextType } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
