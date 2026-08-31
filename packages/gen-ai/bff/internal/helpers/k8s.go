@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -50,9 +51,9 @@ func CheckAgentSandboxCRDAvailable(ctx context.Context, logger *slog.Logger) boo
 		logger.Warn("agent sandbox CRD check request failed", "error", err)
 		return false
 	}
-	defer resp.Body.Close()
-
 	available := resp.StatusCode == http.StatusOK
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
 	logger.Debug("agent sandbox CRD availability check complete", "available", available, "statusCode", resp.StatusCode)
 	return available
 }
