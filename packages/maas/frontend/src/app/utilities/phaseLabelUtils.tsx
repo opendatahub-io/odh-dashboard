@@ -31,6 +31,7 @@ export enum PhaseResourceType {
   SUBSCRIPTION = 'Subscription',
   EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
+  EXTERNAL_PROVIDER = 'External Provider',
 }
 
 export enum PhaseStatus {
@@ -125,6 +126,32 @@ export const getAffectedModelsFromRefs = (
 ): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  [PhaseResourceType.EXTERNAL_PROVIDER]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external provider configuration',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'External provider failed',
+    },
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'External provider pending',
+    },
+  },
   [PhaseResourceType.MODEL]: {
     [PhaseStatus.READY]: {
       headerIcon: <CheckCircleIcon />,
@@ -251,6 +278,7 @@ export enum PhaseLabelLocation {
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
   EXTERNAL_MODELS = 'external-models',
+  EXTERNAL_PROVIDERS = 'external-providers',
 }
 
 export const getStatusSubtext = (
@@ -266,6 +294,8 @@ export const getStatusSubtext = (
       return getStatusSubtextForAuthPolicy(phase);
     case PhaseResourceType.EXTERNAL_MODEL:
       return getStatusSubtextForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getStatusSubtextForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -330,6 +360,19 @@ const getStatusSubtextForExternalModel = (phase: string): React.ReactNode | unde
   }
 };
 
+const getStatusSubtextForExternalProvider = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external provider';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External provider setup failed';
+    default:
+      return undefined;
+  }
+};
+
 export const getModalSubtitle = (resourceType: PhaseResourceType): string | undefined => {
   switch (resourceType) {
     case PhaseResourceType.SUBSCRIPTION:
@@ -340,6 +383,8 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
       return 'Model status';
     case PhaseResourceType.EXTERNAL_MODEL:
       return 'External model status';
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return 'External provider status';
     default:
       return undefined;
   }
@@ -421,6 +466,8 @@ const getModalTitleAndChildren = (
       return getAlertContentForAuthPolicy(phase);
     case PhaseResourceType.EXTERNAL_MODEL:
       return getAlertContentForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getAlertContentForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -539,6 +586,28 @@ const getAlertContentForExternalModel = (
         title: 'Invalid external model configuration',
         children:
           'The external model configuration is invalid or missing required fields. Edit the external model and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForExternalProvider = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External provider setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External provider setup failed',
+        children: 'The external provider could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external provider configuration',
+        children:
+          'The external provider configuration is invalid or missing required fields. Edit the external provider and ensure its configuration is correct.',
       };
     default:
       return undefined;
