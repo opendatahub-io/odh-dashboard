@@ -194,7 +194,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     </Td>
   );
 
-  const secondayStatus = isMissingMaaSModelRef(externalModel) ? (
+  const secondaryStatus = isMissingMaaSModelRef(externalModel) ? (
     <MissingMaaSModelRefWarning />
   ) : isAwaitingGovernancePairing(externalModel) ? (
     <GovernancePairingWarning />
@@ -209,7 +209,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
             resourceName={externalModel.displayName ?? externalModel.name}
             statusMessage={externalModel.statusMessage}
-            secondayStatus={secondayStatus}
+            secondaryStatus={secondaryStatus}
             status={externalModel.status}
             conditionType={externalModel.conditionType}
             lastTransitionTime={externalModel.lastTransitionTime}

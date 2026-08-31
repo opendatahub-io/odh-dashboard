@@ -28,7 +28,7 @@ type PhaseLabelProps = {
   lastTransitionTime?: string;
   affectedModels?: AffectedModel[];
   overviewLoaded?: boolean;
-  secondayStatus?: React.ReactNode;
+  secondaryStatus?: React.ReactNode;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -47,7 +47,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   lastTransitionTime,
   affectedModels,
   overviewLoaded = false,
-  secondayStatus,
+  secondaryStatus,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
@@ -83,7 +83,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
             {normalized}
           </Label>
         </FlexItem>
-        {secondayStatus && <FlexItem>{secondayStatus}</FlexItem>}
+        {secondaryStatus && <FlexItem>{secondaryStatus}</FlexItem>}
       </Flex>
       {statusSubtext && subtextProps && !hideSubtext ? (
         <Content component="small" {...subtextProps} data-testid="phase-label-subtext">

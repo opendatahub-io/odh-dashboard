@@ -19,9 +19,6 @@ type ExternalModelMaaSModelRefStatus struct {
 	Endpoint           string `json:"endpoint,omitempty"`
 	StatusMessage      string `json:"statusMessage,omitempty"`
 	Reason             string `json:"reason,omitempty"`
-	Status             string `json:"status,omitempty"`
-	ConditionType      string `json:"conditionType,omitempty"`
-	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
 	GovernanceAttached bool   `json:"governanceAttached"`
 }
 
