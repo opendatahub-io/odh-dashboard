@@ -1,8 +1,8 @@
 import {
-  deleteOpenShiftProject,
-  createOpenShiftProject,
+  recreateOpenShiftProject,
+  deleteOpenShiftProjectBestEffort,
 } from '../../../../utils/oc_commands/project';
-import { retryableBefore } from '../../../../utils/retryableHooks';
+import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
   setupKueueModelDeploymentResources,
@@ -13,11 +13,13 @@ import {
   cleanupKueueWorkbenchResources,
   type KueueWorkbenchConfig,
 } from '../../../../utils/oc_commands/kueueWorkbench';
+import { projectDetails, projectListPage } from '../../../../pages/projects';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
 } from '../../../../pages/modelServing';
+import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 
 const describeAdminOnly = Cypress.env('IS_NON_ADMIN_RUN') ? describe.skip : describe;
@@ -67,31 +69,63 @@ const buildKueueConfig = (
   memoryQuota,
 });
 
-const waitForModelServerTabReady = (timeout = TAB_READY_TIMEOUT) => {
-  cy.findByTestId('section-model-server', { timeout }).should('exist');
-  cy.findByTestId('section-model-server').within(() => {
-    cy.get('.pf-v6-l-bullseye, .pf-l-bullseye', { timeout }).should('not.exist');
-    cy.get(
-      '[data-testid="deploy-button"], [data-testid="kserve-select-button"], [data-testid="deployments-table"], [data-testid="empty-state-title"]',
-      { timeout },
-    ).should('be.visible');
+const assertModelServingAvailable = () => {
+  cy.get('body').then(($body) => {
+    if ($body.text().includes('administrator must first select a model serving platform')) {
+      throw new Error(
+        'Model serving platform is not enabled on this cluster. Enable single-model (KServe) serving under Settings → Model serving before running this test.',
+      );
+    }
+    if ($body.find('[data-testid="unauthorized-error"]').length > 0) {
+      throw new Error('Current user is not authorized to view model deployments for this project.');
+    }
   });
 };
 
-const openModelServerTab = (ctx: TestContext, reloadForPlatformLabel = false) => {
+/** Fresh projects must pick KServe before Deploy is available — same as other model E2E specs. */
+const selectKservePlatformIfNeeded = () => {
+  cy.get('body').then(($body) => {
+    if ($body.find('[data-testid="kserve-select-button"]').length > 0) {
+      projectDetails.findSelectPlatformButton('kserve').should('be.visible').click();
+    }
+  });
+};
+
+const waitForDeployModelButton = (timeout = TAB_READY_TIMEOUT) => {
+  cy.findByTestId('section-model-server', { timeout }).should('exist');
+  assertModelServingAvailable();
+  selectKservePlatformIfNeeded();
+  modelServingGlobal.findDeployModelButton().should('be.visible', { timeout });
+};
+
+const waitForDeploymentsTable = (timeout = TAB_READY_TIMEOUT) => {
+  cy.findByTestId('section-model-server', { timeout }).should('exist');
+  assertModelServingAvailable();
+  modelServingSection.findDeploymentsTable().should('be.visible', { timeout });
+};
+
+/** First visit: same navigation pattern as testDeployLLMDServing / testWorkbenchKueueLifecycle. */
+const openModelServerTabForDeploy = (ctx: TestContext) => {
+  cy.visitWithLogin('/?devFeatureFlags=true', LDAP_ADMIN_USER);
+  projectListPage.navigate();
+  projectListPage.filterProjectByName(ctx.projectName);
+  projectListPage.findProjectLink(ctx.projectName).click();
+  projectDetails.findSectionTab(FIXTURE.sectionTab).click();
+  waitForDeployModelButton();
+};
+
+/** Revisit after a model exists — wait for the deployments table, not the deploy empty state. */
+const openModelServerTabForVerification = (ctx: TestContext) => {
   cy.visitWithLogin(
     `/projects/${ctx.projectName}?section=${FIXTURE.sectionTab}&devFeatureFlags=true`,
+    LDAP_ADMIN_USER,
   );
-  waitForModelServerTabReady();
-  if (reloadForPlatformLabel) {
-    cy.reload();
-    waitForModelServerTabReady();
-  }
+  waitForDeploymentsTable();
 };
 
 const deployModelViaWizard = (ctx: TestContext, modelName: string) => {
   cy.get('body').type('{esc}');
-  waitForModelServerTabReady();
+  waitForDeployModelButton();
   modelServingGlobal.findDeployModelButton().should('be.visible').click();
 
   modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
@@ -166,8 +200,7 @@ const setupProject = (
     projectName: `${FIXTURE.projectName}-${projectSuffix}-${uuid}`,
     testData: buildKueueConfig(uuid, cpuQuota, memoryQuota),
   };
-  return deleteOpenShiftProject(ctx.projectName, { wait: true, ignoreNotFound: true })
-    .then(() => createOpenShiftProject(ctx.projectName))
+  return recreateOpenShiftProject(ctx.projectName)
     .then(() => setupKueueModelDeploymentResources(ctx.testData, ctx.projectName))
     .then(() => ctx);
 };
@@ -199,18 +232,21 @@ describeAdminOnly('Model deployment Kueue status tests', () => {
     );
 
     after(() => {
+      if (!wasSetupPerformed()) {
+        return;
+      }
       cleanupKueueWorkbenchResources(ctx.testData, ctx.projectName);
-      deleteOpenShiftProject(ctx.projectName, { wait: false, ignoreNotFound: true });
+      deleteOpenShiftProjectBestEffort(ctx.projectName);
     });
 
     it(
       'Verify model deployment shows Inadmissible when ClusterQueue quota is zero',
       { tags: TEST_TAGS },
       () => {
-        openModelServerTab(ctx, true);
+        openModelServerTabForDeploy(ctx);
         deployModelViaWizard(ctx, modelName);
         pollUntilAnyWorkloadMessageMatches(ctx.projectName, INADMISSIBLE_MESSAGE);
-        openModelServerTab(ctx);
+        openModelServerTabForVerification(ctx);
         verifyKueueStatusAndResourcesModal(ctx, modelName, FIXTURE.inadmissibleStatus, false);
       },
     );
@@ -231,21 +267,24 @@ describeAdminOnly('Model deployment Kueue status tests', () => {
     );
 
     after(() => {
+      if (!wasSetupPerformed()) {
+        return;
+      }
       cleanupKueueWorkbenchResources(ctx.testData, ctx.projectName);
-      deleteOpenShiftProject(ctx.projectName, { wait: false, ignoreNotFound: true });
+      deleteOpenShiftProjectBestEffort(ctx.projectName);
     });
 
     it(
       'Verify model deployment shows Queued when ClusterQueue quota is consumed by another deployment',
       { tags: TEST_TAGS },
       () => {
-        openModelServerTab(ctx, true);
+        openModelServerTabForDeploy(ctx);
         deployModelViaWizard(ctx, firstModelName);
         pollUntilWorkloadAdmitted(ctx.projectName, { maxAttempts: 120, pollIntervalMs: 5000 });
-        openModelServerTab(ctx);
+        openModelServerTabForVerification(ctx);
         deployModelViaWizard(ctx, secondModelName);
         pollUntilAnyWorkloadMessageMatches(ctx.projectName, QUEUED_MESSAGE);
-        openModelServerTab(ctx);
+        openModelServerTabForVerification(ctx);
         verifyKueueStatusAndResourcesModal(ctx, secondModelName, FIXTURE.queuedStatus, true);
       },
     );
