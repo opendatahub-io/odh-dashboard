@@ -80,12 +80,12 @@ func (r *MockExternalModelsRepository) CreateExternalModel(ctx context.Context, 
 
 	for _, item := range mocks.GetMockExternalModelSummaries() {
 		if item.Name == request.Name && item.Namespace == request.Namespace {
-			return nil, fmt.Errorf("ExternalModel '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalModel '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 	for _, item := range r.created {
 		if item.Name == request.Name && item.Namespace == request.Namespace {
-			return nil, fmt.Errorf("ExternalModel '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalModel '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 
@@ -162,7 +162,7 @@ func (r *MockExternalModelsRepository) UpdateExternalModel(ctx context.Context, 
 		}
 	}
 
-	return nil, fmt.Errorf("ExternalModel '%s' not found", name)
+	return nil, fmt.Errorf("%w: ExternalModel '%s' not found", ErrNotFound, name)
 }
 
 func (r *MockExternalModelsRepository) DeleteExternalModel(ctx context.Context, namespace, name string) error {
@@ -182,7 +182,7 @@ func (r *MockExternalModelsRepository) DeleteExternalModel(ctx context.Context, 
 			return r.deleteMaaSModelRefForExternalModel(ctx, namespace, name)
 		}
 	}
-	return fmt.Errorf("ExternalModel '%s' not found", name)
+	return fmt.Errorf("%w: ExternalModel '%s' not found", ErrNotFound, name)
 }
 func (r *MockExternalModelsRepository) createMaaSModelRefForExternalModel(
 	ctx context.Context,

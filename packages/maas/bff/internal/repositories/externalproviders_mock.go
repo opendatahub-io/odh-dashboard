@@ -49,12 +49,12 @@ func (r *MockExternalProvidersRepository) CreateExternalProvider(_ context.Conte
 
 	for _, item := range mocks.GetMockExternalProviderSummaries() {
 		if item.Name == request.Name && item.Namespace == request.Namespace {
-			return nil, fmt.Errorf("ExternalProvider '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalProvider '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 	for _, item := range r.created {
 		if item.Name == request.Name && item.Namespace == request.Namespace {
-			return nil, fmt.Errorf("ExternalProvider '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalProvider '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 	}
 
@@ -131,7 +131,7 @@ func (r *MockExternalProvidersRepository) UpdateExternalProvider(_ context.Conte
 		}
 	}
 
-	return nil, fmt.Errorf("ExternalProvider '%s' not found", name)
+	return nil, fmt.Errorf("%w: ExternalProvider '%s' not found", ErrNotFound, name)
 }
 
 func (r *MockExternalProvidersRepository) DeleteExternalProvider(_ context.Context, namespace, name string) error {
@@ -151,5 +151,5 @@ func (r *MockExternalProvidersRepository) DeleteExternalProvider(_ context.Conte
 			return nil
 		}
 	}
-	return fmt.Errorf("ExternalProvider '%s' not found", name)
+	return fmt.Errorf("%w: ExternalProvider '%s' not found", ErrNotFound, name)
 }
