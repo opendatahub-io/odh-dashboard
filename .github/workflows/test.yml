@@ -245,8 +245,7 @@ jobs:
 
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
-    # Frontend Cypress build is the heaviest matrix job (full MF host + coverage + source maps).
-    runs-on: ${{ matrix.package.name == 'odh-dashboard-frontend' && 'ubuntu-latest-4-cores' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
       contents: read
