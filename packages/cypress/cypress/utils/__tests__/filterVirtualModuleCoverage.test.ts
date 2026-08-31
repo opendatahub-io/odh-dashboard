@@ -7,6 +7,6 @@ describe('filterVirtualModuleCoverage', () => {
       'data:text/javascript,inline': { path: 'data:text/javascript,inline' },
     });
 
-    expect(Object.keys(filtered)).toEqual(['/app/src/foo.ts']);
+    expect(Object.keys(filtered)).to.deep.equal(['/app/src/foo.ts']);
   });
 });
