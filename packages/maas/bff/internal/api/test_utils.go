@@ -17,8 +17,17 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
-// setupApiTest is a minimal helper to exercise remaining handlers (user, namespaces, healthcheck)
+// setupApiTest exercises handlers against envtest-backed Kubernetes repositories.
 func setupApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
+	return doApiTest[T](method, url, body, k8Factory, identity, false)
+}
+
+// setupMockApiTest exercises handlers against in-memory mock repositories (dev BFF path).
+func setupMockApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity) (T, *http.Response, error) {
+	return doApiTest[T](method, url, body, k8Factory, identity, true)
+}
+
+func doApiTest[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity, useMocks bool) (T, *http.Response, error) {
 	var empty T
 	var reqBody io.Reader
 	if body != nil {
@@ -56,14 +65,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	// Tests use real K8s repos backed by envtest (not mocks)
-	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
-	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
-	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
-	externalModelsRepo := repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo)
-	yamlRepo := repositories.NewYamlRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
-
-	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, yamlRepo)
+	repos, err := newTestRepositories(logger, k8Factory, envConfig, useMocks)
 	if err != nil {
 		return empty, nil, err
 	}
@@ -94,4 +96,41 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		return empty, res, err
 	}
 	return out, res, nil
+}
+
+func newTestRepositories(
+	logger *slog.Logger,
+	k8Factory kubernetes.KubernetesClientFactory,
+	envConfig config.EnvConfig,
+	useMocks bool,
+) (*repositories.Repositories, error) {
+	if useMocks {
+		modelRefsRepo := repositories.NewMockMaaSModelRefsRepository(logger)
+		return repositories.NewRepositories(
+			logger,
+			k8Factory,
+			envConfig,
+			repositories.NewMockSubscriptionsRepository(logger),
+			repositories.NewMockPoliciesRepository(logger),
+			modelRefsRepo,
+			repositories.NewMockExternalModelsRepository(logger, modelRefsRepo),
+			repositories.NewMockExternalProvidersRepository(logger),
+			repositories.NewMockSecretsRepository(logger),
+			repositories.NewMockYamlRepository(logger),
+		)
+	}
+
+	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
+	return repositories.NewRepositories(
+		logger,
+		k8Factory,
+		envConfig,
+		repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace),
+		repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace),
+		modelRefsRepo,
+		repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo),
+		repositories.NewExternalProvidersRepository(logger, k8Factory),
+		repositories.NewSecretsRepository(logger, k8Factory),
+		repositories.NewYamlRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace),
+	)
 }

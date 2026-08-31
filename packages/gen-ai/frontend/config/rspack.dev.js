@@ -1,11 +1,11 @@
 const { execSync } = require('child_process');
-const { merge } = require('webpack-merge');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const { merge } = require('rspack-merge');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 setupDotenvFilesForEnv({ env: 'development' });
-const common = require('./webpack.common.js');
+const common = require('./rspack.common.js');
 
 const HOST = process.env._HOST;
 const PORT = process.env._PORT;
@@ -68,7 +68,6 @@ module.exports = merge(
     mode: 'development',
     devtool: 'eval-source-map',
     optimization: {
-      runtimeChunk: 'single',
       removeEmptyChunks: true,
     },
     devServer: {
@@ -109,6 +108,6 @@ module.exports = merge(
         },
       ],
     },
-    plugins: [new ReactRefreshWebpackPlugin({ overlay: false })],
+    plugins: [new ReactRefreshRspackPlugin({ overlay: false })],
   },
 );

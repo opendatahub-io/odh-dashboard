@@ -4,7 +4,16 @@ const {
   getRuntimeOdhPackages,
 } = require('./getRuntimeOdhPackages.ts');
 
-export type SharedModuleConfig = Record<string, unknown>;
+export type SharedModuleConfig = {
+  singleton?: boolean;
+  requiredVersion?: string;
+  version?: string;
+  eager?: boolean;
+  import?: string | false;
+  shareKey?: string;
+  shareScope?: string;
+  strictVersion?: boolean;
+};
 
 export type FederationCompiler = {
   options: {

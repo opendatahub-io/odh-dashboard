@@ -30,7 +30,7 @@ const mockAssetsResponse = {
       format: 'milvus',
       location: 'milvus://embeddings',
       description: 'Vector embeddings',
-      labels: ['embeddings'],
+      labels: ['embeddings', 'production'],
       collection: 'analytics',
       connection_ref: null,
       owner: 'user1',
@@ -328,7 +328,7 @@ describe('Register Volume', () => {
     cy.findByTestId('register-volume-submit').click();
 
     cy.wait('@createVolumeConflict');
-    cy.contains('Error registering volume').should('exist');
+    cy.contains('Error registering data').should('exist');
     cy.findByTestId('register-volume-modal').should('exist');
   });
 
@@ -356,5 +356,152 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-button').click();
     cy.findByTestId('volume-collection-toggle').click();
     cy.contains('Create new collection').should('exist');
+  });
+});
+
+describe('Manage Labels', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should open manage labels modal from kebab menu', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+    cy.findByTestId('manage-labels-modal').should('exist');
+    cy.contains('Manage labels').should('exist');
+    cy.contains(
+      'Create and delete labels to manage how assets are organized across this project.',
+    ).should('exist');
+    cy.contains('Changes affect all project assets').should('exist');
+  });
+
+  it('should display labels with associated assets', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('label-row-production').should('exist');
+    cy.findByTestId('label-row-claims').should('exist');
+    cy.findByTestId('label-row-embeddings').should('exist');
+    cy.findByTestId('label-row-source-docs').should('exist');
+  });
+
+  it('should show label belonging to multiple assets', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('label-row-production').should('contain.text', 'claims-data');
+    cy.findByTestId('label-row-production').should('contain.text', 'embeddings');
+  });
+
+  it('should show dash for labels with no assets', () => {
+    cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
+      body: { labels: ['orphan-label'] },
+    }).as('getLabelsOrphan');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('label-row-orphan-label').should('contain.text', '–');
+  });
+
+  it('should filter labels by name', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('label-filter').find('input').type('prod');
+    cy.findByTestId('label-row-production').should('exist');
+    cy.findByTestId('label-row-claims').should('not.exist');
+    cy.findByTestId('label-row-source-docs').should('not.exist');
+    cy.findByTestId('label-row-embeddings').should('not.exist');
+  });
+
+  it('should show create label inline row and confirm button disabled until input', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('create-label-button').click();
+    cy.findByTestId('create-label-row').should('exist');
+    cy.findByTestId('new-label-input').should('exist');
+    cy.findByTestId('confirm-create-label').should('be.disabled');
+
+    cy.findByTestId('new-label-input').type('new-label');
+    cy.findByTestId('confirm-create-label').should('not.be.disabled');
+  });
+
+  it('should create a new label', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/labels`, {
+      statusCode: 201,
+      body: { name: 'new-label' },
+    }).as('createLabel');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('create-label-button').click();
+    cy.findByTestId('new-label-input').type('new-label');
+    cy.findByTestId('confirm-create-label').click();
+
+    cy.wait('@createLabel').then((interception) => {
+      expect(interception.request.body).to.deep.equal({ name: 'new-label' });
+    });
+  });
+
+  it('should cancel create label', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('create-label-button').click();
+    cy.findByTestId('create-label-row').should('exist');
+    cy.findByTestId('cancel-create-label').click();
+    cy.findByTestId('create-label-row').should('not.exist');
+  });
+
+  it('should delete a label', () => {
+    cy.intercept('DELETE', `${REGISTRY_API}/test-project/labels/claims`, {
+      statusCode: 204,
+    }).as('deleteLabel');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('delete-label-claims').click();
+    cy.wait('@deleteLabel');
+  });
+
+  it('should show error on create label conflict', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/labels`, {
+      statusCode: 409,
+      body: { status_code: 409, detail: 'Label already exists: production' },
+    }).as('createLabelConflict');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('create-label-button').click();
+    cy.findByTestId('new-label-input').type('production');
+    cy.findByTestId('confirm-create-label').click();
+
+    cy.wait('@createLabelConflict');
+    cy.findByTestId('manage-labels-error').should('exist');
+  });
+
+  it('should close modal', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+    cy.findByTestId('manage-labels-modal').should('exist');
+
+    cy.contains('button', 'Close').click();
+    cy.findByTestId('manage-labels-modal').should('not.exist');
   });
 });

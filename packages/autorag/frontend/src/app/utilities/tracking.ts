@@ -192,10 +192,7 @@ export const fireAutoragVectorStoreConfigured = (
 
 /** Product-wide, camelCase taxonomy for the RAG optimization metric, independent of the schema's snake_case values. */
 export type RagOptimizationMetric =
-  | 'overallScore'
-  | 'answerFaithfulness'
-  | 'answerCorrectness'
-  | 'contextCorrectness';
+  'overallScore' | 'answerFaithfulness' | 'answerCorrectness' | 'contextCorrectness';
 
 /* eslint-disable camelcase -- keys mirror the schema's snake_case optimization_metric values */
 const RAG_OPTIMIZATION_METRIC_MAP: Record<string, RagOptimizationMetric> = {
@@ -428,11 +425,7 @@ export type AutoragFunnelStep = 'defineDetails' | 'knowledge' | 'evaluation' | '
  * taxonomy but are not currently fired by this package — see {@link fireAutoragFlowExited}.
  */
 export type AutoragExitDestination =
-  | 'experimentsList'
-  | 'home'
-  | 'projects'
-  | 'otherGenAi'
-  | 'none';
+  'experimentsList' | 'home' | 'projects' | 'otherGenAi' | 'none';
 
 /**
  * Fires when the user leaves the configure flow before creating a run — either via an explicit
@@ -627,10 +620,7 @@ export const fireAutoragCodeSnippetsExported = (
  * taxonomy is updated.
  */
 export type LeaderboardPresetType =
-  | 'optimizationMetrics'
-  | 'optimizationMetricsAndChunking'
-  | 'fullConfiguration'
-  | 'other';
+  'optimizationMetrics' | 'optimizationMetricsAndChunking' | 'fullConfiguration' | 'other';
 
 /**
  * Fires when the user selects a preset from the "Manage columns" modal's "Quick select" control

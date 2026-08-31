@@ -35,6 +35,7 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   onManageCollections: () => void;
+  onManageLabels: () => void;
   onRegisterData: () => void;
 };
 
@@ -107,6 +108,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   onManageCollections,
+  onManageLabels,
   onRegisterData,
 }) => {
   const [searchText, setSearchText] = React.useState('');
@@ -416,6 +418,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     data-testid="manage-collections-action"
                   >
                     Manage collections
+                  </DropdownItem>
+                  <DropdownItem
+                    key="manage-labels"
+                    onClick={onManageLabels}
+                    data-testid="manage-labels-action"
+                  >
+                    Manage labels
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>

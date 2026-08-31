@@ -286,3 +286,10 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 		},
 	}
 }
+
+func GetMockSecretSummaries() []models.SecretSummary {
+	return []models.SecretSummary{
+		{Name: "openai-api-key"},
+		{Name: "anthropic-api-key"},
+	}
+}
