@@ -15,6 +15,50 @@ import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-point
 
 const DEFAULT_GROUP = '5_default';
 
+/**
+ * Evaluates `shouldShow` predicates for extension tabs, supporting both sync
+ * and async (Promise) return values. Tabs default to hidden until an async
+ * predicate resolves to `true`.
+ */
+const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
+  extensions: LoadedExtension<TExtension>[],
+  componentProps: Record<string, unknown>,
+): Record<string, boolean> => {
+  const [results, setResults] = React.useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    extensions.forEach((ext) => {
+      const { shouldShow } = ext.properties;
+      if (!shouldShow) {
+        return;
+      }
+
+      const result = shouldShow(componentProps);
+      if (typeof result === 'boolean') {
+        if (!cancelled) {
+          setResults((prev) => (prev[ext.uid] === result ? prev : { ...prev, [ext.uid]: result }));
+        }
+      } else {
+        result.then((visible) => {
+          if (!cancelled) {
+            setResults((prev) =>
+              prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
+            );
+          }
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [extensions, componentProps]);
+
+  return results;
+};
+
 type StaticTab = {
   id: string;
   title: string;
@@ -99,15 +143,23 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   unmountOnExit = false,
   tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
+  const shouldShowResults = useShouldShowResults(extensionTabs, componentProps ?? {});
+
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
         (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
           .filter((ext) => (group ? ext.properties.group === group : true))
-          .filter((ext) => isValidExtensionId(ext.properties.id)),
+          .filter((ext) => isValidExtensionId(ext.properties.id))
+          .filter((ext) => {
+            if (!ext.properties.shouldShow) {
+              return true;
+            }
+            return shouldShowResults[ext.uid] ?? false;
+          }),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension, group],
+    [extensionTabs, filterExtension, group, shouldShowResults],
   );
 
   const allTabs = React.useMemo(

@@ -166,19 +166,19 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     </MenuToggle>
   );
 
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   if (loadError) {
     return (
       <Alert variant="danger" isInline title="Error loading security insights">
         {loadError.message}
       </Alert>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
     );
   }
 

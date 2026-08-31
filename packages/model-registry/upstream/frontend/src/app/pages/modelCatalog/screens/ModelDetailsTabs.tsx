@@ -41,6 +41,11 @@ const ModelDetailsTabs = ({
 
   const showValidatedInsights = shouldShowValidatedInsights(model, artifacts.items);
 
+  const componentProps = React.useMemo(
+    () => ({ modelName: model.name, sourceId, namespace }),
+    [model.name, sourceId, namespace],
+  );
+
   const staticTabs = React.useMemo(() => {
     const tabs = [
       {
@@ -75,7 +80,7 @@ const ModelDetailsTabs = ({
       staticTabs={staticTabs}
       extensionTabs={tabExtensions}
       group={MODEL_CATALOG_DETAILS_GROUP}
-      componentProps={{ modelName: model.name, sourceId, namespace }}
+      componentProps={componentProps}
       ariaLabel="Model details page tabs"
       testId="model-details-page-tabs"
     />
