@@ -11,6 +11,7 @@ import {
   StackItem,
   Stack,
   Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 
 type ApplicationsPageProps = {
@@ -60,15 +61,17 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             justifyContent={{ default: 'justifyContentSpaceBetween' }}
             flexWrap={{ default: 'nowrap' }}
           >
-            <Content className="pf-m-full-width">
-              <Content component="h1" data-testid="app-page-title">
-                {title}
+            <FlexItem grow={{ default: 'grow' }}>
+              <Content>
+                <Content component="h1" data-testid="app-page-title">
+                  {title}
+                </Content>
+                <Stack hasGutter>
+                  {subtext && <StackItem>{subtext}</StackItem>}
+                  {description && <StackItem>{description}</StackItem>}
+                </Stack>
               </Content>
-              <Stack hasGutter>
-                {subtext && <StackItem>{subtext}</StackItem>}
-                {description && <StackItem>{description}</StackItem>}
-              </Stack>
-            </Content>
+            </FlexItem>
             {headerAction}
           </Flex>
         </StackItem>
