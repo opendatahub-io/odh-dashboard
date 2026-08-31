@@ -18,8 +18,24 @@ import { setup as setupWebsockets } from './cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
 import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
+import { filterVirtualModuleCoverage } from './cypress/utils/filterVirtualModuleCoverage';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
+
+type CoverageEntry = {
+  path?: string;
+};
+
+const isCoverageRecord = (value: unknown): value is Record<string, CoverageEntry> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseCoveragePayload = (sentCoverage: string): Record<string, CoverageEntry> => {
+  const parsed: unknown = JSON.parse(sentCoverage);
+  if (!isCoverageRecord(parsed)) {
+    return {};
+  }
+  return filterVirtualModuleCoverage(parsed);
+};
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -121,6 +137,67 @@ export default defineConfig({
       );
       /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
+
+      const nycOutputFile = path.join(__dirname, '.nyc_output/out.json');
+
+      const readCoverageMap = () => {
+        // istanbul-lib-coverage is provided by @cypress/code-coverage
+        // eslint-disable-next-line import/no-extraneous-dependencies, @typescript-eslint/no-require-imports
+        const istanbul = require('istanbul-lib-coverage');
+        if (!fs.existsSync(nycOutputFile)) {
+          return istanbul.createCoverageMap({});
+        }
+        return istanbul.createCoverageMap(JSON.parse(fs.readFileSync(nycOutputFile, 'utf8')));
+      };
+
+      const writeCoverageMap = (coverageMap: { toJSON: () => object }) => {
+        fs.mkdirSync(path.dirname(nycOutputFile), { recursive: true });
+        fs.writeFileSync(nycOutputFile, JSON.stringify(coverageMap.toJSON(), null, 2));
+      };
+
+      const filterNycOutputFile = () => {
+        if (!fs.existsSync(nycOutputFile)) {
+          return;
+        }
+        const parsed: unknown = JSON.parse(fs.readFileSync(nycOutputFile, 'utf8'));
+        if (!isCoverageRecord(parsed)) {
+          return;
+        }
+        const filtered = filterVirtualModuleCoverage(parsed);
+        fs.writeFileSync(nycOutputFile, JSON.stringify(filtered, null, 2));
+      };
+
+      on('task', {
+        combineCoverage(sentCoverage: string) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { fixSourcePaths } = require('@cypress/code-coverage/support-utils');
+          const coverageMap = readCoverageMap();
+          const parsed = parseCoveragePayload(sentCoverage);
+          fixSourcePaths(parsed);
+          coverageMap.merge(parsed);
+          writeCoverageMap(coverageMap);
+          return null;
+        },
+        coverageReport() {
+          if (!fs.existsSync(nycOutputFile)) {
+            console.warn(`Cannot find coverage file ${nycOutputFile}`);
+            return null;
+          }
+          filterNycOutputFile();
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const {
+            readNycOptions,
+            resolveRelativePaths,
+          } = require('@cypress/code-coverage/task-utils');
+          resolveRelativePaths(nycOutputFile);
+          filterNycOutputFile();
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const NYC = require('nyc');
+          const nycOptions = readNycOptions(__dirname);
+          const nyc = new NYC(nycOptions);
+          return nyc.report().then(() => nycOptions['report-dir'] ?? nycOptions.reportDir);
+        },
+      });
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {
