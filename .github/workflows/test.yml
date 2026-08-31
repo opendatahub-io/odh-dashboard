@@ -327,7 +327,8 @@ jobs:
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          pnpm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
+          export CYPRESS_SPEC="../packages/${CYPRESS_SPEC}"
+          pnpm run test:cypress-ci:coverage:nobuild
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() }}
