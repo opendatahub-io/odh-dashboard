@@ -8,6 +8,7 @@ import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wiz
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { TemplateKind } from '@odh-dashboard/k8s-core';
+import { getNIMHardwareProfileFieldOverrides } from './nimHardwareProfileOverrides';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
@@ -94,6 +95,19 @@ type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 export const getImageOptionKey = (image: NIMImageFieldValue): string =>
   `${image.repository}:${image.tag}`;
 
+export const isNIMImageSelectionLocked = (
+  isEditing: boolean | undefined,
+  value: NIMImageFieldValue | undefined,
+  existingOptionNotFound: boolean,
+  isReselectionUnlocked = false,
+  catalogLoadedWithImages = false,
+): boolean => {
+  const imageMissingFromCatalog = catalogLoadedWithImages && existingOptionNotFound;
+  const canReselectImage =
+    !value || !value.repository || !value.tag || imageMissingFromCatalog || isReselectionUnlocked;
+  return !!isEditing && !canReselectImage;
+};
+
 export const toNIMImageFieldValue = (image: string): NIMImageFieldValue => {
   const [host, namespace, name, tag] = parseImageString(image);
   return { repository: formatImageString([host, namespace, name, '']), tag };
@@ -168,11 +182,34 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [images, value],
   );
 
+  const projectName = externalData?.data.nimImages.projectName;
+  const editContextKey = isEditing ? projectName ?? '__no_project__' : null;
+  const previousEditContextRef = React.useRef<string | null>(editContextKey);
+  const reselectionUnlockedRef = React.useRef(false);
+
+  if (previousEditContextRef.current !== editContextKey) {
+    reselectionUnlockedRef.current = false;
+    previousEditContextRef.current = editContextKey;
+  }
+
+  if (isEditing && existingOptionNotFound && externalData?.loaded && images.length > 0) {
+    reselectionUnlockedRef.current = true;
+  }
+  const isReselectionUnlocked = reselectionUnlockedRef.current;
+
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
+  const catalogLoadedWithImages = Boolean(externalData?.loaded && images.length > 0);
+  const isImageSelectionLocked = isNIMImageSelectionLocked(
+    isEditing,
+    value,
+    existingOptionNotFound,
+    isReselectionUnlocked,
+    catalogLoadedWithImages,
+  );
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
-      if (typeof key !== 'string' || isEditing) {
+      if (typeof key !== 'string' || isImageSelectionLocked) {
         return;
       }
       const selected = options.find((opt) => String(opt.value) === key);
@@ -180,10 +217,9 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         onChange({ repository: selected.repository, tag: selected.tag });
       }
     },
-    [options, onChange, isEditing],
+    [options, onChange, isImageSelectionLocked],
   );
 
-  const projectName = externalData?.data.nimImages.projectName;
   const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
 
   if (!externalData || !externalData.loaded) {
@@ -230,14 +266,14 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         selectOptions={options}
         selected={selectedKey}
         isScrollable
-        isDisabled={isEditing || isDisabled}
+        isDisabled={isImageSelectionLocked || isDisabled}
         onSelect={onSelect}
-        placeholder={isEditing ? selectedKey : 'Select NVIDIA NIM image'}
+        placeholder="Select NVIDIA NIM image"
         noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
         isCreatable={false}
-        allowClear={!isEditing}
+        allowClear={!isImageSelectionLocked}
         onClearSelection={() => {
-          if (!isEditing) {
+          if (!isImageSelectionLocked) {
             onChange({ repository: '', tag: '' });
           }
         }}
@@ -278,6 +314,7 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
       existingFieldData ?? { repository: '', tag: '' },
     validationSchema: nimImageFieldSchema,
     resolveDependencies: (formData) => ({ project: formData.project }),
+    getFieldOverrides: getNIMHardwareProfileFieldOverrides,
   },
   component: NIMImageFieldComponent,
   externalDataHook: useNIMImageFieldExternalData,

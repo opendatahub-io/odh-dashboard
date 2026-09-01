@@ -124,7 +124,8 @@ export const applyOpenShiftYaml = (
   // log: false keeps Cypress from printing file contents (often Secret YAML) to CI logs.
   return cy.writeFile(tempFileName, yamlContent, { log: false }).then(() => {
     const ocCommand =
-      `oc apply ${ns} -f ${tempFileName}; status=$?; ` + `rm -f -- ${tempFileName}; exit $status`;
+      `oc apply ${ns} -f ${tempFileName}; return_code=$?; ` +
+      `rm -f -- ${tempFileName}; exit $return_code`;
     return execWithOutput(ocCommand);
   });
 };

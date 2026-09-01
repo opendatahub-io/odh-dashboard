@@ -159,7 +159,7 @@ export const waitForUserProjectAccess = (
   interval = 2000,
 ): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get project ${project} --as=${user} -o name`,
+    `oc get projects --as=${user} -o name | grep -qxF 'project.project.openshift.io/${project}'`,
     `${user} access to ${project}`,
     {
       maxAttempts: attempts,

@@ -2,17 +2,24 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/f
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { deployKServeDeployment } from '@odh-dashboard/kserve/deploy';
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { deployNIMKServeDeployment, isNIMKServeDeployActive } from '../deploy';
 import { NIMImageFieldWizardField } from '../../pages/deploymentWizard/fields/NIMImageField';
 import { NIMAccountStatus } from '../../api/accounts/utils';
+import { getNIMAccount } from '../../api/accounts/k8s';
 
 jest.mock('@odh-dashboard/kserve/deploy', () => ({
   deployKServeDeployment: jest.fn(),
 }));
 
+jest.mock('../../api/accounts/k8s', () => ({
+  getNIMAccount: jest.fn(),
+}));
+
 const mockDeployKServeDeployment = jest.mocked(deployKServeDeployment);
+const mockGetNIMAccount = jest.mocked(getNIMAccount);
 
 const WIZARD_DATA = {
   modelLocationData: { data: { type: 'nvidia-nim' } },
@@ -28,6 +35,36 @@ const makeExternalData = (nimTemplate?: TemplateKind) => ({
     },
   },
 });
+
+const makeNIMAccount = () => {
+  const account = mockNimAccount({
+    namespace: 'test-project',
+    apiKeySecretName: 'project-nim-api-key',
+  });
+  account.status = {
+    ...account.status,
+    nimPullSecret: { name: 'project-nim-pull-secret' },
+  };
+  return account;
+};
+
+const makeTemplateWithCredentialPlaceholders = (): TemplateKind => {
+  const template = mockNimServingRuntimeTemplate({ namespace: 'test-project' });
+  const runtime = template.objects[0] as ServingRuntimeKind;
+  runtime.spec.containers[0].env = [
+    {
+      name: 'NGC_API_KEY',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'nvidia-nim-secrets',
+          key: 'NGC_API_KEY',
+        },
+      },
+    },
+  ];
+  runtime.spec.imagePullSecrets = [{ name: 'ngc-secret' }];
+  return template;
+};
 
 /** The runtime `deployNIMKServeDeployment` handed down to KServe. */
 const getDeployedRuntime = (): ServingRuntimeKind | undefined =>
@@ -59,6 +96,7 @@ describe('deployNIMKServeDeployment', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDeployKServeDeployment.mockResolvedValue({} as KServeDeployment);
+    mockGetNIMAccount.mockResolvedValue(makeNIMAccount());
   });
 
   it('should resolve the serving runtime from the NIM template', async () => {
@@ -70,6 +108,54 @@ describe('deployNIMKServeDeployment', () => {
 
     expect(mockDeployKServeDeployment).toHaveBeenCalledTimes(1);
     expect(getDeployedRuntime()?.metadata.name).toBe('nvidia-nim-runtime');
+  });
+
+  it('should replace template credential references with the project NIM Account secrets', async () => {
+    mockGetNIMAccount.mockResolvedValue(makeNIMAccount());
+
+    await deployNIMKServeDeployment(
+      WIZARD_DATA,
+      makeExternalData(makeTemplateWithCredentialPlaceholders()),
+      'test-project',
+    );
+
+    const runtime = getDeployedRuntime();
+    expect(mockGetNIMAccount).toHaveBeenCalledWith('test-project');
+    expect(
+      runtime?.spec.containers[0].env?.find((env) => env.name === 'NGC_API_KEY')?.valueFrom
+        ?.secretKeyRef,
+    ).toEqual({ name: 'project-nim-api-key', key: 'NGC_API_KEY' });
+    expect(runtime?.spec.imagePullSecrets).toEqual([{ name: 'project-nim-pull-secret' }]);
+  });
+
+  it('should reject a new deployment when the project has no NIM Account', async () => {
+    mockGetNIMAccount.mockResolvedValue(undefined);
+
+    await expect(
+      deployNIMKServeDeployment(
+        WIZARD_DATA,
+        makeExternalData(mockNimServingRuntimeTemplate({ namespace: 'test-project' })),
+        'test-project',
+      ),
+    ).rejects.toThrow('NIM Account not found');
+
+    expect(mockDeployKServeDeployment).not.toHaveBeenCalled();
+  });
+
+  it('should reject a new deployment when the NIM Account has no image pull secret', async () => {
+    const account = makeNIMAccount();
+    account.status = { ...account.status, nimPullSecret: undefined };
+    mockGetNIMAccount.mockResolvedValue(account);
+
+    await expect(
+      deployNIMKServeDeployment(
+        WIZARD_DATA,
+        makeExternalData(mockNimServingRuntimeTemplate({ namespace: 'test-project' })),
+        'test-project',
+      ),
+    ).rejects.toThrow('NIM image pull secret is not available');
+
+    expect(mockDeployKServeDeployment).not.toHaveBeenCalled();
   });
 
   it('should apply the shm mounts to the resolved runtime', async () => {
@@ -127,6 +213,7 @@ describe('deployNIMKServeDeployment', () => {
     );
 
     expect(getDeployedRuntime()).toBe(existingServer);
+    expect(mockGetNIMAccount).not.toHaveBeenCalled();
   });
 
   it('should forward the dry run flag to KServe', async () => {

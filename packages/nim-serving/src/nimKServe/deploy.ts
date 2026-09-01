@@ -12,7 +12,9 @@ import {
   isNIMImageFieldExternalData,
   NIMImageFieldWizardField,
 } from '../pages/deploymentWizard/fields/NIMImageField';
+import { getNIMAccount } from '../api/accounts/k8s';
 import {
+  applyNIMServingRuntimeCredentials,
   applyNIMServingRuntimeShmMounts,
   removeNIMServingRuntimeResources,
 } from '../api/servingruntime/utils';
@@ -56,6 +58,14 @@ export const deployNIMKServeDeployment = async (
       if (!runtime) {
         throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
       }
+      const nimAccount = await getNIMAccount(projectName);
+      if (!nimAccount) {
+        throw new Error(
+          'NIM Account not found in this project. Configure NVIDIA NIM in the project settings first.',
+        );
+      }
+
+      runtime = applyNIMServingRuntimeCredentials(runtime, nimAccount);
       // The NIM Template has a `volumeMounts` defined but not the `volumes` for shm. Add it to prevent errors
       runtime = applyNIMServingRuntimeShmMounts(runtime);
       // The container resources come from the InferenceService's hardware profile, not the Template

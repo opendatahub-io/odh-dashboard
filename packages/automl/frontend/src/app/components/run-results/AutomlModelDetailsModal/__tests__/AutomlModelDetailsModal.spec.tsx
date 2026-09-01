@@ -407,7 +407,7 @@ describe('AutomlModelDetailsModal', () => {
 
       const modelEvaluationPage = screen.getByTestId('print-page-model-evaluation');
       expect(within(modelEvaluationPage).getByText('Accuracy')).toBeInTheDocument();
-      expect(within(modelEvaluationPage).getByText('0.658')).toBeInTheDocument();
+      expect(within(modelEvaluationPage).getByText('0.6580')).toBeInTheDocument();
       expect(within(modelEvaluationPage).getByLabelText('Evaluation metrics')).not.toHaveClass(
         'pf-m-grid-md',
       );
