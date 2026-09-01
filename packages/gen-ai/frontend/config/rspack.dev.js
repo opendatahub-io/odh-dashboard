@@ -96,7 +96,7 @@ module.exports = merge(
             protocol: PROXY_PROTOCOL,
           },
           changeOrigin: true,
-          onProxyReq,
+          on: { proxyReq: onProxyReq },
         },
       ],
     },
