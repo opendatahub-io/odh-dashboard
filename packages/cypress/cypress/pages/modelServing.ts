@@ -1263,11 +1263,20 @@ class ModelServingWizard extends Wizard {
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        cy.wrap($el).contains(profileDisplayName).should('exist');
-        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
+        if (profileName) {
+          cy.wrap($el).contains(profileName).should('exist');
+          cy.log(`Dropdown is disabled with value: ${profileName}`);
+        } else {
+          cy.wrap($el).contains(profileDisplayName).should('exist');
+          cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
+        }
       } else {
         dropdown.click();
-        cy.findByTestId(profileName || profileDisplayName).click();
+        if (profileName) {
+          cy.findByRole('option', { name: profileDisplayName }).click();
+        } else {
+          cy.findByTestId(profileDisplayName).click();
+        }
       }
     });
   }
