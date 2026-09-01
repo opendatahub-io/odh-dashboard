@@ -24,7 +24,7 @@ import {
   SelectGroup,
   Divider,
 } from '@patternfly/react-core';
-import { TimesIcon } from '@patternfly/react-icons';
+import { TimesIcon, AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import TruncatedText from './TruncatedText';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
@@ -100,12 +100,23 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   previewDescription?: boolean;
   /** Optional icon rendered inside the text input */
   inputIcon?: React.ReactNode;
+  /**
+   * When the total number of grouped options reaches this threshold the groups
+   * become collapsible and start in a collapsed state.  Below the threshold
+   * groups are rendered as plain (non-interactive) SelectGroup headers.
+   */
+  collapsibleGroupsThreshold?: number;
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
+
+const GROUP_TOGGLE_VALUE_PREFIX = '__typeahead-group-toggle-';
+
+const isGroupToggleValue = (value: string | number): boolean =>
+  String(value).startsWith(GROUP_TOGGLE_VALUE_PREFIX);
 
 const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   innerRef,
@@ -130,6 +141,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   previewDescription = true,
   dataTestId,
   inputIcon,
+  collapsibleGroupsThreshold,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -138,6 +150,44 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement>();
+
+  // Collapsible-group state — only active when total grouped options >= threshold
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set());
+  const hasAutoCollapsed = React.useRef(false);
+
+  // Auto-collapse all groups the first time the grouped option count reaches the threshold
+  React.useEffect(() => {
+    if (!hasAutoCollapsed.current && collapsibleGroupsThreshold !== undefined) {
+      const groupedCount = selectOptions.filter((o) => !!o.group).length;
+      if (groupedCount >= collapsibleGroupsThreshold) {
+        hasAutoCollapsed.current = true;
+        const groups = new Set<string>();
+        selectOptions.forEach((o) => {
+          if (o.group) {
+            groups.add(o.group);
+          }
+        });
+        setCollapsedGroups(groups);
+      }
+    }
+  }, [selectOptions, collapsibleGroupsThreshold]);
+
+  const isCollapsible =
+    collapsibleGroupsThreshold !== undefined &&
+    selectOptions.filter((o) => !!o.group).length >= collapsibleGroupsThreshold;
+
+  const toggleGroup = React.useCallback((group: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) {
+        next.delete(group);
+      } else {
+        next.add(group);
+      }
+      return next;
+    });
+  }, []);
 
   const NO_RESULTS = 'no results';
 
@@ -299,7 +349,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
     value: string | number | undefined,
   ) => {
-    if (value && value !== NO_RESULTS) {
+    if (value && value !== NO_RESULTS && !isGroupToggleValue(value)) {
       const optionToSelect = selectOptions.find((option) => option.value === value);
       if (optionToSelect) {
         selectOption(_event, optionToSelect);
@@ -519,16 +569,55 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[()]/g, '')}`;
+
+    // When filtering, always expand so all matching results are visible
+    const isGroupCollapsed =
+      isCollapsible && !(isFiltering && filterValue) && collapsedGroups.has(group);
+
+    const groupLabel = group;
+
+    // Always advance the index by the full group size so keyboard-navigation
+    // indices remain consistent with filteredSelections even when collapsed.
+    const renderedOptions = isGroupCollapsed
+      ? []
+      : groupOptions.map((opt) => tSelectOption(opt, index++));
+    const nextIndex = optionIdx + groupOptions.length;
+
+    if (isCollapsible) {
+      return {
+        node: (
+          <>
+            <SelectOption
+              key={`${group}-toggle`}
+              value={`${GROUP_TOGGLE_VALUE_PREFIX}${group}`}
+              data-testid={`${testId}-toggle`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleGroup(group, e);
+              }}
+              icon={isGroupCollapsed ? <AngleRightIcon /> : <AngleDownIcon />}
+            >
+              {group}
+            </SelectOption>
+            {renderedOptions}
+            {addDivider && <Divider />}
+          </>
+        ),
+        nextIndex,
+      };
+    }
+
     return {
       node: (
         <>
-          <SelectGroup key={group} label={group} data-testid={testId}>
-            {groupOptions.map((opt) => tSelectOption(opt, index++))}
+          <SelectGroup key={group} label={groupLabel} data-testid={testId}>
+            {renderedOptions}
           </SelectGroup>
           {addDivider && <Divider />}
         </>
       ),
-      nextIndex: index,
+      nextIndex,
     };
   };
 
