@@ -14,8 +14,8 @@ audio:
   mimeType: 'audio/mpeg'
 
 validation:
-  # Maximum file size in bytes (20MB)
-  maxFileSizeBytes: 20971520
+  # Maximum file size in bytes (10MB, matches VISION_UPLOAD_CONFIG.MAX_FILE_SIZE)
+  maxFileSizeBytes: 10485760
 
 inference:
   visionTestMessage: 'What do you see in this image?'

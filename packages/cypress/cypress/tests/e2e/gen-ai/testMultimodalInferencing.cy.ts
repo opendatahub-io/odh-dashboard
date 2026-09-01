@@ -168,14 +168,10 @@ describe('Verify multimodal inferencing in playground', { testIsolation: false }
       genAiPlayground.findMessageInput({ timeout: 30000 }).should('be.visible');
 
       cy.step('Attempt to upload a file exceeding size limit');
-      const largeContent = 'A'.repeat(testData.validation.maxFileSizeBytes + 1000);
-      genAiPlayground.findImageFileInput().selectFile(
-        {
-          contents: largeContent,
-          fileName: 'large-image.png',
-          mimeType: 'image/png',
-        },
-        { force: true },
+      genAiPlayground.selectOversizedImageFile(
+        'large-image.png',
+        'image/png',
+        testData.validation.maxFileSizeBytes + 1000,
       );
 
       cy.step('Verify validation error appears');
