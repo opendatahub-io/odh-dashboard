@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+const { rspack } = require('@rspack/core');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
@@ -27,7 +26,7 @@ if (OUTPUT_ONLY !== 'true') {
   }
 }
 
-module.exports = () => ({
+module.exports = (env) => ({
   entry: {
     app: path.join(SRC_DIR, 'index.ts'),
   },
@@ -38,9 +37,20 @@ module.exports = () => ({
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/, /cypress/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-          COVERAGE === 'true'
-            ? { loader: 'swc-loader', options: { sourceMaps: false } }
-            : { loader: 'swc-loader' },
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+              jsc: {
+                transform: {
+                  react: {
+                    runtime: 'classic',
+                    refresh: env === 'development',
+                  },
+                },
+              },
+            },
+          },
         ].filter(Boolean),
       },
       {
@@ -139,7 +149,11 @@ module.exports = () => ({
       },
       {
         test: /\.s[ac]ss$/i,
-        use: ['style-loader', 'css-loader', 'sass-loader'],
+        use: [
+          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
+          'css-loader',
+          'sass-loader',
+        ],
       },
       {
         test: /\.ya?ml$/,
@@ -148,7 +162,7 @@ module.exports = () => ({
     ],
   },
   output: {
-    filename: '[name].bundle.js',
+    filename: '[name].js',
     path: DIST_DIR,
     publicPath: 'auto',
     uniqueName: name,
@@ -159,7 +173,7 @@ module.exports = () => ({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
-    new HtmlWebpackPlugin({
+    new rspack.HtmlRspackPlugin({
       template: path.join(SRC_DIR, 'index.html'),
       title: PRODUCT_NAME,
       publicPath: BASE_PATH,
@@ -168,7 +182,7 @@ module.exports = () => ({
       },
       chunks: ['app'],
     }),
-    new CopyPlugin({
+    new rspack.CopyRspackPlugin({
       patterns: [
         {
           from: path.join(SRC_DIR, 'images'),
