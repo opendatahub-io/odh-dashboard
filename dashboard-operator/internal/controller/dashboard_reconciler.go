@@ -34,6 +34,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -1048,23 +1049,30 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Complete(r)
 }
 
-// watchedConfigMaps returns the set of ConfigMap names, in the operator
-// namespace, whose contents feed reconcile inputs: platform version and
-// distribution identity (odh-dashboard-config), and the reconcile interval
+// watchedConfigMaps is the set of ConfigMap names, in the operator namespace,
+// whose contents feed reconcile inputs: platform version and distribution
+// identity (odh-dashboard-config), and the reconcile interval
 // (dashboard-operator-config). Changes to these must trigger a reconcile so the
 // Dashboard status stays fresh even when nothing else touches the CR
-// (RHOAIENG-81919).
-func watchedConfigMaps() map[string]bool {
-	return map[string]bool{
-		distributionConfigMapName: true,
-		operatorConfigMapName:     true,
-	}
+// (RHOAIENG-81919). It never changes at runtime, so it is a package-level value
+// rather than rebuilt per event.
+var watchedConfigMaps = map[string]bool{
+	distributionConfigMapName: true,
+	operatorConfigMapName:     true,
+}
+
+// isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
+// operator namespace that feed reconcile inputs. Both the predicate and the map
+// func route through this single helper so their nil handling and scoping
+// cannot drift.
+func (r *DashboardReconciler) isWatchedConfigMap(obj client.Object) bool {
+	return obj != nil && obj.GetNamespace() == r.Namespace && watchedConfigMaps[obj.GetName()]
 }
 
 // mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
 // one of the watched config ConfigMaps in the operator namespace changes.
 func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
-	if obj.GetNamespace() != r.Namespace || !watchedConfigMaps()[obj.GetName()] {
+	if !r.isWatchedConfigMap(obj) {
 		return nil
 	}
 
@@ -1074,22 +1082,20 @@ func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj cli
 }
 
 // configMapPredicate limits ConfigMap events to the watched config ConfigMaps in
-// the operator namespace. For updates it fires only when Data or Annotations
-// changed, avoiding no-op reconciles from metadata churn (e.g. resourceVersion
-// bumps or managed-field rewrites). Annotations are compared because the
-// distribution identity may arrive as orchestrator annotations, not just data
-// keys (see readDistributionConfig).
+// the operator namespace. For updates it fires only when Data or a consumed
+// annotation (PlatformType / PlatformVersion — the distribution identity read by
+// readDistributionConfig) actually changed. Only those two annotation keys are
+// compared, not the whole map, so unrelated metadata churn — resourceVersion
+// bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
+// last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
+// reconcile.
 func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
-	isWatched := func(obj client.Object) bool {
-		return obj != nil && obj.GetNamespace() == r.Namespace && watchedConfigMaps()[obj.GetName()]
-	}
-
 	return predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return isWatched(e.Object) },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return isWatched(e.Object) },
-		GenericFunc: func(e event.GenericEvent) bool { return isWatched(e.Object) },
+		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return r.isWatchedConfigMap(e.Object) },
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if !isWatched(e.ObjectNew) {
+			if !r.isWatchedConfigMap(e.ObjectNew) {
 				return false
 			}
 
@@ -1099,8 +1105,10 @@ func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
 				return true
 			}
 
-			return !maps.Equal(oldCM.Data, newCM.Data) ||
-				!maps.Equal(oldCM.Annotations, newCM.Annotations)
+			annotationChanged := oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
+				oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion]
+
+			return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
 		},
 	}
 }

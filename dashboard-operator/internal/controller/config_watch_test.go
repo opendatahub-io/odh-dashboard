@@ -10,6 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
+
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
@@ -109,6 +111,16 @@ func TestConfigMapPredicate_Update(t *testing.T) {
 	r := &ctrlpkg.DashboardReconciler{Namespace: testNamespace}
 	p := r.ConfigMapPredicate()
 
+	// metadata churn: identical Data and consumed annotations, but the object
+	// metadata differs (resourceVersion bump + a rewritten label). The predicate
+	// must ignore this — it is the exact regression the predicate guards against.
+	churnOld := newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil)
+	churnOld.ResourceVersion = "100"
+	churnOld.Labels = map[string]string{"example.com/synced-at": "old"}
+	churnNew := newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil)
+	churnNew.ResourceVersion = "101"
+	churnNew.Labels = map[string]string{"example.com/synced-at": "new"}
+
 	tests := []struct {
 		name    string
 		old     *corev1.ConfigMap
@@ -123,15 +135,21 @@ func TestConfigMapPredicate_Update(t *testing.T) {
 		},
 		{
 			name:    "identical data with only metadata churn does not fire",
-			old:     newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil),
-			updated: newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil),
+			old:     churnOld,
+			updated: churnNew,
 			want:    false,
 		},
 		{
-			name:    "annotation change fires a reconcile",
+			name:    "consumed annotation change fires a reconcile",
 			old:     newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil),
-			updated: newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{"platform.opendatahub.io/version": "2.21.0"}),
+			updated: newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{annotations.PlatformVersion: "2.21.0"}),
 			want:    true,
+		},
+		{
+			name:    "unrelated annotation churn does not fire",
+			old:     newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{}"}),
+			updated: newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{\"data\":{}}"}),
+			want:    false,
 		},
 		{
 			name:    "unrelated ConfigMap does not fire even on data change",
