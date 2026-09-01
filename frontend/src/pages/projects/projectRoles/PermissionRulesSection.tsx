@@ -179,16 +179,6 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                   Add rule
                 </Button>
               </ToolbarItem>
-              <ToolbarItem>
-                <Button
-                  variant="tertiary"
-                  icon={<ImportIcon />}
-                  data-testid="role-import-template"
-                  onClick={onImportTemplate}
-                >
-                  Add rules from template
-                </Button>
-              </ToolbarItem>
             </>
           }
           rowRenderer={(rule) => (
