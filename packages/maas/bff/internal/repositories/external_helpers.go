@@ -48,6 +48,80 @@ func stringMapFromUnstructured(raw map[string]interface{}) map[string]string {
 	return result
 }
 
+func stringMapToUnstructured(values map[string]string) map[string]interface{} {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make(map[string]interface{}, len(values))
+	for key, value := range values {
+		result[key] = value
+	}
+	return result
+}
+
+func authMechanismToCRD(mechanism models.AuthMechanism) string {
+	return string(mechanism)
+}
+
+func applyDisplayAnnotations(annotations map[string]string, displayName, description string) map[string]string {
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	if displayName != "" {
+		annotations[constants.DisplayNameAnnotation] = displayName
+	}
+	if description != "" {
+		annotations[constants.DescriptionAnnotation] = description
+	}
+	return annotations
+}
+
+func applyOptionalDisplayAnnotations(annotations map[string]string, displayName, description *string) map[string]string {
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	if displayName != nil {
+		if *displayName == "" {
+			delete(annotations, constants.DisplayNameAnnotation)
+		} else {
+			annotations[constants.DisplayNameAnnotation] = *displayName
+		}
+	}
+	if description != nil {
+		if *description == "" {
+			delete(annotations, constants.DescriptionAnnotation)
+		} else {
+			annotations[constants.DescriptionAnnotation] = *description
+		}
+	}
+	return annotations
+}
+
+func buildExternalProviderUnstructured(request models.CreateExternalProviderRequest) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion("inference.opendatahub.io/v1alpha1")
+	obj.SetKind("ExternalProvider")
+	obj.SetName(request.Name)
+	obj.SetNamespace(request.Namespace)
+	obj.SetAnnotations(applyDisplayAnnotations(nil, request.DisplayName, request.Description))
+
+	spec := map[string]interface{}{
+		"provider": request.Provider,
+		"endpoint": normalizeEndpointURL(request.EndpointUrl),
+		"auth": map[string]interface{}{
+			"type": authMechanismToCRD(request.AuthMechanism),
+			"secretRef": map[string]interface{}{
+				"name": request.CredentialSecretRef,
+			},
+		},
+	}
+	if config := stringMapToUnstructured(request.Config); config != nil {
+		spec["config"] = config
+	}
+	obj.Object["spec"] = spec
+	return obj
+}
+
 func convertUnstructuredToExternalProviderSummary(obj *unstructured.Unstructured) *models.ExternalProviderSummary {
 	content := obj.UnstructuredContent()
 	displayName, description := readDisplayAnnotations(obj.GetAnnotations())
@@ -229,6 +303,86 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 	summary.Reason = ready.Reason
 
 	return summary
+}
+
+func buildExternalModelUnstructured(request models.CreateExternalModelRequest) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion("inference.opendatahub.io/v1alpha1")
+	obj.SetKind("ExternalModel")
+	obj.SetName(request.Name)
+	obj.SetNamespace(request.Namespace)
+	obj.SetAnnotations(applyDisplayAnnotations(nil, request.DisplayName, request.Description))
+
+	spec := map[string]interface{}{
+		"externalProviderRefs": buildExternalProviderRefs(request.ProviderRefs),
+	}
+	if request.ModelName != "" {
+		spec["modelName"] = request.ModelName
+	}
+	obj.Object["spec"] = spec
+	return obj
+}
+
+func (r *ExternalModelsRepository) createMaaSModelRefForExternalModel(ctx context.Context, request models.CreateExternalModelRequest) error {
+	_, err := r.modelRefsRepo.CreateMaaSModelRef(ctx, models.CreateMaaSModelRefRequest{
+		Name:        request.Name,
+		Namespace:   request.Namespace,
+		ModelRef:    models.ModelReference{Kind: "ExternalModel", Name: request.Name},
+		DisplayName: request.DisplayName,
+		Description: request.Description,
+	}, false)
+	return err
+}
+
+func (r *ExternalModelsRepository) syncMaaSModelRefOnUpdate(ctx context.Context, namespace, name string, request models.UpdateExternalModelRequest) error {
+	updateRequest := models.UpdateMaaSModelRefRequest{
+		ModelRef: models.ModelReference{Kind: "ExternalModel", Name: name},
+	}
+	if request.DisplayName != nil {
+		updateRequest.DisplayName = request.DisplayName
+	}
+	if request.Description != nil {
+		updateRequest.Description = request.Description
+	}
+
+	_, err := r.modelRefsRepo.UpdateMaaSModelRef(ctx, namespace, name, updateRequest, false)
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		return err
+	}
+
+	createRequest := models.CreateMaaSModelRefRequest{
+		Name:      name,
+		Namespace: namespace,
+		ModelRef:  models.ModelReference{Kind: "ExternalModel", Name: name},
+	}
+	if request.DisplayName != nil {
+		createRequest.DisplayName = *request.DisplayName
+	}
+	if request.Description != nil {
+		createRequest.Description = *request.Description
+	}
+	_, err = r.modelRefsRepo.CreateMaaSModelRef(ctx, createRequest, false)
+	return err
+}
+
+func buildExternalProviderRefs(refs []models.ProviderRef) []interface{} {
+	result := make([]interface{}, 0, len(refs))
+	for _, ref := range refs {
+		entry := map[string]interface{}{
+			"ref": map[string]interface{}{
+				"name": ref.ProviderName,
+			},
+			"weight":      ref.Weight,
+			"apiFormat":   ref.APIFormat,
+			"path":        ref.Path,
+			"targetModel": ref.TargetModel,
+		}
+		if config := stringMapToUnstructured(ref.Config); config != nil {
+			entry["config"] = config
+		}
+		result = append(result, entry)
+	}
+	return result
 }
 
 var endpointFQDNPattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$`)
