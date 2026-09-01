@@ -195,11 +195,30 @@ const dynamicPluginSdkAlias = (relativeDirname) => {
   }
 };
 
+/**
+ * Pin mod-arch-core and mod-arch-shared to one install tree. pnpm can bundle duplicate
+ * copies so ModularArchContext updates from one hook are invisible to another at runtime.
+ */
+const modArchAliases = (relativeDirname) => {
+  try {
+    const corePkg = require.resolve('mod-arch-core/package.json', { paths: [relativeDirname] });
+    const coreDir = path.dirname(corePkg);
+    const sharedPkg = require.resolve('mod-arch-shared/package.json', { paths: [coreDir] });
+    return {
+      'mod-arch-core': coreDir,
+      'mod-arch-shared': path.dirname(sharedPkg),
+    };
+  } catch {
+    return {};
+  }
+};
+
 const pnpmWebpackResolveAliases = (relativeDirname) => ({
   ...tanstackQueryCoreAlias(relativeDirname),
   ...muiMaterialPeerAliases(relativeDirname),
   ...reactSingletonAliases(relativeDirname),
   ...dynamicPluginSdkAlias(relativeDirname),
+  ...modArchAliases(relativeDirname),
 });
 
 module.exports = {
@@ -209,6 +228,7 @@ module.exports = {
   patternFlyCssIncludes,
   patternFlyFontIncludes,
   dynamicPluginSdkAlias,
+  modArchAliases,
   muiMaterialPeerAliases,
   pnpmWebpackResolveAliases,
   reactSingletonAliases,
