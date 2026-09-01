@@ -544,4 +544,37 @@ describe('NIM Models Deployments', () => {
 
     // TODO followup PR: can edit and update subpath
   });
+
+  it('should manage NIM PVCs in cluster storage tab', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    // NotebookModel backs the per-row root-volume/delete-action logic and the connected resources
+    // column (useRelatedNotebooks) — mock it empty so those resolve instead of spinning
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    // Mocks the "Storage size" column response
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    // A PVC caching a NIM model is annotated by the NIM deploy path
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+        }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+
+    // The nim-serving package contributes the "NIM storage" context, so the PVC is labelled by it
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('NIM storage');
+
+    // TODO followup PR: can edit and update subpath
+  });
 });
