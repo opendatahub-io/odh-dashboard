@@ -31,14 +31,17 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
     let cancelled = false;
 
     setResults((prev) => {
-      const uids = extensions
+      const activeUids = new Set(extensions.map((ext) => ext.uid));
+      const uidsToRemove = Object.keys(prev).filter((uid) => !activeUids.has(uid));
+      const uidsToReset = extensions
         .filter((ext) => ext.properties.shouldShow && ext.uid in prev)
         .map((ext) => ext.uid);
-      if (uids.length === 0) {
+      if (uidsToRemove.length === 0 && uidsToReset.length === 0) {
         return prev;
       }
       const next = { ...prev };
-      uids.forEach((uid) => delete next[uid]);
+      uidsToRemove.forEach((uid) => delete next[uid]);
+      uidsToReset.forEach((uid) => delete next[uid]);
       return next;
     });
 
@@ -180,11 +183,14 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
             if (!ext.properties.shouldShow) {
               return true;
             }
-            return shouldShowResults[ext.uid] ?? false;
+            if (!(ext.uid in shouldShowResults)) {
+              return ext.properties.id === activeKey;
+            }
+            return shouldShowResults[ext.uid];
           }),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension, group, shouldShowResults],
+    [extensionTabs, filterExtension, group, shouldShowResults, activeKey],
   );
 
   const allTabs = React.useMemo(

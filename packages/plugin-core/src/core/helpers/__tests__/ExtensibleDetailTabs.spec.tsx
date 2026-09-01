@@ -342,6 +342,38 @@ describe('ExtensibleDetailTabs', () => {
       expect(screen.queryByTestId('async-hidden-tab')).not.toBeInTheDocument();
     });
 
+    it('should keep an async extension tab selected during deep-link while predicate is pending', async () => {
+      let resolveShow: (value: boolean) => void = () => undefined;
+      const shouldShow = jest.fn().mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveShow = resolve;
+          }),
+      );
+
+      const extensionTabs = [createMockTabExtension('insights', 'Insights', { shouldShow })];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="insights"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(defaultOnSelect).not.toHaveBeenCalled();
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+
+      await act(async () => {
+        resolveShow(true);
+      });
+
+      expect(defaultOnSelect).not.toHaveBeenCalled();
+      expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
+    });
+
     it('should hide a previously-visible async tab while re-evaluating after componentProps change', async () => {
       let resolveShow: (value: boolean) => void = () => undefined;
 
