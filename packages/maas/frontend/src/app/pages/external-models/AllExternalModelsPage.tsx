@@ -77,7 +77,11 @@ const AllExternalModelsPage: React.FC = () => {
             onClearFilters={onClearFilters}
             setDeleteExternalModel={setDeleteExternalModel}
             toolbarContent={
-              <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+              <ExternalModelsToolBar
+                namespace={resolvedNamespace}
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+              />
             }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (

@@ -14,8 +14,21 @@ export type UseExternalModelsNamespaceResult = {
   shouldRedirect: boolean;
 };
 
+const getNamespaceFromParams = (params: {
+  namespace?: string;
+  '*'?: string;
+}): string | undefined => {
+  if (params.namespace) {
+    return params.namespace;
+  }
+
+  const splatSegment = params['*']?.split('/').find(Boolean);
+  return splatSegment || undefined;
+};
+
 export function useExternalModelsNamespace(): UseExternalModelsNamespaceResult {
-  const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
+  const params = useParams<{ namespace?: string; '*'?: string }>();
+  const urlNamespace = getNamespaceFromParams(params);
   const { namespaces, namespacesLoaded, preferredNamespace, namespacesLoadError } =
     useNamespaceSelector();
 

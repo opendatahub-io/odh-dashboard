@@ -81,6 +81,9 @@ export type ExternalProvider = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  lastTransitionTime?: string;
+  conditionType?: string;
+  status?: string;
 };
 
 export type CreateExternalProviderRequest = {

@@ -63,6 +63,19 @@ export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): s
   }
 };
 
+export const convertStringToAuthMechanism = (authMechanism: string): AuthMechanism => {
+  switch (authMechanism) {
+    case 'apikey':
+      return 'apikey';
+    case 'sigv4':
+      return 'sigv4';
+    case 'oauth2':
+      return 'oauth2';
+    default:
+      return 'apikey';
+  }
+};
+
 export const getExternalModelResource = (model: ExternalModel): K8sResourceCommon => ({
   apiVersion: 'maas.opendatahub.io/v1alpha1',
   kind: 'ExternalModel',
