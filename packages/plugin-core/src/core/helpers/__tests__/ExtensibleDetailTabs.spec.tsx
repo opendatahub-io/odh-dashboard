@@ -374,6 +374,25 @@ describe('ExtensibleDetailTabs', () => {
       expect(screen.getByTestId('insights-tab')).toBeInTheDocument();
     });
 
+    it('should hide the active extension tab when shouldShow returns false synchronously', () => {
+      const extensionTabs = [
+        createMockTabExtension('hidden-active', 'Hidden Active', { shouldShow: () => false }),
+      ];
+
+      render(
+        <ExtensibleDetailTabs
+          activeKey="hidden-active"
+          onSelect={defaultOnSelect}
+          staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+          extensionTabs={extensionTabs}
+          testId="test-tabs"
+        />,
+      );
+
+      expect(screen.queryByTestId('hidden-active-tab')).not.toBeInTheDocument();
+      expect(defaultOnSelect).toHaveBeenCalledWith('overview');
+    });
+
     it('should hide a previously-visible async tab while re-evaluating after componentProps change', async () => {
       let resolveShow: (value: boolean) => void = () => undefined;
 

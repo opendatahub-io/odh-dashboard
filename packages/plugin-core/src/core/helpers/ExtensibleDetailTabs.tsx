@@ -18,32 +18,20 @@ const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
 
 /**
  * Evaluates `shouldShow` predicates for extension tabs, supporting both sync
- * and async (Promise) return values. Tabs default to hidden until an async
- * predicate resolves to `true`.
+ * and async (Promise) return values. Sync predicates are evaluated eagerly
+ * during render so their results are immediately available. Async predicates
+ * default to hidden until the Promise resolves to `true`.
  */
 const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
   extensions: LoadedExtension<TExtension>[],
   componentProps: Record<string, unknown>,
 ): Record<string, boolean> => {
-  const [results, setResults] = React.useState<Record<string, boolean>>({});
+  const [asyncResults, setAsyncResults] = React.useState<Record<string, boolean>>({});
+  const asyncEntriesRef = React.useRef<Map<string, Promise<boolean>>>(new Map());
 
-  React.useEffect(() => {
-    let cancelled = false;
-
-    setResults((prev) => {
-      const activeUids = new Set(extensions.map((ext) => ext.uid));
-      const uidsToRemove = Object.keys(prev).filter((uid) => !activeUids.has(uid));
-      const uidsToReset = extensions
-        .filter((ext) => ext.properties.shouldShow && ext.uid in prev)
-        .map((ext) => ext.uid);
-      if (uidsToRemove.length === 0 && uidsToReset.length === 0) {
-        return prev;
-      }
-      const next = { ...prev };
-      uidsToRemove.forEach((uid) => delete next[uid]);
-      uidsToReset.forEach((uid) => delete next[uid]);
-      return next;
-    });
+  const syncResults = React.useMemo(() => {
+    const sync: Record<string, boolean> = {};
+    const pending = new Map<string, Promise<boolean>>();
 
     extensions.forEach((ext) => {
       const { shouldShow } = ext.properties;
@@ -53,27 +41,45 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
 
       const result = shouldShow(componentProps);
       if (typeof result === 'boolean') {
-        if (!cancelled) {
-          setResults((prev) => (prev[ext.uid] === result ? prev : { ...prev, [ext.uid]: result }));
-        }
+        sync[ext.uid] = result;
       } else {
-        result.then(
-          (visible) => {
-            if (!cancelled) {
-              setResults((prev) =>
-                prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
-              );
-            }
-          },
-          () => {
-            if (!cancelled) {
-              setResults((prev) =>
-                prev[ext.uid] === false ? prev : { ...prev, [ext.uid]: false },
-              );
-            }
-          },
-        );
+        pending.set(ext.uid, result);
       }
+    });
+
+    asyncEntriesRef.current = pending;
+    return sync;
+  }, [extensions, componentProps]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    setAsyncResults((prev) => {
+      const activeUids = new Set(extensions.map((ext) => ext.uid));
+      const uidsToRemove = Object.keys(prev).filter((uid) => !activeUids.has(uid));
+      const uidsToReset = [...asyncEntriesRef.current.keys()].filter((uid) => uid in prev);
+      if (uidsToRemove.length === 0 && uidsToReset.length === 0) {
+        return prev;
+      }
+      const next = { ...prev };
+      uidsToRemove.forEach((uid) => delete next[uid]);
+      uidsToReset.forEach((uid) => delete next[uid]);
+      return next;
+    });
+
+    asyncEntriesRef.current.forEach((promise, uid) => {
+      promise.then(
+        (visible) => {
+          if (!cancelled) {
+            setAsyncResults((prev) => (prev[uid] === visible ? prev : { ...prev, [uid]: visible }));
+          }
+        },
+        () => {
+          if (!cancelled) {
+            setAsyncResults((prev) => (prev[uid] === false ? prev : { ...prev, [uid]: false }));
+          }
+        },
+      );
     });
 
     return () => {
@@ -81,7 +87,7 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
     };
   }, [extensions, componentProps]);
 
-  return results;
+  return React.useMemo(() => ({ ...asyncResults, ...syncResults }), [asyncResults, syncResults]);
 };
 
 type StaticTab = {
