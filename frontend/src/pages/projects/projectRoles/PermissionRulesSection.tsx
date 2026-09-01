@@ -4,10 +4,10 @@ import {
   Content,
   Flex,
   FlexItem,
+  FormGroup,
   FormGroupLabelHelp,
   Popover,
   SearchInput,
-  Title,
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ImportIcon, PlusCircleIcon } from '@patternfly/react-icons';
@@ -20,6 +20,7 @@ import PermissionRulesTableRow from './PermissionRulesTableRow';
 import { permissionRulesColumns, formatRuleValues } from './permissionRulesColumns';
 import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
 import type { RuleEntry } from './types';
+import { RULES_FORM_DESCRIPTION } from './const';
 
 const FILTER_RESOURCES = 'resources';
 const FILTER_API_GROUPS = 'apiGroups';
@@ -119,22 +120,19 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
   );
 
   return (
-    <>
-      <Flex gap={{ default: 'gapSm' }}>
-        <Title headingLevel="h2" size="md">
-          Rules
-        </Title>
+    <FormGroup
+      label="Rules"
+      fieldId="role-rules"
+      labelHelp={
         <Popover bodyContent="Rules define permissions for this role. In Kubernetes, rules specify which operations (verbs) users can perform on which resources.">
           <FormGroupLabelHelp
             aria-label="More info about adding rules"
             data-testid="create-project-role-rule-help-popover"
           />
         </Popover>
-      </Flex>
-      <Content component="p">
-        Rules define what this role allows. Each rule specifies resource types and permitted
-        operations.
-      </Content>
+      }
+    >
+      <Content component="p">{RULES_FORM_DESCRIPTION}</Content>
 
       {hasRules ? (
         <TableBase
@@ -227,7 +225,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
           onClose={handleCloseModal}
         />
       ) : null}
-    </>
+    </FormGroup>
   );
 };
 
