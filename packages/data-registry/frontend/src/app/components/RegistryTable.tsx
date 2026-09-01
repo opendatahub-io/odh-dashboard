@@ -22,8 +22,8 @@ import {
   FlexItem,
   Pagination,
   Dropdown,
-  DropdownItem,
   DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
@@ -146,6 +146,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       return (
         <Select
           isOpen={isValueOpen}
+          maxMenuHeight="300px"
           onSelect={(_event, value) => {
             const val = String(value);
             setSelectedLabels((prev) =>
@@ -170,7 +171,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             </MenuToggle>
           )}
         >
-          <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <SelectList>
             {labels.map((label) => (
               <SelectOption
                 key={label}
@@ -220,6 +221,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       <Select
         isOpen={isValueOpen}
         selected={selectedFormat}
+        maxMenuHeight="300px"
         onSelect={(_event, value) => {
           setSelectedFormat(value === selectedFormat ? '' : String(value));
           setIsValueOpen(false);
@@ -239,7 +241,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </MenuToggle>
         )}
       >
-        <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <SelectList>
           {FORMAT_OPTIONS.map((f) => (
             <SelectOption key={f.key} value={f.key}>
               {f.label}
