@@ -464,7 +464,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
           <Stack className="evalhub-status-modal__header-stack">
             <StackItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
                 <FlexItem>
                   {isFailed ? (
                     <Icon status="danger" isInline>
@@ -484,8 +488,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Icon>
                   )}
                 </FlexItem>
-                <FlexItem>
-                  <Content component="p" data-testid="benchmark-name-header">
+                <FlexItem className="evalhub-status-modal__benchmark-name">
+                  <Content
+                    component="p"
+                    className="pf-v6-u-text-truncate"
+                    data-testid="benchmark-name-header"
+                  >
                     <strong>{benchmarkName}</strong>
                   </Content>
                 </FlexItem>

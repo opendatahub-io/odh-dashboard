@@ -220,6 +220,7 @@ export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStr
 
 export type DeploymentWizardFieldId =
   | 'modelType'
+  | 'modelLocation'
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
@@ -239,12 +240,31 @@ export type GenericFieldProps = {
   isDisabled?: boolean;
 };
 
+export type WizardFieldHelpPopover = {
+  title?: string;
+  content: string;
+};
+
 export type WizardStateOverrides = {
-  tokenAuthentication?: { isDisabled?: boolean };
+  tokenAuthentication?: {
+    isDisabled?: boolean;
+    disabledHelperText?: string;
+  };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
     selection?: { name: string; namespace?: string };
     hiddenOptions?: { name: string; namespace?: string }[];
+    disabledTooltip?: string;
+    labelHelpPopover?: WizardFieldHelpPopover;
+    /**
+     * Optional per-option label overrides, keyed by the gateway key:
+     * `${name} | ${namespace}`.
+     */
+    labelOverrides?: Record<string, string>;
+  };
+  hardwareProfile?: {
+    /** Accelerator identifier prefix used to prioritize matching hardware profiles. */
+    preferredAccelerator?: string;
   };
 };
 
@@ -342,6 +362,15 @@ export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
   forced?: boolean;
 };
+export type ModelLocationFieldOverride = DeploymentWizardFieldBase<'modelLocation'> & {
+  /** Model location option key this override applies to (e.g. nvidia-nim). */
+  locationKey: string;
+  /** Disable the location select when editing a deployment with this location. */
+  disableWhenEditing?: boolean;
+  disabledTooltip?: string;
+  /** Hide this location option when editing a deployment with a different location. */
+  hideOptionWhenEditingOtherLocation?: boolean;
+};
 export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (
@@ -363,6 +392,7 @@ export type TokenAuthFieldOverride = DeploymentWizardFieldBase<'tokenAuth'> & {
 
 export type DeploymentWizardFieldOverride =
   | ModelTypeFieldOverride
+  | ModelLocationFieldOverride
   | ModelServerTemplateFieldOverride
   | ModelAvailabilityFieldOverride
   | ExternalRouteFieldOverride
@@ -374,6 +404,11 @@ export const isModelTypeFieldOverride = (
   field: DeploymentWizardFieldOverride,
 ): field is ModelTypeFieldOverride => {
   return field.id === 'modelType';
+};
+export const isModelLocationFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is ModelLocationFieldOverride => {
+  return field.id === 'modelLocation';
 };
 export const isModelServerTemplateFieldOverride = (
   field: DeploymentWizardFieldOverride,

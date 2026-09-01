@@ -36,6 +36,7 @@ export default defineConfig({
     resolution: 'high',
   },
   defaultCommandTimeout: 10000,
+  requestTimeout: 10000,
   e2e: {
     baseUrl: BASE_URL,
     specPattern: env.CY_MOCK ? `cypress/tests/mocked/**/*.cy.ts` : `cypress/tests/e2e/**/*.cy.ts`,

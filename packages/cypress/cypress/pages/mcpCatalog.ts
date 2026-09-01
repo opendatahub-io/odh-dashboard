@@ -6,6 +6,11 @@ class McpCatalogPage {
     this.wait();
   }
 
+  visit() {
+    cy.visitWithLogin('/ai-hub/mcp-servers/catalog');
+    this.wait();
+  }
+
   private wait() {
     cy.findByTestId('app-tab-page-title').should('exist');
     cy.testA11y();
@@ -21,6 +26,10 @@ class McpCatalogPage {
 
   findPageTitle() {
     return cy.findByTestId('app-tab-page-title');
+  }
+
+  findSearchInput() {
+    return cy.findByTestId('mcp-catalog-search-input');
   }
 }
 

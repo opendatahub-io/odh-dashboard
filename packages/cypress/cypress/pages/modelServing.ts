@@ -1275,6 +1275,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('model-access-checkbox');
   }
 
+  findAuthenticationSection() {
+    return cy.findByTestId('auth-section');
+  }
+
   findTokenAuthenticationCheckbox() {
     return cy.findByTestId('token-authentication-checkbox');
   }
@@ -1484,6 +1488,10 @@ class ModelServingWizard extends Wizard {
 
   findGatewaySelectOption(name: string) {
     return this.findGatewaySelect().findSelectOption(name);
+  }
+
+  findGatewaySelectTooltip() {
+    return cy.findByTestId('gateway-select-tooltip-wrapper');
   }
 
   findDeploymentStrategySection() {

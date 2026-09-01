@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -39,9 +40,15 @@ type Server struct {
 	logger   *slog.Logger
 	listener net.Listener
 	server   *http.Server
+	certFile string
+	keyFile  string
 }
 
-func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
+func NewServer(app *api.App, logger *slog.Logger, certFile, keyFile string) (*Server, error) {
+	if (certFile == "") != (keyFile == "") {
+		return nil, fmt.Errorf("cert-file and key-file must be provided together")
+	}
+
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.Config.Port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
@@ -61,6 +68,8 @@ func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
 		logger:   logger,
 		listener: listener,
 		server:   svc,
+		certFile: certFile,
+		keyFile:  keyFile,
 	}
 
 	return svr, nil
@@ -88,8 +97,18 @@ func (s *Server) Start(ctx context.Context) error {
 		close(serverShutdown)
 	}()
 
-	s.logger.Info("starting server", "addr", s.server.Addr)
-	if err := s.server.Serve(s.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	tlsEnabled := s.certFile != "" && s.keyFile != ""
+	s.logger.Info("starting server", "addr", s.server.Addr, "tls", tlsEnabled)
+	var err error
+	if tlsEnabled {
+		s.server.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		}
+		err = s.server.ServeTLS(s.listener, s.certFile, s.keyFile)
+	} else {
+		err = s.server.Serve(s.listener)
+	}
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 

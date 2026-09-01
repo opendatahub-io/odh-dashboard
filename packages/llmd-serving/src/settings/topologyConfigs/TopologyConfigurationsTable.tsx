@@ -12,23 +12,20 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { Table, SortableData, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { Table, SortableData } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import TopologyConfigurationRow from './TopologyConfigurationRow';
 import {
   type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
   getConfigTopologyType,
 } from '../../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
 import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
-import { fireTopologyConfigDeleted } from '../../tracking/llmdTrackingConstants';
+import { useDeleteLlmInferenceServiceConfig } from '../useDeleteLlmInferenceServiceConfig';
 
 const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
   const type = getConfigTopologyType(config);
@@ -66,12 +63,11 @@ type TopologyConfigurationsTableProps = {
 
 const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = ({ configs }) => {
   const navigate = useNavigate();
-  const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
   const [isAddDropdownOpen, setIsAddDropdownOpen] = React.useState(false);
   const [togglingConfigs, setTogglingConfigs] = React.useState<Record<string, boolean>>({});
-  const [deleteConfig, setDeleteConfig] = React.useState<LLMInferenceServiceConfigKind>();
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const { deleteConfig, setDeleteConfig, isDeleting, error, handleDelete, closeDeleteModal } =
+    useDeleteLlmInferenceServiceConfig('topology');
 
   const topologyTypes = Object.values(TopologyType);
   const primaryTopologyType = TopologyType.SINGLE_NODE;
@@ -106,37 +102,6 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     } finally {
       setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
     }
-  };
-
-  const handleDelete = () => {
-    if (!deleteConfig) {
-      return;
-    }
-    setIsDeleting(true);
-    k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
-      model: LLMInferenceServiceConfigModel,
-      queryOptions: {
-        name: deleteConfig.metadata.name,
-        ns: dashboardNamespace,
-      },
-    })
-      .then(() => {
-        fireTopologyConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
-        setDeleteConfig(undefined);
-      })
-      .catch((e: unknown) => {
-        notification.error(
-          'Error deleting configuration',
-          e instanceof Error ? e.message : 'Unknown error',
-        );
-        fireTopologyConfigDeleted({
-          outcome: TrackingOutcome.submit,
-          success: false,
-        });
-      })
-      .finally(() => {
-        setIsDeleting(false);
-      });
   };
 
   const toolbarContent = (
@@ -215,14 +180,11 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
       {deleteConfig && (
         <DeleteModal
           title="Delete llm-d topology configuration?"
-          onClose={() => {
-            fireTopologyConfigDeleted({ outcome: TrackingOutcome.cancel });
-            setDeleteConfig(undefined);
-            setIsDeleting(false);
-          }}
+          onClose={closeDeleteModal}
           submitButtonLabel="Delete topology configuration"
           onDelete={handleDelete}
           deleting={isDeleting}
+          error={error}
           deleteName={getDisplayNameFromK8sResource(deleteConfig)}
         >
           This action cannot be undone.

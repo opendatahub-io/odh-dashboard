@@ -7,7 +7,7 @@ import { RenderOptions } from '@testing-library/react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
-import { definedFeatureFlags } from '#~/concepts/areas/const';
+import { definedFeatureFlags, SupportedAreasStateMap } from '#~/concepts/areas/const';
 import axios from '#~/utilities/axios';
 import useDevFeatureFlags from '#~/app/featureFlags/useDevFeatureFlags';
 
@@ -88,6 +88,24 @@ const renderOptions = (): RenderOptions => {
     wrapper: ({ children }) => <PluginStoreProvider store={store}>{children}</PluginStoreProvider>,
   };
 };
+
+const areaDevFlags = [
+  ...new Set(Object.values(SupportedAreasStateMap).flatMap((area) => area.devFlags ?? [])),
+];
+
+const allOverrideFlags = [...definedFeatureFlags, ...areaDevFlags];
+
+const flagsAt = (value: boolean): Record<string, boolean> =>
+  allOverrideFlags.reduce<Record<string, boolean>>((acc, flag) => {
+    acc[flag] = value;
+    return acc;
+  }, {});
+
+const dashboardConfigFlagsAt = (value: boolean): Record<string, boolean> =>
+  definedFeatureFlags.reduce<Record<string, boolean>>((acc, flag) => {
+    acc[flag] = value;
+    return acc;
+  }, {});
 
 describe('useDevFeatureFlags', () => {
   it('should pass through dashboardConfig if no dev feature flags set', () => {
@@ -195,20 +213,13 @@ describe('useDevFeatureFlags', () => {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
     const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
-    const expectedDevFeatureFlags = definedFeatureFlags.reduce<{ [key: string]: boolean }>(
-      (acc, flag) => {
-        acc[flag] = false;
-        return acc;
-      },
-      {},
-    );
     expect(renderResult.result.current).toEqual({
       dashboardConfig: merge({}, dashboardConfig, {
         spec: {
-          dashboardConfig: expectedDevFeatureFlags,
+          dashboardConfig: dashboardConfigFlagsAt(false),
         },
       }),
-      devFeatureFlags: expectedDevFeatureFlags,
+      devFeatureFlags: flagsAt(false),
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
@@ -223,20 +234,13 @@ describe('useDevFeatureFlags', () => {
       spec: { dashboardConfig: { disableAppLauncher: false } },
     } as DashboardConfigKind;
     const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
-    const expectedDevFeatureFlags = definedFeatureFlags.reduce<{ [key: string]: boolean }>(
-      (acc, flag) => {
-        acc[flag] = true;
-        return acc;
-      },
-      {},
-    );
     expect(renderResult.result.current).toEqual({
       dashboardConfig: merge({}, dashboardConfig, {
         spec: {
-          dashboardConfig: expectedDevFeatureFlags,
+          dashboardConfig: dashboardConfigFlagsAt(true),
         },
       }),
-      devFeatureFlags: expectedDevFeatureFlags,
+      devFeatureFlags: flagsAt(true),
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),

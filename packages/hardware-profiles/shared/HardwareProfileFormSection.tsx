@@ -33,6 +33,7 @@ type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   visibleIn?: HardwareProfileFeatureVisibility[];
   podSpecOptionsState: HardwarePodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
+  isHardwareProfilePreferred?: (profile: HardwareProfileKind) => boolean;
   isLocalQueueMissing?: boolean;
 };
 
@@ -42,6 +43,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   isEditing,
   visibleIn = [],
   isHardwareProfileSupported = () => false,
+  isHardwareProfilePreferred,
   isLocalQueueMissing = false,
 }) => {
   const {
@@ -110,6 +112,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
                 !project ? [[], true, undefined] : projectScopedHardwareProfiles
               }
               isHardwareProfileSupported={isHardwareProfileSupported}
+              isHardwareProfilePreferred={isHardwareProfilePreferred}
               initialHardwareProfile={initialHardwareProfile}
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}

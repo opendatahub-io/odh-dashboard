@@ -59,13 +59,13 @@ COPY src/ ./src/
 COPY ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 # Install workspace dependencies (creates workspace node_modules)
-RUN npm ci --omit=optional
+RUN npm ci
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies and build
-RUN npm ci --omit=optional
+RUN npm ci
 RUN npm run build:prod
 ```
 
@@ -190,13 +190,13 @@ COPY ./packages/model-registry/upstream/frontend ./ui-source
 
 ```dockerfile
 # ✅ Install workspace deps first, then module deps
-RUN npm ci --omit=optional  # at workspace level
+RUN npm ci # at workspace level
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional  # at module level
+RUN npm ci # at module level
 
 # ❌ Skip workspace dependency installation
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional  # missing workspace context
+RUN npm ci # missing workspace context
 ```
 
 ## Troubleshooting

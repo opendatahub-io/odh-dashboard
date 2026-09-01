@@ -53,3 +53,11 @@ func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
 	return r.gcStaleNamespacedRBAC(ctx, desired)
 }
+
+const MaasConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
+
+const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailable
+
+var ConsoleLinkGVK = consoleLinkGVK
+
+var ConsoleLinkListGVK = consoleLinkListGVK
