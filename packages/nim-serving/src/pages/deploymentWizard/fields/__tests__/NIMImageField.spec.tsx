@@ -177,6 +177,63 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
+  it('should show an actionable error when the Account request fails during creation', () => {
+    renderComponent({
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.LOADING,
+        },
+        loaded: true,
+        loadError: new Error('Forbidden'),
+      },
+    });
+
+    expect(screen.getByText('Unable to load NVIDIA NIM account')).toBeInTheDocument();
+    expect(screen.getByText(/permission to view NIM accounts/)).toBeInTheDocument();
+    expect(screen.queryByTestId('nim-image-select')).not.toBeInTheDocument();
+  });
+
+  it('should preserve and lock the raw image while editing without an Account', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.NOT_FOUND,
+        },
+        loaded: true,
+      },
+    });
+
+    expect(screen.getByTestId('nim-image-select')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+    expect(screen.queryByText('No NVIDIA NIM key', { exact: false })).not.toBeInTheDocument();
+  });
+
+  it('should preserve and lock the raw image while editing after an Account request failure', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.LOADING,
+        },
+        loaded: true,
+        loadError: new Error('Forbidden'),
+      },
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
+    expect(
+      screen.getByText(/deployed image is preserved but cannot be changed/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
+  });
+
   it('should show skeleton while account status and images are loading', () => {
     renderComponent({
       externalData: {

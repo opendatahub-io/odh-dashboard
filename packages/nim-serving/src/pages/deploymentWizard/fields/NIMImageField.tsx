@@ -30,7 +30,7 @@ export type NIMImageFieldExternalData = {
   nimTemplate?: TemplateKind;
 };
 
-const useNIMImageFieldExternalData = (dependencies?: {
+export const useNIMImageFieldExternalData = (dependencies?: {
   project?: { projectName?: string };
 }): {
   data: NIMImageFieldExternalData;
@@ -42,6 +42,7 @@ const useNIMImageFieldExternalData = (dependencies?: {
     status: accountStatus,
     nimAccount,
     loaded: accountLoaded,
+    loadError: accountLoadError,
   } = useNIMAccountStatus(projectName);
 
   const {
@@ -61,18 +62,25 @@ const useNIMImageFieldExternalData = (dependencies?: {
     loaded: nimTemplateLoaded,
   } = useFetchNIMTemplate(nimAccount);
 
-  // Show as loaded if there is an error, otherwise loaded is false (for example existing deployments don't care)
+  const accountTerminal =
+    !!accountLoadError ||
+    accountStatus === NIMAccountStatus.NOT_FOUND ||
+    accountStatus === NIMAccountStatus.ERROR;
+
+  // Account failures and terminal Account states must settle the field. Dependent image/template
+  // requests cannot load without an Account, and edits must not remain blocked by those requests.
   const loaded =
     !projectName ||
+    accountTerminal ||
     ((imagesLoaded || !!loadError) && accountLoaded && (nimTemplateLoaded || !!nimTemplateError));
 
   return React.useMemo(
     () => ({
       data: { nimImages, accountStatus, nimTemplate },
       loaded,
-      loadError: loadError ?? nimTemplateError,
+      loadError: accountLoadError ?? loadError ?? nimTemplateError,
     }),
-    [nimImages, accountStatus, nimTemplate, loaded, loadError, nimTemplateError],
+    [nimImages, accountStatus, nimTemplate, loaded, accountLoadError, loadError, nimTemplateError],
   );
 };
 
@@ -238,7 +246,20 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     );
   }
 
+  const isAccountLoadFailed =
+    accountStatus === NIMAccountStatus.LOADING && Boolean(externalData.loadError);
+
+  if (!isEditing && isAccountLoadFailed) {
+    return (
+      <Alert variant="danger" isInline title="Unable to load NVIDIA NIM account">
+        NVIDIA NIM account information could not be loaded for this project. Ask your project
+        administrator to verify that you have permission to view NIM accounts, then try again.
+      </Alert>
+    );
+  }
+
   const isNIMUnconfigured =
+    !isEditing &&
     (accountStatus === NIMAccountStatus.NOT_FOUND || accountStatus === NIMAccountStatus.ERROR) &&
     images.length === 0;
 
@@ -281,7 +302,9 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
       {externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="error">
-            There was a problem fetching the NIM models. Please try again later.
+            {isEditing
+              ? 'NVIDIA NIM account information could not be loaded. The deployed image is preserved but cannot be changed.'
+              : 'There was a problem fetching the NIM models. Please try again later.'}
           </HelperTextItem>
         </HelperText>
       )}
