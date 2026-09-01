@@ -10,10 +10,10 @@ import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
 } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
   PVCModel,
-  SecretModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
