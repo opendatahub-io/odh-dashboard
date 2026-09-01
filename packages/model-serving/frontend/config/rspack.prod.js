@@ -1,13 +1,20 @@
 /* eslint-disable no-console */
 const path = require('path');
-const { merge } = require('webpack-merge');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserJSPlugin = require('terser-webpack-plugin');
+const { merge } = require('rspack-merge');
+const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
+const getRsdoctorPlugin = () => {
+  if (process.env.RSDOCTOR !== 'true') {
+    return [];
+  }
+  // Lazy-require: @rsdoctor/rspack-plugin has no native bindings for s390x/ppc64le.
+  const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+  return [new RsdoctorRspackPlugin()];
+};
+
 setupDotenvFilesForEnv({ env: 'production' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
@@ -32,7 +39,7 @@ module.exports = merge(
       }),
     ],
   },
-  webpackCommon(),
+  rspackCommon('production'),
   {
     mode: 'production',
     devtool: 'source-map',
@@ -41,13 +48,17 @@ module.exports = merge(
     },
     optimization: {
       minimize: true,
-      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
+      minimizer: [
+        new rspack.SwcJsMinimizerRspackPlugin(),
+        new rspack.LightningCssMinimizerRspackPlugin(),
+      ],
     },
     plugins: [
-      new MiniCssExtractPlugin({
+      new rspack.CssExtractRspackPlugin({
         filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
+      ...getRsdoctorPlugin(),
     ],
     module: {
       rules: [
@@ -60,7 +71,7 @@ module.exports = merge(
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
             path.resolve(ROOT_NODE_MODULES, '@patternfly'),
           ],
-          use: [MiniCssExtractPlugin.loader, 'css-loader'],
+          use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
         },
       ],
     },

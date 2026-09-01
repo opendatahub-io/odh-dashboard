@@ -1,16 +1,13 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 const path = require('path');
-const { merge } = require('webpack-merge');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
-const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
-
 setupDotenvFilesForEnv({ env: 'development' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
@@ -83,90 +80,84 @@ const onProxyReq = (proxyReq, req) => {
   }
 };
 
-module.exports = smp.wrap(
-  merge(
-    {
-      plugins: [
-        ...setupWebpackDotenvFilesForEnv({
-          directory: RELATIVE_DIRNAME,
-          env: 'development',
-          isRoot: IS_PROJECT_ROOT_DIR,
-        }),
+module.exports = merge(
+  {
+    plugins: [
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'development',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
+  },
+  rspackCommon('development'),
+  {
+    mode: 'development',
+    devtool: 'eval-source-map',
+    optimization: {
+      removeEmptyChunks: true,
+    },
+    devServer: {
+      host: HOST,
+      port: PORT,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
+      compress: true,
+      historyApiFallback: true,
+      hot: true,
+      open: false,
+      proxy: [
+        {
+          context: ['/api', '/model-serving/api'],
+          target: {
+            host: PROXY_HOST,
+            protocol: PROXY_PROTOCOL,
+            port: PROXY_PORT,
+          },
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          on: { proxyReq: onProxyReq },
+        },
+      ],
+      devMiddleware: {
+        stats: 'errors-only',
+      },
+      client: {
+        overlay: false,
+      },
+      static: {
+        directory: DIST_DIR,
+        publicPath: BASE_PATH,
+      },
+      onListening: (devServer) => {
+        if (devServer) {
+          const devPort = devServer.server.address().port;
+          console.log(
+            `\x1b[32m✓ Model Serving federated dev server: \x1b[4mhttp://localhost:${devPort}\x1b[0m`,
+          );
+          console.log(
+            `\x1b[32m✓ Remote entry: \x1b[4mhttp://localhost:${devPort}/remoteEntry.js\x1b[0m`,
+          );
+        }
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.css$/,
+          include: [
+            SRC_DIR,
+            PACKAGE_SRC_DIR,
+            COMMON_DIR,
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+          ],
+          use: ['style-loader', 'css-loader'],
+        },
       ],
     },
-    webpackCommon(),
-    {
-      mode: 'development',
-      devtool: 'eval-source-map',
-      optimization: {
-        runtimeChunk: 'single',
-        removeEmptyChunks: true,
-      },
-      devServer: {
-        host: HOST,
-        port: PORT,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Cross-Origin-Resource-Policy': 'cross-origin',
-        },
-        compress: true,
-        historyApiFallback: true,
-        hot: true,
-        open: false,
-        proxy: [
-          {
-            context: ['/api', '/model-serving/api'],
-            target: {
-              host: PROXY_HOST,
-              protocol: PROXY_PROTOCOL,
-              port: PROXY_PORT,
-            },
-            changeOrigin: true,
-            headers: getProxyHeaders(),
-            onProxyReq,
-          },
-        ],
-        devMiddleware: {
-          stats: 'errors-only',
-        },
-        client: {
-          overlay: false,
-        },
-        static: {
-          directory: DIST_DIR,
-          publicPath: BASE_PATH,
-        },
-        onListening: (devServer) => {
-          if (devServer) {
-            const devPort = devServer.server.address().port;
-            console.log(
-              `\x1b[32m✓ Model Serving federated dev server: \x1b[4mhttp://localhost:${devPort}\x1b[0m`,
-            );
-            console.log(
-              `\x1b[32m✓ Remote entry: \x1b[4mhttp://localhost:${devPort}/remoteEntry.js\x1b[0m`,
-            );
-          }
-        },
-      },
-      module: {
-        rules: [
-          {
-            test: /\.css$/,
-            include: [
-              SRC_DIR,
-              PACKAGE_SRC_DIR,
-              COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-            ],
-            use: ['style-loader', 'css-loader'],
-          },
-        ],
-      },
-      plugins: [
-        new ForkTsCheckerWebpackPlugin(),
-        new ReactRefreshWebpackPlugin({ overlay: false }),
-      ],
-    },
-  ),
+    plugins: [new TsCheckerRspackPlugin(), new ReactRefreshRspackPlugin({ overlay: false })],
+  },
 );
