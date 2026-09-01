@@ -70,16 +70,52 @@ func TestReconcileMaasConsumerPortalConsoleLink_DomainRequired(t *testing.T) {
 	}
 
 	cm := maasConsumerPortalTestManager(t, dashboard)
-	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	retryAfter := r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
 	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
 	require.NotNil(t, maasConsumerPortalCond)
 	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
 	assert.Equal(t, "MaasConsumerPortalDomainRequired", maasConsumerPortalCond.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
+	assert.Zero(t, retryAfter)
 
 	// Ready must be unaffected: Info-severity False dependents are ignored.
 	assert.True(t, cm.IsHappy(), "Ready must remain True when the maasConsumerPortalCond domain is missing")
+}
+
+func TestReconcileMaasConsumerPortalConsoleLink_DeployFails(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	require.NoError(t, v1alpha1.AddToScheme(s))
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec: v1alpha1.DashboardSpec{
+			Gateway:            &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+			MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+
+	// The temporary base does not contain the portal manifest directory, causing
+	// the params write in the deploy action to fail.
+	r := &DashboardReconciler{
+		Client:            fake.NewClientBuilder().WithScheme(s).Build(),
+		Scheme:            s,
+		ManifestsBasePath: t.TempDir(),
+		Platform:          cluster.SelfManagedRhoai,
+	}
+
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	retryAfter := r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+
+	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+	require.NotNil(t, maasConsumerPortalCond)
+	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
+	assert.Equal(t, "Error", maasConsumerPortalCond.Reason)
+	assert.Contains(t, maasConsumerPortalCond.Message, "failed to write maas consumer portal params.env")
+	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
+	assert.Equal(t, maasConsumerPortalRetryInterval, retryAfter)
+	assert.True(t, cm.IsHappy(), "Ready must remain True even when the portal deploy fails (Info severity)")
 }
 
 func TestReconcileMaasConsumerPortalConsoleLink_Disabled(t *testing.T) {
@@ -103,13 +139,14 @@ func TestReconcileMaasConsumerPortalConsoleLink_Disabled(t *testing.T) {
 	}
 
 	cm := maasConsumerPortalTestManager(t, dashboard)
-	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	retryAfter := r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
 	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
 	require.NotNil(t, maasConsumerPortalCond)
 	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
 	assert.Equal(t, "Disabled", maasConsumerPortalCond.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
+	assert.Zero(t, retryAfter)
 	assert.True(t, cm.IsHappy(), "Ready must remain True when the maasConsumerPortalCond is disabled")
 }
 
@@ -141,12 +178,13 @@ func TestReconcileMaasConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T
 	}
 
 	cm := maasConsumerPortalTestManager(t, dashboard)
-	r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
+	retryAfter := r.reconcileMaasConsumerPortalConsoleLink(context.Background(), dashboard, cm)
 
 	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
 	require.NotNil(t, maasConsumerPortalCond)
 	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
 	assert.Equal(t, "MaasConsumerPortalDeleteFailed", maasConsumerPortalCond.Reason)
 	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
+	assert.Equal(t, maasConsumerPortalRetryInterval, retryAfter)
 	assert.True(t, cm.IsHappy(), "Ready must remain True even when the portal delete fails (Info severity)")
 }
