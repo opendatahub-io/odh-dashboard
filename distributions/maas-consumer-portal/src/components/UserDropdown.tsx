@@ -4,8 +4,12 @@ import { useSettings } from 'mod-arch-core';
 
 export const PORTAL_SIGN_OUT_PATH = '/oauth2/sign_out';
 
-export const portalLogout = (): void => {
-  window.location.href = PORTAL_SIGN_OUT_PATH;
+const navigateTo = (path: string): void => {
+  window.location.href = path;
+};
+
+export const portalLogout = (redirect = navigateTo): void => {
+  redirect(PORTAL_SIGN_OUT_PATH);
 };
 
 const UserDropdown: React.FC = () => {
@@ -31,7 +35,7 @@ const UserDropdown: React.FC = () => {
       )}
     >
       <DropdownList>
-        <DropdownItem key="logout" onClick={portalLogout}>
+        <DropdownItem key="logout" onClick={() => portalLogout()}>
           Log out
         </DropdownItem>
       </DropdownList>
