@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import yaml from 'js-yaml';
+import * as YAML from 'js-yaml';
 import {
   mockNamespaces,
   mockNamespace,
@@ -125,7 +125,7 @@ export const setupBaseMCPServerMocks = (
 
 export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   return cy.fixture('mocked/mcpServers/mcpTestConfig.yaml').then((yamlString) => {
-    return yaml.load(yamlString as string) as MCPTestConfig;
+    return YAML.load(yamlString as string) as MCPTestConfig;
   });
 };
 
