@@ -436,7 +436,23 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 0}}},
 			},
 			wantErr:   true,
-			errSubstr: "zero service port",
+			errSubstr: "invalid service port 0 (must be 1-65535)",
+		},
+		{
+			name: "negative service port rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: -1}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service port -1 (must be 1-65535)",
+		},
+		{
+			name: "service port above TCP range rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 65536}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service port 65536 (must be 1-65535)",
 		},
 		{
 			name: "invalid RFC 1123 service name rejected",
@@ -747,7 +763,7 @@ func TestInitModuleProxies_InvalidServiceFields(t *testing.T) {
 					},
 				},
 			},
-			errSubstr: "zero service port",
+			errSubstr: "invalid service port 0 (must be 1-65535)",
 		},
 	}
 
