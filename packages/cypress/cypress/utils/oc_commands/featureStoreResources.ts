@@ -2,6 +2,9 @@ import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_com
 import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+/** Container port the Feast registry serves its REST API on (set by the feast-operator). */
+const REGISTRY_REST_PORT = 6573;
+
 /**
  * Resolves the Feast Deployment name in the namespace for a given FeatureStore instance.
  * Prefers `feast-<instance>` then `feast-<instance>-registry`.
@@ -207,7 +210,18 @@ print("APPLIED_PERMISSION:${permissionName}")
 
                   if (applySucceeded) {
                     cy.log(`Registry-only apply succeeded for permission ${permissionName}`);
-                    return cy.wrap(permissionName);
+                    const registryReadyCmd =
+                      `oc exec -n ${namespace} deploy/${deployName} -c ${container} -- ` +
+                      `sh -c 'curl -sk -H "Authorization: Bearer ` +
+                      `$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" ` +
+                      `https://localhost:${REGISTRY_REST_PORT}/api/v1/projects' ` +
+                      `| jq -e '(.projects // []) | length > 0'`;
+
+                    return pollUntilSuccess(
+                      registryReadyCmd,
+                      `registry on deploy/${deployName} to serve at least one project`,
+                      { maxAttempts: 30, pollIntervalMs: 2000 },
+                    ).then(() => cy.wrap(permissionName));
                   }
 
                   throw new Error(`Registry-only apply failed on deploy/${deployName}: ${output}`);
