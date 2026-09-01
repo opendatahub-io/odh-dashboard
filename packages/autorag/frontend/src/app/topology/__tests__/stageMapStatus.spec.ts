@@ -253,6 +253,20 @@ describe('resolveStageRunStatus', () => {
 });
 
 describe('resolveSequentialStageRunStatuses', () => {
+  it('should keep stages after the canonical active frontier pending', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'prepare', description: 'Prepare', status: { state: 'completed' } },
+        { id: 'optimize', description: 'Optimize', status: { state: 'completed' } },
+        { id: 'publish', description: 'Publish' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+    );
+    expect(statuses.get('prepare')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('optimize')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('publish')).toBe(RunStatus.Pending);
+  });
   const stages = [
     { id: 'validate_inputs', description: 'Validate pipeline inputs' },
     { id: 'download_and_sample', description: 'Download and sample' },

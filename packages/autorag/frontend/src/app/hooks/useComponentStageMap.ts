@@ -10,7 +10,19 @@ const ComponentStageMapStageSchema = z
     id: z.string(),
     description: z.string(),
     steps: z.array(z.string()).optional(),
-    status: z.string().optional(),
+    status: z
+      .union([
+        z.string(),
+        z.object({
+          state: z.enum(['started', 'running', 'completed', 'failed']),
+          step: z.string().optional(),
+          message: z
+            .object({ level: z.enum(['info', 'warning', 'error']), text: z.string() })
+            .optional(),
+          running_at: z.string().optional(),
+        }),
+      ])
+      .optional(),
     timestamp: z.string().optional(),
   })
   .catchall(z.unknown());

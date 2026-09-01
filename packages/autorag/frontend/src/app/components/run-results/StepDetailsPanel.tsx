@@ -33,6 +33,7 @@ import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata, type StepDetail } from '~/app/topology/tree-view/stepMetadata';
 import {
   parseStageMapNodeId,
+  getComponentDisplayName,
   type ParsedStageMapNode,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
@@ -269,7 +270,13 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     branchPatternKey === selectedPattern &&
     parsedNodeId?.type === 'branch_pattern' &&
     nodeData.stepState === 'completed';
-  const panelTitle = isBestPattern ? 'Best pattern' : (nodeData.label ?? 'Step details');
+  const panelTitle = isBestPattern
+    ? 'Best pattern'
+    : parsedNodeId?.type === 'stage' && componentStageMap
+      ? (getComponentDisplayName(parsedNodeId, componentStageMap) ??
+        nodeData.label ??
+        'Step details')
+      : (nodeData.label ?? 'Step details');
   const statusLabel = getStepStateLabel(nodeData.stepState);
   const inProgressLoadingContent = getStepDetailsLoadingContent();
   const isStepLoading = nodeData.stepState === 'active';
@@ -312,18 +319,17 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
                 titleSize="lg"
               />
             </StackItem>
-          ) : (
-            <StackItem>
-              <DescriptionList isCompact>
-                {metadata.details.map((detail, index) => (
-                  <DescriptionListGroup key={`${detail.label}-${index}`}>
-                    <StepDetailTerm detail={detail} />
-                    <DescriptionListDescription>{detail.value}</DescriptionListDescription>
-                  </DescriptionListGroup>
-                ))}
-              </DescriptionList>
-            </StackItem>
-          )}
+          ) : null}
+          <StackItem>
+            <DescriptionList isCompact>
+              {metadata.details.map((detail, index) => (
+                <DescriptionListGroup key={`${detail.label}-${index}`}>
+                  <StepDetailTerm detail={detail} />
+                  <DescriptionListDescription>{detail.value}</DescriptionListDescription>
+                </DescriptionListGroup>
+              ))}
+            </DescriptionList>
+          </StackItem>
         </Stack>
       </DrawerPanelBody>
     </>
