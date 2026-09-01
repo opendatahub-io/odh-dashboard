@@ -16,6 +16,7 @@ class ChatbotPage {
     cy.findByTestId('page-title', { timeout: 30000 })
       .should('be.visible')
       .and('contain.text', 'Playground');
+    cy.findByTestId('chatbot', { timeout: 30000 }).should('be.visible');
   }
 
   verifyOnChatbotPage(expectedNamespace?: string): void {
