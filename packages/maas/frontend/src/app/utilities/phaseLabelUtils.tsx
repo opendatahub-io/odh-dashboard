@@ -643,6 +643,7 @@ export const getSubtextProps = (phase: string): ContentProps | undefined => {
         style: sharedStyle,
       };
     case PhaseStatus.FAILED:
+    case PhaseStatus.INVALID:
       return {
         className: 'pf-v6-u-text-color-status-danger',
         style: sharedStyle,
