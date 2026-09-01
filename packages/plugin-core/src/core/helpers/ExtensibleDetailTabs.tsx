@@ -174,29 +174,34 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   unmountOnExit = false,
   tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
+  const eligibleExtensions = React.useMemo(
+    () =>
+      (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
+        .filter((ext) => (group ? ext.properties.group === group : true))
+        .filter((ext) => isValidExtensionId(ext.properties.id)),
+    [extensionTabs, filterExtension, group],
+  );
+
   const shouldShowResults = useShouldShowResults(
-    extensionTabs,
+    eligibleExtensions,
     componentProps ?? EMPTY_COMPONENT_PROPS,
   );
 
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
-        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
-          .filter((ext) => (group ? ext.properties.group === group : true))
-          .filter((ext) => isValidExtensionId(ext.properties.id))
-          .filter((ext) => {
-            if (!ext.properties.shouldShow) {
-              return true;
-            }
-            if (!(ext.uid in shouldShowResults)) {
-              return ext.properties.id === activeKey;
-            }
-            return shouldShowResults[ext.uid];
-          }),
+        eligibleExtensions.filter((ext) => {
+          if (!ext.properties.shouldShow) {
+            return true;
+          }
+          if (!(ext.uid in shouldShowResults)) {
+            return ext.properties.id === activeKey;
+          }
+          return shouldShowResults[ext.uid];
+        }),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension, group, shouldShowResults, activeKey],
+    [eligibleExtensions, shouldShowResults, activeKey],
   );
 
   const allTabs = React.useMemo(
