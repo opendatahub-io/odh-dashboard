@@ -220,8 +220,16 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   const isReselectionUnlocked = reselectionUnlockedRef.current;
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
-  const catalogLoadedWithImages = Boolean(externalData?.data.nimImagesLoaded && images.length > 0);
+  const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
+  const catalogLoadedWithImages = Boolean(
+    externalData?.data.nimImagesLoaded &&
+      images.length > 0 &&
+      accountStatus === NIMAccountStatus.READY,
+  );
   const isImageCatalogLoaded = externalData?.data.nimImagesLoaded ?? externalData?.loaded ?? false;
+  const canConfirmImageIsMissing = isImageCatalogLoaded && accountStatus === NIMAccountStatus.READY;
+  const shouldShowImagePreservedMessage =
+    isEditing && (Boolean(externalData?.loadError) || accountStatus !== NIMAccountStatus.READY);
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,
@@ -242,8 +250,6 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     },
     [options, onChange, isImageSelectionLocked],
   );
-
-  const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
 
   if (!externalData || !externalData.loaded) {
     return (
@@ -314,16 +320,22 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
           }
         }}
       />
-      {externalData.loadError && (
+      {shouldShowImagePreservedMessage && (
         <HelperText>
           <HelperTextItem variant="error">
-            {isEditing
-              ? 'NVIDIA NIM account information could not be loaded. The deployed image is preserved but cannot be changed.'
-              : 'There was a problem fetching the NIM models. Please try again later.'}
+            NVIDIA NIM account information could not be loaded. The deployed image is preserved but
+            cannot be changed.
           </HelperTextItem>
         </HelperText>
       )}
-      {existingOptionNotFound && isImageCatalogLoaded && !externalData.loadError && (
+      {!isEditing && externalData.loadError && (
+        <HelperText>
+          <HelperTextItem variant="error">
+            There was a problem fetching the NIM models. Please try again later.
+          </HelperTextItem>
+        </HelperText>
+      )}
+      {existingOptionNotFound && canConfirmImageIsMissing && !externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
             The existing NIM image was not found. The deployment may not work as expected.

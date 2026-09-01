@@ -200,9 +200,11 @@ describe('NIMImageFieldComponent', () => {
       value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
       externalData: {
         data: {
+          // The image hook resolves an empty list once the Account list has completed, even
+          // though no Account exists. This must not be treated as a catalog lookup.
           nimImages: { images: [], projectName: 'test-project' },
           accountStatus: NIMAccountStatus.NOT_FOUND,
-          nimImagesLoaded: false,
+          nimImagesLoaded: true,
         },
         loaded: true,
       },
@@ -212,6 +214,31 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByText('No NVIDIA NIM key', { exact: false })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
+  });
+
+  it('should preserve and lock the raw image while editing with a pending Account', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.PENDING,
+          nimImagesLoaded: true,
+        },
+        loaded: true,
+      },
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
+    expect(
+      screen.getByText(/NVIDIA NIM account information could not be loaded/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
   });
 
