@@ -2,6 +2,11 @@ name: Fast-forward stable to main
 
 on:
   workflow_dispatch:
+    inputs:
+      SYNC_STABLE:
+        description: 'Type SYNC_STABLE to confirm manual fast-forward of stable to main'
+        required: true
+        type: string
   push:
     branches:
       - main
@@ -10,12 +15,20 @@ concurrency:
   group: stable-ff-${{ github.workflow }}
   cancel-in-progress: false
 
+# Read-only default; the fast-forward job escalates to contents:write only for git push.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   fast-forward:
+    name: Fast-forward stable to main
+    if: >-
+      github.event_name == 'push' ||
+      (github.ref == 'refs/heads/main' &&
+       github.event.inputs.SYNC_STABLE == 'SYNC_STABLE')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Check stable branch exists
@@ -33,8 +46,11 @@ jobs:
         with:
           ref: stable
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Fast-forward stable to main
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git fetch origin main
 
@@ -54,5 +70,6 @@ jobs:
 
           git merge --ff-only origin/main
           echo "stable after:  $(git rev-parse HEAD)"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin stable
           echo "Fast-forwarded stable to main"
