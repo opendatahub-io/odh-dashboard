@@ -127,7 +127,7 @@ module.exports = (overrides = {}) =>
         // Force framework singletons to a single copy (see SHARED_RUNTIME_ALIASES above). Other
         // dependencies resolve from their owning package.
         alias: SHARED_RUNTIME_ALIASES,
-        modules: [PORTAL_NODE_MODULES, 'node_modules'],
+        modules: ['node_modules'],
       },
       plugins: [
         new ContextualTildeResolverPlugin(tildeMappings),
