@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
-import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import { MODAL_OVERFLOW_UNLOCK_COUNT_ATTR } from '#~/utilities/useModalOverflowUnlock';
 
 const defaultOptions: SelectionOptions[] = [

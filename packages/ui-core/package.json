@@ -100,7 +100,8 @@
     "./types/prometheus": "./src/types/prometheus.ts",
     "./utilities/clusterQueueUtils": "./src/utilities/clusterQueueUtils.ts",
     "./hooks/useAssignedFlavor": "./src/hooks/useAssignedFlavor.ts",
-    "./hooks/useClusterQueue": "./src/hooks/useClusterQueue.ts"
+    "./hooks/useClusterQueue": "./src/hooks/useClusterQueue.ts",
+    "./utilities/axios": "./src/utilities/axios.ts"
   },
   "scripts": {
     "lint": "eslint .",

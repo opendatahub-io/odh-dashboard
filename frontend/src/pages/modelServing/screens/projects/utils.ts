@@ -18,6 +18,7 @@ import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericOb
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { ConfigMapKind } from '#~/k8sTypes';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import {
@@ -32,7 +33,6 @@ import {
   addSupportServingPlatformProject,
   createInferenceService,
   createPvc,
-  createSecret,
   createServingRuntime,
   getInferenceServiceContext,
   updateInferenceService,

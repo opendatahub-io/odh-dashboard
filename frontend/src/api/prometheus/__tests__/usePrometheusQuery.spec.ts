@@ -1,10 +1,10 @@
 import { act } from 'react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import usePrometheusQuery from '#~/api/prometheus/usePrometheusQuery';
 
-jest.mock('#~/utilities/axios', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

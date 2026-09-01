@@ -6,16 +6,14 @@ import type {
   PersistentVolumeClaimKind,
   SecretKind,
 } from '@odh-dashboard/k8s-core';
+import { createSecret, deleteSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import {
   assembleConfigMap,
   assembleSecret,
   createConfigMap,
   createPvc,
-  createSecret,
   deleteConfigMap,
-  deleteSecret,
   replaceConfigMap,
-  replaceSecret,
   updatePvc,
 } from '#~/api';
 import {
