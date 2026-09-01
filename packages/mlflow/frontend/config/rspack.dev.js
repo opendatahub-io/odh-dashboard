@@ -77,6 +77,7 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
