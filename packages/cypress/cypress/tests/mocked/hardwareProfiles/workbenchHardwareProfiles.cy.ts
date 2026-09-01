@@ -22,16 +22,15 @@ import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
 import { workbenchPage, editSpawnerPage, createSpawnerPage } from '../../../pages/workbench';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+import { LocalQueueModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   ImageStreamModel,
-  LocalQueueModel,
   NotebookModel,
   PVCModel,
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   StorageClassModel,
 } from '../../../utils/models';
 

@@ -9,12 +9,11 @@ import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8s
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { initIntercepts } from './workbenchTestUtils';
 import { AccessMode } from '../../../../types';
+import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ConfigMapModel,
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  SecretModel,
   HardwareProfileModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';

@@ -31,6 +31,7 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
+import { SecretModel, ServiceAccountModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
@@ -41,8 +42,6 @@ import {
   ProjectModel,
   PVCModel,
   RouteModel,
-  SecretModel,
-  ServiceAccountModel,
   ServiceModel,
   ServingRuntimeModel,
   TemplateModel,

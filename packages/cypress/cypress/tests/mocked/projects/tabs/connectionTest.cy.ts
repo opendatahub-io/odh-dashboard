@@ -5,7 +5,8 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ConnectionTypeFieldType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { projectDetails } from '../../../../pages/projects';
-import { ProjectModel, SecretModel } from '../../../../utils/models';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { ProjectModel } from '../../../../utils/models';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
 
 const testConnectionType = mockConnectionTypeConfigMap({

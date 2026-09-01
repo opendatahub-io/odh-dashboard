@@ -6,7 +6,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { NIMAccountKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
-import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import {
   NIM_SECRET_NAME,

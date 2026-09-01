@@ -21,11 +21,11 @@ import {
 } from '../../../pages/pipelines';
 import { pipelinesSection } from '../../../pages/pipelines/pipelinesSection';
 import { projectDetails } from '../../../pages/projects';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
 } from '../../../utils/models';
 import { verifyRelativeURL } from '../../../utils/url';
 

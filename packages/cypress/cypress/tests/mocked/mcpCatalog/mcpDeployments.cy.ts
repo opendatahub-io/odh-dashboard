@@ -20,11 +20,11 @@ import {
   mockMcpDeployment,
   mockMcpServerCR,
 } from '../../../utils/mcpDeploymentUtils';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   ProjectModel,
   ServingRuntimeModel,
   InferenceServiceModel,
-  SecretModel,
   TemplateModel,
 } from '../../../utils/models';
 

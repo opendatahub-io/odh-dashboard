@@ -12,7 +12,8 @@ import {
   managePipelineServerModal,
 } from '../../../pages/pipelines';
 import { deleteModal } from '../../../pages/components/DeleteModal';
-import { DataSciencePipelineApplicationModel, SecretModel } from '../../../utils/models';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { DataSciencePipelineApplicationModel } from '../../../utils/models';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 describe('Pipeline Server', () => {

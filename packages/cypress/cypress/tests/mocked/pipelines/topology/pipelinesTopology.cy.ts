@@ -27,12 +27,12 @@ import {
   pipelineVersionImportModal,
 } from '../../../../pages/pipelines';
 import { verifyRelativeURL } from '../../../../utils/url';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { toastNotifications } from '../../../../pages/components/ToastNotifications';

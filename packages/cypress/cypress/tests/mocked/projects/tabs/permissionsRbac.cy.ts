@@ -15,7 +15,8 @@ import { DeleteModal } from '../../../../pages/components/DeleteModal';
 import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
 import { be } from '../../../../utils/should';
 import { getK8sAPIResourceURL } from '../../../../utils/k8s';
-import { ClusterRoleModel, RoleBindingModel } from '../../../../utils/models';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
+import { ClusterRoleModel } from '../../../../utils/models';
 import { asProjectAdminUser } from '../../../../utils/mockUsers';
 
 describe('Permissions tab (projectRBAC) - General', () => {

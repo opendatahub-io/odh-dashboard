@@ -14,11 +14,11 @@ import { ArtifactType } from '@odh-dashboard/internal/concepts/pipelines/kfTypes
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { initMlmdIntercepts } from './mlmdUtils';
 import { pipelineDetails } from '../../../pages/pipelines';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
 } from '../../../utils/models';
 
 const projectId = 'test-project';

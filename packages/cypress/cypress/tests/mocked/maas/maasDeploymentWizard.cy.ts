@@ -19,12 +19,12 @@ import {
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
 import { initMockGatewayIntercepts } from '../../../utils/modelServingUtils';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
   LLMInferenceServiceModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '../../../utils/models';

@@ -10,7 +10,7 @@ import {
   NAMESPACE,
 } from './permissionsRbacTestUtils';
 import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
-import { RoleBindingModel } from '../../../../utils/models';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import { asProjectAdminUser } from '../../../../utils/mockUsers';
 
 describe('Assign Roles Page - Discard Changes Modal', () => {

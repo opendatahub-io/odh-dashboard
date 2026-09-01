@@ -11,14 +11,12 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { initIntercepts } from './workbenchTestUtils';
+import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  ClusterQueueModel,
   EventModel,
-  LocalQueueModel,
   PodModel,
   ProjectModel,
   SelfSubjectAccessReviewModel,
-  WorkloadModel,
 } from '../../../../utils/models';
 import { workbenchPage, workbenchStatusModal } from '../../../../pages/workbench';
 
