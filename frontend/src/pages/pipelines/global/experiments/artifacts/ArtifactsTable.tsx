@@ -10,6 +10,8 @@ import { useMlmdListContext } from '#~/concepts/pipelines/context';
 import useFilters from '#~/utilities/useFilters';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import ArtifactsTableRow from './ArtifactsTableRow';
+import { ArtifactRunsProvider } from './ArtifactRunsContext';
+import { useArtifactRuns } from './useArtifactRuns';
 
 interface ArtifactsTableProps {
   artifacts: Artifact[] | null | undefined;
@@ -31,6 +33,9 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   const [page, setPage] = React.useState(1);
   const { filterData, onFilterUpdate, onClearFilters } = useFilters(initialFilterData);
   const [pageTokens, setPageTokens] = React.useState<Record<number, string>>({});
+
+  // Fetch all unique pipeline runs for the artifacts (deduplicated)
+  const { runs, errors, loading } = useArtifactRuns(artifacts);
 
   const onNextPageClick = React.useCallback(
     (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {
@@ -133,30 +138,32 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
   );
 
   return (
-    <TableBase
-      loading={!isLoaded}
-      data={artifacts ?? []}
-      columns={columns}
-      enablePagination="compact"
-      page={page}
-      perPage={maxResultSize}
-      disableItemCount
-      onNextClick={onNextPageClick}
-      onPreviousClick={onPrevPageClick}
-      onSetPage={(_, newPage) => {
-        if (newPage < page || !isLoaded) {
-          setPage(newPage);
-        }
-      }}
-      onPerPageSelect={(_, newSize) => setMaxResultSize(newSize)}
-      toggleTemplate={() => <>{maxResultSize} per page </>}
-      onClearFilters={onClearFilters}
-      toolbarContent={toolbarContent}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
-      rowRenderer={(artifact) => <ArtifactsTableRow artifact={artifact} />}
-      variant={TableVariant.compact}
-      data-testid="artifacts-list-table"
-      id="artifacts-list-table"
-    />
+    <ArtifactRunsProvider runs={runs} errors={errors} loading={loading}>
+      <TableBase
+        loading={!isLoaded}
+        data={artifacts ?? []}
+        columns={columns}
+        enablePagination="compact"
+        page={page}
+        perPage={maxResultSize}
+        disableItemCount
+        onNextClick={onNextPageClick}
+        onPreviousClick={onPrevPageClick}
+        onSetPage={(_, newPage) => {
+          if (newPage < page || !isLoaded) {
+            setPage(newPage);
+          }
+        }}
+        onPerPageSelect={(_, newSize) => setMaxResultSize(newSize)}
+        toggleTemplate={() => <>{maxResultSize} per page </>}
+        onClearFilters={onClearFilters}
+        toolbarContent={toolbarContent}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+        rowRenderer={(artifact) => <ArtifactsTableRow artifact={artifact} />}
+        variant={TableVariant.compact}
+        data-testid="artifacts-list-table"
+        id="artifacts-list-table"
+      />
+    </ArtifactRunsProvider>
   );
 };

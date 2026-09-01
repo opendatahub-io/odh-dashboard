@@ -1,7 +1,28 @@
 /* eslint-disable camelcase */
 import { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { handlePipelineFailures } from '#~/api/pipelines/errorUtils';
+import { handlePipelineFailures, PipelineAPIError } from '#~/api/pipelines/errorUtils';
 import { mockPipelineKF } from '#~/__mocks__/mockPipelineKF';
+
+describe('PipelineAPIError', () => {
+  it('should keep finite integer status values', () => {
+    expect(new PipelineAPIError('not found', 404).response.status).toBe(404);
+    expect(new PipelineAPIError('not found', '404').response.status).toBe(404);
+    expect(new PipelineAPIError('not found', ' 403 ').response.status).toBe(403);
+    expect(new PipelineAPIError('not found', '404.5').response.status).toBe(404);
+  });
+
+  it('should fall back to 500 for invalid status values', () => {
+    expect(new PipelineAPIError('error', Number.NaN).response.status).toBe(500);
+    expect(new PipelineAPIError('error', Number.POSITIVE_INFINITY).response.status).toBe(500);
+    expect(new PipelineAPIError('error', Number.NEGATIVE_INFINITY).response.status).toBe(500);
+    expect(new PipelineAPIError('error', 404.5).response.status).toBe(500);
+    expect(new PipelineAPIError('error', '').response.status).toBe(500);
+    expect(new PipelineAPIError('error', '   ').response.status).toBe(500);
+    expect(new PipelineAPIError('error', 'not-a-status').response.status).toBe(500);
+    // Runtime callers may pass null despite the constructor type
+    expect(new PipelineAPIError('error', null as unknown as number).response.status).toBe(500);
+  });
+});
 
 describe('handlePipelineFailures', () => {
   it('should successfully return pipeline', async () => {
@@ -13,7 +34,10 @@ describe('handlePipelineFailures', () => {
   it('should handle and throw KF errors', async () => {
     const statusMock = { error: 'error', code: '404', message: 'not-found' };
 
-    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toThrow('error');
+    await expect(handlePipelineFailures(Promise.resolve(statusMock))).rejects.toMatchObject({
+      message: 'error',
+      response: { status: 404 },
+    });
   });
 
   it('should handle error details', async () => {

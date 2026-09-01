@@ -38,6 +38,12 @@ export const columns: SortableData<MlmdArtifact>[] = [
     width: 15,
   },
   {
+    label: 'Pipeline run',
+    field: 'pipelineRun',
+    sortable: false,
+    width: 15,
+  },
+  {
     label: 'URI',
     field: 'uri',
     sortable: false,
@@ -46,7 +52,7 @@ export const columns: SortableData<MlmdArtifact>[] = [
     label: 'Created',
     field: 'createTimeSinceEpoch',
     sortable: false,
-    width: 15,
+    width: 10,
   },
 ];
 

@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import { PipelineAPIError } from './pipelines/errorUtils';
 
 const isAxiosErrorWithResponseMessage = (
   error?: Error | AxiosError,
@@ -22,6 +23,9 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
   }
   if (error instanceof AxiosError) {
     return error.response?.status;
+  }
+  if (error instanceof PipelineAPIError) {
+    return error.response.status;
   }
   return undefined;
 };
