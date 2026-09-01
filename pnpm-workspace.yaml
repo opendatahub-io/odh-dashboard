@@ -19,7 +19,7 @@ packages:
   - distributions/core-bff
   - distributions/core-bff/frontend
   - distributions/rhaii
-  - distributions/maas-customer-portal
+  - distributions/maas-consumer-portal
 
 # Transitional: flat node_modules like npm for webpack/MF. Remove in Epic 2 (RHOAIENG-83228).
 shamefullyHoist: true
