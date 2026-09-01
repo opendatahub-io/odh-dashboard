@@ -39,7 +39,17 @@ export type SchemaField = {
   nullable?: boolean;
 };
 
-export type ConnectionRef = { type: 'dch'; id: string } | { type: 'rhai'; secret_name: string };
+export type DchConnectionRef = {
+  type: 'dch';
+  id: string;
+};
+
+export type RhaiConnectionRef = {
+  type: 'rhai';
+  secret_name: string;
+};
+
+export type ConnectionRef = DchConnectionRef | RhaiConnectionRef;
 
 export type AssetResponse = {
   name: string;

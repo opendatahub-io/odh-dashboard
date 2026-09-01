@@ -11,18 +11,17 @@ import {
   ExternalModelsInfoPopoverTarget,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { externalModelsColumns } from './columns';
 import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
 import {
   getExternalModelResource,
-  getExternalModelStatusMessage,
   isAwaitingGovernancePairing,
   isMissingMaaSModelRef,
 } from './utils';
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
-import ExternalModelsStatusLabel from './ExternalModelsStatusLabel';
 
 const VISIBLE_LABEL_ROWS = 2;
 const enum ToggleLocation {
@@ -194,15 +193,26 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     </Td>
   );
 
+  const secondaryStatus = isMissingMaaSModelRef(externalModel) ? (
+    <MissingMaaSModelRefWarning />
+  ) : isAwaitingGovernancePairing(externalModel) ? (
+    <GovernancePairingWarning />
+  ) : undefined;
+
   const phaseCell = (
     <Td dataLabel={externalModelsColumns[3].label}>
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
-          <ExternalModelsStatusLabel
-            forcePopover
+          <PhaseLabel
             phase={externalModel.phase}
-            statusMessage={getExternalModelStatusMessage(externalModel)}
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
+            resourceName={externalModel.displayName ?? externalModel.name}
+            statusMessage={externalModel.statusMessage}
+            secondaryStatus={secondaryStatus}
+            status={externalModel.status}
+            conditionType={externalModel.conditionType}
+            lastTransitionTime={externalModel.lastTransitionTime}
+            reason={externalModel.reason}
             onClick={() => {
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                 infoTarget: ExternalModelsInfoPopoverTarget.STATUS_LABEL,
@@ -211,17 +221,6 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             }}
           />
         </FlexItem>
-        {isMissingMaaSModelRef(externalModel) ? (
-          <FlexItem>
-            <MissingMaaSModelRefWarning />
-          </FlexItem>
-        ) : (
-          isAwaitingGovernancePairing(externalModel) && (
-            <FlexItem>
-              <GovernancePairingWarning />
-            </FlexItem>
-          )
-        )}
       </Flex>
     </Td>
   );

@@ -11,6 +11,9 @@ export type ExternalProviderDetails = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  conditionType?: string;
+  lastTransitionTime?: string;
 };
 
 export type ProviderRef = {
@@ -43,5 +46,8 @@ export type ExternalModel = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  conditionType?: string;
+  lastTransitionTime?: string;
   maaSModelRef?: ExternalModelMaaSModelRefStatus;
 };

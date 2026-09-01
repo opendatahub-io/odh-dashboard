@@ -101,6 +101,22 @@ type ObservabilitySpec struct {
 
 // +kubebuilder:object:generate=true
 
+// MaasConsumerPortalSpec configures the MaaS Consumer Portal.
+type MaasConsumerPortalSpec struct {
+	// ManagementState controls whether the portal is deployed.
+	// "Managed" deploys the portal (requires Gateway.Domain to be set,
+	// since the portal host is derived from it); "Removed" tears it down.
+	// This mirrors the shape the ODH Operator projects from
+	// dashboard.maasConsumerPortal.managementState.
+	//
+	// +kubebuilder:validation:Enum=Managed;Removed
+	// +kubebuilder:default=Removed
+	// +optional
+	ManagementState string `json:"managementState,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+
 // ServiceTarget identifies a Kubernetes service for proxy configuration.
 type ServiceTarget struct {
 	// +kubebuilder:validation:Required
@@ -160,6 +176,10 @@ type DashboardSpec struct {
 	// Observability configures the observability stack integration.
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
+
+	// MaasConsumerPortal configures the MaaS Consumer Portal.
+	// +optional
+	MaasConsumerPortal *MaasConsumerPortalSpec `json:"maasConsumerPortal,omitempty"`
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
