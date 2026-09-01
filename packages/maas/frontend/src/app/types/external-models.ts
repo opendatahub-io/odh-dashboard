@@ -51,3 +51,69 @@ export type ExternalModel = {
   lastTransitionTime?: string;
   maaSModelRef?: ExternalModelMaaSModelRefStatus;
 };
+
+export type CreateExternalModelRequest = {
+  name: string;
+  namespace: string;
+  displayName?: string;
+  description?: string;
+  modelName?: string;
+  providerRefs: ProviderRef[];
+};
+
+export type UpdateExternalModelRequest = {
+  displayName?: string;
+  description?: string;
+  modelName?: string;
+  providerRefs?: ProviderRef[];
+};
+
+export type ExternalProvider = {
+  name: string;
+  namespace: string;
+  displayName?: string;
+  description?: string;
+  endpointUrl: string;
+  authMechanism: AuthMechanism;
+  credentialSecretRef: string;
+  provider: string;
+  config?: Record<string, string>;
+  phase?: string;
+  statusMessage?: string;
+  reason?: string;
+};
+
+export type CreateExternalProviderRequest = {
+  name: string;
+  namespace: string;
+  displayName?: string;
+  description?: string;
+  endpointUrl: string;
+  authMechanism: AuthMechanism;
+  credentialSecretRef: string;
+  provider: string;
+  config?: Record<string, string>;
+};
+
+export type UpdateExternalProviderRequest = {
+  displayName?: string;
+  description?: string;
+  endpointUrl?: string;
+  authMechanism?: AuthMechanism;
+  credentialSecretRef?: string;
+  config?: Record<string, string>;
+};
+
+export type SecretSummary = {
+  name: string;
+};
+
+export type CreateSecretRequest = {
+  namespace: string;
+  name: string;
+  value: string;
+};
+
+export type CreateSecretResponse = {
+  name: string;
+};

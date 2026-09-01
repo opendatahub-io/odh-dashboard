@@ -22,7 +22,7 @@ import { useLabels } from '~/app/hooks/useLabels';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
-import RegisterVolumeModal from '~/app/components/RegisterVolumeModal';
+import RegisterDataModal from '~/app/components/RegisterDataModal';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
 const HIDDEN_NS_PREFIXES = ['openshift-', 'kube-'];
@@ -190,7 +190,7 @@ const DataRegistryPage: React.FC = () => {
             assets={assets}
             onRefresh={handleRefresh}
           />
-          <RegisterVolumeModal
+          <RegisterDataModal
             isOpen={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
             project={selectedProject}

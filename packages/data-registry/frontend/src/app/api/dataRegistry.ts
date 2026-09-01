@@ -7,6 +7,7 @@ import {
   NamespaceResponse,
   CreateNamespaceRequest,
   CreateVolumeRequest,
+  CreateGenericTableRequest,
   LabelListResponse,
   CreateLabelRequest,
   LabelResponse,
@@ -134,6 +135,21 @@ export const deleteVolume = (project: string, collection: string, name: string):
     ),
     'DELETE',
   ).then(() => undefined);
+
+// Generic tables (structured assets)
+
+export const createGenericTable = async (
+  project: string,
+  collection: string,
+  data: CreateGenericTableRequest,
+): Promise<AssetResponse> => {
+  const response = await fetchRequest(
+    registryUrl(`/${project}/namespaces/${collection}/generic-tables`),
+    'POST',
+    data,
+  );
+  return response.json();
+};
 
 // Labels
 

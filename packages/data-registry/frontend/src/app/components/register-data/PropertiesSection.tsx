@@ -14,7 +14,7 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
-import { RegisterVolumeFormData } from '~/app/schemas/registerVolume.schema';
+import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 
 const LICENSE_OPTIONS = [
   { key: 'internal-use', label: 'Internal use' },
@@ -55,7 +55,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   options,
   placeholder,
 }) => {
-  const { control } = useFormContext<RegisterVolumeFormData>();
+  const { control } = useFormContext<RegisterDataFormData>();
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -102,7 +102,7 @@ const PropertiesSection: React.FC = () => {
   const {
     control,
     formState: { errors },
-  } = useFormContext<RegisterVolumeFormData>();
+  } = useFormContext<RegisterDataFormData>();
 
   return (
     <FormSection title="Properties" titleElement="h2">
@@ -114,13 +114,13 @@ const PropertiesSection: React.FC = () => {
         name="purpose"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Purpose" fieldId="volume-purpose">
+          <FormGroup label="Purpose" fieldId="data-purpose">
             <TextInput
-              id="volume-purpose"
+              id="data-purpose"
               {...field}
               placeholder="e.g. ML training, fraud detection"
               validated={errors.purpose ? 'error' : 'default'}
-              data-testid="volume-purpose-input"
+              data-testid="data-purpose-input"
             />
             {errors.purpose ? (
               <FormHelperText>
@@ -136,8 +136,8 @@ const PropertiesSection: React.FC = () => {
       <SelectField
         name="license"
         label="License"
-        fieldId="volume-license"
-        testId="volume-license-toggle"
+        fieldId="data-license"
+        testId="data-license-toggle"
         options={LICENSE_OPTIONS}
         placeholder="Select license"
       />
@@ -145,8 +145,8 @@ const PropertiesSection: React.FC = () => {
       <SelectField
         name="maturity"
         label="Maturity"
-        fieldId="volume-maturity"
-        testId="volume-maturity-toggle"
+        fieldId="data-maturity"
+        testId="data-maturity-toggle"
         options={MATURITY_OPTIONS}
         placeholder="Select maturity"
       />
@@ -154,8 +154,8 @@ const PropertiesSection: React.FC = () => {
       <SelectField
         name="piiStatus"
         label="PII status"
-        fieldId="volume-pii"
-        testId="volume-pii-toggle"
+        fieldId="data-pii"
+        testId="data-pii-toggle"
         options={PII_OPTIONS}
         placeholder="Select PII status"
       />
