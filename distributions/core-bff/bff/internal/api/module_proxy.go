@@ -216,8 +216,8 @@ func validateServiceRefs(entries []normalizedProxyEntry) error {
 		if !rfc1123Label.MatchString(e.service.Service.Namespace) {
 			return fmt.Errorf("entry %s has invalid service namespace %q (must be a valid RFC 1123 label)", e.entryName, e.service.Service.Namespace)
 		}
-		if e.service.Service.Port == 0 {
-			return fmt.Errorf("entry %s has zero service port", e.entryName)
+		if e.service.Service.Port <= 0 || e.service.Service.Port > 65535 {
+			return fmt.Errorf("entry %s has invalid service port %d (must be 1-65535)", e.entryName, e.service.Service.Port)
 		}
 
 		if e.service.Authorize {
