@@ -100,7 +100,8 @@
     "@rspack/plugin-react-refresh": "^2.0.2",
     "@typescript-eslint/parser": "^8.67.0",
     "jest": "^29.7.0",
-    "rspack-merge": "^1.0.1"
+    "rspack-merge": "^1.0.1",
+    "js-yaml": "^4.1.0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
