@@ -1,6 +1,12 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
-import { useSettings, logout } from 'mod-arch-core';
+import { useSettings } from 'mod-arch-core';
+
+export const PORTAL_SIGN_OUT_PATH = '/oauth2/sign_out';
+
+export const portalLogout = (): void => {
+  window.location.href = PORTAL_SIGN_OUT_PATH;
+};
 
 const UserDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -25,7 +31,7 @@ const UserDropdown: React.FC = () => {
       )}
     >
       <DropdownList>
-        <DropdownItem key="logout" onClick={() => logout().finally(() => window.location.reload())}>
+        <DropdownItem key="logout" onClick={portalLogout}>
           Log out
         </DropdownItem>
       </DropdownList>
