@@ -65,7 +65,6 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
 
   const [isPresetOpen, setIsPresetOpen] = React.useState(false);
 
-  // Derive the matching preset from current column visibility
   const selectedPreset = React.useMemo(() => {
     if (!presets || presets.length === 0) {
       return undefined;
@@ -235,16 +234,6 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
                       value={preset.label}
                       data-testid={`organize-by-option-${preset.label}`}
                     >
-                      {/*
-                        The radio and its label are intentionally not wired together via
-                        PatternFly's `label` prop (which renders a native `<label htmlFor>`).
-                        Browsers forward a click on such a label to its associated input,
-                        producing a second click event that bubbles up to this SelectOption
-                        and would double-fire `onSelect`/`handlePresetSelect`. Rendering the
-                        radio (with an accessible name via `aria-label`) and the visible text
-                        as separate, unassociated elements keeps this as a single click target
-                        so `Select`'s `onSelect` remains the sole source of truth.
-                      */}
                       <Flex
                         spaceItems={{ default: 'spaceItemsSm' }}
                         alignItems={{ default: 'alignItemsCenter' }}

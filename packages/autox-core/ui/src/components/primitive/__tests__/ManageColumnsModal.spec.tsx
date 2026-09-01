@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import ManageColumnsModal from '~/app/components/run-results/ManageColumnsModal';
+import ManageColumnsModal, { type ColumnPreset } from '../ManageColumnsModal';
 
 let capturedOnDrop: ((event: unknown, newItems: { id: string }[]) => void) | undefined;
 
@@ -33,6 +34,11 @@ const columns: ColumnManagementModalColumn[] = [
   { key: 'col-c', title: 'Column C', isShownByDefault: true, isShown: true },
 ];
 
+const presets: ColumnPreset[] = [
+  { label: 'Preset A', visibleColumnKeys: ['col-a'] },
+  { label: 'Preset B', visibleColumnKeys: ['col-a', 'col-b'] },
+];
+
 describe('ManageColumnsModal', () => {
   beforeEach(() => {
     capturedOnDrop = undefined;
@@ -53,15 +59,12 @@ describe('ManageColumnsModal', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-
-    // Simulate a drag-drop reorder: swap col-a and col-c
     expect(capturedOnDrop).toBeDefined();
     act(() => {
       capturedOnDrop!(null, [{ id: 'col-c' }, { id: 'col-b' }, { id: 'col-a' }]);
     });
 
     expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
-
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(applyColumns).toHaveBeenCalledTimes(1);
@@ -85,12 +88,33 @@ describe('ManageColumnsModal', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-
-    // "Drop" in the same order
     act(() => {
       capturedOnDrop!(null, [{ id: 'col-a' }, { id: 'col-b' }, { id: 'col-c' }]);
     });
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('should call onPresetSelect exactly once when a preset option is clicked', async () => {
+    const user = userEvent.setup();
+    const onPresetSelect = jest.fn();
+
+    render(
+      <ManageColumnsModal
+        isOpen
+        onClose={jest.fn()}
+        appliedColumns={columns}
+        defaultColumns={columns}
+        applyColumns={jest.fn()}
+        presets={presets}
+        onPresetSelect={onPresetSelect}
+      />,
+    );
+
+    await user.click(screen.getByTestId('organize-by-toggle'));
+    await user.click(screen.getByText('Preset B'));
+
+    expect(onPresetSelect).toHaveBeenCalledTimes(1);
+    expect(onPresetSelect).toHaveBeenCalledWith('Preset B');
   });
 });

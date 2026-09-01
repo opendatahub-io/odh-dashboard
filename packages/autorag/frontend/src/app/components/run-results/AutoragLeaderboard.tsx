@@ -33,6 +33,10 @@ import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
 import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ManageColumnsModal,
+  type ColumnPreset,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
@@ -55,7 +59,6 @@ import {
   type ResultsColumnName,
   type LeaderboardPresetType,
 } from '~/app/utilities/tracking';
-import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
 const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;

@@ -14,5 +14,7 @@ export { default as ConfigureFormGroup } from './ConfigureFormGroup';
 export { default as ConfirmationModal } from './ConfirmationModal';
 export { default as ContextBreadcrumb } from './ContextBreadcrumb';
 export { default as ModuleHeader } from './ModuleHeader';
+export { default as ManageColumnsModal } from './ManageColumnsModal';
+export type { ColumnPreset } from './ManageColumnsModal';
 export { default as SpinnerEmptyState } from './SpinnerEmptyState';
 export * from './UIError';

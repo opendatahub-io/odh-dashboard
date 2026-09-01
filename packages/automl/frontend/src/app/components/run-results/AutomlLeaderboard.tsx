@@ -33,6 +33,7 @@ import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
 import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ManageColumnsModal } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -45,7 +46,6 @@ import {
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utilities/tracking';
-import ManageColumnsModal from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
 
 const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
