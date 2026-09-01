@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
+// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with rspack.
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 
 function resolvePositivePollInterval(value: unknown): number | undefined {

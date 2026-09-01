@@ -59,7 +59,7 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Validates: Environment variable handling, branding differences
 
 - ✅ **Multi-stage build testing**
-  - Builder stage: Compiles TypeScript, builds webpack bundles
+  - Builder stage: Compiles TypeScript, builds rspack bundles
   - Runtime stage: Serves production artifacts
   - Catches: Missing COPY commands, permission issues
 
@@ -97,7 +97,7 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Minimum size: 100 bytes
   - Catches: Build failures that produce empty manifests
 
-- ✅ **Missing webpack chunk detection**
+- ✅ **Missing rspack chunk detection**
   - Parses: `remoteEntry.js` for chunk references
   - Validates: All referenced chunks exist as `*.bundle.js` files
   - Prevents: Runtime ChunkLoadError (RHOAIENG-59862)
@@ -325,7 +325,7 @@ RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 ```
 
 **Fix:**
-1. Check webpack config for output settings
+1. Check rspack config for output settings
 2. Verify `publicPath` is correct
 3. Ensure all chunks are generated:
    ```bash

@@ -47,7 +47,7 @@ $ARGUMENTS (optional):
      - `backend/src/**` → `backend/docs/overview.md`.
      - `packages/<name>/**` → `packages/<name>/docs/overview.md`.
    - Also check non-indexed docs if the change affects env vars, deployment config,
-     OpenAPI specs, webpack/MF config, or auth middleware — search nearby READMEs and
+     OpenAPI specs, rspack/MF config, or auth middleware — search nearby READMEs and
      `docs/` directories for references to the changed files.
 
 3. **For each affected doc**:
