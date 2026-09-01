@@ -262,7 +262,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         name="collection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Collection" fieldId="data-collection">
+          <FormGroup label="Collection" isRequired fieldId="data-collection">
             <Content component="p">
               Assign this asset to collections to help group your data. To manage collections for
               the entire project, go to{' '}

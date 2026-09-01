@@ -13,6 +13,9 @@ import {
   Checkbox,
   Flex,
   FlexItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext, Controller } from 'react-hook-form';
@@ -32,7 +35,11 @@ const COLUMN_TYPE_OPTIONS = [
 ];
 
 const SchemaSection: React.FC = () => {
-  const { control, register } = useFormContext<RegisterDataFormData>();
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext<RegisterDataFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'schemaFields' });
   const [openTypeIndex, setOpenTypeIndex] = React.useState<number | null>(null);
   const nextIdRef = React.useRef(0);
@@ -74,9 +81,19 @@ const SchemaSection: React.FC = () => {
                   {...register(`schemaFields.${index}.name`)}
                   placeholder="e.g. claim_id"
                   isRequired
+                  validated={errors.schemaFields?.[index]?.name ? 'error' : 'default'}
                   aria-label={`Column ${index + 1} name`}
                   data-testid={`schema-column-name-${index}`}
                 />
+                {errors.schemaFields?.[index]?.name ? (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        {errors.schemaFields[index].name.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                ) : null}
               </FlexItem>
               <FlexItem style={{ flex: 1 }}>
                 <Controller

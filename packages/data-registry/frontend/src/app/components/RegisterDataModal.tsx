@@ -99,16 +99,17 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
   if (data.piiStatus) {
     request.pii = data.piiStatus;
   }
-  if (data.schemaFields.length > 0) {
+  const filteredFields = data.schemaFields
+    .filter((col) => col.name && col.type)
+    .map((col) => ({
+      name: col.name,
+      type: col.type,
+      ...(col.description ? { description: col.description } : {}),
+      nullable: col.nullable,
+    }));
+  if (filteredFields.length > 0) {
     // eslint-disable-next-line camelcase
-    request.schema_fields = data.schemaFields
-      .filter((col) => col.name && col.type)
-      .map((col) => ({
-        name: col.name,
-        type: col.type,
-        ...(col.description ? { description: col.description } : {}),
-        nullable: col.nullable,
-      }));
+    request.schema_fields = filteredFields;
   }
   const properties: Record<string, string> = {};
   data.customProperties.forEach((prop) => {

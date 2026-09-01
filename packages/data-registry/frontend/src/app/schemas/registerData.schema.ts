@@ -42,6 +42,7 @@ export const registerDataSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.assetType === 'structured') {
+      const seenNames = new Set<string>();
       data.schemaFields.forEach((field, index) => {
         const result = schemaFieldWithValidation.safeParse(field);
         if (!result.success) {
@@ -51,6 +52,15 @@ export const registerDataSchema = z
               path: ['schemaFields', index, ...issue.path],
             });
           });
+        } else {
+          if (seenNames.has(field.name)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Column name must be unique',
+              path: ['schemaFields', index, 'name'],
+            });
+          }
+          seenNames.add(field.name);
         }
       });
     }
