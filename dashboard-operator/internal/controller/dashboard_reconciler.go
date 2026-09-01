@@ -35,6 +35,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -64,6 +65,18 @@ var deploymentGVK = schema.GroupVersionKind{
 	Group:   "apps",
 	Version: "v1",
 	Kind:    "Deployment",
+}
+
+var consoleLinkGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLink",
+}
+
+var consoleLinkListGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLinkList",
 }
 
 // Version is set at build time via -ldflags.
@@ -125,6 +138,31 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Ready is the rollup condition — auto-derived by the Manager from
+	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
+	// MaasConsumerPortalAvailable. It is never set explicitly. The manager is built
+	// here, before the managementState branch, because the maas consumer portal is
+	// reconciled unconditionally below regardless of the core dashboard's state.
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
+		conditionMaasConsumerPortalAvailable,
+	)
+
+	// The maas consumer portal is an independent operand: it is reconciled once per
+	// loop, decoupled from the core dashboard's managementState, so it runs with
+	// or without the core dashboard. Its resources carry a distinct part-of
+	// label (see maasConsumerPortalPartOf) so core-dashboard teardown never touches
+	// them. This reconcile sets the MaasConsumerPortalAvailable condition — deploying
+	// the ConsoleLink when enabled, removing it when disabled. Running before the
+	// teardown below also ensures any portal resource carrying a stale
+	// part-of=dashboard label (from an older operator) is relabeled before the
+	// core teardown selector runs.
+	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
@@ -138,13 +176,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.ModuleStatuses = nil
 		dashboard.Status.Distribution = nil
 
-		cm := conditions.NewManager(
-			dashboard,
-			string(common.ConditionTypeReady),
-			string(common.ConditionTypeProvisioningSucceeded),
-			string(common.ConditionTypeDegraded),
-			conditionObservabilityAvailable,
-		)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed via managementState"))
@@ -184,17 +215,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if pvErr != nil {
 		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
 	}
-
-	// Ready is the rollup condition — auto-derived by the Manager from
-	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
-	// It is never set explicitly.
-	cm := conditions.NewManager(
-		dashboard,
-		string(common.ConditionTypeReady),
-		string(common.ConditionTypeProvisioningSucceeded),
-		string(common.ConditionTypeDegraded),
-		conditionObservabilityAvailable,
-	)
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
@@ -495,6 +515,57 @@ func (r *DashboardReconciler) reconcileObservability(
 	}
 }
 
+// reconcileMaasConsumerPortalConsoleLink deploys or removes the MaaS Consumer
+// Portal ConsoleLink based on spec.maasConsumerPortal, and reports the outcome via
+// the MaasConsumerPortalAvailable condition. All False states use Info severity so the
+// portal never affects the Ready rollup.
+func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+) {
+	logger := log.FromContext(ctx)
+
+	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case maasConsumerPortalErr == nil:
+		cm.MarkTrue(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("MaaS Consumer Portal ConsoleLink applied successfully"))
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDisabled):
+		// Explicitly remove the ConsoleLink when the portal is disabled — the
+		// SSA deployer is additive and does not prune. Benign cases (absent
+		// object, ConsoleLink CRD not installed) are already treated as success
+		// inside deleteMaasConsumerPortalConsoleLink, so a non-nil error here is a
+		// genuine failure: surface it on the condition (Info severity, like the
+		// deploy-failed branch) rather than falsely reporting a clean Disabled
+		// state while a stale ConsoleLink lingers.
+		if delErr := deleteMaasConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
+			logger.Error(delErr, "Failed to delete maas consumer portal ConsoleLink")
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
+				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		} else {
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("Disabled"),
+				conditions.WithMessage("MaaS Consumer Portal is not enabled"),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		}
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDomainRequired):
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Info("MaaS Consumer Portal enabled but gateway domain not set, skipping ConsoleLink")
+	default:
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDeployFailed"),
+			conditions.WithError(maasConsumerPortalErr),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
+	}
+}
+
 func (r *DashboardReconciler) reconcileURL(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -782,6 +853,30 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
 		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
+		}
+	}
+
+	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
+	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
+	// part-of=dashboard and is matched here. The maas consumer portal ConsoleLink is
+	// an independent operand labeled part-of=maas-consumer-portal, so it is not
+	// selected by this teardown — it is managed solely by
+	// reconcileMaasConsumerPortalConsoleLink, independent of the core dashboard's
+	// managementState. Guard against clusters where the ConsoleLink CRD is not
+	// installed (non-OpenShift).
+	consoleLinks := &unstructured.UnstructuredList{}
+	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
+	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
+		if !meta.IsNoMatchError(err) {
+			return fmt.Errorf("listing ConsoleLinks: %w", err)
+		}
+	} else {
+		for i := range consoleLinks.Items {
+			cl := &consoleLinks.Items[i]
+			logger.Info("Deleting managed resource", "kind", "ConsoleLink", "name", cl.GetName())
+			if err := r.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("deleting ConsoleLink %s: %w", cl.GetName(), err)
+			}
 		}
 	}
 

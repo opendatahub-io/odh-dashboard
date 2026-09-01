@@ -21,6 +21,7 @@ import { useAssets } from '~/app/hooks/useAssets';
 import { useLabels } from '~/app/hooks/useLabels';
 import RegistryTable from '~/app/components/RegistryTable';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
+import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import RegisterVolumeModal from '~/app/components/RegisterVolumeModal';
 
 // TODO: Replace with isAvailableProject from @odh-dashboard/k8s-core when BFF returns filtered projects
@@ -32,6 +33,7 @@ const DataRegistryPage: React.FC = () => {
   const requestedProject = searchParams.get('project') || '';
   const [isProjectOpen, setIsProjectOpen] = React.useState(false);
   const [isCollectionsModalOpen, setIsCollectionsModalOpen] = React.useState(false);
+  const [isLabelsModalOpen, setIsLabelsModalOpen] = React.useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
 
   const [namespaces, namespacesLoaded, namespacesError] = useNamespaces();
@@ -164,11 +166,13 @@ const DataRegistryPage: React.FC = () => {
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError}
             labels={labels}
+            project={selectedProject}
             onManageCollections={() => {
               if (!collectionsError) {
                 setIsCollectionsModalOpen(true);
               }
             }}
+            onManageLabels={() => setIsLabelsModalOpen(true)}
             onRegisterData={() => setIsRegisterModalOpen(true)}
           />
           <ManageCollectionsModal
@@ -176,6 +180,14 @@ const DataRegistryPage: React.FC = () => {
             onClose={() => setIsCollectionsModalOpen(false)}
             project={selectedProject}
             collections={collections}
+            onRefresh={handleRefresh}
+          />
+          <ManageLabelsModal
+            isOpen={isLabelsModalOpen}
+            onClose={() => setIsLabelsModalOpen(false)}
+            project={selectedProject}
+            labels={labels}
+            assets={assets}
             onRefresh={handleRefresh}
           />
           <RegisterVolumeModal

@@ -18,7 +18,14 @@ import {
   scaleNodesModal,
 } from '../../../pages/modelTraining';
 
-describe('Model Training', () => {
+// RHOAIENG-88673: TrainJob node scaling is disabled for RHOAI 3.6.
+//
+// Kubeflow Trainer 2.2 made `spec.trainer` immutable (kubeflow/trainer#3157), so PATCHing
+// `spec.trainer.numNodes` after create is rejected by the TrainJob validating webhook, and
+// upstream has not shipped a replacement API. The scale UI is disabled in TrainJobTableRow,
+// TrainingJobDetailsDrawer and TrainingJobResourcesTab, so these tests cannot pass.
+// Remove the `.skip` together with that UI once upstream supports post-create node scaling.
+describe.skip('Model Training', () => {
   beforeEach(() => {
     asClusterAdminUser();
   });

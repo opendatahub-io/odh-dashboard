@@ -1,12 +1,15 @@
 import {
+  AssetResponse,
   AssetListResponse,
+  VolumeInfo,
   ListVolumesResponse,
   ListNamespacesResponse,
   NamespaceResponse,
   CreateNamespaceRequest,
   CreateVolumeRequest,
-  VolumeInfo,
   LabelListResponse,
+  CreateLabelRequest,
+  LabelResponse,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -72,6 +75,29 @@ export { ApiError };
 export const fetchAssets = (project: string, collection: string): Promise<AssetListResponse> =>
   fetchJSON(registryUrl(`/${project}/namespaces/${collection}/generic-tables`));
 
+export const fetchGenericTable = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<AssetResponse> =>
+  fetchJSON(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+  );
+
+export const deleteGenericTable = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<void> =>
+  fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/generic-tables/${encodeURIComponent(name)}`,
+    ),
+    'DELETE',
+  ).then(() => undefined);
+
 // Volumes
 
 export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
@@ -90,7 +116,38 @@ export const createVolume = async (
   return response.json();
 };
 
+export const fetchVolume = (
+  project: string,
+  collection: string,
+  name: string,
+): Promise<VolumeInfo> =>
+  fetchJSON(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+    ),
+  );
+
+export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
+  fetchRequest(
+    registryUrl(
+      `/${encodeURIComponent(project)}/namespaces/${encodeURIComponent(collection)}/volumes/${encodeURIComponent(name)}`,
+    ),
+    'DELETE',
+  ).then(() => undefined);
+
 // Labels
 
 export const fetchLabels = (project: string): Promise<LabelListResponse> =>
   fetchJSON(registryUrl(`/${project}/labels`));
+
+export const createLabel = async (
+  project: string,
+  data: CreateLabelRequest,
+): Promise<LabelResponse> => {
+  const response = await fetchRequest(registryUrl(`/${project}/labels`), 'POST', data);
+  return response.json();
+};
+
+export const deleteLabel = async (project: string, label: string): Promise<void> => {
+  await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
+};

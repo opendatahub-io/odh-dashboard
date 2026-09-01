@@ -125,8 +125,11 @@ class ProjectListPage {
     return new ProjectRow(() => this.findProjectLink(projectName).parents('tr'));
   }
 
-  findProjectLink(projectName: string) {
-    return this.findProjectsTable().findByRole('link', { name: projectName });
+  findProjectLink(projectName: string, timeout?: number) {
+    return this.findProjectsTable().findByRole('link', {
+      name: projectName,
+      ...(timeout !== undefined ? { timeout } : {}),
+    });
   }
 
   findEmptyResults() {
@@ -158,6 +161,17 @@ class ProjectListPage {
     const projectListToolbar = projectListPage.getTableToolbar();
     projectListToolbar.findNameFilter().type(projectName);
   };
+
+  /**
+   * Filter the Projects table by name and open the matching project.
+   * Waits up to 30s for the row: the dashboard list can lag behind oc
+   * (Active phase / watch lag). Filter typing matches filterProjectByName.
+   */
+  openFilteredProject(projectName: string) {
+    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
+    this.getTableToolbar().findNameFilter().type(projectName);
+    this.findProjectLink(projectName, 30000).should('be.visible').click();
+  }
 }
 
 class CreateEditProjectModal extends Modal {
