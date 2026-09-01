@@ -1,3 +1,4 @@
+import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
 import { mcpTab } from './playgroundPage/mcpTab';
 import { appendFeatureFlagParams } from './appChrome';
 
@@ -6,7 +7,9 @@ class PlaygroundPage {
 
   visit(namespace?: string): void {
     const base = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
-    cy.visit(appendFeatureFlagParams(base));
+    cy.visit(appendFeatureFlagParams(base), {
+      onBeforeLoad: clearGenAiNamespacePersistence,
+    });
     this.waitForPageLoad();
   }
 
