@@ -1,7 +1,7 @@
 ---
 name: upstream-test-audit
 description: "Fetch all cypress_found_bug issues, run upstream-test-recommender analysis on each, and generate a self-contained HTML report with SVG charts, per-repo analysis, and prioritized recommendations."
-argument-hint: "[--since Nd] [--team <team-name>] [--top N]"
+argument-hint: "[--since Nd] [--team <team-name>] [--top N] [--parity]"
 ---
 
 # Upstream Test Audit
@@ -13,15 +13,16 @@ Batch analysis skill that fetches all `cypress_found_bug` issues from Jira, clas
 ## Arguments
 
 `$ARGUMENTS` — optional filters:
+
 - `--since Nd` — only analyze issues created in the last N days (default: all time)
-- `--team <name>` — filter to a specific component team (e.g., `maas`, `kserve`, `feast`)
-- `--top N` — only analyze the top N issues by priority (default: all)
+- `--team <name>` — filter to a specific component team (e.g., `maas`, `kserve`, `feast`). Must match a **Team flag** from `repo-profiles.md`
+- `--top N` — cap **detailed** per-bug recommendations at N issues (default: all). Classification, repo audits, counts, and the full bug list still cover every fetched issue
 - `--parity` — include backend/frontend test parity analysis
 - Empty — full audit of all `cypress_found_bug` issues
 
 If no arguments are provided, run the full audit.
 
-```
+```text
 Usage: /upstream-test-audit [--since Nd] [--team <team-name>] [--top N] [--parity]
 
 Examples:
@@ -32,61 +33,102 @@ Examples:
   /upstream-test-audit --parity
 ```
 
+Parse all flags before fetching. If `--team` is present and does not match a Team flag in `repo-profiles.md`, print usage and stop.
+
 ## Prerequisites
 
-- **Jira access** — mcp-atlassian MCP or env vars or `~/.cursor/mcp.json` credentials
+- **Jira access** — Atlassian MCP (`mcp-atlassian`) connected and authenticated. Use `jira_search` / `jira_get_issue` only. Do **not** read `~/.cursor/mcp.json`, print tokens or emails, or curl the Jira REST API with credentials.
 - **GitHub access** — `gh` CLI for cloning upstream repos
 - **Go** — for test infrastructure auditing
-- **python3** — for data processing and chart generation
+- **python3** — for data processing, HTML escaping, and chart generation
 
 ## Execution
 
-### Step 1: Fetch all cypress_found_bug issues
-
-Query Jira for all issues with the `cypress_found_bug` label. Use pagination to get every issue.
+Create an invocation-scoped work directory at the start and remove it when finished:
 
 ```bash
-# Use Jira REST API v3 with cursor-based pagination
-JQL="project = RHOAIENG AND labels = cypress_found_bug ORDER BY created DESC"
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
+```
+
+Write `cypress_found_bugs.json` and `cypress_classified.json` only under `$WORK_DIR`. Never use fixed paths such as `/tmp/cypress_found_bugs.json`.
+
+### Step 1: Fetch all cypress_found_bug issues
+
+Query Jira for all issues with the `cypress_found_bug` label. Use `jira_search` with pagination (`limit=50`, walk `start_at` / next page until exhausted). Fetch minimal fields: key, summary, priority, labels, created, fixVersions.
+
+```text
+JQL=project = RHOAIENG AND labels = cypress_found_bug ORDER BY created DESC
 ```
 
 Apply `--since` filter if provided (append `AND created >= -Nd` to JQL).
 
-Save raw results to `/tmp/cypress_found_bugs.json`.
+Save raw results to `$WORK_DIR/cypress_found_bugs.json`.
+
+If Atlassian MCP is unavailable, stop with the same message as the recommender skill. Do not fall back to curl or local credential files.
 
 ### Step 2: Classify and filter
 
 Classify each issue into categories:
+
 - **Upstream component bug** — keep for analysis
 - **Dashboard product bug** — exclude (note count)
 - **Test infrastructure** — exclude (note count)
 - **Build/DevOps** — exclude (note count)
 
 Use the classification rules from the recommender skill:
-- Match keywords in summary/labels for category
-- Match component teams using `repo-profiles.md`
 
-Save classified data to `/tmp/cypress_classified.json`.
+- Match keywords in summary/labels for category
+- Map to a **canonical** bug class (recommender Step 6 / `repo-profiles.md` alias table)
+- Match component teams using the **Team flag** table in `repo-profiles.md`
+
+Save classified data to `$WORK_DIR/cypress_classified.json`.
+
+**`--team` filter (required when the flag is set):** after classification and **before** Step 3, retain only classified upstream issues whose mapped team matches `--team`. Dropped issues must not be audited, recommended, or counted in report totals (record a separate "filtered out by --team" count). Subsequent steps use this filtered set only.
 
 ### Step 3: Per-repo audit (parallel where possible)
 
-For each unique upstream repo identified:
+For each unique upstream repo in the **filtered** set:
 
-1. Clone/update the repo (see recommender Step 4)
+1. Clone/update the repo (see recommender Step 4) and record `REVISION=$(git rev-parse HEAD)`
 2. Run the test infrastructure audit (see recommender Step 5)
 3. Record findings
 
-Cache audit results to `~/.cache/upstream-test-recommender/audits/<org>/<repo>.json` to avoid re-auditing on subsequent runs.
+Cache audit results to `~/.cache/upstream-test-recommender/audits/<org>/<repo>.json` with at least:
+
+```json
+{
+  "repo": "org/repo",
+  "revision": "<git SHA>",
+  "findings": {}
+}
+```
+
+Reuse a cache entry only when the current `$REVISION` equals the stored `revision`. Otherwise invalidate it and audit again.
 
 ### Step 4: Generate per-bug recommendations
 
 For the top bugs (by priority, then recency), generate a recommendation using the recommender's Step 6-7 logic. Do NOT clone and audit repos one-by-one — use the cached audit from Step 3.
 
-For large datasets (100+ issues), generate detailed recommendations for the top 30 and summary-only for the rest.
+**Detailed recommendations vs full inventory:**
+
+- `--top N` (when set) caps **detailed** recommendations at N.
+- If `--top` is omitted and 100+ filtered upstream issues remain, generate detailed recommendations for the top 30 and summary-only for the rest, and mark the report truncated (`detailed recommendations limited to 30 of N`).
+- Never treat a recommendation cap as a fetch/classify/audit cap. Classification, repo audits, report counts, and the full bug list must include every issue in the filtered set. Do **not** auto-apply `--top 50` or otherwise drop issues because the set is large.
+
+### Step 4b: Parity analysis (`--parity` only)
+
+When `--parity` is set, invoke `/upstream-test-recommender --parity` **before Step 5**. If `--team` was also set, pass `--area` with that team flag. Feed the coverage list, gap list, and recommended tests into report section 6. Do not leave section 6 empty or omit it when `--parity` was requested.
 
 ### Step 5: Generate the HTML report
 
 Write a self-contained HTML file (inline CSS, inline SVG charts) to `.agentready/Dashboard Integration Gap Analysis.html`.
+
+**Escape all Jira-controlled values** before inserting them into HTML, SVG, or attributes (summaries, labels, versions, table text, chart labels, titles). Use context-appropriate escaping (e.g. Python `html.escape(..., quote=True)` for text and attributes). Do not emit raw Jira HTML.
+
+**Links:** emit `href` / SVG-linked URLs only when the scheme is `https` and the host is one of `issues.redhat.com`, `redhat.atlassian.net`, or `github.com`. Drop `javascript:`, `data:`, and any other URL.
+
+If the detailed-recommendation set was capped, show a visible truncated banner in the header.
 
 **Report structure:**
 
@@ -99,12 +141,13 @@ Write a self-contained HTML file (inline CSS, inline SVG charts) to `.agentready
    - Bar chart: top fix versions
 4. **Component team responsibility table** — team, bug count, %, highest severity, repos, example keys
 5. **Per-component gap analysis** — envtest presence, real RBAC, CI, early-gate, key gap, recommended fix
-6. **E2E → backend test parity** — which Cypress tests validate upstream behavior with no upstream backend test (if `--parity` flag)
+6. **E2E → backend test parity** — which Cypress tests validate upstream behavior with no upstream backend test (if `--parity` flag; populate from Step 4b)
 7. **Bug reclassification table** — each bug with detection layer, confidence, why not caught
 8. **AI Factory connection** — how this connects to the AI Factory initiative
-9. **Full upstream bug list** — all bugs with key, summary, team, priority, created, fix version
+9. **Full upstream bug list** — all bugs in the filtered set with key, summary, team, priority, created, fix version
 
 **Styling requirements:**
+
 - Dark/light mode support via CSS `prefers-color-scheme`
 - Stat cards with colored numbers (red/amber/green/blue)
 - Badges for severity/status
@@ -116,13 +159,14 @@ Write a self-contained HTML file (inline CSS, inline SVG charts) to `.agentready
 
 After generating the report, print a summary:
 
-```
+```text
 Upstream Test Audit Complete
 ═══════════════════════════
 
 Total cypress_found_bug issues: N
 Upstream component bugs: N (N% of total)
 Excluded: N dashboard, N test-infra, N build/devops
+Filtered out by --team: N (omit this line if --team was not set)
 
 Top 3 teams:
   1. KServe / Model Serving — N bugs
@@ -133,6 +177,7 @@ N% Blocker+Critical priority
 N% catchable at operator-startup/envtest layer
 
 Report: .agentready/Dashboard Integration Gap Analysis.html
+Detailed recommendations: N of M (truncated|complete)
 ```
 
 ## Context Management
@@ -142,11 +187,11 @@ This skill processes many issues. Follow these rules to avoid context exhaustion
 1. **Fetch issue list with minimal fields** — key, summary, priority, labels, created, fixVersions only
 2. **Process in batches** — classify all issues first, then audit repos, then generate recommendations
 3. **Write to disk incrementally** — don't hold all data in context
-4. **Cache aggressively** — repo audits, classification results
+4. **Cache aggressively** — repo audits (keyed by revision), classification results
 
 ## Error Handling
 
 - **Jira not accessible** → Print setup instructions (same as recommender)
-- **Too many issues** → Apply `--top 50` automatically if > 200 issues
+- **Too many issues** → Cap detailed recommendations as in Step 4; never auto-apply `--top 50`; do not omit issues from the inventory or full list
 - **Repo clone fails** → Skip that repo, note in report
 - **Chart generation fails** → Fall back to table-only output

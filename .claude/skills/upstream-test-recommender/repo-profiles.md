@@ -4,12 +4,39 @@ Reference data for upstream repos that cause `cypress_found_bug` issues. Maps re
 
 ## Repo Detection
 
-Match the upstream repo from Jira issue content using these signals (in priority order):
+Match the upstream repo from Jira issue content using these signals (in priority order). The recommender skill applies `--repo` **before** this list when the user supplied it.
 
 1. **Fix PR link** — most reliable. Extract org/repo from the GitHub PR URL.
 2. **Jira labels** — `dashboard-area-*` labels map to repos (see table below).
 3. **Summary keywords** — operator names, CRD kinds, pod names in the summary.
 4. **Description content** — stack traces, pod names, namespace references.
+
+### Disambiguation
+
+Do **not** choose a repository when the only matching signals are shared across profiles. Require a unique keyword, a unique fix PR, or ask the user.
+
+| Shared signal | Repos that both match |
+|---|---|
+| `inferenceservice`, `dashboard-area-model-serving` | `odh-model-controller`, `kserve` |
+| `envoyfilter`, `gateway` | `models-as-a-service`, `Kuadrant/kuadrant-operator` |
+| `pipeline`, `dashboard-area-pipelines` | `mlflow-operator`, `data-science-pipelines-operator` |
+
+Unique signals (examples): `odh-model-controller` / `isvc` vs `kserve` / `servingruntime`; `maas` / `subscription` vs `kuadrant`; `mlflow` vs `dspa` / `kfp`.
+
+## Component teams (`--team` flags)
+
+| Team flag | Repos |
+|---|---|
+| `maas` | `opendatahub-io/models-as-a-service`, `Kuadrant/kuadrant-operator` |
+| `kserve` | `opendatahub-io/kserve` |
+| `feast` | `opendatahub-io/feast-module-operator` |
+| `model-serving` | `opendatahub-io/odh-model-controller`, `opendatahub-io/kserve` |
+| `operator` | `opendatahub-io/opendatahub-operator` |
+| `model-registry` | `opendatahub-io/model-registry-operator` |
+| `workbenches` | `opendatahub-io/workbenches-operator` |
+| `pipelines` | `opendatahub-io/mlflow-operator`, `opendatahub-io/data-science-pipelines-operator` |
+
+`--area` in parity mode accepts the same flags, or a `dashboard-area-*` suffix (`model-serving`, `maas`, …).
 
 ## Repo Profiles
 
@@ -27,6 +54,7 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | Key gap | Never loads shipped ClusterRole as SA permissions |
 | Bug classes | RBAC violation, CRD watch failure |
 | Keywords | `odh-model-controller`, `model controller`, `inferenceservice`, `isvc` |
+| Unique keywords | `odh-model-controller`, `model controller`, `isvc` |
 | Area labels | `dashboard-area-model-serving` |
 
 ### opendatahub-io/opendatahub-operator
@@ -73,7 +101,8 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | CI | GitHub Actions |
 | Key gap | Zero envtest despite being top bug source. EnvoyFilter/gateway config never validated |
 | Bug classes | EnvoyFilter scoping, gateway OOM, config drift, bootstrap deadlock, resource leak |
-| Keywords | `maas`, `gateway`, `envoyfilter`, `ext_proc`, `wasm`, `subscription`, `kuadrant` |
+| Keywords | `maas`, `gateway`, `envoyfilter`, `ext_proc`, `wasm`, `subscription` |
+| Unique keywords | `maas`, `ext_proc`, `wasm`, `subscription` |
 | Area labels | `dashboard-area-maas` |
 
 ### opendatahub-io/feast-module-operator
@@ -104,6 +133,7 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | Key gap | CRD validation and reconciler ordering untested |
 | Bug classes | CRD schema drift, reconciler ordering, CRD installation |
 | Keywords | `kserve`, `inferenceservice`, `serving runtime`, `crd validation` |
+| Unique keywords | `kserve`, `serving runtime`, `servingruntime`, `crd validation` |
 | Area labels | `dashboard-area-model-serving` |
 
 ### opendatahub-io/workbenches-operator
@@ -148,6 +178,7 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | Key gap | MLflow integration untested |
 | Bug classes | CrashLoopBackOff, RBAC |
 | Keywords | `pipeline`, `dspa`, `data science pipeline`, `kfp` |
+| Unique keywords | `dspa`, `data science pipeline`, `kfp` |
 | Area labels | `dashboard-area-pipelines` |
 
 ### Kuadrant/kuadrant-operator
@@ -161,6 +192,7 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | Key gap | External repo. No Konflux, no envtest, no early-gate. EnvoyFilter bleed is top bug class |
 | Bug classes | EnvoyFilter scoping, gateway config leak, resource leak |
 | Keywords | `kuadrant`, `envoyfilter`, `gateway` |
+| Unique keywords | `kuadrant` |
 | Note | Cross-org coordination needed |
 
 ## Bug Class → Test Recipe Mapping
@@ -177,3 +209,22 @@ Match the upstream repo from Jira issue content using these signals (in priority
 | Config drift | Runtime integration | Multi-component deploy test | Complex |
 | Resource leak | Load test | Memory profiling under sustained load | Complex |
 | API mismatch | Contract test | Cross-component naming/namespace validation | Medium |
+
+## Profile aliases → canonical class
+
+Recommendations, audit filters, and report fields must use a canonical class from the table above. Map profile-specific terms first:
+
+| Profile term | Canonical class |
+|---|---|
+| CRD watch failure | Deploy prerequisite |
+| bootstrap failure | Deploy prerequisite |
+| bootstrap deadlock | Deploy prerequisite |
+| CRD ordering | Deploy prerequisite |
+| CRD installation | Deploy prerequisite |
+| module dependency | Deploy prerequisite |
+| gateway OOM | Resource leak |
+| gateway config leak | EnvoyFilter scoping |
+| namespace labels | Behavioral regression |
+| reconciler ordering | Behavioral regression |
+| CrashLoopBackOff | *(symptom, not a class)* RBAC violation if Forbidden/missing verbs; otherwise Deploy prerequisite |
+| RBAC | RBAC violation |

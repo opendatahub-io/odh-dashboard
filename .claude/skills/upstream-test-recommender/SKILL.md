@@ -1,7 +1,7 @@
 ---
 name: upstream-test-recommender
 description: "Analyze a cypress_found_bug Jira issue, identify the upstream repo, audit its test infrastructure, classify the bug, and recommend a specific test using the repo's own tools. With --implement, generate the test code."
-argument-hint: "<JIRA-KEY> [--implement] [--repo <org/repo>]"
+argument-hint: "<JIRA-KEY> [--implement] [--repo <org/repo>] | --parity [--area <feature-area>]"
 ---
 
 # Upstream Test Recommender
@@ -13,25 +13,32 @@ Analyzes a Dashboard-detected upstream bug and produces an actionable test recom
 ## Arguments
 
 `$ARGUMENTS` — one of:
+
 - A Jira key (e.g. `RHOAIENG-82376`) — analyze that bug
 - A Jira key with `--implement` (e.g. `RHOAIENG-82376 --implement`) — also generate the test code
 - A Jira key with `--repo org/repo` — override auto-detected repo
+- `--parity` (no Jira key) — run backend/frontend test parity mode
+- `--parity --area <feature-area>` — restrict the parity scan to one area
 - A full Jira URL — extract the key from the URL path
 - Empty — print usage and stop
 
 If no arguments are provided, print:
-```
+
+```text
 Usage: /upstream-test-recommender <JIRA-KEY> [--implement] [--repo <org/repo>]
+       /upstream-test-recommender --parity [--area <feature-area>]
 
 Examples:
   /upstream-test-recommender RHOAIENG-82376
   /upstream-test-recommender RHOAIENG-82376 --implement
   /upstream-test-recommender RHOAIENG-82376 --repo opendatahub-io/odh-model-controller
+  /upstream-test-recommender --parity
+  /upstream-test-recommender --parity --area model-serving
 ```
 
 ## Prerequisites
 
-- **Jira access** — either mcp-atlassian MCP server connected, or `JIRA_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` env vars set. If using env vars, call the Jira REST API v3 directly via curl.
+- **Jira access** — Atlassian MCP (`mcp-atlassian`) connected and authenticated. Fetch issues with `jira_get_issue` / `jira_search` only. Do **not** read `~/.cursor/mcp.json`, print tokens or emails, or call the Jira REST API with curl/`JIRA_API_TOKEN`.
 - **GitHub access** — `gh` CLI authenticated for cloning upstream repos
 - **Go** — for auditing Go test infrastructure (most upstream repos are Go)
 
@@ -39,28 +46,29 @@ Examples:
 
 ### Step 1: Parse arguments
 
-Extract the Jira key from `$ARGUMENTS`. If a full URL is provided, extract the key using pattern `[A-Z]+-\d+`.
+Parse flags from `$ARGUMENTS` **before** requiring a Jira key:
 
-Parse optional flags:
 - `--implement` → generate test code (default: recommendation only)
-- `--repo org/repo` → skip repo auto-detection
+- `--repo org/repo` → skip repo auto-detection; use this repo
+- `--parity` → enter [Backend/Frontend Test Parity Mode](#backendfrontend-test-parity-mode); do **not** require a Jira key
+- `--area <feature-area>` → valid only with `--parity`. Must match a **Team flag** or an `dashboard-area-*` suffix from [`repo-profiles.md`](repo-profiles.md). If omitted in parity mode, scan all areas. If supplied without `--parity`, or if the value is unknown, print usage and stop.
+
+If `--parity` is present, skip Jira-key validation and continue at parity mode.
+
+Otherwise extract the Jira key. If a full URL is provided, extract the key using pattern `[A-Z]+-\d+`. If no key is present, print usage and stop.
 
 ### Step 2: Fetch the Jira issue
 
-Use the Jira MCP tool `jira_get_issue` if available. Otherwise, use the REST API:
+Call `jira_get_issue` with `fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks` and `comment_limit=50`.
 
-```bash
-curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  "$JIRA_URL/rest/api/3/issue/$JIRA_KEY?fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks" 2>/dev/null
-```
+If the call fails with an auth or connection error, stop and report:
 
-If the MCP tool is not available AND env vars are not set, check `~/.cursor/mcp.json` for Jira credentials:
-```bash
-python3 -c "import json; d=json.load(open('$HOME/.cursor/mcp.json')); e=d['mcpServers']['mcp-atlassian']['env']; print(f'JIRA_URL={e[\"JIRA_URL\"]}'); print(f'JIRA_EMAIL={e[\"JIRA_EMAIL\"]}'); print(f'JIRA_API_TOKEN={e[\"JIRA_API_TOKEN\"]}')"
-```
+> Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the Atlassian MCP server.
+
+Do not fall back to curl, environment-variable credentials, or reading local MCP config files. Never print `JIRA_API_TOKEN`, `JIRA_EMAIL`, bearer tokens, or other secrets.
 
 Extract from the issue:
+
 - **Summary** — the bug title
 - **Description** — full bug details (ADF format, extract text content)
 - **Labels** — especially `dashboard-area-*` labels
@@ -73,13 +81,16 @@ Extract from the issue:
 
 Use these signals in priority order:
 
-1. **Fix PR in comments/links** — search comments for GitHub PR URLs (`github.com/<org>/<repo>/pull/`). This is the most reliable signal.
-2. **`--repo` flag** — if the user provided it, use it directly.
+1. **`--repo` flag** — if the user provided it, use it and skip the remaining signals.
+2. **Fix PR in comments/links** — search comments for GitHub PR URLs (`github.com/<org>/<repo>/pull/`). This is the most reliable auto-detect signal.
 3. **Label mapping** — match `dashboard-area-*` labels to repos using `repo-profiles.md`.
 4. **Summary/description keywords** — match operator names, CRD kinds, pod names against the keyword lists in `repo-profiles.md`.
 
+If two or more profiles match and the only hits are **shared signals** (see `repo-profiles.md` Disambiguation), do **not** pick a repo. Require a unique keyword, a unique fix PR, or ask the user.
+
 If no repo can be identified, ask the user:
-```
+
+```text
 Could not determine the upstream repo from the Jira issue.
 Which repo caused this bug? (e.g., opendatahub-io/odh-model-controller)
 ```
@@ -98,7 +109,11 @@ if [ -d "$REPO_DIR/.git" ]; then
 else
   gh repo clone "$ORG/$REPO" "$REPO_DIR" 2>&1
 fi
+
+REVISION=$(git -C "$REPO_DIR" rev-parse HEAD)
 ```
+
+Record `$REVISION` with the audit findings. The audit skill reuses cached audits only when this SHA still matches.
 
 ### Step 5: Audit the repo's test infrastructure
 
@@ -111,7 +126,7 @@ grep -r "envtest" "$REPO_DIR" --include="*.go" -l 2>/dev/null | wc -l
 # 2. Test framework (Ginkgo vs go test)
 grep -r "ginkgo\|gomega\|Describe(\|It(" "$REPO_DIR" --include="*.go" -l 2>/dev/null | head -5
 
-# 3. RBAC manifests
+# 3. RBAC manifests — start from the profile path, then fall back
 find "$REPO_DIR/config/rbac" -name "*.yaml" 2>/dev/null
 
 # 4. CRD manifests
@@ -131,26 +146,33 @@ ls "$REPO_DIR/.github/workflows/" 2>/dev/null
 
 # 9. Makefile test targets
 grep -E "^test|^e2e|^integration" "$REPO_DIR/Makefile" 2>/dev/null | head -10
-
-# 10. Check if envtest runs with real RBAC (the #1 gap)
-grep -r "ClusterRole\|ServiceAccount\|RoleBinding" "$REPO_DIR" --include="*_test.go" -l 2>/dev/null | head -5
 ```
 
+**envtest uses real RBAC (the #1 gap)** — do **not** treat a keyword hit of `ClusterRole`, `ServiceAccount`, or `RoleBinding` in `*_test.go` as proof. Search tests **and** helpers (files under `test/`, `pkg/`, not only `*_test.go`). Record `yes` only when **all** of the following are demonstrated:
+
+1. The test (or helper) creates a ServiceAccount.
+2. It binds the **shipped** Role or ClusterRole from the profile's RBAC manifests (not a test-only role and not cluster-admin).
+3. It starts the manager or a test client using that ServiceAccount's credentials.
+
+Otherwise record `unknown`. Record `no` only when tests clearly run as cluster-admin / the default envtest client with no SA restriction.
+
 Record in a structured format:
+
 - Has envtest: yes/no (count of references)
 - Test framework: ginkgo/go-test/none
-- Has RBAC manifests: yes/no (path)
+- Has RBAC manifests: yes/no (path from the profile or `find`)
 - Has CRDs: yes/no (path)
 - Has webhooks: yes/no (path)
-- envtest uses real RBAC: yes/no (**this is the critical gap**)
+- envtest uses real RBAC: yes/no/unknown (**this is the critical gap**)
 - CI system: GitHub Actions/Prow/other
 - Test file count
+- Audited revision: `$REVISION`
 
 ### Step 6: Classify the bug
 
-Based on the Jira issue content and repo audit, classify into one of these bug classes (from `repo-profiles.md`):
+Use only the **canonical** classes in the table below. Map profile-specific terms from `repo-profiles.md` through the [alias table](repo-profiles.md#profile-aliases--canonical-class) **before** emitting a class or applying batch filters.
 
-| Bug Class | Signature |
+| Canonical class | Signature |
 |---|---|
 | **RBAC violation** | CrashLoopBackOff, "Forbidden", missing verbs/resources in ClusterRole |
 | **Finalizer deadlock** | Resource stuck Terminating, finalizer not removed on parent deletion |
@@ -163,6 +185,8 @@ Based on the Jira issue content and repo audit, classify into one of these bug c
 | **Resource leak** | OOM kills, memory growth over time |
 | **API mismatch** | Naming conventions changed, resources moved to different namespace |
 
+Do not emit profile-only names (`CRD watch failure`, `bootstrap failure`, `CRD ordering`, `gateway OOM`, and so on) as the output class.
+
 ### Step 7: Generate the recommendation
 
 Produce a structured recommendation with these sections:
@@ -174,7 +198,7 @@ Produce a structured recommendation with these sections:
 <one-line summary from Jira>
 
 ### Classification
-- **Bug class:** <class from Step 6>
+- **Bug class:** <canonical class from Step 6>
 - **Detection layer:** <Operator Startup | envtest | Runtime Integration | Static Analysis>
 - **Upstream repo:** <org/repo>
 - **Confidence:** <High | Medium | Low> — <why>
@@ -205,29 +229,35 @@ bypasses RBAC entirely."
 
 ### Step 8: Generate test code (--implement only)
 
-If `--implement` was specified, generate the actual test code. Use the repo's existing test framework and conventions.
+If `--implement` was specified, generate the actual test code.
 
-**For RBAC violation bugs (the most common):**
+**Resolve setup from the selected profile and the checked-out repo before writing code:**
+
+1. RBAC manifest path (e.g. `config/rbac/role.yaml` vs `config/rbac/`).
+2. Test framework (Ginkgo vs `testing.T` / testify vs none).
+3. Whether the repo already uses envtest.
+
+Match existing test files (imports, helpers, setup). The snippets below are **examples** for envtest + testify repos. For Ginkgo repos, emit `Describe`/`It`. For repos without envtest (see profiles: kserve, feast, maas), generate a test in that repo's existing style — do not invent `config/rbac/role.yaml` + envtest unless the recommendation is to add envtest.
+
+**For RBAC violation bugs (the most common), envtest + testify shape:**
 
 ```go
 // test/integration/rbac_contract_test.go
 func TestManagerStartsWithShippedRBAC(t *testing.T) {
-    // Load the real ClusterRole from config/rbac/role.yaml
-    role := loadClusterRole(t, "config/rbac/role.yaml")
+    // rbacManifestPath comes from the repo profile / checked-out manifests.
+    role := loadClusterRole(t, rbacManifestPath)
 
-    // Create envtest environment
     env := &envtest.Environment{
         CRDDirectoryPaths: []string{"config/crd/bases"},
     }
     cfg, err := env.Start()
     require.NoError(t, err)
-    defer env.Stop()
+    t.Cleanup(func() { _ = env.Stop() })
 
     // Create a ServiceAccount bound only to this ClusterRole
     // (not cluster-admin)
     restrictedCfg := restrictToRole(t, cfg, role)
 
-    // Start the manager as this restricted user
     mgr, err := ctrl.NewManager(restrictedCfg, ctrl.Options{
         Scheme: scheme,
     })
@@ -236,15 +266,27 @@ func TestManagerStartsWithShippedRBAC(t *testing.T) {
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
+    startErr := make(chan error, 1)
     go func() {
-        require.NoError(t, mgr.Start(ctx))
+        startErr <- mgr.Start(ctx)
     }()
 
-    // Wait for manager to become ready
-    <-mgr.Elected()
-    cancel()
+    select {
+    case <-mgr.Elected():
+        cancel()
+        err := <-startErr
+        if err != nil && err != context.Canceled {
+            require.NoError(t, err)
+        }
+    case err := <-startErr:
+        require.NoError(t, err, "manager exited before becoming ready")
+    case <-ctx.Done():
+        t.Fatal("timed out waiting for manager to become ready")
+    }
 }
 ```
+
+Do **not** call `require.NoError` / `t.FailNow` from the goroutine that runs `mgr.Start`. Assert in the test goroutine so an RBAC startup error cannot hang on `<-mgr.Elected()`.
 
 **For finalizer deadlock bugs:**
 
@@ -253,13 +295,13 @@ func TestFinalizerHandlesParentDeletion(t *testing.T) {
     // Create parent and child resources
     parent := &v1.ParentResource{...}
     child := &v1.ChildResource{...}
-    
+
     require.NoError(t, k8sClient.Create(ctx, parent))
     require.NoError(t, k8sClient.Create(ctx, child))
-    
+
     // Delete parent first (before child)
     require.NoError(t, k8sClient.Delete(ctx, parent))
-    
+
     // Assert parent eventually terminates (finalizer removed)
     require.Eventually(t, func() bool {
         err := k8sClient.Get(ctx, client.ObjectKeyFromObject(parent), parent)
@@ -274,8 +316,10 @@ func TestFinalizerHandlesParentDeletion(t *testing.T) {
 func TestCRDAcceptsRealValues(t *testing.T) {
     cr := &v1.MyCRD{
         Spec: v1.MyCRDSpec{
-            // Use real production values, not test placeholders
-            Field: "{{ .Values.actual_template_value }}",
+            // Concrete production-like value from the bug (rendered Helm
+            // output, customer CR, or CRD example). k8sClient.Create does
+            // not render Helm — never leave {{ .Values.* }} placeholders.
+            Field: "real-production-value",
         },
     }
     err := k8sClient.Create(ctx, cr)
@@ -283,14 +327,13 @@ func TestCRDAcceptsRealValues(t *testing.T) {
 }
 ```
 
-Read the repo's existing test files to match their conventions (imports, helper functions, test setup patterns) before generating code.
-
 ### Step 9: Present results
 
 Output the recommendation in the format from Step 7. If `--implement` was used, also output the test code in a fenced code block with the target file path.
 
 End with:
-```
+
+```text
 Questions? #forum-rhods-dashboard on Slack
 Full analysis: .agentready/Dashboard Integration Gap Analysis.html
 ```
@@ -299,7 +342,7 @@ Full analysis: .agentready/Dashboard Integration Gap Analysis.html
 
 When invoked with `--parity` instead of a Jira key, the skill runs in test parity mode:
 
-```
+```text
 /upstream-test-recommender --parity [--area <feature-area>]
 ```
 
@@ -314,6 +357,8 @@ This mode:
    - E2E tests WITHOUT upstream backend coverage: count + list (these are the gaps)
    - Recommended tests to close the gaps
 
+If `--area` is set, limit the scan and mapping to that team/area from `repo-profiles.md`.
+
 ### Parity scan logic
 
 ```bash
@@ -327,13 +372,15 @@ find packages/cypress/cypress/tests/e2e -name "*.cy.ts" | sort
 ```
 
 Map each dependency to an upstream repo via `repo-profiles.md` keywords. Then check:
+
 - Does that repo have envtest covering this resource kind?
 - Does that repo test manager startup with real RBAC?
 - Does that repo test the specific reconciliation path this E2E test exercises?
 
 ## Error Handling
 
-- **Jira not accessible** → Print: "Jira access not configured. Set up the mcp-atlassian MCP server or export JIRA_URL/JIRA_EMAIL/JIRA_API_TOKEN."
+- **Jira not accessible** → Print: "Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the Atlassian MCP server."
 - **Repo clone fails** → Print: "Could not clone <org/repo>. Check your GitHub authentication (`gh auth status`)."
 - **No Go in PATH** → Print: "Go not found. Install Go >= 1.21 to audit test infrastructure."
 - **Repo not identified** → Ask the user (see Step 3).
+- **Unknown `--area`** → Print usage and stop.
