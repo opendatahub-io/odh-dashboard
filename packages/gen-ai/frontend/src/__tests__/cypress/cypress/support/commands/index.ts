@@ -34,4 +34,6 @@ Cypress.Commands.add('step', (message: string) => {
 // Reset step counter before each test
 beforeEach(() => {
   stepCounter = 0;
+  cy.clearLocalStorage();
+  cy.clearAllSessionStorage();
 });
