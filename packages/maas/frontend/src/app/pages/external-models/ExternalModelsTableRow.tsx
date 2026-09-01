@@ -22,7 +22,6 @@ import {
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
-// import ExternalModelsStatusLabel from './ExternalModelsStatusLabel';
 
 const VISIBLE_LABEL_ROWS = 2;
 const enum ToggleLocation {
