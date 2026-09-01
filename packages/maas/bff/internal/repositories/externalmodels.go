@@ -170,18 +170,3 @@ func (r *ExternalModelsRepository) deleteMaaSModelRefForExternalModel(ctx contex
 	}
 	return err
 }
-
-func (r *ExternalModelsRepository) CreateExternalModel(
-	_ context.Context,
-	_ models.CreateExternalModelRequest,
-) (*models.ExternalModelSummary, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (r *ExternalModelsRepository) UpdateExternalModel(
-	_ context.Context,
-	_, _ string,
-	_ models.UpdateExternalModelRequest,
-) (*models.ExternalModelSummary, error) {
-	return nil, fmt.Errorf("not implemented")
-}
