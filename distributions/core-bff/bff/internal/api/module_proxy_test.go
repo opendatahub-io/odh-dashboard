@@ -382,6 +382,22 @@ func TestValidateProxyEntries(t *testing.T) {
 			errSubstr: "non-rooted proxy path",
 		},
 		{
+			name: "root proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "rootPath", service: moduleProxyServiceEntry{Path: "/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "uses root path / which conflicts with the SPA catch-all",
+		},
+		{
+			name: "trailing slash in proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "trailingSlash", service: moduleProxyServiceEntry{Path: "/gen-ai/api/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "has trailing slash in proxy path /gen-ai/api/ (will be appended automatically)",
+		},
+		{
 			name: "module path /core-bff/api collides with reserved prefix",
 			entries: []normalizedProxyEntry{
 				{entryName: "selfCollide", service: moduleProxyServiceEntry{Path: "/core-bff/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
