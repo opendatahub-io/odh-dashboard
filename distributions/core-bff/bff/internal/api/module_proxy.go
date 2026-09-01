@@ -192,20 +192,27 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 	}
 
 	for _, e := range entries {
-		pathWithSlash := e.service.Path + "/"
-		prefixedPath := PathPrefix + pathWithSlash
+		prefixedPath := PathPrefix + e.service.Path
 
 		for _, reserved := range reservedBFFPrefixes {
-			if strings.HasPrefix(pathWithSlash, reserved) || strings.HasPrefix(reserved, pathWithSlash) {
+			if proxyPathsOverlap(e.service.Path, reserved) {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s", e.service.Path, e.entryName, reserved)
 			}
-			if reserved != PathPrefix+"/" && (strings.HasPrefix(prefixedPath, reserved) || strings.HasPrefix(reserved, prefixedPath)) {
+			if reserved != PathPrefix+"/" && strings.TrimSuffix(prefixedPath, "/") == strings.TrimSuffix(reserved, "/") {
 				return fmt.Errorf("module proxy path %s in entry %s collides with reserved BFF route %s (via %s prefix)", e.service.Path, e.entryName, reserved, PathPrefix)
 			}
 		}
 	}
 
 	return nil
+}
+
+// proxyPathsOverlap reports whether two proxy paths share a complete path segment.
+func proxyPathsOverlap(a, b string) bool {
+	a = strings.TrimSuffix(a, "/")
+	b = strings.TrimSuffix(b, "/")
+
+	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
 func validateServiceRefs(entries []normalizedProxyEntry) error {
