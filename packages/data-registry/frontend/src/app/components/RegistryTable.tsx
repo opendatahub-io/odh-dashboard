@@ -35,6 +35,8 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   onManageCollections: () => void;
+  onManageLabels: () => void;
+  onRegisterData: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -57,6 +59,7 @@ const FORMAT_LABELS: Record<
   audio: { text: 'Unstructured', color: 'orange' },
   video: { text: 'Unstructured', color: 'orange' },
   binary: { text: 'Unstructured', color: 'orange' },
+  other: { text: 'Unstructured', color: 'orange' },
 };
 
 const UNSTRUCTURED_FORMATS = [
@@ -65,6 +68,7 @@ const UNSTRUCTURED_FORMATS = [
   'audio',
   'video',
   'binary',
+  'other',
   'application/pdf',
   'pdf',
 ];
@@ -104,6 +108,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   onManageCollections,
+  onManageLabels,
+  onRegisterData,
 }) => {
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
@@ -380,6 +386,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 data-testid="asset-search"
               />
             </ToolbarItem>
+            {/* Register data button */}
+            <ToolbarItem>
+              <Button variant="primary" onClick={onRegisterData} data-testid="register-data-button">
+                Register data
+              </Button>
+            </ToolbarItem>
             {/* Kebab */}
             <ToolbarItem>
               <Dropdown
@@ -406,6 +418,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                     data-testid="manage-collections-action"
                   >
                     Manage collections
+                  </DropdownItem>
+                  <DropdownItem
+                    key="manage-labels"
+                    onClick={onManageLabels}
+                    data-testid="manage-labels-action"
+                  >
+                    Manage labels
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>

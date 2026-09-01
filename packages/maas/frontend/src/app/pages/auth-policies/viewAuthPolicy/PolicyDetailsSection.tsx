@@ -20,7 +20,7 @@ import {
 import {
   EventTrackingPopoverType,
   MaaSEvents,
-  SubscriptionManagementStatusPopoverViewedProperties,
+  MaaSGovernanceStatusPopoverViewedProperties,
   convertStringToPopoverViewedStatus,
 } from '~/app/types/event-tracking';
 
@@ -58,11 +58,11 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy, mod
               resourceName={policy.displayName ?? policy.name}
               affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
-                fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
                   popoverType: EventTrackingPopoverType.STATUS,
                   status: convertStringToPopoverViewedStatus(policy.phase),
                   location: PhaseLabelLocation.DETAIL_PAGE,
-                } satisfies SubscriptionManagementStatusPopoverViewedProperties);
+                } satisfies MaaSGovernanceStatusPopoverViewedProperties);
               }}
             />
           </DescriptionListDescription>

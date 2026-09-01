@@ -1675,7 +1675,7 @@ class OverviewTabPage {
   }
 }
 
-class SubscriptionManagementPage {
+class MaaSGovernancePage {
   visit(tab?: string): void {
     const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
     cy.visitWithLogin(path);
@@ -1989,7 +1989,7 @@ export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
 export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
-export const subscriptionManagementPage = new SubscriptionManagementPage();
+export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
 export const externalModelPathModal = new ExternalModelPathModal();

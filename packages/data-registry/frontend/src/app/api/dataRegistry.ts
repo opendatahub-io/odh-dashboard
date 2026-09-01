@@ -4,7 +4,11 @@ import {
   ListNamespacesResponse,
   NamespaceResponse,
   CreateNamespaceRequest,
+  CreateVolumeRequest,
+  VolumeInfo,
   LabelListResponse,
+  CreateLabelRequest,
+  LabelResponse,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
@@ -75,7 +79,32 @@ export const fetchAssets = (project: string, collection: string): Promise<AssetL
 export const fetchVolumes = (project: string, collection: string): Promise<ListVolumesResponse> =>
   fetchJSON(registryUrl(`/${project}/namespaces/${collection}/volumes`));
 
+export const createVolume = async (
+  project: string,
+  collection: string,
+  data: CreateVolumeRequest,
+): Promise<VolumeInfo> => {
+  const response = await fetchRequest(
+    registryUrl(`/${project}/namespaces/${collection}/volumes`),
+    'POST',
+    data,
+  );
+  return response.json();
+};
+
 // Labels
 
 export const fetchLabels = (project: string): Promise<LabelListResponse> =>
   fetchJSON(registryUrl(`/${project}/labels`));
+
+export const createLabel = async (
+  project: string,
+  data: CreateLabelRequest,
+): Promise<LabelResponse> => {
+  const response = await fetchRequest(registryUrl(`/${project}/labels`), 'POST', data);
+  return response.json();
+};
+
+export const deleteLabel = async (project: string, label: string): Promise<void> => {
+  await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
+};

@@ -303,6 +303,11 @@ describe('LLMD Topology Admin Settings', () => {
     it('should delete a topology config', () => {
       initIntercepts();
       cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
+        mockUserConfig,
+      ).as('getConfigForDelete');
+      cy.interceptK8s(
         'DELETE',
         { model: LLMInferenceServiceConfigModel, ns: 'opendatahub', name: 'user-multi-node' },
         mockLLMInferenceServiceConfigK8sResource({ name: 'user-multi-node' }),
@@ -313,6 +318,7 @@ describe('LLMD Topology Admin Settings', () => {
       deleteModal.find().should('exist');
       deleteModal.findInput().type('User Multi-node Config');
       deleteModal.findSubmitButton().should('be.enabled').click();
+      cy.wait('@getConfigForDelete');
       cy.wait('@deleteConfig');
 
       cy.wsK8s(

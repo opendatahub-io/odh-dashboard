@@ -1045,10 +1045,12 @@ function AutoragConfigure({
                         description="Select models to determine how documents are retrieved and which models generate responses."
                       >
                         <Card>
-                          <CardHeader
-                            hasWrap
-                            actions={{
-                              actions: [
+                          <CardHeader>
+                            <Split hasGutter className="pf-v6-u-w-100">
+                              <SplitItem isFilled>
+                                <CardTitle>Selected models</CardTitle>
+                              </SplitItem>
+                              <SplitItem>
                                 <Watch
                                   key="edit-experiment-settings"
                                   control={form.control}
@@ -1069,11 +1071,9 @@ function AutoragConfigure({
                                       Edit
                                     </Button>
                                   )}
-                                />,
-                              ],
-                            }}
-                          >
-                            <CardTitle>Selected models</CardTitle>
+                                />
+                              </SplitItem>
+                            </Split>
                           </CardHeader>
                           <CardBody>
                             <Stack hasGutter>

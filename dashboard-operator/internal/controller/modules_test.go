@@ -426,3 +426,29 @@ func TestModuleNames(t *testing.T) {
 		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
 }
+
+func TestProxyPathsFor(t *testing.T) {
+	tests := []struct {
+		name   string
+		module string
+		want   []proxyRoute
+	}{
+		{"modelRegistry_default", "modelRegistry", []proxyRoute{{Path: "/model-registry/api", PathRewrite: "/api"}}},
+		{"genAi_default", "genAi", []proxyRoute{{Path: "/gen-ai/api", PathRewrite: "/api"}}},
+		{"maas_default", "maas", []proxyRoute{{Path: "/maas/api", PathRewrite: "/api"}}},
+		{"evalHub_default", "evalHub", []proxyRoute{{Path: "/eval-hub/api", PathRewrite: "/api"}}},
+		{"automl_default", "automl", []proxyRoute{{Path: "/automl/api", PathRewrite: "/api"}}},
+		{"autorag_default", "autorag", []proxyRoute{{Path: "/autorag/api", PathRewrite: "/api"}}},
+		{"notebooks_default", "notebooks", []proxyRoute{{Path: "/notebooks/api", PathRewrite: "/api"}}},
+		{"mlflow_custom", "mlflow", []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}}},
+		{"agentOps_custom", "agentOps", []proxyRoute{
+			{Path: "/agent-ops/api", PathRewrite: "/api"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, proxyPathsFor(moduleRegistry[tt.module]))
+		})
+	}
+}

@@ -75,6 +75,7 @@ export type VolumeInfo = {
   owner?: string;
   'created-at'?: string;
   'updated-at'?: string;
+  labels?: string[];
   properties?: Record<string, string>;
   config?: Record<string, string>;
 };
@@ -97,8 +98,26 @@ export type CreateNamespaceRequest = {
   properties?: Record<string, string>;
 };
 
+export type CreateVolumeRequest = {
+  name: string;
+  location?: string;
+  content_type?: string;
+  connection_ref?: ConnectionRef | null;
+  description?: string;
+  labels?: string[];
+  properties?: Record<string, string>;
+};
+
 export type LabelListResponse = {
   labels: string[];
+};
+
+export type CreateLabelRequest = {
+  name: string;
+};
+
+export type LabelResponse = {
+  name: string;
 };
 
 export type ErrorResponse = {

@@ -15,11 +15,11 @@ Distributions live in `distributions/` — three are independently-deployable da
 | Directory | Type | Has BFF? | Build |
 |-----------|------|----------|-------|
 | `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `npm run build` |
-| `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | `make build` |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | `make build` |
 | `rhaii/` | RHAII-specific distribution | No | `npm run build` |
-| `maas-customer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | `npm run build` |
+| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | `npm run build` |
 
-> **`base/` is a library, not a deployable distribution.** It provides the shared app shell framework (masthead, sidebar, error boundary, theme context, extensibility hooks) that concrete distributions like `core-bff/`, `rhaii/`, and `maas-customer-portal/` extend. Do not treat it as a standalone application.
+> **`base/` is a library, not a deployable distribution.** It provides the shared app shell framework (masthead, sidebar, error boundary, theme context, extensibility hooks) that concrete distributions like `core-bff/`, `rhaii/`, and `maas-consumer-portal/` extend. Do not treat it as a standalone application.
 
 ## Workspace integration
 
@@ -29,8 +29,8 @@ Turbo-based commands run on any distribution that defines the matching script:
 
 ```bash
 # These Turbo commands DO cover distributions
-npm run lint          # runs lint on base, core-bff, rhaii, maas-customer-portal (all define "lint")
-npm run type-check    # runs type-check on base, rhaii, maas-customer-portal (all define "type-check")
+npm run lint          # runs lint on base, core-bff, rhaii, maas-consumer-portal (all define "lint")
+npm run type-check    # runs type-check on base, rhaii, maas-consumer-portal (all define "type-check")
 npm run test:contract # runs test:contract on core-bff (defines "test:contract")
 ```
 

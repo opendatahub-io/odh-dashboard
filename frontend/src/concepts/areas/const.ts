@@ -308,4 +308,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
   },
+  [SupportedArea.GUIDED_TOUR]: {
+    // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
+    devFlags: ['guidedTour'],
+  },
 };

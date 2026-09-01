@@ -85,7 +85,6 @@ func TestIntegration_Example(t *testing.T) {
     }
 
     dashboard := newDashboard(v1alpha1.DashboardSpec{
-        DeploymentMode: v1alpha1.DeploymentModeStandalone,
         Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
         Modules:        disableAllModulesExcept("genAi"),
     })
