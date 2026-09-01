@@ -77,6 +77,7 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
@@ -97,7 +98,7 @@ module.exports = merge(
           },
           pathRewrite: { '^/_bff/mlflow/api': '/api' },
           changeOrigin: true,
-          onProxyReq,
+          on: { proxyReq: onProxyReq },
         },
       ],
       devMiddleware: {
@@ -113,7 +114,9 @@ module.exports = merge(
       onListening: (devServer) => {
         if (devServer) {
           console.log(
-            `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
+            `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${
+              devServer.server.address().port
+            }\x1b[0m`,
           );
         }
       },
@@ -132,9 +135,6 @@ module.exports = merge(
         },
       ],
     },
-    plugins: [
-      new TsCheckerRspackPlugin(),
-      new ReactRefreshRspackPlugin({ overlay: false }),
-    ],
+    plugins: [new TsCheckerRspackPlugin(), new ReactRefreshRspackPlugin({ overlay: false })],
   },
 );
