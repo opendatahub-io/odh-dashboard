@@ -5,7 +5,10 @@ import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-point
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
 import { useQueryParamNamespaces } from 'mod-arch-core';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
-import { shouldShowValidatedInsights } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  isModelValidated,
+  hasPerformanceArtifacts,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import ModelDetailsView from './ModelDetailsView';
 import PerformanceInsightsView from './PerformanceInsightsView';
@@ -39,7 +42,9 @@ const ModelDetailsTabs = ({
   const queryParams = useQueryParamNamespaces();
   const namespace = typeof queryParams.namespace === 'string' ? queryParams.namespace : undefined;
 
-  const showValidatedInsights = shouldShowValidatedInsights(model, artifacts.items);
+  // Show tab optimistically while loading to prevent ExtensibleDetailTabs from redirecting away
+  const showValidatedInsights =
+    isModelValidated(model) && (!artifactLoaded || hasPerformanceArtifacts(artifacts.items));
 
   const componentProps = React.useMemo(
     () => ({ modelName: model.name, sourceId, namespace }),

@@ -54,13 +54,22 @@ const useShouldShowResults = <TExtension extends Extension<string, DetailTabProp
           setResults((prev) => (prev[ext.uid] === result ? prev : { ...prev, [ext.uid]: result }));
         }
       } else {
-        result.then((visible) => {
-          if (!cancelled) {
-            setResults((prev) =>
-              prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
-            );
-          }
-        });
+        result.then(
+          (visible) => {
+            if (!cancelled) {
+              setResults((prev) =>
+                prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
+              );
+            }
+          },
+          () => {
+            if (!cancelled) {
+              setResults((prev) =>
+                prev[ext.uid] === false ? prev : { ...prev, [ext.uid]: false },
+              );
+            }
+          },
+        );
       }
     });
 
