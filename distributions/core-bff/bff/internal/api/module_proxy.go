@@ -172,8 +172,14 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 		if e.service.Path == "" {
 			return fmt.Errorf("entry %s has empty proxy path", e.entryName)
 		}
+		if e.service.Path == "/" {
+			return fmt.Errorf("entry %s uses root path / which conflicts with the SPA catch-all", e.entryName)
+		}
 		if !strings.HasPrefix(e.service.Path, "/") {
 			return fmt.Errorf("entry %s has non-rooted proxy path %s (must start with /)", e.entryName, e.service.Path)
+		}
+		if strings.HasSuffix(e.service.Path, "/") {
+			return fmt.Errorf("entry %s has trailing slash in proxy path %s (will be appended automatically)", e.entryName, e.service.Path)
 		}
 	}
 
