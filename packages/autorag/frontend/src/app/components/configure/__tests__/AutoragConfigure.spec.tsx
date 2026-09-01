@@ -9,6 +9,7 @@ import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { ConnectionModalProps } from '@odh-dashboard/autox-core/ui/components/feature';
 import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
@@ -36,6 +37,7 @@ const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const mockNotificationError = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
+let mockConnectionModalProps: ConnectionModalProps | undefined;
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
@@ -142,6 +144,10 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
 
   return {
     __esModule: true,
+    ConnectionModal: (props: ConnectionModalProps) => {
+      mockConnectionModalProps = props;
+      return null;
+    },
     SecretSelector: ({
       onChange,
       value,
@@ -398,6 +404,7 @@ function dropFilesOnKnowledgeUploadZone(files: File[]): void {
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConnectionModalProps = undefined;
     mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
@@ -406,6 +413,22 @@ describe('AutoragConfigure', () => {
   });
 
   describe('initial state - no secret selected', () => {
+    it('should provide AutoRAG error mapping and retry wording to the shared modal', () => {
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: 'Add new connection' }));
+
+      const props = mockConnectionModalProps;
+      expect(props?.retryAlertTitle).toBe(
+        'This connection was created. Retry saving it, or cancel to discard it.',
+      );
+      expect(props?.getCreateError(new Error('backend detail')).message).toBe(
+        'Failed to create the S3 connection. Please check your connection details and try again.',
+      );
+      expect(props?.getSubmitError(new Error('backend detail')).message).toBe(
+        'The connection was created, but AutoRAG could not select it. Retry saving it.',
+      );
+    });
+
     it('should display an empty state when no secret is selected', () => {
       renderComponent();
 

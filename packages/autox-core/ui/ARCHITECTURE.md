@@ -117,6 +117,11 @@ set/actions hook via strategy), `ConnectionModal`, `ProjectSelectorNavigator`
 (secret-list fetching and generic required-key validation; secret type vocabulary is
 supplied by the consuming product).
 
+`ConnectionModal` is an AutoX feature because it owns connection-type selection, Secret assembly,
+and the retry-lock state machine. Its flat outcome and error callbacks keep product tracking,
+failure presentation, and retry wording in AutoML/AutoRAG while the shared feature owns the form,
+Secret creation, duplicate-submit protection, and created-Secret reuse.
+
 ### Feature (product — automl/autorag)
 
 Only created when real product-specific behavior exists. A product-feature wrapper

@@ -26,3 +26,5 @@ export { default as RunInProgress } from './RunInProgress';
 export { default as StopRunModal } from './StopRunModal';
 export { default as SecretSelector } from './SecretSelector';
 export type { SecretSelection, SecretSelectorProps } from './SecretSelector';
+export { default as ConnectionModal } from './ConnectionModal';
+export type { ConnectionModalOutcome, ConnectionModalProps } from './ConnectionModal';

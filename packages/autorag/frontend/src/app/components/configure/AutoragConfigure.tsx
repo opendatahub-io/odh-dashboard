@@ -68,13 +68,13 @@ import {
   useUIErrorHandler,
   isUIError,
 } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { ConnectionModal } from '@odh-dashboard/autox-core/ui/components/feature';
 import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import {
   SecretSelector,
   type SecretSelection,
 } from '@odh-dashboard/autox-core/ui/components/feature';
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
-import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
@@ -104,6 +104,7 @@ import {
 } from '~/app/utilities/dropzoneFileUpload';
 import {
   AUTORAG_FAILURE_CATEGORY,
+  fireAutoragS3ConnectionCreated,
   fireAutoragKnowledgeSourceConfigured,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
@@ -1174,7 +1175,7 @@ function AutoragConfigure({
       </Grid>
 
       {isConnectionModalOpen && (
-        <AutoragConnectionModal
+        <ConnectionModal
           connectionTypes={autoragConnectionTypes}
           project={namespace}
           onClose={() => {
@@ -1198,6 +1199,25 @@ function AutoragConfigure({
               });
             }
           }}
+          onOutcome={(outcome) =>
+            fireAutoragS3ConnectionCreated({
+              outcome:
+                outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              ...(outcome.success === false && { error: 'actionFailed' }),
+              ...(outcome.success !== undefined && { success: outcome.success }),
+            })
+          }
+          getCreateError={() =>
+            new Error(
+              'Failed to create the S3 connection. Please check your connection details and try again.',
+            )
+          }
+          getSubmitError={() =>
+            new Error(
+              'The connection was created, but AutoRAG could not select it. Retry saving it.',
+            )
+          }
+          retryAlertTitle="This connection was created. Retry saving it, or cancel to discard it."
         />
       )}
       <S3FileExplorer

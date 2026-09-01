@@ -7,7 +7,11 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { ConnectionModalProps } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -18,14 +22,17 @@ import {
 } from '~/app/utilities/automlTrainingDataFile';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
+let mockConnectionModalProps: ConnectionModalProps | undefined;
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -94,6 +101,10 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
 
   return {
     __esModule: true,
+    ConnectionModal: (props: ConnectionModalProps) => {
+      mockConnectionModalProps = props;
+      return null;
+    },
     SecretSelector: ({
       onChange,
       value,
@@ -168,11 +179,6 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
 
 jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [[]],
-}));
-
-jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
-  __esModule: true,
-  default: () => null,
 }));
 
 // Mock DashboardPopupIconButton (match ConfigureFormGroup tests)
@@ -346,6 +352,7 @@ function dropFilesOnTrainingDataUploadZone(files: File[]): void {
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConnectionModalProps = undefined;
     mockNotificationError.mockClear();
     mockuseS3GetFileSchemaQuery.mockReturnValue({
       data: MOCK_COLUMNS,
@@ -358,6 +365,22 @@ describe('AutomlConfigure', () => {
   });
 
   describe('initial state - no secret selected', () => {
+    it('should provide the shared modal with the AutoML tracking and error callbacks', () => {
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: 'Add new connection' }));
+
+      const props = mockConnectionModalProps;
+      props?.onOutcome({ outcome: 'submit', success: false });
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+        outcome: 'submit',
+        success: false,
+        error: 'actionFailed',
+      });
+      expect(props?.getCreateError('backend detail').message).toBe('backend detail');
+      expect(props?.getSubmitError('backend detail').message).toBe('backend detail');
+    });
+
     it('should NOT show training data source toggle when no secret is selected', () => {
       renderComponent();
 

@@ -54,13 +54,13 @@ import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { ConfigureFormGroup } from '@odh-dashboard/autox-core/ui/components/primitive';
-import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import {
+  ConnectionModal,
   SecretSelector,
   type SecretSelection,
 } from '@odh-dashboard/autox-core/ui/components/feature';
+import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
-import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -98,8 +98,10 @@ import {
 } from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
+  fireAutomlS3ConnectionCreated,
   fireAutomlTargetColumnConfigured,
   fireAutomlTrainingDataConfigured,
+  TrackingOutcome,
   type AutomlFunnelStep,
 } from '~/app/utilities/tracking';
 import LoadingFormField from './LoadingFormField';
@@ -1172,7 +1174,7 @@ function AutomlConfigure({
       </Grid>
 
       {isConnectionModalOpen && (
-        <AutomlConnectionModal
+        <ConnectionModal
           connectionTypes={automlConnectionTypes}
           project={namespace}
           onClose={() => {
@@ -1204,6 +1206,16 @@ function AutomlConfigure({
               setNewConnectionNotLoaded(true);
             }
           }}
+          onOutcome={(outcome) =>
+            fireAutomlS3ConnectionCreated({
+              outcome:
+                outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              ...(outcome.success === false && { error: 'actionFailed' }),
+              ...(outcome.success !== undefined && { success: outcome.success }),
+            })
+          }
+          getCreateError={(error) => (error instanceof Error ? error : new Error(String(error)))}
+          getSubmitError={(error) => (error instanceof Error ? error : new Error(String(error)))}
         />
       )}
       <S3FileExplorer
