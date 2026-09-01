@@ -76,7 +76,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     inferenceService.metadata.name,
   );
 
-  const [bindingStateInfo] = useHardwareProfileBindingState(
+  const [bindingStateInfo, bindingStateLoaded, bindingStateError] = useHardwareProfileBindingState(
     inferenceService,
     MODEL_SERVING_VISIBILITY,
   );
@@ -119,11 +119,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     if (dontShowModalValue) {
       setIsStarting(false);
       setIsStopping(true);
-      patchInferenceServiceStoppedStatus(
-        inferenceService,
-        'true',
-        deletedHardwareProfilePatches,
-      ).then(refresh);
+      patchInferenceServiceStoppedStatus(inferenceService, 'true', deletedHardwareProfilePatches)
+        .then(refresh)
+        .catch(() => setIsStopping(false));
     } else {
       setOpenConfirm(true);
     }
@@ -220,6 +218,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           }}
           onStart={onStart}
           onStop={onStop}
+          isDisabled={!bindingStateLoaded && !bindingStateError}
           isDisabledWhileStarting={false}
         />
       </Td>
@@ -261,7 +260,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 inferenceService,
                 'true',
                 deletedHardwareProfilePatches,
-              ).then(refresh);
+              )
+                .then(refresh)
+                .catch(() => setIsStopping(false));
             }
           }}
         />

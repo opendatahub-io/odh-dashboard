@@ -62,7 +62,7 @@ export const DeploymentRow: React.FC<{
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
-  const [bindingStateInfo] = useHardwareProfileBindingState(
+  const [bindingStateInfo, bindingStateLoaded, bindingStateError] = useHardwareProfileBindingState(
     deployment.model,
     MODEL_SERVING_VISIBILITY,
   );
@@ -192,6 +192,7 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
+              isDisabled={(!bindingStateLoaded && !bindingStateError) || !formDataResolved}
               isDisabledWhileStarting={false}
             />
           ) : (

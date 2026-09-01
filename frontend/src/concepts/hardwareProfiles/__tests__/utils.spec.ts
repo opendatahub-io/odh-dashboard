@@ -1,5 +1,6 @@
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockNotebookK8sResource } from '#~/__mocks__';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import {
   getProfileScore,
   sortIdentifiers,
@@ -7,6 +8,7 @@ import {
   getExistingHardwareProfileData,
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
+  getDeletedHardwareProfilePatches,
   getUpdatedHardwareProfilePatches,
 } from '#~/concepts/hardwareProfiles/utils';
 import { HardwareProfileKind } from '#~/k8sTypes';
@@ -19,7 +21,11 @@ import {
 } from '#~/types';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
-import { HardwareProfileBindingState } from '#~/concepts/hardwareProfiles/const';
+import {
+  HardwareProfileBindingState,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH,
+} from '#~/concepts/hardwareProfiles/const';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -682,24 +688,100 @@ describe('applyHardwareProfileConfig', () => {
 });
 
 describe('getUpdatedHardwareProfilePatches', () => {
-  it('should only remove paths present on the resource', () => {
-    const patches = getUpdatedHardwareProfilePatches(
-      {
-        state: HardwareProfileBindingState.UPDATED,
-        profile: mockHardwareProfile({ resourceVersion: '999' }),
-      },
-      mockNotebookK8sResource({}),
-      NOTEBOOK_HARDWARE_PROFILE_PATHS,
-    );
+  const updatedState = {
+    state: HardwareProfileBindingState.UPDATED,
+    profile: mockHardwareProfile({ resourceVersion: '999' }),
+  };
+  const replaceResourceVersion = {
+    op: 'replace',
+    path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
+    value: '999',
+  };
+  const profileWithoutResourceVersion = mockHardwareProfile({});
+  delete profileWithoutResourceVersion.metadata.resourceVersion;
 
-    expect(patches).toStrictEqual([
-      { op: 'remove', path: '/spec/template/spec/containers/0/resources' },
-      { op: 'remove', path: '/spec/template/spec/tolerations' },
-      {
-        op: 'replace',
-        path: '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version',
-        value: '999',
-      },
+  it.each([
+    {
+      kind: 'notebook',
+      cr: mockNotebookK8sResource({}),
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+      removed: ['/spec/template/spec/containers/0/resources', '/spec/template/spec/tolerations'],
+    },
+    {
+      kind: 'inference service',
+      cr: mockInferenceServiceK8sResource({
+        resources: { requests: { cpu: '1', memory: '2Gi' }, limits: { cpu: '1', memory: '2Gi' } },
+        nodeSelector: { 'nvidia.com/gpu.present': 'true' },
+      }),
+      paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      removed: ['/spec/predictor/model/resources', '/spec/predictor/nodeSelector'],
+    },
+  ])('should only remove the paths a $kind actually sets', ({ cr, paths, removed }) => {
+    expect(getUpdatedHardwareProfilePatches(updatedState, cr, paths)).toStrictEqual([
+      ...removed.map((path) => ({ op: 'remove', path })),
+      replaceResourceVersion,
     ]);
+  });
+
+  it.each([
+    {
+      when: 'the binding state is null',
+      bindingState: null,
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+    },
+    {
+      when: 'the profile has not been updated',
+      bindingState: { state: HardwareProfileBindingState.DELETED, profile: undefined },
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+    },
+    { when: 'the resource paths are unknown', bindingState: updatedState, paths: undefined },
+    {
+      when: 'the profile has no resource version',
+      bindingState: {
+        state: HardwareProfileBindingState.UPDATED,
+        profile: profileWithoutResourceVersion,
+      },
+      paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+    },
+  ])('should return no patches when $when', ({ bindingState, paths }) => {
+    expect(
+      getUpdatedHardwareProfilePatches(bindingState, mockNotebookK8sResource({}), paths),
+    ).toStrictEqual([]);
+  });
+});
+
+describe('getDeletedHardwareProfilePatches', () => {
+  const deletedState = { state: HardwareProfileBindingState.DELETED, profile: undefined };
+
+  it('should remove the dangling annotations when the profile has been deleted', () => {
+    expect(
+      getDeletedHardwareProfilePatches(
+        deletedState,
+        mockInferenceServiceK8sResource({ hardwareProfileName: 'deleted-profile' }),
+      ),
+    ).toStrictEqual(REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH);
+  });
+
+  it.each([
+    {
+      when: 'the resource has no annotation to remove',
+      bindingState: deletedState,
+      cr: mockInferenceServiceK8sResource({}),
+    },
+    {
+      when: 'the profile has not been deleted',
+      bindingState: {
+        state: HardwareProfileBindingState.UPDATED,
+        profile: mockHardwareProfile({}),
+      },
+      cr: mockInferenceServiceK8sResource({ hardwareProfileName: 'small-profile' }),
+    },
+    {
+      when: 'the binding state is null',
+      bindingState: null,
+      cr: mockInferenceServiceK8sResource({ hardwareProfileName: 'small-profile' }),
+    },
+  ])('should return no patches when $when', ({ bindingState, cr }) => {
+    expect(getDeletedHardwareProfilePatches(bindingState, cr)).toStrictEqual([]);
   });
 });
