@@ -8,6 +8,8 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
 import { checkProjectRoleBinding } from '../../../utils/oc_commands/roleBindings';
+import { addUserToProject, waitForUserProjectAccess } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
@@ -46,9 +48,7 @@ describe('Verify that users can provide contributor project permissions to non-a
 
       // Project navigation, add user and provide contributor permissions
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.navigateToProject(projectName);
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
@@ -85,17 +85,26 @@ describe('Verify that users can provide contributor project permissions to non-a
     'Verify that user can access the created project as a Contributor',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
     () => {
-      // Authentication and navigation
+      cy.step('Ensure contributor access exists for this independently retryable test');
+      ensureAdminOcSession();
+      addUserToProject(
+        projectName,
+        LDAP_CONTRIBUTOR_USER.USERNAME,
+        testData.contributorK8sRoleName,
+      );
+
+      cy.step('Wait for contributor project access to propagate');
+      waitForUserProjectAccess(projectName, LDAP_CONTRIBUTOR_USER.USERNAME);
+
       cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      // Project navigation and validate permissions tab is accessible
+      // Project navigation and validate the contributor-only view
       cy.step(
         'Verify that the user has access to the created project but cannot access Permissions',
       );
-      projectListPage.navigate();
-      projectListPage.filterProjectByName(projectName);
-      projectListPage.findProjectLink(projectName).click();
+      projectListPage.navigateToProject(projectName);
+      projectDetails.findSectionTab('overview').should('be.visible');
       cy.log('Attempting to find permissions tab which should not be visible');
       projectDetails.findSectionTab('permissions').should('not.exist');
     },
