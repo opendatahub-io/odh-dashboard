@@ -12,6 +12,11 @@ class PlaygroundPage {
     cy.findByTestId('page-title', { timeout: 30000 })
       .should('be.visible')
       .and('contain.text', 'Playground');
+    this.waitForPlaygroundReady();
+  }
+
+  waitForPlaygroundReady(): void {
+    cy.findByTestId('chatbot', { timeout: 30000 }).should('be.visible');
   }
 
   verifyOnPlaygroundPage(expectedNamespace?: string): void {
