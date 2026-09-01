@@ -166,6 +166,7 @@ const DataRegistryPage: React.FC = () => {
             loaded={assetsLoaded && collectionsLoaded}
             error={assetsError}
             labels={labels}
+            project={selectedProject}
             onManageCollections={() => {
               if (!collectionsError) {
                 setIsCollectionsModalOpen(true);
