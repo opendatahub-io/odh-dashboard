@@ -47,9 +47,12 @@ The Gen AI BFF is a Go-based middleware service that sits between our React fron
 
 **Key Integration Points:**
 1. **Llama Stack** - LLM orchestration, RAG, vector stores, model inference
-2. **MaaS (Model as a Service)** - Hosted model inference, token management
-3. **Kubernetes** - CRD management (LlamaStackDistribution resources)
-4. **MCP (Model Context Protocol)** - External tool integration
+2. **MaaS (Model as a Service)** - Hosted model inference, token management (via MaaS BFF inter-BFF)
+3. **Kubernetes** - CRD management (LlamaStackDistribution resources), ConfigMap-backed MCP servers
+4. **MCP (Model Context Protocol)** - External tool integration; registry-sourced servers resolved via MLflow BFF
+5. **MLflow** - Prompts and MCP registry via local MLflow stack (`MOCK_MLFLOW_CLIENT=true` → tracking `:5001` + MLflow BFF `:4020`)
+
+For inter-BFF client patterns, service discovery, and network policy, see [docs/inter-bff-communication.md](../../../../docs/inter-bff-communication.md).
 
 ---
 
@@ -165,7 +168,9 @@ bff/
 │   │   └── maas_models.go         # MaaS operations
 │   ├── integrations/              # External service clients
 │   │   ├── llamastack/            # Llama Stack client
-│   │   ├── maas/                  # MaaS client
+│   │   ├── maas/                  # MaaS client (legacy; models/tokens use inter-BFF)
+│   │   ├── bffclient/             # Inter-BFF HTTP clients (MaaS BFF, MLflow BFF)
+│   │   ├── mlflow/                # Embedded MLflow SDK (local prompts dev)
 │   │   ├── kubernetes/            # K8s client
 │   │   └── mcp/                   # MCP client
 │   ├── models/                    # Data structures (DTOs)
@@ -622,20 +627,19 @@ make run \
 ---
 
 #### Option 3: Full Stack (Frontend + BFF)
-```bash
-# From gen-ai root directory
-cd packages/gen-ai
 
-# Start everything at once
-make dev-start
+From `packages/gen-ai`, use the Makefile targets below. Each starts the frontend dev server and Gen-AI BFF; some also start a sibling BFF or cluster port-forwards:
 
-# This starts:
-# - Frontend dev server (port 8080)
-# - BFF server (port 8043)
-# - Port forwarding to K8s services
-```
+| Target | Cluster | Sibling BFF | Typical use |
+|--------|---------|-------------|-------------|
+| `make dev-start` | Yes (port-forward) | — (MLflow if `MOCK_MLFLOW_CLIENT=true` in `.env.local`) | Day-to-day UI + BFF against real Llama Stack |
+| `make dev-start-maas` | Yes | MaaS BFF `:8081` | Models/tokens via MaaS inter-BFF |
+| `make dev-start-mock` | No | MLflow BFF `:4020` | Fully offline; full MLflow stack |
+| `make dev-start-mlflow` | Yes (port-forward) | MLflow BFF `:4020` | Full MLflow stack on a real cluster |
 
-**When to use:** Full feature development, UI integration testing
+For MaaS and MLflow BFF setup, seeding, and MCP registry env vars, see [bff/README.md → Inter-BFF Communication](../../bff/README.md#inter-bff-communication-gen-ai--maas).
+
+**When to use:** Full feature development, UI integration testing.
 
 ---
 
@@ -651,13 +655,20 @@ PATH_PREFIX=/gen-ai                # URL path prefix
 
 # External Services
 LLAMA_STACK_URL=http://...         # Llama Stack API base URL
-MAAS_URL=http://...                # MaaS API base URL
+MAAS_URL=http://...                # MaaS API base URL (legacy; models use inter-BFF)
+MLFLOW_URL=http://localhost:5001   # MLflow tracking URL (local stack when MOCK_MLFLOW_CLIENT=true)
+
+# Inter-BFF (local dev overrides — see inter-bff-communication.md)
+BFF_MAAS_DEV_URL=http://localhost:8081/api/v1
+BFF_MLFLOW_DEV_URL=http://localhost:4020/api/v1
+MOCK_BFF_CLIENTS=false             # Use mock inter-BFF clients (no second BFF process)
 
 # Mock Configuration
 MOCK_LS_CLIENT=true                # Use mock Llama Stack client
 MOCK_MAAS_CLIENT=true              # Use mock MaaS client
 MOCK_K8S_CLIENT=true               # Use mock Kubernetes client
 MOCK_MCP_CLIENT=true               # Use mock MCP client
+MOCK_MLFLOW_CLIENT=true            # Full local MLflow stack (:5001 tracking + :4020 MLflow BFF)
 
 # Authentication
 AUTH_METHOD=user_token             # disabled | user_token
@@ -719,11 +730,19 @@ GEMINI_API_KEY=<key> make llamastack-record
 - Response transformations
 - Error handling
 - Mock client behavior
+- Inter-BFF handlers via `bffclient/bffmocks/` — registry list pagination, `server_name` resolution, graceful degradation when BFF client is nil
 
 ---
 
-#### 2. **Integration Tests** 
-** Working in progress **
+#### 2. **Integration Tests**
+
+No automated integration test suite boots Gen-AI BFF + MLflow BFF + MLflow tracking end-to-end. Verify MCP registry flows manually:
+
+- Start the stack: `make dev-start-mock` (offline), `make dev-start-mlflow` (cluster), or `make dev-start` with `MOCK_MLFLOW_CLIENT=true` in `.env.local`
+- Check `GET /gen-ai/api/v1/aaa/mcps?namespace=default` returns `registry_available: true` with servers tagged `source: "registry"`
+- Verify tools/status with `server_name` (registry path); see [bff/README.md](../../bff/README.md#inter-bff-communication-gen-ai--mlflow) for curl examples and the full [smoke script gist](https://gist.github.com/Lucifergene/905504de7f4c3e85c9e43e234374e11b)
+
+Contract tests under `packages/gen-ai/contract-tests/` cover MLflow prompt inter-BFF shapes.
 
 ---
 
@@ -751,6 +770,7 @@ curl -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 - `internal/integrations/maas/maasmocks/` - MaaS mocks
 - `internal/integrations/kubernetes/k8smocks/` - K8s mocks
 - `internal/integrations/mcp/mcpmocks/` - MCP mocks
+- `internal/integrations/bffclient/bffmocks/` - Inter-BFF mocks (MaaS BFF, MLflow BFF)
 
 ---
 
@@ -869,6 +889,7 @@ make dev-start-debug
 2. **README Files**
    - Main: `packages/gen-ai/README.md`
    - BFF: `packages/gen-ai/bff/README.md`
+   - Inter-BFF (repo-wide): `docs/inter-bff-communication.md`
 
 3. **OpenAPI Documentation**
    - Spec: `packages/gen-ai/bff/openapi/src/gen-ai.yaml`
@@ -896,7 +917,7 @@ make dev-start-debug
 
 ---
 
-*Last Updated: December 2025*  
+*Last Updated: September 2026*  
 *Version: 1.0*  
 *Maintainer: Gen AI Team*
 

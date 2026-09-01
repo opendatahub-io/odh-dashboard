@@ -9,7 +9,7 @@ import (
 
 type MCPToolsEnvelope = Envelope[*models.ToolsStatus, None]
 
-// MCPToolsHandler handles GET /genai/v1/mcp/tools?namespace=<>&server_url=<>
+// MCPToolsHandler handles GET /genai/v1/mcp/tools?namespace=<>&server_url=<> or server_name=<>
 func (app *App) MCPToolsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -19,16 +19,27 @@ func (app *App) MCPToolsHandler(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	_, _, decodedURL, err := app.parseMCPEndpointParams(r, true)
+	namespace, _, decodedURL, serverName, err := app.parseMCPToolsStatusParams(r)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	serverConfig, err := app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL, app.dashboardNamespace)
-	if err != nil {
-		app.notFoundResponse(w, r)
-		return
+	var serverConfig models.MCPServerConfig
+
+	if serverName != "" {
+		mlflowClient := app.mlflowBFFClient(ctx)
+		serverConfig, err = app.resolveRegistryServerConfig(ctx, namespace, serverName, mlflowClient)
+		if err != nil {
+			app.handleRegistryResolveError(w, r, err)
+			return
+		}
+	} else {
+		serverConfig, err = app.findMCPServerConfig(ctx, k8sClient, identity, decodedURL, app.dashboardNamespace)
+		if err != nil {
+			app.notFoundResponse(w, r)
+			return
+		}
 	}
 
 	toolsStatus, err := app.repositories.MCPClient.ListMCPServerToolsWithStatus(ctx, identity, serverConfig)

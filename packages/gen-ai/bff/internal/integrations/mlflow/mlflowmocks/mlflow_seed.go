@@ -21,9 +21,12 @@ const seedTimeout = 30 * time.Second
 
 const (
 	kubernetesMCPRegistryName = "com.example/kubernetes"
-	draftMCPRegistryName      = "io.github.example/tools-draft"
+	githubMCPRegistryName     = "io.github.example/github"
+	braveMCPRegistryName      = "com.brave.example/brave"
 	kubernetesMCPVersion      = "1.0.0"
-	draftMCPVersion           = "0.1.0"
+	githubMCPVersion          = "1.0.0"
+	braveMCPVersion           = "0.1.0"
+	githubMCPFakeEndpoint     = "https://github-mcp.example.com/mcp"
 )
 
 // SeedMCPRegistry registers sample MCP servers in the local MLflow MCP Registry.
@@ -36,7 +39,8 @@ const (
 // if that env var is non-empty.
 //
 // Servers registered per workspace:
-//   - A draft server (io.github.example/tools-draft) — always seeded
+//   - Brave draft server (com.brave.example/brave) — no access endpoint
+//   - GitHub active server (io.github.example/github) — fake endpoint + 3 registry tools
 //   - A Kubernetes MCP server (com.example/kubernetes) — seeded only when
 //     KUBERNETES_MCP_SERVER_URL is set; skipped with a log message otherwise
 //
@@ -136,7 +140,11 @@ func seedMCPRegistryInWorkspace(trackingURI, workspace, kubernetesMCPServerURL s
 }
 
 func seedKubernetesMCPInRegistry(ctx context.Context, reg *mcpregistry.Client, kubernetesMCPServerURL string, logger *slog.Logger) error {
-	if err := seedDraftMCPServer(ctx, reg, logger); err != nil {
+	if err := seedBraveDraftMCPServer(ctx, reg, logger); err != nil {
+		return err
+	}
+
+	if err := seedGitHubActiveMCPServer(ctx, reg, logger); err != nil {
 		return err
 	}
 
@@ -155,6 +163,7 @@ func seedKubernetesMCPInRegistry(ctx context.Context, reg *mcpregistry.Client, k
 		"Manage resources in a Kubernetes cluster.",
 		kubernetesMCPVersion,
 		kubernetesURL,
+		nil,
 	); err != nil {
 		return err
 	}
@@ -166,36 +175,61 @@ func seedKubernetesMCPInRegistry(ctx context.Context, reg *mcpregistry.Client, k
 	return nil
 }
 
-func seedDraftMCPServer(ctx context.Context, reg *mcpregistry.Client, logger *slog.Logger) error {
-	if _, err := reg.GetMCPServer(ctx, draftMCPRegistryName); err == nil {
+func seedBraveDraftMCPServer(ctx context.Context, reg *mcpregistry.Client, logger *slog.Logger) error {
+	if _, err := reg.GetMCPServer(ctx, braveMCPRegistryName); err == nil {
 		logger.Debug("MCP registry server already exists, skipping seed",
-			slog.String("name", draftMCPRegistryName),
+			slog.String("name", braveMCPRegistryName),
 		)
 		return nil
 	}
 
-	_, err := reg.CreateMCPServer(ctx, draftMCPRegistryName,
-		mcpregistry.WithServerDescription("Draft MCP server for filter and status UI testing."),
+	_, err := reg.CreateMCPServer(ctx, braveMCPRegistryName,
+		mcpregistry.WithServerDescription("Brave browser MCP server (draft, not yet deployed)"),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create draft MCP server %s: %w", draftMCPRegistryName, err)
+		return fmt.Errorf("failed to create brave draft MCP server %s: %w", braveMCPRegistryName, err)
 	}
 
 	serverJSON := map[string]any{
-		"name":        draftMCPRegistryName,
-		"description": "Draft tools server for local dev.",
-		"version":     draftMCPVersion,
+		"name":        braveMCPRegistryName,
+		"description": "Brave browser MCP server (draft, not yet deployed)",
+		"version":     braveMCPVersion,
 	}
 
-	_, err = reg.CreateMCPServerVersion(ctx, draftMCPRegistryName, serverJSON,
+	_, err = reg.CreateMCPServerVersion(ctx, braveMCPRegistryName, serverJSON,
 		mcpregistry.WithVersionStatus(mcpregistry.MCPServerVersionStatusDraft),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create draft MCP server version %s: %w", draftMCPRegistryName, err)
+		return fmt.Errorf("failed to create brave draft MCP server version %s: %w", braveMCPRegistryName, err)
 	}
 
-	logger.Debug("Seeded draft MCP registry server", slog.String("name", draftMCPRegistryName))
+	logger.Debug("Seeded brave draft MCP registry server", slog.String("name", braveMCPRegistryName))
 	return nil
+}
+
+func seedGitHubActiveMCPServer(ctx context.Context, reg *mcpregistry.Client, logger *slog.Logger) error {
+	if _, err := reg.GetMCPServer(ctx, githubMCPRegistryName); err == nil {
+		logger.Debug("MCP registry server already exists, skipping seed", slog.String("name", githubMCPRegistryName))
+		return nil
+	}
+
+	githubTools := []mcpregistry.MCPTool{
+		{Name: "create_github_issue", Description: "Create a new GitHub issue"},
+		{Name: "search_repositories", Description: "Search GitHub repositories"},
+		{Name: "get_file_contents", Description: "Get contents of a file from a repo"},
+	}
+
+	return seedActiveMCPServer(
+		ctx,
+		reg,
+		logger,
+		githubMCPRegistryName,
+		"GitHub MCP Server",
+		"GitHub MCP server for issue and repo management.",
+		githubMCPVersion,
+		githubMCPFakeEndpoint,
+		githubTools,
+	)
 }
 
 func seedActiveMCPServer(
@@ -203,6 +237,7 @@ func seedActiveMCPServer(
 	reg *mcpregistry.Client,
 	logger *slog.Logger,
 	name, displayName, description, version, endpointURL string,
+	tools []mcpregistry.MCPTool,
 ) error {
 	if _, err := reg.GetMCPServer(ctx, name); err == nil {
 		logger.Debug("MCP registry server already exists, skipping seed", slog.String("name", name))
@@ -222,10 +257,15 @@ func seedActiveMCPServer(
 		"version":     version,
 	}
 
-	_, err = reg.CreateMCPServerVersion(ctx, name, serverJSON,
+	versionOpts := []mcpregistry.CreateMCPServerVersionOption{
 		mcpregistry.WithVersionDisplayName(displayName),
 		mcpregistry.WithVersionStatus(mcpregistry.MCPServerVersionStatusActive),
-	)
+	}
+	if len(tools) > 0 {
+		versionOpts = append(versionOpts, mcpregistry.WithVersionTools(tools))
+	}
+
+	_, err = reg.CreateMCPServerVersion(ctx, name, serverJSON, versionOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to create MCP server version %s: %w", name, err)
 	}

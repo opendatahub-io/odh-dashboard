@@ -165,6 +165,26 @@ SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_url=$SERVER_URL"
 ```
 
+**Get MCP Server Tools (registry path — requires MLflow BFF):**
+
+```bash
+# server_name identifies a registry-sourced server; BFF resolves the endpoint via MLflow BFF.
+# Requires MOCK_MLFLOW_CLIENT=true (full MLflow stack — see Inter-BFF Communication section below).
+SERVER_NAME="com.example%2Fkubernetes"
+curl -i -H "Authorization: Bearer $TOKEN" \
+     "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_name=$SERVER_NAME"
+```
+
+**Get MCP Server Status (registry path — requires MLflow BFF):**
+
+```bash
+SERVER_NAME="com.example%2Fkubernetes"
+curl -i -H "Authorization: Bearer $TOKEN" \
+     "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_name=$SERVER_NAME"
+```
+
+> `server_name` takes priority over `server_url` when both are provided. Encode the `/` in the name: `com.example/kubernetes` → `com.example%2Fkubernetes`.
+
 **Optional: With MCP Server Authentication:**
 
 ```bash
@@ -634,22 +654,21 @@ which starts the MaaS BFF alongside the gen-ai BFF (see [Inter-BFF Communication
 
 #### 6. Mock MLflow Client
 
-The MLflow mock connects to a real local MLflow instance (unlike other mocks that use hardcoded data).
-When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically:
+When `MOCK_MLFLOW_CLIENT=true`, dev targets start the **full local MLflow stack**: tracking server on `:5001` (prompts + MCP registry DB) and MLflow BFF on `:4020` (registry API for Gen-AI inter-BFF). The Gen-AI BFF:
 
-1. Starts a local MLflow server as a child process on port 5001 (via `uv run mlflow server`)
+1. Starts a local MLflow tracking server as a child process on port 5001 (via `uv run mlflow server`)
 2. Seeds it with sample **prompt templates** (vet appointments, pet health, medication reminders)
 3. Seeds the **MCP registry** with a draft server and optionally a real Kubernetes MCP server
 4. Stops MLflow on BFF shutdown and cleans up the local database
 
-Seeding is **idempotent**: prompts and MCP servers that already exist are skipped on restart.
+`make dev-start`, `dev-start-mock`, and `dev-start-mlflow` all start MLflow BFF when this flag is set (or hardcoded). Seeding is **idempotent**: prompts and MCP servers that already exist are skipped on restart.
 
 If MLflow is already running on port 5001 (e.g. from `make mlflow-up`), the BFF reuses it and seeds without restarting. If `MLFLOW_TRACKING_URI` is already set, the BFF skips managing MLflow entirely and connects to that URI.
 
 **Environment Variables:**
 
-- `MOCK_MLFLOW_CLIENT=true`: Enables mock MLflow client (auto-starts, seeds, and stops local MLflow)
-- `MOCK_MLFLOW_CLIENT=false` (or not set): Uses configured `MLFLOW_URL`
+- `MOCK_MLFLOW_CLIENT=true`: Full local MLflow stack (tracking `:5001` + MLflow BFF `:4020` via `BFF_MLFLOW_DEV_URL`)
+- `MOCK_MLFLOW_CLIENT=false` (or not set): Uses configured `MLFLOW_URL` only; no MLflow BFF
 - `MLFLOW_URL`: MLflow tracking server URL (production/real mode)
 - `MLFLOW_TRACKING_URI`: When set, the BFF skips starting MLflow and connects to this URI instead
 - `PLAYGROUND_NAMESPACE`: OpenShift project namespace — the BFF creates a matching MLflow workspace and seeds both `default` and this workspace with prompts + MCP servers (reads from env, not a CLI flag)
@@ -667,7 +686,7 @@ make deploy-k8s-mcp
 #   INSECURE_SKIP_VERIFY=true
 ```
 
-Copy the printed values to `packages/gen-ai/.env.local`. On the next `make dev-start`, the BFF registers the server in the MCP registry automatically.
+Copy the printed values to `packages/gen-ai/.env.local`. On the next BFF restart with `MOCK_MLFLOW_CLIENT=true`, the server is registered in the MLflow MCP registry database and exposed via the Gen-AI list API (`/aaa/mcps`).
 
 #### 7. Combined Mock Mode (All Services)
 
@@ -1486,31 +1505,31 @@ make dev-start-mock
 
 ## Inter-BFF Communication (Gen-AI → MLflow)
 
-The Gen-AI BFF calls the MLflow BFF for prompts and other MLflow-backed APIs via inter-BFF HTTP (`BFF_MLFLOW_DEV_URL`).
+The Gen-AI BFF calls the MLflow BFF for prompts, MCP registry, and other MLflow-backed APIs via inter-BFF HTTP (`BFF_MLFLOW_DEV_URL`).
 
-### Local Dev Flow (recommended)
+### Local development
 
-The simplest way to develop against a local MLflow instance — **no separate MLflow process to manage**:
+`MOCK_MLFLOW_CLIENT=true` starts the **full** local MLflow stack: tracking on `:5001` (seeded with prompts and MCP registry rows) and MLflow BFF on `:4020`. Prompts and MCP registry APIs both work whenever this flag is active.
 
-1. Add to `packages/gen-ai/.env.local`:
+| Command | Cluster | MLflow |
+|---------|---------|--------|
+| `make dev-start` | Yes | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`) |
+| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes | Full stack |
+| `make dev-start-mock` | No | Full stack (hardcoded) |
+| `make dev-start-mlflow` | Yes | Full stack (hardcoded) |
 
-   ```bash
-   MOCK_MLFLOW_CLIENT=true
-   MLFLOW_URL=http://localhost:5001
-   PLAYGROUND_NAMESPACE=<your-openshift-namespace>   # optional but recommended
-   ```
+```bash
+# Fully local — no cluster
+make dev-start-mock
 
-2. Run as normal:
+# Real cluster + port-forwards (no .env.local MLflow vars needed)
+make dev-start-mlflow
 
-   ```bash
-   # From packages/gen-ai — with cluster port-forwards
-   make dev-start
+# Your usual dev-start — add MOCK_MLFLOW_CLIENT=true to .env.local for full MLflow
+make dev-start
+```
 
-   # From packages/gen-ai — fully local, no cluster required
-   make dev-start-mock
-   ```
-
-When the BFF starts, `SetupMLflow` automatically:
+When the BFF starts with `MOCK_MLFLOW_CLIENT=true`, `SetupMLflow` automatically:
 - Starts a local MLflow server on `:5001`
 - Seeds sample **prompts** in the `default` workspace (and `PLAYGROUND_NAMESPACE` if set)
 - Seeds the **MCP registry** with a draft server (and a Kubernetes MCP server if `KUBERNETES_MCP_SERVER_URL` is set)
@@ -1521,12 +1540,13 @@ When the BFF starts, `SetupMLflow` automatically:
 | What | Workspaces | Source | Without env var |
 |------|-----------|--------|----------------|
 | Prompt templates (4 samples) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
-| Draft MCP server (`io.github.example/tools-draft`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
-| Kubernetes MCP server (`com.example/kubernetes`) | `default` + `PLAYGROUND_NAMESPACE` | `KUBERNETES_MCP_SERVER_URL` env var | skipped — only the draft server is registered |
+| Draft MCP server (`com.brave.example/brave`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded (filtered from list — no endpoint) |
+| Active GitHub MCP server (`io.github.example/github`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
+| Kubernetes MCP server (`com.example/kubernetes`) | `default` + `PLAYGROUND_NAMESPACE` | `KUBERNETES_MCP_SERVER_URL` env var | skipped |
 
 Seeding is idempotent — prompts and MCP servers that already exist are skipped on restart.
 
-> **Failsafe:** If `KUBERNETES_MCP_SERVER_URL` is not set, seeding still succeeds with just the draft MCP server registered. You can add the env var later and restart the BFF to pick it up — no data is lost.
+> **Failsafe:** If `KUBERNETES_MCP_SERVER_URL` is not set, seeding still succeeds with the Brave draft and GitHub active servers. You can add the env var later and restart the BFF to pick it up — no data is lost.
 
 ### Optional: Deploy Kubernetes MCP Server to Cluster
 
@@ -1545,7 +1565,7 @@ KUBERNETES_MCP_SERVER_URL=https://kubernetes-mcp-server-mcp-servers.apps.<cluste
 INSECURE_SKIP_VERIFY=true
 ```
 
-Copy those two lines to `.env.local`. On the next BFF startup, the server is registered in the MCP registry automatically.
+Copy those two lines to `.env.local`. On the next BFF restart with `MOCK_MLFLOW_CLIENT=true`, the server is registered in the MLflow MCP registry and exposed via the Gen-AI `/aaa/mcps` API.
 
 ### Manual Seed (without restarting BFF)
 
