@@ -104,7 +104,7 @@ depending on who's calling it. If a product needs to supply different data to a
 hook-owning feature, it does so via a strategy object, not by pre-fetching on
 its behalf.
 
-Examples: `InvalidExperiment`/`InvalidPipelineRun`/`NoProjects`/`RunInProgress`
+Examples: `InvalidExperiment`/`InvalidPipelineRun`/`InvalidProject`/`NoProjects`/`RunInProgress`
 (domain-vocabulary wrappers around `ActionableEmptyState`, no data hooks),
 `PipelineServerStarting` (wraps `SpinnerEmptyState`, imports
 `pipelinesBaseRoute`), `EnableManagedPipelinesModal` (wraps `ConfirmationModal`,
@@ -112,7 +112,8 @@ imports `ManagedPipelinesSettingsSection`), `EmptyExperimentsState` (wraps
 ui-core's `EmptyDetailsView`), `TopologyVis` (tree view + stage-status
 resolution behind a strategy object), `Leaderboard` (`SortableLeaderboardTable`;
 column definitions/formatters via strategy), `PipelineRunsTable` (column
-set/actions hook via strategy), `ConnectionModal`.
+set/actions hook via strategy), `ConnectionModal`, `ProjectSelectorNavigator`
+(namespace persistence with product routing/tracking callbacks).
 
 ### Feature (product — automl/autorag)
 
