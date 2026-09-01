@@ -10,6 +10,21 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TITLE = 'MaaS Consumer Portal';
 
 const DIST_DIR = path.resolve(__dirname, '..');
+const PORTAL_NODE_MODULES = path.resolve(DIST_DIR, 'node_modules');
+const SHARED_RUNTIME_ALIASES = {
+  react$: require.resolve('react'),
+  'react/jsx-runtime$': require.resolve('react/jsx-runtime'),
+  'react/jsx-dev-runtime$': require.resolve('react/jsx-dev-runtime'),
+  'react-dom$': require.resolve('react-dom'),
+  'react-dom/client$': require.resolve('react-dom/client'),
+  'react-router$': require.resolve('react-router'),
+  'react-router/dom$': require.resolve('react-router/dom'),
+  'react-router-dom$': require.resolve('react-router-dom'),
+  '@openshift/dynamic-plugin-sdk$': require.resolve('@openshift/dynamic-plugin-sdk'),
+  '@openshift/dynamic-plugin-sdk-utils$': require.resolve('@openshift/dynamic-plugin-sdk-utils'),
+  '@patternfly/react-core$': require.resolve('@patternfly/react-core'),
+  '@patternfly/react-styles$': require.resolve('@patternfly/react-styles'),
+};
 
 // ~/ imports are aliases that resolve to a single directory per build.
 // When multiple packages compile in one build, ~/ becomes ambiguous. Each
@@ -53,7 +68,12 @@ module.exports = (overrides = {}) =>
         ],
       },
       resolve: {
-        modules: [path.resolve(DIST_DIR, 'node_modules'), 'node_modules'],
+        // MaaS and GenAI source is statically bundled into this distribution. These match the
+        // eager singleton packages in packages/app-config/src/webpack/shared-modules-meta.ts.
+        // Other dependencies resolve from their owning package (for example GenAI's Markdown
+        // and Monaco dependencies).
+        alias: SHARED_RUNTIME_ALIASES,
+        modules: [PORTAL_NODE_MODULES, 'node_modules'],
       },
       plugins: [
         new ContextualTildeResolverPlugin(tildeMappings),
