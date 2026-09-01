@@ -22,13 +22,13 @@ import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared/types';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockServiceAccountK8sResource } from '@odh-dashboard/internal/__mocks__/mockServiceAccountK8sResource';
-import { RoleBindingModel, RoleModel, SecretModel, ServiceAccountModel } from '@odh-dashboard/k8s-core/api/models';
 import {
-  HardwareProfileModel,
-  NIMAccountModel,
-  ProjectModel,
-  TemplateModel,
-} from './models';
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
+} from '@odh-dashboard/k8s-core/api/models';
+import { HardwareProfileModel, NIMAccountModel, ProjectModel, TemplateModel } from './models';
 
 export const initDeployPrefilledModelIntercepts = ({
   disableKServe = false,

@@ -10,6 +10,7 @@ import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/mod
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import { maasWizardField } from '../../../pages/modelsAsAService';
@@ -19,7 +20,6 @@ import {
   modelServingWizardEdit,
 } from '../../../pages/modelServing';
 import { initMockGatewayIntercepts } from '../../../utils/modelServingUtils';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,

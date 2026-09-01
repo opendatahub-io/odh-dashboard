@@ -8,8 +8,8 @@ import {
   mockModelServingFields,
 } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
-import { projectDetails } from '../../../../pages/projects';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { projectDetails } from '../../../../pages/projects';
 import { ProjectModel } from '../../../../utils/models';
 import { connectionsPage } from '../../../../pages/connections';
 import { deleteModal } from '../../../../pages/components/DeleteModal';

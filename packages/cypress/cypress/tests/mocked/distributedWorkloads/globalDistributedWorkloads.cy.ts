@@ -18,7 +18,11 @@ import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/m
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import {
+  ClusterQueueModel,
+  LocalQueueModel,
+  WorkloadModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import { ProjectModel } from '../../../utils/models';
 import { globalDistributedWorkloads } from '../../../pages/distributedWorkloads';
 

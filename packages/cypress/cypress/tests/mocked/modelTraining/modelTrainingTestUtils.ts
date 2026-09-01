@@ -14,7 +14,11 @@ import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/moc
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
-import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
+import {
+  ClusterQueueModel,
+  LocalQueueModel,
+  WorkloadModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import { EventModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';

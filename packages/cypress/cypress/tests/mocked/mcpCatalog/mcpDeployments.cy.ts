@@ -5,6 +5,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   mcpDeploymentsPage,
   mcpDeployModal,
@@ -20,7 +21,6 @@ import {
   mockMcpDeployment,
   mockMcpServerCR,
 } from '../../../utils/mcpDeploymentUtils';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   ProjectModel,
   ServingRuntimeModel,

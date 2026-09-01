@@ -5,8 +5,8 @@ import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mo
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { initIntercepts } from './workbenchTestUtils';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { initIntercepts } from './workbenchTestUtils';
 import { ImageStreamModel, PVCModel } from '../../../../utils/models';
 import { verifyRelativeURL } from '../../../../utils/url';
 import {

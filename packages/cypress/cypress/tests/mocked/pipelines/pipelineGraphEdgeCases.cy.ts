@@ -12,9 +12,9 @@ import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSec
 import { buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
 import { ArtifactType } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { initMlmdIntercepts } from './mlmdUtils';
 import { pipelineDetails } from '../../../pages/pipelines';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,

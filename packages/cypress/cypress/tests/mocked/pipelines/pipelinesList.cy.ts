@@ -11,6 +11,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import type { PipelineKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   pipelinesTable,
   configurePipelineServerModal,
@@ -21,7 +22,6 @@ import {
 } from '../../../pages/pipelines';
 import { pipelinesSection } from '../../../pages/pipelines/pipelinesSection';
 import { projectDetails } from '../../../pages/projects';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
