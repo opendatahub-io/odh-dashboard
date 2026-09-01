@@ -211,7 +211,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// teardown below also ensures any portal resource carrying a stale
 	// part-of=dashboard label (from an older operator) is relabeled before the
 	// core teardown selector runs.
-	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+	portalRetryAfter := r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -248,7 +248,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -295,10 +295,19 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(statusErr, "Failed to update status")
 	}
 
+	// The portal is an optional operand, so its failures do not fail the core
+	// dashboard reconciliation. Schedule a retry, however, so transient apply
+	// and delete failures heal even when neither the Dashboard nor ConsoleLink
+	// changes afterwards.
+	if portalRetryAfter > 0 && (result.RequeueAfter == 0 || portalRetryAfter < result.RequeueAfter) {
+		result.RequeueAfter = portalRetryAfter
+	}
+
 	return result, err
 }
 
 const observabilityRetryInterval = 5 * time.Minute
+const maasConsumerPortalRetryInterval = time.Minute
 
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
@@ -573,7 +582,7 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
-) {
+) time.Duration {
 	logger := log.FromContext(ctx)
 
 	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
@@ -595,6 +604,7 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
 				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
 				conditions.WithSeverity(common.ConditionSeverityInfo))
+			return maasConsumerPortalRetryInterval
 		} else {
 			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
 				conditions.WithReason("Disabled"),
@@ -613,7 +623,10 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 			conditions.WithError(maasConsumerPortalErr),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
+		return maasConsumerPortalRetryInterval
 	}
+
+	return 0
 }
 
 func (r *DashboardReconciler) reconcileURL(
@@ -1041,12 +1054,16 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	// a platformVersion bump in odh-dashboard-config would not trigger a
 	// reconcile, leaving status.releases[platform].version stale until an
 	// unrelated event fired (RHOAIENG-81919).
+	consoleLink := &unstructured.Unstructured{}
+	consoleLink.SetGroupVersionKind(consoleLinkGVK)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
+		Owns(consoleLink).
 		Watches(
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),

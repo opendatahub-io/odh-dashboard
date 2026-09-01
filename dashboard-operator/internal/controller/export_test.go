@@ -51,6 +51,8 @@ func (r *DashboardReconciler) MonitoringNamespace() string {
 
 const ObservabilityRetryInterval = observabilityRetryInterval
 
+const MaasConsumerPortalRetryInterval = maasConsumerPortalRetryInterval
+
 var DashboardSAName = dashboardSAName
 
 func (r *DashboardReconciler) ReconcileNamespacedRBAC(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
