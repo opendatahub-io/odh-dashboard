@@ -553,6 +553,7 @@ func TestReservedPathCollisionBothDirections(t *testing.T) {
 	}{
 		{name: "module is prefix of reserved", path: "/api"},
 		{name: "reserved is prefix of module", path: "/api/k8s/custom"},
+		{name: "matches healthcheck route exactly", path: HealthCheckPath},
 	}
 
 	for _, tt := range tests {
@@ -563,6 +564,26 @@ func TestReservedPathCollisionBothDirections(t *testing.T) {
 			err := validateProxyEntries(entries)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "collides with reserved BFF route")
+		})
+	}
+}
+
+func TestReservedPathCollisionUsesPathSegmentBoundaries(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "healthcheck lookalike", path: "/healthcheck-module"},
+		{name: "OpenAPI descendant", path: "/openapi/docs"},
+		{name: "Swagger UI lookalike", path: "/swagger-ui-module"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entries := []normalizedProxyEntry{
+				{entryName: "nonCollision", service: moduleProxyServiceEntry{Path: tt.path, Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			}
+			require.NoError(t, validateProxyEntries(entries))
 		})
 	}
 }
