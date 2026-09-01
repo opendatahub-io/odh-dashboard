@@ -6,5 +6,5 @@
       "moduleResolution": "node"
     }
   },
-  "include": ["webpack.playground.ts"]
+  "include": ["rspack.playground.ts"]
 }

@@ -1,0 +1,23 @@
+# Minimal valid llm-d topology config spec pasted into the create form's YAML
+# editor by testLlmdTopologyConfigurationsCrud.cy.ts. The config's metadata.name
+# comes from the form's resource-name field, so this body only needs a valid spec.
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: placeholder-overridden-by-form
+  labels:
+    opendatahub.io/config-type: workload-single-node
+    opendatahub.io/dashboard: "true"
+spec:
+  replicas: 1
+  template:
+    containers:
+      - name: main
+        image: quay.io/pierdipi/vllm-cpu:latest
+        resources:
+          limits:
+            cpu: "2"
+            memory: 8Gi
+          requests:
+            cpu: "1"
+            memory: 4Gi

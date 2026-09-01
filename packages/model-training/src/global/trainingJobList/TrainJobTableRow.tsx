@@ -6,16 +6,19 @@ import {
   FlexItem,
   TimestampTooltipVariant,
   Button,
-  Tooltip,
+  // RHOAIENG-88673: only used by the disabled scale affordance
+  // Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
+// RHOAIENG-88673: PencilAltIcon only used by the disabled scale affordance
+import { CubesIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import JobProject from './JobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import PauseTrainingJobModal from './PauseTrainingJobModal';
-import ScaleNodesModal from './ScaleNodesModal';
+// RHOAIENG-88673: scale flow disabled - see note at the hook call below
+// import ScaleNodesModal from './ScaleNodesModal';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import TrainingJobStatusModal from './TrainingJobStatusModal';
 import StateActionToggle from './StateActionToggle';
@@ -47,13 +50,16 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   const displayName = getDisplayNameFromK8sResource(job);
 
   // Use custom hook for node scaling functionality
+  // RHOAIENG-88673: TrainJob node scaling disabled for RHOAI 3.6 - Kubeflow Trainer 2.2
+  // made `spec.trainer` immutable (kubeflow/trainer#3157), so the numNodes PATCH is rejected
+  // by the TrainJob validating webhook. Uncomment once upstream supports post-create scaling.
   const {
     nodesCount,
-    canScaleNodes,
-    isScaling,
-    scaleNodesModalOpen,
-    setScaleNodesModalOpen,
-    handleScaleNodes,
+    // canScaleNodes,
+    // isScaling,
+    // scaleNodesModalOpen,
+    // setScaleNodesModalOpen,
+    // handleScaleNodes,
   } = useTrainingJobNodeScaling(job, jobStatus);
 
   // Use custom hook for pause/resume functionality
@@ -78,13 +84,13 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
-    // 1. Edit node count (only when allowed)
-    if (canScaleNodes) {
-      items.push({
-        title: <span data-testid="edit-node-count-action">Edit node count</span>,
-        onClick: () => setScaleNodesModalOpen(true),
-      });
-    }
+    // 1. Edit node count (only when allowed) - RHOAIENG-88673: disabled, see note above
+    // if (canScaleNodes) {
+    //   items.push({
+    //     title: <span data-testid="edit-node-count-action">Edit node count</span>,
+    //     onClick: () => setScaleNodesModalOpen(true),
+    //   });
+    // }
 
     // 2. Pause/Resume job (only when allowed)
     if (canPauseResume) {
@@ -113,13 +119,13 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
 
     return items;
   }, [
-    canScaleNodes,
+    // canScaleNodes,
     canPauseResume,
     isPaused,
     job,
     onDelete,
     onSelectJob,
-    setScaleNodesModalOpen,
+    // setScaleNodesModalOpen,
     handleResume,
     onPauseClick,
   ]);
@@ -151,6 +157,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
                 <FlexItem>{nodesCount}</FlexItem>
               </Flex>
             </FlexItem>
+            {/* RHOAIENG-88673: inline scale affordance disabled - see note above
             {canScaleNodes && (
               <FlexItem>
                 <Tooltip content="Click to scale nodes">
@@ -167,6 +174,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
                 </Tooltip>
               </FlexItem>
             )}
+            */}
           </Flex>
         </Td>
         <Td dataLabel="Cluster queue">
@@ -238,6 +246,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
         />
       )}
 
+      {/* RHOAIENG-88673: scale modal disabled - see note above
       {scaleNodesModalOpen && (
         <ScaleNodesModal
           job={job}
@@ -247,6 +256,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
           onConfirm={handleScaleNodes}
         />
       )}
+      */}
     </>
   );
 };

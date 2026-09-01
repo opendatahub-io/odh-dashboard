@@ -10,10 +10,21 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  OutlinedQuestionCircleIcon,
+  PendingIcon,
+} from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { FeatureStoreKind, FeastOnlineStore, FeastOfflineStore } from '../../k8sTypes';
+import {
+  hasConditionFailure,
+  humanizeConditionType,
+  resolveConditionDisplay,
+} from '../../statusUtils';
 
 type FeatureStoreTableRowProps = {
   featureStore: FeatureStoreKind;
@@ -25,7 +36,20 @@ type FeatureStoreTableRowProps = {
   onDelete: (fs: FeatureStoreKind) => void;
 };
 
-const phaseLabel = (phase?: string): React.ReactNode => {
+const resolveEffectivePhase = (
+  phase: string | undefined,
+  conditions?: { status?: string; reason?: string; message?: string }[],
+): string => {
+  if (phase === 'Ready' || phase === 'Failed') {
+    return phase;
+  }
+  if (hasConditionFailure(conditions)) {
+    return 'Failed';
+  }
+  return phase ?? 'Pending';
+};
+
+const phaseLabel = (phase: string): React.ReactNode => {
   switch (phase) {
     case 'Ready':
       return <Label color="green">Ready</Label>;
@@ -34,7 +58,7 @@ const phaseLabel = (phase?: string): React.ReactNode => {
     case 'Installing':
       return <Label color="blue">Installing</Label>;
     default:
-      return <Label color="grey">{phase ?? 'Pending'}</Label>;
+      return <Label color="purple">{phase}</Label>;
   }
 };
 
@@ -129,11 +153,14 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
 }) => {
   const { services } = fs.spec;
   const hostnames = fs.status?.serviceHostnames;
-  const conditions = fs.status?.conditions;
+  const conditions = (Array.isArray(fs.status?.conditions) ? fs.status.conditions : []).filter(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime guard for malformed API data
+    (c): c is typeof c & { type: string } => typeof c?.type === 'string',
+  );
 
   return (
     <>
-      <Tr>
+      <Tr data-testid={`feature-store-row-${fs.metadata.namespace}-${fs.metadata.name}`}>
         <Td
           expand={{
             rowIndex,
@@ -144,7 +171,10 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
         />
         <Td dataLabel="Name">
           {fs.status?.phase === 'Ready' ? (
-            <Link to={`/develop-train/feature-store/overview/${fs.spec.feastProject}`}>
+            <Link
+              to={`/develop-train/feature-store/overview/${fs.spec.feastProject}`}
+              data-testid={`feature-store-link-${fs.metadata.namespace}-${fs.metadata.name}`}
+            >
               {fs.metadata.name}
             </Link>
           ) : (
@@ -153,16 +183,26 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
           {isUILabeled && (
             <>
               {' '}
-              <Popover bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store.">
-                <Label color="blue" isCompact isClickable icon={<OutlinedQuestionCircleIcon />}>
-                  Primary
-                </Label>
+              <Label color="blue" isCompact>
+                Primary
+              </Label>{' '}
+              <Popover
+                aria-label="Primary feature store help"
+                bodyContent="This is the primary feature store whose registry is shared with other feature stores. Additional feature stores should use a remote registry pointing to this store."
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="Primary feature store help"
+                  data-testid="primary-label-help"
+                />
               </Popover>
             </>
           )}
         </Td>
-        <Td dataLabel="Namespace">{fs.metadata.namespace}</Td>
-        <Td dataLabel="Status">{phaseLabel(fs.status?.phase)}</Td>
+        <Td dataLabel="Project">{fs.metadata.namespace}</Td>
+        <Td dataLabel="Status">
+          {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
+        </Td>
         <Td dataLabel="Version">{fs.status?.feastVersion ?? '-'}</Td>
         <Td dataLabel="Created">
           {fs.metadata.creationTimestamp
@@ -307,25 +347,38 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
                       </DescriptionList>
                     </StackItem>
                   )}
-                {conditions && conditions.length > 0 && (
+                {conditions.length > 0 && (
                   <StackItem>
                     <Title headingLevel="h4" size="md">
                       Conditions
                     </Title>
                     <DescriptionList isCompact>
-                      {conditions.map((c) => (
-                        <DescriptionListGroup key={c.type}>
-                          <DescriptionListTerm>
-                            {c.type}{' '}
-                            <Label isCompact color={c.status === 'True' ? 'green' : 'grey'}>
-                              {c.status}
-                            </Label>
-                          </DescriptionListTerm>
-                          <DescriptionListDescription>
-                            {c.message || c.reason || '\u2014'}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      ))}
+                      {conditions.map((c) => {
+                        const { label: condLabel, color: condColor } = resolveConditionDisplay(c);
+                        const condIcon =
+                          condLabel === 'Complete' ? (
+                            <CheckCircleIcon />
+                          ) : condLabel === 'Failed' ? (
+                            <ExclamationCircleIcon />
+                          ) : (
+                            <PendingIcon />
+                          );
+                        return (
+                          <DescriptionListGroup key={c.type}>
+                            <DescriptionListTerm>
+                              {humanizeConditionType(c.type)}{' '}
+                              <span style={{ fontWeight: 'normal' }}>
+                                <Label isCompact color={condColor} icon={condIcon}>
+                                  {condLabel}
+                                </Label>
+                              </span>
+                            </DescriptionListTerm>
+                            <DescriptionListDescription>
+                              {c.message || c.reason || '\u2014'}
+                            </DescriptionListDescription>
+                          </DescriptionListGroup>
+                        );
+                      })}
                     </DescriptionList>
                   </StackItem>
                 )}

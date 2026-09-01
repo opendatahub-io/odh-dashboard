@@ -30,14 +30,6 @@ const (
 	ModulePhaseDisabled    ModulePhase = "Disabled"
 )
 
-// DeploymentMode controls how BFF modules are deployed.
-type DeploymentMode string
-
-const (
-	DeploymentModeSidecar    DeploymentMode = "Sidecar"
-	DeploymentModeStandalone DeploymentMode = "Standalone"
-)
-
 // +kubebuilder:object:generate=true
 
 // GatewaySpec defines gateway configuration for the dashboard.
@@ -109,6 +101,22 @@ type ObservabilitySpec struct {
 
 // +kubebuilder:object:generate=true
 
+// MaasConsumerPortalSpec configures the MaaS Consumer Portal.
+type MaasConsumerPortalSpec struct {
+	// ManagementState controls whether the portal is deployed.
+	// "Managed" deploys the portal (requires Gateway.Domain to be set,
+	// since the portal host is derived from it); "Removed" tears it down.
+	// This mirrors the shape the ODH Operator projects from
+	// dashboard.maasConsumerPortal.managementState.
+	//
+	// +kubebuilder:validation:Enum=Managed;Removed
+	// +kubebuilder:default=Removed
+	// +optional
+	ManagementState string `json:"managementState,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+
 // ServiceTarget identifies a Kubernetes service for proxy configuration.
 type ServiceTarget struct {
 	// +kubebuilder:validation:Required
@@ -169,13 +177,28 @@ type DashboardSpec struct {
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
 
-	// DeploymentMode controls how BFF modules are deployed.
-	// Sidecar (default): modules run as containers in the main dashboard pod.
-	// Standalone: each module gets its own Deployment, Service, and RBAC.
-	// +kubebuilder:validation:Enum=Sidecar;Standalone
-	// +kubebuilder:default=Sidecar
+	// MaasConsumerPortal configures the MaaS Consumer Portal.
 	// +optional
-	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
+	MaasConsumerPortal *MaasConsumerPortalSpec `json:"maasConsumerPortal,omitempty"`
+
+	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
+	// When set, the dashboard-operator creates a Role and RoleBinding in this
+	// namespace granting the dashboard SA access to notebook-related resources.
+	// Absent means notebooks RBAC is skipped (component not enabled or standalone
+	// deployment where notebooks are not used).
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
+	NotebooksNamespace string `json:"notebooksNamespace,omitempty"`
+
+	// ModelRegistryNamespace is the namespace where the Model Registry runs.
+	// When set, the dashboard-operator creates a Role and RoleBinding in this
+	// namespace granting the dashboard SA access to model registry resources.
+	// Absent means model registry RBAC is skipped.
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$`
+	ModelRegistryNamespace string `json:"modelRegistryNamespace,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -248,8 +271,4 @@ type DashboardList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Dashboard `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Dashboard{}, &DashboardList{})
 }

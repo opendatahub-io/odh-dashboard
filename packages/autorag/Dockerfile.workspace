@@ -30,6 +30,7 @@ COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
@@ -51,13 +52,13 @@ USER default
 # Install workspace dependencies first (this creates node_modules at workspace level)
 RUN npm cache clean --force
 # Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Set up the specific module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 
 # Install module dependencies
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Build the module
 RUN npm run build:prod

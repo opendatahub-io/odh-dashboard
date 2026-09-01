@@ -5,10 +5,10 @@ import useFetch, {
   FetchStateObject,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiInfra } from '@odh-dashboard/plugin-core/host-api';
 
 export default function usePvcs(namespace?: string): FetchStateObject<PersistentVolumeClaimKind[]> {
-  const { getDashboardPvcs } = useHostApi();
+  const { getDashboardPvcs } = useHostApiInfra();
 
   const callback = React.useCallback<
     FetchStateCallbackPromise<PersistentVolumeClaimKind[]>

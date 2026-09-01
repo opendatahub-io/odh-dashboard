@@ -11,8 +11,8 @@ be rejected.**
 
 ### 1. Contract First
 
-Describe every capability in `api/openapi/mod-arch.yaml` (or a new file under `api/openapi/`). All
-request/response objects must be documented before coding.
+Describe every capability in `bff/openapi/src/` (see [`data-registry.yaml`](bff/openapi/src/data-registry.yaml)
+for this module's own contract). All request/response objects must be documented before coding.
 
 ### 2. BFF Stub Second
 
@@ -35,12 +35,13 @@ BFF against a real cluster or the manifests in `manifests/`.
 
 ```text
 mod-arch-starter/
-├── api/
-│   └── openapi/
-│       └── mod-arch.yaml        # OpenAPI specification (contract-first)
 ├── bff/                         # Go Backend-for-Frontend
 │   ├── cmd/
 │   │   └── main.go              # Application entrypoint and wiring
+│   ├── openapi/
+│   │   └── src/
+│   │       ├── data-registry.yaml      # BFF's own OpenAPI spec (contract-first)
+│   │       └── data-registry-api.yaml  # Vendored upstream Data Registry API contract
 │   ├── internal/
 │   │   ├── api/                 # HTTP handlers
 │   │   ├── config/              # Configuration management
@@ -69,9 +70,9 @@ mod-arch-starter/
 │   │   ├── __tests__/           # Test files
 │   │   └── images/              # Image assets
 │   ├── config/
-│   │   ├── webpack.common.js    # Shared webpack config
-│   │   ├── webpack.dev.js       # Development webpack config
-│   │   ├── webpack.prod.js      # Production webpack config
+│   │   ├── rspack.common.js    # Shared rspack config
+│   │   ├── rspack.dev.js       # Development rspack config
+│   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
 │   ├── package.json             # NPM dependencies and scripts
@@ -170,10 +171,21 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ---
 
-## API Contract Rules (`api/`)
+## API Contract Rules (`bff/openapi/`)
+
+The BFF's own contract lives at [`bff/openapi/src/data-registry.yaml`](bff/openapi/src/data-registry.yaml)
+(the older `api/openapi/mod-arch.yaml`-derived contract has been retired). The vendored upstream
+Data Registry API contract that the proxy routes forward to lives alongside it at
+[`bff/openapi/src/data-registry-api.yaml`](bff/openapi/src/data-registry-api.yaml).
 
 - One OpenAPI document per module capability
-- Reference shared schemas to avoid drift
+- Reference shared schemas to avoid drift — proxy route schemas in `data-registry.yaml` are
+  cross-file `$ref`s into `data-registry-api.yaml` rather than duplicated, since the BFF relays
+  those responses verbatim
+- **Exception to the dashboard's error envelope**: proxy route success and error bodies are passed
+  through byte-for-byte from the upstream Iceberg REST Catalog, not wrapped in the dashboard's
+  `BffErrorEnvelope`. Only the BFF-native routes (`/healthcheck`, `/api/v1/user`,
+  `/api/v1/namespaces`) use the standard envelope
 - Add examples for every schema and response so mock servers can generate useful data
 - After updating the spec, regenerate clients/types for both Go and TypeScript if your workflow
   requires them
@@ -186,6 +198,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | GET    | `/healthcheck`       | Liveness probe                       |
 | GET    | `/api/v1/user`       | Returns authenticated user info      |
 | GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+| \*     | `/api/v1/*` (catchall) | Data Registry API proxy — see [bff/README.md](bff/README.md#data-registry-api-proxy) and [`bff/openapi/src/data-registry.yaml`](bff/openapi/src/data-registry.yaml) |
 
 ---
 
@@ -234,6 +247,9 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from         | Authorization |
 | `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix                    | Bearer        |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
+| `-data-registry-api-url` | `DATA_REGISTRY_API_URL` | Upstream Data Registry API base URL (overrides ConfigMap lookup) | "" |
+| `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | ConfigMap (pod's namespace) holding the API URL | data-registry-config |
+| `-data-registry-configmap-key` | `DATA_REGISTRY_CONFIGMAP_KEY` | Key within that ConfigMap holding the URL | apiURL |
 
 ---
 
@@ -244,7 +260,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 - React 18 + TypeScript
 - PatternFly v6 (primary UI framework)
 - Material UI v7 (Kubeflow flavor only)
-- Webpack with Module Federation
+- Rspack with Module Federation
 - **mod-arch-core** - Always included (core functionality, hooks, context providers)
 - **mod-arch-shared** - Kubeflow flavor only (shared UI components)
 - **mod-arch-kubeflow** - Kubeflow flavor only (MUI theming, Kubeflow-specific utilities)
@@ -429,5 +445,6 @@ npx mod-arch-installer my-module --flavor kubeflow
 - [Frontend Dev Setup](frontend/docs/dev-setup.md)
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)
-- [OpenAPI Spec](api/openapi/mod-arch.yaml) -
-  [View in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/mod-arch-library/main/mod-arch-starter/api/openapi/mod-arch.yaml)
+- [OpenAPI Spec](bff/openapi/src/data-registry.yaml) — the BFF's own contract
+- [Vendored Data Registry API Contract](bff/openapi/src/data-registry-api.yaml) — the upstream
+  contract the proxy routes forward to

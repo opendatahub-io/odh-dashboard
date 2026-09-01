@@ -9,6 +9,7 @@ import type {
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
 import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
 export type DeploymentConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
@@ -26,6 +27,14 @@ export type DeploymentCondition = {
   status?: DeploymentConditionStatus;
   reason?: string;
   message?: string;
+  /**
+   * Severity to color the message text with, when it differs from `status` — e.g. a step
+   * that's still in-progress (spinner) but whose message should still read as a warning.
+   * Falls back to `status` when omitted.
+   */
+  messageStatus?: DeploymentConditionStatus;
+  /** Renders an active spinner icon instead of the default variant icon. */
+  inProgress?: boolean;
   lastTransitionTime?: string;
   children?: DeploymentCondition[];
 };
@@ -35,6 +44,8 @@ export type DeploymentStatus = {
   message?: string;
   stoppedStates?: ToggleState;
   conditions?: DeploymentCondition[];
+  /** Kueue scheduling status for this deployment, when Kueue is enabled for the project. */
+  kueueStatus?: KueueWorkloadStatusWithMessage | null;
 };
 
 export type DeploymentEndpoint = {
@@ -81,6 +92,25 @@ export type Deployment<
   apiProtocol?: string;
   resources?: ModelServingPodSpecOptionsState;
 };
+
+/**
+ * Deployment context passed to wizard pre/post-deploy hooks before the model resource
+ * is fully assembled (e.g. KServe NIM deploy). Hooks that require `model` must guard
+ * for its absence and no-op or throw as appropriate.
+ */
+export type DeploymentHookPayload<
+  ModelResource extends ModelResourceType = ModelResourceType,
+  ServerResource extends ServerResourceType = ServerResourceType,
+> = Omit<Deployment<ModelResource, ServerResource>, 'model'> & {
+  model?: ModelResource;
+};
+
+export type DeploymentHookPayloadFor<D extends Deployment> = DeploymentHookPayload<
+  D['model'],
+  D extends Deployment<ModelResourceType, infer ServerResource>
+    ? ServerResource
+    : ServerResourceType
+>;
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.platform',

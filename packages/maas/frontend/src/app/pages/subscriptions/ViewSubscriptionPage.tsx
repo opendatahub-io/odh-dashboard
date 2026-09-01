@@ -10,7 +10,10 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -22,13 +25,16 @@ import {
   getBreadcrumbLabelFromState,
   getSectionUrl,
   getSubscriptionEditUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
-import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -43,7 +49,12 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const backUrl = returnTo ?? getSectionUrl('subscriptions');
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = {
+    state: {
+      ...(returnTo ? { returnTo } : {}),
+      editSource: EventTrackingEditSource.DETAIL_KEBAB,
+    },
+  };
 
   return (
     <>
@@ -93,25 +104,11 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   );
 };
 
-const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
-  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
-    ? info.subscription.modelRefs
-    : [];
-  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
-
-  return subscriptionRefs.map((ref) => {
-    const summary = modelRefSummaries.find(
-      (s) => s.name === ref.name && s.namespace === ref.namespace,
-    );
-    return (
-      summary ?? {
-        name: ref.name,
-        namespace: ref.namespace,
-        modelRef: { kind: '', name: '' },
-      }
-    );
-  });
-};
+const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] =>
+  modelRefsToSummaries(
+    Array.isArray(info.subscription.modelRefs) ? info.subscription.modelRefs : [],
+    Array.isArray(info.modelRefs) ? info.modelRefs : [],
+  );
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
@@ -152,9 +149,17 @@ const ViewSubscriptionPage: React.FC = () => {
       {loaded && subscriptionInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Subscription detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"
@@ -163,7 +168,10 @@ const ViewSubscriptionPage: React.FC = () => {
             data-testid="subscription-details-tab"
           >
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-              <SubscriptionDetailsSection subscription={subscriptionInfo.subscription} />
+              <SubscriptionDetailsSection
+                subscription={subscriptionInfo.subscription}
+                modelRefs={viewModelRefSummaries(subscriptionInfo)}
+              />
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <SubscriptionGroupsSection groups={subscriptionInfo.subscription.owner.groups} />
@@ -182,10 +190,7 @@ const ViewSubscriptionPage: React.FC = () => {
             aria-label="YAML tab"
             data-testid="subscription-yaml-tab"
           >
-            <SubscriptionManagementYamlTab
-              resourceName={subscriptionName}
-              resourceType="subscription"
-            />
+            <MaaSGovernanceYamlTab resourceName={subscriptionName} resourceType="subscription" />
           </Tab>
         </Tabs>
       )}

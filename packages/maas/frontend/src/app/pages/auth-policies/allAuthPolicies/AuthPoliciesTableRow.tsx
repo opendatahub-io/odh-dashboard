@@ -9,9 +9,10 @@ import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import {
   getAuthPolicyEditUrl,
   getAuthPolicyViewUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import { usePolicyAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
@@ -20,7 +21,11 @@ import {
   EventTrackingExpandedSection,
   EventTrackingResourceType,
   EventTrackingSource,
+  EventTrackingEditSource,
   MaaSEvents,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+  MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -41,8 +46,11 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const navState = returnTo
+    ? { state: { returnTo, editSource: EventTrackingEditSource.LIST_KEBAB } }
+    : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const { affectedModels, overviewLoaded } = usePolicyAffectedModels(authPolicy);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -117,14 +125,16 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         lastTransitionTime={authPolicy.lastTransitionTime}
         resourceType={PhaseResourceType.AUTHPOLICY}
         resourceName={authPolicy.displayName ?? authPolicy.name}
+        affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {
-          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-            popoverType: 'status',
-            status: authPolicy.phase,
+          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(authPolicy.phase),
             location: PhaseLabelLocation.POLICIES_TAB,
-          });
+          } satisfies MaaSGovernanceStatusPopoverViewedProperties);
         }}
       />
     </Td>

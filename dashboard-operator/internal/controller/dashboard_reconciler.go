@@ -35,6 +35,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -64,6 +65,18 @@ var deploymentGVK = schema.GroupVersionKind{
 	Group:   "apps",
 	Version: "v1",
 	Kind:    "Deployment",
+}
+
+var consoleLinkGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLink",
+}
+
+var consoleLinkListGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLinkList",
 }
 
 // Version is set at build time via -ldflags.
@@ -125,6 +138,31 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Ready is the rollup condition — auto-derived by the Manager from
+	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
+	// MaasConsumerPortalAvailable. It is never set explicitly. The manager is built
+	// here, before the managementState branch, because the maas consumer portal is
+	// reconciled unconditionally below regardless of the core dashboard's state.
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
+		conditionMaasConsumerPortalAvailable,
+	)
+
+	// The maas consumer portal is an independent operand: it is reconciled once per
+	// loop, decoupled from the core dashboard's managementState, so it runs with
+	// or without the core dashboard. Its resources carry a distinct part-of
+	// label (see maasConsumerPortalPartOf) so core-dashboard teardown never touches
+	// them. This reconcile sets the MaasConsumerPortalAvailable condition — deploying
+	// the ConsoleLink when enabled, removing it when disabled. Running before the
+	// teardown below also ensures any portal resource carrying a stale
+	// part-of=dashboard label (from an older operator) is relabeled before the
+	// core teardown selector runs.
+	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
@@ -138,13 +176,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.ModuleStatuses = nil
 		dashboard.Status.Distribution = nil
 
-		cm := conditions.NewManager(
-			dashboard,
-			string(common.ConditionTypeReady),
-			string(common.ConditionTypeProvisioningSucceeded),
-			string(common.ConditionTypeDegraded),
-			conditionObservabilityAvailable,
-		)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed via managementState"))
@@ -185,17 +216,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
 	}
 
-	// Ready is the rollup condition — auto-derived by the Manager from
-	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
-	// It is never set explicitly.
-	cm := conditions.NewManager(
-		dashboard,
-		string(common.ConditionTypeReady),
-		string(common.ConditionTypeProvisioningSucceeded),
-		string(common.ConditionTypeDegraded),
-		conditionObservabilityAvailable,
-	)
-
 	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
 	releases := []common.ComponentRelease{{
@@ -228,136 +248,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg)
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
-func (r *DashboardReconciler) reconcileSidecar(
-	ctx context.Context,
-	dashboard *v1alpha1.Dashboard,
-	cm *conditions.Manager,
-	cfg OperatorConfig,
-) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
-
-	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("KustomizeParamsFailed"),
-			conditions.WithError(err))
-
-		return ctrl.Result{}, fmt.Errorf("failed to apply kustomize params: %w", err)
-	}
-
-	engine := kustomize.NewEngine()
-
-	var allResources []unstructured.Unstructured
-	for _, m := range manifests {
-		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
-		if err != nil {
-			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-				conditions.WithReason("RenderFailed"),
-				conditions.WithError(err))
-
-			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
-		}
-
-		allResources = append(allResources, rendered...)
-	}
-
-	remapRayDashboardGatewayRBAC(allResources)
-
-	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("ProbeSanitizeFailed"),
-			conditions.WithError(err))
-
-		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
-	}
-
-	deployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
-		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
-		deploy.WithApplyOrder(),
-		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
-	)
-
-	if err := deployer.Deploy(ctx, deploy.DeployInput{
-		Client:    r.Client,
-		Owner:     dashboard,
-		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
-		Resources: allResources,
-	}); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
-			conditions.WithReason("DeployFailed"),
-			conditions.WithError(err))
-
-		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
-	}
-
-	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
-		conditions.WithReason("ResourcesApplied"),
-		conditions.WithMessage("Dashboard manifests applied successfully"))
-
-	r.reconcileObservability(ctx, dashboard, cm)
-
-	url, requeueAfter, err := r.reconcileURL(ctx, dashboard, cm)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
-
-	var podList corev1.PodList
-	if err := r.List(ctx, &podList,
-		client.InNamespace(r.ApplicationsNamespace),
-		client.MatchingLabels{"app.kubernetes.io/part-of": "odh-dashboard"},
-	); err != nil {
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("PodListFailed"),
-			conditions.WithError(err),
-			conditions.WithSeverity(common.ConditionSeverityError))
-
-		return ctrl.Result{}, fmt.Errorf("failed to list dashboard pods: %w", err)
-	}
-
-	overlayContainerReadiness(nextStatuses, podList.Items)
-
-	for name, next := range nextStatuses {
-		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
-			prev.Phase == next.Phase &&
-			prev.Reason == next.Reason &&
-			prev.Message == next.Message {
-			next.LastTransitionTime = prev.LastTransitionTime
-			nextStatuses[name] = next
-		}
-	}
-	dashboard.Status.ModuleStatuses = nextStatuses
-
-	if requeueAfter > 0 {
-		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter, "modules", len(dashboard.Status.ModuleStatuses))
-	} else {
-		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
-	}
-
-	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
-		requeueAfter = cfg.ReconcileInterval
-	}
-
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
-}
-
-func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+// cleanupLegacySidecarResources removes resources that were created by the
+// now-removed sidecar deployment mode. Kept for upgrade safety: clusters that
+// were running sidecar mode need these resources cleaned up on the first
+// reconcile with the new operator. The function is idempotent.
+func (r *DashboardReconciler) cleanupLegacySidecarResources(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	ns := r.ApplicationsNamespace
 	var errs []error
@@ -393,13 +309,13 @@ func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error 
 	}
 
 	if len(errs) == 0 {
-		logger.Info("Cleaned up sidecar-specific resources")
+		logger.Info("Cleaned up legacy sidecar resources")
 	}
 
 	return errors.Join(errs...)
 }
 
-func (r *DashboardReconciler) reconcileStandalone(
+func (r *DashboardReconciler) reconcileDeployment(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
@@ -407,18 +323,14 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
-	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
-	if err := r.deleteSidecarResources(ctx); err != nil {
+	if err := r.cleanupLegacySidecarResources(ctx); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("SidecarCleanupFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to clean up legacy sidecar resources: %w", err)
 	}
 
-	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
-	// Uses the standalone overlay which excludes BFF module sidecar containers.
-	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
+	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -435,7 +347,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 				conditions.WithReason("RenderFailed"),
 				conditions.WithError(err))
-			return ctrl.Result{}, fmt.Errorf("failed to render core manifests from %s: %w", m, err)
+			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
 		}
 		allResources = append(allResources, rendered...)
 	}
@@ -447,6 +359,13 @@ func (r *DashboardReconciler) reconcileStandalone(
 			conditions.WithReason("ProbeSanitizeFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
 	}
 
 	deployer := deploy.NewDeployer(
@@ -465,13 +384,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(err))
-		return ctrl.Result{}, fmt.Errorf("failed to deploy core resources: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
 	}
 
-	// Step 2: Resolve module statuses
 	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
 
-	// Step 3: Deploy enabled modules
 	if err := r.deployModuleManifests(ctx, dashboard, nextStatuses); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("ModuleDeployFailed"),
@@ -479,7 +396,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("failed to deploy module manifests: %w", err)
 	}
 
-	// Step 4: GC disabled modules
+	// GC disabled modules
 	if err := r.deleteModuleResources(ctx, nextStatuses); err != nil {
 		logger.Error(err, "Failed to clean up disabled module resources")
 	}
@@ -488,11 +405,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
-	// Step 5: Overlay readiness from standalone deployments (before federation ConfigMap
+	// Overlay readiness from module deployments (before federation ConfigMap
 	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
 	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
-	// Persist module statuses now so early returns from steps 6-8 don't leave
+	// Persist module statuses now so early returns from steps 6-9 don't leave
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	for name, next := range nextStatuses {
 		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
@@ -505,10 +422,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 	dashboard.Status.ModuleStatuses = nextStatuses
 
-	// Step 6: Deploy observability
+	// Reconcile cross-namespace RBAC (notebooks, model-registry)
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
+
+	// Deploy observability
 	r.reconcileObservability(ctx, dashboard, cm)
 
-	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
+	// Build and deploy federation ConfigMap
 	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
 	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
@@ -523,7 +449,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
-	// Step 8: URL extraction + degraded condition
+	// URL extraction + degraded condition
 	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
 	if urlErr != nil {
 		return ctrl.Result{}, urlErr
@@ -531,11 +457,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
 	}
+	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
+	// restore the RBAC failure so it is not silently cleared while cross-namespace
+	// grants are still broken.
+	if rbacErr != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
 
 	if requeueAfter > 0 {
-		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
+		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
 	} else {
-		logger.Info("Standalone mode reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
 	}
 
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
@@ -578,6 +512,57 @@ func (r *DashboardReconciler) reconcileObservability(
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(obsErr))
 		logger.Error(obsErr, "Failed to deploy observability manifests")
+	}
+}
+
+// reconcileMaasConsumerPortalConsoleLink deploys or removes the MaaS Consumer
+// Portal ConsoleLink based on spec.maasConsumerPortal, and reports the outcome via
+// the MaasConsumerPortalAvailable condition. All False states use Info severity so the
+// portal never affects the Ready rollup.
+func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+) {
+	logger := log.FromContext(ctx)
+
+	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case maasConsumerPortalErr == nil:
+		cm.MarkTrue(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("MaaS Consumer Portal ConsoleLink applied successfully"))
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDisabled):
+		// Explicitly remove the ConsoleLink when the portal is disabled — the
+		// SSA deployer is additive and does not prune. Benign cases (absent
+		// object, ConsoleLink CRD not installed) are already treated as success
+		// inside deleteMaasConsumerPortalConsoleLink, so a non-nil error here is a
+		// genuine failure: surface it on the condition (Info severity, like the
+		// deploy-failed branch) rather than falsely reporting a clean Disabled
+		// state while a stale ConsoleLink lingers.
+		if delErr := deleteMaasConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
+			logger.Error(delErr, "Failed to delete maas consumer portal ConsoleLink")
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
+				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		} else {
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("Disabled"),
+				conditions.WithMessage("MaaS Consumer Portal is not enabled"),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		}
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDomainRequired):
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Info("MaaS Consumer Portal enabled but gateway domain not set, skipping ConsoleLink")
+	default:
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDeployFailed"),
+			conditions.WithError(maasConsumerPortalErr),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
 	}
 }
 
@@ -671,6 +656,10 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
 
+	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
+	}
+
 	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
 		return err
 	}
@@ -679,6 +668,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
@@ -860,6 +853,30 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
 		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
+		}
+	}
+
+	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
+	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
+	// part-of=dashboard and is matched here. The maas consumer portal ConsoleLink is
+	// an independent operand labeled part-of=maas-consumer-portal, so it is not
+	// selected by this teardown — it is managed solely by
+	// reconcileMaasConsumerPortalConsoleLink, independent of the core dashboard's
+	// managementState. Guard against clusters where the ConsoleLink CRD is not
+	// installed (non-OpenShift).
+	consoleLinks := &unstructured.UnstructuredList{}
+	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
+	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
+		if !meta.IsNoMatchError(err) {
+			return fmt.Errorf("listing ConsoleLinks: %w", err)
+		}
+	} else {
+		for i := range consoleLinks.Items {
+			cl := &consoleLinks.Items[i]
+			logger.Info("Deleting managed resource", "kind", "ConsoleLink", "name", cl.GetName())
+			if err := r.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("deleting ConsoleLink %s: %w", cl.GetName(), err)
+			}
 		}
 	}
 

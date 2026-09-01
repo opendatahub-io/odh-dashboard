@@ -11,6 +11,7 @@ import ConnectionTypesTableToolbar from '#~/pages/connectionTypes/ConnectionType
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import DeleteConnectionTypeModal from '#~/pages/connectionTypes/DeleteConnectionTypeModal';
 import { getCreatorFromK8sResource } from '#~/concepts/k8s/utils';
+import useFilters from '#~/utilities/useFilters';
 
 type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -18,8 +19,8 @@ type Props = {
 };
 
 const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) => {
-  const [filterData, setFilterData] = React.useState<FilterDataType>(initialFilterData);
-  const onClearFilters = React.useCallback(() => setFilterData(initialFilterData), []);
+  const { filterData, onFilterUpdate, onClearFilters } =
+    useFilters<FilterDataType>(initialFilterData);
 
   const [deleteConnectionType, setDeleteConnectionType] = React.useState<
     ConnectionTypeConfigMapObj | undefined
@@ -76,7 +77,7 @@ const ConnectionTypesTable: React.FC<Props> = ({ connectionTypes, onUpdate }) =>
         )}
         onClearFilters={onClearFilters}
         toolbarContent={
-          <ConnectionTypesTableToolbar filterData={filterData} setFilterData={setFilterData} />
+          <ConnectionTypesTableToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
         }
         disableItemCount
         emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

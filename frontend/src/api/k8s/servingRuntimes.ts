@@ -6,7 +6,11 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  translateDisplayNameForK8s,
+  applyK8sAPIOptions,
+} from '@odh-dashboard/k8s-core';
 import type {
   ServingContainer,
   ServingRuntimeAnnotations,
@@ -17,7 +21,6 @@ import type {
 import { ServingRuntimeModel } from '#~/api/models';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { getModelServingRuntimeName } from '#~/pages/modelServing/utils';
-import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getModelServingProjects } from '#~/api/k8s/projects';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
 

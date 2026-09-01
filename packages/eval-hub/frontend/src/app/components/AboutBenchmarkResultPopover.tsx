@@ -6,6 +6,7 @@ import {
   formatBenchmarkScore,
   getBenchmarkDisplayName,
   getJobBenchmarks,
+  normalizeThreshold,
 } from '~/app/utilities/evaluationUtils';
 
 type AboutBenchmarkResultPopoverProps = {
@@ -15,10 +16,7 @@ type AboutBenchmarkResultPopoverProps = {
   provider?: Provider;
 };
 
-const formatThreshold = (threshold: number): string => {
-  const value = threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);
-  return `${value}%`;
-};
+const formatThreshold = (threshold: number): string => `${normalizeThreshold(threshold)}%`;
 
 const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = ({
   benchmarkId,
@@ -37,14 +35,21 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : undefined);
 
+  const providerBenchmark = provider?.benchmarks?.find((b) => b.id === benchmarkId);
+
   if (!primaryMetricName) {
     return null;
   }
 
-  const lowerIsBetter = benchmarkConfig?.primary_score?.lower_is_better ?? false;
+  // Use the provider's direction only when its primary metric matches the displayed metric,
+  // otherwise fall back to the job configuration direction.
+  const providerDirection =
+    providerBenchmark?.primary_score?.metric === primaryMetricName
+      ? providerBenchmark.primary_score.lower_is_better
+      : undefined;
+  const lowerIsBetter =
+    providerDirection ?? benchmarkConfig?.primary_score?.lower_is_better ?? false;
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
-
-  const providerBenchmark = provider?.benchmarks?.find((b) => b.id === benchmarkId);
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
   const providerInterpretation = provider?.agent?.result_interpretation;
 

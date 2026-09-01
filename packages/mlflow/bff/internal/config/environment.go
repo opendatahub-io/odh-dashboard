@@ -101,6 +101,26 @@ type EnvConfig struct {
 	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
 
+	// ─── BFF INTER-COMMUNICATION ─────────────────────────────────
+	// MockBFFClients enables mock mode for BFF inter-communication clients.
+	// When true, BFF clients return mock responses instead of making real HTTP calls.
+	MockBFFClients bool
+
+	// BFFModelRegistryServiceName is the Kubernetes service name for the model-registry BFF.
+	// Default: "odh-dashboard-model-registry-ui" (standalone module Service).
+	BFFModelRegistryServiceName string
+
+	// BFFModelRegistryServicePort is the port for the model-registry BFF service.
+	// Default: 8043
+	BFFModelRegistryServicePort int
+
+	// BFFModelRegistryTLSEnabled enables HTTPS for model-registry BFF communication.
+	BFFModelRegistryTLSEnabled bool
+
+	// BFFModelRegistryDevURL is a developer override URL for model-registry BFF (local development).
+	// When set, overrides service discovery. Example: "http://localhost:8043/api/v1"
+	BFFModelRegistryDevURL string
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

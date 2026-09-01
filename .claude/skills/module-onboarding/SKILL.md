@@ -1,6 +1,6 @@
 ---
 name: module-onboarding
-description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, creates standalone deployment manifests, registers the module in the dashboard-operator, and verifies the build. Pass the module name in kebab-case as the argument.
+description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, and verifies the build. Standalone manifests and operator registration are deferred to /konflux-onboarding (after CI/CD is set up and images are available). Pass the module name in kebab-case as the argument.
 ---
 
 # Module Onboarding
@@ -41,10 +41,6 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
    ```
 
 4. **Ask the user**: Include a Go BFF (backend-for-frontend)? Default: **yes**.
-
-5. **Ask the user**: Which DSC component(s) gate this module? (e.g., `modelregistry`, `aipipelines`, `trustyai`, `mlflowoperator`). These determine when the operator enables/disables the module based on DataScienceCluster availability. Default: **none** (module is always enabled).
-
-6. **Ask the user**: Does this module depend on any other modules? (e.g., `genAi`). If a dependency is disabled, this module will also be disabled. Default: **none**.
 
 ## Phase 1: Port Allocation
 
@@ -108,8 +104,8 @@ After the installer completes, verify the following files exist and are correct.
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
 
 **`packages/<name>/frontend/config/moduleFederation.js`**:
-- `name` matches `<camelCase>`
-- `shared` includes all required singletons (see reference.md § Shared Singletons)
+- Uses `OdhFederationPlugin` with `name` matching `<camelCase>`
+- `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`
 - `exposes` includes `'./extensions': './src/odh/extensions'`
 
 **`packages/<name>/frontend/src/odh/extensions.ts`**:
@@ -256,11 +252,9 @@ If `podman` is not available, try `docker build` instead. This confirms the full
 
 If this step is slow or the user wants to skip it, it can be deferred — the earlier steps already confirm correctness. Ask before running.
 
-## Phase 6: Standalone Deployment Manifests
+## Phase 6: Deployment Manifests
 
-Create the kustomize package for standalone deployment under `manifests/modules/<name>/`.
-
-> **Note**: Standalone deployment is the primary and recommended deployment topology. Sidecar mode is deprecated and will be removed in a future release.
+Create the kustomize package for deployment under `manifests/modules/<name>/`.
 
 ### Step 1: Check if manifests already exist
 
@@ -369,19 +363,14 @@ Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entrie
 Summarize the completed onboarding:
 
 1. **Files created** — list all new files under `packages/<name>/`
-2. **Standalone manifests created** — list files under `manifests/modules/<name>/`
-3. **Operator registration** — `modules.go`, `module_deploy.go`, `support.go`, `modules_test.go`, `values.yaml`
-4. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
-5. **Port assignments** — frontend port, BFF port (if applicable), production service port
-6. **Build results** — pass/fail for each verification step
-7. **Next steps** for the team:
+2. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
+3. **Port assignments** — frontend port, BFF port (if applicable), production service port
+4. **Build results** — pass/fail for each verification step
+5. **Next steps** for the team:
    - Write feature code in `packages/<name>/frontend/src/app/`
    - Add unit tests in `packages/<name>/__tests__/`
    - Add E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
    - Add contract tests in `packages/<name>/contract-tests/` (if BFF)
    - Start the dev server: `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
-   - Run `/konflux-onboarding` for CI/CD pipeline setup (Dockerfiles, Konflux component registration, OpenShift CI)
-   - **[External]** Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go` (coordinate with Platform team)
-
-> **Note**: Sidecar manifests in `manifests/sidecar/` are deprecated and will be removed. This skill creates standalone manifests only.
+   - **Run `/konflux-onboarding`** for CI/CD pipeline setup — this handles Dockerfiles, Konflux component registration, OpenShift CI, deployment manifests, and operator registration. Operator registration is intentionally deferred to Konflux onboarding because the operator deploys the module image, which must be buildable first (otherwise the pod enters ImagePullBackOff).

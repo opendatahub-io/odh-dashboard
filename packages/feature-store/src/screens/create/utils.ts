@@ -231,7 +231,7 @@ const buildServices = (data: FeatureStoreFormData): FeastServices | undefined =>
 
 const buildAuthz = (data: FeatureStoreFormData): FeastAuthzConfig | undefined => {
   if (data.authzType === AuthzType.NONE) {
-    return undefined;
+    return { noAuth: true };
   }
   return data.authz;
 };
@@ -263,7 +263,7 @@ export const buildFormSpec = (
     feastProjectDir,
     services: buildServices(data),
     authz: buildAuthz(data),
-    cronJob: data.cronJob,
+    cronJob: data.cronJob?.schedule?.trim() ? data.cronJob : undefined,
     batchEngine:
       data.batchEngineEnabled && data.batchEngineConfigMapName
         ? {

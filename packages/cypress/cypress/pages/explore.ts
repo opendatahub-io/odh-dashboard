@@ -17,6 +17,10 @@ class ExplorePage {
   findCardLocator(cardName: string) {
     return cy.get(`[data-testid="card ${cardName}"] label`);
   }
+
+  findCard(cardName: string) {
+    return cy.findByTestId(`card ${cardName}`);
+  }
 }
 
 export const explorePage = new ExplorePage();

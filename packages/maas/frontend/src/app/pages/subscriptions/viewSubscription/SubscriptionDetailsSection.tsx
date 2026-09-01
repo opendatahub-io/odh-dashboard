@@ -10,17 +10,28 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MaaSSubscription } from '~/app/types/subscriptions';
-import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import { MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import {
+  getAffectedModels,
+  PhaseLabelLocation,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
+import {
+  EventTrackingPopoverType,
+  MaaSEvents,
+  MaaSGovernanceStatusPopoverViewedProperties,
+  convertStringToPopoverViewedStatus,
+} from '~/app/types/event-tracking';
 
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
+  modelRefs: MaaSModelRefSummary[];
 };
 
 const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
   subscription,
+  modelRefs,
 }) => (
   <Stack hasGutter data-testid="subscription-details-section">
     <StackItem>
@@ -48,12 +59,13 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
               lastTransitionTime={subscription.lastTransitionTime}
               resourceType={PhaseResourceType.SUBSCRIPTION}
               resourceName={subscription.displayName ?? subscription.name}
+              affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
-                fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                  popoverType: 'status',
-                  status: subscription.phase,
+                fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                  popoverType: EventTrackingPopoverType.STATUS,
+                  status: convertStringToPopoverViewedStatus(subscription.phase),
                   location: PhaseLabelLocation.DETAIL_PAGE,
-                });
+                } satisfies MaaSGovernanceStatusPopoverViewedProperties);
               }}
             />
           </DescriptionListDescription>

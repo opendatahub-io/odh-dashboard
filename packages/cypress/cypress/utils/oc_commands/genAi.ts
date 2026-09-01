@@ -1,6 +1,8 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
-import { patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import { setupMcpServerDeployResources, cleanupMcpServerDeployResources } from './mcpServerDeploy';
+import { replacePlaceholdersInYaml } from '../yaml_files';
 import type { GenAiTestData } from '../../types';
 
 /**
@@ -74,6 +76,10 @@ export const enableExternalProviders = (): void => {
     'externalProviders to be true',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
+
+  // Allow the backend ResourceWatcher cycle to propagate the change to the UI.
+  // eslint-disable-next-line cypress/no-unnecessary-waiting
+  cy.wait(30000);
 };
 
 /**
@@ -187,6 +193,213 @@ export const waitForModelInLSD = (
   };
 
   check(1);
+};
+
+/**
+ * Create a prompt via the Gen AI BFF MLflow prompts API.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name (alphanumerics, hyphens, underscores, dots).
+ * @param template - Prompt template string.
+ * @param commitMessage - Commit message for the prompt version.
+ */
+export const createGenAiPromptViaAPI = (
+  namespace: string,
+  name: string,
+  template: string,
+  commitMessage: string,
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy
+    .request({
+      method: 'DELETE',
+      url: `/gen-ai/api/v1/mlflow/prompts/${encodeURIComponent(
+        name,
+      )}?namespace=${encodeURIComponent(namespace)}`,
+      failOnStatusCode: false,
+    })
+    .then(() =>
+      cy.request({
+        method: 'POST',
+        url: `/gen-ai/api/v1/mlflow/prompts?namespace=${encodeURIComponent(namespace)}`,
+        body: {
+          name,
+          template,
+          commit_message: commitMessage, // eslint-disable-line camelcase
+          create_only: true, // eslint-disable-line camelcase
+        },
+      }),
+    );
+
+/**
+ * Delete a prompt via the Gen AI BFF MLflow prompts API.
+ * Silently succeeds if the prompt does not exist.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name to delete.
+ */
+export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void => {
+  cy.request({
+    method: 'DELETE',
+    url: `/gen-ai/api/v1/mlflow/prompts/${encodeURIComponent(name)}?namespace=${encodeURIComponent(
+      namespace,
+    )}`,
+    failOnStatusCode: false,
+  });
+};
+
+/**
+ * Create an external model endpoint via the gen-ai BFF API.
+ * Bypasses the UI form — creates the ConfigMap and Secret directly.
+ *
+ * @param namespace  - Project namespace to create the endpoint in.
+ * @param modelId    - Model ID (e.g. 'gemini-2.5-flash').
+ * @param displayName - Human-readable display name.
+ * @param endpointUrl - Base URL of the external model provider.
+ * @param apiKey      - API key / token for the provider.
+ * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ */
+export const createExternalModelViaAPI = (
+  namespace: string,
+  modelId: string,
+  displayName: string,
+  endpointUrl: string,
+  apiKey: string,
+  modelType = 'llm',
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy.request({
+    method: 'POST',
+    url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
+    log: false,
+    body: {
+      /* eslint-disable camelcase */
+      model_id: modelId,
+      model_display_name: displayName,
+      base_url: endpointUrl,
+      secret_value: apiKey,
+      model_type: modelType,
+      /* eslint-enable camelcase */
+    },
+  });
+
+/**
+ * Ensure an MCP server entry exists in the gen-ai MCP servers ConfigMap.
+ * Creates the ConfigMap if it doesn't exist, or patches an existing one.
+ * Uses file-based patching to avoid shell injection from user-controlled values.
+ */
+export const ensureMCPServerConfigMapEntry = (
+  configMapName: string,
+  serverKey: string,
+  serverData: { url: string; transport?: string; description?: string; logo?: string },
+): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const valueJson = JSON.stringify(serverData);
+  const patchJson = JSON.stringify({ data: { [serverKey]: valueJson } });
+  const patchFile = `/tmp/mcp-cm-patch-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
+
+  cy.exec(`oc get configmap ${configMapName} -n ${namespace} -o name`, {
+    failOnNonZeroExit: false,
+  }).then((result) => {
+    if (result.exitCode === 0) {
+      cy.exec(
+        `oc patch configmap ${configMapName} -n ${namespace} --type=merge --patch-file ${patchFile}`,
+      );
+    } else {
+      const cmJson = JSON.stringify({
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: { name: configMapName, namespace },
+        data: { [serverKey]: valueJson },
+      });
+      const cmFile = `/tmp/mcp-cm-create-${Date.now()}.json`;
+      cy.writeFile(cmFile, cmJson);
+      cy.exec(`oc apply -f ${cmFile}`);
+    }
+  });
+};
+
+/**
+ * Remove an MCP server entry from the gen-ai MCP servers ConfigMap.
+ * Uses file-based JSON patch to avoid shell injection from key values.
+ */
+export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: string): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const escapedKey = serverKey.replace(/~/g, '~0').replace(/\//g, '~1');
+  const patchJson = JSON.stringify([{ op: 'remove', path: `/data/${escapedKey}` }]);
+  const patchFile = `/tmp/mcp-cm-remove-${Date.now()}.json`;
+
+  cy.writeFile(patchFile, patchJson);
+  cy.exec(
+    `oc patch configmap ${configMapName} -n ${namespace} --type=json --patch-file ${patchFile}`,
+    { failOnNonZeroExit: false },
+  );
+};
+
+/**
+ * Deploy a kubernetes-mcp-server for Gen AI playground testing.
+ * Reuses mcpServerDeploy utilities for prerequisites (SA, CRB, ConfigMap)
+ * and adds the Deployment, Service, and Route on top.
+ * Idempotent — skips resources that already exist.
+ *
+ * The Route is ephemeral test infrastructure (torn down in after()) and uses
+ * edge TLS + read-only mode. It is needed because the BFF may run outside the
+ * cluster (local dev) and cannot reach in-cluster Service DNS.
+ *
+ * Returns the Route URL with `/mcp` suffix.
+ */
+export const deployMCPServer = (
+  mcpNamespace: string,
+  image: string,
+  clusterRoleBindingName: string,
+): Cypress.Chainable<string> => {
+  const name = 'kubernetes-mcp-server';
+
+  cy.exec(`oc get project ${mcpNamespace} -o name`, { failOnNonZeroExit: false }).then((r) => {
+    if (r.exitCode !== 0) {
+      cy.exec(`oc new-project ${mcpNamespace}`);
+    }
+  });
+
+  setupMcpServerDeployResources(mcpNamespace, {
+    serviceAccountName: name,
+    clusterRoleBindingName,
+    configMapName: name,
+  });
+
+  cy.fixture('resources/genAi/mcp_server_deploy.yaml').then((yamlContent: string) => {
+    const rendered = replacePlaceholdersInYaml(yamlContent, {
+      NAMESPACE: mcpNamespace,
+      IMAGE: image,
+    });
+    applyOpenShiftYaml(rendered);
+  });
+
+  cy.exec(`oc rollout status deployment/${name} -n ${mcpNamespace} --timeout=120s`, {
+    timeout: 130000,
+  });
+
+  return cy
+    .exec(`oc get route ${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
+    .then((result) => {
+      const host = result.stdout.trim().replace(/^'|'$/g, '');
+      const url = `https://${host}/mcp`;
+      cy.log(`MCP server URL: ${url}`);
+      return cy.wrap(url);
+    });
+};
+
+/**
+ * Tear down the MCP server deployed by deployMCPServer.
+ * Removes workloads by label and cluster-scoped CRB via the shared utility.
+ */
+export const teardownMCPServer = (mcpNamespace: string, clusterRoleBindingName: string): void => {
+  const name = 'kubernetes-mcp-server';
+  cy.exec(
+    `oc delete deployment,svc,route -l app.kubernetes.io/name=${name} -n ${mcpNamespace} --ignore-not-found`,
+    { failOnNonZeroExit: false },
+  );
+  cleanupMcpServerDeployResources(clusterRoleBindingName);
 };
 
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

@@ -14,7 +14,10 @@ import {
   ExclamationTriangleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
-import PhaseApiDetails from '~/app/shared/PhaseApiDetails';
+import PhaseApiDetails from '~/app/shared/Phase/PhaseApiDetails';
+import type { AffectedModel } from '~/app/types/maas-model';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import type { MaaSModelRefSummary } from '~/app/types/subscriptions';
 
 type PopoverContent = {
   headerIcon: React.ReactNode;
@@ -73,6 +76,53 @@ export const normalizePhase = (phase: string | undefined): string => {
   }
   return normalized || PhaseStatus.UNKNOWN;
 };
+
+export const MODEL_NOT_FOUND_STATUS_MESSAGE = 'Model not found. The MaaSModelRef does not exist.';
+
+type ModelRefWithPhase = {
+  name: string;
+  namespace?: string;
+  displayName?: string;
+  phase?: string;
+  statusMessage?: string;
+};
+
+/**
+ * Gets a list of affected models from a list of model refs.
+ */
+export const getAffectedModels = (modelRefs: ModelRefWithPhase[]): AffectedModel[] =>
+  modelRefs.flatMap((ref) => {
+    const phase = normalizePhase(ref.phase);
+    if (phase === PhaseStatus.READY) {
+      return [];
+    }
+    if (phase === PhaseStatus.UNKNOWN) {
+      return [
+        {
+          name: ref.name,
+          namespace: ref.namespace,
+          displayName: ref.displayName,
+          phase: PhaseStatus.UNAVAILABLE,
+          statusMessage: ref.statusMessage ?? MODEL_NOT_FOUND_STATUS_MESSAGE,
+        },
+      ];
+    }
+    return [
+      {
+        name: ref.name,
+        namespace: ref.namespace,
+        displayName: ref.displayName,
+        phase,
+        statusMessage: ref.statusMessage,
+      },
+    ];
+  });
+
+/** Resolve resource model refs against the summaries, then return non-Ready affected models. */
+export const getAffectedModelsFromRefs = (
+  refs: { name: string; namespace: string; displayName?: string }[],
+  summaries: MaaSModelRefSummary[],
+): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
   [PhaseResourceType.MODEL]: {
@@ -192,11 +242,11 @@ export const getPopoverContent = (
 };
 
 export enum PhaseLabelLocation {
-  EXTERNAL_MODELS = 'external-models',
   OVERVIEW = 'overview',
   SUBSCRIPTIONS_TAB = 'subscriptions-tab',
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
+  EXTERNAL_MODELS = 'external-models',
 }
 
 export const getStatusSubtext = (
@@ -221,9 +271,11 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
     case PhaseStatus.UNAVAILABLE:
       return 'Inference not serving';
     case PhaseStatus.FAILED:
-      return 'Gateway not found';
+      return 'Model setup failed';
     case PhaseStatus.PENDING:
-      return 'Awaiting subscription';
+      return 'Awaiting governance pairing';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -232,9 +284,13 @@ const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined =>
 const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
+    case PhaseStatus.PENDING:
+      return 'Setting up subscription';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -243,9 +299,13 @@ const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undef
 const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
-      return 'Rate limits or models unavailable';
+      return 'Models unavailable';
     case PhaseStatus.FAILED:
-      return 'All rate limits or models unavailable';
+      return 'All models unavailable or setup failed';
+    case PhaseStatus.PENDING:
+      return 'Setting up policy';
+    case PhaseStatus.INVALID:
+      return 'Configuration error';
     default:
       return undefined;
   }
@@ -276,11 +336,14 @@ export const getModalAlertProps = (
   const phaseProps = getPhaseProps(phase);
   const alertContent = getModalTitleAndChildren(phase, resourceType);
   const hasAlertBody = !!alertContent?.children;
+  // Pending models (overview tab only) use the same Ready-condition JSON as
+  // degraded/failed so operators can inspect governance pairing status.
   const showApiDetails =
     (phase === PhaseStatus.FAILED ||
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
-      phase === PhaseStatus.DEGRADED) &&
+      phase === PhaseStatus.DEGRADED ||
+      (phase === PhaseStatus.PENDING && resourceType === PhaseResourceType.MODEL)) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -411,7 +474,7 @@ const getAlertContentForAuthPolicy = (
       return {
         title: 'Policy degraded',
         children:
-          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced',
+          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced.',
       };
     case PhaseStatus.FAILED:
       return {

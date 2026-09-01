@@ -21,10 +21,10 @@ COPY packages/gen-ai/frontend/ ./packages/gen-ai/frontend/
 RUN chown -R default:root /usr/src/workspace && chmod -R g+w /usr/src/workspace
 USER default
 # Install workspace dependencies at root level
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 # Change to module directory and install module dependencies
 WORKDIR /usr/src/workspace/packages/gen-ai/frontend
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 ENV DEPLOYMENT_MODE=standalone
 RUN npm run build:prod
 

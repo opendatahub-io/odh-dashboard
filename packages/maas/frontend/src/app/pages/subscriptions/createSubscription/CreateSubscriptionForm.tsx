@@ -26,11 +26,16 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
-  SubscriptionPolicyFormDataResponse,
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
   SubscriptionInfoResponse,
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
@@ -38,13 +43,28 @@ import {
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingEditSource,
+  EventTrackingPrefillSource,
+  MaaSEvents,
+  SubscriptionCreatedCancelProperties,
+  SubscriptionCreatedErrorProperties,
+  SubscriptionCreatedSuccessProperties,
+  SubscriptionUpdatedCancelProperties,
+  SubscriptionUpdatedErrorProperties,
+  SubscriptionUpdatedSuccessProperties,
+} from '~/app/types/event-tracking';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
-  formData: SubscriptionPolicyFormDataResponse;
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
+  editSource?: EventTrackingEditSource;
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -77,12 +97,17 @@ const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEn
   });
 
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
-  formData,
+  groups,
+  modelRefs,
+  subscriptions,
+  policies,
   subscriptionInfo,
   returnTo,
   preSelectedModel,
+  editSource,
 }) => {
   const navigate = useNavigate();
+  const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
 
@@ -101,14 +126,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
     if (subscription) {
       const existingGroupNames = new Set(subscription.owner.groups.map((g) => g.name));
-      const allGroupNames = new Set([...formData.groups, ...existingGroupNames]);
+      const allGroupNames = new Set([...groups, ...existingGroupNames]);
       return Array.from(allGroupNames).map((group) => ({
         id: group,
         name: group,
         selected: existingGroupNames.has(group),
       }));
     }
-    return [];
+    return groups.map((group) => ({
+      id: group,
+      name: group,
+      selected: false,
+    }));
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
@@ -122,7 +151,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
       return buildInitialModels(subscriptionInfo);
     }
     if (preSelectedModel) {
-      const match = formData.modelRefs.find(
+      const match = modelRefs.find(
         (m) =>
           m.name === preSelectedModel.name &&
           (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
@@ -148,18 +177,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     handleSaveRateLimits,
     handleCloseRateLimitsModal,
   } = useSubscriptionModels(initialModels);
-
-  React.useEffect(() => {
-    if (!isEditing && formData.groups.length > 0 && selectedGroups.length === 0) {
-      setSelectedGroups(
-        formData.groups.map((group) => ({
-          id: group,
-          name: group,
-          selected: false,
-        })),
-      );
-    }
-  }, [formData.groups, selectedGroups.length, isEditing]);
 
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
@@ -199,9 +216,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const subscriptionsForConflictCheck = React.useMemo(
     () =>
       isEditing && subscription
-        ? formData.subscriptions.filter((s) => s.name !== subscription.name)
-        : formData.subscriptions,
-    [formData.subscriptions, subscription, isEditing],
+        ? subscriptions.filter((s) => s.name !== subscription.name)
+        : subscriptions,
+    [subscriptions, subscription, isEditing],
   );
 
   const zodFormData: SubscriptionFormData = React.useMemo(
@@ -224,6 +241,12 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     isPriorityValid &&
     !isSubmitting;
 
+  const modelRefsPayload = models.map((m) => ({
+    name: m.modelRefSummary.name,
+    namespace: m.modelRefSummary.namespace,
+    tokenRateLimits: m.tokenRateLimits,
+  }));
+
   const handleSubmit = async () => {
     if (priority == null || Number.isNaN(priority)) {
       return;
@@ -231,12 +254,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
     setIsSubmitting(true);
     setSubmitError(null);
-
-    const modelRefsPayload = models.map((m) => ({
-      name: m.modelRefSummary.name,
-      namespace: m.modelRefSummary.namespace,
-      tokenRateLimits: m.tokenRateLimits,
-    }));
 
     try {
       const apiOpts: APIOptions = {};
@@ -252,6 +269,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           priority,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, submitEditTrackingEventProperties);
       } else {
         const request: CreateSubscriptionRequest = {
           name: nameDescData.k8sName.value,
@@ -263,20 +281,83 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, submitCreateTrackingEventProperties);
       }
+      refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
-      setSubmitError(
+      const errMsg =
         e instanceof Error
           ? e.message
-          : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+          : `Failed to ${isEditing ? 'update' : 'create'} subscription`;
+      fireFormTrackingEvent(
+        isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+        isEditing
+          ? {
+              ...errorEditTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+            }
+          : {
+              ...errorCreateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+            },
       );
+      setSubmitError(errMsg);
       setIsSubmitting(false);
     }
   };
 
-  const showNoModelsWarning = !isEditing && formData.modelRefs.length === 0 && models.length === 0;
-  const canAddModels = formData.modelRefs.length > 0;
+  const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
+  const canAddModels = modelRefs.length > 0;
+
+  const cancelEditTrackingEventProperties: SubscriptionUpdatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+    editSource,
+  };
+
+  const cancelCreateTrackingEventProperties: SubscriptionCreatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+    modelCount: models.length,
+    modelCountWoLimit: modelRefsPayload.filter((m) => m.tokenRateLimits.length === 0).length,
+  };
+
+  const submitEditTrackingEventProperties: SubscriptionUpdatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: models.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    priority: priority ?? 0,
+    editSource,
+  };
+
+  const prefillSource = preSelectedModel
+    ? EventTrackingPrefillSource.MODEL
+    : EventTrackingPrefillSource.NONE;
+  const submitCreateTrackingEventProperties: SubscriptionCreatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: models.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    modelCountAvailable: modelRefs.length,
+    hasMatchingPolicy: createAuthPolicy,
+    priority: priority ?? 0,
+    prefillSource,
+  };
+
+  const errorCreateTrackingEventProperties: SubscriptionCreatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+  };
+
+  const errorEditTrackingEventProperties: SubscriptionUpdatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+    editSource,
+  };
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -400,9 +481,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         {isAddModelsModalOpen && canAddModels && (
           <AddModelsModal
             modalSource="subscription"
-            availableModelRefs={formData.modelRefs}
+            availableModelRefs={modelRefs}
             allSubscriptions={subscriptionsForConflictCheck}
-            allPolicies={formData.policies}
+            allPolicies={policies}
             currentModels={models}
             onAdd={(refs) => {
               setModelsTouched(true);
@@ -428,7 +509,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization policy">
             <FormHelperText>
               <HelperText>
                 <HelperTextItem>
@@ -522,7 +603,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? getSectionUrl('subscriptions'))}
+            onClick={() => {
+              navigate(returnTo ?? getSectionUrl('subscriptions'));
+              fireFormTrackingEvent(
+                isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+                isEditing ? cancelEditTrackingEventProperties : cancelCreateTrackingEventProperties,
+              );
+            }}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

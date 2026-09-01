@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
@@ -80,6 +82,130 @@ func TestComputeKustomizeVariables(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestMaasConsumerPortalConsoleLinkManifestInfo(t *testing.T) {
+	// The portal is an RHOAI feature that always uses the /rhoai source,
+	// regardless of platform (it deploys on both self-managed and managed).
+	info := maasConsumerPortalConsoleLinkManifestInfo("/base")
+	assert.Equal(t, "/base", info.Path)
+	assert.Equal(t, "maas-consumer-portal-consolelink", info.ContextDir)
+	assert.Equal(t, "/rhoai", info.SourcePath)
+}
+
+func TestMaasConsumerPortalURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		domain  string
+		wantURL string
+		wantOK  bool
+	}{
+		{
+			name:    "derives host from domain",
+			domain:  "rh-ai.apps.example.com",
+			wantURL: "https://maas-consumer-portal.rh-ai.apps.example.com/",
+			wantOK:  true,
+		},
+		{
+			name:    "empty domain cannot be derived",
+			domain:  "",
+			wantURL: "",
+			wantOK:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url, ok := maasConsumerPortalURL(tt.domain)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.wantURL, url)
+		})
+	}
+}
+
+// TestMaasConsumerPortalParamInjection verifies that injecting maas-consumer-portal-url
+// and section-title into the portal manifest's params.env and rendering the
+// kustomization substitutes the ConsoleLink href and applicationMenu.section.
+func TestMaasConsumerPortalParamInjection(t *testing.T) {
+	dir := t.TempDir()
+
+	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - consolelink.yaml
+configMapGenerator:
+  - name: maas-consumer-portal-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+replacements:
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.section-title
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: maas-consumer-portal-link
+        fieldPaths:
+          - spec.applicationMenu.section
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-url
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: maas-consumer-portal-link
+        fieldPaths:
+          - spec.href
+`
+	consoleLinkYAML := `apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: maas-consumer-portal-link
+spec:
+  applicationMenu:
+    section: section-title
+    imageURL: data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=
+  href: maas-consumer-portal-url
+  location: ApplicationMenu
+  text: MaaS Consumer Portal
+`
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "kustomization.yaml"), []byte(kustomizationYAML), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "consolelink.yaml"), []byte(consoleLinkYAML), 0644))
+	// Commit-equivalent empty placeholders.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("maas-consumer-portal-url=\nsection-title=\n"), 0644))
+
+	// Inject the operator-derived values, mirroring deployMaasConsumerPortalConsoleLink.
+	params := readExistingParams(filepath.Join(dir, "params.env"))
+	params["maas-consumer-portal-url"] = "https://maas-consumer-portal.rh-ai.apps.example.com/"
+	params["section-title"] = "OpenShift Self Managed Services"
+	require.NoError(t, writeParamsEnv(dir, params))
+
+	engine := kustomize.NewEngine()
+	rendered, err := engine.Render(dir)
+	require.NoError(t, err)
+
+	var consoleLink *unstructured.Unstructured
+	for i := range rendered {
+		if rendered[i].GetKind() == "ConsoleLink" {
+			consoleLink = &rendered[i]
+
+			break
+		}
+	}
+	require.NotNil(t, consoleLink, "rendered output must contain a ConsoleLink")
+
+	href, found, err := unstructured.NestedString(consoleLink.Object, "spec", "href")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, "https://maas-consumer-portal.rh-ai.apps.example.com/", href)
+
+	section, found, err := unstructured.NestedString(consoleLink.Object, "spec", "applicationMenu", "section")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, "OpenShift Self Managed Services", section)
 }
 
 func TestReadExistingParams(t *testing.T) {
@@ -190,6 +316,35 @@ func TestParamsPreservation(t *testing.T) {
 	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
 	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
 	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
+}
+
+func TestImagesMapContainsAllModules(t *testing.T) {
+	for name, mod := range moduleRegistry {
+		t.Run(name, func(t *testing.T) {
+			paramKey := mod.ManifestSlug + "-ui-image"
+			envVar, ok := imagesMap[paramKey]
+			assert.True(t, ok, "imagesMap missing entry (expected key %q)", paramKey)
+			assert.Equal(t, mod.ImageEnvVar, envVar, "imagesMap env var mismatch")
+		})
+	}
+}
+
+func TestValuesYAMLContainsAllModuleEnvVars(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "charts", "dashboard", "values.yaml"))
+	require.NoError(t, err)
+
+	var values struct {
+		RelatedImages map[string]string `yaml:"relatedImages"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &values))
+	require.NotNil(t, values.RelatedImages, "values.yaml must have a relatedImages section")
+
+	for paramKey, envVar := range imagesMap {
+		t.Run(paramKey, func(t *testing.T) {
+			_, ok := values.RelatedImages[envVar]
+			assert.True(t, ok, "relatedImages must contain key %q (for param %q)", envVar, paramKey)
+		})
+	}
 }
 
 func TestNamespaceInjection(t *testing.T) {

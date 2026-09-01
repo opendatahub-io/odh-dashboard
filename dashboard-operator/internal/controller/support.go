@@ -19,59 +19,32 @@ var sectionTitle = map[cluster.Platform]string{
 	cluster.OpenDataHub:      "OpenShift Open Data Hub",
 }
 
-var overlaysSourcePaths = map[cluster.Platform]string{
+var platformPaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai",
 	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh",
 }
 
-// standaloneOverlaysSourcePaths returns the manifest paths for standalone mode.
-// Standalone mode renders the 3-container core pod (odh-dashboard, kube-rbac-proxy, core-bff)
-// without BFF module sidecar containers. BFF modules are deployed as separate pods.
-var standaloneOverlaysSourcePaths = map[cluster.Platform]string{
-	cluster.SelfManagedRhoai: "/rhoai/standalone",
-	cluster.ManagedRhoai:     "/not-supported",
-	cluster.OpenDataHub:      "/odh/standalone",
-}
-
 var imagesMap = map[string]string{
 	"odh-dashboard-image":            "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
-	"model-registry-ui-image":        "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
-	"gen-ai-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
-	"mlflow-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
-	"maas-ui-image":                  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
-	"eval-hub-ui-image":              "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
 	"kube-rbac-proxy":                "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
 	"images-jobs-async-upload":       "RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE",
-	"automl-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
 	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
-	"autorag-ui-image":               "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
-	"agent-ops-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
-	"data-registry-ui-image":         "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
+}
+
+func init() {
+	for _, mod := range moduleRegistry {
+		paramKey := mod.ManifestSlug + "-ui-image"
+		imagesMap[paramKey] = mod.ImageEnvVar
+	}
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := overlaysSourcePaths[platform]
+	sourcePath, ok := platformPaths[platform]
 	if !ok {
-		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
-	}
-
-	return render.ManifestInfo{
-		Path:       basePath,
-		ContextDir: "",
-		SourcePath: sourcePath,
-	}
-}
-
-// standaloneManifestInfo returns the manifest path for standalone deployment mode.
-// In standalone mode, the core dashboard pod has only 3 containers (odh-dashboard,
-// kube-rbac-proxy, core-bff). BFF module pods are deployed separately from manifests/modules/.
-func standaloneManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := standaloneOverlaysSourcePaths[platform]
-	if !ok {
-		sourcePath = standaloneOverlaysSourcePaths[cluster.OpenDataHub]
+		sourcePath = platformPaths[cluster.OpenDataHub]
 	}
 
 	return render.ManifestInfo{
@@ -82,9 +55,9 @@ func standaloneManifestInfo(basePath string, platform cluster.Platform) render.M
 }
 
 func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := overlaysSourcePaths[platform]
+	sourcePath, ok := platformPaths[platform]
 	if !ok {
-		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+		sourcePath = platformPaths[cluster.OpenDataHub]
 	}
 
 	return render.ManifestInfo{
@@ -92,6 +65,33 @@ func observabilityManifestInfo(basePath string, platform cluster.Platform) rende
 		ContextDir: "observability",
 		SourcePath: sourcePath,
 	}
+}
+
+// maasConsumerPortalHostPrefix is prepended to Gateway.Domain to derive the
+// MaaS Consumer Portal host (e.g. maas-consumer-portal.<domain>).
+const maasConsumerPortalHostPrefix = "maas-consumer-portal"
+
+// maasConsumerPortalConsoleLinkManifestInfo points at the portal ConsoleLink
+// bundle. It always uses the /rhoai source: the portal is an RHOAI feature
+// and deploys on both self-managed and managed RHOAI when enabled, so it is
+// intentionally not gated by the platformPaths /not-supported overlay.
+func maasConsumerPortalConsoleLinkManifestInfo(basePath string) render.ManifestInfo {
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "maas-consumer-portal-consolelink",
+		SourcePath: "/rhoai",
+	}
+}
+
+// maasConsumerPortalURL derives the portal URL from the gateway domain. The
+// second return value is false when the domain is empty, meaning the URL
+// cannot be derived and the ConsoleLink must not be deployed.
+func maasConsumerPortalURL(domain string) (string, bool) {
+	if domain == "" {
+		return "", false
+	}
+
+	return fmt.Sprintf("https://%s.%s/", maasConsumerPortalHostPrefix, domain), true
 }
 
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {

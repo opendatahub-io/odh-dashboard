@@ -35,3 +35,21 @@ type ExternalModelSummary struct {
 	Reason        string                           `json:"reason,omitempty"`
 	MaaSModelRef  *ExternalModelMaaSModelRefStatus `json:"maaSModelRef,omitempty"`
 }
+
+// CreateExternalModelRequest is the request body for creating an ExternalModel.
+type CreateExternalModelRequest struct {
+	Name         string        `json:"name"`
+	Namespace    string        `json:"namespace"`
+	DisplayName  string        `json:"displayName,omitempty"`
+	Description  string        `json:"description,omitempty"`
+	ModelName    string        `json:"modelName,omitempty"`
+	ProviderRefs []ProviderRef `json:"providerRefs"`
+}
+
+// UpdateExternalModelRequest is the request body for updating an ExternalModel.
+type UpdateExternalModelRequest struct {
+	DisplayName  *string       `json:"displayName,omitempty"`
+	Description  *string       `json:"description,omitempty"`
+	ModelName    string        `json:"modelName,omitempty"`
+	ProviderRefs []ProviderRef `json:"providerRefs,omitempty"`
+}

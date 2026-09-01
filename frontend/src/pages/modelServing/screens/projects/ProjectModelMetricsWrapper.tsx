@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
-import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
+import { MetricsCommonContextProvider } from '@odh-dashboard/ui-core/contexts/MetricsCommonContext';
 import { ModelServingMetricsProvider } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getModelMetricsQueries } from '#~/pages/modelServing/screens/metrics/utils';
 import ProjectModelMetricsPathWrapper from './ProjectModelMetricsPathWrapper';

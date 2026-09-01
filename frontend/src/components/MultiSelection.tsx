@@ -33,6 +33,8 @@ export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
   name: string;
   selected?: boolean;
+  hideChip?: boolean;
+  chipOnly?: boolean;
 };
 
 export type GroupSelectionOptions = {
@@ -87,6 +89,9 @@ const normalizeOptionId = (optionId: number | string): string => String(optionId
 const getOptionTestId = (name: string) =>
   `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
 
+/** Close function of the MultiSelection that currently has an open menu. Opening another closes it. */
+let exclusiveOpenCloseRef: React.MutableRefObject<() => void> | null = null;
+
 type MultiSelectionOptionProps = {
   option: SelectionOptions;
   children?: React.ReactNode;
@@ -108,6 +113,7 @@ const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
     id={createOptionElementId(instanceId, option.id)}
     {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
     isFocused={isFocused}
+    className={option.className}
     data-testid={getOptionTestId(option.name)}
     value={option.id}
     isSelected={option.selected}
@@ -147,6 +153,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement | null>(null);
   const focusTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const closeMenuRef = React.useRef<() => void>(() => undefined);
   const generatedInstanceId = React.useId().replace(/:/g, '');
   const instanceId = id ?? `multi-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
@@ -172,7 +179,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       groupedValues
         .map((g) => ({
           ...g,
-          values: filterFunction(inputValue, g.values),
+          values: filterFunction(inputValue, g.values).filter((v) => !v.chipOnly),
         }))
         .filter((g) => g.values.length),
     [filterFunction, groupedValues, inputValue],
@@ -184,7 +191,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   );
 
   const selectOptions = React.useMemo(
-    () => filterFunction(inputValue, value),
+    () => filterFunction(inputValue, value).filter((v) => !v.chipOnly),
     [filterFunction, inputValue, value],
   );
 
@@ -238,7 +245,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
-  const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
+  const visibleChips = React.useMemo(
+    () => allOptions.filter((v) => v.selected && !v.hideChip),
+    [allOptions],
+  );
+
+  const hasSelections = React.useMemo(() => allOptions.some((v) => v.selected), [allOptions]);
 
   const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
 
@@ -276,6 +288,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   };
 
   const openMenu = (focusFirstOption = false) => {
+    if (exclusiveOpenCloseRef && exclusiveOpenCloseRef !== closeMenuRef) {
+      exclusiveOpenCloseRef.current();
+    }
+    exclusiveOpenCloseRef = closeMenuRef;
     setIsOpen(true);
     if (focusFirstOption) {
       const firstFocusableIndex = getNextFocusableIndex(null, 'down');
@@ -293,12 +309,19 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     setIsOpen(false);
     setInputValue('');
     resetActiveAndFocusedItem();
+    if (exclusiveOpenCloseRef === closeMenuRef) {
+      exclusiveOpenCloseRef = null;
+    }
   };
+  closeMenuRef.current = closeMenu;
 
   React.useEffect(
     () => () => {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
+      }
+      if (exclusiveOpenCloseRef === closeMenuRef) {
+        exclusiveOpenCloseRef = null;
       }
     },
     [],
@@ -306,7 +329,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const handleMenuArrowKeys = (key: string) => {
     if (!isOpen) {
-      setIsOpen(true);
+      openMenu();
     }
 
     const optionsLength = visibleOptions.length;
@@ -375,7 +398,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
     if (valueOfInput) {
-      setIsOpen(true);
+      openMenu();
     }
     resetActiveAndFocusedItem();
   };
@@ -410,7 +433,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     textInputRef.current?.focus();
   };
 
-  const showSelectionError = selectionRequired && selected.length === 0;
+  const showSelectionError = selectionRequired && !hasSelections;
 
   const renderSelectOption = (
     option: SelectionOptions,
@@ -437,7 +460,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       id={toggleId}
       data-testid={toggleTestId}
       variant="typeahead"
-      status={selectionRequired && selected.length === 0 ? 'danger' : undefined}
+      status={selectionRequired && !hasSelections ? 'danger' : undefined}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -473,7 +496,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
-            {selected.map((selection) => (
+            {visibleChips.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
                 key={normalizeOptionId(selection.id)}
@@ -494,7 +517,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
-          {selected.length > 0 ? (
+          {visibleChips.length > 0 ? (
             <Button
               icon={<TimesIcon aria-hidden />}
               variant="plain"
@@ -528,7 +551,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         isScrollable={isScrollable}
         id={id}
         isOpen={isOpen}
-        selected={selected}
+        selected={visibleChips}
         onSelect={(ev, selection) => {
           const selectedOption = allOptions.find(
             (option) => normalizeOptionId(option.id) === normalizeOptionId(selection),

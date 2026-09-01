@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@GenAICI"],
+  "e2eCiTags": [
+    "@GenAICI"
+  ],
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-mlflow-client --mock-bff-clients' odh-ct-bff-consumer --bff-dir bff",
@@ -41,7 +43,7 @@
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
     "./types": "./frontend/src/types/index.ts",
-    "./extensions/portal": "./frontend/src/odh/extensions.ts"
+    "./extensions/static": "./frontend/src/odh/extensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
@@ -50,6 +52,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"

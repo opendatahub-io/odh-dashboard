@@ -1,4 +1,4 @@
-import { EvaluationJob } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -71,27 +71,69 @@ export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+export const formatAsPercentage = (value: number): string =>
+  Number.isFinite(value) ? `${Math.round(value * 100)}%` : '-';
+
+/**
+ * Extract a display score from a benchmark result, returned as a formatted percentage.
+ *
+ * Resolution order:
+ *  1. `benchmark.test.primary_score` — populated by the eval service when the `test` object is present.
+ *  2. `primaryMetric` lookup in `benchmark.metrics` — the metric name from the benchmark's
+ *     config (`primary_score.metric`). This covers providers like garak whose primary metric
+ *     (`attack_success_rate`) is not in the well-known fallback list, and whose list-endpoint
+ *     response may omit the `test` object entirely.
+ *  3. Well-known metric names (`acc_norm`, `acc`, `attack_success_rate`) as a last resort.
+ *
+ * @param primaryMetric - The configured `primary_score.metric` from the benchmark config
+ *   (e.g. `job.benchmarks[].primary_score.metric`). The benchmark result itself does not
+ *   carry this field, so callers cross-reference with the config benchmarks.
+ */
 export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
+  primaryMetric?: string,
 ): string | null => {
-  if (benchmark.test?.primary_score != null) {
-    return `${Math.round(benchmark.test.primary_score * 100)}%`;
+  const primaryScore = benchmark.test?.primary_score;
+  if (primaryScore != null && Number.isFinite(primaryScore)) {
+    return formatAsPercentage(primaryScore);
   }
   if (benchmark.metrics) {
-    const preferred = benchmark.metrics.acc_norm ?? benchmark.metrics.acc;
-    if (typeof preferred === 'number') {
-      return `${Math.round(preferred * 100)}%`;
+    if (primaryMetric) {
+      const configured = benchmark.metrics[primaryMetric];
+      if (typeof configured === 'number' && Number.isFinite(configured)) {
+        return formatAsPercentage(configured);
+      }
+    }
+    const candidates = [
+      benchmark.metrics.acc_norm,
+      benchmark.metrics.acc,
+      benchmark.metrics.attack_success_rate,
+    ];
+    const preferred = candidates.find(
+      (v): v is number => typeof v === 'number' && Number.isFinite(v),
+    );
+    if (preferred !== undefined) {
+      return formatAsPercentage(preferred);
     }
   }
   return null;
 };
 
 export const getResultScore = (job: EvaluationJob): string => {
-  if (job.results.test?.score != null) {
-    return `${Math.round(job.results.test.score * 100)}%`;
+  const score = job.results.test?.score;
+  if (score != null && Number.isFinite(score)) {
+    return formatAsPercentage(score);
+  }
+  if (job.collection) {
+    return '-';
   }
   if (job.results.benchmarks?.length) {
-    return formatBenchmarkScore(job.results.benchmarks[0]) ?? '-';
+    const resultBenchmark = job.results.benchmarks[0];
+    const resolvedIndex = resultBenchmark.benchmark_index ?? 0;
+    const configBenchmark = getJobBenchmarks(job).find(
+      (b, idx) => b.id === resultBenchmark.id && (b.benchmark_index ?? idx) === resolvedIndex,
+    );
+    return formatBenchmarkScore(resultBenchmark, configBenchmark?.primary_score?.metric) ?? '-';
   }
   return '-';
 };
@@ -102,14 +144,19 @@ export const getBenchmarkResultScore = (
   benchmarkIndex?: number,
 ): string => {
   const benchmark = job.results.benchmarks?.find(
-    (b) =>
+    (b, idx) =>
       b.id === benchmarkId &&
-      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
   );
   if (!benchmark) {
     return '-';
   }
-  return formatBenchmarkScore(benchmark) ?? '-';
+  const configBenchmark = getJobBenchmarks(job).find(
+    (b, idx) =>
+      b.id === benchmarkId &&
+      (benchmarkIndex === undefined || (b.benchmark_index ?? idx) === benchmarkIndex),
+  );
+  return formatBenchmarkScore(benchmark, configBenchmark?.primary_score?.metric) ?? '-';
 };
 
 export const getResultPass = (job: EvaluationJob): boolean | null => {
@@ -148,6 +195,31 @@ export const formatDuration = (startStr?: string, endStr?: string): string | nul
   }
 };
 
+export const formatDurationCompact = (startStr?: string, endStr?: string): string | null => {
+  if (!startStr || !endStr) {
+    return null;
+  }
+  try {
+    const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+    if (ms <= 0 || !Number.isFinite(ms)) {
+      return null;
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    }
+    return seconds > 0 ? `${seconds}s` : '< 1s';
+  } catch {
+    return null;
+  }
+};
+
 export const formatDate = (dateStr?: string): string => {
   if (!dateStr) {
     return '-';
@@ -166,6 +238,25 @@ export const formatDate = (dateStr?: string): string => {
   }
 };
 
+const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
+  'completed',
+  'failed',
+  'cancelled',
+  'stopped',
+  'partially_failed',
+]);
+
+export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
+
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
   job.status.state === 'completed';
+
+export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
+  benchmarks.filter((bm) => bm.status === 'failed').length;
+
+// Different benchmark providers use different scoring scales — most use 0–1 decimal fractions,
+// but some (e.g. Open LLM Leaderboard v2) use a 0–100 percentage scale. Thresholds > 1 are
+// already in percentage form; thresholds ≤ 1 are multiplied by 100 to match the slider range.
+export const normalizeThreshold = (threshold: number): number =>
+  threshold <= 1 ? Math.round(threshold * 100) : Math.round(threshold);

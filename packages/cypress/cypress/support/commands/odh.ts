@@ -30,7 +30,7 @@ import type {
 import type {
   BaseMetricCreationResponse,
   BaseMetricListResponse,
-} from '@odh-dashboard/internal/api';
+} from '@odh-dashboard/trustyai/types';
 import type {
   ModelArtifact,
   ModelArtifactList,
@@ -67,7 +67,6 @@ import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookControll
 import type { StatusResponse } from '@odh-dashboard/internal/redux/types';
 import type {
   BYONImage,
-  ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
   OdhDocument,
@@ -75,6 +74,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
@@ -104,9 +104,8 @@ import type {
   SubscriptionInfoResponse,
   UserSubscription,
   CreateSubscriptionResponse,
-  SubscriptionPolicyFormDataResponse,
   MaaSAuthPolicy,
-  ModelOverviewItem,
+  MaaSModelRefSummary,
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
@@ -395,6 +394,10 @@ declare global {
           response: OdhResponse<{ code: number; response: PrometheusQueryResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/prometheus/cluster/query',
+          response: OdhResponse<{ code: number; response: PrometheusQueryResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /api/prometheus/serving',
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
@@ -404,6 +407,10 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/prometheus/queryRange',
+          response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/prometheus/cluster/queryRange',
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -1211,16 +1218,16 @@ declare global {
           response: OdhResponse<{ data: CreateSubscriptionResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/subscription-policy-form-data',
-          response: OdhResponse<{ data: SubscriptionPolicyFormDataResponse }>,
+          type: 'GET /maas/api/v1/all-maas-models',
+          response: OdhResponse<{ data: MaaSModelRefSummary[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/all-groups',
+          response: OdhResponse<{ data: string[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/all-policies',
           response: OdhResponse<{ data: MaaSAuthPolicy[] }>,
-        ) => Cypress.Chainable<null>) &
-        ((
-          type: 'GET /maas/api/v1/overview/models',
-          response: OdhResponse<{ data: ModelOverviewItem[] }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /maas/api/v1/new-policy',

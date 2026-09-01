@@ -104,5 +104,22 @@
       "max_output_tokens": 2048
     }
   },
-  "iteration": 3
+  "iteration": 3,
+  "indexing": {
+    "pipeline_spec": {
+      "pipeline_name": "documents-indexing-pipeline",
+      "parameters": {
+        "embedding_model_id": "vllm-embedding/ibm-granite/granite-embedding-english-r2",
+        "input_data_secret_name": "aws-connection-my-bucket",
+        "input_data_bucket_name": "my-bucket",
+        "input_data_key": "docs/",
+        "ogx_secret_name": "ogx-connection",
+        "vector_io_provider_id": "milvus",
+        "chunk_size": 256,
+        "chunk_overlap": 32,
+        "chunking_method": "recursive"
+      },
+      "overrides_allowed": []
+    }
+  }
 }

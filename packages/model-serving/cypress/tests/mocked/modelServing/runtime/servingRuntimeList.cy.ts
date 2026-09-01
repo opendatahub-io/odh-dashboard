@@ -294,7 +294,8 @@ describe('Serving Runtime List', () => {
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
       projectDetails.shouldBeEmptyState('Deployments', 'model-server', true);
-      projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
+      // When only the model serving refactor is enabled and the only platform, don't show the platform label
+      projectDetails.findServingPlatformLabel().should('not.exist');
     });
 
     it('Shows KServe metrics only when available', () => {

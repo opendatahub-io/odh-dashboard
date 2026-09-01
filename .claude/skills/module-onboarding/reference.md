@@ -224,19 +224,9 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
 
 ## Shared Singletons (moduleFederation.js)
 
-Every federated module must share these as singletons:
+`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from webpack `compiler.context`.
 
-```javascript
-shared: {
-  react: { singleton: true, requiredVersion: deps.react },
-  'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-  'react-router': { singleton: true, requiredVersion: deps['react-router'] },
-  'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-  '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
-  '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
-  '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
-}
-```
+Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds eager-share and bundle imports, while federated remotes use `import: false`.
 
 ## Onboarding Checklist
 
@@ -261,12 +251,13 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 15 | `npm run validate:ports` passes | Phase 5 |
 | 16 | `npm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
-| 18 | Standalone manifests in `manifests/modules/<name>/` | Phase 6 |
+| 18 | Deployment manifests in `manifests/modules/<name>/` | Phase 6 |
 | 19 | Module registered in operator module registry | Phase 7 |
 | 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
+| — | RELATED_IMAGE entry in Helm chart `values.yaml` | `/konflux-onboarding` |
 
 ## Troubleshooting
 
@@ -294,7 +285,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Symptom**: Build error mentioning missing shared module.
 
-**Fix**: Verify `frontend/config/moduleFederation.js` lists all required singletons (see Shared Singletons section above). Ensure `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` are in the package's dependencies.
+**Fix**: Verify `frontend/config/moduleFederation.js` uses `OdhFederationPlugin` with `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`. Ensure `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` are in the package's dependencies.
 
 ### BFF Go build fails
 
@@ -302,11 +293,9 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Fix**: Run `cd packages/<name>/bff && go mod tidy` to resolve dependencies. Ensure `go.mod` has the correct module path.
 
-## Standalone Deployment Manifests
+## Deployment Manifests
 
-> **Primary mode**: Standalone deployment is the primary and recommended deployment topology. Sidecar mode is deprecated.
-
-The module-onboarding skill creates standalone deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
+The module-onboarding skill creates deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
 
 ### Required files
 
@@ -323,37 +312,37 @@ The module-onboarding skill creates standalone deployment manifests in `manifest
 
 ### Reference existing modules
 
-Use the following existing module manifests as patterns:
+Use the following existing module manifests as patterns when creating manifests (via `/konflux-onboarding`):
 
 - `manifests/modules/gen-ai/` — Gen AI module (has BFF)
 - `manifests/modules/model-registry/` — Model Registry module (has BFF)
 
-Copy the structure from the closest matching existing module and adapt the names, ports, and RBAC rules for the new module.
-
 ## Operator Registration Reference
 
-The module-onboarding skill registers the module in the dashboard-operator during Phase 7. This section documents the files and patterns involved.
+Operator registration is handled by `/konflux-onboarding` after CI/CD is set up. This section documents the files and patterns involved for reference.
 
 ### Files modified
 
 | File | Change |
 |------|--------|
-| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map |
-| `dashboard-operator/internal/controller/module_deploy.go` | Add entry to `moduleProxyPaths` map (and optionally `interBFFDependencies`) |
-| `dashboard-operator/internal/controller/support.go` | Add entry to `imagesMap` |
+| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map with all fields |
 | `dashboard-operator/internal/controller/modules_test.go` | Update module count and name list assertions |
 | `dashboard-operator/charts/dashboard/values.yaml` | Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` section |
 
+**No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition.ProxyPaths`, default generated from `ManifestSlug`) or `support.go` (image map entries are auto-generated from the module registry at init time).
+
 ### Naming conventions
+
+`ModuleDefinition` is the single source of truth — all fields are set explicitly in the registry entry. Teams have full control over naming.
 
 | Item | Pattern | Example |
 |------|---------|---------|
 | Registry key | `<camelCase>` | `myModule` |
-| Container name | `<kebab>-ui` | `my-module-ui` |
+| Container name | `<kebab>-ui` (convention) | `my-module-ui` |
 | Image env var | `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` | `RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE` |
 | Manifest slug | `<kebab>` | `my-module` |
-| Proxy path | `/<kebab>/api` → `/api` | `/my-module/api` → `/api` |
-| Image map key | `<kebab>-ui-image` | `my-module-ui-image` |
+| Proxy path | `/<ManifestSlug>/api` → `/api` (default when `ProxyPaths` is nil) | `/my-module/api` → `/api` |
+| Image map key | `<ManifestSlug>-ui-image` (auto-generated from registry) | `my-module-ui-image` |
 
 ### DSC component gates
 
@@ -368,9 +357,6 @@ Each module can declare required DataScienceCluster components. If the component
 
 ### External: opendatahub-operator
 
-After completing the dashboard-operator registration, a corresponding `RELATED_IMAGE` entry must be added to the opendatahub-operator (separate repo: `opendatahub-io/opendatahub-operator`):
+The opendatahub-operator uses an explicit list of `RELATED_IMAGE_*` env var names in `internal/controller/modules/dashboard/support.go` → `relatedImages()`. When onboarding a new module, add the new env var name (e.g., `"RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE"`) to this list. This is a one-line change — open a PR against `opendatahub-io/opendatahub-operator` and request a review in the `#ai-core-platform-requests` Slack channel.
 
-- File: `internal/controller/modules/dashboard/support.go`
-- Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to the `relatedImages()` function
-
-This requires coordination with the Platform team and cannot be automated from this repo.
+The Konflux nudge pipeline must also include the new module's image digest in the operator deployment.

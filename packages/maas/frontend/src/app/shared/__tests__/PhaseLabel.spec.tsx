@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 describe('PhaseLabel', () => {
@@ -189,7 +190,7 @@ describe('PhaseLabel', () => {
     const subtext = screen.getByTestId('phase-label-subtext');
     expect(subtext).not.toBeNull();
   });
-  it('should not render subtext when status is pending', () => {
+  it('should render subtext when status is pending', () => {
     render(
       <PhaseLabel
         phase="Pending"
@@ -197,7 +198,8 @@ describe('PhaseLabel', () => {
         resourceName="Test Subscription"
       />,
     );
-    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
   });
   it('should not render subtext when status is active', () => {
     render(
@@ -269,5 +271,31 @@ describe('PhaseLabel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Failed' }));
     expect(screen.getByTestId('phase-modal')).not.toBeNull();
+  });
+
+  it('should show precomputed affected models in the degraded modal', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Degraded"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Degraded Sub"
+          affectedModels={[
+            {
+              name: 'precomputed',
+              phase: 'Unavailable',
+              statusMessage: 'Already known',
+            },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Degraded' }));
+
+    expect(await screen.findByTestId('affected-models-table')).toBeInTheDocument();
+    expect(screen.getByText('precomputed')).toBeInTheDocument();
   });
 });

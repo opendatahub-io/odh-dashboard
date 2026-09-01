@@ -42,6 +42,7 @@ import {
   orderModelsByLeaderboardRank,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
+import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utilities/tracking';
 import ManageColumnsModal from './ManageColumnsModal';
 import './AutomlLeaderboard.scss';
 
@@ -379,8 +380,8 @@ const MetricCell: React.FC<{ value: number | string }> = ({ value }) => (
 
 type AutomlLeaderboardProps = {
   onViewDetails?: (modelName: string, rank: number) => void;
-  onClickSaveNotebook?: (modelName: string) => void;
-  onRegisterModel?: (modelName: string) => void;
+  onClickSaveNotebook?: (modelName: string, source: ModelActionSource) => void;
+  onRegisterModel?: (modelName: string, source: ModelActionSource) => void;
 };
 
 function AutomlLeaderboard({
@@ -646,10 +647,14 @@ function AutomlLeaderboard({
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
     (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
+      const sortColumnId = sortableColumnIds[index];
       setActiveSort((prev) => ({
-        id: sortableColumnIds[index] || prev.id,
+        id: sortColumnId || prev.id,
         direction,
       }));
+      if (sortColumnId) {
+        fireAutomlLeaderboardSorted(getColumnName(sortColumnId, sortColumnId), direction);
+      }
     },
     [sortableColumnIds],
   );
@@ -1005,13 +1010,13 @@ function AutomlLeaderboard({
                         {
                           title: 'Register model',
                           onClick: () => {
-                            onRegisterModel?.(entry.modelKey);
+                            onRegisterModel?.(entry.modelKey, 'leaderboard');
                           },
                         },
                         {
                           title: 'Save notebook',
                           onClick: () => {
-                            onClickSaveNotebook?.(entry.modelKey);
+                            onClickSaveNotebook?.(entry.modelKey, 'leaderboard');
                           },
                         },
                       ]}

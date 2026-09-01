@@ -19,6 +19,7 @@ type SortColumn = 'name' | 'importance';
 const FeatureSummaryTab: React.FC<TabContentProps> = ({
   featureImportance,
   isArtifactsLoading,
+  print,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [sortColumn, setSortColumn] = React.useState<SortColumn>('importance');
@@ -68,7 +69,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
 
   if (isArtifactsLoading) {
     return (
-      <Table aria-label="Feature importance loading" variant="compact">
+      <Table aria-label="Feature importance loading" variant="compact" gridBreakPoint="">
         <Thead>
           <Tr>
             <Th sort={nameSortParams}>Feature name</Th>
@@ -105,12 +106,11 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
 
   return (
     <>
-      {hasFeatureData && (
+      {hasFeatureData && !print && (
         <Toolbar>
           <ToolbarContent>
             <ToolbarItem>
               <SearchInput
-                className="odh-autox-print-hide-element"
                 placeholder="Search by feature name"
                 value={searchValue}
                 onChange={(_e, value) => setSearchValue(value)}
@@ -122,10 +122,15 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
           </ToolbarContent>
         </Toolbar>
       )}
+      {/* Native table layout: PF's default gridBreakPoint="gridMd" uses display:grid
+          below the md container width. Firefox cannot print that grid, so Feature
+          summary is blank in the download/print preview. Confusion matrix already
+          opts out the same way. */}
       <Table
         aria-label="Feature importance"
         variant="compact"
         className="automl-feature-summary-table"
+        gridBreakPoint=""
       >
         <Thead>
           <Tr>

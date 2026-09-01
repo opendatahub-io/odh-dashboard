@@ -33,7 +33,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":        v1alpha1.ModulePhaseDeployed,
 				"autorag":       v1alpha1.ModulePhaseDeployed,
 				"agentOps":      v1alpha1.ModulePhaseDeployed,
-				"dataRegistry":  v1alpha1.ModulePhaseDeployed,
+				"notebooks":     v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 					"automl":        {State: v1alpha1.ModuleDisabled},
 					"autorag":       {State: v1alpha1.ModuleDisabled},
 					"agentOps":      {State: v1alpha1.ModuleDisabled},
-					"dataRegistry":  {State: v1alpha1.ModuleDisabled},
+					"notebooks":     {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -91,7 +91,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":        v1alpha1.ModulePhaseDisabled,
 				"autorag":       v1alpha1.ModulePhaseDisabled,
 				"agentOps":      v1alpha1.ModulePhaseDisabled,
-				"dataRegistry":  v1alpha1.ModulePhaseDisabled,
+				"notebooks":     v1alpha1.ModulePhaseDisabled,
 			},
 		},
 		{
@@ -422,7 +422,33 @@ func TestModuleRegistry(t *testing.T) {
 func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
-		"agentOps", "automl", "autorag", "dataRegistry",
-		"evalHub", "genAi", "maas", "mlflow", "modelRegistry",
+		"agentOps", "automl", "autorag", "evalHub",
+		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
+}
+
+func TestProxyPathsFor(t *testing.T) {
+	tests := []struct {
+		name   string
+		module string
+		want   []proxyRoute
+	}{
+		{"modelRegistry_default", "modelRegistry", []proxyRoute{{Path: "/model-registry/api", PathRewrite: "/api"}}},
+		{"genAi_default", "genAi", []proxyRoute{{Path: "/gen-ai/api", PathRewrite: "/api"}}},
+		{"maas_default", "maas", []proxyRoute{{Path: "/maas/api", PathRewrite: "/api"}}},
+		{"evalHub_default", "evalHub", []proxyRoute{{Path: "/eval-hub/api", PathRewrite: "/api"}}},
+		{"automl_default", "automl", []proxyRoute{{Path: "/automl/api", PathRewrite: "/api"}}},
+		{"autorag_default", "autorag", []proxyRoute{{Path: "/autorag/api", PathRewrite: "/api"}}},
+		{"notebooks_default", "notebooks", []proxyRoute{{Path: "/notebooks/api", PathRewrite: "/api"}}},
+		{"mlflow_custom", "mlflow", []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}}},
+		{"agentOps_custom", "agentOps", []proxyRoute{
+			{Path: "/agent-ops/api", PathRewrite: "/api"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, proxyPathsFor(moduleRegistry[tt.module]))
+		})
+	}
 }

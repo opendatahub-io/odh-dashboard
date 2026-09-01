@@ -51,6 +51,7 @@ import {
   Grid,
   GridItem,
   Label,
+  LabelGroup,
   MenuToggle,
   Modal, // eslint-disable-line @odh-dashboard/no-restricted-imports
   ModalBody, // eslint-disable-line @odh-dashboard/no-restricted-imports
@@ -82,6 +83,7 @@ import {
   OutlinedEyeIcon,
   TimesIcon,
   TrashIcon,
+  RhUiInformationFillIcon,
 } from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
@@ -159,6 +161,7 @@ const defaults = {
         Viewing files from: <strong>{sourceName}</strong>
       </span>
     ),
+    selectedPillPrefixFolder: 'Selected folder',
 
     searchAriaLabel: 'Search input to find by name',
     searchPlaceholder: (folderName?: string) =>
@@ -181,7 +184,7 @@ const defaults = {
 
     detailsViewingDetailsOfThisFile: 'Viewing details',
     detailsPanelTitle: 'Details',
-    detailsPanelTitleFiles: 'Selected files',
+    detailsPanelTitleFiles: 'Current selection',
     detailsPanelName: 'Name',
 
     clearSelection: 'Clear selection',
@@ -450,6 +453,26 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   });
                 }
 
+                let fileUnselectableReason = '';
+                if (typeof file.disabled === 'string') {
+                  fileUnselectableReason = file.disabled;
+                } else if (typeof unselectableReason === 'string') {
+                  fileUnselectableReason = unselectableReason;
+                }
+
+                let hint = null;
+                if (file.hint) {
+                  hint = (
+                    <Label icon={<RhUiInformationFillIcon />} color="grey">
+                      {file.hint}
+                    </Label>
+                  );
+                  if (file.hintTooltip) {
+                    hint = <Tooltip content={file.hintTooltip}>{hint}</Tooltip>;
+                  }
+                  hint = <FlexItem className="pf-v6-u-ml-auto">{hint}</FlexItem>;
+                }
+
                 return (
                   <Tr
                     key={file.path}
@@ -482,17 +505,11 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   >
                     <Td
                       width={TABLE_COLUMNS.select.width}
-                      title={
-                        isUnselectable &&
-                        typeof unselectableReason === 'string' &&
-                        unselectableReason
-                          ? unselectableReason
-                          : ''
-                      }
+                      title={isUnselectable ? fileUnselectableReason : undefined}
                       select={{
                         rowIndex,
                         onSelect,
-                        isSelected: Boolean(isSelected || file.forceShowAsSelected),
+                        isSelected,
                         isDisabled: isUnselectable,
                         variant: selection,
                       }}
@@ -519,6 +536,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                             />
                           </FlexItem>
                         )}
+                        {hint}
                       </Flex>
                     </Td>
                     <Td width={TABLE_COLUMNS.type.width} dataLabel={TABLE_COLUMNS.type.label}>
@@ -1153,6 +1171,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
+  const shouldRenderSelectionPill =
+    Array.isArray(selectedFiles) &&
+    selectedFiles.length > 0 &&
+    selectedFiles.every((f) => isFolder(f));
+  // Currently the pill only renders for folder selections. If UX wants the pill
+  // to render for selected files in the future, add a file-specific category name here.
+  let selectionPillLabelGroupCategoryName = '';
+  if (shouldRenderSelectionPill) {
+    selectionPillLabelGroupCategoryName =
+      selectedFiles.length > 1
+        ? defaults.labels.detailsPanelTitle
+        : defaults.labels.selectedPillPrefixFolder;
+  }
+
   return (
     // Pure UI component — no data fetching or side effects on mount.
     // Wrappers gate all API calls behind `isOpen`, so always-mounted usage is safe.
@@ -1246,6 +1278,27 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
               </FlexItem>
             </Flex>
           </FlexItem>
+          {shouldRenderSelectionPill && (
+            <FlexItem>
+              <LabelGroup categoryName={selectionPillLabelGroupCategoryName}>
+                {selectedFiles.map((file) => (
+                  <Label
+                    data-testid={`file-explorer-selection-pill-${sanitizeId(file.path)}`}
+                    icon={<RhUiInformationFillIcon />}
+                    color="grey"
+                    key={file.path}
+                    onClose={() => handleRemoveSelection(file)}
+                  >
+                    <Truncate
+                      id={`pill-selected-file-${sanitizeId(file.path)}`}
+                      content={file.name}
+                      tooltipPosition="right"
+                    />
+                  </Label>
+                ))}
+              </LabelGroup>
+            </FlexItem>
+          )}
           <FlexItem grow={{ default: 'grow' }}>
             <Grid hasGutter>
               <GridItem

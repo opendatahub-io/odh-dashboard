@@ -60,21 +60,6 @@ export type NotebookTolerationFormSettings = TolerationSettings & {
   error?: string;
 };
 
-export type ClusterSettingsType = {
-  userTrackingEnabled: boolean;
-  pvcSize: number;
-  cullerTimeout: number;
-  modelServingPlatformEnabled: ModelServingPlatformEnabled;
-  isDistributedInferencingDefault?: boolean;
-  defaultDeploymentStrategy?: string;
-  globalMLflowNamespaces?: string[];
-};
-
-export type ModelServingPlatformEnabled = {
-  kServe: boolean;
-  LLMd: boolean;
-};
-
 /** @deprecated -- use SDK type */
 export type Secret = {
   data?: Record<string, string>;
@@ -159,15 +144,13 @@ type K8sMetadata = {
 /** Used for Telemetry */
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    analytics?: any;
     clusterID?: string;
     POLL_INTERVAL?: number;
     FAST_POLL_INTERVAL?: number;
     WS_HOSTNAME?: string;
   }
 
-  // Webpack injected global variables
+  // Injected global variables
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const __COMMIT_HASH__: string | undefined;
 }

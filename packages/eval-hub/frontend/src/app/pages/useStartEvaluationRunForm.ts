@@ -16,8 +16,10 @@ import {
   type RunParameterChangedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
+import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
+import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
@@ -43,6 +45,7 @@ type UseStartEvaluationRunFormParams = {
   isCollectionFlow: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
+  initialValues?: ReconfigureFormData;
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -53,21 +56,23 @@ export function useStartEvaluationRunForm({
   isCollectionFlow,
   experiments,
   experimentsLoaded,
+  initialValues,
 }: UseStartEvaluationRunFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
+  const isReconfigure = !!initialValues;
 
   // ── Threshold & primary metric ──────────────────────────────────────
 
   const defaultThreshold = React.useMemo(() => {
     if (collection?.pass_criteria) {
-      return Math.round(collection.pass_criteria.threshold * 100);
+      return normalizeThreshold(collection.pass_criteria.threshold);
     }
     if (collection) {
       return DEFAULT_SUITE_THRESHOLD;
     }
     if (benchmark?.pass_criteria) {
-      return Math.round(benchmark.pass_criteria.threshold * 100);
+      return normalizeThreshold(benchmark.pass_criteria.threshold);
     }
     return 0;
   }, [benchmark, collection]);
@@ -81,12 +86,14 @@ export function useStartEvaluationRunForm({
     defaultPrimaryMetricRef.current = defaultPrimaryMetric;
   }, [defaultPrimaryMetric]);
 
-  const [threshold, setThreshold] = React.useState(defaultThreshold);
-  const [thresholdTouched, setThresholdTouched] = React.useState(false);
-  const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
-    defaultPrimaryMetric,
+  const [threshold, setThreshold] = React.useState(
+    () => initialValues?.threshold ?? defaultThreshold,
   );
-  const [primaryMetricTouched, setPrimaryMetricTouched] = React.useState(false);
+  const [thresholdTouched, setThresholdTouched] = React.useState(isReconfigure);
+  const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
+    () => initialValues?.primaryMetric ?? defaultPrimaryMetric,
+  );
+  const [primaryMetricTouched, setPrimaryMetricTouched] = React.useState(isReconfigure);
 
   React.useEffect(() => {
     if (!thresholdTouched) {
@@ -125,32 +132,41 @@ export function useStartEvaluationRunForm({
 
   // ── Evaluation name ─────────────────────────────────────────────────
 
-  const [evaluationName, setEvaluationName] = React.useState(() =>
-    new Date().toLocaleString('en-US', {
+  const [evaluationName, setEvaluationName] = React.useState(() => {
+    if (initialValues) {
+      return initialValues.evaluationName;
+    }
+    return new Date().toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    }),
-  );
+    });
+  });
 
   // ── Source mode (Model / Agent / Pre-recorded) ──────────────────────
 
-  const [sourceMode, setSourceMode] = React.useState<SourceMode>('model');
-  const [modelSelection, setModelSelection] = React.useState<ModelSelection>('cluster');
+  const [sourceMode, setSourceMode] = React.useState<SourceMode>(
+    () => initialValues?.sourceMode ?? 'model',
+  );
+  const [modelSelection, setModelSelection] = React.useState<ModelSelection>(
+    () => initialValues?.modelSelection ?? 'cluster',
+  );
   const [selectedInferenceService, setSelectedInferenceService] = React.useState<
     InferenceServiceItem | undefined
-  >(undefined);
+  >(() => initialValues?.selectedInferenceService);
 
-  const [modelName, setModelName] = React.useState('');
-  const [agentName, setAgentName] = React.useState('');
-  const [endpointUrl, setEndpointUrl] = React.useState('');
-  const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
-  const [sourceName, setSourceName] = React.useState('');
-  const [datasetUrl, setDatasetUrl] = React.useState('');
-  const [accessToken, setAccessToken] = React.useState('');
+  const [modelName, setModelName] = React.useState(() => initialValues?.modelName ?? '');
+  const [agentName, setAgentName] = React.useState(() => initialValues?.modelName ?? '');
+  const [endpointUrl, setEndpointUrl] = React.useState(() => initialValues?.endpointUrl ?? '');
+  const [apiKeySecretRef, setApiKeySecretRef] = React.useState(
+    () => initialValues?.apiKeySecretRef ?? '',
+  );
+  const [sourceName, setSourceName] = React.useState(() => initialValues?.sourceName ?? '');
+  const [datasetUrl, setDatasetUrl] = React.useState(() => initialValues?.datasetUrl ?? '');
+  const [accessToken, setAccessToken] = React.useState(() => initialValues?.accessToken ?? '');
 
   // ── Connection validation ───────────────────────────────────────────
 
@@ -160,14 +176,12 @@ export function useStartEvaluationRunForm({
       sourceMode,
       endpointUrl,
       apiKeySecretRef,
-      datasetUrl,
-      accessToken,
       modelName,
       agentName,
     });
 
   const requiresConnectionValidation =
-    sourceMode === 'agent' || sourceMode === 'prerecorded' || modelSelection === 'external';
+    sourceMode === 'agent' || (sourceMode === 'model' && modelSelection === 'external');
 
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
@@ -219,6 +233,18 @@ export function useStartEvaluationRunForm({
     }
     setExperimentAutoSelected(true);
 
+    if (initialValues?.experimentName) {
+      const match = experiments.find((e) => e.name === initialValues.experimentName);
+      if (match) {
+        setExperimentMode('existing');
+        setSelectedExperiment(match);
+      } else {
+        setExperimentMode('new');
+        setNewExperimentName(initialValues.experimentName);
+      }
+      return;
+    }
+
     if (experiments.length === 0) {
       setExperimentMode('new');
       setNewExperimentName(DEFAULT_EXPERIMENT_NAME);
@@ -227,12 +253,16 @@ export function useStartEvaluationRunForm({
       setExperimentMode('existing');
       setSelectedExperiment(defaultExp ?? experiments[0]);
     }
-  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected]);
+  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected, initialValues]);
 
   // ── Additional args ─────────────────────────────────────────────────
 
-  const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(false);
-  const [additionalArgs, setAdditionalArgs] = React.useState('');
+  const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(
+    () => !!initialValues?.additionalArgs,
+  );
+  const [additionalArgs, setAdditionalArgs] = React.useState(
+    () => initialValues?.additionalArgs ?? '',
+  );
   const [additionalArgsFilename, setAdditionalArgsFilename] = React.useState('');
 
   // ── Submission state ────────────────────────────────────────────────
@@ -336,19 +366,8 @@ export function useStartEvaluationRunForm({
     if (connectionValidation.status === 'validating') {
       return false;
     }
-    if (sourceMode === 'prerecorded') {
-      return !datasetUrlError && datasetUrl.trim() !== '';
-    }
     return !endpointUrlError && endpointUrl.trim() !== '';
-  }, [
-    requiresConnectionValidation,
-    connectionValidation.status,
-    sourceMode,
-    endpointUrlError,
-    endpointUrl,
-    datasetUrlError,
-    datasetUrl,
-  ]);
+  }, [requiresConnectionValidation, connectionValidation.status, endpointUrlError, endpointUrl]);
 
   // ── Additional args handlers ────────────────────────────────────────
 
