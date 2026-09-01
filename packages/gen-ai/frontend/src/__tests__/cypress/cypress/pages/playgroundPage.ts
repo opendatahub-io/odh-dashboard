@@ -1,10 +1,13 @@
+import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
 import { mcpTab } from './playgroundPage/mcpTab';
 
 class PlaygroundPage {
   mcpTab = mcpTab;
 
   visit(namespace?: string): void {
-    cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');
+    cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground', {
+      onBeforeLoad: clearGenAiNamespacePersistence,
+    });
     this.waitForPageLoad();
   }
 

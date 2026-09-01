@@ -75,4 +75,14 @@ describe('pnpmResolverIncludes', () => {
     const { version } = require(path.join(alias['@mui/material'], 'package.json'));
     assert.match(version, /^7\./);
   });
+
+  it('returns mod-arch-core and mod-arch-shared from the same install tree', () => {
+    const { modArchAliases } = require('../pnpmResolverIncludes');
+    const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
+    const alias = modArchAliases(genAiDir);
+    assert.ok(alias['mod-arch-core']);
+    assert.ok(alias['mod-arch-shared']);
+    const { version } = require(path.join(alias['mod-arch-core'], 'package.json'));
+    assert.match(version, /^1\./);
+  });
 });
