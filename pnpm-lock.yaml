@@ -640,6 +640,127 @@ importers:
         specifier: ^29.4.11
         version: 29.4.12(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.4.1(supports-color@8.1.1))(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(esbuild@0.28.2)(jest-util@30.4.1)(jest@30.4.2(@types/node@22.20.1)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
 
+  distributions/maas-consumer-portal:
+    dependencies:
+      '@odh-dashboard/base-distribution':
+        specifier: workspace:*
+        version: link:../base
+      '@odh-dashboard/gen-ai':
+        specifier: workspace:*
+        version: link:../../packages/gen-ai
+      '@odh-dashboard/k8s-core':
+        specifier: workspace:*
+        version: link:../../packages/k8s-core
+      '@odh-dashboard/maas':
+        specifier: workspace:*
+        version: link:../../packages/maas
+      '@odh-dashboard/plugin-core':
+        specifier: workspace:*
+        version: link:../../packages/plugin-core
+      '@odh-dashboard/ui-core':
+        specifier: workspace:*
+        version: link:../../packages/ui-core
+      '@openshift/dynamic-plugin-sdk':
+        specifier: ^5.0.1
+        version: 5.0.1(react@18.3.1)
+      '@openshift/dynamic-plugin-sdk-utils':
+        specifier: ^5.0.0
+        version: 5.0.3(@openshift/dynamic-plugin-sdk@5.0.1(react@18.3.1))(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
+      '@patternfly/patternfly':
+        specifier: ~6.5.2
+        version: 6.5.2
+      '@patternfly/react-core':
+        specifier: ~6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons':
+        specifier: ~6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles':
+        specifier: ~6.5.1
+        version: 6.5.1
+      '@patternfly/react-table':
+        specifier: ~6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      lodash-es:
+        specifier: ^4.18.1
+        version: 4.18.1
+      mod-arch-core:
+        specifier: ^1.16.1
+        version: 1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      mod-arch-shared:
+        specifier: ^1.15.4
+        version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-router:
+        specifier: ^7.18.2
+        version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-router-dom:
+        specifier: ^7.18.2
+        version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@odh-dashboard/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/eslint-config
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../../packages/jest-config
+      '@odh-dashboard/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@rspack/cli':
+        specifier: 2.1.10
+        version: 2.1.10(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(@rspack/dev-server@2.2.0(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0))
+      '@rspack/core':
+        specifier: 2.1.10
+        version: 2.1.10(@module-federation/runtime-tools@2.8.2)
+      '@rspack/dev-server':
+        specifier: ^2.1.0
+        version: 2.2.0(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
+      css-loader:
+        specifier: ^7.1.4
+        version: 7.1.4(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      file-loader:
+        specifier: ^6.2.0
+        version: 6.2.0(webpack@5.104.1)
+      raw-loader:
+        specifier: ^4.0.2
+        version: 4.0.2(webpack@5.104.1)
+      rspack-merge:
+        specifier: ^1.0.1
+        version: 1.0.1
+      sass:
+        specifier: ^1.100.0
+        version: 1.102.0
+      sass-loader:
+        specifier: ^16.0.7
+        version: 16.0.8(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(sass@1.102.0)(webpack@5.104.1)
+      style-loader:
+        specifier: ^2.0.0
+        version: 2.0.0(webpack@5.104.1)
+      svg-url-loader:
+        specifier: ^6.0.0
+        version: 6.0.0(webpack@5.104.1)
+      ts-checker-rspack-plugin:
+        specifier: ^1.5.3
+        version: 1.6.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      url-loader:
+        specifier: ^4.1.1
+        version: 4.1.1(file-loader@6.2.0(webpack@5.104.1))(webpack@5.104.1)
+
   distributions/rhaii:
     dependencies:
       '@odh-dashboard/k8s-core':
