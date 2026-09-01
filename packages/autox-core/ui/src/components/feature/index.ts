@@ -24,3 +24,5 @@ export type { InvalidProjectProps } from './InvalidProject';
 export type { ProjectSelectorNavigatorProps } from './ProjectSelectorNavigator';
 export { default as RunInProgress } from './RunInProgress';
 export { default as StopRunModal } from './StopRunModal';
+export { default as SecretSelector } from './SecretSelector';
+export type { SecretSelection, SecretSelectorProps } from './SecretSelector';

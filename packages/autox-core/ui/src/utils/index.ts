@@ -7,3 +7,4 @@ export { NODE_WIDTH, NODE_PADDING, NODE_HEIGHT, NODE_FONT } from './topology/con
 export { buildTreeEdgePath } from './topology/treeEdgePath';
 export type { TreeEdgeBounds } from './topology/treeEdgePath';
 export { parseErrorStatus } from './parseErrorStatus';
+export { formatMissingKeysMessage, getMissingRequiredKeys } from './secretValidation';

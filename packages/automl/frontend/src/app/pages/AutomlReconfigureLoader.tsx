@@ -4,16 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useParams } from 'react-router';
 import { InvalidPipelineRun } from '@odh-dashboard/autox-core/ui/components/feature';
-import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import { getMissingRequiredKeys, parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import { getSecrets } from '~/app/api/k8s';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   REQUIRED_CONNECTION_SECRET_KEYS,
   DEFAULT_EVAL_METRIC_BY_TASK,

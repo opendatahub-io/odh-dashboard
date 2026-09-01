@@ -69,8 +69,12 @@ import {
   isUIError,
 } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useOgxModelsQuery } from '~/app/hooks/useOgxModelsQuery';
@@ -91,7 +95,6 @@ import {
 } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,

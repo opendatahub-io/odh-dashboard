@@ -1,6 +1,5 @@
 /**
- * Returns which required keys are missing from the available keys (case-sensitive).
- * Used to validate that a secret has all keys required for a given use case.
+ * Returns which required keys are missing from the available keys.
  */
 export function getMissingRequiredKeys(
   requiredKeys: readonly string[],
@@ -20,7 +19,7 @@ export function formatMissingKeysMessage(missingKeys: string[]): string {
   if (missingKeys.length === 0) {
     return '';
   }
-  const keyList = missingKeys.map((k) => `"${k}"`).join(', ');
+  const keyList = missingKeys.map((key) => `"${key}"`).join(', ');
   return missingKeys.length === 1
     ? `Required key ${keyList} is not set in this secret`
     : `Required keys ${keyList} are not set in this secret`;

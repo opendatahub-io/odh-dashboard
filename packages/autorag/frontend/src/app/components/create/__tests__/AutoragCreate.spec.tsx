@@ -14,7 +14,7 @@ jest.mock('react-router', () => ({
 }));
 
 // Mock SecretSelector component to avoid fetch errors
-jest.mock('~/app/components/common/SecretSelector', () => {
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
   const { useEffect } = jest.requireActual<typeof import('react')>('react');
   const MockSecretSelector = ({
     onChange,
@@ -78,7 +78,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
   };
   return {
     __esModule: true,
-    default: MockSecretSelector,
+    SecretSelector: MockSecretSelector,
   };
 });
 

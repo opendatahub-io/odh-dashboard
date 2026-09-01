@@ -9,12 +9,12 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
-import { TypeaheadSelect } from 'mod-arch-shared';
-import type { TypeaheadSelectProps } from 'mod-arch-shared/dist/components/TypeaheadSelect';
+import { TypeaheadSelect } from '@odh-dashboard/ui-core';
+import type { TypeaheadSelectProps } from '@odh-dashboard/ui-core';
 import * as React from 'react';
-import { getSecrets } from '~/app/api/k8s';
-import { SecretListItem } from '~/app/types';
-import { formatMissingKeysMessage, getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import { useAutoXApi } from '../../context';
+import type { SecretListItem } from '../../api/k8s';
+import { formatMissingKeysMessage, getMissingRequiredKeys } from '../../utils/secretValidation';
 
 export interface SecretSelection extends SecretListItem {
   invalid?: boolean;
@@ -27,29 +27,15 @@ type TypeaheadSelectOption = Omit<SelectOptionProps, 'content' | 'isSelected'> &
   description?: React.ReactNode;
 };
 
-type SecretSelectorProps = Omit<
+export type SecretSelectorProps = Omit<
   TypeaheadSelectProps,
   'selectOptions' | 'selected' | 'onSelect' | 'onChange'
 > & {
   namespace: string;
-  type?: 'storage' | 'ogx';
-  value?: string; // The UUID of the selected secret
+  type?: string;
+  value?: string;
   onChange: (selection: SecretSelection | undefined) => void;
-  /**
-   * Additional keys that must be present in the secret for this specific use case.
-   * These are beyond the keys required for secret type classification (handled by the BFF).
-   *
-   * For example, S3 secrets are classified by keys like 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
-   * etc., but a specific use case might additionally require 'AWS_S3_BUCKET' to be present.
-   *
-   * @example
-   * additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
-   */
   additionalRequiredKeys?: Readonly<Partial<Record<string, readonly string[]>>>;
-  /**
-   * Called with the refresh function so the parent can trigger a secrets list refresh
-   * (e.g. after creating a new connection). Refresh returns the updated list.
-   */
   onRefreshReady?: (refresh: () => Promise<SecretListItem[] | undefined>) => void;
   showDescription?: boolean;
   showType?: boolean;
@@ -73,11 +59,12 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   toggleProps: userToggleProps,
   ...props
 }) => {
+  const { k8s } = useAutoXApi();
   const [validationError, setValidationError] = React.useState<string>('');
 
   const callback = React.useCallback<FetchStateCallbackPromise<SecretListItem[]>>(
-    (opts: APIOptions) => getSecrets('')(namespace, type)(opts),
-    [namespace, type],
+    (opts: APIOptions) => k8s.getSecrets('')(namespace, type)(opts),
+    [k8s, namespace, type],
   );
 
   const [secrets, loaded, error, refresh] = useFetchState<SecretListItem[]>(callback, []);
@@ -86,7 +73,6 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
     onRefreshReady?.(refresh);
   }, [refresh, onRefreshReady]);
 
-  // Memoize to prevent new array reference on every render and to ensure secrets is always an array
   const secretsList = React.useMemo(() => (Array.isArray(secrets) ? secrets : []), [secrets]);
   const hasSecrets = secretsList.length > 0;
   const hasError = !!error;
@@ -94,70 +80,39 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   const hasNoSecrets = loaded && !hasError && !hasSecrets;
   const isSelectDisabled = isDisabled || hasError || !hasSecrets || isLoading;
 
-  // Validate if a secret has all additional required keys for this use case (case-insensitive)
   const validateSecretKeys = React.useCallback(
     (secret: SecretListItem): string[] => {
       if (!additionalRequiredKeys || !secret.type) {
         return [];
       }
-
       const requiredKeysForType = additionalRequiredKeys[secret.type];
-      // TypeScript thinks this check is unnecessary because additionalRequiredKeys is typed as { [type: string]: string[] }
-      // and secret.type is 's3' | 'ogx' at this point (after the !secret.type check above).
-      // However, additionalRequiredKeys is optional and may not contain entries for all possible secret types,
-      // so this runtime check is needed.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      // The map is partial at runtime even though its index is string-based.
       if (!requiredKeysForType) {
         return [];
       }
-
       return getMissingRequiredKeys(requiredKeysForType, Object.keys(secret.data ?? {}));
     },
     [additionalRequiredKeys],
   );
 
-  // When value changes (including when parent sets selection programmatically), validate the
-  // selected secret and show or clear validation error so invalid state is visible.
   React.useEffect(() => {
-    if (!value) {
+    if (!value || secretsList.length === 0) {
       setValidationError('');
       return;
     }
-
-    // If secrets list becomes empty, clear the selection
-    if (secretsList.length === 0) {
-      setValidationError('');
-      return;
-    }
-
-    const secret = secretsList.find((s) => s.uuid === value);
+    const secret = secretsList.find((item) => item.uuid === value);
     if (!secret) {
       setValidationError('');
       return;
     }
-    const missingKeys = validateSecretKeys(secret);
-    if (missingKeys.length > 0) {
-      setValidationError(formatMissingKeysMessage(missingKeys));
-      // Don't auto-clear invalid selections - let the parent handle invalid state
-      // The onSelect handler already sets invalid: true on the secret
-    } else {
-      setValidationError('');
-    }
-  }, [value, secretsList, validateSecretKeys, onChange]);
+    setValidationError(formatMissingKeysMessage(validateSecretKeys(secret)));
+  }, [value, secretsList, validateSecretKeys]);
 
-  // Clear stale selection when secrets refresh and current value is no longer valid
   React.useEffect(() => {
     if (!loaded || error || !value) {
       return;
     }
-    // Clear selection if secrets list is empty
-    if (secretsList.length === 0) {
-      onChange(undefined);
-      return;
-    }
-    // Clear selection if value is no longer in the list
-    const isValueInList = secretsList.some((secret) => secret.uuid === value);
-    if (!isValueInList) {
+    if (secretsList.length === 0 || !secretsList.some((secret) => secret.uuid === value)) {
       onChange(undefined);
     }
   }, [loaded, error, secretsList, value, onChange]);
@@ -177,25 +132,19 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
           labels.push(
             <div
               key="desc"
-              style={{
-                width: '250px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
+              className="pf-v6-u-w-25 pf-v6-u-text-truncate"
               title={secret.description}
             >
               {secret.description}
             </div>,
           );
         }
-
         return {
           content: secret.displayName || secret.name,
           value: secret.uuid,
           isSelected: secret.uuid === value,
           description: labels.length ? (
-            <LabelGroup style={{ marginTop: '0.5rem' }}>{labels}</LabelGroup>
+            <LabelGroup className="pf-v6-u-mt-sm">{labels}</LabelGroup>
           ) : undefined,
         };
       }),
@@ -218,10 +167,7 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
         isRequired={isRequired}
         previewDescription={previewDescription}
         toggleWidth={toggleWidth}
-        toggleProps={{
-          ...userToggleProps,
-          status: hasError ? 'danger' : userToggleProps?.status,
-        }}
+        toggleProps={{ ...userToggleProps, status: hasError ? 'danger' : userToggleProps?.status }}
         onSelect={(
           _:
             | React.MouseEvent<Element, MouseEvent>
@@ -229,26 +175,15 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
             | undefined,
           selection: string | number,
         ) => {
-          const uuid = String(selection);
-          const secret = secretsList.find((s) => s.uuid === uuid);
-
-          if (secret) {
-            // Validate if the secret has all required keys
-            const missingKeys = validateSecretKeys(secret);
-
-            if (missingKeys.length > 0) {
-              // Secret is missing required keys - set error and call onChange with invalid: true
-              setValidationError(formatMissingKeysMessage(missingKeys));
-              onChange({ ...secret, invalid: true });
-            } else {
-              // Secret is valid - clear error and call onChange with selection
-              setValidationError('');
-              onChange({ ...secret, invalid: false });
-            }
-          } else {
+          const secret = secretsList.find((item) => item.uuid === String(selection));
+          if (!secret) {
             setValidationError('');
             onChange(undefined);
+            return;
           }
+          const missingKeys = validateSecretKeys(secret);
+          setValidationError(formatMissingKeysMessage(missingKeys));
+          onChange({ ...secret, invalid: missingKeys.length > 0 });
         }}
       />
       {(hasError || hasNoSecrets || validationError) && (

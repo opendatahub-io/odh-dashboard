@@ -55,8 +55,12 @@ import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3File
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import { ConfigureFormGroup } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -81,7 +85,6 @@ import {
   isASCIIOnly,
 } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_MAX_FILES,

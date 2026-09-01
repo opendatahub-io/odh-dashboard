@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/feature';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
@@ -24,7 +25,6 @@ import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useCreatePipelineRunMutation } from '~/app/hooks/useCreatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
-import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 import {

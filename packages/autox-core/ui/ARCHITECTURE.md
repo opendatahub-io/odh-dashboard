@@ -113,7 +113,9 @@ ui-core's `EmptyDetailsView`), `TopologyVis` (tree view + stage-status
 resolution behind a strategy object), `Leaderboard` (`SortableLeaderboardTable`;
 column definitions/formatters via strategy), `PipelineRunsTable` (column
 set/actions hook via strategy), `ConnectionModal`, `ProjectSelectorNavigator`
-(namespace persistence with product routing/tracking callbacks).
+(namespace persistence with product routing/tracking callbacks), `SecretSelector`
+(secret-list fetching and generic required-key validation; secret type vocabulary is
+supplied by the consuming product).
 
 ### Feature (product — automl/autorag)
 
