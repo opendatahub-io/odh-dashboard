@@ -129,7 +129,7 @@ func (r *ExternalProvidersRepository) DeleteExternalProvider(ctx context.Context
 	err = client.GetDynamicClient().Resource(constants.ExternalProviderGvr).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("ExternalProvider '%s' not found", name)
+			return fmt.Errorf("%w: ExternalProvider '%s' not found", ErrNotFound, name)
 		}
 		return fmt.Errorf("failed to delete ExternalProvider: %w", err)
 	}

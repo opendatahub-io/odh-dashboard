@@ -89,8 +89,18 @@ func (r *ExternalModelsRepository) CreateExternalModel(ctx context.Context, requ
 		return nil, fmt.Errorf("failed to create ExternalModel: %w", err)
 	}
 
-	if err := r.createMaaSModelRefForExternalModel(ctx, request); err != nil {
-		_ = client.GetDynamicClient().Resource(constants.ExternalModelGvr).Namespace(request.Namespace).Delete(ctx, request.Name, metav1.DeleteOptions{})
+	if err := r.createMaaSModelRefForExternalModel(ctx, request, string(created.GetUID())); err != nil {
+		if delErr := client.GetDynamicClient().
+			Resource(constants.ExternalModelGvr).
+			Namespace(request.Namespace).
+			Delete(ctx, request.Name, metav1.DeleteOptions{}); delErr != nil {
+			r.logger.Error(
+				"failed to rollback ExternalModel creation after MaaSModelRef failure",
+				slog.String("namespace", request.Namespace),
+				slog.String("name", request.Name),
+				slog.Any("err", delErr),
+			)
+		}
 		return nil, fmt.Errorf("failed to create MaaSModelRef for ExternalModel: %w", err)
 	}
 
@@ -133,8 +143,13 @@ func (r *ExternalModelsRepository) UpdateExternalModel(ctx context.Context, name
 		return nil, fmt.Errorf("failed to update ExternalModel: %w", err)
 	}
 
-	if err := r.syncMaaSModelRefOnUpdate(ctx, namespace, name, request); err != nil {
-		return nil, fmt.Errorf("failed to update MaaSModelRef for ExternalModel: %w", err)
+	if err := r.syncMaaSModelRefOnUpdate(ctx, namespace, name, request, string(updated.GetUID())); err != nil {
+		r.logger.Warn(
+			"failed to sync MaaSModelRef for ExternalModel",
+			slog.String("namespace", namespace),
+			slog.String("name", name),
+			slog.Any("err", err),
+		)
 	}
 
 	return convertUnstructuredToExternalModelSummary(updated), nil

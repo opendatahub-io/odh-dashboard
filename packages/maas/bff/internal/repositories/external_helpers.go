@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -323,18 +324,19 @@ func buildExternalModelUnstructured(request models.CreateExternalModelRequest) *
 	return obj
 }
 
-func (r *ExternalModelsRepository) createMaaSModelRefForExternalModel(ctx context.Context, request models.CreateExternalModelRequest) error {
+func (r *ExternalModelsRepository) createMaaSModelRefForExternalModel(ctx context.Context, request models.CreateExternalModelRequest, parentUID string) error {
 	_, err := r.modelRefsRepo.CreateMaaSModelRef(ctx, models.CreateMaaSModelRefRequest{
 		Name:        request.Name,
 		Namespace:   request.Namespace,
 		ModelRef:    models.ModelReference{Kind: "ExternalModel", Name: request.Name},
 		DisplayName: request.DisplayName,
 		Description: request.Description,
+		Uid:         parentUID,
 	}, false)
 	return err
 }
 
-func (r *ExternalModelsRepository) syncMaaSModelRefOnUpdate(ctx context.Context, namespace, name string, request models.UpdateExternalModelRequest) error {
+func (r *ExternalModelsRepository) syncMaaSModelRefOnUpdate(ctx context.Context, namespace, name string, request models.UpdateExternalModelRequest, parentUID string) error {
 	updateRequest := models.UpdateMaaSModelRefRequest{
 		ModelRef: models.ModelReference{Kind: "ExternalModel", Name: name},
 	}
@@ -346,7 +348,10 @@ func (r *ExternalModelsRepository) syncMaaSModelRefOnUpdate(ctx context.Context,
 	}
 
 	_, err := r.modelRefsRepo.UpdateMaaSModelRef(ctx, namespace, name, updateRequest, false)
-	if err == nil || !strings.Contains(err.Error(), "not found") {
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, ErrNotFound) {
 		return err
 	}
 
@@ -354,6 +359,7 @@ func (r *ExternalModelsRepository) syncMaaSModelRefOnUpdate(ctx context.Context,
 		Name:      name,
 		Namespace: namespace,
 		ModelRef:  models.ModelReference{Kind: "ExternalModel", Name: name},
+		Uid:       parentUID,
 	}
 	if request.DisplayName != nil {
 		createRequest.DisplayName = *request.DisplayName
@@ -379,6 +385,14 @@ func buildExternalProviderRefs(refs []models.ProviderRef) []interface{} {
 		}
 		if config := stringMapToUnstructured(ref.Config); config != nil {
 			entry["config"] = config
+		}
+		if ref.AuthMechanism != nil && ref.CredentialSecretRef != "" {
+			entry["auth"] = map[string]interface{}{
+				"type": authMechanismToCRD(*ref.AuthMechanism),
+				"secretRef": map[string]interface{}{
+					"name": ref.CredentialSecretRef,
+				},
+			}
 		}
 		result = append(result, entry)
 	}
