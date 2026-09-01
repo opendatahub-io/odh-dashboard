@@ -27,17 +27,20 @@ export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFiel
 export type NIMImageFieldExternalData = {
   nimImages: NIMImagesData;
   accountStatus: NIMAccountStatus;
+  nimImagesLoaded?: boolean;
   nimTemplate?: TemplateKind;
 };
 
 export const useNIMImageFieldExternalData = (dependencies?: {
   project?: { projectName?: string };
+  isEditing?: boolean;
 }): {
   data: NIMImageFieldExternalData;
   loaded: boolean;
   loadError?: Error;
 } => {
   const projectName = dependencies?.project?.projectName;
+  const isEditing = dependencies?.isEditing ?? false;
   const {
     status: accountStatus,
     nimAccount,
@@ -70,22 +73,33 @@ export const useNIMImageFieldExternalData = (dependencies?: {
   // Account failures and terminal Account states must settle the field. Dependent image/template
   // requests cannot load without an Account, and edits must not remain blocked by those requests.
   const loaded =
+    isEditing ||
     !projectName ||
     accountTerminal ||
     ((imagesLoaded || !!loadError) && accountLoaded && (nimTemplateLoaded || !!nimTemplateError));
 
   return React.useMemo(
     () => ({
-      data: { nimImages, accountStatus, nimTemplate },
+      data: { nimImages, accountStatus, nimImagesLoaded: imagesLoaded, nimTemplate },
       loaded,
       loadError: accountLoadError ?? loadError ?? nimTemplateError,
     }),
-    [nimImages, accountStatus, nimTemplate, loaded, accountLoadError, loadError, nimTemplateError],
+    [
+      nimImages,
+      accountStatus,
+      imagesLoaded,
+      nimTemplate,
+      loaded,
+      accountLoadError,
+      loadError,
+      nimTemplateError,
+    ],
   );
 };
 
 export type NIMImageDependencies = {
   project: ProjectSectionType;
+  isEditing: boolean;
 };
 
 export type NIMImageFieldValue = {
@@ -206,7 +220,8 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   const isReselectionUnlocked = reselectionUnlockedRef.current;
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
-  const catalogLoadedWithImages = Boolean(externalData?.loaded && images.length > 0);
+  const catalogLoadedWithImages = Boolean(externalData?.data.nimImagesLoaded && images.length > 0);
+  const isImageCatalogLoaded = externalData?.data.nimImagesLoaded ?? externalData?.loaded ?? false;
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,
@@ -308,7 +323,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
           </HelperTextItem>
         </HelperText>
       )}
-      {existingOptionNotFound && !externalData.loadError && (
+      {existingOptionNotFound && isImageCatalogLoaded && !externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
             The existing NIM image was not found. The deployment may not work as expected.
@@ -336,7 +351,10 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
     getInitialFieldData: (existingFieldData?: NIMImageFieldValue): NIMImageFieldValue =>
       existingFieldData ?? { repository: '', tag: '' },
     validationSchema: nimImageFieldSchema,
-    resolveDependencies: (formData) => ({ project: formData.project }),
+    resolveDependencies: (formData, initialData) => ({
+      project: formData.project,
+      isEditing: initialData?.isEditing ?? false,
+    }),
     getFieldOverrides: getNIMHardwareProfileFieldOverrides,
   },
   component: NIMImageFieldComponent,

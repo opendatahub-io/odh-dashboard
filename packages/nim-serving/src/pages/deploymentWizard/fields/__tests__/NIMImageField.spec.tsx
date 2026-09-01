@@ -202,6 +202,7 @@ describe('NIMImageFieldComponent', () => {
         data: {
           nimImages: { images: [], projectName: 'test-project' },
           accountStatus: NIMAccountStatus.NOT_FOUND,
+          nimImagesLoaded: false,
         },
         loaded: true,
       },
@@ -211,6 +212,7 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
     expect(screen.queryByRole('button', { name: 'Clear input value' })).not.toBeInTheDocument();
     expect(screen.queryByText('No NVIDIA NIM key', { exact: false })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nim-image-not-found-warning')).not.toBeInTheDocument();
   });
 
   it('should preserve and lock the raw image while editing after an Account request failure', () => {
@@ -265,6 +267,7 @@ describe('NIMImageFieldComponent', () => {
         projectName: 'test-project',
       },
       accountStatus: NIMAccountStatus.READY,
+      nimImagesLoaded: true,
     },
     loaded: true,
   };
