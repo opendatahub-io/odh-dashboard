@@ -64,6 +64,9 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	// Operator-owned resources are preserved (skipped by name during teardown).
 	assertExists(t, &appsv1.Deployment{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})
 	assertExists(t, &corev1.ServiceAccount{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})
+	assertExists(t, &corev1.Service{}, types.NamespacedName{Name: "dashboard-operator-webhook", Namespace: integrationNamespace})
+	assertExists(t, &corev1.Secret{}, types.NamespacedName{Name: "dashboard-operator-webhook-tls", Namespace: integrationNamespace})
+	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
 
@@ -122,14 +125,17 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 
 	// Operator-owned resources remain intact across repeated teardowns.
 	assertExists(t, &appsv1.Deployment{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})
+	assertExists(t, &corev1.Service{}, types.NamespacedName{Name: "dashboard-operator-webhook", Namespace: integrationNamespace})
+	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
 }
 
-// seedOperatorOwnedResources creates the operator's own Deployment, ServiceAccount,
-// ClusterRole and ClusterRoleBinding — all carrying the part-of=dashboard label so the
-// teardown lists them, then skips them by name. Cleanup is registered so cluster-scoped
-// resources never leak.
+// seedOperatorOwnedResources creates the operator's own resources — Deployment,
+// ServiceAccount, ClusterRole, ClusterRoleBinding, the webhook Service and its serving-cert
+// Secret, and the operator config ConfigMap — all carrying the part-of=dashboard label the
+// operator's Helm chart stamps on them (commonLabels). Teardown lists them by label, then
+// must skip them by name. Cleanup is registered so cluster-scoped resources never leak.
 func seedOperatorOwnedResources(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
@@ -156,6 +162,17 @@ func seedOperatorOwnedResources(t *testing.T) {
 			},
 		},
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator", Namespace: integrationNamespace, Labels: partOf}},
+		// Webhook Service: deleting it would break the failurePolicy: Fail ValidatingWebhookConfiguration.
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-webhook", Namespace: integrationNamespace, Labels: partOf},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{{Port: 443}},
+			},
+		},
+		// Webhook serving-cert Secret.
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-webhook-tls", Namespace: integrationNamespace, Labels: partOf}},
+		// Operator config ConfigMap the operator itself reads.
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: integrationNamespace, Labels: partOf}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-role", Labels: partOf}},
 		&rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-rolebinding", Labels: partOf},

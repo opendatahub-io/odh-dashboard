@@ -49,9 +49,12 @@ func getOperatorDeploymentName() string {
 func operatorOwnedResourceNames() map[string]bool {
 	base := operatorDeploymentName
 	return map[string]bool{
-		base:                  true,
-		base + "-role":        true,
-		base + "-rolebinding": true,
+		base:                      true,
+		base + "-role":            true,
+		base + "-rolebinding":     true,
+		base + "-webhook":         true, // webhook Service (dashboard.webhookServiceName)
+		base + "-webhook-tls":     true, // webhook serving-cert Secret (dashboard.webhookCertSecretName)
+		distributionConfigMapName: true, // operator config ConfigMap (odh-dashboard-config)
 	}
 }
 
@@ -748,6 +751,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	inNamespace := client.InNamespace(r.ApplicationsNamespace)
 
+	// The operator's own Helm chart stamps platform.opendatahub.io/part-of=dashboard
+	// (commonLabels) onto every resource it renders — including the webhook Service and
+	// the operator ConfigMap, both of which land in the applications namespace. Teardown
+	// must skip these by name so it never deletes operator-owned resources (e.g. deleting
+	// the webhook Service breaks the failurePolicy: Fail ValidatingWebhookConfiguration).
+	operatorResources := operatorOwnedResourceNames()
+
 	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
 		if err := r.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
@@ -755,6 +765,9 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 		items := extractItems(list)
 		for i := range items {
+			if operatorResources[items[i].GetName()] {
+				continue
+			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
 			if err := r.Delete(ctx, items[i]); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err)
@@ -788,8 +801,6 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	if err := deleteTyped(&configmaps, "ConfigMap", matchLabels, inNamespace); err != nil {
 		return err
 	}
-
-	operatorResources := operatorOwnedResourceNames()
 
 	var serviceAccounts corev1.ServiceAccountList
 	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {

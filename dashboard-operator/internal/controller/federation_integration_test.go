@@ -31,7 +31,12 @@ var allModuleSlugs = []string{
 // TestIntegration_AddInterBFFParams verifies the reconciler injects service-discovery
 // env vars into a module's params.env for its inter-BFF dependencies: gen-ai depends
 // on maas, so gen-ai's params.env must gain BFF_MAAS_SERVICE_NAME/PORT while maas —
-// which has no such dependency — must not. (RHOAIENG-83649)
+// which has no such dependency — must not.
+//
+// This asserts on the operator's rendered params.env (the source the module's
+// ConfigMap is generated from), not on a running pod's environment — envtest schedules
+// no kubelet. It exercises the addInterBFFParams write/clear path only; whether a
+// module actually consumes those keys is up to that module's kustomization. (RHOAIENG-83649)
 func TestIntegration_AddInterBFFParams(t *testing.T) {
 	manifests := createIntegrationManifests(t, []string{"gen-ai", "maas"})
 	r := newManifestReconciler(manifests)

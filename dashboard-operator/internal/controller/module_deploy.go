@@ -339,6 +339,13 @@ func (r *DashboardReconciler) deleteModuleResources(
 
 // --- Inter-BFF env var params ---
 
+// addInterBFFParams writes each inter-BFF dependency's service coordinates into the
+// module's params.env (rendered into that module's generated <slug>-params ConfigMap).
+// It only maintains those keys — a module wires them into its container env via envFrom
+// or a kustomize replacement if it needs them. gen-ai, the only current consumer, still
+// hardcodes the maas coordinates in its Deployment, so these keys are inert for it today;
+// keeping the write/clear logic correct means the ConfigMap is right whenever a module
+// starts consuming it.
 func addInterBFFParams(params map[string]string, moduleName string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) {
 	mod := moduleRegistry[moduleName]
 	if mod.InterBFFDeps == nil {
