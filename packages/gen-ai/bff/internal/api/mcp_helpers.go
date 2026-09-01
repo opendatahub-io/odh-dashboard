@@ -151,10 +151,7 @@ func (app *App) mapRegistryServerToSummary(server models.MLflowMCPServer) models
 	if endpoint.ResolvedVersion != nil {
 		version = endpoint.ResolvedVersion.Version
 		for _, tool := range endpoint.ResolvedVersion.Tools {
-			tools = append(tools, models.MCPServerToolSummary{
-				Name:        tool.Name,
-				Description: tool.Description,
-			})
+			tools = append(tools, models.MCPServerToolSummary(tool))
 		}
 	}
 
