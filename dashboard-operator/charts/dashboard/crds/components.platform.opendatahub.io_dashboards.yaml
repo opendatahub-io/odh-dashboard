@@ -94,6 +94,22 @@ spec:
                 required:
                 - domain
                 type: object
+              maasConsumerPortal:
+                description: MaasConsumerPortal configures the MaaS Consumer Portal.
+                properties:
+                  managementState:
+                    default: Removed
+                    description: |-
+                      ManagementState controls whether the portal is deployed.
+                      "Managed" deploys the portal (requires Gateway.Domain to be set,
+                      since the portal host is derived from it); "Removed" tears it down.
+                      This mirrors the shape the ODH Operator projects from
+                      dashboard.maasConsumerPortal.managementState.
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
+                type: object
               managementState:
                 default: Managed
                 description: |-

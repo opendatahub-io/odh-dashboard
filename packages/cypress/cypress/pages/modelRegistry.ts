@@ -63,6 +63,11 @@ class ModelRegistry {
     this.waitForRegistryLoaded();
   }
 
+  visitEmptyState(registryName = 'modelregistry-sample') {
+    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
+    cy.findByTestId('empty-model-registries-state', { timeout: 60000 }).should('be.visible');
+  }
+
   visitWithRegistry(registryName: string) {
     this.visit(registryName);
   }

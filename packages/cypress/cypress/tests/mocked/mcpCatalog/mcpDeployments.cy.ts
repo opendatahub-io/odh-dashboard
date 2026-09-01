@@ -627,7 +627,7 @@ describe('MCP Deploy from Catalog', () => {
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findCloseButton().click();
@@ -647,7 +647,7 @@ describe('MCP Deploy from Catalog', () => {
     ).as('getConverterSlow');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
 
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findLoadingSpinner().should('exist');
@@ -661,7 +661,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('getConverterError');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
 
     cy.wait('@getConverterError');
     mcpDeployModal.shouldBeOpen();
@@ -679,7 +679,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('createDeployment');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
     mcpDeployModal.findSubmitButton().should('be.disabled');
@@ -704,7 +704,7 @@ describe('MCP Deploy from Catalog', () => {
     }).as('createDeployment');
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
-    mcpServerDetailsPage.findDeployButton().click();
+    mcpServerDetailsPage.clickDeployButton();
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();
 
