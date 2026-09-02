@@ -266,7 +266,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           priority,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, submitEditTrackingEventProperties);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: models.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          priority,
+          editSource,
+        } satisfies SubscriptionUpdatedSuccessProperties);
       } else {
         const request: CreateSubscriptionRequest = {
           name: nameDescData.k8sName.value,
@@ -278,7 +286,17 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, submitCreateTrackingEventProperties);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: models.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          modelCountAvailable: modelRefs.length,
+          hasMatchingPolicy: createAuthPolicy,
+          priority,
+          prefillSource,
+        } satisfies SubscriptionCreatedSuccessProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
@@ -290,16 +308,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
       fireFormTrackingEvent(
         isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
         isEditing
-          ? {
-              ...errorEditTrackingEventProperties,
+          ? ({
               outcome: TrackingOutcome.submit,
               success: false,
-            }
-          : {
-              ...errorCreateTrackingEventProperties,
+              editSource,
+            } satisfies SubscriptionUpdatedErrorProperties)
+          : ({
               outcome: TrackingOutcome.submit,
               success: false,
-            },
+            } satisfies SubscriptionCreatedErrorProperties),
       );
       setSubmitError(errMsg);
       setIsSubmitting(false);
@@ -309,52 +326,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
   const canAddModels = modelRefs.length > 0;
 
-  const cancelEditTrackingEventProperties: SubscriptionUpdatedCancelProperties = {
-    outcome: TrackingOutcome.cancel,
-    editSource,
-  };
-
-  const cancelCreateTrackingEventProperties: SubscriptionCreatedCancelProperties = {
-    outcome: TrackingOutcome.cancel,
-    modelCount: models.length,
-    modelCountWoLimit: modelRefsPayload.filter((m) => m.tokenRateLimits.length === 0).length,
-  };
-
-  const submitEditTrackingEventProperties: SubscriptionUpdatedSuccessProperties = {
-    outcome: TrackingOutcome.submit,
-    success: true,
-    groupCount: selectedGroupNames.length,
-    modelCount: models.length,
-    hasDescription: nameDescData.description.trim() !== '',
-    priority: priority ?? 0,
-    editSource,
-  };
-
   const prefillSource = preSelectedModel
     ? EventTrackingPrefillSource.MODEL
     : EventTrackingPrefillSource.NONE;
-  const submitCreateTrackingEventProperties: SubscriptionCreatedSuccessProperties = {
-    outcome: TrackingOutcome.submit,
-    success: true,
-    groupCount: selectedGroupNames.length,
-    modelCount: models.length,
-    hasDescription: nameDescData.description.trim() !== '',
-    modelCountAvailable: modelRefs.length,
-    hasMatchingPolicy: createAuthPolicy,
-    priority: priority ?? 0,
-    prefillSource,
-  };
-
-  const errorCreateTrackingEventProperties: SubscriptionCreatedErrorProperties = {
-    outcome: TrackingOutcome.submit,
-    success: false,
-  };
-
-  const errorEditTrackingEventProperties: SubscriptionUpdatedErrorProperties = {
-    outcome: TrackingOutcome.submit,
-    success: false,
-    editSource,
-  };
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -604,7 +578,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               navigate(returnTo ?? getSectionUrl('subscriptions'));
               fireFormTrackingEvent(
                 isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
-                isEditing ? cancelEditTrackingEventProperties : cancelCreateTrackingEventProperties,
+                isEditing
+                  ? ({
+                      outcome: TrackingOutcome.cancel,
+                      editSource,
+                    } satisfies SubscriptionUpdatedCancelProperties)
+                  : ({
+                      outcome: TrackingOutcome.cancel,
+                      modelCount: models.length,
+                      modelCountWoLimit: modelRefsPayload.filter(
+                        (m) => m.tokenRateLimits.length === 0,
+                      ).length,
+                    } satisfies SubscriptionCreatedCancelProperties),
               );
             }}
             isDisabled={isSubmitting}
