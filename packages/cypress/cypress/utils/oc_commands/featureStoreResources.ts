@@ -2,7 +2,6 @@ import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_com
 import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
-
 const trimOcJsonpath = (stdout: string): string => stdout.trim().replace(/^'|'$/g, '');
 
 /** Feature repo directory inside the Feast registry container. */
