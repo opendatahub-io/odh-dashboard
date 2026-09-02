@@ -10,7 +10,7 @@ import type {
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
@@ -267,7 +267,7 @@ export type ModelServingStartStopAction<D extends Deployment = Deployment> = Ext
   {
     platform: D['modelServingPlatformId'];
     patchDeploymentStoppedStatus: CodeRef<
-      (deployment: D, isStopped: boolean) => Promise<D['model']>
+      (deployment: D, isStopped: boolean, extraPatches?: Patch[]) => Promise<D['model']>
     >;
   }
 >;

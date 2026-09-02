@@ -3,7 +3,7 @@ import {
   ModelDeploymentState,
   ModelStatus,
 } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sPatchResource, type Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sAPIOptions, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { checkModelPodStatus } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
 import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
@@ -60,6 +60,7 @@ export const getLLMdDeploymentStatus = (
 export const patchDeploymentStoppedStatus = (
   deployment: LLMdDeployment,
   isStopped: boolean,
+  extraPatches: Patch[] = [],
 ): Promise<LLMdDeployment['model']> =>
   k8sPatchResource({
     model: LLMInferenceServiceModel,
@@ -73,6 +74,7 @@ export const patchDeploymentStoppedStatus = (
         path: '/metadata/annotations/serving.kserve.io~1stop',
         value: isStopped ? 'true' : 'false',
       },
+      ...extraPatches,
     ],
   });
 

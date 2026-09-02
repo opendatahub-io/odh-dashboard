@@ -85,3 +85,6 @@ export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
   tolerationsPath: 'spec.predictor.tolerations',
   nodeSelectorPath: 'spec.predictor.nodeSelector',
 };
+
+export const HARDWARE_PROFILE_RESOURCE_VERSION_PATH =
+  '/metadata/annotations/opendatahub.io~1hardware-profile-resource-version';

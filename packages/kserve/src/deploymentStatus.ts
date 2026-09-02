@@ -5,7 +5,7 @@ import {
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
 import { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
-import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { k8sPatchResource, type Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { KServeDeployment } from './deployments';
@@ -13,6 +13,7 @@ import { KServeDeployment } from './deployments';
 export const patchDeploymentStoppedStatus = (
   deployment: KServeDeployment,
   isStopped: boolean,
+  extraPatches: Patch[] = [],
 ): Promise<KServeDeployment['model']> =>
   k8sPatchResource({
     model: InferenceServiceModel,
@@ -26,6 +27,7 @@ export const patchDeploymentStoppedStatus = (
         path: '/metadata/annotations/serving.kserve.io~1stop',
         value: isStopped ? 'true' : 'false',
       },
+      ...extraPatches,
     ],
   });
 
