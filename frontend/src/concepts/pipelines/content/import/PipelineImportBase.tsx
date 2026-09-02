@@ -295,7 +295,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
         },
         {
           label: 'Cancel',
-          onClick: onBeforeClose,
+          onClick: () => onBeforeClose(),
           dataTestId: 'modal-cancel-button',
           variant: 'link',
         },

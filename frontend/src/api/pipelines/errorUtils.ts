@@ -33,7 +33,6 @@ const isGrpcErrorKF = (e: unknown): e is GrpcErrorKF => {
     obj.code !== 0 &&
     typeof obj.message === 'string' &&
     !('error' in e) &&
-    !('details' in e) &&
     !('run_id' in e) &&
     !('recurring_run_id' in e)
   );

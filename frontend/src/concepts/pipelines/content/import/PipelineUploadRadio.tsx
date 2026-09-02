@@ -12,7 +12,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { isValidUrl as checkValidUrl } from '#~/utilities/utils.ts';
+import { isValidHttpUrl } from '#~/utilities/utils.ts';
 import { PipelineUploadOption } from './utils';
 import PipelineFileUpload from './PipelineFileUpload';
 
@@ -91,10 +91,10 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
               onChange={(_e, value) => {
                 setPipelineUrl(value);
                 if (!isUrlValid) {
-                  setIsUrlValid(checkValidUrl(value));
+                  setIsUrlValid(isValidHttpUrl(value));
                 }
               }}
-              onBlur={(e) => setIsUrlValid(checkValidUrl(e.currentTarget.value))}
+              onBlur={(e) => setIsUrlValid(isValidHttpUrl(e.currentTarget.value))}
               validated={pipelineUrl.length === 0 || isUrlValid ? 'default' : 'error'}
             />
             {!isUrlValid && pipelineUrl.length > 0 && (
