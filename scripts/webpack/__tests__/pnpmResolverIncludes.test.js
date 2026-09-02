@@ -66,6 +66,15 @@ describe('pnpmResolverIncludes', () => {
     assert.deepEqual(tanstackQueryCoreAlias('/tmp/nonexistent-package'), {});
   });
 
+  it('returns micromark paired with mdast-util-from-markdown', () => {
+    const { micromarkAlias } = require('../pnpmResolverIncludes');
+    const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
+    const alias = micromarkAlias(genAiDir);
+    assert.ok(alias.micromark);
+    const { version } = require(path.join(alias.micromark, 'package.json'));
+    assert.match(version, /^4\./);
+  });
+
   it('returns @mui/material and peers from the same install tree', () => {
     const { muiMaterialPeerAliases } = require('../pnpmResolverIncludes');
     const genAiDir = path.resolve(__dirname, '../../../packages/gen-ai/frontend');
