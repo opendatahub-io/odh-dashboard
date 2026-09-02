@@ -1,9 +1,13 @@
-import { pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult, MlflowExperimentRunData } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const K8S_NAMESPACE_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
+
+const MLFLOW_CR_NAME = 'mlflow';
+const MLFLOW_GVR = 'mlflows.mlflow.opendatahub.io';
+const DEFAULT_MLFLOW_FIXTURE = 'e2e/mlflow/mlflowCR.yaml';
 
 const UI_POLL_CONFIG = {
   maxAttempts: 20,
@@ -25,52 +29,64 @@ const getApplicationsNamespace = (): string => {
   return assertNamespace(namespace);
 };
 
-/**
- * Check if an MLflow CR exists in the applications namespace.
- */
-export const doesMlflowCRExist = (): Cypress.Chainable<boolean> =>
-  cy
-    .exec(
-      `oc get mlflows.mlflow.opendatahub.io -n ${getApplicationsNamespace()} --no-headers 2>/dev/null | head -1`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => {
-      if (result.exitCode !== 0 && !result.stderr.includes('No resources found')) {
-        throw new Error(`Failed to check MLflow CR: ${maskSensitiveInfo(result.stderr)}`);
-      }
-      return result.stdout.trim().length > 0;
-    });
-
-/**
- * Create an MLflow CR in the given namespace so the MLflow service is deployed.
- * Loads the CR spec from the fixture file and applies it with the target namespace.
- * Skips creation if one already exists.
- *
- * @param namespace - The namespace in which to create the MLflow CR.
- * @returns A Cypress.Chainable that resolves when the CR is created or already exists.
- */
-const ensureMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult> => {
-  const safeNamespace = assertNamespace(namespace);
-  const checkCommand = `oc get mlflows.mlflow.opendatahub.io -n ${safeNamespace} --no-headers 2>/dev/null | head -1`;
-  return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.stdout.trim()) {
-      cy.log('MLflow CR already exists, skipping creation.');
-      return cy.wrap(result);
+const waitForTerminatingCrGone = (): void => {
+  cy.exec(
+    `oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null`,
+    { failOnNonZeroExit: false },
+  ).then((result) => {
+    const ts = result.stdout.replace(/'/g, '').trim();
+    if (ts) {
+      cy.log(`MLflow CR is terminating (deletionTimestamp=${ts}), waiting for full removal`);
+      pollUntilSuccess(
+        `! oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o name 2>/dev/null`,
+        'MLflow CR to be fully deleted',
+        { maxAttempts: 60, pollIntervalMs: 5000 },
+      );
     }
-
-    cy.log('Creating MLflow CR...');
-    return cy
-      .exec(`oc apply -n ${safeNamespace} -f cypress/fixtures/e2e/mlflow/mlflowCR.yaml`, {
-        failOnNonZeroExit: false,
-      })
-      .then((applyResult) => {
-        if (applyResult.exitCode !== 0) {
-          const maskedStderr = maskSensitiveInfo(applyResult.stderr);
-          throw new Error(`Failed to create MLflow CR: ${maskedStderr}`);
-        }
-        return applyResult;
-      });
   });
+};
+
+export const ensureMlflowCrReady = (
+  fixturePath = DEFAULT_MLFLOW_FIXTURE,
+): Cypress.Chainable<boolean> => {
+  waitForTerminatingCrGone();
+  return cy
+    .exec(`oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o name --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      const existed = result.stdout.trim().length > 0;
+
+      if (existed) {
+        cy.log(`MLflow CR ${MLFLOW_CR_NAME} already exists; waiting for Available`);
+        return waitForMlflowCRAvailable().then(() => cy.wrap(false));
+      }
+
+      cy.log(`Applying cluster-scoped MLflow CR from ${fixturePath}`);
+      return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) =>
+        applyOpenShiftYaml(yamlContent).then((applyResult) => {
+          if (applyResult.exitCode !== 0) {
+            const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
+            throw new Error(`oc apply MLflow failed: ${maskedStderr}`);
+          }
+          return waitForMlflowCRAvailable().then(() => cy.wrap(true));
+        }),
+      );
+    });
+};
+
+export const deleteMlflowCr = (): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Deleting MLflow CR ${MLFLOW_CR_NAME} if present`);
+  return cy
+    .exec(`oc delete ${MLFLOW_GVR} ${MLFLOW_CR_NAME} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(`Warning: MLflow CR deletion failed: ${maskSensitiveInfo(result.stderr || '')}`);
+      }
+      return result;
+    });
 };
 
 /**
@@ -92,43 +108,12 @@ const waitForMlflowOperatorReady = (): Cypress.Chainable<Cypress.Exec> =>
     ),
   );
 
-/**
- * Delete the MLflow CR in the given namespace.
- *
- * @param namespace - The namespace from which to delete the MLflow CR.
- * @returns A Cypress.Chainable that resolves when deletion is complete.
- */
-export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult> => {
-  const safeNamespace = assertNamespace(namespace);
-  return cy
-    .exec(`oc delete mlflows.mlflow.opendatahub.io --all -n ${safeNamespace}`, {
-      failOnNonZeroExit: false,
-    })
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        const maskedStderr = maskSensitiveInfo(result.stderr);
-        cy.log(`Warning: Failed to delete MLflow CR: ${maskedStderr}`);
-      }
-      return cy.wrap(result);
-    });
-};
-
-/**
- * Poll until the MLflow CR's Available condition is True.
- *
- * The operator sets Available=True only after any pending version migration
- * completes and the tracking-server deployment is rolled out. Polling this
- * condition (rather than status.address.url) naturally handles the migration
- * phase where the deployment is intentionally scaled to zero.
- */
-const waitForMlflowCRAvailable = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
-  const ns = assertNamespace(namespace);
-  return pollUntilSuccess(
-    `oc get mlflows.mlflow.opendatahub.io mlflow -n ${ns} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
+const waitForMlflowCRAvailable = (): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
     'MLflow CR Available condition to be True',
     { maxAttempts: 120, pollIntervalMs: 5000 },
   );
-};
 
 /**
  * Poll until a nav item with the given label appears in the sidebar.
@@ -408,13 +393,12 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   return waitForMlflowOperatorReady()
     .then(() => {
       cy.step('Create MLflow CR if absent');
-      return ensureMlflowCR(namespace);
+      return ensureMlflowCrReady();
     })
-    .then(() => {
-      cy.step('Wait for MLflow CR Available condition (includes migration)');
-      return waitForMlflowCRAvailable(namespace);
-    })
-    .then(() => {
+    .then((created) => {
+      if (created) {
+        Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
+      }
       cy.step('Wait for MLflow tracking server deployment to be available');
       return waitForMlflowTrackingPodReady(namespace);
     });
@@ -451,15 +435,13 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
     });
 };
 
-/**
- * Restore MLflow to its pre-test state.
- *
- * The MLflow CR is intentionally left on the cluster — it is no longer
- * auto-created by the platform operator, so deleting it would force
- * subsequent tests to wait through the full CR creation + migration cycle.
- */
 export const disableMlflowFeatures = (): void => {
-  // no-op: keep the MLflow CR for subsequent test suites
+  if (Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
+    Cypress.env('MLFLOW_CR_CREATED_BY_TEST', false);
+    deleteMlflowCr();
+  } else {
+    cy.log('MLflow CR was not created by this test suite — skipping deletion');
+  }
 };
 
 /**
@@ -499,20 +481,11 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     });
 };
 
-/**
- * Restore MLflow features to their pre-test state.
- */
 export const disablePromptManagementFeatures = (): void => disableMlflowFeatures();
 
-/**
- * Get the MLflow tracking server URL from the MLflow CR status.
- */
-export const getMlflowTrackingUrl = (): Cypress.Chainable<string> => {
-  const namespace = getApplicationsNamespace();
-  return cy
-    .exec(
-      `oc get mlflows.mlflow.opendatahub.io -n ${namespace} -o jsonpath="{.items[0].status.address.url}"`,
-    )
+export const getMlflowTrackingUrl = (): Cypress.Chainable<string> =>
+  cy
+    .exec(`oc get ${MLFLOW_GVR} ${MLFLOW_CR_NAME} -o jsonpath="{.status.address.url}"`)
     .then((result) => {
       const url = result.stdout.trim().replace(/"/g, '');
       if (!url) {
@@ -520,7 +493,6 @@ export const getMlflowTrackingUrl = (): Cypress.Chainable<string> => {
       }
       return url;
     });
-};
 
 /**
  * Get the name of a running MLflow tracking-server pod in the applications namespace.
