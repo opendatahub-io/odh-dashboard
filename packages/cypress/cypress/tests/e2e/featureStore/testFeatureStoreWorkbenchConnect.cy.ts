@@ -66,15 +66,9 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
           cy.step(`Create Feature Store namespace: ${fsProjectName}`);
           createCleanProject(fsProjectName);
 
-          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
-            const ocUser = whoami.stdout.trim();
-            if (ocUser) {
-              return addUserToProject(fsProjectName, ocUser, 'admin').then(() =>
-                addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin'),
-              );
-            }
-            return addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin');
-          });
+          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+          // in the permitted namespace (the dashboard login user reads the registry).
+          return addUserToProject(fsProjectName, LDAP_ADMIN_USER.USERNAME, 'admin');
         })
         .then(() => {
           cy.step(`Apply FeatureStore CR in namespace: ${fsProjectName}`);
@@ -83,7 +77,6 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
         })
         .then(() => {
           return applyFeastPermissionViaSdk(fsProjectName, testData.feastInstanceName, {
-            name: 'feast-auth',
             namespaces: [fsProjectName],
           });
         })

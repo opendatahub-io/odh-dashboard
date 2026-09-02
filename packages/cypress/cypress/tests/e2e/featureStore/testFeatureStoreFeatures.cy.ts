@@ -18,7 +18,8 @@ import {
   getMetricsResourceCounts,
 } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { isRHOAI } from '../../../utils/oc_commands/applications';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
 
@@ -49,14 +50,15 @@ describe('Feature Store Page Validation', () => {
   };
 
   retryableBefore(() => {
+    cy.step('Ensure admin oc session for setup');
+    ensureAdminOcSession();
+
     // Skip on ODH (test is RHOAI-specific)
     cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
+    isRHOAI().then((rhoai) => {
+      if (!rhoai) {
         cy.log('RHOAI operator not found, skipping the test (Feature Store is RHOAI-specific).');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
 
@@ -75,17 +77,9 @@ describe('Feature Store Page Validation', () => {
           createCleanProject(projectName);
 
           // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
-          // in the permitted namespace. Grant both the oc CLI user (REST count calls)
-          // and the dashboard login user (UI) admin on this project.
-          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
-            const ocUser = whoami.stdout.trim();
-            if (ocUser) {
-              return addUserToProject(projectName, ocUser, 'admin').then(() =>
-                addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin'),
-              );
-            }
-            return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
-          });
+          // in the permitted namespace. The oc CLI user (REST count calls) and the
+          // dashboard login user (UI) are the same account here, so one grant covers both.
+          return addUserToProject(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME, 'admin');
         })
         .then(() => {
           createRegistryStep(projectName);
@@ -103,7 +97,6 @@ describe('Feature Store Page Validation', () => {
             }
 
             return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
-              name: 'feast-auth',
               namespaces: [projectName],
             }).then(() => {
               return createSavedDatasetViaSdk(projectName, testData.feastInstanceName, {

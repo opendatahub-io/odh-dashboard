@@ -93,6 +93,9 @@ const runPythonInFeastDeploy = (
   });
 };
 
+/** Default name for the Feast Permission applied to test namespaces. */
+const DEFAULT_FEAST_PERMISSION_NAME = 'feast-auth';
+
 export type ApplyFeastPermissionViaSdkOptions = {
   name?: string;
   namespaces: string[];
@@ -114,7 +117,7 @@ export const applyFeastPermissionViaSdk = (
   feastInstanceName: string,
   options: ApplyFeastPermissionViaSdkOptions,
 ): Cypress.Chainable<string> => {
-  const permissionName = options.name ?? 'feast-auth';
+  const permissionName = options.name ?? DEFAULT_FEAST_PERMISSION_NAME;
   const namespacesLiteral = JSON.stringify(options.namespaces);
   const featureRepoDir = '/feast-data/credit_scoring_local/feature_repo';
 
@@ -293,7 +296,6 @@ print("CREATED_SAVED_DATASET:" + ds.name)
   });
 };
 
-const FEAST_OPERATOR_NS = 'redhat-ods-applications';
 const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
 
 /**
@@ -301,10 +303,11 @@ const FEAST_OPERATOR_DEPLOY = 'feast-operator-controller-manager';
  * Without a Ready controller, Registry never becomes True (~8 min poll).
  */
 const assertFeastOperatorReady = (): Cypress.Chainable => {
+  const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
   cy.step('Check Feast operator is Ready');
   return cy
     .exec(
-      `oc get deploy/${FEAST_OPERATOR_DEPLOY} -n ${FEAST_OPERATOR_NS} -o jsonpath='{.status.readyReplicas}'`,
+      `oc get deploy/${FEAST_OPERATOR_DEPLOY} -n ${applicationsNamespace} -o jsonpath='{.status.readyReplicas}'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
@@ -315,7 +318,7 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
 
       return cy
         .exec(
-          `oc get pods -n ${FEAST_OPERATOR_NS} -l app.kubernetes.io/name=feast-operator ` +
+          `oc get pods -n ${applicationsNamespace} -l app.kubernetes.io/name=feast-operator ` +
             `-o jsonpath='{range .items[*]}{.metadata.name}{" phase="}{.status.phase}` +
             `{" ready="}{.status.containerStatuses[0].ready}` +
             `{" state="}{.status.containerStatuses[0].state}{"\\n"}{end}'`,

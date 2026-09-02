@@ -54,15 +54,9 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
           cy.step(`Create namespace: ${projectName}`);
           createCleanProject(projectName);
 
-          return cy.exec('oc whoami', { failOnNonZeroExit: false }).then((whoami) => {
-            const ocUser = whoami.stdout.trim();
-            if (ocUser) {
-              return addUserToProject(projectName, ocUser, 'admin').then(() =>
-                addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin'),
-              );
-            }
-            return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
-          });
+          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+          // in the permitted namespace (the dashboard login user reads the registry).
+          return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
         })
         .then(() => {
           cy.step(`Apply FeatureStore CR in namespace: ${projectName}`);
@@ -71,7 +65,6 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
         })
         .then(() => {
           return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
-            name: 'feast-auth',
             namespaces: [projectName],
           });
         });
