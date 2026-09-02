@@ -16,12 +16,10 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
   ClusterQueueModel,
-  EventModel,
   LocalQueueModel,
-  RayJobModel,
-  TrainJobModel,
   WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { EventModel, RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';

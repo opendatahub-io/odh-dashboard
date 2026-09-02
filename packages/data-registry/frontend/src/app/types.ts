@@ -39,7 +39,17 @@ export type SchemaField = {
   nullable?: boolean;
 };
 
-export type ConnectionRef = { type: 'dch'; id: string } | { type: 'rhai'; secret_name: string };
+export type DchConnectionRef = {
+  type: 'dch';
+  id: string;
+};
+
+export type RhaiConnectionRef = {
+  type: 'rhai';
+  secret_name: string;
+};
+
+export type ConnectionRef = DchConnectionRef | RhaiConnectionRef;
 
 export type AssetResponse = {
   name: string;
@@ -50,7 +60,8 @@ export type AssetResponse = {
   content_type?: string;
   columns?: SchemaField[];
   collection?: string;
-  connection_ref?: ConnectionRef | null;
+  // Backend will return ConnectionRef object per OpenAPI spec; currently returns a plain string
+  connection_ref?: ConnectionRef | string | null;
   owner?: string;
   description?: string;
   labels?: string[];
@@ -102,14 +113,39 @@ export type CreateVolumeRequest = {
   name: string;
   location?: string;
   content_type?: string;
-  connection_ref?: ConnectionRef | null;
+  connection_ref?: string;
   description?: string;
   labels?: string[];
   properties?: Record<string, string>;
 };
 
+export type CreateGenericTableRequest = {
+  name: string;
+  format?: string;
+  location?: string;
+  connection_ref?: string;
+  description?: string;
+  purpose?: string;
+  license?: string;
+  maturity?: string;
+  domain?: string;
+  pii?: string;
+  owner?: string;
+  labels?: string[];
+  schema_fields?: SchemaField[];
+  properties?: Record<string, string>;
+};
+
 export type LabelListResponse = {
   labels: string[];
+};
+
+export type CreateLabelRequest = {
+  name: string;
+};
+
+export type LabelResponse = {
+  name: string;
 };
 
 export type ErrorResponse = {
@@ -118,4 +154,10 @@ export type ErrorResponse = {
     type: string;
     code: number;
   };
+};
+
+export type ConnectionModel = {
+  name: string;
+  displayName?: string;
+  connectionType?: string;
 };

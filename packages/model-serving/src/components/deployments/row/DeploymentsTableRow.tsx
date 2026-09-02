@@ -14,9 +14,9 @@ import {
   useHardwareProfileBindingState,
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
-import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import UnderlinedTruncateButton from '@odh-dashboard/internal/components/UnderlinedTruncateButton';
+import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,

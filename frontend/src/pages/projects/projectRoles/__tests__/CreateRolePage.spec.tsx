@@ -8,8 +8,10 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import CreateRolePage from '#~/pages/projects/projectRoles/CreateRolePage';
 
 jest.mock('@odh-dashboard/plugin-core/host-api');
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/roles', () => ({
   createRole: jest.fn(),
+}));
+jest.mock('#~/api', () => ({
   updateRole: jest.fn(),
 }));
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({

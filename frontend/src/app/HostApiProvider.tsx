@@ -7,14 +7,16 @@ import {
   type HostApiCoreServices,
   type HostApiInfraServices,
 } from '@odh-dashboard/plugin-core/host-api';
-import { useDashboardNamespace } from '#~/redux/selectors/project';
-import { useUser } from '#~/redux/selectors';
-import { checkAccess } from '#~/api/checkAccess';
 import {
   getSecretsByLabel,
   createSecret,
   getSecret,
   deleteSecret,
+} from '@odh-dashboard/k8s-core/api/secrets';
+import { useDashboardNamespace } from '#~/redux/selectors/project';
+import { useUser } from '#~/redux/selectors';
+import { checkAccess } from '#~/api/checkAccess';
+import {
   patchSecretWithOwnerReference,
   patchSecretWithProtocolAnnotation,
 } from '#~/api/k8s/secrets';

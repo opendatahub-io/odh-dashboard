@@ -2,6 +2,7 @@ package mlflowmocks
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,11 +18,12 @@ import (
 )
 
 const (
-	defaultMLflowPort    = 5001
-	defaultMLflowVersion = "3.9.0"
-	healthTimeout        = 90 * time.Second
-	healthPoll           = 2 * time.Second
-	shutdownWait         = 5 * time.Second
+	defaultMLflowPort         = 5001
+	defaultMLflowVersion      = "3.15.1"
+	healthTimeout             = 90 * time.Second
+	healthPoll                = 2 * time.Second
+	shutdownWait              = 5 * time.Second
+	kubernetesMCPProbeTimeout = 3 * time.Second
 )
 
 func mlflowPort() int {
@@ -49,9 +52,21 @@ type MLflowState struct {
 	Cancel  context.CancelFunc
 }
 
-// SetupMLflow starts a local MLflow server as a child process.
-// If MLFLOW_TRACKING_URI is already set or MLflow is already running on the target port,
-// it returns nil (no-op). The caller is responsible for calling CleanupMLflowState on shutdown.
+// SetupMLflow starts a local MLflow server as a child process and seeds it with dev data.
+//
+// On startup it:
+//   - Starts MLflow via `uv run mlflow server` on the port from MLFLOW_PORT (default 5001)
+//   - Seeds sample prompt templates (idempotent: skips prompts that already exist)
+//   - Seeds the MCP registry for the `default` workspace and the workspace named by
+//     PLAYGROUND_NAMESPACE (both read from the environment via os.Getenv)
+//   - Registers a Kubernetes MCP server if KUBERNETES_MCP_SERVER_URL is set
+//
+// Pre-flight shortcuts:
+//   - If MLFLOW_TRACKING_URI is already set, assumes externally managed — no-op.
+//   - If MLflow is already running on the target port (e.g. from `make mlflow-up`), reuses
+//     the existing instance and seeds it without restarting.
+//
+// The caller is responsible for calling CleanupMLflowState on shutdown.
 func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	port := mlflowPort()
 	version := mlflowVersion()
@@ -69,11 +84,22 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 			"Its database may contain stale data from previous dev sessions, which can cause test failures. "+
 			fmt.Sprintf("Stop the external MLflow process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", port),
 			slog.Int("port", port))
+		cwd, cwdErr := os.Getwd()
+		if cwdErr == nil {
+			dataDir := filepath.Join(cwd, ".mlflow")
+			if uvBin, uvErr := testutil.ResolveUVBinary(); uvErr == nil {
+				upgradeMLflowDB(dataDir, version, uvBin, logger)
+			}
+		}
 		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", port)
 		os.Setenv("MLFLOW_TRACKING_URI", trackingURI)
 		if err := SeedPrompts(trackingURI, logger); err != nil {
 			return nil, fmt.Errorf("failed to seed already-running MLflow: %w", err)
 		}
+		if err := SeedMCPRegistry(trackingURI, logger); err != nil {
+			logger.Warn("Failed to seed MLflow MCP registry (non-fatal)", slog.String("error", err.Error()))
+		}
+		probeKubernetesMCPServer(logger)
 		return nil, nil
 	}
 
@@ -92,6 +118,8 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, fmt.Errorf("failed to create MLflow data directory: %w", err)
 	}
 
+	upgradeMLflowDB(dataDir, version, uvBin, logger)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd := exec.CommandContext(ctx, uvBin,
@@ -101,7 +129,9 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		"--port", fmt.Sprintf("%d", port),
 		"--backend-store-uri", fmt.Sprintf("sqlite:///%s/mlflow.db", dataDir),
 		"--default-artifact-root", filepath.Join(dataDir, "artifacts"),
+		"--enable-workspaces",
 	)
+	cmd.Env = append(os.Environ(), "MLFLOW_ENABLE_WORKSPACES=true")
 
 	// Create a process group so we can kill the entire tree on shutdown.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -140,6 +170,12 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		cancel()
 		return nil, fmt.Errorf("failed to seed MLflow: %w", err)
 	}
+
+	if err := SeedMCPRegistry(trackingURI, logger); err != nil {
+		logger.Warn("Failed to seed MLflow MCP registry (non-fatal)", slog.String("error", err.Error()))
+	}
+
+	probeKubernetesMCPServer(logger)
 
 	return &MLflowState{
 		Cmd:     cmd,
@@ -200,6 +236,22 @@ func CleanupMLflowState(
 	}
 }
 
+func upgradeMLflowDB(dataDir string, version, uvBin string, logger *slog.Logger) {
+	storeURI := fmt.Sprintf("sqlite:///%s/mlflow.db", dataDir)
+	cmd := exec.Command(uvBin,
+		"run", "--with", "mlflow=="+version,
+		"mlflow", "db", "upgrade", storeURI,
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		logger.Warn("MLflow db upgrade failed (non-fatal; fresh DBs may not need migration)",
+			slog.String("store_uri", storeURI),
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
 func isMLflowHealthy(port int) bool {
 	client := &http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/health", port))
@@ -222,4 +274,60 @@ func waitForMLflowHealth(port int, logger *slog.Logger) error {
 		time.Sleep(healthPoll)
 	}
 	return fmt.Errorf("MLflow did not respond to health check within %v", healthTimeout)
+}
+
+func probeKubernetesMCPServer(logger *slog.Logger) {
+	serverURL := strings.TrimSpace(os.Getenv("KUBERNETES_MCP_SERVER_URL"))
+	if serverURL == "" {
+		return
+	}
+
+	client := kubernetesMCPProbeClient()
+	req, err := http.NewRequest(http.MethodGet, serverURL, nil)
+	if err != nil {
+		logger.Warn("Kubernetes MCP server probe failed",
+			slog.String("url", serverURL),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Warn("Kubernetes MCP server is not reachable — run make deploy-k8s-mcp and set KUBERNETES_MCP_SERVER_URL in .env.local",
+			slog.String("url", serverURL),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+		logger.Info("Kubernetes MCP server is reachable", slog.String("url", serverURL))
+		return
+	}
+
+	logger.Warn("Kubernetes MCP server returned unexpected status",
+		slog.String("url", serverURL),
+		slog.Int("status", resp.StatusCode),
+	)
+}
+
+func kubernetesMCPProbeClient() *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if insecureSkipVerifyFromEnv() {
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = &tls.Config{}
+		}
+		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
+	return &http.Client{
+		Timeout:   kubernetesMCPProbeTimeout,
+		Transport: transport,
+	}
+}
+
+func insecureSkipVerifyFromEnv() bool {
+	v := strings.TrimSpace(os.Getenv("INSECURE_SKIP_VERIFY"))
+	return strings.EqualFold(v, "true") || v == "1"
 }

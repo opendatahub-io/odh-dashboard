@@ -1,11 +1,11 @@
 import { act } from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { usePVCFreeAmount } from '#~/api/prometheus/pvcs';
 import { POLL_INTERVAL } from '#~/utilities/const';
 
-jest.mock('#~/utilities/axios', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
   post: jest.fn(),
 }));
 

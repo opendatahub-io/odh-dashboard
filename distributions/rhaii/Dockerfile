@@ -44,7 +44,6 @@ COPY distributions/rhaii/ ./distributions/rhaii/
 
 # Install workspace dependencies
 # Use --ignore-scripts for hermetic/Hermeto builds. Do not use --omit=optional:
-# @rspack/binding ships platform native bindings as optional deps required at build time.
 RUN npm cache clean --force
 RUN npm ci --ignore-scripts
 

@@ -16,7 +16,7 @@ import {
   deployMCPServer,
   teardownMCPServer,
 } from '../../../utils/oc_commands/genAi';
-import { enableMlflowBackend } from '../../../utils/oc_commands/mlflow';
+import { enableMlflowBackend, disableMlflowFeatures } from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { CustomEndpointTestData } from '../../../types';
@@ -72,6 +72,9 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   });
 
   after(() => {
+    cy.step('Clean up MLflow CR');
+    disableMlflowFeatures();
+
     cy.step('Remove MCP server entry from ConfigMap');
     removeMCPServerConfigMapEntry(testData.mcp.configMapName, testData.mcp.serverKey);
 
