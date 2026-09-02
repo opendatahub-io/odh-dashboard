@@ -64,7 +64,7 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTab
           if (typeof namespace === 'string') {
             params.set('namespace', namespace);
           }
-          const url = `/model-registry/api/v1/model_catalog/sources/${sourceId}/security_artifacts/${modelName}?${params.toString()}`;
+          const url = `/model-registry/api/v1/model_catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}?${params.toString()}`;
           const resp = await fetch(url);
           if (!resp.ok) {
             return false;

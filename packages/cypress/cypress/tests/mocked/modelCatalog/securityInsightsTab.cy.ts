@@ -158,6 +158,14 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getSecurityArtifacts');
   });
 
+  it('should hide the security insights tab when no security artifacts exist', () => {
+    interceptShouldShowSecurityArtifacts(false);
+
+    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
+    modelDetailsPage.findPageTitle().should('exist');
+    modelDetailsPage.findSecurityInsightsTab().should('not.exist');
+  });
+
   it('should hide the security insights tab when LM eval is disabled', () => {
     setupCommonIntercepts({ disableLMEval: true });
     interceptShouldShowSecurityArtifacts(true);
