@@ -2,6 +2,12 @@ import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_com
 import { AWS_BUCKETS } from '../s3Buckets';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+
+const trimOcJsonpath = (stdout: string): string => stdout.trim().replace(/^'|'$/g, '');
+
+/** Feature repo directory inside the Feast registry container. */
+const FEAST_FEATURE_REPO_DIR = '/feast-data/credit_scoring_local/feature_repo';
+
 /** Container port the Feast registry serves its REST API on (set by the feast-operator). */
 const REGISTRY_REST_PORT = 6573;
 
@@ -15,7 +21,7 @@ const resolveFeastDeployment = (
 ): Cypress.Chainable<string> => {
   const labelCmd = `oc get deploy -n ${namespace} -l app.kubernetes.io/managed-by=feast,app.kubernetes.io/instance=${feastInstanceName} -o jsonpath='{.items[0].metadata.name}'`;
   return cy.exec(labelCmd, { failOnNonZeroExit: false, timeout: 30000 }).then((labelResult) => {
-    const labelName = labelResult.stdout.trim().replace(/^'|'$/g, '');
+    const labelName = trimOcJsonpath(labelResult.stdout);
     if (labelName) {
       return cy.wrap(labelName);
     }
@@ -44,7 +50,7 @@ const resolveFeastContainer = (
 ): Cypress.Chainable<string> => {
   const cmd = `oc get deploy/${deployName} -n ${namespace} -o jsonpath='{.spec.template.spec.containers[*].name}'`;
   return cy.exec(cmd, { failOnNonZeroExit: false, timeout: 30000 }).then((result) => {
-    const containers = result.stdout.trim().replace(/^'|'$/g, '').split(/\s+/).filter(Boolean);
+    const containers = trimOcJsonpath(result.stdout).split(/\s+/).filter(Boolean);
     if (containers.length === 0) {
       throw new Error(`No containers found on deploy/${deployName} in ${namespace}`);
     }
@@ -75,7 +81,7 @@ const runPythonInFeastDeploy = (
       return cy.writeFile(tmpFile, pythonScript).then(() => {
         const cmd =
           `cat ${tmpFile} | oc exec -i -n ${namespace} deploy/${deployName} -c ${container} -- ` +
-          `sh -c "cd /feast-data/credit_scoring_local/feature_repo && python -"; ` +
+          `sh -c "cd ${FEAST_FEATURE_REPO_DIR} && python -"; ` +
           `rm -f ${tmpFile}`;
 
         return cy.exec(cmd, { failOnNonZeroExit: false, timeout: 300000 }).then((result) => {
@@ -119,7 +125,7 @@ export const applyFeastPermissionViaSdk = (
 ): Cypress.Chainable<string> => {
   const permissionName = options.name ?? DEFAULT_FEAST_PERMISSION_NAME;
   const namespacesLiteral = JSON.stringify(options.namespaces);
-  const featureRepoDir = '/feast-data/credit_scoring_local/feature_repo';
+  const featureRepoDir = FEAST_FEATURE_REPO_DIR;
 
   const permissionPy = `
 from feast.permissions.permission import Permission
@@ -311,7 +317,7 @@ const assertFeastOperatorReady = (): Cypress.Chainable => {
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
-      const readyReplicas = parseInt(result.stdout.trim(), 10) || 0;
+      const readyReplicas = parseInt(trimOcJsonpath(result.stdout), 10) || 0;
       if (readyReplicas >= 1) {
         return;
       }

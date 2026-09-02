@@ -224,7 +224,8 @@ type MetricsCounts = {
 
 /**
  * Fetches resource counts from the metrics endpoint (same source the dashboard overview cards use).
- * Retries when entity count is zero to allow the registry cache to propagate after feast apply.
+ * Retries while entity or dataset count is zero, to allow the registry cache to propagate
+ * after feast apply and saved-dataset creation.
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
@@ -251,8 +252,20 @@ export const getMetricsResourceCounts = (
           throw new Error(`Failed to get metrics resource counts: ${response.status}`);
         }
         const { counts } = response.body;
-        if (typeof counts.features !== 'number' || typeof counts.entities !== 'number') {
-          throw new Error(`Unexpected metrics response shape: ${JSON.stringify(counts)}`);
+        const nonNumeric = [
+          'features',
+          'entities',
+          'savedDatasets',
+          'dataSources',
+          'featureViews',
+          'featureServices',
+        ].filter((key) => typeof counts[key] !== 'number');
+        if (nonNumeric.length > 0) {
+          throw new Error(
+            `Unexpected metrics response shape (missing or non-numeric: ${nonNumeric.join(
+              ', ',
+            )}): ${JSON.stringify(counts)}`,
+          );
         }
         return cy.wrap<MetricsCounts>({
           featureCount: counts.features,
@@ -267,9 +280,15 @@ export const getMetricsResourceCounts = (
   return getOCToken().then((token) => {
     const poll = (attempt: number, maxAttempts: number): Cypress.Chainable<MetricsCounts> =>
       fetchOnce(token).then((counts) => {
-        if (counts.entityCount === 0 && attempt < maxAttempts) {
+        const pending = [
+          counts.entityCount === 0 ? 'entity' : null,
+          counts.datasetCount === 0 ? 'dataset' : null,
+        ].filter(Boolean);
+
+        if (pending.length > 0 && attempt < maxAttempts) {
           cy.log(
-            `Metrics entity count still 0; retry ${attempt}/${maxAttempts} (cache propagation)`,
+            `Metrics ${pending.join(' and ')} count still 0; ` +
+              `retry ${attempt}/${maxAttempts} (cache propagation)`,
           );
           // eslint-disable-next-line cypress/no-unnecessary-waiting
           return cy.wait(2000).then(() => poll(attempt + 1, maxAttempts));

@@ -96,12 +96,19 @@ export const runAwsCliInCluster = ({
       )
       .then((result) =>
         deleteCredentials().then(() => {
-          if (failOnNonZeroExit && result.exitCode !== 0) {
-            const maskedStderr = maskSensitiveInfo(result.stderr);
+          if (result.exitCode === 0) {
+            return;
+          }
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          if (failOnNonZeroExit) {
             throw new Error(
               `AWS CLI pod ${podName} exited with code ${result.exitCode}: ${maskedStderr}`,
             );
           }
+          cy.log(
+            `WARNING: AWS CLI pod ${podName} exited with code ${result.exitCode}; ` +
+              `S3 objects may have been left behind: ${maskedStderr}`,
+          );
         }),
       );
   });
