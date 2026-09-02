@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
@@ -79,6 +80,10 @@ type App struct {
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
 	clusterDomain           string
+	sandboxMu               sync.RWMutex
+	sandboxesAvailable      bool
+	sandboxWatcherDone      chan struct{}
+	sandboxWatcherWg        sync.WaitGroup
 	fileUploadJobTracker    *services.FileUploadJobTracker
 	// cleanupFuncs holds shutdown callbacks for mock processes (envtest, MLflow, LlamaStack)
 	cleanupFuncs []func()
@@ -379,6 +384,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		fileUploadJobTracker:    fileUploadJobTracker,
 		cleanupFuncs:            cleanupFuncs,
 	}
+
+	// Seed sandbox availability synchronously at startup, then keep it current via watcher.
+	if cfg.MockK8sClient {
+		app.sandboxesAvailable = true
+		logger.Info("Mock mode: assuming agent sandbox CRD is available")
+	} else {
+		app.refreshSandboxState()
+		app.startSandboxWatcher()
+	}
+
 	return app, nil
 }
 
@@ -403,6 +418,12 @@ func resolveMLflowURL(cfg config.EnvConfig, logger *slog.Logger) string {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+
+	if app.sandboxWatcherDone != nil {
+		close(app.sandboxWatcherDone)
+		app.sandboxWatcherWg.Wait()
+	}
+
 	for i := len(app.cleanupFuncs) - 1; i >= 0; i-- {
 		app.cleanupFuncs[i]()
 	}
