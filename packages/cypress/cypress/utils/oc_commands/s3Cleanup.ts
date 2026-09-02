@@ -18,6 +18,10 @@ const assertK8sDnsLabel = (kind: string, value: string): void => {
   }
 };
 
+/** Prefer live Cypress.env — module-level Cypress.env can be empty at import. */
+const getAwsPipelines = (): AWSS3Buckets =>
+  (Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined) ?? AWS_BUCKETS;
+
 type AwsCliPodOptions = {
   namespace: string;
   podName: string;
@@ -49,6 +53,7 @@ export const runAwsCliInCluster = ({
   const secretName = `${podName}-creds`;
   assertK8sDnsLabel('secret name', secretName);
 
+  const buckets = getAwsPipelines();
   const secretManifest = JSON.stringify({
     apiVersion: 'v1',
     kind: 'Secret',
@@ -57,8 +62,8 @@ export const runAwsCliInCluster = ({
       namespace,
     },
     stringData: {
-      AWS_ACCESS_KEY_ID: AWS_BUCKETS.AWS_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: AWS_BUCKETS.AWS_SECRET_ACCESS_KEY,
+      AWS_ACCESS_KEY_ID: buckets.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: buckets.AWS_SECRET_ACCESS_KEY,
       AWS_DEFAULT_REGION: region,
     },
   });
@@ -141,7 +146,7 @@ export const deleteS3TestFiles = (
     );
   }
 
-  const bucketConfig = AWS_BUCKETS[bucketKey];
+  const bucketConfig = getAwsPipelines()[bucketKey];
   const podName = `s3-cleanup-${Date.now()}`;
 
   runAwsCliInCluster({
@@ -170,10 +175,6 @@ const assertValidNamespace = (namespace: string): void => {
     );
   }
 };
-
-/** Prefer live Cypress.env — module-level Cypress.env can be empty at import. */
-const getAwsPipelines = (): AWSS3Buckets =>
-  (Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined) ?? AWS_BUCKETS;
 
 const requireBucket1 = (): AWSS3Buckets => {
   const buckets = getAwsPipelines();

@@ -252,6 +252,9 @@ export const getMetricsResourceCounts = (
           throw new Error(`Failed to get metrics resource counts: ${response.status}`);
         }
         const { counts } = response.body;
+        if (typeof counts !== 'object' || counts === null) {
+          throw new Error(`Unexpected metrics response shape: ${JSON.stringify(counts)}`);
+        }
         const nonNumeric = [
           'features',
           'entities',
