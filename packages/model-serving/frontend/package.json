@@ -24,7 +24,7 @@
     "test:lint": "eslint --max-warnings 0 ./src ./*.js && prettier --check --no-error-on-unmatched-pattern ./*.js ./*.mjs ./*.md ../*.md",
     "test:type-check": "tsc --noEmit",
     "cypress:server:build": "DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
-    "cypress:server": "serve ./public-cypress -p 9001 -s -L",
+    "cypress:server": "serve ./public-cypress -p 9109 -s -L",
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {

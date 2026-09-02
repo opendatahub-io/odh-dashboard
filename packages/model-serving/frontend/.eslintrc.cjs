@@ -247,31 +247,6 @@ module.exports = {
       },
     },
     {
-      files: ['./src/api/**'],
-      rules: {
-        'no-restricted-imports': [
-          'off',
-          {
-            patterns: ['~/api/**'],
-          },
-        ],
-      },
-    },
-    {
-      files: ['./src/__tests__/cypress/**/*.ts'],
-      parserOptions: {
-        project: ['./src/__tests__/cypress/tsconfig.json'],
-      },
-      extends: [
-        'eslint:recommended',
-        'plugin:react/recommended',
-        'plugin:@typescript-eslint/recommended',
-        'plugin:prettier/recommended',
-        'prettier',
-        'plugin:cypress/recommended',
-      ],
-    },
-    {
       files: ['*.ts', '*.tsx'],
       excludedFiles: ['**/__mocks__/**', '**/__tests__/**'],
       rules: {
@@ -279,24 +254,6 @@ module.exports = {
           'error',
           {
             assertionStyle: 'never',
-          },
-        ],
-      },
-    },
-    {
-      files: ['src/__tests__/cypress/**'],
-      rules: {
-        '@typescript-eslint/consistent-type-imports': 'error',
-        'no-restricted-imports': [
-          'error',
-          {
-            patterns: [
-              {
-                group: ['@patternfly/**'],
-                message:
-                  'Cypress tests should only import mocks and types from outside the Cypress test directory.',
-              },
-            ],
           },
         ],
       },

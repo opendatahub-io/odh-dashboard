@@ -12,7 +12,6 @@ const rspackCommon = require('./rspack.common.js');
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const SRC_DIR = process.env._SRC_DIR;
-const COMMON_DIR = process.env._COMMON_DIR;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const DIST_DIR = process.env._DIST_DIR;
 const HOST = process.env._HOST;
@@ -149,7 +148,6 @@ module.exports = merge(
           include: [
             SRC_DIR,
             PACKAGE_SRC_DIR,
-            COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
             path.resolve(ROOT_NODE_MODULES, '@patternfly'),
           ],
