@@ -116,7 +116,7 @@ const useNIMPVCExternalData = (dependencies?: {
         name: sc.metadata.name,
         displayName: sc.metadata.annotations?.['openshift.io/display-name'] || sc.metadata.name,
       })),
-      existingPVCs: categorizePVCs(pvcList.filter((pvc) => Boolean(pvc.metadata.name))),
+      existingPVCs: categorizePVCs(pvcList),
     };
   }, [projectName]);
 
@@ -357,6 +357,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                   });
                 }}
                 isDisabled={isDisabled}
+                isRequired={false}
                 placeholder="Select cluster storage..."
                 collapsibleGroupsThreshold={12}
               />

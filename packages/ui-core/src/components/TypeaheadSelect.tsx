@@ -115,6 +115,8 @@ const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOpti
 
 const GROUP_TOGGLE_VALUE_PREFIX = '__typeahead-group-toggle-';
 
+const DEFAULT_MAX_MENU_HEIGHT = '300px';
+
 const isGroupToggleValue = (value: string | number): boolean =>
   String(value).startsWith(GROUP_TOGGLE_VALUE_PREFIX);
 
@@ -142,6 +144,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   dataTestId,
   inputIcon,
   collapsibleGroupsThreshold,
+  maxMenuHeight = DEFAULT_MAX_MENU_HEIGHT,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -176,8 +179,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     collapsibleGroupsThreshold !== undefined &&
     selectOptions.filter((o) => !!o.group).length >= collapsibleGroupsThreshold;
 
-  const toggleGroup = React.useCallback((group: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleGroup = React.useCallback((group: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(group)) {
@@ -271,6 +273,62 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     noOptionsAvailableMessage,
   ]);
 
+  const groupedSelections = React.useMemo(() => {
+    const group: Record<string, TypeaheadSelectOption[]> = {};
+    const noGroup: TypeaheadSelectOption[] = [];
+
+    filteredSelections.forEach((option) => {
+      if (option.group) {
+        if (option.group in group) {
+          group[option.group].push(option);
+        } else {
+          group[option.group] = [option];
+        }
+      } else {
+        noGroup.push(option);
+      }
+    });
+
+    return { group, noGroup };
+  }, [filteredSelections]);
+
+  const isGroupCollapsed = React.useCallback(
+    (group: string) => isCollapsible && !(isFiltering && filterValue) && collapsedGroups.has(group),
+    [isCollapsible, isFiltering, filterValue, collapsedGroups],
+  );
+
+  const visibleMenuItems = React.useMemo((): TypeaheadSelectOption[] => {
+    const items: TypeaheadSelectOption[] = [];
+
+    if (isCreateOptionOnTop) {
+      const createOpt = groupedSelections.noGroup.find((o) => o.isCreateOption);
+      if (createOpt) {
+        items.push(createOpt);
+      }
+    }
+
+    Object.entries(groupedSelections.group).forEach(([groupName, groupOptions]) => {
+      if (isCollapsible) {
+        items.push({
+          value: `${GROUP_TOGGLE_VALUE_PREFIX}${groupName}`,
+          content: groupName,
+        });
+        if (!isGroupCollapsed(groupName)) {
+          items.push(...groupOptions);
+        }
+      } else {
+        items.push(...groupOptions);
+      }
+    });
+
+    const ungrouped = isCreateOptionOnTop
+      ? groupedSelections.noGroup.filter((o) => !o.isCreateOption)
+      : groupedSelections.noGroup;
+    items.push(...ungrouped);
+
+    return items;
+  }, [groupedSelections, isCollapsible, isCreateOptionOnTop, isGroupCollapsed]);
+
   React.useEffect(() => {
     if (isFiltering) {
       openMenu();
@@ -281,7 +339,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const setActiveAndFocusedItem = (itemIndex: number) => {
     setFocusedItemIndex(itemIndex);
-    const focusedItem = filteredSelections[itemIndex];
+    const focusedItem = visibleMenuItems[itemIndex];
     setActiveItemId(String(focusedItem.value));
   };
 
@@ -378,45 +436,39 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       return;
     }
 
-    if (key === 'ArrowUp') {
-      // When no index is set or at the first index, focus to the last, otherwise decrement focus index
-      if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = filteredSelections.length - 1;
-      } else {
-        indexToFocus = focusedItemIndex - 1;
-      }
+    const navigableItems = visibleMenuItems.filter(
+      (option) => !option.isDisabled && !option.isAriaDisabled,
+    );
+    if (!navigableItems.length) {
+      return;
+    }
 
-      // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
-        indexToFocus--;
-        if (indexToFocus === -1) {
-          indexToFocus = filteredSelections.length - 1;
-        }
-      }
+    const currentValue =
+      focusedItemIndex !== null ? visibleMenuItems[focusedItemIndex]?.value : undefined;
+    const currentNavIndex = navigableItems.findIndex((option) => option.value === currentValue);
+
+    if (key === 'ArrowUp') {
+      const nextNavIndex = currentNavIndex <= 0 ? navigableItems.length - 1 : currentNavIndex - 1;
+      indexToFocus = visibleMenuItems.findIndex(
+        (option) => option.value === navigableItems[nextNavIndex].value,
+      );
     }
 
     if (key === 'ArrowDown') {
-      // When no index is set or at the last index, focus to the first, otherwise increment focus index
-      if (focusedItemIndex === null || focusedItemIndex === filteredSelections.length - 1) {
-        indexToFocus = 0;
-      } else {
-        indexToFocus = focusedItemIndex + 1;
-      }
-
-      // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
-        indexToFocus++;
-        if (indexToFocus === filteredSelections.length) {
-          indexToFocus = 0;
-        }
-      }
+      const nextNavIndex =
+        currentNavIndex === -1 || currentNavIndex === navigableItems.length - 1
+          ? 0
+          : currentNavIndex + 1;
+      indexToFocus = visibleMenuItems.findIndex(
+        (option) => option.value === navigableItems[nextNavIndex].value,
+      );
     }
 
     setActiveAndFocusedItem(indexToFocus);
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const focusedItem = focusedItemIndex !== null ? filteredSelections[focusedItemIndex] : null;
+    const focusedItem = focusedItemIndex !== null ? visibleMenuItems[focusedItemIndex] : null;
 
     switch (event.key) {
       case 'Enter':
@@ -426,6 +478,11 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           focusedItem.value !== NO_RESULTS &&
           !focusedItem.isAriaDisabled
         ) {
+          if (isGroupToggleValue(focusedItem.value)) {
+            event.preventDefault();
+            toggleGroup(String(focusedItem.value).slice(GROUP_TOGGLE_VALUE_PREFIX.length));
+            break;
+          }
           selectOption(event, focusedItem);
         }
 
@@ -518,25 +575,6 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     </MenuToggle>
   );
 
-  const groupedSelections = React.useMemo(() => {
-    const group: Record<string, TypeaheadSelectOption[]> = {};
-    const noGroup: TypeaheadSelectOption[] = [];
-
-    filteredSelections.forEach((option) => {
-      if (option.group) {
-        if (option.group in group) {
-          group[option.group].push(option);
-        } else {
-          group[option.group] = [option];
-        }
-      } else {
-        noGroup.push(option);
-      }
-    });
-
-    return { group, noGroup };
-  }, [filteredSelections]);
-
   const tSelectOption = (option: TypeaheadSelectOption, index: number) => {
     const { content, value, dropdownLabel, ...optionProps } = option;
     return (
@@ -569,21 +607,13 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[()]/g, '')}`;
-
-    // When filtering, always expand so all matching results are visible
-    const isGroupCollapsed =
-      isCollapsible && !(isFiltering && filterValue) && collapsedGroups.has(group);
-
-    const groupLabel = group;
-
-    // Always advance the index by the full group size so keyboard-navigation
-    // indices remain consistent with filteredSelections even when collapsed.
-    const renderedOptions = isGroupCollapsed
-      ? []
-      : groupOptions.map((opt) => tSelectOption(opt, index++));
-    const nextIndex = optionIdx + groupOptions.length;
+    const groupCollapsed = isGroupCollapsed(group);
 
     if (isCollapsible) {
+      const toggleIndex = index++;
+      const renderedOptions = groupCollapsed
+        ? []
+        : groupOptions.map((opt) => tSelectOption(opt, index++));
       return {
         node: (
           <>
@@ -591,12 +621,13 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               key={`${group}-toggle`}
               value={`${GROUP_TOGGLE_VALUE_PREFIX}${group}`}
               data-testid={`${testId}-toggle`}
+              isFocused={focusedItemIndex === toggleIndex}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleGroup(group, e);
+                toggleGroup(group);
               }}
-              icon={isGroupCollapsed ? <AngleRightIcon /> : <AngleDownIcon />}
+              icon={groupCollapsed ? <AngleRightIcon /> : <AngleDownIcon />}
             >
               {group}
             </SelectOption>
@@ -604,20 +635,21 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
             {addDivider && <Divider />}
           </>
         ),
-        nextIndex,
+        nextIndex: index,
       };
     }
 
+    const renderedOptions = groupOptions.map((opt) => tSelectOption(opt, index++));
     return {
       node: (
         <>
-          <SelectGroup key={group} label={groupLabel} data-testid={testId}>
+          <SelectGroup key={group} label={group} data-testid={testId}>
             {renderedOptions}
           </SelectGroup>
           {addDivider && <Divider />}
         </>
       ),
-      nextIndex,
+      nextIndex: index,
     };
   };
 
@@ -675,6 +707,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         onOpenChange={(open) => !open && closeMenu()}
         toggle={toggle}
         shouldFocusFirstItemOnOpen={false}
+        maxMenuHeight={maxMenuHeight}
         ref={innerRef}
         {...props}
       >

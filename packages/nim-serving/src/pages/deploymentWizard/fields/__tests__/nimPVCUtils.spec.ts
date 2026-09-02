@@ -34,4 +34,26 @@ describe('categorizePVCs', () => {
 
     expect(categorizePVCs(pvcs)[0].category).toBe(PVCCategory.NIM);
   });
+
+  it('skips PVCs without a metadata name', () => {
+    const pvcs = [
+      makePVC('valid-pvc'),
+      { ...makePVC(''), metadata: { ...makePVC('').metadata, name: '' } },
+    ];
+
+    expect(categorizePVCs(pvcs)).toEqual([
+      { name: 'valid-pvc', subPath: undefined, category: PVCCategory.GENERAL },
+    ]);
+  });
+
+  it('includes subPath from the NIM PVC annotation', () => {
+    const pvcs = [
+      makePVC('nim-pvc', {
+        [NIM_PVC_ANNOTATION]: 'true',
+        'dashboard.opendatahub.io/nim-subpath': 'arctic-embed-l',
+      }),
+    ];
+
+    expect(categorizePVCs(pvcs)[0].subPath).toBe('arctic-embed-l');
+  });
 });
