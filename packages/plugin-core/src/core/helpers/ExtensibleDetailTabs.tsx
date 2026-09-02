@@ -17,77 +17,99 @@ const DEFAULT_GROUP = '5_default';
 const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
 
 /**
- * Evaluates `shouldShow` predicates for extension tabs, supporting both sync
- * and async (Promise) return values. Sync predicates are evaluated eagerly
- * during render so their results are immediately available. Async predicates
- * default to hidden until the Promise resolves to `true`.
+ * Evaluates `shouldShow` predicates for extension tabs inside an effect rather
+ * than during render, preventing side-effects (e.g. fetch requests) from firing
+ * in useMemo. A ref-based cache deduplicates calls across React 18 StrictMode
+ * double-mounts. Sync predicates are applied synchronously within the effect;
+ * async predicates default to hidden until their Promise resolves.
  */
 const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
   extensions: LoadedExtension<TExtension>[],
   componentProps: Record<string, unknown>,
 ): Record<string, boolean> => {
-  const [asyncResults, setAsyncResults] = React.useState<Record<string, boolean>>({});
-  const asyncEntriesRef = React.useRef<Map<string, Promise<boolean>>>(new Map());
+  const [results, setResults] = React.useState<Record<string, boolean>>({});
+  const cacheRef = React.useRef(
+    new Map<string, { promise: Promise<boolean>; props: Record<string, unknown> }>(),
+  );
 
-  const syncResults = React.useMemo(() => {
-    const sync: Record<string, boolean> = {};
-    const pending = new Map<string, Promise<boolean>>();
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const syncBatch: Record<string, boolean> = {};
+    const pendingUids = new Set<string>();
+    const activeUids = new Set<string>();
 
     extensions.forEach((ext) => {
       const { shouldShow } = ext.properties;
       if (!shouldShow) {
         return;
       }
+      activeUids.add(ext.uid);
 
-      const result = shouldShow(componentProps);
-      if (typeof result === 'boolean') {
-        sync[ext.uid] = result;
+      const cached = cacheRef.current.get(ext.uid);
+      let promise: Promise<boolean> | undefined;
+
+      if (cached && cached.props === componentProps) {
+        promise = cached.promise;
       } else {
-        pending.set(ext.uid, result);
+        const result = shouldShow(componentProps);
+        if (typeof result === 'boolean') {
+          syncBatch[ext.uid] = result;
+          cacheRef.current.delete(ext.uid);
+          return;
+        }
+        promise = result;
+        cacheRef.current.set(ext.uid, { promise, props: componentProps });
       }
-    });
 
-    asyncEntriesRef.current = pending;
-    return sync;
-  }, [extensions, componentProps]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    setAsyncResults((prev) => {
-      const activeUids = new Set(extensions.map((ext) => ext.uid));
-      const uidsToRemove = Object.keys(prev).filter((uid) => !activeUids.has(uid));
-      const uidsToReset = [...asyncEntriesRef.current.keys()].filter((uid) => uid in prev);
-      if (uidsToRemove.length === 0 && uidsToReset.length === 0) {
-        return prev;
-      }
-      const next = { ...prev };
-      uidsToRemove.forEach((uid) => delete next[uid]);
-      uidsToReset.forEach((uid) => delete next[uid]);
-      return next;
-    });
-
-    asyncEntriesRef.current.forEach((promise, uid) => {
+      pendingUids.add(ext.uid);
       promise.then(
         (visible) => {
-          if (!cancelled) {
-            setAsyncResults((prev) => (prev[uid] === visible ? prev : { ...prev, [uid]: visible }));
+          if (!controller.signal.aborted) {
+            setResults((prev) =>
+              prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
+            );
           }
         },
         () => {
-          if (!cancelled) {
-            setAsyncResults((prev) => (prev[uid] === false ? prev : { ...prev, [uid]: false }));
+          if (!controller.signal.aborted) {
+            setResults((prev) => (prev[ext.uid] === false ? prev : { ...prev, [ext.uid]: false }));
           }
         },
       );
     });
 
+    for (const uid of cacheRef.current.keys()) {
+      if (!activeUids.has(uid)) {
+        cacheRef.current.delete(uid);
+      }
+    }
+
+    setResults((prev) => {
+      let next: Record<string, boolean> | undefined;
+
+      for (const uid of Object.keys(prev)) {
+        if (!activeUids.has(uid) || pendingUids.has(uid)) {
+          next ??= { ...prev };
+          delete next[uid];
+        }
+      }
+
+      for (const uid of Object.keys(syncBatch)) {
+        if ((next ?? prev)[uid] !== syncBatch[uid]) {
+          next ??= { ...prev };
+          next[uid] = syncBatch[uid];
+        }
+      }
+
+      return next ?? prev;
+    });
+
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [extensions, componentProps]);
 
-  return React.useMemo(() => ({ ...asyncResults, ...syncResults }), [asyncResults, syncResults]);
+  return results;
 };
 
 type StaticTab = {

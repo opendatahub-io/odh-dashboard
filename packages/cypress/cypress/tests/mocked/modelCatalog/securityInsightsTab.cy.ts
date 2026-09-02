@@ -163,6 +163,7 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
     modelDetailsPage.findPageTitle().should('exist');
+    cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('not.exist');
   });
 

@@ -393,6 +393,26 @@ describe('ExtensibleDetailTabs', () => {
       expect(defaultOnSelect).toHaveBeenCalledWith('overview');
     });
 
+    it('should not call async shouldShow more than once per evaluation cycle', async () => {
+      const shouldShow = jest.fn().mockImplementation(() => Promise.resolve(true));
+      const extensionTabs = [createMockTabExtension('dedup', 'Dedup', { shouldShow })];
+
+      await act(async () => {
+        render(
+          <ExtensibleDetailTabs
+            activeKey="overview"
+            onSelect={defaultOnSelect}
+            staticTabs={[{ id: 'overview', title: 'Overview', content: <div>Overview</div> }]}
+            extensionTabs={extensionTabs}
+            testId="test-tabs"
+          />,
+        );
+      });
+
+      expect(shouldShow).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('dedup-tab')).toBeInTheDocument();
+    });
+
     it('should hide a previously-visible async tab while re-evaluating after componentProps change', async () => {
       let resolveShow: (value: boolean) => void = () => undefined;
 
