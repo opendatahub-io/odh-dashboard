@@ -39,7 +39,7 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   );
 
   const providerTypeCell = (
-    <Td dataLabel={externalProvidersColumns[1].label}>
+    <Td dataLabel={externalProvidersColumns[1].label} data-testid="external-provider-provider-type">
       <Label color="blue" variant="outline">
         {externalProvider.provider}
       </Label>
@@ -47,7 +47,7 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   );
 
   const endpointCell = (
-    <Td dataLabel={externalProvidersColumns[2].label}>
+    <Td dataLabel={externalProvidersColumns[2].label} data-testid="external-provider-endpoint-url">
       <Button
         variant="link"
         isInline
@@ -62,7 +62,10 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   );
 
   const authenticationCell = (
-    <Td dataLabel={externalProvidersColumns[3].label}>
+    <Td
+      dataLabel={externalProvidersColumns[3].label}
+      data-testid="external-provider-auth-mechanism"
+    >
       <Label color="purple" variant="outline">
         {mapAuthMechanismToHumanReadable(externalProvider.authMechanism)}
       </Label>
@@ -70,7 +73,12 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   );
 
   const credentialSecretCell = (
-    <Td dataLabel={externalProvidersColumns[4].label}>{externalProvider.credentialSecretRef}</Td>
+    <Td
+      dataLabel={externalProvidersColumns[4].label}
+      data-testid="external-provider-credential-secret-ref"
+    >
+      {externalProvider.credentialSecretRef}
+    </Td>
   );
 
   const phaseCell = (

@@ -12,6 +12,7 @@ import {
   externalModelsPage,
   deleteExternalModelModal,
   phaseModal,
+  externalProvidersPage,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -97,6 +98,22 @@ describe('External Models Page', () => {
     externalModelsPage.visit();
     externalModelsPage.findExternalModelsTab().should('not.exist');
     externalModelsPage.findPage().should('not.exist');
+  });
+
+  it('should link to the external providers page', () => {
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalmodel',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalprovider',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    externalModelsPage.visit();
+    externalModelsPage.findExternalProvidersButton().click();
+    externalProvidersPage.findPageTitle().should('exist');
   });
 
   describe('with external models', () => {
