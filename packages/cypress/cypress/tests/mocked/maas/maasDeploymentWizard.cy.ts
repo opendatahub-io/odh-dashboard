@@ -193,6 +193,9 @@ describe('MaaS Deployment Wizard', () => {
       .findGatewaySelect()
       .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
+    modelServingWizard.findGatewaySelectTooltip().should('exist');
+    // Token authentication section is visible.
+    modelServingWizard.findAuthenticationSection().should('exist');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 

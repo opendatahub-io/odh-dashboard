@@ -225,6 +225,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
                 onClick: () => {
                   setDeleteConnection(connection);
                 },
+                isDanger: true,
               },
             ]}
           />

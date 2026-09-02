@@ -429,7 +429,14 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          flexWrap={{ default: 'wrap', md: 'nowrap' }}
+          fullWidth={{ default: 'fullWidth' }}
+          className="pf-v6-u-overflow-auto"
+          data-testid="event-log-toolbar"
+        >
           {benchmarks.length > 1 ? (
             <FlexItem>
               <Select
@@ -445,6 +452,7 @@ const EvaluationEventLog: React.FC<EvaluationEventLogProps> = ({
                     ref={toggleRef}
                     onClick={() => setIsBenchmarkSelectOpen((prev) => !prev)}
                     isExpanded={isBenchmarkSelectOpen}
+                    className="evalhub-event-log__benchmark-select"
                     data-testid="benchmark-log-selector"
                   >
                     {selectedBenchmark === ALL_BENCHMARKS

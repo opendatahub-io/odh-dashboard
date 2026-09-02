@@ -282,6 +282,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const notAllowEmpty = !isCreatable && isRequired;
+  const isToggleDisabled = isDisabled || (selectOptions.length <= 1 && notAllowEmpty);
   // Only when the field is required, not creatable and there is one option, we auto select the first option
   const isSingleOption = selectOptions.length === 1 && notAllowEmpty;
   const singleOptionValue = isSingleOption ? selectOptions[0].value : null;
@@ -426,12 +427,12 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       data-testid={dataTestId ?? 'typeahead-menu-toggle'}
       onClick={onToggleClick}
       isExpanded={isOpen}
-      isDisabled={isDisabled || (selectOptions.length <= 1 && notAllowEmpty)}
       isFullWidth
       style={{ width: toggleWidth }}
       {...toggleProps}
+      isDisabled={isToggleDisabled}
     >
-      <TextInputGroup isPlain>
+      <TextInputGroup isPlain isDisabled={isToggleDisabled}>
         <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
           <FlexItem style={{ flex: 1 }}>
             <TextInputGroupMain
@@ -450,7 +451,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
             />
           </FlexItem>
           {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
-          {(isFiltering && filterValue) || (allowClear && selected) ? (
+          {((isFiltering && filterValue) || (allowClear && selected)) && !isToggleDisabled ? (
             <FlexItem>
               <TextInputGroupUtilities>
                 <Button

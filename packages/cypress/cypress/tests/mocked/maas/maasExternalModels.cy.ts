@@ -10,6 +10,8 @@ import {
   externalModelPathModal,
   externalModelProviderUrlModal,
   externalModelsPage,
+  deleteExternalModelModal,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -118,11 +120,6 @@ describe('External Models Page', () => {
         .should('contain.text', 'External GPT-4o model routed through OpenAI provider.');
       gptRow.findProviderLabel('openai-prod').should('contain.text', 'OpenAI Production');
       gptRow.findPhaseLabel().should('contain.text', 'Ready');
-      gptRow.findPhaseLabel().click();
-      gptRow
-        .findPhasePopover()
-        .should('contain.text', 'Ready')
-        .and('contain.text', 'GPT-4o External');
 
       gptRow.findExpandButton().click();
       gptRow.findExpandedProviderName('openai-prod').should('contain.text', 'OpenAI Production');
@@ -174,6 +171,15 @@ describe('External Models Page', () => {
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
       awaitingRow.findPhaseLabel().should('contain.text', 'Pending');
+      awaitingRow.findPhaseLabel().click();
+      phaseModal.find().should('exist');
+      phaseModal.findAlert().should('exist');
+      phaseModal.findAlertBody().should('exist');
+      phaseModal.findApiDetailsButton().should('exist').click();
+      phaseModal.findAlertDetailsCodeBlock().should('exist');
+      phaseModal.findCloseButton().click();
+      phaseModal.shouldBeOpen(false);
+
       awaitingRow.findGovernanceWarning().should('exist').click();
       awaitingRow
         .findGovernanceWarningPopover()
@@ -211,31 +217,31 @@ describe('External Models Page', () => {
       externalModelsPage.findRows().should('have.length', 4);
     });
 
-    // it('should delete an external model', () => {
-    //   cy.interceptOdh(
-    //     'DELETE /maas/api/v1/externalmodel/:namespace/:name',
-    //     { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
-    //     { data: null },
-    //   ).as('deleteExternalModel');
+    it('should delete an external model', () => {
+      cy.interceptOdh(
+        'DELETE /maas/api/v1/externalmodel/:namespace/:name',
+        { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
+        { data: null },
+      ).as('deleteExternalModel');
 
-    //   externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
-    //   deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
-    //   deleteExternalModelModal.findInput().type('GPT-4o External');
-    //   deleteExternalModelModal.findSubmitButton().should('be.enabled');
+      externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
+      deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
+      deleteExternalModelModal.findInput().type('GPT-4o External');
+      deleteExternalModelModal.findSubmitButton().should('be.enabled');
 
-    //   cy.interceptOdh(
-    //     'GET /maas/api/v1/externalmodel',
-    //     { query: { namespace: TEST_PROJECT } },
-    //     {
-    //       data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
-    //     },
-    //   ).as('listExternalModels');
+      cy.interceptOdh(
+        'GET /maas/api/v1/externalmodel',
+        { query: { namespace: TEST_PROJECT } },
+        {
+          data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
+        },
+      ).as('listExternalModels');
 
-    //   deleteExternalModelModal.findSubmitButton().click();
-    //   cy.wait('@deleteExternalModel');
-    //   cy.wait('@listExternalModels');
-    //   externalModelsPage.findRows().should('have.length', 3);
-    //   externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
-    // });
+      deleteExternalModelModal.findSubmitButton().click();
+      cy.wait('@deleteExternalModel');
+      cy.wait('@listExternalModels');
+      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
+    });
   });
 });

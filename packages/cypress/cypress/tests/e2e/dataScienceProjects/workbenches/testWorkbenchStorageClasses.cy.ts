@@ -114,8 +114,7 @@ describe('Workbench Storage Classes Tests', () => {
 
     cy.step(`Navigate to the Project list tab and search for ${projectName}`);
     projectListPage.navigate();
-    projectListPage.filterProjectByName(projectName);
-    projectListPage.findProjectLink(projectName).click();
+    projectListPage.openFilteredProject(projectName);
   });
 
   it(

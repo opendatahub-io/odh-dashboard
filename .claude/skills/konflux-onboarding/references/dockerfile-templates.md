@@ -49,10 +49,10 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 RUN npm cache clean --force
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 RUN npm run build:prod
 
 # BFF build stage
@@ -115,10 +115,10 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
 RUN npm cache clean --force
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 RUN npm run build:prod
 
 # BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)
