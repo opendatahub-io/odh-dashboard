@@ -21,31 +21,66 @@ const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
+const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
 
-const getProxyHeaders = () => {
-  if (AUTH_METHOD === 'user_token') {
-    try {
-      const token = execSync(
-        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-      )
-        .toString()
-        .trim();
-      const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-        .toString()
-        .trim();
-      console.info('Logged in as user:', username);
-      return {
-        Authorization: `Bearer ${token}`,
-        'x-forwarded-access-token': token,
-      };
-    } catch (error) {
-      console.error('Failed to get Kubernetes token:', error.message);
-      return {};
-    }
+// Mock K8s only accepts the envtest tokens from k8mocks.DefaultTestUsers.
+const MOCK_STANDALONE_TOKEN = 'FAKE_CLUSTER_ADMIN_TOKEN';
+
+// Get the kubeconfig token at startup as a fallback for federated / cluster-backed dev.
+const getKubeconfigToken = () => {
+  try {
+    const token = execSync(
+      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+    )
+      .toString()
+      .trim();
+    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
+      .toString()
+      .trim();
+    console.info('Logged in as user:', username);
+    return token;
+  } catch (error) {
+    console.error('Failed to get Kubernetes token:', error.message);
+    return '';
   }
+};
+
+const fallbackToken =
+  AUTH_METHOD === 'user_token'
+    ? DEPLOYMENT_MODE === 'standalone'
+      ? MOCK_STANDALONE_TOKEN
+      : getKubeconfigToken()
+    : '';
+
+// Build static proxy headers for auth methods that don't need dynamic forwarding.
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'internal') {
+    return {
+      'kubeflow-userid': 'user@example.com',
+    };
+  }
+  // For user_token, auth headers are set dynamically in onProxyReq below.
   return {};
+};
+
+// When using user_token auth, dynamically forward the authorization header from the
+// incoming request if present (e.g. from a host backend proxy with dev impersonation).
+// Fall back to the mock envtest token in standalone, or the kubeconfig token otherwise.
+const onProxyReq = (proxyReq, req) => {
+  if (AUTH_METHOD !== 'user_token') {
+    return;
+  }
+  const incomingAuth = req.headers.authorization;
+  if (incomingAuth) {
+    proxyReq.setHeader('Authorization', incomingAuth);
+    const token = incomingAuth.replace(/^Bearer\s+/i, '');
+    proxyReq.setHeader('x-forwarded-access-token', token);
+  } else if (fallbackToken) {
+    proxyReq.setHeader('Authorization', `Bearer ${fallbackToken}`);
+    proxyReq.setHeader('x-forwarded-access-token', fallbackToken);
+  }
 };
 
 module.exports = merge(
@@ -62,6 +97,7 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
@@ -82,6 +118,7 @@ module.exports = merge(
           },
           changeOrigin: true,
           headers: getProxyHeaders(),
+          on: { proxyReq: onProxyReq },
         },
       ],
       devMiddleware: {
@@ -116,9 +153,6 @@ module.exports = merge(
         },
       ],
     },
-    plugins: [
-      new TsCheckerRspackPlugin(),
-      new ReactRefreshRspackPlugin({ overlay: false }),
-    ],
+    plugins: [new TsCheckerRspackPlugin(), new ReactRefreshRspackPlugin({ overlay: false })],
   },
 );

@@ -500,9 +500,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.NemoGuardrailsStatusPath, app.AttachNamespace(app.NemoGuardrailsStatusHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
 
 	// External Vector Stores
 	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))

@@ -13,6 +13,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -21,7 +23,10 @@ import (
 )
 
 var _ = Describe("MCPToolsHandler", func() {
-	var app *App
+	var (
+		app           *App
+		mockBFFClient *bffmocks.MockBFFClient
+	)
 
 	BeforeEach(func() {
 		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -34,6 +39,11 @@ var _ = Describe("MCPToolsHandler", func() {
 		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 		require.NoError(GinkgoT(), err)
 
+		mockBFFFactory := bffmocks.NewMockClientFactory(logger).(*bffmocks.MockClientFactory)
+		mockBFFFactory.CreateClient(bffclient.BFFTargetMLflow, "")
+		mockBFFClient = mockBFFFactory.GetMockClient(bffclient.BFFTargetMLflow)
+		mockBFFClient.CallHandler = nil
+
 		app = &App{
 			config: config.EnvConfig{
 				Port:       4000,
@@ -43,6 +53,7 @@ var _ = Describe("MCPToolsHandler", func() {
 			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 			kubernetesClientFactory: mockK8sFactory,
 			mcpClientFactory:        mockMCPFactory,
+			bffClientFactory:        mockBFFFactory,
 			dashboardNamespace:      "opendatahub",
 		}
 	})
@@ -203,7 +214,7 @@ var _ = Describe("MCPToolsHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	It("should return 400 when server_url parameter is missing", func() {
+	It("should return 400 when server_url and server_name are missing", func() {
 		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
@@ -218,6 +229,95 @@ var _ = Describe("MCPToolsHandler", func() {
 
 		app.MCPToolsHandler(rr, req, nil)
 
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	It("should resolve registry server by server_name and return live tools", func() {
+		t := GinkgoT()
+		serverURL := "http://localhost:9091/mcp"
+		mockBFFClient.CallHandler = func(_ context.Context, _, path string, _ interface{}, response interface{}) error {
+			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=demo", path)
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name": "com.example/kubernetes",
+					"access_endpoints": []map[string]interface{}{
+						{
+							"endpoint_url":   serverURL,
+							"transport_type": "streamable-http",
+						},
+					},
+				},
+			}, response)
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/tools?namespace=demo&server_name=com.example/kubernetes", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPToolsHandler(rr, req, nil)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response MCPToolsEnvelope
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "success", response.Data.Status)
+		assert.Equal(t, serverURL, response.Data.ServerURL)
+	})
+
+	It("should return 404 for registry server_name with no access endpoint", func() {
+		t := GinkgoT()
+		mockBFFClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name":             "com.brave.example/brave",
+					"access_endpoints": []map[string]interface{}{},
+				},
+			}, response)
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/tools?namespace=demo&server_name=com.brave.example/brave", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPToolsHandler(rr, req, nil)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	It("should return 503 when registry resolution requires MLflow BFF but it is unavailable", func() {
+		t := GinkgoT()
+		app.bffClientFactory = nil
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/tools?namespace=demo&server_name=com.example/kubernetes", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPToolsHandler(rr, req, nil)
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	})
+
+	It("should return 400 for invalid registry server_name with empty path segment", func() {
+		t := GinkgoT()
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/tools?namespace=demo&server_name=com.example//kubernetes", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPToolsHandler(rr, req, nil)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
@@ -282,5 +382,114 @@ var _ = Describe("MCPToolsHandler", func() {
 		require.NoError(t, err)
 
 		assert.Equal(t, serverURL, response.Data.ServerURL)
+	})
+})
+
+var _ = Describe("ResolveRegistryServerConfig", func() {
+	var (
+		app           *App
+		mockBFFClient *bffmocks.MockBFFClient
+	)
+
+	BeforeEach(func() {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		mockFactory := bffmocks.NewMockClientFactory(logger).(*bffmocks.MockClientFactory)
+		mockFactory.CreateClient(bffclient.BFFTargetMLflow, "")
+		mockBFFClient = mockFactory.GetMockClient(bffclient.BFFTargetMLflow)
+		app = &App{logger: logger}
+	})
+
+	It("returns config when server has an access endpoint", func() {
+		t := GinkgoT()
+		serverURL := "https://kubernetes-mcp.example.com/mcp"
+		mockBFFClient.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
+			assert.Equal(t, "GET", method)
+			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=default", path)
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name": "com.example/kubernetes",
+					"access_endpoints": []map[string]interface{}{
+						{
+							"endpoint_url":   serverURL,
+							"transport_type": "streamable-http",
+						},
+					},
+				},
+			}, response)
+		}
+
+		cfg, err := app.resolveRegistryServerConfig(context.Background(), "default", "com.example/kubernetes", mockBFFClient)
+		require.NoError(t, err)
+		assert.Equal(t, serverURL, cfg.URL)
+		assert.Equal(t, "streamable-http", cfg.Transport)
+	})
+
+	It("returns not found when server has no access endpoint", func() {
+		t := GinkgoT()
+		mockBFFClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name":             "com.brave.example/brave",
+					"access_endpoints": []map[string]interface{}{},
+				},
+			}, response)
+		}
+
+		_, err := app.resolveRegistryServerConfig(context.Background(), "default", "com.brave.example/brave", mockBFFClient)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrRegistryMCPServerNotFound)
+	})
+
+	It("returns not found when MLflow BFF reports missing server", func() {
+		t := GinkgoT()
+		mockBFFClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, _ interface{}) error {
+			return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "not found")
+		}
+
+		_, err := app.resolveRegistryServerConfig(context.Background(), "default", "foo/bar", mockBFFClient)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrRegistryMCPServerNotFound)
+	})
+
+	It("returns unavailable when MLflow BFF client is nil", func() {
+		t := GinkgoT()
+		_, err := app.resolveRegistryServerConfig(context.Background(), "default", "foo/bar", nil)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrRegistryMCPClientUnavailable)
+	})
+})
+
+var _ = Describe("McpRegistryServerNamePathSegment", func() {
+	It("escapes each path segment while preserving slashes", func() {
+		t := GinkgoT()
+		got, err := mcpRegistryServerNamePathSegment("com.example/kubernetes")
+		require.NoError(t, err)
+		assert.Equal(t, "com.example/kubernetes", got)
+	})
+
+	It("rejects empty path segments", func() {
+		t := GinkgoT()
+		_, err := mcpRegistryServerNamePathSegment("com.example//kubernetes")
+		require.Error(t, err)
+	})
+})
+
+var _ = Describe("ParseMCPToolsStatusParams", func() {
+	It("requires namespace and one of server_url or server_name", func() {
+		t := GinkgoT()
+		app := &App{}
+
+		req := httptest.NewRequest("GET", "/test?namespace=demo&server_name=com.example/kubernetes", nil)
+		namespace, serverURL, decodedURL, serverName, err := app.parseMCPToolsStatusParams(req)
+		require.NoError(t, err)
+		assert.Equal(t, "demo", namespace)
+		assert.Empty(t, serverURL)
+		assert.Empty(t, decodedURL)
+		assert.Equal(t, "com.example/kubernetes", serverName)
+
+		req = httptest.NewRequest("GET", "/test?namespace=demo", nil)
+		_, _, _, _, err = app.parseMCPToolsStatusParams(req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "server_url or server_name parameter is required")
 	})
 })
