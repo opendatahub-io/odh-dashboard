@@ -9,13 +9,31 @@ import {
   MenuToggle,
   MenuToggleElement,
   Content,
+  Spinner,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { ConnectionModel } from '~/app/types';
 
-const DataLocationSection: React.FC = () => {
+type DataLocationSectionProps = {
+  connections: ConnectionModel[];
+  connectionsLoaded: boolean;
+};
+
+const DataLocationSection: React.FC<DataLocationSectionProps> = ({
+  connections,
+  connectionsLoaded,
+}) => {
   const { control } = useFormContext<RegisterDataFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
+
+  const getToggleLabel = (value: string): string => {
+    if (!value) {
+      return 'Select a connection';
+    }
+    const match = connections.find((c) => c.name === value);
+    return match?.displayName || match?.name || value;
+  };
 
   return (
     <FormSection title="Data location" titleElement="h2">
@@ -44,14 +62,27 @@ const DataLocationSection: React.FC = () => {
                   isFullWidth
                   data-testid="data-connection-toggle"
                 >
-                  {field.value || 'Select a connection'}
+                  {!connectionsLoaded ? <Spinner size="sm" /> : getToggleLabel(field.value)}
                 </MenuToggle>
               )}
             >
               <SelectList>
-                <SelectOption value="" isDisabled>
-                  No connections available
-                </SelectOption>
+                {connections.length === 0 ? (
+                  <SelectOption value="" isDisabled>
+                    No connections available
+                  </SelectOption>
+                ) : (
+                  connections.map((conn) => (
+                    <SelectOption
+                      key={conn.name}
+                      value={conn.name}
+                      description={conn.connectionType}
+                      data-testid={`connection-option-${conn.name}`}
+                    >
+                      {conn.displayName || conn.name}
+                    </SelectOption>
+                  ))
+                )}
               </SelectList>
             </Select>
           </FormGroup>

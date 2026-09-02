@@ -184,6 +184,35 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	return allowed, nil
 }
 
+func (kc *InternalKubernetesClient) GetConnections(ctx context.Context, namespace string) ([]corev1.Secret, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "opendatahub.io/dashboard=true",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+	}
+
+	var connections []corev1.Secret
+	for _, secret := range secretList.Items {
+		annotations := secret.Annotations
+		if annotations == nil {
+			continue
+		}
+		if _, ok := annotations["opendatahub.io/connection-type"]; ok {
+			connections = append(connections, secret)
+			continue
+		}
+		if _, ok := annotations["opendatahub.io/connection-type-ref"]; ok {
+			connections = append(connections, secret)
+		}
+	}
+
+	return connections, nil
+}
+
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
