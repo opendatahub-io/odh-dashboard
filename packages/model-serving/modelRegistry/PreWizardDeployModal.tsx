@@ -24,7 +24,7 @@ import {
 import ProjectSelector from './ProjectSelector';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
-import type { ModelDeployPrefillInfo } from '../extension-points/deploy-prefill';
+import type { ModelDeployPrefillInfo } from '../src/shared/types/deploy-prefill';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
 import { ExistingConnectionField } from '../src/components/deploymentWizard/fields/modelLocationFields/ExistingConnectionField';
 import {

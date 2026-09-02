@@ -6,7 +6,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import type { DeployPrefillData } from '../extension-points/deploy-prefill';
+import type { DeployPrefillData } from '../src/shared/types/deploy-prefill';
 import {
   ConnectionTypeRefs,
   InitialWizardFormData,

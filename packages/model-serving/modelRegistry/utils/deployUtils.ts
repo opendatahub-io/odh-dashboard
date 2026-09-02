@@ -1,5 +1,5 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { ModelDeployPrefillInfo } from '../../extension-points/deploy-prefill';
+import type { ModelDeployPrefillInfo } from '../../src/shared/types/deploy-prefill';
 
 /**
  * Builds serializable metadata from model registry info.
