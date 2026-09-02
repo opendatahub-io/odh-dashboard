@@ -18,10 +18,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -79,6 +81,25 @@ func main() {
 		"disable-auth",
 		getEnvAsBool("DISABLE_AUTH", true),
 		"Disable authentication and authorization",
+	)
+	flag.StringVar(
+		&cfg.AuthMethod,
+		"auth-method",
+		getEnvAsStr("AUTH_METHOD", "internal"),
+		"Method used to resolve the request identity: \"internal\" (kubeflow-userid/kubeflow-groups "+
+			"request headers) or \"user_token\" (Authorization: Bearer token, validated via TokenReview)",
+	)
+	flag.StringVar(
+		&cfg.AuthTokenHeader,
+		"auth-token-header",
+		getEnvAsStr("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader),
+		"Header used to extract the token when --auth-method=user_token (e.g. Authorization or x-forwarded-access-token)",
+	)
+	flag.StringVar(
+		&cfg.AuthTokenPrefix,
+		"auth-token-prefix",
+		getEnvAsStr("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix),
+		"Prefix stripped from the auth token header's value when --auth-method=user_token (e.g. \"Bearer \"); leave empty for a raw token",
 	)
 	flag.StringVar(
 		&cfg.UserIdHeader,
@@ -181,7 +202,19 @@ func main() {
 	}
 
 	// Create the request authenticator
-	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
+	var reqAuthN authenticator.Request
+	switch cfg.AuthMethod {
+	case "user_token":
+		reqAuthN, err = auth.NewBearerTokenAuthenticator(
+			clientset.AuthenticationV1().TokenReviews(),
+			cfg.AuthTokenHeader,
+			cfg.AuthTokenPrefix,
+		)
+	case "internal":
+		reqAuthN, err = auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
+	default:
+		err = fmt.Errorf("unsupported auth method %q: must be \"internal\" or \"user_token\"", cfg.AuthMethod)
+	}
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
 		os.Exit(1)

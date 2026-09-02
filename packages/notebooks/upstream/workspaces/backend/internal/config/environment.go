@@ -16,6 +16,15 @@ limitations under the License.
 
 package config
 
+const (
+	// DefaultAuthTokenHeader is the header used to extract the token when AuthMethod is
+	// "user_token", unless overridden.
+	DefaultAuthTokenHeader = "Authorization"
+	// DefaultAuthTokenPrefix is the prefix stripped from AuthTokenHeader's value when AuthMethod
+	// is "user_token", unless overridden.
+	DefaultAuthTokenPrefix = "Bearer "
+)
+
 type EnvConfig struct {
 	Port int
 
@@ -23,6 +32,17 @@ type EnvConfig struct {
 	ClientBurst int
 
 	DisableAuth bool
+
+	// AuthMethod selects how the request identity is resolved:
+	//   - "internal": trust the UserIdHeader/GroupsHeader request headers (Kubeflow-style deployments)
+	//   - "user_token": resolve identity via TokenReview, using a token extracted from
+	//     AuthTokenHeader (stripping AuthTokenPrefix, if set) (RHOAI/ODH deployments)
+	AuthMethod string
+
+	// AuthTokenHeader and AuthTokenPrefix configure token extraction when AuthMethod is
+	// "user_token". See NewBearerTokenAuthenticator.
+	AuthTokenHeader string
+	AuthTokenPrefix string
 
 	UserIdHeader string
 	UserIdPrefix string
