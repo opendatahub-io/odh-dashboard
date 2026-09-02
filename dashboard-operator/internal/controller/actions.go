@@ -275,7 +275,7 @@ func deployMaasConsumerPortalConsoleLink(
 		logger.Info("MaaS Consumer Portal ConsoleLink is an RHOAI-only feature; deploying it on Open Data Hub will use RHOAI branding")
 	}
 
-	m := maasConsumerPortalConsoleLinkManifestInfo(basePath)
+	m := maasConsumerPortalManifestInfo(basePath)
 
 	// Inject the derived portal URL and the platform's section title into the
 	// portal manifest's own params.env before rendering.

@@ -34,6 +34,11 @@ import (
 
 const integrationNamespace = "integration-test"
 
+const (
+	maasConsumerPortalManifestContextDir = "distributions"
+	maasConsumerPortalManifestDir        = "maas-consumer-portal"
+)
+
 var (
 	testEnv   *envtest.Environment
 	k8sClient client.Client
@@ -354,12 +359,12 @@ func disableAllModulesExcept(enabled ...string) map[string]v1alpha1.ModuleOverri
 	return modules
 }
 
-// writeMaasConsumerPortalManifest writes the portal ConsoleLink kustomize bundle
-// into base/maas-consumer-portal-consolelink/rhoai so the reconciler can render it.
+// writeMaasConsumerPortalManifest writes the portal distribution bundle location
+// used by the current ConsoleLink-only reconciler fixture.
 func writeMaasConsumerPortalManifest(t *testing.T, base string) {
 	t.Helper()
 
-	dir := filepath.Join(base, "maas-consumer-portal-consolelink", "rhoai")
+	dir := filepath.Join(base, maasConsumerPortalManifestContextDir, maasConsumerPortalManifestDir)
 	require.NoError(t, os.MkdirAll(dir, 0755))
 
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1

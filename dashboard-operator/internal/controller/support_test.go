@@ -84,13 +84,12 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
-func TestMaasConsumerPortalConsoleLinkManifestInfo(t *testing.T) {
-	// The portal is an RHOAI feature that always uses the /rhoai source,
-	// regardless of platform (it deploys on both self-managed and managed).
-	info := maasConsumerPortalConsoleLinkManifestInfo("/base")
+func TestMaasConsumerPortalManifestInfo(t *testing.T) {
+	// The ConsoleLink is part of the complete portal distribution bundle.
+	info := maasConsumerPortalManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
-	assert.Equal(t, "maas-consumer-portal-consolelink", info.ContextDir)
-	assert.Equal(t, "/rhoai", info.SourcePath)
+	assert.Equal(t, "distributions", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
 }
 
 func TestMaasConsumerPortalURL(t *testing.T) {

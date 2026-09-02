@@ -71,21 +71,20 @@ func observabilityManifestInfo(basePath string, platform cluster.Platform) rende
 // MaaS Consumer Portal host (e.g. maas-consumer-portal.<domain>).
 const maasConsumerPortalHostPrefix = "maas-consumer-portal"
 
-// maasConsumerPortalConsoleLinkManifestInfo points at the portal ConsoleLink
-// bundle. It always uses the /rhoai source: the portal is an RHOAI feature
-// and deploys on both self-managed and managed RHOAI when enabled, so it is
-// intentionally not gated by the platformPaths /not-supported overlay.
-func maasConsumerPortalConsoleLinkManifestInfo(basePath string) render.ManifestInfo {
+// maasConsumerPortalManifestInfo points at the portal distribution
+// bundle. The ConsoleLink reconciler currently filters the rendered resources
+// to ConsoleLink only; full portal lifecycle reconciliation is added separately.
+func maasConsumerPortalManifestInfo(basePath string) render.ManifestInfo {
 	return render.ManifestInfo{
 		Path:       basePath,
-		ContextDir: "maas-consumer-portal-consolelink",
-		SourcePath: "/rhoai",
+		ContextDir: "distributions",
+		SourcePath: "maas-consumer-portal",
 	}
 }
 
-// maasConsumerPortalURL derives the portal URL from the gateway domain. The
-// second return value is false when the domain is empty, meaning the URL
-// cannot be derived and the ConsoleLink must not be deployed.
+// maasConsumerPortalURL is temporary ConsoleLink behavior pending the portal
+// URL decision. It currently derives a nested hostname from Gateway.Domain;
+// it must be replaced if the platform-managed hostname option is selected.
 func maasConsumerPortalURL(domain string) (string, bool) {
 	if domain == "" {
 		return "", false
