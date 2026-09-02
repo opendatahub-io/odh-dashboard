@@ -25,7 +25,7 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Wait until the namespace exists, then require the dashboard label
+    // Wait until the namespace is patchable, then require the dashboard label
     // and Active phase so the A.I. projects filter can see it.
     return waitForNamespace(projectName, 30, 1000).then(() => {
       const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
