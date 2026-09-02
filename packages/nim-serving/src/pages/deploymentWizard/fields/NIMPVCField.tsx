@@ -116,7 +116,7 @@ const useNIMPVCExternalData = (dependencies?: {
         name: sc.metadata.name,
         displayName: sc.metadata.annotations?.['openshift.io/display-name'] || sc.metadata.name,
       })),
-      existingPVCs: categorizePVCs(pvcList),
+      existingPVCs: categorizePVCs(pvcList.filter((pvc) => Boolean(pvc.metadata.name))),
     };
   }, [projectName]);
 
@@ -347,6 +347,9 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                 selected={fieldValue.pvcName || undefined}
                 onSelect={(_, val) => {
                   const pvcName = String(val);
+                  if (pvcName === fieldValue.pvcName) {
+                    return;
+                  }
                   const selectedPVC = existingPVCMap.get(pvcName);
                   updateField({
                     pvcName,

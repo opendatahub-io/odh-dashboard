@@ -336,9 +336,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   // Only when the field is required, not creatable and there is one option, we auto select the first option
   const isSingleOption = selectOptions.length === 1 && notAllowEmpty;
   const singleOptionValue = isSingleOption ? selectOptions[0].value : null;
-  // If there is only one option, call the onChange function
+  // If there is only one option, call the onChange function (unless already selected)
   React.useEffect(() => {
-    if (singleOptionValue && onSelect) {
+    if (singleOptionValue && onSelect && props.selected !== singleOptionValue) {
       onSelect(undefined, singleOptionValue);
     }
     // We don't want the callback function to be a dependency
