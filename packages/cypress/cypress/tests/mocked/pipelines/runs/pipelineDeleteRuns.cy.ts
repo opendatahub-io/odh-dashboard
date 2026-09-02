@@ -16,12 +16,12 @@ import {
   buildMockRecurringRunKF,
 } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   DataSciencePipelineApplicationModel,
   NotebookModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
 } from '../../../../utils/models';
 import {
   pipelineRecurringRunTable,

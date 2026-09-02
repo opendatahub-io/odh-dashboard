@@ -127,11 +127,18 @@ func convertUnstructuredToExternalProviderSummary(obj *unstructured.Unstructured
 	content := obj.UnstructuredContent()
 	displayName, description := readDisplayAnnotations(obj.GetAnnotations())
 
+	ready := extractReadyCondition(content)
+
 	summary := &models.ExternalProviderSummary{
-		Name:        obj.GetName(),
-		Namespace:   obj.GetNamespace(),
-		DisplayName: displayName,
-		Description: description,
+		Name:               obj.GetName(),
+		Namespace:          obj.GetNamespace(),
+		DisplayName:        displayName,
+		Description:        description,
+		Status:             ready.Status,
+		ConditionType:      ready.ConditionType,
+		LastTransitionTime: ready.LastTransitionTime,
+		StatusMessage:      ready.Message,
+		Reason:             ready.Reason,
 	}
 
 	endpoint, _, _ := unstructured.NestedString(content, "spec", "endpoint")
@@ -151,9 +158,6 @@ func convertUnstructuredToExternalProviderSummary(obj *unstructured.Unstructured
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
-	ready := extractReadyCondition(content)
-	summary.StatusMessage = ready.Message
-	summary.Reason = ready.Reason
 
 	return summary
 }
@@ -239,11 +243,18 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 	content := obj.UnstructuredContent()
 	displayName, description := readDisplayAnnotations(obj.GetAnnotations())
 
+	ready := extractReadyCondition(content)
+
 	summary := &models.ExternalModelSummary{
-		Name:        obj.GetName(),
-		Namespace:   obj.GetNamespace(),
-		DisplayName: displayName,
-		Description: description,
+		Name:               obj.GetName(),
+		Namespace:          obj.GetNamespace(),
+		DisplayName:        displayName,
+		Description:        description,
+		Status:             ready.Status,
+		ConditionType:      ready.ConditionType,
+		LastTransitionTime: ready.LastTransitionTime,
+		StatusMessage:      ready.Message,
+		Reason:             ready.Reason,
 	}
 
 	modelName, _, _ := unstructured.NestedString(content, "spec", "modelName")
@@ -299,9 +310,6 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
-	ready := extractReadyCondition(content)
-	summary.StatusMessage = ready.Message
-	summary.Reason = ready.Reason
 
 	return summary
 }

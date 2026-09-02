@@ -226,7 +226,7 @@ describe('Register Volume', () => {
   it('should open register data modal', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
-    cy.findByTestId('register-volume-modal').should('exist');
+    cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
     cy.contains(
       'Create a new data asset and configure its source location, metadata, and schema.',
@@ -237,7 +237,7 @@ describe('Register Volume', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('register-volume-submit').click();
+    cy.findByTestId('register-data-submit').click();
 
     cy.contains('Asset name is required').should('exist');
     cy.contains('Collection is required').should('exist');
@@ -267,30 +267,30 @@ describe('Register Volume', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('volume-name-input').type('new-volume');
-    cy.findByTestId('volume-description-input').type('Test volume');
+    cy.findByTestId('data-name-input').type('new-volume');
+    cy.findByTestId('data-description-input').type('Test volume');
 
-    cy.findByTestId('volume-format-toggle').click();
+    cy.findByTestId('data-format-toggle').click();
     cy.contains('Documents').click();
 
-    cy.findByTestId('volume-collection-toggle').click();
+    cy.findByTestId('data-collection-toggle').click();
     cy.contains('analytics').click();
 
-    cy.findByTestId('volume-path-input').clear();
-    cy.findByTestId('volume-path-input').type('/data/docs');
+    cy.findByTestId('data-path-input').clear();
+    cy.findByTestId('data-path-input').type('/data/docs');
 
-    cy.findByTestId('volume-purpose-input').type('ML training');
+    cy.findByTestId('data-purpose-input').type('ML training');
 
-    cy.findByTestId('volume-license-toggle').click();
+    cy.findByTestId('data-license-toggle').click();
     cy.contains('Apache 2.0').click();
 
-    cy.findByTestId('volume-maturity-toggle').click();
+    cy.findByTestId('data-maturity-toggle').click();
     cy.contains('Production').click();
 
-    cy.findByTestId('volume-pii-toggle').click();
+    cy.findByTestId('data-pii-toggle').click();
     cy.contains('None').click();
 
-    cy.findByTestId('register-volume-submit').click();
+    cy.findByTestId('register-data-submit').click();
 
     cy.wait('@createVolume').then((interception) => {
       expect(interception.request.body).to.deep.include({
@@ -307,7 +307,7 @@ describe('Register Volume', () => {
       });
     });
 
-    cy.findByTestId('register-volume-modal').should('not.exist');
+    cy.findByTestId('register-data-modal').should('not.exist');
   });
 
   it('should display error on 409 conflict', () => {
@@ -321,40 +321,40 @@ describe('Register Volume', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('volume-name-input').type('existing-volume');
-    cy.findByTestId('volume-collection-toggle').click();
+    cy.findByTestId('data-name-input').type('existing-volume');
+    cy.findByTestId('data-collection-toggle').click();
     cy.contains('analytics').click();
 
-    cy.findByTestId('register-volume-submit').click();
+    cy.findByTestId('register-data-submit').click();
 
     cy.wait('@createVolumeConflict');
-    cy.contains('Error registering data').should('exist');
-    cy.findByTestId('register-volume-modal').should('exist');
+    cy.contains('Error registering data asset').should('exist');
+    cy.findByTestId('register-data-modal').should('exist');
   });
 
   it('should close modal and reset form on cancel', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('volume-name-input').type('test-volume');
+    cy.findByTestId('data-name-input').type('test-volume');
     cy.contains('Cancel').click();
-    cy.findByTestId('register-volume-modal').should('not.exist');
+    cy.findByTestId('register-data-modal').should('not.exist');
 
     cy.findByTestId('register-data-button').click();
-    cy.findByTestId('volume-name-input').should('have.value', '');
+    cy.findByTestId('data-name-input').should('have.value', '');
   });
 
-  it('should show asset type as disabled Unstructured', () => {
+  it('should show asset type selector defaulting to Unstructured', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
-    cy.findByTestId('asset-type-toggle').should('have.class', 'pf-m-disabled');
+    cy.findByTestId('asset-type-toggle').should('not.have.class', 'pf-m-disabled');
     cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
   });
 
   it('should show "Create new collection" in collection dropdown', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
-    cy.findByTestId('volume-collection-toggle').click();
+    cy.findByTestId('data-collection-toggle').click();
     cy.contains('Create new collection').should('exist');
   });
 });
@@ -503,5 +503,181 @@ describe('Manage Labels', () => {
 
     cy.contains('button', 'Close').click();
     cy.findByTestId('manage-labels-modal').should('not.exist');
+  });
+});
+
+describe('Register Table', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should switch to Structured asset type and show schema section', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
+    cy.findByText('Schema').should('not.exist');
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('asset-type-toggle').should('contain.text', 'Structured');
+    cy.findByText('Schema').should('exist');
+    cy.findByTestId('add-schema-column').should('exist');
+  });
+
+  it('should show structured format options after switching asset type', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-format-toggle').click();
+    cy.contains('Apache Iceberg').should('exist');
+    cy.contains('Parquet').should('exist');
+    cy.contains('CSV').should('exist');
+    cy.contains('Delta Lake').should('exist');
+    cy.contains('Documents').should('not.exist');
+    cy.contains('Images').should('not.exist');
+  });
+
+  it('should add and remove schema columns', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('add-schema-column').click();
+    cy.findByTestId('schema-column-name-0').should('exist');
+    cy.findByTestId('schema-column-type-0').should('exist');
+
+    cy.findByTestId('add-schema-column').click();
+    cy.findByTestId('schema-column-name-1').should('exist');
+
+    cy.findByTestId('schema-column-remove-0').click();
+    cy.findByTestId('schema-column-name-0').should('exist');
+    cy.findByTestId('schema-column-name-1').should('not.exist');
+  });
+
+  it('should submit table with schema fields to generic-tables endpoint', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`, {
+      statusCode: 200,
+      body: {
+        name: 'test-table',
+        asset_type: 'table',
+        format: 'parquet',
+        location: '',
+        description: 'A test table',
+        labels: [],
+        collection: 'analytics',
+        connection_ref: null,
+        owner: 'user1',
+        registered_by: 'user1',
+        created_at: '2026-01-01',
+      },
+    }).as('createTable');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-name-input').type('test-table');
+    cy.findByTestId('data-description-input').type('A test table');
+
+    cy.findByTestId('data-format-toggle').click();
+    cy.contains('Parquet').click();
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('add-schema-column').click();
+    cy.findByTestId('schema-column-name-0').type('claim_id');
+    cy.findByTestId('schema-column-type-0').click();
+    cy.contains('integer').click();
+
+    cy.findByTestId('add-schema-column').click();
+    cy.findByTestId('schema-column-name-1').type('amount');
+    cy.findByTestId('schema-column-type-1').click();
+    cy.contains('double').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createTable').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'test-table',
+        format: 'parquet',
+        description: 'A test table',
+      });
+      expect(interception.request.body.schema_fields).to.have.length(2);
+      expect(interception.request.body.schema_fields[0]).to.deep.include({
+        name: 'claim_id',
+        type: 'integer',
+      });
+      expect(interception.request.body.schema_fields[1]).to.deep.include({
+        name: 'amount',
+        type: 'double',
+      });
+    });
+
+    cy.findByTestId('register-data-modal').should('not.exist');
+  });
+
+  it('should clear schema fields when switching back to Unstructured', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('add-schema-column').click();
+    cy.findByTestId('schema-column-name-0').type('test-col');
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
+
+    cy.findByText('Schema').should('not.exist');
+    cy.findByTestId('schema-column-name-0').should('not.exist');
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('schema-column-name-0').should('not.exist');
+  });
+
+  it('should display error on table creation failure', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`, {
+      statusCode: 409,
+      body: {
+        error: { message: 'Table already exists', type: 'AlreadyExistsException', code: 409 },
+      },
+    }).as('createTableConflict');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-name-input').type('existing-table');
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createTableConflict');
+    cy.contains('Error registering data asset').should('exist');
+    cy.findByTestId('register-data-modal').should('exist');
   });
 });

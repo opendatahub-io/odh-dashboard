@@ -5,7 +5,7 @@ import useFetch, {
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ConfigMapKind } from '@odh-dashboard/k8s-core';
-import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
+import { ConfigMapModel } from '@odh-dashboard/k8s-core/api/models';
 
 const useNamespaceConfigMaps = (
   namespace: string,

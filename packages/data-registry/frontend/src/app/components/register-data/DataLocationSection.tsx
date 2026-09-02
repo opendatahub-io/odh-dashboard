@@ -11,10 +11,10 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
-import { RegisterVolumeFormData } from '~/app/schemas/registerVolume.schema';
+import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 
 const DataLocationSection: React.FC = () => {
-  const { control } = useFormContext<RegisterVolumeFormData>();
+  const { control } = useFormContext<RegisterDataFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
 
   return (
@@ -27,7 +27,7 @@ const DataLocationSection: React.FC = () => {
         name="connection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Connection" fieldId="volume-connection">
+          <FormGroup label="Connection" fieldId="data-connection">
             <Select
               isOpen={isConnectionOpen}
               selected={field.value}
@@ -42,7 +42,7 @@ const DataLocationSection: React.FC = () => {
                   onClick={() => setIsConnectionOpen((prev) => !prev)}
                   isExpanded={isConnectionOpen}
                   isFullWidth
-                  data-testid="volume-connection-toggle"
+                  data-testid="data-connection-toggle"
                 >
                   {field.value || 'Select a connection'}
                 </MenuToggle>
@@ -62,8 +62,8 @@ const DataLocationSection: React.FC = () => {
         name="path"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Path" fieldId="volume-path">
-            <TextInput id="volume-path" {...field} data-testid="volume-path-input" />
+          <FormGroup label="Path" fieldId="data-path">
+            <TextInput id="data-path" {...field} data-testid="data-path-input" />
           </FormGroup>
         )}
       />

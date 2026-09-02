@@ -1,4 +1,4 @@
-import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/internal/__mocks__/mockValidatedConfigurations';
+import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/model-serving/__mocks__/mockValidatedConfigurations';
 import {
   getDeployWizardEntryPoint,
   getDeployWizardStartedProperties,

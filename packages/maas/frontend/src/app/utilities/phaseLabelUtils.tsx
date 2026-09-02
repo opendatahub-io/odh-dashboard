@@ -31,6 +31,7 @@ export enum PhaseResourceType {
   SUBSCRIPTION = 'Subscription',
   EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
+  EXTERNAL_PROVIDER = 'External Provider',
 }
 
 export enum PhaseStatus {
@@ -125,6 +126,32 @@ export const getAffectedModelsFromRefs = (
 ): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  [PhaseResourceType.EXTERNAL_PROVIDER]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external provider configuration',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'External provider failed',
+    },
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'External provider pending',
+    },
+  },
   [PhaseResourceType.MODEL]: {
     [PhaseStatus.READY]: {
       headerIcon: <CheckCircleIcon />,
@@ -144,13 +171,17 @@ const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverC
     },
   },
   [PhaseResourceType.EXTERNAL_MODEL]: {
-    [PhaseStatus.READY]: {
-      headerIcon: <CheckCircleIcon />,
-      headerContent: 'Ready',
-    },
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
-      headerContent: 'Pending',
+      headerContent: 'External model pending',
+    },
+    [PhaseStatus.INVALID]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Invalid external model configuration',
     },
     [PhaseStatus.FAILED]: {
       headerIcon: (
@@ -247,6 +278,7 @@ export enum PhaseLabelLocation {
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
   EXTERNAL_MODELS = 'external-models',
+  EXTERNAL_PROVIDERS = 'external-providers',
 }
 
 export const getStatusSubtext = (
@@ -260,6 +292,10 @@ export const getStatusSubtext = (
       return getStatusSubtextForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getStatusSubtextForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getStatusSubtextForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getStatusSubtextForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -311,6 +347,32 @@ const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefin
   }
 };
 
+const getStatusSubtextForExternalModel = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external model';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External model setup failed';
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForExternalProvider = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return 'Setting up external provider';
+    case PhaseStatus.INVALID:
+      return 'Invalid configuration';
+    case PhaseStatus.FAILED:
+      return 'External provider setup failed';
+    default:
+      return undefined;
+  }
+};
+
 export const getModalSubtitle = (resourceType: PhaseResourceType): string | undefined => {
   switch (resourceType) {
     case PhaseResourceType.SUBSCRIPTION:
@@ -319,6 +381,10 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
       return 'Authorization policy status';
     case PhaseResourceType.MODEL:
       return 'Model status';
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return 'External model status';
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return 'External provider status';
     default:
       return undefined;
   }
@@ -343,7 +409,9 @@ export const getModalAlertProps = (
       phase === PhaseStatus.INVALID ||
       phase === PhaseStatus.UNAVAILABLE ||
       phase === PhaseStatus.DEGRADED ||
-      (phase === PhaseStatus.PENDING && resourceType === PhaseResourceType.MODEL)) &&
+      (phase === PhaseStatus.PENDING &&
+        (resourceType === PhaseResourceType.MODEL ||
+          resourceType === PhaseResourceType.EXTERNAL_MODEL))) &&
     (!!reason || !!statusMessage);
 
   return {
@@ -396,6 +464,10 @@ const getModalTitleAndChildren = (
       return getAlertContentForSubscription(phase);
     case PhaseResourceType.AUTHPOLICY:
       return getAlertContentForAuthPolicy(phase);
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return getAlertContentForExternalModel(phase);
+    case PhaseResourceType.EXTERNAL_PROVIDER:
+      return getAlertContentForExternalProvider(phase);
     default:
       return undefined;
   }
@@ -498,6 +570,50 @@ const getAlertContentForAuthPolicy = (
   }
 };
 
+const getAlertContentForExternalModel = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External model setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External model setup failed',
+        children: 'The external model could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external model configuration',
+        children:
+          'The external model configuration is invalid or missing required fields. Edit the external model and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForExternalProvider = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.PENDING:
+      return { title: 'Pending', children: 'External provider setup is in progress.' };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'External provider setup failed',
+        children: 'The external provider could not be configured.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid external provider configuration',
+        children:
+          'The external provider configuration is invalid or missing required fields. Edit the external provider and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
 const getAlertVariant = (phase: string): AlertProps['variant'] => {
   switch (phase) {
     case PhaseStatus.ACTIVE:
@@ -527,6 +643,7 @@ export const getSubtextProps = (phase: string): ContentProps | undefined => {
         style: sharedStyle,
       };
     case PhaseStatus.FAILED:
+    case PhaseStatus.INVALID:
       return {
         className: 'pf-v6-u-text-color-status-danger',
         style: sharedStyle,

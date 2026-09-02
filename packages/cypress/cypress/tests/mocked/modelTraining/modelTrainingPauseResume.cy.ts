@@ -10,9 +10,9 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import {
   ClusterQueueModel,
   LocalQueueModel,
-  TrainJobModel,
   WorkloadModel,
-} from '@odh-dashboard/internal/api/models';
+} from '@odh-dashboard/k8s-core/api/models';
+import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 import {
