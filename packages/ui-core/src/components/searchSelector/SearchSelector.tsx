@@ -138,7 +138,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
               />
             </MenuSearchInput>
             {searchHelpText && (
-              <HelperText>
+              <HelperText className="pf-v6-u-mt-sm">
                 <HelperTextItem data-testid={`${dataTestId}-searchHelpText`}>
                   {searchHelpText}
                 </HelperTextItem>

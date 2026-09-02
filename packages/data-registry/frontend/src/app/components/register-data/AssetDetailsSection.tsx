@@ -21,9 +21,9 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
-import { RegisterVolumeFormData } from '~/app/schemas/registerVolume.schema';
+import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 
-const FORMAT_OPTIONS = [
+const UNSTRUCTURED_FORMATS = [
   { key: 'documents', label: 'Documents', description: 'Text, PDFs, and office files' },
   { key: 'images', label: 'Images', description: 'Photos, graphics, and medical scans' },
   { key: 'audio', label: 'Audio', description: 'Speech, music, and sound recordings' },
@@ -31,6 +31,20 @@ const FORMAT_OPTIONS = [
   { key: 'binary', label: 'Binary', description: 'Models, code, and compressed archives' },
   { key: 'other', label: 'Other', description: 'Custom or uncategorized formats' },
 ];
+
+const STRUCTURED_FORMATS = [
+  { key: 'iceberg', label: 'Apache Iceberg', description: 'Iceberg table with metadata catalog' },
+  { key: 'parquet', label: 'Parquet', description: 'Raw columnar data files' },
+  { key: 'csv', label: 'CSV', description: 'Structured delimited text files' },
+  { key: 'delta', label: 'Delta Lake', description: 'Delta table with transaction log' },
+  { key: 'postgresql', label: 'PostgreSQL', description: 'Relational database table or view' },
+  { key: 'other', label: 'Other', description: 'Custom or uncategorized formats' },
+];
+
+const DEFAULT_FORMATS: Record<string, string> = {
+  unstructured: 'other',
+  structured: 'iceberg',
+};
 
 type AssetDetailsSectionProps = {
   collections: string[];
@@ -45,31 +59,39 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
     control,
     formState: { errors },
     setValue,
+    getValues,
     watch,
-  } = useFormContext<RegisterVolumeFormData>();
+  } = useFormContext<RegisterDataFormData>();
 
+  const assetType = watch('assetType');
   const labels = watch('labels');
+  const [isAssetTypeOpen, setIsAssetTypeOpen] = React.useState(false);
   const [isFormatOpen, setIsFormatOpen] = React.useState(false);
   const [isCollectionOpen, setIsCollectionOpen] = React.useState(false);
   const [isAddingLabel, setIsAddingLabel] = React.useState(false);
   const [newLabel, setNewLabel] = React.useState('');
 
+  const formatOptions = assetType === 'structured' ? STRUCTURED_FORMATS : UNSTRUCTURED_FORMATS;
+
   const handleAddLabel = React.useCallback(() => {
-    if (newLabel.trim() && !labels.includes(newLabel.trim())) {
-      setValue('labels', [...labels, newLabel.trim()]);
+    const trimmed = newLabel.trim();
+    const currentLabels = getValues('labels');
+    if (trimmed && !currentLabels.includes(trimmed)) {
+      setValue('labels', [...currentLabels, trimmed]);
       setNewLabel('');
       setIsAddingLabel(false);
     }
-  }, [newLabel, labels, setValue]);
+  }, [newLabel, getValues, setValue]);
 
   const handleRemoveLabel = React.useCallback(
     (label: string) => {
+      const currentLabels = getValues('labels');
       setValue(
         'labels',
-        labels.filter((l) => l !== label),
+        currentLabels.filter((l) => l !== label),
       );
     },
-    [labels, setValue],
+    [getValues, setValue],
   );
 
   return (
@@ -82,13 +104,13 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         name="name"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Asset name" isRequired fieldId="volume-name">
+          <FormGroup label="Asset name" isRequired fieldId="data-name">
             <TextInput
-              id="volume-name"
+              id="data-name"
               {...field}
               isRequired
               validated={errors.name ? 'error' : 'default'}
-              data-testid="volume-name-input"
+              data-testid="data-name-input"
             />
             {errors.name ? (
               <FormHelperText>
@@ -105,12 +127,12 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         name="description"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Asset description" fieldId="volume-description">
+          <FormGroup label="Asset description" fieldId="data-description">
             <TextArea
-              id="volume-description"
+              id="data-description"
               {...field}
               validated={errors.description ? 'error' : 'default'}
-              data-testid="volume-description-input"
+              data-testid="data-description-input"
             />
             {errors.description ? (
               <FormHelperText>
@@ -123,28 +145,83 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         )}
       />
 
-      <FormGroup
-        label="Asset type"
-        isRequired
-        fieldId="asset-type"
-        labelHelp={
-          <Popover bodyContent="Only unstructured data volumes are supported in this release.">
-            <Icon aria-label="Asset type info" role="button">
-              <OutlinedQuestionCircleIcon />
-            </Icon>
-          </Popover>
-        }
-      >
-        <MenuToggle isDisabled isFullWidth data-testid="asset-type-toggle">
-          Unstructured
-        </MenuToggle>
-      </FormGroup>
+      <Controller
+        name="assetType"
+        control={control}
+        render={({ field }) => (
+          <FormGroup
+            label="Asset type"
+            isRequired
+            fieldId="asset-type"
+            labelHelp={
+              <Popover bodyContent="Unstructured assets are file-based volumes. Structured assets represent tabular data with defined columns and types.">
+                <Icon aria-label="Asset type info" role="button">
+                  <OutlinedQuestionCircleIcon />
+                </Icon>
+              </Popover>
+            }
+          >
+            <Select
+              isOpen={isAssetTypeOpen}
+              selected={field.value}
+              onSelect={(_event, value) => {
+                const newType = String(value);
+                field.onChange(newType);
+                setValue('format', DEFAULT_FORMATS[newType]);
+                setValue('schemaFields', []);
+                setIsAssetTypeOpen(false);
+              }}
+              onOpenChange={setIsAssetTypeOpen}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsAssetTypeOpen((prev) => !prev)}
+                  isExpanded={isAssetTypeOpen}
+                  isFullWidth
+                  data-testid="asset-type-toggle"
+                >
+                  {field.value === 'structured' ? 'Structured' : 'Unstructured'}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                <SelectOption
+                  value="unstructured"
+                  description="File-based volumes (documents, images, audio, video)"
+                  data-testid="asset-type-unstructured"
+                >
+                  Unstructured
+                </SelectOption>
+                <SelectOption
+                  value="structured"
+                  description="Tabular data with defined columns and types"
+                  data-testid="asset-type-structured"
+                >
+                  Structured
+                </SelectOption>
+              </SelectList>
+            </Select>
+          </FormGroup>
+        )}
+      />
 
       <Controller
         name="format"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Format" fieldId="volume-format">
+          <FormGroup
+            label="Format"
+            fieldId="data-format"
+            labelHelp={
+              assetType === 'structured' ? (
+                <Popover bodyContent="The storage format determines how data is organized on disk.">
+                  <Icon aria-label="Format info" role="button">
+                    <OutlinedQuestionCircleIcon />
+                  </Icon>
+                </Popover>
+              ) : undefined
+            }
+          >
             <Select
               isOpen={isFormatOpen}
               selected={field.value}
@@ -159,14 +236,14 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
                   onClick={() => setIsFormatOpen((prev) => !prev)}
                   isExpanded={isFormatOpen}
                   isFullWidth
-                  data-testid="volume-format-toggle"
+                  data-testid="data-format-toggle"
                 >
-                  {FORMAT_OPTIONS.find((f) => f.key === field.value)?.label || 'Select format'}
+                  {formatOptions.find((f) => f.key === field.value)?.label || 'Select format'}
                 </MenuToggle>
               )}
             >
               <SelectList>
-                {FORMAT_OPTIONS.map((option) => (
+                {formatOptions.map((option) => (
                   <SelectOption
                     key={option.key}
                     value={option.key}
@@ -185,7 +262,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         name="collection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Collection" fieldId="volume-collection">
+          <FormGroup label="Collection" isRequired fieldId="data-collection">
             <Content component="p">
               Assign this asset to collections to help group your data. To manage collections for
               the entire project, go to{' '}
@@ -213,7 +290,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
                   onClick={() => setIsCollectionOpen((prev) => !prev)}
                   isExpanded={isCollectionOpen}
                   isFullWidth
-                  data-testid="volume-collection-toggle"
+                  data-testid="data-collection-toggle"
                 >
                   {field.value || 'Select collection'}
                 </MenuToggle>
@@ -243,7 +320,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         )}
       />
 
-      <FormGroup label="Labels" fieldId="volume-labels">
+      <FormGroup label="Labels" fieldId="data-labels">
         <Content component="p">
           Add labels to help organize and filter this asset. To manage labels for the entire
           project, go to{' '}
@@ -263,7 +340,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         ) : null}
         {isAddingLabel ? (
           <TextInput
-            id="volume-labels-input"
+            id="data-labels-input"
             aria-label="New label name"
             value={newLabel}
             onChange={(_event, value) => setNewLabel(value)}
@@ -286,14 +363,14 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
               }
             }}
             autoFocus
-            data-testid="volume-labels-input"
+            data-testid="data-labels-input"
           />
         ) : null}
         <Button
           variant="link"
           icon={<PlusCircleIcon />}
           onClick={() => setIsAddingLabel(true)}
-          data-testid="add-label-button"
+          data-testid="data-add-label-button"
         >
           Add label
         </Button>

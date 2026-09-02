@@ -690,6 +690,10 @@ class ModelServingRow extends TableRow {
     return this.find().find(`[data-label="Last deployed"]`);
   }
 
+  findStatusSubtitle() {
+    return this.find().findByTestId('deployment-status-subtitle');
+  }
+
   findConfirmStopModal() {
     return cy.findByTestId('stop-model-modal');
   }
@@ -1254,19 +1258,16 @@ class ModelServingWizard extends Wizard {
     cy.findByRole('option', { name }).click();
   }
 
-  selectPotentiallyDisabledProfile(profileDisplayName: string): void {
+  selectPotentiallyDisabledProfile(profileDisplayName: string, profileName?: string): void {
     const dropdown = this.findHardProfileSelection();
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        // If disabled, verify it contains the base profile name
-        const nameToCheck = profileDisplayName;
-        cy.wrap($el).contains(nameToCheck).should('exist');
-        cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
+        cy.wrap($el).contains(profileDisplayName).should('exist');
+        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByTestId(`${profileDisplayName}`).click();
+        cy.findByTestId(profileName || profileDisplayName).click();
       }
     });
   }
