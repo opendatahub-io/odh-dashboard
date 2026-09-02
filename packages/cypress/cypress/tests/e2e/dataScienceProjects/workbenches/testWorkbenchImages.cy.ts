@@ -50,7 +50,9 @@ describe('Workbenches - image/version tests', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step(`Navigate to workbenches tab of Project ${projectName}`);
-      projectListPage.navigateToProject(projectName);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('workbenches').click();
 
       cy.step(`Create workbench ${workbenchName}`);

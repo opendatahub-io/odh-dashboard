@@ -62,7 +62,9 @@ describe('Verify that users can provide contributor project permissions to non-a
 
       // Project navigation, add user and provide contributor permissions
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-      projectListPage.navigateToProject(projectName);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
@@ -110,7 +112,9 @@ describe('Verify that users can provide contributor project permissions to non-a
       cy.step(
         'Verify that the user has access to the created project but cannot access Permissions',
       );
-      projectListPage.navigateToProject(projectName);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('overview').should('be.visible');
       cy.log('Attempting to find permissions tab which should not be visible');
       projectDetails.findSectionTab('permissions').should('not.exist');
