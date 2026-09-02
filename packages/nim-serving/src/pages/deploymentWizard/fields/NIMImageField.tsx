@@ -228,8 +228,10 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   );
   const isImageCatalogLoaded = externalData?.data.nimImagesLoaded ?? externalData?.loaded ?? false;
   const canConfirmImageIsMissing = isImageCatalogLoaded && accountStatus === NIMAccountStatus.READY;
+  const accountRequestSettled =
+    accountStatus !== NIMAccountStatus.LOADING || Boolean(externalData?.loadError);
   const shouldShowImagePreservedMessage =
-    isEditing && (Boolean(externalData?.loadError) || accountStatus !== NIMAccountStatus.READY);
+    isEditing && accountRequestSettled && accountStatus !== NIMAccountStatus.READY;
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,

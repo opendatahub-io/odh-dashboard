@@ -194,6 +194,26 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.queryByTestId('nim-image-select')).not.toBeInTheDocument();
   });
 
+  it('should not show the preserved-image message while the Account request is loading', () => {
+    renderComponent({
+      isEditing: true,
+      value: { repository: 'nvcr.io/nim/test/legacy-model', tag: '9.9.9' },
+      externalData: {
+        data: {
+          nimImages: { images: [], projectName: 'test-project' },
+          accountStatus: NIMAccountStatus.LOADING,
+          nimImagesLoaded: false,
+        },
+        loaded: true,
+      },
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('nvcr.io/nim/test/legacy-model:9.9.9');
+    expect(
+      screen.queryByText(/NVIDIA NIM account information could not be loaded/),
+    ).not.toBeInTheDocument();
+  });
+
   it('should preserve and lock the raw image while editing without an Account', () => {
     renderComponent({
       isEditing: true,
