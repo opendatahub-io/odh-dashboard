@@ -18,7 +18,6 @@ const assertK8sDnsLabel = (kind: string, value: string): void => {
   }
 };
 
-/** Prefer live Cypress.env — module-level Cypress.env can be empty at import. */
 const getAwsPipelines = (): AWSS3Buckets =>
   (Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined) ?? AWS_BUCKETS;
 
