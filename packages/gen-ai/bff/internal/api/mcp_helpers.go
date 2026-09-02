@@ -23,6 +23,9 @@ var ErrRegistryMCPServerNotFound = errors.New("registry MCP server not found")
 // ErrRegistryMCPClientUnavailable indicates the MLflow BFF client is not configured or reachable.
 var ErrRegistryMCPClientUnavailable = errors.New("MLflow BFF client unavailable")
 
+// ErrInvalidRegistryServerName indicates the server_name parameter failed validation.
+var ErrInvalidRegistryServerName = errors.New("invalid server_name parameter")
+
 // handleRegistryResolveError maps registry resolution failures to HTTP responses.
 func (app *App) handleRegistryResolveError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrRegistryMCPServerNotFound) {
@@ -33,7 +36,7 @@ func (app *App) handleRegistryResolveError(w http.ResponseWriter, r *http.Reques
 		app.serviceUnavailableResponse(w, r, err)
 		return
 	}
-	if strings.Contains(err.Error(), "invalid server_name parameter") {
+	if errors.Is(err, ErrInvalidRegistryServerName) {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -144,6 +147,10 @@ func isRegistryServerListable(server models.MLflowMCPServer) bool {
 }
 
 func (app *App) mapRegistryServerToSummary(server models.MLflowMCPServer) models.MCPServerSummary {
+	if len(server.AccessEndpoints) == 0 {
+		return models.MCPServerSummary{}
+	}
+
 	endpoint := server.AccessEndpoints[0]
 	tools := make([]models.MCPServerToolSummary, 0)
 	version := ""
@@ -182,7 +189,7 @@ func (app *App) resolveRegistryServerConfig(
 
 	serverSegment, err := mcpRegistryServerNamePathSegment(serverName)
 	if err != nil {
-		return models.MCPServerConfig{}, fmt.Errorf("invalid server_name parameter: %w", err)
+		return models.MCPServerConfig{}, fmt.Errorf("%w: %w", ErrInvalidRegistryServerName, err)
 	}
 
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
@@ -227,6 +234,27 @@ func mcpRegistryServerNamePathSegment(name string) (string, error) {
 		parts[i] = escaped
 	}
 	return strings.Join(parts, "/"), nil
+}
+
+// setupMCPIdentityWithTokenValidation extracts request identity and MCP bearer token
+// without requiring a Kubernetes client (used for registry-backed MCP requests).
+func (app *App) setupMCPIdentityWithTokenValidation(ctx context.Context, r *http.Request) (*integrations.RequestIdentity, error) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			identity = &integrations.RequestIdentity{}
+		} else {
+			return nil, fmt.Errorf("missing RequestIdentity in context")
+		}
+	}
+
+	mcpIdentity, err := app.mcpClientFactory.ExtractRequestIdentity(r.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	identity.MCPToken = mcpIdentity.MCPToken
+	return identity, nil
 }
 
 // setupMCPEndpoint performs common setup for MCP endpoints: identity extraction, k8s client setup, and repository validation

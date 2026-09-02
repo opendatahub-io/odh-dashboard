@@ -109,6 +109,10 @@ func (app *App) MCPListHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	configmapAvailable := cmRes.err == nil
 	var configmapError string
 	if cmRes.err != nil {
+		app.logger.Error("failed to read MCP servers ConfigMap",
+			"namespace", app.dashboardNamespace,
+			"error", cmRes.err,
+		)
 		configmapError = friendlyConfigMapError(cmRes.err, app.dashboardNamespace)
 	}
 
@@ -179,7 +183,7 @@ func friendlyConfigMapError(err error, namespace string) string {
 	if containsAny(errMsg, []string{"forbidden", "Forbidden", "403", "permission denied"}) {
 		return fmt.Sprintf("Access denied to ConfigMap '%s' in namespace '%s'", constants.MCPServerName, namespace)
 	}
-	return fmt.Sprintf("Failed to read ConfigMap '%s': %s", constants.MCPServerName, errMsg)
+	return fmt.Sprintf("Failed to read ConfigMap '%s'", constants.MCPServerName)
 }
 
 // handleConfigMapError writes an appropriate HTTP error response for ConfigMap fetch failures.

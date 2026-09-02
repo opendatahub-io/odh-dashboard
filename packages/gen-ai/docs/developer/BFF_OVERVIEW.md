@@ -15,6 +15,7 @@ The Gen AI BFF is a Go-based middleware service that sits between our React fron
 - **Business Logic**: Implements domain-specific operations and data transformations
 
 **Why a BFF Pattern?**
+
 - ✅ Centralized security and authentication
 - ✅ Cleaner API contracts tailored for the frontend
 - ✅ Reduced frontend complexity (no direct multi-service orchestration)
@@ -46,6 +47,7 @@ The Gen AI BFF is a Go-based middleware service that sits between our React fron
 ```
 
 **Key Integration Points:**
+
 1. **Llama Stack** - LLM orchestration, RAG, vector stores, model inference
 2. **MaaS (Model as a Service)** - Hosted model inference, token management (via MaaS BFF inter-BFF)
 3. **Kubernetes** - CRD management (LlamaStackDistribution resources), ConfigMap-backed MCP servers
@@ -59,6 +61,7 @@ For inter-BFF client patterns, service discovery, and network policy, see [docs/
 ### Technology Stack
 
 **Core Technologies:**
+
 ```go
 // Go 1.26+ (Backend)
 ├── julienschmidt/httprouter      // High-performance HTTP routing
@@ -68,11 +71,13 @@ For inter-BFF client patterns, service discovery, and network policy, see [docs/
 ```
 
 **Key Dependencies:**
+
 - **OpenAI Go SDK**: We use the official SDK to communicate with Llama Stack's OpenAI-compatible API
 - **Controller-runtime**: For Kubernetes CRD operations
 - **Envtest**: For testing with a real Kubernetes API server
 
 **Build & Development Tools:**
+
 - **Go toolchain**: fmt, vet, test
 - **golangci-lint**: Static analysis and linting
 - **Delve**: Debugging support
@@ -83,6 +88,7 @@ For inter-BFF client patterns, service discovery, and network policy, see [docs/
 ### Key Design Patterns
 
 #### 1. **Factory Pattern** (Client Creation)
+
 ```go
 // LlamaStackClientFactory creates real or mock clients
 type LlamaStackClientFactory interface {
@@ -98,6 +104,7 @@ type LlamaStackClientFactory interface {
 ---
 
 #### 2. **Repository Pattern** (Business Logic Layer)
+
 ```go
 // Domain-specific repositories encapsulate business logic
 type ModelsRepository struct {
@@ -110,6 +117,7 @@ type VectorStoresRepository struct {
 ```
 
 **Structure:**
+
 ```
 Handler → Repository → Client → External Service
 (HTTP)    (Logic)      (API)     (LlamaStack/MaaS/K8s)
@@ -120,6 +128,7 @@ Handler → Repository → Client → External Service
 ---
 
 #### 3. **Interface-Based Design** (Abstraction)
+
 ```go
 // All clients implement this interface
 type LlamaStackClientInterface interface {
@@ -130,6 +139,7 @@ type LlamaStackClientInterface interface {
 ```
 
 **Why?** Enables:
+
 - Easy mocking in tests
 - Swapping implementations without changing consumers
 - Clear contracts between layers
@@ -137,17 +147,20 @@ type LlamaStackClientInterface interface {
 ---
 
 #### 4. **Middleware Chain Pattern**
+
 ```go
 // Request flow through middleware chain
 router → authMiddleware → corsMiddleware → loggingMiddleware → handler
 ```
 
 **Middleware Stack:**
+
 1. **CORS**: Cross-origin request handling
 2. **Authentication**: Token validation (OAuth/Bearer)
-3. **Logging**: Request/response logging with slog
-4. **Recovery**: Panic recovery and error handling
-5. **Telemetry**: Metrics and tracing (future)
+3. **Namespace access**: `RequireAccessToService` SAR gate
+4. **Logging**: Request/response logging with slog
+5. **Recovery**: Panic recovery and error handling
+6. **Telemetry**: Metrics and tracing (future)
 
 ---
 
@@ -183,6 +196,7 @@ bff/
 ```
 
 **Key Points:**
+
 - **Clean architecture**: Clear separation of concerns
 - **No circular dependencies**: Layered structure (handlers → repos → clients)
 - **Testable**: Each layer can be tested independently
@@ -195,6 +209,7 @@ bff/
 ### Getting Started with Go (For Non-Go Developers)
 
 **Go is Simple by Design:**
+
 - Strong typing with excellent tooling
 - Garbage collected (no manual memory management)
 - Built-in testing framework
@@ -202,6 +217,7 @@ bff/
 - Easy to read and learn
 
 **Key Go Concepts:**
+
 ```go
 // 1. Interfaces (similar to TypeScript interfaces)
 type Reader interface {
@@ -236,6 +252,7 @@ go doSomethingAsync()
 ### Coding Standards
 
 #### 1. **Code Formatting**
+
 ```bash
 # ALWAYS format before committing
 make fmt
@@ -248,6 +265,7 @@ make fmt
 ---
 
 #### 2. **Static Analysis**
+
 ```bash
 # Check for issues
 make lint
@@ -257,6 +275,7 @@ make lint-fix
 ```
 
 **Catches:**
+
 - Unused variables/imports
 - Potential bugs
 - Performance issues
@@ -267,6 +286,7 @@ make lint-fix
 #### 3. **Naming Conventions**
 
 **Files:**
+
 ```
 lsd_models_handler.go       # Llama Stack Distribution models handler
 maas_tokens_handler.go      # MaaS tokens handler
@@ -274,6 +294,7 @@ mcp_status_handler_test.go  # Test file (always ends with _test.go)
 ```
 
 **Functions/Methods:**
+
 ```go
 // Exported (public) - starts with uppercase
 func ListModels(ctx context.Context) ([]Model, error)
@@ -283,6 +304,7 @@ func transformModelResponse(raw RawModel) Model
 ```
 
 **Constants:**
+
 ```go
 const (
     APIVersion = "v1"
@@ -293,6 +315,7 @@ const (
 ---
 
 #### 4. **Error Handling**
+
 ```go
 // ✅ GOOD: Always handle errors
 result, err := someOperation()
@@ -306,6 +329,7 @@ result, _ := someOperation()  // Don't do this!
 ```
 
 **Error Wrapping:**
+
 ```go
 // Wrap errors to add context
 return fmt.Errorf("failed to create vector store: %w", err)
@@ -319,6 +343,7 @@ if errors.Is(err, ErrNotFound) {
 ---
 
 #### 5. **Logging**
+
 ```go
 // Use structured logging with slog
 logger.Info("processing request",
@@ -338,6 +363,7 @@ logger.Error("failed to process",
 #### 6. **Testing Conventions**
 
 **Test File Structure:**
+
 ```go
 package api_test  // Note: _test package
 
@@ -365,6 +391,7 @@ func TestListModels(t *testing.T) {
 ```
 
 **Table-Driven Tests:**
+
 ```go
 func TestValidateRequest(t *testing.T) {
     tests := []struct {
@@ -395,6 +422,7 @@ func TestValidateRequest(t *testing.T) {
 #### 1. **Creating a New Endpoint**
 
 **Step 1: Define the model (DTO)**
+
 ```go
 // internal/models/my_feature.go
 package models
@@ -414,6 +442,7 @@ type MyFeatureResponse struct {
 ---
 
 **Step 2: Create the repository (business logic)**
+
 ```go
 // internal/repositories/my_feature.go
 package repositories
@@ -441,6 +470,7 @@ func (r *MyFeatureRepository) CreateFeature(ctx context.Context, req models.MyFe
 ---
 
 **Step 3: Create the handler (HTTP layer)**
+
 ```go
 // internal/api/my_feature_handler.go
 package api
@@ -470,6 +500,7 @@ func (app *App) handleCreateFeature(w http.ResponseWriter, r *http.Request) {
 ---
 
 **Step 4: Register the route**
+
 ```go
 // internal/api/app.go
 func (app *App) Routes() http.Handler {
@@ -487,6 +518,7 @@ func (app *App) Routes() http.Handler {
 ---
 
 **Step 5: Write tests**
+
 ```go
 // internal/api/my_feature_handler_test.go
 package api_test
@@ -521,6 +553,7 @@ func TestCreateFeature(t *testing.T) {
 ---
 
 **Step 6: Update OpenAPI spec**
+
 ```yaml
 # openapi/src/gen-ai.yaml
 paths:
@@ -549,6 +582,7 @@ paths:
 #### 2. **Code Review Checklist**
 
 Before submitting a PR:
+
 - [ ] Code is formatted (`make fmt`)
 - [ ] Linter passes (`make lint`)
 - [ ] Tests pass (`make test`)
@@ -567,6 +601,7 @@ Before submitting a PR:
 ### Local Development Setup
 
 #### Prerequisites
+
 ```bash
 # 1. Install Go 1.26+
 brew install go
@@ -583,6 +618,7 @@ go version  # Should show go1.26 or higher
 ### Running the BFF Locally
 
 #### Option 1: Quick Start (Most Common)
+
 ```bash
 cd packages/gen-ai/bff
 
@@ -595,6 +631,7 @@ make dev-bff-mock
 ```
 
 **What this does:**
+
 - Formats code
 - Runs linter
 - Downloads envtest binaries (for K8s testing)
@@ -606,6 +643,7 @@ make dev-bff-mock
 ---
 
 #### Option 2: With Real Services
+
 ```bash
 cd packages/gen-ai/bff
 
@@ -631,13 +669,13 @@ make run \
 From `packages/gen-ai`, use the Makefile targets below. Each starts the frontend dev server and Gen-AI BFF; some also start a sibling BFF or cluster port-forwards:
 
 | Target | Cluster | Sibling BFF | Typical use |
-|--------|---------|-------------|-------------|
+| -------- | --------- | ------------- | ------------- |
 | `make dev-start` | Yes (port-forward) | — (MLflow if `MOCK_MLFLOW_CLIENT=true` in `.env.local`) | Day-to-day UI + BFF against real Llama Stack |
 | `make dev-start-maas` | Yes | MaaS BFF `:8081` | Models/tokens via MaaS inter-BFF |
 | `make dev-start-mock` | No | MLflow BFF `:4020` | Fully offline; full MLflow stack |
 | `make dev-start-mlflow` | Yes (port-forward) | MLflow BFF `:4020` | Full MLflow stack on a real cluster |
 
-For MaaS and MLflow BFF setup, seeding, and MCP registry env vars, see [bff/README.md → Inter-BFF Communication](../../bff/README.md#inter-bff-communication-gen-ai--maas).
+For MaaS and MLflow BFF setup, seeding, and MCP registry env vars, see the [MaaS](../../bff/README.md#inter-bff-communication-gen-ai--maas) and [MLflow](../../bff/README.md#inter-bff-communication-gen-ai--mlflow) sections.
 
 **When to use:** Full feature development, UI integration testing.
 
@@ -646,6 +684,7 @@ For MaaS and MLflow BFF setup, seeding, and MCP registry env vars, see [bff/READ
 ### Configuration Options
 
 **All environment variables / flags:**
+
 ```bash
 # Server Configuration
 PORT=8080                          # BFF server port
@@ -691,6 +730,7 @@ INSECURE_SKIP_VERIFY=false         # Skip TLS verification (dev only!)
 ### Testing Strategy
 
 #### 1. **Unit Tests** (Recommended: >80% coverage)
+
 ```bash
 # Run all tests
 make test
@@ -713,6 +753,7 @@ go tool cover -html=coverage.out
 > `go test ./...` — the Makefile sets required environment variables.
 
 **Llama Stack Test Server:**
+
 ```bash
 # Start Llama Stack locally in replay mode (for manual debugging)
 make llamastack-up
@@ -725,6 +766,7 @@ GEMINI_API_KEY=<key> make llamastack-record
 ```
 
 **What we test:**
+
 - Repository business logic
 - Request validation
 - Response transformations
@@ -749,12 +791,14 @@ Contract tests under `packages/gen-ai/contract-tests/` cover MLflow prompt inter
 #### 3. **Mock Testing**
 
 **Why Mock?**
+
 - Fast (no network calls)
 - Reliable (no external dependencies)
 - Comprehensive (test edge cases)
 - Offline development
 
 **Mock Tokens:**
+
 ```bash
 # Use this token with mock clients
 export TOKEN="FAKE_BEARER_TOKEN"
@@ -765,6 +809,7 @@ curl -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 ```
 
 **Mock Data Locations:**
+
 - `internal/integrations/llamastack/lsmocks/` - Llama Stack mocks
 - `testdata/llamastack/recordings/` - Pre-recorded Llama Stack API responses (replay mode)
 - `internal/integrations/maas/maasmocks/` - MaaS mocks
@@ -777,6 +822,7 @@ curl -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
 #### 4. **Manual API Testing**
 
 **Using curl:**
+
 ```bash
 # Get models
 curl -i -H "Authorization: Bearer $TOKEN" \
@@ -806,6 +852,7 @@ curl -i -H "Authorization: Bearer $TOKEN" \
 ```
 
 **Using Swagger UI:**
+
 ```bash
 # Start BFF
 make run
@@ -821,6 +868,7 @@ http://localhost:8080/gen-ai/swagger-ui/
 ### Debugging
 
 #### 1. **Basic Logging**
+
 ```bash
 # Run with debug logging
 make run LOG_LEVEL=debug
@@ -834,6 +882,7 @@ make run LOG_LEVEL=debug 2>&1 | grep -i error
 #### 2. **VSCode Debugging** (Recommended!)
 
 **Step 1: Add debug configuration**
+
 ```json
 // .vscode/launch.json
 {
@@ -855,23 +904,27 @@ make run LOG_LEVEL=debug 2>&1 | grep -i error
 ```
 
 **Step 2: Install Delve**
+
 ```bash
 go install github.com/go-delve/delve/cmd/dlv@latest
 ```
 
 **Step 3: Start debug session**
+
 ```bash
 cd packages/gen-ai
 make dev-start-debug
 ```
 
 **Step 4: Attach debugger**
+
 - Open VSCode
 - Go to "Run and Debug" (Cmd+Shift+D)
 - Select "Attach to Delve"
 - Press F5
 
 **Now you can:**
+
 - Set breakpoints
 - Step through code
 - Inspect variables
@@ -882,6 +935,7 @@ make dev-start-debug
 ## 📚 Additional Resources
 
 ### Essential Reading
+
 1. **Architecture Decision Records** (`docs/adr/`)
    - ADR-0002: System Architecture
    - ADR-0003: Core User Flows
@@ -893,22 +947,25 @@ make dev-start-debug
 
 3. **OpenAPI Documentation**
    - Spec: `packages/gen-ai/bff/openapi/src/gen-ai.yaml`
-   - Live UI: http://localhost:8080/gen-ai/swagger-ui/
+   - Live UI: <http://localhost:8080/gen-ai/swagger-ui/>
 
 ### Go Learning Resources
+
 - [Go Tour](https://go.dev/tour/) - Interactive tutorial
 - [Effective Go](https://go.dev/doc/effective_go) - Best practices
 - [Go by Example](https://gobyexample.com/) - Practical examples
 
 ### Project-Specific
-- Llama Stack: https://llama-stack.readthedocs.io/
-- OpenAI API: https://platform.openai.com/docs/api-reference
-- Kubernetes Client-Go: https://github.com/kubernetes/client-go
-- Controller Runtime: https://book.kubebuilder.io/
+
+- Llama Stack: <https://llama-stack.readthedocs.io/>
+- OpenAI API: <https://platform.openai.com/docs/api-reference>
+- Kubernetes Client-Go: <https://github.com/kubernetes/client-go>
+- Controller Runtime: <https://book.kubebuilder.io/>
 
 ---
 
 **Key Takeaways:**
+
 1. BFF is the bridge between frontend and AI services
 2. Mock clients make development easy and fast
 3. Follow the patterns in the codebase
@@ -920,4 +977,3 @@ make dev-start-debug
 *Last Updated: September 2026*  
 *Version: 1.0*  
 *Maintainer: Gen AI Team*
-

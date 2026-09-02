@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	kubernetes "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -13,13 +15,22 @@ type MCPStatusEnvelope = Envelope[*models.ConnectionStatus, None]
 func (app *App) MCPStatusHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
-	identity, k8sClient, err := app.setupMCPEndpointWithTokenValidation(ctx, r)
+	namespace, _, decodedURL, serverName, err := app.parseMCPToolsStatusParams(r)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	namespace, _, decodedURL, serverName, err := app.parseMCPToolsStatusParams(r)
+	var (
+		identity  *integrations.RequestIdentity
+		k8sClient kubernetes.KubernetesClientInterface
+	)
+
+	if serverName != "" {
+		identity, err = app.setupMCPIdentityWithTokenValidation(ctx, r)
+	} else {
+		identity, k8sClient, err = app.setupMCPEndpointWithTokenValidation(ctx, r)
+	}
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return

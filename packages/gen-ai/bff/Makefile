@@ -170,7 +170,7 @@ mlflow-clean: mlflow-down ## Remove local MLflow data.
 
 .PHONY: mlflow-seed
 mlflow-seed: uv ## Seed local MLflow prompts + MCP registry (default + PLAYGROUND_NAMESPACE).
-	@curl -sf "http://127.0.0.1:$(MLFLOW_PORT)/health" >/dev/null 2>&1 || { \
+	@curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:$(MLFLOW_PORT)/health" >/dev/null 2>&1 || { \
 		echo "ERROR: MLflow is not running on :$(MLFLOW_PORT). Start it first (make mlflow-up)."; \
 		exit 1; \
 	}

@@ -21,7 +21,7 @@ metadata:
   namespace: mcp-servers
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "endpoints", "configmaps", "secrets"]
+    resources: ["pods", "services", "endpoints", "configmaps"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets", "statefulsets"]
@@ -72,7 +72,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: server
-          image: quay.io/containers/kubernetes_mcp_server:latest
+          image: quay.io/containers/kubernetes_mcp_server:v0.0.65
           imagePullPolicy: IfNotPresent
           args:
             - "--config"

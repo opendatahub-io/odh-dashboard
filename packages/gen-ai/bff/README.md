@@ -183,7 +183,7 @@ curl -i -H "Authorization: Bearer $TOKEN" \
      "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_name=$SERVER_NAME"
 ```
 
-> `server_name` takes priority over `server_url` when both are provided. Encode the `/` in the name: `com.example/kubernetes` → `com.example%2Fkubernetes`.
+> `server_name` takes priority over `server_url` when both are provided. Encode the `/` in the name: `com.example/kubernetes` → `com.example%2Fkubernetes`. Registry `server_name` requests resolve the endpoint via MLflow BFF only — no cluster connectivity required.
 
 **Optional: With MCP Server Authentication:**
 
@@ -683,7 +683,7 @@ make deploy-k8s-mcp
 # Output:
 #   Add to .env.local:
 #   KUBERNETES_MCP_SERVER_URL=https://kubernetes-mcp-server-mcp-servers.apps.<cluster>/mcp
-#   INSECURE_SKIP_VERIFY=true
+#   # For HTTPS Routes, configure a trusted cluster or Route CA (e.g. BUNDLE_PATHS)
 ```
 
 Copy the printed values to `packages/gen-ai/.env.local`. On the next BFF restart with `MOCK_MLFLOW_CLIENT=true`, the server is registered in the MLflow MCP registry database and exposed via the Gen-AI list API (`/aaa/mcps`).
@@ -1541,12 +1541,12 @@ When the BFF starts with `MOCK_MLFLOW_CLIENT=true`, `SetupMLflow` automatically:
 |------|-----------|--------|----------------|
 | Prompt templates (4 samples) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
 | Draft MCP server (`com.brave.example/brave`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded (filtered from list — no endpoint) |
-| Active GitHub MCP server (`io.github.example/github`) | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
+| Mock GitHub MCP server (`io.github.example/github`) — fake endpoint, example only | `default` + `PLAYGROUND_NAMESPACE` | hardcoded in `mlflow_seed.go` | always seeded |
 | Kubernetes MCP server (`com.example/kubernetes`) | `default` + `PLAYGROUND_NAMESPACE` | `KUBERNETES_MCP_SERVER_URL` env var | skipped |
 
-Seeding is idempotent — prompts and MCP servers that already exist are skipped on restart.
+Seeding is idempotent — partial states from interrupted seeding are healed on restart.
 
-> **Failsafe:** If `KUBERNETES_MCP_SERVER_URL` is not set, seeding still succeeds with the Brave draft and GitHub active servers. You can add the env var later and restart the BFF to pick it up — no data is lost.
+> **Failsafe:** If `KUBERNETES_MCP_SERVER_URL` is not set, seeding still succeeds with the Brave draft and mock GitHub servers. You can add the env var later and restart the BFF to pick it up — no data is lost.
 
 ### Optional: Deploy Kubernetes MCP Server to Cluster
 
@@ -1559,10 +1559,10 @@ make deploy-k8s-mcp
 
 This deploys `bff/testdata/kubernetes-mcp-server.yaml` to the `mcp-servers` namespace and prints:
 
-```
+```text
 Add to .env.local:
 KUBERNETES_MCP_SERVER_URL=https://kubernetes-mcp-server-mcp-servers.apps.<cluster>/mcp
-INSECURE_SKIP_VERIFY=true
+# For HTTPS Routes, configure a trusted cluster or Route CA (e.g. BUNDLE_PATHS)
 ```
 
 Copy those two lines to `.env.local`. On the next BFF restart with `MOCK_MLFLOW_CLIENT=true`, the server is registered in the MLflow MCP registry and exposed via the Gen-AI `/aaa/mcps` API.

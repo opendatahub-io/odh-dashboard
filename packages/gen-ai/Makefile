@@ -18,11 +18,11 @@ export $(shell sed 's/=.*//' ${ENV_FILE})
 endif
 
 MLFLOW_BFF_MOCK_PORT ?= 4020
-MLFLOW_MOCK_BFF_ARGS := MOCK_MLFLOW_CLIENT=true MLFLOW_URL=http://localhost:5001 BFF_MLFLOW_DEV_URL=http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1
+MLFLOW_MOCK_BFF_ARGS := MOCK_MLFLOW_CLIENT=true MLFLOW_URL=http://localhost:5001 BFF_MLFLOW_DEV_URL="http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1"
 ifeq ($(MOCK_MLFLOW_CLIENT),true)
 DEV_BFF_MLFLOW_ARGS := $(MLFLOW_MOCK_BFF_ARGS)
 else
-DEV_BFF_MLFLOW_ARGS := MLFLOW_URL=$(MLFLOW_URL)
+DEV_BFF_MLFLOW_ARGS := MLFLOW_URL="$(MLFLOW_URL)"
 endif
 
 .PHONY: help dev-install-dependencies dev-frontend dev-bff dev-start dev-start-no-portforward dev-portforward dev-start-maas dev-maas-bff dev-bff-maas dev-bff-mlflow dev-start-mlflow deploy-k8s-mcp clean clean-all
@@ -83,7 +83,7 @@ export GOTMPDIR ?= /tmp/go-tmp
 
 .PHONY: dev-mlflow-bff-mock
 dev-mlflow-bff-mock: ## Run MLflow BFF in mock mode pointing at local MLflow server (started by gen-ai BFF)
-	@mkdir -p $(GOTMPDIR)
+	@mkdir -p "$(GOTMPDIR)"
 	cd ../mlflow/bff && make run PORT="$(MLFLOW_BFF_MOCK_PORT)" MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-start-mock
@@ -216,7 +216,7 @@ deploy-k8s-mcp: ## Deploy Kubernetes MCP server to mcp-servers namespace
 	echo ""; \
 	echo "Add to .env.local:"; \
 	echo "KUBERNETES_MCP_SERVER_URL=https://$$route_host/mcp"; \
-	echo "INSECURE_SKIP_VERIFY=true"
+	echo "# For HTTPS Routes, configure a trusted cluster or Route CA (e.g. BUNDLE_PATHS)"
 
 clean: ## Clean build artifacts and node_modules
 	@echo "Cleaning root dist..."
