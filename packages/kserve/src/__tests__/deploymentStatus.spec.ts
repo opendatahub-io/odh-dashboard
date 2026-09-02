@@ -1,7 +1,7 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { getKServeDeploymentConditions, getKServeDeploymentStatus } from '../deploymentStatus';
 
 describe('getKServeDeploymentConditions', () => {

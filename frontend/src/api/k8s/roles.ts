@@ -1,14 +1,12 @@
 import {
-  k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sListResourceItems,
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { RoleModel } from '@odh-dashboard/k8s-core/api/models';
 import { K8sAPIOptions, RoleKind } from '#~/k8sTypes';
-import { RoleModel } from '#~/api/models';
 
 export const generateRoleInferenceService = (
   roleName: string,
@@ -36,15 +34,6 @@ export const generateRoleInferenceService = (
   };
   return role;
 };
-
-export const getRole = (namespace: string, roleName: string): Promise<RoleKind> =>
-  k8sGetResource({
-    model: RoleModel,
-    queryOptions: { name: roleName, ns: namespace },
-  });
-
-export const createRole = (data: RoleKind, opts?: K8sAPIOptions): Promise<RoleKind> =>
-  k8sCreateResource(applyK8sAPIOptions({ model: RoleModel, resource: data }, opts));
 
 export const updateRole = (data: RoleKind, opts?: K8sAPIOptions): Promise<RoleKind> =>
   k8sUpdateResource(applyK8sAPIOptions({ model: RoleModel, resource: data }, opts));

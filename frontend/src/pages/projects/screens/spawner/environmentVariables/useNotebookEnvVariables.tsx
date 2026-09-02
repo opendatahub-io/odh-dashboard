@@ -1,7 +1,8 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetchState, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { getConfigMap, getSecret } from '#~/api';
+import { getConfigMap } from '@odh-dashboard/k8s-core/api/configMaps';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { EnvVarResourceType } from '#~/types';
 import {

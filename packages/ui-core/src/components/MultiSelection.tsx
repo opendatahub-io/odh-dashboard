@@ -24,10 +24,7 @@ import {
 } from '@patternfly/react-core';
 
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
-import {
-  resolveSelectPopperAppendTo,
-  useModalOverflowUnlock,
-} from '#~/utilities/useModalOverflowUnlock';
+import { resolveSelectPopperAppendTo, useModalOverflowUnlock } from '../utilities';
 
 export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;

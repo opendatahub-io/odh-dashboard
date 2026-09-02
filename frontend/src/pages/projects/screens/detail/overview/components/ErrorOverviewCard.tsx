@@ -2,7 +2,7 @@ import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- wrapper re-export that injects host-specific error handling
 import ErrorOverviewCardBase from '@odh-dashboard/ui-core/components/detail/ErrorOverviewCard';
 import type { OverviewCardProps } from '@odh-dashboard/ui-core/components/detail/OverviewCard';
-import { getGenericErrorCode } from '#~/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
 type ErrorOverviewCardProps = {
   error: Error;

@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { getPendingWorkloads } from '#~/api/k8s/pendingWorkloads';
 
 const PENDING_STATUSES: KueueWorkloadStatus[] = [

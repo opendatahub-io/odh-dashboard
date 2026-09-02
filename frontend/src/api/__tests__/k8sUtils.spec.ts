@@ -1,10 +1,7 @@
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
-import {
-  addOwnerReference,
-  createPatchesFromDiff,
-  createNonDestructivePatches,
-} from '#~/api/k8sUtils';
+import { addOwnerReference } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import { createPatchesFromDiff, createNonDestructivePatches } from '#~/api/k8sUtils';
 
 const resource = mockSecretK8sResource({});
 
