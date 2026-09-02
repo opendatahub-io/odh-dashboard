@@ -260,6 +260,23 @@ export function useStartEvaluationRunForm({
     }
   }, [experimentsLoaded, experiments, namespace, experimentAutoSelected, initialValues]);
 
+  // When the user switches back from "new" to "existing" mode, selectedExperiment
+  // may be undefined (cleared by the radio onChange). Re-initialize it from the
+  // available experiments so the form isn't stuck without a selection.
+  React.useEffect(() => {
+    if (
+      !experimentAutoSelected ||
+      experimentMode !== 'existing' ||
+      selectedExperiment !== undefined ||
+      !experimentsLoaded ||
+      experiments.length === 0
+    ) {
+      return;
+    }
+    const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
+    setSelectedExperiment(defaultExp ?? experiments[0]);
+  }, [experimentAutoSelected, experimentMode, selectedExperiment, experimentsLoaded, experiments]);
+
   // ── Additional args ─────────────────────────────────────────────────
 
   const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(
