@@ -33,7 +33,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	connections, err := app.repositories.Connection.GetConnections(client, ctx, namespace, identity)
+	connections, err := app.repositories.Connection.GetConnections(client, ctx, namespace)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

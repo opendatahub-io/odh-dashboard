@@ -184,33 +184,6 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	return allowed, nil
 }
 
-func (kc *InternalKubernetesClient) GetConnections(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	sar := &authv1.SubjectAccessReview{
-		Spec: authv1.SubjectAccessReviewSpec{
-			User:   identity.UserID,
-			Groups: identity.Groups,
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
-				Resource:  "secrets",
-				Namespace: namespace,
-			},
-		},
-	}
-
-	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to check secret access in namespace %s: %w", namespace, err)
-	}
-	if !response.Status.Allowed {
-		return nil, fmt.Errorf("user %s is not authorized to list secrets in namespace %s", identity.UserID, namespace)
-	}
-
-	return kc.SharedClientLogic.GetConnections(ctx, namespace, identity)
-}
-
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

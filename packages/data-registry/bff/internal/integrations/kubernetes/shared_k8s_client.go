@@ -23,7 +23,7 @@ func (kc *SharedClientLogic) BearerToken() (string, error) { return kc.Token.Raw
 
 func (kc *SharedClientLogic) GetGroups(ctx context.Context) ([]string, error) { return []string{}, nil }
 
-func (kc *SharedClientLogic) GetConnections(ctx context.Context, namespace string, _ *RequestIdentity) ([]corev1.Secret, error) {
+func (kc *SharedClientLogic) GetConnections(ctx context.Context, namespace string) ([]corev1.Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
