@@ -12,7 +12,10 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 )
 
-const maasConsumerPortalName = "maas-consumer-portal"
+const (
+	maasConsumerPortalName         = "maas-consumer-portal"
+	maasConsumerPortalCoreBFFImage = "registry.example.com/odh-core-bff@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+)
 
 func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	// Render a copy of the checked-in bundle: reconciliation writes params.env at
@@ -22,7 +25,7 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	require.NoError(t, os.CopyFS(dir, os.DirFS(source)))
 
 	params := readExistingParams(filepath.Join(dir, "params.env"))
-	params["core-bff-image"] = "registry.example.com/odh-core-bff@sha256:portal"
+	params["core-bff-image"] = maasConsumerPortalCoreBFFImage
 	params["dashboard-namespace"] = "portal-test"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-url"] = "https://portal.apps.example.com/"
@@ -74,7 +77,7 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	require.True(t, found)
 	require.Len(t, containers, 1)
 	container := containers[0].(map[string]interface{})
-	assert.Equal(t, "registry.example.com/odh-core-bff@sha256:portal", container["image"])
+	assert.Equal(t, maasConsumerPortalCoreBFFImage, container["image"])
 	assert.Contains(t, container["args"], "--deployment-mode=standalone")
 	assert.Contains(t, container["args"], "--platform-type=OpenShift")
 	assert.Contains(t, container["args"], "--namespace=portal-test")
@@ -84,6 +87,8 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	assert.Equal(t, true, containerSecurityContext["runAsNonRoot"])
 	assert.Equal(t, true, containerSecurityContext["readOnlyRootFilesystem"])
 	assert.Equal(t, false, containerSecurityContext["allowPrivilegeEscalation"])
+	capabilities := containerSecurityContext["capabilities"].(map[string]interface{})
+	assert.Contains(t, capabilities["drop"], "ALL")
 
 	volumeMounts := container["volumeMounts"].([]interface{})
 	assert.Equal(t, "/etc/tls/private", namedManifestObject(t, volumeMounts, "portal-tls")["mountPath"])
@@ -137,14 +142,31 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	rules, found, err := unstructured.NestedSlice(role.Object, "rules")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Len(t, rules, 3, "portal RBAC is limited to SARs, DSC discovery, and ingress discovery")
+	require.Len(t, rules, 3, "portal RBAC is limited to SARs, DSC discovery, and ingress discovery")
+	assert.Equal(t, []interface{}{"authorization.k8s.io"}, rules[0].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"subjectaccessreviews"}, rules[0].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{"create"}, rules[0].(map[string]interface{})["verbs"])
+	assert.Equal(t, []interface{}{"datasciencecluster.opendatahub.io"}, rules[1].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"datascienceclusters"}, rules[1].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{"get", "list"}, rules[1].(map[string]interface{})["verbs"])
+	assert.Equal(t, []interface{}{"config.openshift.io"}, rules[2].(map[string]interface{})["apiGroups"])
+	assert.Equal(t, []interface{}{"ingresses"}, rules[2].(map[string]interface{})["resources"])
+	assert.Equal(t, []interface{}{"get"}, rules[2].(map[string]interface{})["verbs"])
 
 	networkPolicy := resources["NetworkPolicy/"+maasConsumerPortalName]
 	require.NotNil(t, networkPolicy)
 	egress, found, err := unstructured.NestedSlice(networkPolicy.Object, "spec", "egress")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Len(t, egress, 4, "portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
+	require.Len(t, egress, 4, "portal egress is limited to DNS, Kubernetes API, MaaS, and GenAI")
+	assert.Equal(t, []interface{}{map[string]interface{}{"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "openshift-dns"}}}}, egress[0].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "UDP", "port": int64(5353)}, map[string]interface{}{"protocol": "TCP", "port": int64(5353)}}, egress[0].(map[string]interface{})["ports"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"ipBlock": map[string]interface{}{"cidr": "0.0.0.0/0"}}}, egress[1].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(6443)}}, egress[1].(map[string]interface{})["ports"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "maas-ui"}}}}, egress[2].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8243)}}, egress[2].(map[string]interface{})["ports"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}}}}, egress[3].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
 }
 
 func namedManifestObject(t *testing.T, objects []interface{}, name string) map[string]interface{} {
