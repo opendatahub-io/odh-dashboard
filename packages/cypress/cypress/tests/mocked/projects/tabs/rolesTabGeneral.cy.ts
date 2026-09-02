@@ -317,7 +317,6 @@ describe('Select role template (header button)', () => {
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findSelectTemplateModal().should('exist');
 
-    cy.contains('Workbench management templates').should('exist');
     cy.contains('Workbench maintainer').should('exist');
     cy.contains('Workbench reader').should('exist');
     cy.contains('Workbench updater').should('exist');
@@ -400,7 +399,7 @@ describe('Add rules from template (toolbar button)', () => {
     projectRoles.findPermissionRulesTable().should('exist');
   });
 
-  it('should open template modal directly even when rules already exist', () => {
+  it('should hide the toolbar import template button once rules already exist', () => {
     projectRoles.visitCreateRole(NAMESPACE);
 
     projectRoles.findAddRuleButton().click();
@@ -416,9 +415,8 @@ describe('Add rules from template (toolbar button)', () => {
     projectRoles.findVerbCheckbox('get').click();
     projectRoles.findRuleSaveButton().click();
 
-    projectRoles.findImportTemplateButton().click();
-    projectRoles.findReplaceContentModal().should('not.exist');
-    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findImportTemplateButton().should('not.exist');
   });
 
   it('should append rules without changing name/description (append semantics)', () => {
@@ -434,9 +432,6 @@ describe('Add rules from template (toolbar button)', () => {
     projectRoles.findPermissionRulesTable().should('exist');
     projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
 
-    projectRoles.findImportTemplateButton().click();
-    projectRoles.findSelectTemplateButton('workbench-reader').click();
-
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 10);
+    projectRoles.findImportTemplateButton().should('not.exist');
   });
 });

@@ -11,6 +11,7 @@ import {
   externalModelProviderUrlModal,
   externalModelsPage,
   deleteExternalModelModal,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -119,11 +120,6 @@ describe('External Models Page', () => {
         .should('contain.text', 'External GPT-4o model routed through OpenAI provider.');
       gptRow.findProviderLabel('openai-prod').should('contain.text', 'OpenAI Production');
       gptRow.findPhaseLabel().should('contain.text', 'Ready');
-      gptRow.findPhaseLabel().click();
-      gptRow
-        .findPhasePopover()
-        .should('contain.text', 'Ready')
-        .and('contain.text', 'GPT-4o External');
 
       gptRow.findExpandButton().click();
       gptRow.findExpandedProviderName('openai-prod').should('contain.text', 'OpenAI Production');
@@ -175,6 +171,15 @@ describe('External Models Page', () => {
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
       awaitingRow.findPhaseLabel().should('contain.text', 'Pending');
+      awaitingRow.findPhaseLabel().click();
+      phaseModal.find().should('exist');
+      phaseModal.findAlert().should('exist');
+      phaseModal.findAlertBody().should('exist');
+      phaseModal.findApiDetailsButton().should('exist').click();
+      phaseModal.findAlertDetailsCodeBlock().should('exist');
+      phaseModal.findCloseButton().click();
+      phaseModal.shouldBeOpen(false);
+
       awaitingRow.findGovernanceWarning().should('exist').click();
       awaitingRow
         .findGovernanceWarningPopover()
