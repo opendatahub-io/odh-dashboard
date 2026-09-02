@@ -8,12 +8,11 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
 import { checkProjectRoleBinding } from '../../../utils/oc_commands/roleBindings';
-import { addUserToProject, waitForUserProjectAccess } from '../../../utils/oc_commands/project';
-import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
+  let contributorBindingVerified = false;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -26,10 +25,25 @@ describe('Verify that users can provide contributor project permissions to non-a
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
         cy.log(`Loaded project name: ${projectName}`);
-        return createCleanProject(projectName);
+        // Keep retry setup clean until the assignment test has fully verified the binding.
+        if (!contributorBindingVerified) {
+          createCleanProject(projectName);
+          return;
+        }
+        checkProjectRoleBinding(
+          projectName,
+          LDAP_CONTRIBUTOR_USER.USERNAME,
+          testData.contributorK8sRoleName,
+        ).then((hasBinding) => {
+          if (hasBinding) {
+            cy.log('Contributor binding already present, keeping the existing project');
+            return;
+          }
+          createCleanProject(projectName);
+        });
       })
       .then(() => {
-        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+        cy.log(`Project ${projectName} is ready for the test`);
       }),
   );
   after(() => {
@@ -78,24 +92,17 @@ describe('Verify that users can provide contributor project permissions to non-a
         projectName,
         LDAP_CONTRIBUTOR_USER.USERNAME,
         testData.contributorK8sRoleName,
-      ).should('be.true');
+      )
+        .should('be.true')
+        .then(() => {
+          contributorBindingVerified = true;
+        });
     },
   );
   it(
     'Verify that user can access the created project as a Contributor',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
     () => {
-      cy.step('Ensure contributor access exists for this independently retryable test');
-      ensureAdminOcSession();
-      addUserToProject(
-        projectName,
-        LDAP_CONTRIBUTOR_USER.USERNAME,
-        testData.contributorK8sRoleName,
-      );
-
-      cy.step('Wait for contributor project access to propagate');
-      waitForUserProjectAccess(projectName, LDAP_CONTRIBUTOR_USER.USERNAME);
-
       cy.step('Log into the application as non-admin');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
