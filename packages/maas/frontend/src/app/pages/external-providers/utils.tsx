@@ -13,33 +13,22 @@ export const getExternalProviderResource = (provider: ExternalProvider): K8sReso
   },
 });
 
-const getFilterKeyword = (
-  filterData: ExternalProvidersFilterDataType,
-  key: ExternalProvidersFilterOptions,
-): string | undefined => {
-  const value = filterData[key];
-  if (!value) {
-    return undefined;
-  }
-  const trimmed = value.trim().toLowerCase();
-  return trimmed || undefined;
-};
-
 export const hasActiveExternalProvidersFilters = (
   filterData: ExternalProvidersFilterDataType,
-): boolean => Object.values(filterData).some((value) => value?.trim());
+): boolean =>
+  !!filterData[ExternalProvidersFilterOptions.name].trim() ||
+  filterData[ExternalProvidersFilterOptions.providerType].length > 0 ||
+  filterData[ExternalProvidersFilterOptions.authentication].length > 0 ||
+  filterData[ExternalProvidersFilterOptions.status].length > 0;
 
 export const filterExternalProviders = (
   providers: ExternalProvider[],
   filterData: ExternalProvidersFilterDataType,
 ): ExternalProvider[] => {
-  const nameKeyword = getFilterKeyword(filterData, ExternalProvidersFilterOptions.name);
-  const providerTypeKeyword = getFilterKeyword(
-    filterData,
-    ExternalProvidersFilterOptions.providerType,
-  );
-  const authKeyword = getFilterKeyword(filterData, ExternalProvidersFilterOptions.authentication);
-  const statusKeyword = getFilterKeyword(filterData, ExternalProvidersFilterOptions.status);
+  const nameKeyword = filterData[ExternalProvidersFilterOptions.name].trim().toLowerCase();
+  const providerTypes = filterData[ExternalProvidersFilterOptions.providerType];
+  const authentications = filterData[ExternalProvidersFilterOptions.authentication];
+  const statuses = filterData[ExternalProvidersFilterOptions.status];
 
   return providers.filter((provider) => {
     if (nameKeyword) {
@@ -52,22 +41,38 @@ export const filterExternalProviders = (
       }
     }
 
-    if (providerTypeKeyword && !provider.provider.toLowerCase().includes(providerTypeKeyword)) {
-      return false;
-    }
-
-    if (authKeyword) {
-      const authLabel = mapAuthMechanismToHumanReadable(provider.authMechanism).toLowerCase();
-      const authValue = provider.authMechanism.toLowerCase();
-      if (!authLabel.includes(authKeyword) && !authValue.includes(authKeyword)) {
+    if (providerTypes.length > 0) {
+      const providerValue = provider.provider.toLowerCase();
+      const matchesProviderType = providerTypes.some(
+        (providerType) =>
+          providerValue === providerType || providerValue.includes(providerType.toLowerCase()),
+      );
+      if (!matchesProviderType) {
         return false;
       }
     }
 
-    if (statusKeyword) {
+    if (authentications.length > 0) {
+      const authLabel = mapAuthMechanismToHumanReadable(provider.authMechanism).toLowerCase();
+      const authValue = provider.authMechanism.toLowerCase();
+      const matchesAuth = authentications.some(
+        (authentication) =>
+          authLabel.includes(authentication.toLowerCase()) ||
+          authValue.includes(authentication.toLowerCase()),
+      );
+      if (!matchesAuth) {
+        return false;
+      }
+    }
+
+    if (statuses.length > 0) {
       const normalizedPhase = normalizePhase(provider.phase).toLowerCase();
       const rawPhase = (provider.phase ?? '').toLowerCase();
-      if (!normalizedPhase.includes(statusKeyword) && !rawPhase.includes(statusKeyword)) {
+      const matchesStatus = statuses.some(
+        (status) =>
+          normalizedPhase.includes(status.toLowerCase()) || rawPhase.includes(status.toLowerCase()),
+      );
+      if (!matchesStatus) {
         return false;
       }
     }

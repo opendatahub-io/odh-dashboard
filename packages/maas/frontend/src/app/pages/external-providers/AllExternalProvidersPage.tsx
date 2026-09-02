@@ -10,6 +10,8 @@ import { ExternalProvider } from '~/app/types/external-models';
 import {
   externalProvidersManagementPath,
   ExternalProvidersFilterDataType,
+  ExternalProvidersFilterOptions,
+  ExternalProvidersMultiSelectFilterKey,
   initialExternalProvidersFilterData,
 } from './const';
 import EmptyExternalProvidersPage from './EmptyExternalProvidersPage';
@@ -35,9 +37,29 @@ const AllExternalProvidersPage: React.FC = () => {
     initialExternalProvidersFilterData,
   );
 
-  const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) =>
-      setFilterData((prev) => ({ ...prev, [key]: value })),
+  const onNameChange = React.useCallback(
+    (value: string) =>
+      setFilterData((prev) => ({ ...prev, [ExternalProvidersFilterOptions.name]: value })),
+    [],
+  );
+
+  const onMultiSelectToggle = React.useCallback(
+    (key: ExternalProvidersMultiSelectFilterKey, value: string) =>
+      setFilterData((prev) => ({
+        ...prev,
+        [key]: prev[key].includes(value)
+          ? prev[key].filter((item) => item !== value)
+          : [...prev[key], value],
+      })),
+    [],
+  );
+
+  const onMultiSelectClear = React.useCallback(
+    (key: ExternalProvidersMultiSelectFilterKey, value: string) =>
+      setFilterData((prev) => ({
+        ...prev,
+        [key]: prev[key].filter((item) => item !== value),
+      })),
     [],
   );
 
@@ -121,7 +143,9 @@ const AllExternalProvidersPage: React.FC = () => {
                     <ExternalProvidersToolBar
                       namespace={resolvedNamespace}
                       filterData={filterData}
-                      onFilterUpdate={onFilterUpdate}
+                      onNameChange={onNameChange}
+                      onMultiSelectToggle={onMultiSelectToggle}
+                      onMultiSelectClear={onMultiSelectClear}
                     />
                   }
                   emptyTableView={hasActiveFilters ? undefined : <></>}

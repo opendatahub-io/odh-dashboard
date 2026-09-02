@@ -204,7 +204,7 @@ describe('External Providers Page', () => {
       // Filter by auth mechanism
       externalProvidersPage.findFilterDropdownButton().click();
       externalProvidersPage.findFilterDropdownItem('authentication').click();
-      externalProvidersPage.findFilterInput().type('Signature Version 4');
+      externalProvidersPage.selectAuthenticationFilter('sigv4');
       externalProvidersPage.findRows().should('have.length', 2);
       externalProvidersPage.findRows().should('contain.text', 'Pending Anthropic Development');
       externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
@@ -213,7 +213,7 @@ describe('External Providers Page', () => {
       // Filter by phase
       externalProvidersPage.findFilterDropdownButton().click();
       externalProvidersPage.findFilterDropdownItem('status').click();
-      externalProvidersPage.findFilterInput().type('Ready');
+      externalProvidersPage.selectStatusFilter('ready');
       externalProvidersPage.findRows().should('have.length', 2);
       externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
       externalProvidersPage.findRows().should('contain.text', 'Anthropic Provider');
@@ -222,7 +222,7 @@ describe('External Providers Page', () => {
       // Filter by provider type
       externalProvidersPage.findFilterDropdownButton().click();
       externalProvidersPage.findFilterDropdownItem('providerType').click();
-      externalProvidersPage.findFilterInput().type('aws-bedrock');
+      externalProvidersPage.selectProviderTypeFilter('aws-bedrock');
       externalProvidersPage.findRows().should('have.length', 2);
       externalProvidersPage.findRows().should('contain.text', 'AWS Bedrock US East');
       externalProvidersPage.findRows().should('contain.text', 'Invalid AWS Bedrock US West');

@@ -2038,6 +2038,36 @@ class ExternalProvidersPage {
     return cy.findByTestId(`external-providers-filter-input`);
   }
 
+  openFilterSelect(testId: string): void {
+    cy.findByTestId(`${testId}-toggle`).click();
+  }
+
+  selectFilterOption(testId: string, value: string): void {
+    cy.findByTestId(`${testId}-option-${value}`).click();
+  }
+
+  selectProviderTypeFilter(value: string): void {
+    this.openFilterSelect('external-providers-provider-type-filter');
+    this.selectFilterOption('external-providers-provider-type-filter', value);
+  }
+
+  selectAuthenticationFilter(value: string): void {
+    this.openFilterSelect('external-providers-authentication-filter');
+    this.selectFilterOption('external-providers-authentication-filter', value);
+  }
+
+  selectStatusFilter(value: string): void {
+    this.openFilterSelect('external-providers-status-filter');
+    this.selectFilterOption('external-providers-status-filter', value);
+  }
+
+  selectMultipleStatusFilters(values: string[]): void {
+    this.openFilterSelect('external-providers-status-filter');
+    values.forEach((value) => {
+      this.selectFilterOption('external-providers-status-filter', value);
+    });
+  }
+
   findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('filter-toolbar-dropdown');
   }
