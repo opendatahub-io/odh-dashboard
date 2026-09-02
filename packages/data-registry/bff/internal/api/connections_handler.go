@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/opendatahub-io/data-registry/bff/internal/constants"
+	"github.com/opendatahub-io/data-registry/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/data-registry/bff/internal/models"
 
 	"github.com/julienschmidt/httprouter"
@@ -19,6 +21,11 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	ctx := r.Context()
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -26,7 +33,7 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	connections, err := app.repositories.Connection.GetConnections(client, ctx, namespace)
+	connections, err := app.repositories.Connection.GetConnections(client, ctx, namespace, identity)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

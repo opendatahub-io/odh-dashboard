@@ -14,8 +14,8 @@ func NewConnectionRepository() *ConnectionRepository {
 	return &ConnectionRepository{}
 }
 
-func (r *ConnectionRepository) GetConnections(client k8s.KubernetesClientInterface, ctx context.Context, namespace string) ([]models.ConnectionModel, error) {
-	secrets, err := client.GetConnections(ctx, namespace)
+func (r *ConnectionRepository) GetConnections(client k8s.KubernetesClientInterface, ctx context.Context, namespace string, identity *k8s.RequestIdentity) ([]models.ConnectionModel, error) {
+	secrets, err := client.GetConnections(ctx, namespace, identity)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching connections: %w", err)
 	}

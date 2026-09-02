@@ -158,35 +158,6 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	return true, nil
 }
 
-func (kc *TokenKubernetesClient) GetConnections(ctx context.Context, namespace string) ([]corev1.Secret, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "opendatahub.io/dashboard=true",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
-	}
-
-	var connections []corev1.Secret
-	for _, secret := range secretList.Items {
-		annotations := secret.Annotations
-		if annotations == nil {
-			continue
-		}
-		if _, ok := annotations["opendatahub.io/connection-type"]; ok {
-			connections = append(connections, secret)
-			continue
-		}
-		if _, ok := annotations["opendatahub.io/connection-type-ref"]; ok {
-			connections = append(connections, secret)
-		}
-	}
-
-	return connections, nil
-}
-
 // RequestIdentity is unused because the token already represents the user identity.
 // This endpoint is used only on dev mode that is why is safe to ignore permissions errors
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {

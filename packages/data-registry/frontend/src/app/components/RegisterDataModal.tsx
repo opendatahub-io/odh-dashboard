@@ -140,7 +140,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onCreated,
   onManageCollections,
 }) => {
-  const [connections, connectionsLoaded] = useConnections(project);
+  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -215,7 +215,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               collections={collections}
               onManageCollections={onManageCollections}
             />
-            <DataLocationSection connections={connections} connectionsLoaded={connectionsLoaded} />
+            <DataLocationSection
+              connections={connections}
+              connectionsLoaded={connectionsLoaded}
+              connectionsError={connectionsError}
+            />
             <PropertiesSection />
             <CustomPropertiesSection />
             {assetType === 'structured' ? <SchemaSection /> : null}

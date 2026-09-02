@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   FormGroup,
   FormSection,
   TextInput,
@@ -18,11 +19,13 @@ import { ConnectionModel } from '~/app/types';
 type DataLocationSectionProps = {
   connections: ConnectionModel[];
   connectionsLoaded: boolean;
+  connectionsError?: Error;
 };
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = ({
   connections,
   connectionsLoaded,
+  connectionsError,
 }) => {
   const { control } = useFormContext<RegisterDataFormData>();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
@@ -40,6 +43,17 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = ({
       <Content component="p">
         Specify where the data is stored by selecting a connection or providing path details.
       </Content>
+
+      {connectionsError ? (
+        <Alert
+          variant="warning"
+          isInline
+          title="Unable to load connections"
+          data-testid="connections-error"
+        >
+          {connectionsError.message}
+        </Alert>
+      ) : null}
 
       <Controller
         name="connection"
@@ -60,6 +74,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = ({
                   onClick={() => setIsConnectionOpen((prev) => !prev)}
                   isExpanded={isConnectionOpen}
                   isFullWidth
+                  isDisabled={!!connectionsError}
                   data-testid="data-connection-toggle"
                 >
                   {!connectionsLoaded ? <Spinner size="sm" /> : getToggleLabel(field.value)}

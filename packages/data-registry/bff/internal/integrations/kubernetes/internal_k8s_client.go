@@ -184,33 +184,31 @@ func (kc *InternalKubernetesClient) GetNamespaces(ctx context.Context, identity 
 	return allowed, nil
 }
 
-func (kc *InternalKubernetesClient) GetConnections(ctx context.Context, namespace string) ([]corev1.Secret, error) {
+func (kc *InternalKubernetesClient) GetConnections(ctx context.Context, namespace string, identity *RequestIdentity) ([]corev1.Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	secretList, err := kc.Client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "opendatahub.io/dashboard=true",
-	})
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "list",
+				Resource:  "secrets",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets in namespace %s: %w", namespace, err)
+		return nil, fmt.Errorf("failed to check secret access in namespace %s: %w", namespace, err)
+	}
+	if !response.Status.Allowed {
+		return nil, fmt.Errorf("user %s is not authorized to list secrets in namespace %s", identity.UserID, namespace)
 	}
 
-	var connections []corev1.Secret
-	for _, secret := range secretList.Items {
-		annotations := secret.Annotations
-		if annotations == nil {
-			continue
-		}
-		if _, ok := annotations["opendatahub.io/connection-type"]; ok {
-			connections = append(connections, secret)
-			continue
-		}
-		if _, ok := annotations["opendatahub.io/connection-type-ref"]; ok {
-			connections = append(connections, secret)
-		}
-	}
-
-	return connections, nil
+	return kc.SharedClientLogic.GetConnections(ctx, namespace, identity)
 }
 
 func (kc *InternalKubernetesClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
