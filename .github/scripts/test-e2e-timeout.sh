@@ -6,7 +6,7 @@ set -euo pipefail
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
 
-# The jq expression under test (must match cypress-e2e-test.yml "Build test matrix" step)
+# The jq expression under test — keep in sync with cypress-e2e-test.yml "Build test matrix" step
 MAX_TIMEOUT=360
 compute_timeout() {
   echo "$1" | jq -c --argjson cap "$MAX_TIMEOUT" '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), $cap] | min}]'

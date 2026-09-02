@@ -696,6 +696,7 @@ jobs:
           fi
           
           # Convert to objects with dynamic timeout: 30 min base + 7 min per tag, capped at 360 min
+          # Keep in sync with .github/scripts/test-e2e-timeout.sh
           MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), 360] | min}]')
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
