@@ -228,7 +228,12 @@ export function useStartEvaluationRunForm({
   const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
 
   React.useEffect(() => {
-    if (!experimentsLoaded || !namespace || experimentAutoSelected) {
+    if (
+      !experimentsLoaded ||
+      !namespace ||
+      experimentAutoSelected ||
+      experimentManuallyChangedRef.current
+    ) {
       return;
     }
     setExperimentAutoSelected(true);

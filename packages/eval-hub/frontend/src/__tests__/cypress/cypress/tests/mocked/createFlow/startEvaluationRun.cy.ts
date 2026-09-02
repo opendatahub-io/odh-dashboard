@@ -18,7 +18,7 @@ const API_VERSION = { apiVersion: CLIENT_API_VERSION };
 const mockMlflowExperiments = (experiments: { id: string; name: string }[] = []) => {
   cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
     body: { data: { experiments } },
-  });
+  }).as('mlflowExperiments');
 };
 
 const mockInferenceServices = (
@@ -525,6 +525,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     mockMlflowExperiments([{ id: 'exp-1', name: 'EvalHub' }]);
 
     navigateToBenchmarkStart();
+    cy.wait('@mlflowExperiments');
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
