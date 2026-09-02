@@ -69,7 +69,7 @@ export const getPVCContextStorageType = (
   return GENERAL_PURPOSE_PVC_CONTEXT_TYPE;
 };
 
-export const getContextStorageTypeExplantation = (types: StorageContextType[]): string =>
+export const getContextStorageTypeExplanation = (types: StorageContextType[]): string =>
   `The context indicates the purpose of the storage: ${new Intl.ListFormat('en', {
     type: 'disjunction',
   }).format(types.map((value) => value.title.toLocaleLowerCase()))}.`;

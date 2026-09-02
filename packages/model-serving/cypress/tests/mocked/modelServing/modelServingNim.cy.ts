@@ -8,6 +8,7 @@ import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
 import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
@@ -482,6 +483,33 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
+  it('should NOT manage NIM PVCs in cluster storage tab NIM is disabled', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableNIMModelServing: true }));
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+        }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('General purpose');
   });
 
   it('should manage NIM PVCs in cluster storage tab', () => {

@@ -3,7 +3,7 @@ import { getDisplayNameFromK8sResource, getPvcAccessMode } from '@odh-dashboard/
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';
 import { StorageTableData } from './types';
-import { getContextStorageTypeExplantation, StorageContextType } from './useStorageContextType';
+import { getContextStorageTypeExplanation, StorageContextType } from './useStorageContextType';
 
 export const columns = (data: {
   storageContextTypes: StorageContextType[];
@@ -48,7 +48,7 @@ export const columns = (data: {
     width: 15,
     sortable: false,
     info: {
-      popover: getContextStorageTypeExplantation(data.storageContextTypes),
+      popover: getContextStorageTypeExplanation(data.storageContextTypes),
       popoverProps: {
         showClose: true,
       },
