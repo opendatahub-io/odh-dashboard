@@ -370,7 +370,6 @@ jobs:
       - name: Install nyc for coverage merge
         if: env.IS_DRAFT != 'true'
         run: pnpm add -D nyc
-
       - name: Prepare unit coverage
         if: env.IS_DRAFT != 'true'
         run: |
