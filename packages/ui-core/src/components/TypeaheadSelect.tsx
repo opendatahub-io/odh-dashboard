@@ -39,6 +39,8 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   group?: string;
   /** Internal marker used to ensure the creatable option can be rendered first even with groups */
   isCreateOption?: boolean;
+  /** Internal marker for collapsible group header rows — not a selectable public value */
+  isGroupToggle?: boolean;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
@@ -113,12 +115,14 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
-const GROUP_TOGGLE_VALUE_PREFIX = '__typeahead-group-toggle-';
-
 const DEFAULT_MAX_MENU_HEIGHT = '300px';
 
-const isGroupToggleValue = (value: string | number): boolean =>
-  String(value).startsWith(GROUP_TOGGLE_VALUE_PREFIX);
+const createGroupToggleOption = (groupName: string): TypeaheadSelectOption => ({
+  // PF requires a value; selection is gated by isGroupToggle, not by this string.
+  value: `typeahead-group-toggle:${groupName}`,
+  content: groupName,
+  isGroupToggle: true,
+});
 
 const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   innerRef,
@@ -309,10 +313,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
     Object.entries(groupedSelections.group).forEach(([groupName, groupOptions]) => {
       if (isCollapsible) {
-        items.push({
-          value: `${GROUP_TOGGLE_VALUE_PREFIX}${groupName}`,
-          content: groupName,
-        });
+        items.push(createGroupToggleOption(groupName));
         if (!isGroupCollapsed(groupName)) {
           items.push(...groupOptions);
         }
@@ -407,7 +408,12 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
     value: string | number | undefined,
   ) => {
-    if (value && value !== NO_RESULTS && !isGroupToggleValue(value)) {
+    const menuItem = value ? visibleMenuItems.find((option) => option.value === value) : undefined;
+    if (menuItem?.isGroupToggle) {
+      return;
+    }
+
+    if (value && value !== NO_RESULTS) {
       const optionToSelect = selectOptions.find((option) => option.value === value);
       if (optionToSelect) {
         selectOption(_event, optionToSelect);
@@ -478,9 +484,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           focusedItem.value !== NO_RESULTS &&
           !focusedItem.isAriaDisabled
         ) {
-          if (isGroupToggleValue(focusedItem.value)) {
+          if (focusedItem.isGroupToggle) {
             event.preventDefault();
-            toggleGroup(String(focusedItem.value).slice(GROUP_TOGGLE_VALUE_PREFIX.length));
+            toggleGroup(String(focusedItem.content));
             break;
           }
           selectOption(event, focusedItem);
@@ -611,6 +617,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
     if (isCollapsible) {
       const toggleIndex = index++;
+      const toggleOption = createGroupToggleOption(group);
       const renderedOptions = groupCollapsed
         ? []
         : groupOptions.map((opt) => tSelectOption(opt, index++));
@@ -619,7 +626,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           <>
             <SelectOption
               key={`${group}-toggle`}
-              value={`${GROUP_TOGGLE_VALUE_PREFIX}${group}`}
+              value={toggleOption.value}
               data-testid={`${testId}-toggle`}
               isFocused={focusedItemIndex === toggleIndex}
               onClick={(e) => {
