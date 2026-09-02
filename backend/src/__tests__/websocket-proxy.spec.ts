@@ -3,6 +3,7 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import wssK8sRoutes, {
   CONNECTION_TIMEOUT_MS,
   HEARTBEAT_INTERVAL_MS,
+  getWebsocketSource,
 } from '../routes/wss/k8s/index';
 import { getDirectCallOptions, getAccessToken } from '../utils/directCallUtils';
 
@@ -58,9 +59,7 @@ describe('WebSocket K8s Proxy', () => {
       pong: jest.fn(),
     };
 
-    mockConnection = {
-      socket: mockSourceSocket,
-    };
+    mockConnection = mockSourceSocket;
 
     mockFastify = {
       log: mockLog,
@@ -587,6 +586,20 @@ describe('WebSocket K8s Proxy', () => {
         }),
         expect.stringContaining('Unexpected response from K8s API'),
       );
+      expect(mockSourceSocket.close).toHaveBeenCalled();
+      expect(mockTargetSocket.close).toHaveBeenCalled();
+    });
+
+    it('should not throw when unexpected-response 403 closes sockets', async () => {
+      await routeHandler(mockConnection, mockRequest);
+
+      const unexpectedResponseHandler = mockTargetSocket.on.mock.calls.find(
+        (call: any) => call[0] === 'unexpected-response',
+      )?.[1];
+
+      expect(() =>
+        unexpectedResponseHandler(undefined, { statusCode: 403, statusMessage: 'Forbidden' }),
+      ).not.toThrow();
     });
 
     it('should convert reserved close code 1006 to 1011 when forwarding to client', async () => {
@@ -623,6 +636,36 @@ describe('WebSocket K8s Proxy', () => {
   describe('Configuration Constants', () => {
     it('should have connection timeout less than heartbeat interval', () => {
       expect(CONNECTION_TIMEOUT_MS).toBeLessThan(HEARTBEAT_INTERVAL_MS);
+    });
+  });
+
+  describe('getWebsocketSource', () => {
+    it('should use the socket when Fastify 4 passes { socket }', () => {
+      const socket = { readyState: 1 } as WebSocket;
+      expect(getWebsocketSource({ socket })).toBe(socket);
+    });
+
+    it('should use the connection itself when Fastify 5 passes the WebSocket', () => {
+      const socket = { readyState: 1 } as WebSocket;
+      expect(getWebsocketSource(socket)).toBe(socket);
+    });
+  });
+
+  describe('Fastify 4 connection shape', () => {
+    it('should still proxy when the handler receives { socket }', async () => {
+      await wssK8sRoutes(mockFastify);
+      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
+
+      await routeHandler({ socket: mockSourceSocket }, mockRequest);
+
+      const messageHandler = mockTargetSocket.on.mock.calls.find(
+        (call: any) => call[0] === 'message',
+      )?.[1];
+
+      const testData = Buffer.from('test message');
+      messageHandler(testData, false);
+
+      expect(mockSourceSocket.send).toHaveBeenCalledWith(testData, { binary: false });
     });
   });
 });

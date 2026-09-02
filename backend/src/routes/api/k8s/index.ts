@@ -2,10 +2,16 @@ import { FastifyReply } from 'fastify';
 import { PassThroughData, passThroughText, passThroughResource } from '../../../utils/pass-through';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
+import { stripEmptyJsonContentType } from '../../../utils/k8sRequestBody';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   const kc = fastify.kube.config;
   const cluster = kc.getCurrentCluster();
+
+  fastify.addHook('onRequest', (req, _reply, done) => {
+    stripEmptyJsonContentType(req);
+    done();
+  });
 
   /**
    * Pass through API for all things kubernetes
