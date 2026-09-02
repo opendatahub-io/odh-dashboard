@@ -34,6 +34,7 @@ const FeatureStoreLineageLegend: React.FC = () => (
                 <FlexItem>
                   <div
                     data-testid={`feature-store-lineage-legend-${type}`}
+                    aria-hidden="true"
                     style={{
                       display: 'flex',
                       alignItems: 'center',

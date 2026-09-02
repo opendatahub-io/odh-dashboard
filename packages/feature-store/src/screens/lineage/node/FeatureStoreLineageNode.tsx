@@ -93,15 +93,32 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     const [isFocused, setIsFocused] = React.useState(false);
 
     const resolvePillElement = React.useCallback((container: Element): Element | null => {
-      const pillRect = container.querySelector('rect');
-      return pillRect?.tagName === 'rect' ? pillRect : null;
+      const pillRect = container.querySelector('[data-testid="lineage-pill-background"]');
+      if (pillRect?.tagName === 'rect') {
+        return pillRect;
+      }
+
+      const rects = Array.from(container.querySelectorAll('rect'));
+      for (const rect of rects) {
+        if (rect.getAttribute('data-focus-ring') === 'true') {
+          continue;
+        }
+        const className = rect.getAttribute('class') || '';
+        if (
+          className.includes('pill') ||
+          className.includes('background') ||
+          className.includes('Background')
+        ) {
+          return rect;
+        }
+      }
+      return null;
     }, []);
 
     const selectNode = React.useCallback(() => {
       const id = element.getId();
       const controller = element.getController();
-      const state = controller.getState();
-      state.selectedIds = [id];
+      controller.setState({ selectedIds: [id] });
       controller.fireEvent(SELECTION_EVENT, [id]);
       element.raise();
     }, [element]);
@@ -115,6 +132,10 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           pillElement = e.target;
           while (pillElement && pillElement !== container) {
             if (pillElement.tagName === 'rect') {
+              if (pillElement.getAttribute('data-focus-ring') === 'true') {
+                pillElement = pillElement.parentElement;
+                continue;
+              }
               const className = pillElement.getAttribute('class') || '';
               if (
                 className.includes('pill') ||
@@ -214,6 +235,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       >
         {isFocused && (
           <rect
+            data-focus-ring="true"
             x={-4}
             y={-4}
             width={nodeWidth + 8}

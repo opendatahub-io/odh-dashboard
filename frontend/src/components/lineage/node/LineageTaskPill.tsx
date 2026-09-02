@@ -122,6 +122,8 @@ const adjustDimensionsForAccentStrip = (
   dimensions: TaskPillDimensions,
   accentStripWidth: number,
   paddingX: number,
+  verticalLayout: boolean,
+  width: number,
 ): TaskPillDimensions => {
   const minTextStartX = accentStripWidth + paddingX;
   if (dimensions.textStartX >= minTextStartX) {
@@ -129,13 +131,15 @@ const adjustDimensionsForAccentStrip = (
   }
 
   const textOffsetDelta = minTextStartX - dimensions.textStartX;
+  const pillWidth = dimensions.pillWidth + textOffsetDelta;
   return {
     ...dimensions,
     textStartX: minTextStartX,
     badgeStartX: dimensions.badgeStartX + textOffsetDelta,
     actionStartX: dimensions.actionStartX + textOffsetDelta,
     contextStartX: dimensions.contextStartX + textOffsetDelta,
-    pillWidth: dimensions.pillWidth + textOffsetDelta,
+    pillWidth,
+    offsetX: verticalLayout ? (width - pillWidth) / 2 : dimensions.offsetX,
   };
 };
 
@@ -307,7 +311,13 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       }
 
       const accentStripWidth = baseDimensions.statusStartX + statusIconSize + paddingX;
-      return adjustDimensionsForAccentStrip(baseDimensions, accentStripWidth, paddingX);
+      return adjustDimensionsForAccentStrip(
+        baseDimensions,
+        accentStripWidth,
+        paddingX,
+        verticalLayout,
+        width,
+      );
     }, [
       textSize,
       textHeight,
