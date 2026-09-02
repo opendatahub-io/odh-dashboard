@@ -3028,6 +3028,9 @@ importers:
       eslint-plugin-react-hooks:
         specifier: ^5.2.0
         version: 5.2.0(eslint@8.57.1(supports-color@8.1.1))
+      mocha-junit-reporter:
+        specifier: ^2.2.1
+        version: 2.2.1(mocha@10.8.2)(supports-color@8.1.1)
       npm-run-all:
         specifier: ^4.1.5
         version: 4.1.5
