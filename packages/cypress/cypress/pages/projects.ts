@@ -19,7 +19,7 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
     return this.find().findByLabelText(`Filter by ${name}`);
   }
 
-  findNameFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findNameFilter(): Cypress.Chainable<JQuery<HTMLInputElement>> {
     // data-testid is on the PF TextInputGroup wrapper; type/clear need the input.
     return this.find().findByTestId('project-list-name-filter').find('input');
   }
