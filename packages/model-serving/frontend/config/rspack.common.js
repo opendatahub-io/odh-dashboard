@@ -10,6 +10,7 @@ const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const IMAGES_DIRNAME = process.env._IMAGES_DIRNAME;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
+const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
 const PACKAGE_SRC_DIR = path.resolve(RELATIVE_DIRNAME, '../src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
@@ -122,6 +123,7 @@ module.exports = (env) => ({
         include: [
           SRC_DIR,
           PACKAGE_SRC_DIR,
+          COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),

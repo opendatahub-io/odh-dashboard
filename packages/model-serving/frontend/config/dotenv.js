@@ -150,6 +150,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const IMAGES_DIRNAME = process.env.IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.SRC_DIR || TS_BASE_URL || 'src');
+  const COMMON_DIR = path.resolve(RELATIVE_DIRNAME, process.env.COMMON_DIR || '../common');
   const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.DIST_DIR || TS_OUT_DIR || 'public');
   const HOST = process.env.HOST || 'localhost';
   const PORT = process.env.PORT || '9109';
@@ -164,6 +165,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   process.env._IMAGES_DIRNAME = IMAGES_DIRNAME;
   process.env._PUBLIC_PATH = PUBLIC_PATH;
   process.env._SRC_DIR = SRC_DIR;
+  process.env._COMMON_DIR = COMMON_DIR;
   process.env._DIST_DIR = DIST_DIR;
   process.env._HOST = HOST;
   process.env._PORT = PORT;
