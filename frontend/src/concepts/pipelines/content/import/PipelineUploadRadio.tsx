@@ -94,7 +94,7 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
                   setIsUrlValid(checkValidUrl(value));
                 }
               }}
-              onBlur={() => setIsUrlValid(checkValidUrl(pipelineUrl))}
+              onBlur={(e) => setIsUrlValid(checkValidUrl(e.currentTarget.value))}
               validated={pipelineUrl.length === 0 || isUrlValid ? 'default' : 'error'}
             />
             {!isUrlValid && pipelineUrl.length > 0 && (
