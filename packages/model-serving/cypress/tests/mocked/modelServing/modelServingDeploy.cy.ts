@@ -37,15 +37,17 @@ import {
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
+  RoleBindingModel,
+  RoleModel,
+  SecretModel,
+  ServiceAccountModel,
+} from '@odh-dashboard/k8s-core/api/models';
+import {
   HardwareProfileModel,
   InferenceServiceModel,
   LLMInferenceServiceModel,
   ProjectModel,
   PVCModel,
-  RoleBindingModel,
-  RoleModel,
-  SecretModel,
-  ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';

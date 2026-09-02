@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import { useRegistryFeatureStores, RegistryFeatureStore } from './hooks/useRegistryFeatureStores';
 import { FeatureStoreAPIs } from './types/global';
 import { ProjectList } from './types/featureStoreProjects';

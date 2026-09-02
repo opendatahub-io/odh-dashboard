@@ -1,13 +1,16 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import useNotification from '#~/utilities/useNotification';
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getPreemptionToastBody,
   getEvictionToastBody,
-} from '#~/concepts/kueue/messageUtils';
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import useNotification from '#~/utilities/useNotification';
 import { fireWorkbenchStatusToastAction } from '#~/concepts/kueue/workbenchTracking';
 import { NotebookState } from './types';
 

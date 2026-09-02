@@ -8,11 +8,11 @@ import type { SecretKind, K8sAPIOptions, RouteKind } from '@odh-dashboard/k8s-co
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import {
   DataSciencePipelineApplicationModel,
   RouteModel,
-  SecretModel,
   createPipelinesCR,
   deletePipelineCR,
   getElyraSecret,

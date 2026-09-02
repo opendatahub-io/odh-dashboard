@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { EmptyDetailsView, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import useRefreshInterval from '@odh-dashboard/ui-core/hooks/useRefreshInterval';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {
   ProjectSectionTitles,
@@ -13,7 +14,6 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
-import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import { NotebookModel } from '#~/api/models/kubeflow';

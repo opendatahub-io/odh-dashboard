@@ -15,8 +15,8 @@ import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/P
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
-import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,

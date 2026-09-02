@@ -5,8 +5,11 @@ import {
   parseSecretKeyRefEntries,
 } from '#~/pages/projects/screens/spawner/environmentVariables/useNotebookEnvVariables';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/configMaps', () => ({
   getConfigMap: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   getSecret: jest.fn(),
 }));
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { getUserFulfilled, getUserPending, getUserRejected } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
 import { POLL_INTERVAL } from './const';
