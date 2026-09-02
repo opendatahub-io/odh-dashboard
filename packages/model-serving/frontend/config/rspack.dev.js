@@ -36,6 +36,7 @@ const getKubeconfigToken = () => {
   try {
     const token = execSync(
       "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      { timeout: 10000 },
     )
       .toString()
       .trim();
@@ -43,7 +44,9 @@ const getKubeconfigToken = () => {
       console.error('Failed to get Kubernetes token: kubectl returned an empty token');
       return '';
     }
-    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
+    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'", {
+      timeout: 10000,
+    })
       .toString()
       .trim();
     console.info('Logged in as user:', username);

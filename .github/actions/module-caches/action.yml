@@ -166,7 +166,7 @@ runs:
     - name: Install model-serving dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.model-serving-cache.outputs.cache-hit != 'true')
       shell: bash
-      run: npm install --prefix packages/model-serving/frontend
+      run: npm ci --ignore-scripts --prefix packages/model-serving/frontend
 
     - name: model-registry node_modules cache
       id: model-registry-cache
