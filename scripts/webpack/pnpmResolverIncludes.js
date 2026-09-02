@@ -114,6 +114,20 @@ const tanstackQueryCoreAlias = (relativeDirname) => {
   }
 };
 
+const micromarkAlias = (relativeDirname) => {
+  try {
+    const mdastFromMarkdown = require.resolve('mdast-util-from-markdown', {
+      paths: [relativeDirname],
+    });
+    const micromark = require.resolve('micromark', {
+      paths: [path.dirname(mdastFromMarkdown)],
+    });
+    return { micromark: path.dirname(micromark) };
+  } catch {
+    return {};
+  }
+};
+
 /**
  * Pin @mui/utils and @mui/system to the versions paired with this tree's @mui/material install.
  * Hoisted @mui/material@7 at the repo root breaks webpack subpath imports when @mui/utils is
@@ -228,6 +242,7 @@ module.exports = {
   patternFlyCssIncludes,
   patternFlyFontIncludes,
   dynamicPluginSdkAlias,
+  micromarkAlias,
   modArchAliases,
   muiMaterialPeerAliases,
   pnpmWebpackResolveAliases,
