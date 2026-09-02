@@ -1,5 +1,10 @@
-import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/k8s-core';
-import { resolveHardwareModels, resolvePerModelGpuCounts } from '../hardwareModels';
+import { ClusterQueueKind, ResourceFlavorKind, type WorkloadKind } from '@odh-dashboard/k8s-core';
+import {
+  buildResourceFlavorByName,
+  resolveHardwareModels,
+  resolvePerModelGpuCounts,
+  resolveWorkloadHardwareProfile,
+} from '../hardwareModels';
 
 const makeGpuCQ = (
   name: string,
@@ -212,5 +217,27 @@ describe('resolvePerModelGpuCounts', () => {
     expect(result.get('cq-2')).toEqual([
       { model: 'NVIDIA H100', nominal: 4, used: 4, borrowed: 2 },
     ]);
+  });
+});
+
+describe('resolveWorkloadHardwareProfile', () => {
+  it('maps admitted resource flavor assignments to GPU product labels', () => {
+    const resourceFlavor = makeRF('gpu-l40s', 'NVIDIA-L40S');
+    const workload: WorkloadKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'Workload',
+      metadata: { name: 'wl-test', namespace: 'test-ns' },
+      spec: { podSets: [] },
+      status: {
+        admission: {
+          clusterQueue: 'gpu-cq',
+          podSetAssignments: [{ name: 'main', flavors: { 'nvidia.com/gpu': 'gpu-l40s' } }],
+        },
+      },
+    };
+
+    expect(
+      resolveWorkloadHardwareProfile(workload, buildResourceFlavorByName([resourceFlavor])),
+    ).toBe('NVIDIA-L40S');
   });
 });
