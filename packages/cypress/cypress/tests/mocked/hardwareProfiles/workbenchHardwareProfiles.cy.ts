@@ -18,6 +18,7 @@ import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatu
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { LocalQueueModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
 import { workbenchPage, editSpawnerPage, createSpawnerPage } from '../../../pages/workbench';
@@ -25,13 +26,11 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 import {
   HardwareProfileModel,
   ImageStreamModel,
-  LocalQueueModel,
   NotebookModel,
   PVCModel,
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   StorageClassModel,
 } from '../../../utils/models';
 

@@ -137,8 +137,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
-github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260506180717-e15e712db78d h1:0IuciRgQR5moi+g3nxmoZL32EdH+BiR1cyTqHMZPhSM=
-github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260506180717-e15e712db78d/go.mod h1:QEysGTqJgWEKTVPlKaym3DrUcbYtfhOLNRxiJ+rfSfg=
+github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260521122631-f102be7331a4 h1:OYMZyP/9gWweAXdO40k8t4hf8ouKN6h+fvCO7DE7kg8=
+github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260521122631-f102be7331a4/go.mod h1:QEysGTqJgWEKTVPlKaym3DrUcbYtfhOLNRxiJ+rfSfg=
 github.com/openshift/api v3.9.0+incompatible h1:fJ/KsefYuZAjmrr3+5U9yZIZbTOpVkDDLDLFresAeYs=
 github.com/openshift/api v3.9.0+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

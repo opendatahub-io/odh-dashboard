@@ -49,7 +49,7 @@ npm run ci-checks
 # Clean the dist directory
 npm run clean
 
-# Generate a webpack bundle profile
+# Generate a rspack bundle profile
 npm run build:bundle-profile
 
 # Build a production bundle and serve it from the mock BFF
@@ -104,12 +104,12 @@ body {
 
 ## Adding custom CSS
 
-When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid webpack needing to crawl through the entire node_modules directory when parsing CSS modules.
+When importing CSS from a third-party package for the first time, you may encounter the error `Module parse failed: Unexpected token... You may need an appropriate loader to handle this file typ...`. You need to register the path to the stylesheet directory in [stylePaths.js](./stylePaths.js). We specify these explicitly for performance reasons to avoid rspack needing to crawl through the entire node_modules directory when parsing CSS modules.
 
 ## Code quality tools
 
 - For accessibility compliance, we use [react-axe](https://github.com/dequelabs/react-axe)
-- To keep our bundle size in check, we use [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
+- To keep our bundle size in check, we use [@rsdoctor/rspack-plugin](https://github.com/web-infra-dev/rsdoctor)
 - To keep our code formatting in check, we use [prettier](https://github.com/prettier/prettier)
 - To keep our code logic and test coverage in check, we use [jest](https://github.com/facebook/jest)
 - To ensure code styles remain consistent, we use [eslint](https://eslint.org/)

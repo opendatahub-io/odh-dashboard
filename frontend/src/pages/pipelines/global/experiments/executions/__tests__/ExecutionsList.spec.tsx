@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { useGetExecutionsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
-import { getGenericErrorCode } from '#~/api/errorUtils';
 import ExecutionsList from '#~/pages/pipelines/global/experiments/executions/ExecutionsList';
 
 jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList');
 jest.mock('#~/concepts/pipelines/context', () => ({
   useMlmdListContext: jest.fn(),
 }));
-jest.mock('#~/api/errorUtils');
+jest.mock('@odh-dashboard/k8s-core/api/errorUtils');
 jest.mock('#~/pages/pipelines/global/experiments/executions/ExecutionsTable', () => {
   const MockExecutionsTable = () => <div data-testid="executions-table">ExecutionsTable</div>;
   MockExecutionsTable.displayName = 'MockExecutionsTable';

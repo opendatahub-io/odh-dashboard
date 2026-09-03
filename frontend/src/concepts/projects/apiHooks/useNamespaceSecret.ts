@@ -1,6 +1,6 @@
 import * as React from 'react';
 import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { getSecret } from '#~/api';
+import { getSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { EnvVariable, EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
 
 const useNamespaceSecret = (

@@ -1,4 +1,4 @@
-import type { SelectionOptions } from '#~/components/MultiSelection';
+import type { SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 
 export const ALL_CATEGORY_PREFIX = '__all_category__';
 

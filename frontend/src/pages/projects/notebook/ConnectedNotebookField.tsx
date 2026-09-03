@@ -2,8 +2,8 @@ import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import { MultiSelection } from '@odh-dashboard/ui-core/components/MultiSelection';
 import { NotebookKind } from '#~/k8sTypes';
-import { MultiSelection } from '#~/components/MultiSelection';
 
 type SelectNotebookFieldProps = {
   loaded: boolean;

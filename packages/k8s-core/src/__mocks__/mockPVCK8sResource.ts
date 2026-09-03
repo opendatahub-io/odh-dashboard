@@ -3,7 +3,7 @@ import { KnownLabels } from '../k8sTypes';
 import type { PersistentVolumeClaimKind } from '../k8sTypes';
 import { AccessMode } from '../types';
 
-type MockResourceConfigType = {
+export type MockResourceConfigType = {
   name?: string;
   namespace?: string;
   storage?: string;

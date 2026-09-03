@@ -425,9 +425,9 @@ Theming is handled automatically by `PersesProvider`. It reads the current Patte
 | `defaultRefreshInterval` | `string` | `'60s'` | Initial refresh interval |
 | `syncToUrl` | `boolean` | `false` | Sync time range and variables to URL query params |
 
-### Webpack and Module Federation changes
+### Rspack and Module Federation changes
 
-When embedding Perses in a federated package, additional webpack configuration is required. The Perses libraries and their transitive dependencies (MUI, ECharts, React Query, `use-query-params`) must be shared as singletons to avoid duplicate React contexts and CSS conflicts.
+When embedding Perses in a federated package, additional rspack configuration is required. The Perses libraries and their transitive dependencies (MUI, ECharts, React Query, `use-query-params`) must be shared as singletons to avoid duplicate React contexts and CSS conflicts.
 
 > **Note:** These workarounds are likely necessary due to issues with how Module Federation resolves deep transitive dependencies across package boundaries. This is being actively investigated and may be simplified in the future.
 
@@ -449,12 +449,12 @@ shared: {
 
 #### CSS loader includes
 
-The observability package ships CSS from Perses component libraries. Your webpack CSS rules must include the observability package path so its styles are processed correctly.
+The observability package ships CSS from Perses component libraries. Your rspack CSS rules must include the observability package path so its styles are processed correctly.
 
-In both `webpack.dev.js` and `webpack.prod.js`, add the observability path to the CSS rule's `include` array:
+In both `rspack.dev.js` and `rspack.prod.js`, add the observability path to the CSS rule's `include` array:
 
 ```js
-// webpack.dev.js
+// rspack.dev.js
 {
   test: /\.css$/,
   include: [
@@ -470,7 +470,7 @@ In both `webpack.dev.js` and `webpack.prod.js`, add the observability path to th
 ```
 
 ```js
-// webpack.prod.js
+// rspack.prod.js
 {
   test: /\.css$/,
   include: [
