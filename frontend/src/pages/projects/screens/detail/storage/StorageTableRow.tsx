@@ -12,6 +12,7 @@ import {
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -33,6 +34,9 @@ type StorageTableRowProps = {
   storageContextTypes?: StorageContextType[];
   storageContextTypesLoaded: boolean;
   storageClassesLoaded: boolean;
+  showConnectedResources: boolean;
+  additionalResourcesLoaded: boolean;
+  getConnectedResourceLabels: (pvc: PersistentVolumeClaimKind) => ConnectedResourceLabel[];
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
   onAddPVC: () => void;
@@ -44,13 +48,15 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   storageContextTypes,
   storageContextTypesLoaded,
   storageClassesLoaded,
+  showConnectedResources,
+  additionalResourcesLoaded,
+  getConnectedResourceLabels,
   onDeletePVC,
   onEditPVC,
   onAddPVC,
 }) => {
   const isRootVolume = useIsRootVolume(obj.pvc);
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
   const actions: IAction[] = [
     {
@@ -170,9 +176,13 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       <Td dataLabel="Storage size">
         <StorageSizeBar pvc={obj.pvc} />
       </Td>
-      {workbenchEnabled && (
+      {showConnectedResources && (
         <Td dataLabel="Connected resources">
-          <ConnectedResources pvc={obj.pvc} />
+          <ConnectedResources
+            pvc={obj.pvc}
+            additionalResources={getConnectedResourceLabels(obj.pvc)}
+            additionalResourcesLoaded={additionalResourcesLoaded}
+          />
         </Td>
       )}
       <Td isActionCell>
