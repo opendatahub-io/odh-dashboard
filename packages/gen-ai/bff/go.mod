@@ -16,7 +16,7 @@ require (
 	github.com/opendatahub-io/mlflow-go v0.0.0-20260814111624-b1898e60a157
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/cors v1.11.1
-	github.com/shirou/gopsutil/v4 v4.26.7
+	github.com/shirou/gopsutil/v4 v4.26.8
 	github.com/stretchr/testify v1.12.1
 	github.com/trustyai-explainability/trustyai-service-operator v1.38.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
