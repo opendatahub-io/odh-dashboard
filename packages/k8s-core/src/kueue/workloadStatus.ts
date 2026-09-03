@@ -1,18 +1,6 @@
-import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ExclamationTriangleIcon,
-  InProgressIcon,
-  OutlinedClockIcon,
-} from '@patternfly/react-icons';
-import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
-
-import {
-  KueueWorkloadStatus,
-  type KueueStatusInfo,
-  type KueueWorkloadStatusWithMessage,
-} from './types';
-import { getDeploymentKueueSubStepMessage, isInadmissibleQuotaCondition } from './messageUtils';
+import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './types';
+import { isInadmissibleQuotaCondition } from './messageUtils';
+import type { WorkloadCondition, WorkloadKind } from '../k8sTypes';
 
 export const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 
@@ -134,7 +122,7 @@ const findUnknownConditionFallback = (
 
 /**
  * Returns Kueue status and message for a Workload from its conditions.
- * Priority: Failed → Evicted/Requeued → Inadmissible → BlockedOnPreemptionGates → Preempted → Succeeded → Running → Admitted → Queued → UnknownFallback.
+ * Priority: Failed -> Evicted/Requeued -> Inadmissible -> BlockedOnPreemptionGates -> Preempted -> Succeeded -> Running -> Admitted -> Queued -> UnknownFallback.
  */
 type AdmissionCheckEntry = NonNullable<
   NonNullable<WorkloadKind['status']>['admissionChecks']
@@ -221,74 +209,6 @@ export const getKueueWorkloadStatusWithMessage = (
   return result;
 };
 
-export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo => {
-  switch (status) {
-    case KueueWorkloadStatus.Queued:
-      return { label: 'Queued', color: 'grey', IconComponent: OutlinedClockIcon };
-    case KueueWorkloadStatus.Failed:
-      return {
-        label: 'Failed',
-        status: 'danger',
-        IconComponent: ExclamationCircleIcon,
-      };
-    case KueueWorkloadStatus.Preempted:
-      return {
-        label: 'Preempted',
-        status: 'warning',
-        IconComponent: ExclamationTriangleIcon,
-      };
-    case KueueWorkloadStatus.Evicted:
-      return {
-        label: 'Evicted',
-        status: 'warning',
-        IconComponent: ExclamationTriangleIcon,
-      };
-    case KueueWorkloadStatus.Requeued:
-      return {
-        label: 'Requeued',
-        color: 'grey',
-        IconComponent: OutlinedClockIcon,
-      };
-    case KueueWorkloadStatus.Inadmissible:
-      return {
-        label: 'Inadmissible',
-        status: 'warning',
-        IconComponent: ExclamationTriangleIcon,
-      };
-    case KueueWorkloadStatus.AdmissionCheck:
-      return {
-        label: 'Admission check',
-        color: 'blue',
-        IconComponent: InProgressIcon,
-        iconClassName: 'ai-u-spin',
-      };
-    case KueueWorkloadStatus.BlockedOnPreemptionGates:
-      return {
-        label: 'Blocked on preemption',
-        color: 'blue',
-        IconComponent: InProgressIcon,
-        iconClassName: 'ai-u-spin',
-      };
-    case KueueWorkloadStatus.Running:
-      return { label: 'Running', color: 'blue', IconComponent: InProgressIcon };
-    case KueueWorkloadStatus.Admitted:
-      return {
-        label: 'Starting',
-        color: 'blue',
-        IconComponent: InProgressIcon,
-        iconClassName: 'ai-u-spin',
-      };
-    case KueueWorkloadStatus.Complete:
-      return {
-        label: 'Complete',
-        status: 'success',
-        IconComponent: CheckCircleIcon,
-      };
-    default:
-      return { label: status, color: 'grey', IconComponent: OutlinedClockIcon };
-  }
-};
-
 /**
  * Priority order for most-restrictive-state aggregation across multiple Workload CRs.
  * Earlier in the array = more restrictive = wins over later entries.
@@ -354,29 +274,3 @@ export const aggregateKueueStatusForModel = (
 
 /** Generic (package-agnostic) condition status values used by the deployment progress tree. */
 export type GenericConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
-
-/** Maps a Kueue status level (danger/warning/success) to a generic condition status. */
-export const getKueueConditionStatus = (status: KueueWorkloadStatus): GenericConditionStatus => {
-  const level = getKueueStatusInfo(status).status;
-  if (level === 'danger') return 'False';
-  if (level === 'warning') return 'Warning';
-  if (level === 'success') return 'True';
-  return 'Unknown';
-};
-
-export const getKueueSchedulingSubStep = (
-  kueueStatus: KueueWorkloadStatusWithMessage | null | undefined,
-): {
-  type: string;
-  label: string;
-  messageStatus: GenericConditionStatus;
-  lastTransitionTime?: string;
-} | null => {
-  if (!kueueStatus) return null;
-  return {
-    type: 'kueue',
-    label: getDeploymentKueueSubStepMessage(kueueStatus),
-    messageStatus: getKueueConditionStatus(kueueStatus.status),
-    lastTransitionTime: kueueStatus.timestamp,
-  };
-};

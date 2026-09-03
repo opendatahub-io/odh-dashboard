@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
+import type { DeployPrefillData } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
 import { CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';

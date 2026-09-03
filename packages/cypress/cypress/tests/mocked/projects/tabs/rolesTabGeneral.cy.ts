@@ -8,11 +8,10 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
+import { RoleBindingModel, RoleModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   ClusterRoleModel,
   ProjectModel,
-  RoleBindingModel,
-  RoleModel,
   SelfSubjectAccessReviewModel,
 } from '../../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';

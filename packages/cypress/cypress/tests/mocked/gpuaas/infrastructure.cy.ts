@@ -6,7 +6,8 @@ import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/m
 import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
 import { mockResourceFlavorK8sResource } from '@odh-dashboard/internal/__mocks__/mockResourceFlavorK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ClusterQueueModel, CohortModel, ResourceFlavorModel } from '../../../utils/models';
+import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
+import { CohortModel, ResourceFlavorModel } from '../../../utils/models';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 

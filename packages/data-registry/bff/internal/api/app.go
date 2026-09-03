@@ -30,9 +30,10 @@ const (
 	Version         = "1.0.0"
 	PathPrefix      = "/data-registry"
 	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	HealthCheckPath  = "/healthcheck"
+	UserPath         = ApiPathPrefix + "/user"
+	NamespacePath    = ApiPathPrefix + "/namespaces"
+	ConnectionsPath  = ApiPathPrefix + "/connections/:namespace"
 
 	// DataRegistryPathPrefix is the root under which the Data Registry API catchall proxy is
 	// mounted. It intentionally matches ApiPathPrefix so the publicly exposed route shape stays
@@ -226,6 +227,7 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(ConnectionsPath, app.GetConnectionsHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
@@ -245,6 +247,7 @@ func (app *App) Routes() http.Handler {
 	// vs. the root pattern further down).
 	appMux.Handle(UserPath, apiRouter)
 	appMux.Handle(NamespacePath, apiRouter)
+	appMux.Handle(ApiPathPrefix+"/connections/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
 	// Data Registry API catchall proxy (Iceberg REST Catalog-compatible + RHOAI extensions):

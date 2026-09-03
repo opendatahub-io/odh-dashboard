@@ -143,6 +143,7 @@ func TestCompositeFactory_GetConfig(t *testing.T) {
 	mlflowCfg := composite.GetConfig(BFFTargetMLflow)
 	if mlflowCfg == nil {
 		t.Fatal("expected non-nil config for MLflow (real target)")
+		return
 	}
 	if mlflowCfg.Port != 8343 {
 		t.Errorf("expected MLflow config from real factory (port 8343), got port %d", mlflowCfg.Port)
@@ -151,6 +152,7 @@ func TestCompositeFactory_GetConfig(t *testing.T) {
 	maasCfg := composite.GetConfig(BFFTargetMaaS)
 	if maasCfg == nil {
 		t.Fatal("expected non-nil config for MaaS (mock target)")
+		return
 	}
 	if maasCfg.Port != 9001 {
 		t.Errorf("expected MaaS config from mock factory (port 9001), got port %d", maasCfg.Port)
