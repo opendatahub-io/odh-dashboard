@@ -7,7 +7,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
-import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { useMaasVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
@@ -20,7 +20,7 @@ jest.mock('react-router', () => ({
 
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useOgxVectorStoreProvidersQuery: jest.fn(),
+  useMaasVectorStoreProvidersQuery: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -42,7 +42,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseOgxVectorStoreProvidersQuery = jest.mocked(useOgxVectorStoreProvidersQuery);
+const mockUseMaasVectorStoreProvidersQuery = jest.mocked(useMaasVectorStoreProvidersQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -115,10 +115,10 @@ describe('AutoragVectorStoreSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: mockVectorStoreProvidersResponse(),
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
   });
 
   it('should display placeholder text when no provider is selected', () => {
@@ -152,12 +152,12 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should render and allow selection when pgvector is the only provider', async () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: mockVectorStoreProvidersResponse([
         { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
       ]),
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     let formValues: unknown;
     renderWithProviders(<AutoragVectorStoreSelector />, {
@@ -183,13 +183,13 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should exclude unsupported provider types from the dropdown', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: mockVectorStoreProvidersResponse([
         { provider_id: 'milvus', provider_type: 'remote::milvus' }, // eslint-disable-line camelcase
         { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
       ]),
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
     fireEvent.click(screen.getByTestId('vector-store-select-toggle'));
@@ -215,10 +215,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should disable the toggle when no providers are available', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -228,11 +228,11 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should disable the toggle and show error notification when fetching providers fails', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: true,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -240,15 +240,15 @@ describe('AutoragVectorStoreSelector', () => {
     expect(toggle).toBeDisabled();
     expect(mockNotificationError).toHaveBeenCalledWith(
       'Failed to load vector I/O providers.',
-      expect.anything(), // Error message may include details from ogx BFF in the future.
+      expect.anything(), // Error message may include details from maas BFF in the future.
     );
   });
 
   it('should show warning notification when providers exist but none are supported', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 2 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -262,10 +262,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should not show warning notification when no providers exist at all', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -273,10 +273,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should show a loading skeleton when providers are loading', () => {
-    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+    mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -426,12 +426,12 @@ describe('AutoragVectorStoreSelector', () => {
 
       // Provider list refreshes and no longer includes the previously selected "milvus" —
       // this should silently clear the field via the effect, not fire a tracking event.
-      mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
+      mockUseMaasVectorStoreProvidersQuery.mockReturnValue({
         data: mockVectorStoreProvidersResponse([
           { provider_id: 'pgvector', provider_type: 'remote::pgvector' }, // eslint-disable-line camelcase
         ]),
         isLoading: false,
-      } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
+      } as unknown as ReturnType<typeof useMaasVectorStoreProvidersQuery>);
 
       const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       const preFilledDefaults = { vector_io_provider_id: 'milvus' }; // eslint-disable-line camelcase

@@ -71,7 +71,7 @@ import SecretSelector, { SecretSelection } from '~/app/components/common/SecretS
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaasModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -207,7 +207,7 @@ function AutoragConfigure({
   const { isSubmitting } = formState;
 
   const [
-    ogxSecretName,
+    maasSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
@@ -216,7 +216,7 @@ function AutoragConfigure({
   ] = useWatch({
     control: form.control,
     name: [
-      'ogx_secret_name',
+      'maas_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
@@ -231,28 +231,28 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
+  } = useMaasModelsQuery(namespace ?? '', maasSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
     if (isModelsError) {
       notification.error(
         'Failed to load models',
-        'Check that the Open GenAI Stack secret is valid and try again.',
+        'Check that the MaaS secret is valid and try again.',
       );
     }
   }, [isModelsError, notification]);
 
   // When the secret changes, mark models as needing re-initialization and
   // immediately clear stale selections so the UI reflects the transition.
-  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
+  // Uses useReconfigureSafeEffect (skips on mount) because maasSecretName is
   // already populated on mount during reconfigure; a plain useEffect would
   // wipe the pre-populated model selections before they could be restored.
   useReconfigureSafeEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
     setValue('embedding_models', []);
-  }, [ogxSecretName, setValue]);
+  }, [maasSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data.

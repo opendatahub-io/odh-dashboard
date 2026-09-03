@@ -42,7 +42,7 @@ jest.mock('~/app/api/k8s', () => ({
     if (type === 'storage') {
       return mockGetStorageSecrets;
     }
-    if (type === 'ogx') {
+    if (type === 'maas') {
       return mockGetLlsSecrets;
     }
     return jest.fn().mockResolvedValue([]);
@@ -99,7 +99,7 @@ jest.mock('mod-arch-shared', () => ({
 let capturedProps: {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: unknown;
-  initialOgxSecret?: unknown;
+  initialMaasSecret?: unknown;
   sourceRunId?: string;
   sourceRunName?: string;
 } = {};
@@ -372,7 +372,7 @@ describe('AutoragReconfigureLoader', () => {
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
-        ogx_secret_name: 'ogx-secret',
+        maas_secret_name: 'maas-secret',
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       };
@@ -395,7 +395,7 @@ describe('AutoragReconfigureLoader', () => {
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
-        ogx_secret_name: 'ogx-secret',
+        maas_secret_name: 'maas-secret',
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
         display_name: 'Run A - 1',
@@ -426,7 +426,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-aws-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'ogx',
+            maas_secret_name: 'maas',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -471,7 +471,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'incomplete-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'ogx',
+            maas_secret_name: 'maas',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -508,7 +508,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'missing-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'ogx',
+            maas_secret_name: 'maas',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -532,13 +532,13 @@ describe('AutoragReconfigureLoader', () => {
       });
     });
 
-    it('should resolve initialOgxSecret from ogx secrets list', async () => {
+    it('should resolve initialMaasSecret from maas secrets list', async () => {
       const mockLlsSecrets = [
         {
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-secret',
-          type: 'ogx',
-          data: { ogx_url: 'https://example.com' },
+          uuid: 'maas-uuid-1',
+          name: 'my-maas-secret',
+          type: 'maas',
+          data: { maas_url: 'https://example.com' },
         },
       ];
       mockGetLlsSecrets.mockResolvedValue(mockLlsSecrets);
@@ -553,7 +553,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'my-ogx-secret',
+            maas_secret_name: 'my-maas-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -568,18 +568,18 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialOgxSecret).toMatchObject({
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-secret',
-          type: 'ogx',
+        expect(capturedProps.initialMaasSecret).toMatchObject({
+          uuid: 'maas-uuid-1',
+          name: 'my-maas-secret',
+          type: 'maas',
         });
-        expect(capturedProps.initialOgxSecret).not.toHaveProperty('invalid');
+        expect(capturedProps.initialMaasSecret).not.toHaveProperty('invalid');
       });
     });
 
-    it('should show warning and not set initialOgxSecret when ogx secret name does not match', async () => {
+    it('should show warning and not set initialMaasSecret when maas secret name does not match', async () => {
       mockGetLlsSecrets.mockResolvedValue([
-        { uuid: 'other-uuid', name: 'other-ogx', type: 'ogx', data: {} },
+        { uuid: 'other-uuid', name: 'other-maas', type: 'maas', data: {} },
       ]);
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -592,7 +592,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'missing-ogx-secret',
+            maas_secret_name: 'missing-maas-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -606,12 +606,12 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialOgxSecret).toBeUndefined();
+      expect(capturedProps.initialMaasSecret).toBeUndefined();
 
       await waitFor(() => {
         expect(mockNotification.warning).toHaveBeenCalledWith(
           'Connection secret not found',
-          expect.stringContaining('missing-ogx-secret'),
+          expect.stringContaining('missing-maas-secret'),
         );
       });
     });
@@ -630,7 +630,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'ogx-secret',
+            maas_secret_name: 'maas-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -652,7 +652,7 @@ describe('AutoragReconfigureLoader', () => {
       });
 
       expect(capturedProps.initialInputDataSecret).toBeUndefined();
-      expect(capturedProps.initialOgxSecret).toBeUndefined();
+      expect(capturedProps.initialMaasSecret).toBeUndefined();
     });
   });
 
@@ -700,7 +700,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'my-bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'ogx-secret',
+            maas_secret_name: 'maas-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 10,
           },
@@ -736,17 +736,17 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
-  describe('OGX secret resolution from normalized pipeline run data', () => {
-    it('should resolve OGX secret and pass normalized keys as initialValues', async () => {
-      const mockOgxSecrets = [
+  describe('MaaS secret resolution from normalized pipeline run data', () => {
+    it('should resolve MaaS secret and pass normalized keys as initialValues', async () => {
+      const mockMaasSecrets = [
         {
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-conn',
-          type: 'ogx',
-          data: { OGX_CLIENT_BASE_URL: 'https://ogx.example.com' },
+          uuid: 'maas-uuid-1',
+          name: 'my-maas-conn',
+          type: 'maas',
+          data: { MAAS_BASE_URL: 'https://maas.example.com' },
         },
       ];
-      mockGetLlsSecrets.mockResolvedValue(mockOgxSecrets);
+      mockGetLlsSecrets.mockResolvedValue(mockMaasSecrets);
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun(
@@ -758,7 +758,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            ogx_secret_name: 'my-ogx-conn',
+            maas_secret_name: 'my-maas-conn',
             vector_io_provider_id: 'milvus',
             embedding_models: ['model-a'],
             optimization_metric: 'faithfulness',
@@ -775,15 +775,15 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialOgxSecret).toMatchObject({
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-conn',
-          type: 'ogx',
+        expect(capturedProps.initialMaasSecret).toMatchObject({
+          uuid: 'maas-uuid-1',
+          name: 'my-maas-conn',
+          type: 'maas',
         });
       });
 
       expect(capturedProps.initialValues).toMatchObject({
-        ogx_secret_name: 'my-ogx-conn',
+        maas_secret_name: 'my-maas-conn',
         vector_io_provider_id: 'milvus',
         embedding_models: ['model-a'],
         display_name: 'Legacy Run - 1',

@@ -1,4 +1,4 @@
-package ogx
+package maas
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestServer(handler http.HandlerFunc) (*httptest.Server, *OGXClient) {
+func newTestServer(handler http.HandlerFunc) (*httptest.Server, *MaaSClient) {
 	ts := httptest.NewServer(handler)
-	return ts, NewOGXClient(ts.Client())
+	return ts, NewMaaSClient(ts.Client())
 }
 
 func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
@@ -27,14 +27,14 @@ func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
 
 // --- ListModels ---
 
-func TestOGXClient_ListModels(t *testing.T) {
+func TestMaaSClient_ListModels(t *testing.T) {
 	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/v1/models", r.URL.Path)
 			assert.Equal(t, "application/json", r.Header.Get("Accept"))
 			jsonResponse(t, w, map[string]any{
-				"data": []models.OGXNativeModel{
-					{ID: "llama3.2:3b", CustomMetadata: &models.OGXCustomMetadata{ModelType: "llm"}},
+				"data": []models.MaaSNativeModel{
+					{ID: "llama3.2:3b", CustomMetadata: &models.MaaSCustomMetadata{ModelType: "llm"}},
 				},
 			})
 		})
@@ -48,7 +48,7 @@ func TestOGXClient_ListModels(t *testing.T) {
 
 	t.Run("falls back to bare array format", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			jsonResponse(t, w, []models.OGXNativeModel{
+			jsonResponse(t, w, []models.MaaSNativeModel{
 				{ID: "mistral-7b"},
 			})
 		})
@@ -64,7 +64,7 @@ func TestOGXClient_ListModels(t *testing.T) {
 		var gotAuth string
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			gotAuth = r.Header.Get("Authorization")
-			jsonResponse(t, w, map[string]any{"data": []models.OGXNativeModel{}})
+			jsonResponse(t, w, map[string]any{"data": []models.MaaSNativeModel{}})
 		})
 		defer ts.Close()
 
@@ -96,9 +96,9 @@ func TestOGXClient_ListModels(t *testing.T) {
 
 				_, err := c.ListModels(context.Background(), ts.URL, "")
 				require.Error(t, err)
-				var ogxErr *OGXError
-				require.ErrorAs(t, err, &ogxErr)
-				assert.Equal(t, tt.wantCode, ogxErr.Code)
+				var maasErr *MaaSError
+				require.ErrorAs(t, err, &maasErr)
+				assert.Equal(t, tt.wantCode, maasErr.Code)
 			})
 		}
 	})
@@ -112,9 +112,9 @@ func TestOGXClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var ogxErr *OGXError
-		require.ErrorAs(t, err, &ogxErr)
-		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+		var maasErr *MaaSError
+		require.ErrorAs(t, err, &maasErr)
+		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
 	})
 
 	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
@@ -139,9 +139,9 @@ func TestOGXClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var ogxErr *OGXError
-		require.ErrorAs(t, err, &ogxErr)
-		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+		var maasErr *MaaSError
+		require.ErrorAs(t, err, &maasErr)
+		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
 	})
 
 	t.Run("wraps connection failures", func(t *testing.T) {
@@ -150,20 +150,20 @@ func TestOGXClient_ListModels(t *testing.T) {
 
 		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var ogxErr *OGXError
-		require.ErrorAs(t, err, &ogxErr)
-		assert.Equal(t, ErrCodeConnectionFailed, ogxErr.Code)
+		var maasErr *MaaSError
+		require.ErrorAs(t, err, &maasErr)
+		assert.Equal(t, ErrCodeConnectionFailed, maasErr.Code)
 	})
 }
 
 // --- ListProviders ---
 
-func TestOGXClient_ListProviders(t *testing.T) {
+func TestMaaSClient_ListProviders(t *testing.T) {
 	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/v1/providers", r.URL.Path)
 			jsonResponse(t, w, map[string]any{
-				"data": []models.OGXProvider{
+				"data": []models.MaaSProvider{
 					{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
 				},
 			})
@@ -178,7 +178,7 @@ func TestOGXClient_ListProviders(t *testing.T) {
 
 	t.Run("falls back to bare array format", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
-			jsonResponse(t, w, []models.OGXProvider{
+			jsonResponse(t, w, []models.MaaSProvider{
 				{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
 			})
 		})
@@ -198,9 +198,9 @@ func TestOGXClient_ListProviders(t *testing.T) {
 
 		_, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var ogxErr *OGXError
-		require.ErrorAs(t, err, &ogxErr)
-		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+		var maasErr *MaaSError
+		require.ErrorAs(t, err, &maasErr)
+		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
 	})
 
 	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
@@ -221,9 +221,9 @@ func TestOGXClient_ListProviders(t *testing.T) {
 
 		_, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var ogxErr *OGXError
-		require.ErrorAs(t, err, &ogxErr)
-		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+		var maasErr *MaaSError
+		require.ErrorAs(t, err, &maasErr)
+		assert.Equal(t, ErrCodeInternalError, maasErr.Code)
 	})
 }
 
@@ -236,11 +236,11 @@ func TestSetAuthHeader(t *testing.T) {
 		url        string
 		wantHeader string
 	}{
-		{"https host gets bearer token", "tok", "https://ogx.example.com/v1/models", "Bearer tok"},
+		{"https host gets bearer token", "tok", "https://maas.example.com/v1/models", "Bearer tok"},
 		{"localhost over http gets bearer token", "tok", "http://localhost:8080/v1/models", "Bearer tok"},
 		{"127.0.0.1 over http gets bearer token", "tok", "http://127.0.0.1:8080/v1/models", "Bearer tok"},
-		{"plain http to a remote host omits the token", "tok", "http://ogx.internal.svc:8080/v1/models", ""},
-		{"empty apiKey never sets a header", "", "https://ogx.example.com/v1/models", ""},
+		{"plain http to a remote host omits the token", "tok", "http://maas.internal.svc:8080/v1/models", ""},
+		{"empty apiKey never sets a header", "", "https://maas.example.com/v1/models", ""},
 	}
 
 	for _, tt := range tests {

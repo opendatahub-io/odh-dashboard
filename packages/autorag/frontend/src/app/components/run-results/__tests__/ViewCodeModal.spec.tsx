@@ -31,7 +31,7 @@ jest.mock('react-router', () => ({
 
 jest.mock('~/app/context/AutoragResultsContext', () => ({
   useAutoragResultsContext: () => ({
-    parameters: { ogx_secret_name: 'test-secret' },
+    parameters: { maas_secret_name: 'test-secret' },
     patterns: {},
   }),
 }));
@@ -66,8 +66,8 @@ const mockTemplate: ResponsesTemplate = {
   include: ['file_search_call.results'],
 };
 
-const mockOgxCredentials = {
-  baseUrl: btoa('https://ogx.example.com'),
+const mockMaasCredentials = {
+  baseUrl: btoa('https://maas.example.com'),
   apiKey: btoa('sk-test-key-123'),
 };
 
@@ -153,7 +153,7 @@ describe('ViewCodeModal', () => {
   describe('with credentials', () => {
     const propsWithCredentials = {
       ...defaultProps,
-      ogxCredentials: mockOgxCredentials,
+      maasCredentials: mockMaasCredentials,
     };
 
     it('should render the inject credentials toggle', () => {
@@ -169,16 +169,16 @@ describe('ViewCodeModal', () => {
 
     it('should show k8s credential setup by default when credentials are available but toggle is off', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
-      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
+      const [codeBlock] = screen.getAllByText(/MAAS_BASE_URL/);
       expect(codeBlock.textContent).toContain('oc get secret');
-      expect(codeBlock.textContent).not.toContain('ogx.example.com');
+      expect(codeBlock.textContent).not.toContain('maas.example.com');
     });
 
     it('should inject credentials when the toggle is switched on', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       fireEvent.click(screen.getByTestId('toggle-credentials-button'));
       const codeBlock = screen.getByText(/curl -X POST/);
-      expect(codeBlock.textContent).toContain('ogx.example.com');
+      expect(codeBlock.textContent).toContain('maas.example.com');
       expect(codeBlock.textContent).not.toContain('<HOSTNAME>');
     });
 
@@ -201,14 +201,14 @@ describe('ViewCodeModal', () => {
     it('should explain credentials are fetched from cluster when no credentials', () => {
       render(<ViewCodeModal {...defaultProps} />);
       expect(
-        screen.getByText(/fetches your Open GenAI Stack credentials from the cluster/),
+        screen.getByText(/fetches your MaaS credentials from the cluster/),
       ).toBeInTheDocument();
     });
 
     it('should not show the cluster fetch description when credentials are available', () => {
       render(<ViewCodeModal {...propsWithCredentials} />);
       expect(
-        screen.queryByText(/fetches your Open GenAI Stack credentials from the cluster/),
+        screen.queryByText(/fetches your MaaS credentials from the cluster/),
       ).not.toBeInTheDocument();
     });
 
@@ -222,7 +222,7 @@ describe('ViewCodeModal', () => {
       expect(writeText).toHaveBeenCalledTimes(1);
       const copiedText = writeText.mock.calls[0][0] as string;
       expect(copiedText).toContain('oc get secret');
-      expect(copiedText).not.toContain('ogx.example.com');
+      expect(copiedText).not.toContain('maas.example.com');
     });
 
     it('should copy snippet with real credentials when toggle is on', async () => {
@@ -235,7 +235,7 @@ describe('ViewCodeModal', () => {
 
       expect(writeText).toHaveBeenCalledTimes(1);
       const copiedText = writeText.mock.calls[0][0] as string;
-      expect(copiedText).toContain('ogx.example.com');
+      expect(copiedText).toContain('maas.example.com');
       expect(copiedText).toContain('sk-test-key-123');
       expect(copiedText).not.toContain('<HOSTNAME>');
       expect(copiedText).not.toContain('<API_KEY>');
@@ -289,14 +289,14 @@ describe('ViewCodeModal', () => {
         baseUrl: '%%%invalid-base64%%%',
         apiKey: btoa('sk-test-key-123'),
       };
-      render(<ViewCodeModal {...defaultProps} ogxCredentials={invalidCredentials} />);
+      render(<ViewCodeModal {...defaultProps} maasCredentials={invalidCredentials} />);
 
       expect(mockNotification.error).toHaveBeenCalledWith(
         'Failed to decode credentials',
         expect.any(String),
       );
       expect(screen.queryByTestId('toggle-credentials-button')).not.toBeInTheDocument();
-      const [codeBlock] = screen.getAllByText(/OGX_CLIENT_BASE_URL/);
+      const [codeBlock] = screen.getAllByText(/MAAS_BASE_URL/);
       expect(codeBlock.textContent).toContain('oc get secret');
     });
   });

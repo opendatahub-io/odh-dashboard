@@ -382,11 +382,11 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `input_data_secret_name` | string | Yes | Name of the K8s secret containing input data credentials |
 | `input_data_bucket_name` | string | Yes | S3 bucket name for input data |
 | `input_data_key` | string | Yes | Object key within the input data bucket |
-| `ogx_secret_name` | string | Yes | Name of the K8s secret for Open GenAI Stack access |
+| `maas_secret_name` | string | Yes | Name of the K8s secret for Models as a Service (MaaS) access |
 | `embedding_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `overall_score` (default), `faithfulness`, `answer_correctness`, or `context_correctness` |
-| `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in ogx (e.g. ogx Milvus) |
+| `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in MaaS (e.g. MaaS Milvus) |
 | `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
 **Notes:**
@@ -414,7 +414,7 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
     "input_data_secret_name": "minio-secret",
     "input_data_bucket_name": "autorag",
     "input_data_key": "documents/",
-    "ogx_secret_name": "llama-secret",
+    "maas_secret_name": "llama-secret",
     "optimization_metric": "overall_score"
   }'
 ```
@@ -443,7 +443,7 @@ Returns `200 OK` with the created pipeline run:
         "input_data_secret_name": "minio-secret",
         "input_data_bucket_name": "autorag",
         "input_data_key": "documents/",
-        "ogx_secret_name": "llama-secret"
+        "maas_secret_name": "llama-secret"
       }
     },
     "state": "PENDING",
@@ -472,7 +472,7 @@ Returns `200 OK` with the created pipeline run:
 {
   "error": {
     "code": "400",
-    "message": "missing required fields: display_name, test_data_secret_name, ogx_secret_name"
+    "message": "missing required fields: display_name, test_data_secret_name, maas_secret_name"
   }
 }
 ```

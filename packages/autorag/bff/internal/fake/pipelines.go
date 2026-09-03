@@ -297,7 +297,7 @@ func (c *PipelinesClient) seedRuns() {
 			"input_data_bucket_name":        "s3-bucket",
 			"input_data_key":                "autorag input data/pdf/bank_policies_pdf/documents",
 			"input_data_secret_name":        "data-connection",
-			"ogx_secret_name":               "ogx",
+			"maas_secret_name":              "maas",
 			"optimization_max_rag_patterns": 8,
 			"optimization_metric":           "faithfulness",
 			"test_data_bucket_name":         "s3-bucket",

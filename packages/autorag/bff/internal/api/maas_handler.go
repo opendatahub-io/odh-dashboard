@@ -10,28 +10,28 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-type ogxRepository interface {
-	GetOGXModels(ctx context.Context, namespace, secretName string) (*models.OGXModelsData, error)
-	GetOGXVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.OGXVectorStoreProvidersData, error)
+type maasRepository interface {
+	GetMaaSModels(ctx context.Context, namespace, secretName string) (*models.MaaSModelsData, error)
+	GetMaaSVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.MaaSVectorStoreProvidersData, error)
 }
 
-type OGXHandler struct {
+type MaaSHandler struct {
 	logger *slog.Logger
-	repo   ogxRepository
+	repo   maasRepository
 }
 
-type OGXModelsEnvelope Envelope[*models.OGXModelsData, None]
-type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
+type MaaSModelsEnvelope Envelope[*models.MaaSModelsData, None]
+type MaaSVectorStoresEnvelope Envelope[*models.MaaSVectorStoreProvidersData, None]
 
-// OGXModelsHandler handles GET /api/v1/ogx/models
-// Returns all available models from Open GenAI Stack Distribution.
-func (h *OGXHandler) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// MaaSModelsHandler handles GET /api/v1/maas/models
+// Returns all available models from Models as a Service Distribution.
+func (h *MaaSHandler) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
@@ -50,26 +50,26 @@ func (h *OGXHandler) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	modelsData, err := h.repo.GetOGXModels(ctx, namespace, secretName)
+	modelsData, err := h.repo.GetMaaSModels(ctx, namespace, secretName)
 	if err != nil {
-		h.handleOGXOrK8sError(w, r, err)
+		h.handleMaaSOrK8sError(w, r, err)
 		return
 	}
 
-	ogxModelsEnvelope := OGXModelsEnvelope{
+	maasModelsEnvelope := MaaSModelsEnvelope{
 		Data: modelsData,
 	}
 
-	err = writeJSON(w, http.StatusOK, ogxModelsEnvelope, nil)
+	err = writeJSON(w, http.StatusOK, maasModelsEnvelope, nil)
 	if err != nil {
 		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
-// OGXVectorStoresHandler handles GET /api/v1/ogx/vector-stores
-// Returns available vector store providers from Open GenAI Stack Distribution,
+// MaaSVectorStoresHandler handles GET /api/v1/maas/vector-stores
+// Returns available vector store providers from Models as a Service Distribution,
 // filtered to only include providers with the vector_io API type.
-func (h *OGXHandler) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *MaaSHandler) MaaSVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
@@ -88,13 +88,13 @@ func (h *OGXHandler) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	providersData, err := h.repo.GetOGXVectorStoreProviders(ctx, namespace, secretName)
+	providersData, err := h.repo.GetMaaSVectorStoreProviders(ctx, namespace, secretName)
 	if err != nil {
-		h.handleOGXOrK8sError(w, r, err)
+		h.handleMaaSOrK8sError(w, r, err)
 		return
 	}
 
-	envelope := OGXVectorStoresEnvelope{
+	envelope := MaaSVectorStoresEnvelope{
 		Data: providersData,
 	}
 
@@ -104,13 +104,13 @@ func (h *OGXHandler) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// --- OGX Error Helpers ---
+// --- MaaS Error Helpers ---
 
-// handleOGXOrK8sError handles errors that may originate from either the OGX client
-// (when calling OGX APIs) or the Kubernetes secret lookup performed inside the repository.
+// handleMaaSOrK8sError handles errors that may originate from either the MaaS client
+// (when calling MaaS APIs) or the Kubernetes secret lookup performed inside the repository.
 // It checks for K8s domain errors first (NotFoundError, ForbiddenError, UnauthorizedError,
-// ValidationError), then falls back to OGX-specific error handling.
-func (h *OGXHandler) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
+// ValidationError), then falls back to MaaS-specific error handling.
+func (h *MaaSHandler) handleMaaSOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
 	// Handle autox-core Kubernetes errors produced by k8sService.GetSecret
 	if errors.Is(err, kubernetes.ErrNotFound) {
 		notFoundResponseWithMessage(h.logger, w, r, err.Error())
@@ -128,29 +128,29 @@ func (h *OGXHandler) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request,
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
-	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, repositories.ErrOGXCredentialValidation) {
+	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, repositories.ErrMaaSCredentialValidation) {
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
-	// Delegate to OGX-specific error handling for OGX client errors
-	h.handleOGXClientError(w, r, err)
+	// Delegate to MaaS-specific error handling for MaaS client errors
+	h.handleMaaSClientError(w, r, err)
 }
 
-// handleOGXClientError maps Open GenAI Stack client errors to appropriate HTTP status codes and sends the response.
+// handleMaaSClientError maps Models as a Service client errors to appropriate HTTP status codes and sends the response.
 // Uses errors.As to unwrap the error chain, since repository errors are wrapped with fmt.Errorf("...: %w", err).
-func (h *OGXHandler) handleOGXClientError(w http.ResponseWriter, r *http.Request, err error) {
-	var ogxErr *ogx.OGXError
-	if errors.As(err, &ogxErr) {
-		statusCode := ogxErr.StatusCode
+func (h *MaaSHandler) handleMaaSClientError(w http.ResponseWriter, r *http.Request, err error) {
+	var maasErr *maas.MaaSError
+	if errors.As(err, &maasErr) {
+		statusCode := maasErr.StatusCode
 		if statusCode == 0 {
-			statusCode = h.getDefaultStatusCodeForOGXClientError(ogxErr.Code)
+			statusCode = h.getDefaultStatusCodeForMaaSClientError(maasErr.Code)
 		}
 
 		if statusCode >= 500 {
 			logError(h.logger, r, err)
 		}
 
-		httpError := h.mapOGXClientErrorToHTTPError(ogxErr, statusCode)
+		httpError := h.mapMaaSClientErrorToHTTPError(maasErr, statusCode)
 		errorResponse(h.logger, w, r, httpError)
 		return
 	}
@@ -159,26 +159,26 @@ func (h *OGXHandler) handleOGXClientError(w http.ResponseWriter, r *http.Request
 	serverErrorResponse(h.logger, w, r, err)
 }
 
-// getDefaultStatusCodeForOGXClientError returns default HTTP status codes for OGXError codes
-func (h *OGXHandler) getDefaultStatusCodeForOGXClientError(errorCode string) int {
+// getDefaultStatusCodeForMaaSClientError returns default HTTP status codes for MaaSError codes
+func (h *MaaSHandler) getDefaultStatusCodeForMaaSClientError(errorCode string) int {
 	switch errorCode {
-	case ogx.ErrCodeInvalidRequest:
+	case maas.ErrCodeInvalidRequest:
 		return http.StatusBadRequest
-	case ogx.ErrCodeUnauthorized:
+	case maas.ErrCodeUnauthorized:
 		return http.StatusUnauthorized
-	case ogx.ErrCodeNotFound:
+	case maas.ErrCodeNotFound:
 		return http.StatusNotFound
-	case ogx.ErrCodeConnectionFailed:
+	case maas.ErrCodeConnectionFailed:
 		return http.StatusBadGateway
-	case ogx.ErrCodeTimeout, ogx.ErrCodeServerUnavailable:
+	case maas.ErrCodeTimeout, maas.ErrCodeServerUnavailable:
 		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
 }
 
-// mapOGXClientErrorToHTTPError converts OGXError to HTTP error with appropriate codes
-func (h *OGXHandler) mapOGXClientErrorToHTTPError(lsErr *ogx.OGXError, statusCode int) *integrations.HTTPError {
+// mapMaaSClientErrorToHTTPError converts MaaSError to HTTP error with appropriate codes
+func (h *MaaSHandler) mapMaaSClientErrorToHTTPError(lsErr *maas.MaaSError, statusCode int) *integrations.HTTPError {
 	var code string
 	var message string
 
@@ -206,8 +206,8 @@ func (h *OGXHandler) mapOGXClientErrorToHTTPError(lsErr *ogx.OGXError, statusCod
 			code = "server_error"
 			message = "The server encountered a problem and could not process your request"
 		} else {
-			code = "ogx_error"
-			message = fmt.Sprintf("Open GenAI Stack client error (HTTP %d): %s", statusCode, lsErr.Message)
+			code = "maas_error"
+			message = fmt.Sprintf("Models as a Service client error (HTTP %d): %s", statusCode, lsErr.Message)
 		}
 	}
 

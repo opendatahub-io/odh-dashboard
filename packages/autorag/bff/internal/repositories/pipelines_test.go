@@ -103,7 +103,7 @@ func validRequest() models.CreateAutoRAGRunRequest {
 		InputDataSecretName: "input-secret",
 		InputDataBucketName: "input-bucket",
 		InputDataKey:        "docs/",
-		OGXSecretName:       "ogx-secret",
+		MaaSSecretName:      "maas-secret",
 	}
 }
 
@@ -122,7 +122,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		for _, field := range []string{"display_name", "test_data_secret_name", "test_data_bucket_name",
-			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_key", "ogx_secret_name"} {
+			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_key", "maas_secret_name"} {
 			if !strings.Contains(err.Error(), field) {
 				t.Errorf("error should mention %q: %v", field, err)
 			}
@@ -228,8 +228,8 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["input_data_key"] != "docs/" {
 			t.Errorf("input_data_key = %v", params["input_data_key"])
 		}
-		if params["ogx_secret_name"] != "ogx-secret" {
-			t.Errorf("ogx_secret_name = %v", params["ogx_secret_name"])
+		if params["maas_secret_name"] != "maas-secret" {
+			t.Errorf("maas_secret_name = %v", params["maas_secret_name"])
 		}
 		if params["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Errorf("optimization_metric = %v, want default %q", params["optimization_metric"], constants.DefaultOptimizationMetric)
@@ -666,8 +666,8 @@ func TestCreateRun(t *testing.T) {
 		if gotInput.PipelineVersionReference.PipelineID != "p1" {
 			t.Error("pipeline ID not forwarded")
 		}
-		if gotInput.RuntimeConfig.Parameters["ogx_secret_name"] != "ogx-secret" {
-			t.Error("ogx_secret_name not forwarded")
+		if gotInput.RuntimeConfig.Parameters["maas_secret_name"] != "maas-secret" {
+			t.Error("maas_secret_name not forwarded")
 		}
 		if gotInput.RuntimeConfig.Parameters["optimization_metric"] != constants.DefaultOptimizationMetric {
 			t.Error("default optimization_metric not set")
@@ -713,7 +713,7 @@ func TestValidateCreateIndexingPipelineRunRequest(t *testing.T) {
 			"embedding_model_id":     "embed-model",
 			"input_data_secret_name": "input-secret",
 			"input_data_bucket_name": "input-bucket",
-			"ogx_secret_name":        "ogx-secret",
+			"maas_secret_name":       "maas-secret",
 			"vector_io_provider_id":  "milvus",
 		},
 	}

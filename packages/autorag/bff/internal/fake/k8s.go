@@ -78,22 +78,22 @@ var fakeSecrets = map[string][]v1.Secret{
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ogx",
+				Name:      "maas",
 				Namespace: "my-project",
 				UID:       "494aed77-c620-4ab0-8cd4-3fad4d6247c8",
 				Annotations: map[string]string{
-					"openshift.io/display-name": "ogx",
+					"openshift.io/display-name": "maas",
 				},
 				Labels: map[string]string{
 					"opendatahub.io/managed":         "true",
 					"opendatahub.io/dashboard":       "true",
-					"opendatahub.io/secret-type":     "ogx",
-					"opendatahub.io/connection-type": "ogx",
+					"opendatahub.io/secret-type":     "maas",
+					"opendatahub.io/connection-type": "maas",
 				},
 			},
 			Data: map[string][]byte{
-				"OGX_CLIENT_API_KEY":  []byte("fake-ogx-api-key"),
-				"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
+				"MAAS_BASE_URL": []byte("https://maas.example.com"),
 			},
 		},
 	},

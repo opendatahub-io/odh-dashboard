@@ -32,14 +32,14 @@ export const generateCurlSnippet = (
   -H "Authorization: Bearer ${apiKey}" \\
   -d '${body}'`;
   }
-  return `OGX_CLIENT_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_BASE_URL}' | base64 -d)
-OGX_CLIENT_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
-  -o jsonpath='{.data.OGX_CLIENT_API_KEY}' | base64 -d)
+  return `MAAS_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.MAAS_BASE_URL}' | base64 -d)
+MAAS_API_KEY=$(oc get secret ${secretName} -n ${namespace} \\
+  -o jsonpath='{.data.MAAS_API_KEY}' | base64 -d)
 
-curl -X POST "\${OGX_CLIENT_BASE_URL}/v1/responses" \\
+curl -X POST "\${MAAS_BASE_URL}/v1/responses" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer \${OGX_CLIENT_API_KEY}" \\
+  -H "Authorization: Bearer \${MAAS_API_KEY}" \\
   -d '${body}'`;
 };
 
@@ -86,7 +86,7 @@ const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
-// Fetch the OGX credentials from the Kubernetes secret
+// Fetch the MaaS credentials from the Kubernetes secret
 const secret = await k8sApi.readNamespacedSecret({
   name: "${secretName}",
   namespace: "${namespace}",
@@ -94,8 +94,8 @@ const secret = await k8sApi.readNamespacedSecret({
 
 // Secret values are base64-encoded; decode them to get the raw strings
 const decode = (key) => Buffer.from(secret.data[key], "base64").toString();
-const baseURL = decode("OGX_CLIENT_BASE_URL");
-const apiKey = decode("OGX_CLIENT_API_KEY");
+const baseURL = decode("MAAS_BASE_URL");
+const apiKey = decode("MAAS_API_KEY");
 
 // Build the JSON request body
 const payload = ${body};
@@ -207,15 +207,15 @@ export const generateGoSnippet = (
     '\t\tpanic(err)',
     '\t}',
     '',
-    '\t// Fetch the OGX credentials from the Kubernetes secret',
+    '\t// Fetch the MaaS credentials from the Kubernetes secret',
     `\tsecret, err := clientset.CoreV1().Secrets("${namespace}").Get(context.Background(), "${secretName}", metav1.GetOptions{})`,
     '\tif err != nil {',
     '\t\tpanic(err)',
     '\t}',
     '',
     '\t// secret.Data values are already raw bytes (the K8s client decodes base64 automatically)',
-    '\tbaseURL := string(secret.Data["OGX_CLIENT_BASE_URL"])',
-    '\tapiKey := string(secret.Data["OGX_CLIENT_API_KEY"])',
+    '\tbaseURL := string(secret.Data["MAAS_BASE_URL"])',
+    '\tapiKey := string(secret.Data["MAAS_API_KEY"])',
     '',
     '\t// Build the JSON request body',
     `${body})`,
@@ -323,12 +323,12 @@ from kubernetes import client, config
 config.load_config()
 v1 = client.CoreV1Api()
 
-# Fetch the OGX credentials from the Kubernetes secret
+# Fetch the MaaS credentials from the Kubernetes secret
 secret = v1.read_namespaced_secret("${secretName}", "${namespace}")
 
 # Secret values are base64-encoded; decode them to get the raw strings
-base_url = base64.b64decode(secret.data["OGX_CLIENT_BASE_URL"]).decode()
-api_key = base64.b64decode(secret.data["OGX_CLIENT_API_KEY"]).decode()
+base_url = base64.b64decode(secret.data["MAAS_BASE_URL"]).decode()
+api_key = base64.b64decode(secret.data["MAAS_API_KEY"]).decode()
 
 # Build the request payload
 payload = ${params}

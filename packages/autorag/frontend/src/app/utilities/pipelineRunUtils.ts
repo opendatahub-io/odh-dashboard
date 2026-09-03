@@ -3,7 +3,10 @@ import type { PipelineRun } from '~/app/types';
 /* eslint-disable camelcase */
 const LEGACY_PARAM_RENAMES: Record<string, string> = {
   llama_stack_vector_io_provider_id: 'vector_io_provider_id',
-  llama_stack_secret_name: 'ogx_secret_name',
+  llama_stack_secret_name: 'maas_secret_name',
+  // The OGX dependency was removed from AutoRAG (RHOAIENG-89370); older runs stored the
+  // connection under `ogx_secret_name`, which is now the MaaS connection secret.
+  ogx_secret_name: 'maas_secret_name',
   embeddings_models: 'embedding_models',
 };
 /* eslint-enable camelcase */

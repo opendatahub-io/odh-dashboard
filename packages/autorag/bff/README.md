@@ -15,8 +15,8 @@ This service exposes the following endpoints:
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 - GET `/api/v1/secrets` – list and filter Kubernetes secrets by type
 - GET `/api/v1/s3/file` – retrieve a file from S3 storage
-- GET `/api/v1/ogx/models` – list available models from Open GenAI Stack Distribution
-- GET `/api/v1/ogx/vector-stores` – list available vector stores from Open GenAI Stack Distribution
+- GET `/api/v1/maas/models` – list available models from Models as a Service Distribution
+- GET `/api/v1/maas/vector-stores` – list available vector stores from Models as a Service Distribution
 - GET `/api/v1/pipeline-runs` – query AutoRAG pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single managed pipeline run (AutoRAG or indexing) with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -111,8 +111,8 @@ GET /api/v1/user
 GET /api/v1/namespaces             (dev / mock mode only)
 GET  /api/v1/secrets                 (requires namespace parameter)
 GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
-GET  /api/v1/ogx/models              (requires namespace and secretName parameters)
-GET  /api/v1/ogx/vector-stores       (requires namespace and secretName parameters)
+GET  /api/v1/maas/models              (requires namespace and secretName parameters)
+GET  /api/v1/maas/vector-stores       (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -124,7 +124,7 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
-- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_OGX_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_MAAS_CLIENT=true`). Useful for local testing. **Not recommended for production.**
 
 ### Sample local calls
 
@@ -141,14 +141,14 @@ curl -i -H "kubeflow-userid: user@example.com" "localhost:4000/api/v1/pipeline-r
 # Create a pipeline run
 curl -i -X POST -H "kubeflow-userid: user@example.com" -H "Content-Type: application/json" \
   "localhost:4000/api/v1/pipeline-runs?namespace=test-namespace" \
-  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","ogx_secret_name":"s"}'
+  -d '{"display_name":"test-run","test_data_secret_name":"s","test_data_bucket_name":"b","test_data_key":"k","input_data_secret_name":"s","input_data_bucket_name":"b","input_data_key":"k","maas_secret_name":"s"}'
 ```
 
 For detailed API documentation, see:
 - [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
-- [OGX Models API](docs/ogx-models-endpoint.md)
-- [OGX Vector Stores API](docs/ogx-vector-stores-endpoint.md)
+- [MaaS Models API](docs/maas-models-endpoint.md)
+- [MaaS Vector Stores API](docs/maas-vector-stores-endpoint.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 
@@ -182,9 +182,9 @@ Under the covers, the BFF discovers the DSPipelineApplication (DSPA) in the targ
 
 This means you can simply start the BFF in dev mode and it will handle all service connectivity transparently using your current kubeconfig context.
 
-### Setting up a Open GenAI Stack secret
+### Setting up a Models as a Service secret
 
-The AutoRAG BFF requires a Kubernetes secret with Open GenAI Stack credentials to access models and vector stores. The secret must contain the Open GenAI Stack server URL and an API key (OAuth2 token from Keycloak).
+The AutoRAG BFF requires a Kubernetes secret with Models as a Service credentials to access models and vector stores. The secret must contain the Models as a Service server URL and an API key (OAuth2 token from Keycloak).
 
 #### Secret format
 
@@ -192,68 +192,68 @@ The AutoRAG BFF requires a Kubernetes secret with Open GenAI Stack credentials t
 kind: Secret
 apiVersion: v1
 metadata:
-  name: my-ogx-secret
+  name: my-maas-secret
   namespace: <your-namespace>
 type: Opaque
 data:
-  OGX_CLIENT_BASE_URL: <base64-encoded URL>
-  OGX_CLIENT_API_KEY: <base64-encoded token>
+  MAAS_BASE_URL: <base64-encoded URL>
+  MAAS_API_KEY: <base64-encoded token>
 ```
 
-The secret keys `OGX_CLIENT_BASE_URL` and `OGX_CLIENT_API_KEY` are required (exact match, case-sensitive). The BFF reads these to create the Open GenAI Stack client.
+The secret keys `MAAS_BASE_URL` and `MAAS_API_KEY` are required (exact match, case-sensitive). The BFF reads these to create the Models as a Service client.
 
 #### Generating the API key
 
-The Open GenAI Stack server uses Keycloak for authentication. To obtain an OAuth2 access token:
+The Models as a Service server uses Keycloak for authentication. To obtain an OAuth2 access token:
 
 ```shell
 # 1. Retrieve Keycloak client credentials from the cluster
-CLIENT_ID=$(oc get secret ogx-client-secret -n keycloak -o jsonpath='{.data.client-id}' | base64 -d)
-CLIENT_SECRET=$(oc get secret ogx-client-secret -n keycloak -o jsonpath='{.data.client-secret}' | base64 -d)
+CLIENT_ID=$(oc get secret maas-client-secret -n keycloak -o jsonpath='{.data.client-id}' | base64 -d)
+CLIENT_SECRET=$(oc get secret maas-client-secret -n keycloak -o jsonpath='{.data.client-secret}' | base64 -d)
 
 # 2. Request a token via the Keycloak token endpoint (from inside the cluster)
-TOKEN=$(oc exec -n ogx $(oc get pods -n ogx -l app=ogx -o jsonpath='{.items[0].metadata.name}') -- \
-  curl -s -X POST 'http://keycloak-service.keycloak.svc.cluster.local:8080/realms/ogx/protocol/openid-connect/token' \
+TOKEN=$(oc exec -n maas $(oc get pods -n maas -l app=maas -o jsonpath='{.items[0].metadata.name}') -- \
+  curl -s -X POST 'http://keycloak-service.keycloak.svc.cluster.local:8080/realms/maas/protocol/openid-connect/token' \
   -d "client_id=${CLIENT_ID}&grant_type=client_credentials&client_secret=${CLIENT_SECRET}" | jq -r '.access_token')
 
 # 3. Verify the token works
 curl -s -H "Authorization: Bearer ${TOKEN}" \
-  'https://<ogx-route>/v1/vector_stores' | jq
+  'https://<maas-route>/v1/vector_stores' | jq
 ```
 
 #### Creating the secret
 
-Once you have the token and know your Open GenAI Stack server URL, create the secret:
+Once you have the token and know your Models as a Service server URL, create the secret:
 
 ```shell
-oc create secret generic my-ogx-secret \
+oc create secret generic my-maas-secret \
   --namespace=<your-namespace> \
-  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
-  --from-literal=OGX_CLIENT_API_KEY=${TOKEN}
+  --from-literal=MAAS_BASE_URL=https://<maas-route> \
+  --from-literal=MAAS_API_KEY=${TOKEN}
 ```
 
 **Note:** OAuth2 tokens expire. You will need to regenerate the token and update the secret when it expires. To update an existing secret:
 
 ```shell
-oc create secret generic my-ogx-secret \
+oc create secret generic my-maas-secret \
   --namespace=<your-namespace> \
-  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
-  --from-literal=OGX_CLIENT_API_KEY=${TOKEN} \
+  --from-literal=MAAS_BASE_URL=https://<maas-route> \
+  --from-literal=MAAS_API_KEY=${TOKEN} \
   --dry-run=client -o yaml | oc apply -f -
 ```
 
 #### Using the secret with the BFF
 
-The secret name is passed as a query parameter to the Open GenAI Stack endpoints:
+The secret name is passed as a query parameter to the Models as a Service endpoints:
 
 ```shell
 curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/ogx/models?namespace=<your-namespace>&secretName=my-ogx-secret'
+  'http://localhost:4000/api/v1/maas/models?namespace=<your-namespace>&secretName=my-maas-secret'
 ```
 
-For more details on the Open GenAI Stack endpoints, see:
-- [OGX Models API](docs/ogx-models-endpoint.md)
-- [OGX Vector Stores API](docs/ogx-vector-stores-endpoint.md)
+For more details on the Models as a Service endpoints, see:
+- [MaaS Models API](docs/maas-models-endpoint.md)
+- [MaaS Vector Stores API](docs/maas-vector-stores-endpoint.md)
 
 ### Enabling CORS
 

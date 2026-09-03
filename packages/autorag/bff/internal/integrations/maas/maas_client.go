@@ -1,4 +1,4 @@
-package ogx
+package maas
 
 import (
 	"context"
@@ -18,28 +18,28 @@ type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// OGXClientInterface defines the contract for Open GenAI Stack client operations.
+// MaaSClientInterface defines the contract for Models as a Service client operations.
 // baseURL and apiKey are passed per call so a single client instance can serve
 // multiple namespaces and secrets without reconstructing the HTTP client.
-type OGXClientInterface interface {
-	ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error)
-	ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.OGXProvider, error)
+type MaaSClientInterface interface {
+	ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error)
+	ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error)
 }
 
-// OGXClient communicates with an Open GenAI Stack Distribution server.
+// MaaSClient communicates with an Models as a Service Distribution server.
 // It is stateless — baseURL and apiKey are passed per call so a single
 // instance can serve multiple namespaces and secrets.
-type OGXClient struct {
+type MaaSClient struct {
 	httpClient httpClientInterface
 }
 
-// NewOGXClient creates a client with an injectable HTTP client (for testing).
-func NewOGXClient(httpClient httpClientInterface) *OGXClient {
-	return &OGXClient{httpClient: httpClient}
+// NewMaaSClient creates a client with an injectable HTTP client (for testing).
+func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
+	return &MaaSClient{httpClient: httpClient}
 }
 
-// OGXClientConfig holds configuration for the default OGX client.
-type OGXClientConfig struct {
+// MaaSClientConfig holds configuration for the default MaaS client.
+type MaaSClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
 	// WrapTransport optionally wraps the HTTP transport chain.
@@ -47,9 +47,9 @@ type OGXClientConfig struct {
 	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
-// NewDefaultOGXClient creates a client with a real HTTP client configured for
+// NewDefaultMaaSClient creates a client with a real HTTP client configured for
 // TLS and a generous timeout suitable for model listing operations.
-func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
+func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob
 		MinVersion:         tls.VersionTLS13,
@@ -61,7 +61,7 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	if cfg.WrapTransport != nil {
 		rt = cfg.WrapTransport(rt)
 	}
-	return NewOGXClient(&http.Client{
+	return NewMaaSClient(&http.Client{
 		Transport: rt,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -69,16 +69,16 @@ func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	})
 }
 
-// ListModels retrieves all available models from OGX.
-// Deserializes into OGXNativeModel structs so that upstream schema changes are surfaced
+// ListModels retrieves all available models from MaaS.
+// Deserializes into MaaSNativeModel structs so that upstream schema changes are surfaced
 // explicitly rather than hidden behind the OpenAI SDK.
-// ogx v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
-func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error) {
+// maas v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
+func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/models", nil)
 	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack models: %s", err.Error()))
+		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service models: %s", err.Error()))
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -93,8 +93,8 @@ func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]m
 	const maxModelsResponseBytes = 2 << 20 // 2 MiB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxModelsResponseBytes))
 	if err != nil {
-		return nil, NewOGXError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read Open GenAI Stack models response body: %s", err.Error()),
+		return nil, NewMaaSError(ErrCodeInternalError,
+			fmt.Sprintf("failed to read Models as a Service models response body: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
@@ -103,28 +103,28 @@ func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]m
 	}
 
 	var envelope struct {
-		Data []models.OGXNativeModel `json:"data"`
+		Data []models.MaaSNativeModel `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		var bare []models.OGXNativeModel
+		var bare []models.MaaSNativeModel
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
 		}
-		return nil, NewOGXError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse Open GenAI Stack models response: %s", err.Error()),
+		return nil, NewMaaSError(ErrCodeInternalError,
+			fmt.Sprintf("failed to parse Models as a Service models response: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
 	return envelope.Data, nil
 }
 
-// ListProviders retrieves all registered providers from Open GenAI Stack via /v1/providers.
-func (c *OGXClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.OGXProvider, error) {
+// ListProviders retrieves all registered providers from Models as a Service via /v1/providers.
+func (c *MaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/providers", nil)
 	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack providers: %s", err.Error()))
+		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service providers: %s", err.Error()))
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -139,8 +139,8 @@ func (c *OGXClient) ListProviders(ctx context.Context, baseURL, apiKey string) (
 	const maxProvidersResponseBytes = 1 << 20 // 1 MiB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProvidersResponseBytes))
 	if err != nil {
-		return nil, NewOGXError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read Open GenAI Stack providers response body: %s", err.Error()),
+		return nil, NewMaaSError(ErrCodeInternalError,
+			fmt.Sprintf("failed to read Models as a Service providers response body: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
@@ -149,15 +149,15 @@ func (c *OGXClient) ListProviders(ctx context.Context, baseURL, apiKey string) (
 	}
 
 	var envelope struct {
-		Data []models.OGXProvider `json:"data"`
+		Data []models.MaaSProvider `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		var bare []models.OGXProvider
+		var bare []models.MaaSProvider
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
 		}
-		return nil, NewOGXError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse Open GenAI Stack providers response: %s", err.Error()),
+		return nil, NewMaaSError(ErrCodeInternalError,
+			fmt.Sprintf("failed to parse Models as a Service providers response: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
@@ -177,5 +177,5 @@ func setAuthHeader(req *http.Request, apiKey string) {
 }
 
 // Compile-time interface checks.
-var _ OGXClientInterface = (*OGXClient)(nil)
+var _ MaaSClientInterface = (*MaaSClient)(nil)
 var _ httpClientInterface = (*http.Client)(nil)

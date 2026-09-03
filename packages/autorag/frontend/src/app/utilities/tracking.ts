@@ -149,7 +149,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
 export type VectorStoreProviderType = 'milvus' | 'pgvector';
 
 /**
- * Maps a raw `OgxVectorStoreProvider.provider_type` (e.g. `"remote::milvus"`) to the categorized
+ * Maps a raw `MaasVectorStoreProvider.provider_type` (e.g. `"remote::milvus"`) to the categorized
  * {@link VectorStoreProviderType} used in analytics. Returns `undefined` for any provider type
  * outside the current allowlist — callers must skip firing the tracking event in that case rather
  * than forwarding an uncategorized value. This keeps the tracked property to a fixed, non-sensitive

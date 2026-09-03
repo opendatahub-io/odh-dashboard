@@ -17,10 +17,10 @@ var storageTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var ogxTypeRequiredKeys = map[string][]string{
-	"ogx": {
-		"OGX_CLIENT_API_KEY",
-		"OGX_CLIENT_BASE_URL",
+var maasTypeRequiredKeys = map[string][]string{
+	"maas": {
+		"MAAS_API_KEY",
+		"MAAS_BASE_URL",
 	},
 }
 
@@ -38,7 +38,7 @@ func NewK8sRepository() *K8sRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
+//   - "maas": filter for secrets matching MaaS (Models as a Service) requirements
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -56,8 +56,8 @@ func (r *K8sRepository) GetFilteredSecrets(
 		filtered = secretInfos
 	case "storage":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
-	case "ogx":
-		filtered = kubernetes.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
+	case "maas":
+		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -80,9 +80,9 @@ func (r *K8sRepository) GetFilteredSecrets(
 	return result, nil
 }
 
-// GetSecretCredentials retrieves a named secret and returns only the OGX credential
-// keys (OGX_CLIENT_BASE_URL, OGX_CLIENT_API_KEY) with base64-encoded values.
-// Returns an empty map if the secret contains no OGX keys.
+// GetSecretCredentials retrieves a named secret and returns only the MaaS credential
+// keys (MAAS_BASE_URL, MAAS_API_KEY) with base64-encoded values.
+// Returns an empty map if the secret contains no MaaS keys.
 func (r *K8sRepository) GetSecretCredentials(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -93,9 +93,9 @@ func (r *K8sRepository) GetSecretCredentials(
 		return nil, err
 	}
 
-	ogxKeys := ogxTypeRequiredKeys["ogx"]
-	data := make(map[string]string, len(ogxKeys))
-	for _, key := range ogxKeys {
+	maasKeys := maasTypeRequiredKeys["maas"]
+	data := make(map[string]string, len(maasKeys))
+	for _, key := range maasKeys {
 		if value, ok := secret.Data[key]; ok {
 			data[key] = base64.StdEncoding.EncodeToString(value)
 		}
@@ -111,13 +111,13 @@ func detectType(secret kubernetes.SecretInfo, secretType string) string {
 		return secret.Type
 	}
 	switch secretType {
-	case "ogx":
-		return "ogx"
+	case "maas":
+		return "maas"
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
-		if kubernetes.SecretInfoHasAllKeys(secret, ogxTypeRequiredKeys["ogx"]) {
-			return "ogx"
+		if kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["maas"]) {
+			return "maas"
 		}
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	}

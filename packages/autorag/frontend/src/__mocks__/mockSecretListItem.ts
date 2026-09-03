@@ -42,12 +42,12 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
     ...overrides,
   });
 
-export const mockOGXSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+export const mockMaasSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
-    type: 'ogx',
+    type: 'maas',
     data: {
-      OGX_CLIENT_API_KEY: '[REDACTED]',
-      OGX_CLIENT_BASE_URL: '[REDACTED]',
+      MAAS_API_KEY: '[REDACTED]',
+      MAAS_BASE_URL: '[REDACTED]',
     },
     ...overrides,
   });

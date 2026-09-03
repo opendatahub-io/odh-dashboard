@@ -94,12 +94,12 @@ func s3Secret(name string) kubernetes.SecretInfo {
 	}
 }
 
-func ogxSecret(name string) kubernetes.SecretInfo {
+func maasSecret(name string) kubernetes.SecretInfo {
 	return kubernetes.SecretInfo{
 		UUID: "uid-" + name, Name: name,
 		Data: map[string]string{
-			"OGX_CLIENT_API_KEY":  "key-123",
-			"OGX_CLIENT_BASE_URL": "https://ogx.example.com",
+			"MAAS_API_KEY":  "key-123",
+			"MAAS_BASE_URL": "https://maas.example.com",
 		},
 	}
 }
@@ -130,10 +130,10 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
-	t.Run("ogx filter returns ogx", func(t *testing.T) {
-		secret := ogxSecret("s")
-		if got := detectType(secret, "ogx"); got != "ogx" {
-			t.Errorf("got %q, want ogx", got)
+	t.Run("maas filter returns maas", func(t *testing.T) {
+		secret := maasSecret("s")
+		if got := detectType(secret, "maas"); got != "maas" {
+			t.Errorf("got %q, want maas", got)
 		}
 	})
 
@@ -144,20 +144,20 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
-	t.Run("empty filter prioritizes ogx over storage", func(t *testing.T) {
+	t.Run("empty filter prioritizes maas over storage", func(t *testing.T) {
 		secret := kubernetes.SecretInfo{
 			Data: map[string]string{
-				"OGX_CLIENT_API_KEY":  "k",
-				"OGX_CLIENT_BASE_URL": "u",
-				"AWS_ACCESS_KEY_ID":   "a",
+				"MAAS_API_KEY":      "k",
+				"MAAS_BASE_URL":     "u",
+				"AWS_ACCESS_KEY_ID": "a",
 			},
 		}
-		if got := detectType(secret, ""); got != "ogx" {
-			t.Errorf("got %q, want ogx (prioritized over storage)", got)
+		if got := detectType(secret, ""); got != "maas" {
+			t.Errorf("got %q, want maas (prioritized over storage)", got)
 		}
 	})
 
-	t.Run("empty filter falls back to storage when no ogx keys", func(t *testing.T) {
+	t.Run("empty filter falls back to storage when no maas keys", func(t *testing.T) {
 		secret := s3Secret("s")
 		if got := detectType(secret, ""); got != "s3" {
 			t.Errorf("got %q, want s3 fallback", got)
@@ -177,7 +177,7 @@ func TestDetectType(t *testing.T) {
 func TestGetFilteredSecrets(t *testing.T) {
 	allSecrets := []kubernetes.SecretInfo{
 		s3Secret("aws-conn"),
-		ogxSecret("ogx-conn"),
+		maasSecret("maas-conn"),
 		plainSecret("db-creds"),
 	}
 
@@ -214,19 +214,19 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
-	t.Run("ogx type filters to OGX secrets", func(t *testing.T) {
-		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "ogx")
+	t.Run("maas type filters to MaaS secrets", func(t *testing.T) {
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "maas")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(result) != 1 {
-			t.Fatalf("expected 1 ogx secret, got %d", len(result))
+			t.Fatalf("expected 1 maas secret, got %d", len(result))
 		}
-		if result[0].Name != "ogx-conn" {
+		if result[0].Name != "maas-conn" {
 			t.Errorf("Name = %q", result[0].Name)
 		}
-		if result[0].Type != "ogx" {
-			t.Errorf("Type = %q, want ogx", result[0].Type)
+		if result[0].Type != "maas" {
+			t.Errorf("Type = %q, want maas", result[0].Type)
 		}
 	})
 
@@ -308,7 +308,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 				return []kubernetes.SecretInfo{}, nil
 			},
 		}
-		result, err := repo.GetFilteredSecrets(empty, context.Background(), "ns", "ogx")
+		result, err := repo.GetFilteredSecrets(empty, context.Background(), "ns", "maas")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -317,17 +317,17 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
-	t.Run("ogx keys redacted except allowed", func(t *testing.T) {
-		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "ogx")
+	t.Run("maas keys redacted except allowed", func(t *testing.T) {
+		result, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "maas")
 		if err != nil {
 			t.Fatal(err)
 		}
 		s := result[0]
-		if s.Data["OGX_CLIENT_API_KEY"] != "[REDACTED]" {
-			t.Errorf("OGX_CLIENT_API_KEY = %q, want [REDACTED]", s.Data["OGX_CLIENT_API_KEY"])
+		if s.Data["MAAS_API_KEY"] != "[REDACTED]" {
+			t.Errorf("MAAS_API_KEY = %q, want [REDACTED]", s.Data["MAAS_API_KEY"])
 		}
-		if s.Data["OGX_CLIENT_BASE_URL"] != "[REDACTED]" {
-			t.Errorf("OGX_CLIENT_BASE_URL = %q, want [REDACTED]", s.Data["OGX_CLIENT_BASE_URL"])
+		if s.Data["MAAS_BASE_URL"] != "[REDACTED]" {
+			t.Errorf("MAAS_BASE_URL = %q, want [REDACTED]", s.Data["MAAS_BASE_URL"])
 		}
 	})
 }
@@ -337,42 +337,42 @@ func TestGetFilteredSecrets(t *testing.T) {
 func TestGetSecretCredentials(t *testing.T) {
 	repo := NewK8sRepository()
 
-	t.Run("returns base64-encoded OGX keys", func(t *testing.T) {
+	t.Run("returns base64-encoded MaaS keys", func(t *testing.T) {
 		k8s := &mockK8sService{
 			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
 				return &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: "my-ogx-secret", Namespace: "ns"},
+					ObjectMeta: metav1.ObjectMeta{Name: "my-maas-secret", Namespace: "ns"},
 					Data: map[string][]byte{
-						"OGX_CLIENT_API_KEY":  []byte("sk-test-api-key-123"),
-						"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+						"MAAS_API_KEY":  []byte("sk-test-api-key-123"),
+						"MAAS_BASE_URL": []byte("https://maas.example.com"),
 					},
 				}, nil
 			},
 		}
 
-		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "my-ogx-secret")
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "my-maas-secret")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(result) != 2 {
 			t.Fatalf("expected 2 keys, got %d", len(result))
 		}
-		if result["OGX_CLIENT_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("sk-test-api-key-123")) {
-			t.Errorf("OGX_CLIENT_API_KEY = %q", result["OGX_CLIENT_API_KEY"])
+		if result["MAAS_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("sk-test-api-key-123")) {
+			t.Errorf("MAAS_API_KEY = %q", result["MAAS_API_KEY"])
 		}
-		if result["OGX_CLIENT_BASE_URL"] != base64.StdEncoding.EncodeToString([]byte("https://ogx.example.com")) {
-			t.Errorf("OGX_CLIENT_BASE_URL = %q", result["OGX_CLIENT_BASE_URL"])
+		if result["MAAS_BASE_URL"] != base64.StdEncoding.EncodeToString([]byte("https://maas.example.com")) {
+			t.Errorf("MAAS_BASE_URL = %q", result["MAAS_BASE_URL"])
 		}
 	})
 
-	t.Run("filters to only OGX keys from mixed secret", func(t *testing.T) {
+	t.Run("filters to only MaaS keys from mixed secret", func(t *testing.T) {
 		k8s := &mockK8sService{
 			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
 				return &v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{Name: "mixed-secret", Namespace: "ns"},
 					Data: map[string][]byte{
-						"OGX_CLIENT_API_KEY":    []byte("sk-test-key"),
-						"OGX_CLIENT_BASE_URL":   []byte("https://ogx.example.com"),
+						"MAAS_API_KEY":          []byte("sk-test-key"),
+						"MAAS_BASE_URL":         []byte("https://maas.example.com"),
 						"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
 						"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG"),
 						"OTHER_FIELD":           []byte("should-not-appear"),

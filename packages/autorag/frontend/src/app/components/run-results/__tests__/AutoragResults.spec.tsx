@@ -189,7 +189,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
         embedding_model_id: 'test-model',
         input_data_secret_name: 'input-secret',
         input_data_bucket_name: 'input-bucket',
-        ogx_secret_name: 'ogx-secret',
+        maas_secret_name: 'maas-secret',
         vector_io_provider_id: 'milvus',
         chunk_size: 512,
         chunk_overlap: 50,

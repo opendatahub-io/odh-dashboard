@@ -12,7 +12,7 @@ import type {
 } from '~/app/components/run-results/playgroundSnippets';
 
 const mockCredentials: SnippetCredentials = {
-  hostname: 'ogx.example.com',
+  hostname: 'maas.example.com',
   apiKey: 'sk-test-key-123',
 };
 
@@ -75,7 +75,7 @@ describe('generateNodeSnippet', () => {
     expect(generateNodeSnippet(mockParams)).toContain('test-model');
   });
 
-  it('should use fetch to call the OGX Responses API directly', () => {
+  it('should use fetch to call the MaaS Responses API directly', () => {
     const result = generateNodeSnippet(mockParams);
     expect(result).toContain('await fetch(');
     expect(result).toContain('/v1/responses');
@@ -128,7 +128,7 @@ describe('generatePythonSnippet', () => {
     expect(generatePythonSnippet(mockParams)).toContain('test-model');
   });
 
-  it('should use requests to call the OGX Responses API directly', () => {
+  it('should use requests to call the MaaS Responses API directly', () => {
     const result = generatePythonSnippet(mockParams);
     expect(result).toContain('requests.post');
     expect(result).toContain('/v1/responses');
@@ -161,7 +161,7 @@ describe('credential injection', () => {
 
   it.each(generators)('should inject credentials and remove placeholders for $name', ({ fn }) => {
     const result = fn(mockParams, mockCredentials);
-    expect(result).toContain('ogx.example.com');
+    expect(result).toContain('maas.example.com');
     expect(result).toContain('sk-test-key-123');
     expect(result).not.toContain('test-secret');
     expect(result).not.toContain('test-ns');
@@ -171,7 +171,7 @@ describe('credential injection', () => {
     'should not contain credentials when no credentials provided for $name',
     ({ fn }) => {
       const result = fn(mockParams);
-      expect(result).not.toContain('ogx.example.com');
+      expect(result).not.toContain('maas.example.com');
       expect(result).not.toContain('sk-test-key-123');
     },
   );

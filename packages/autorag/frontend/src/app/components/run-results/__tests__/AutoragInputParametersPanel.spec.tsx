@@ -44,7 +44,7 @@ const defaultParameters: Partial<ConfigureSchema> = {
   test_data_secret_name: 's3-connection',
   test_data_bucket_name: 'my-bucket',
   test_data_key: 'eval-data.json',
-  ogx_secret_name: 'ls-secret',
+  maas_secret_name: 'ls-secret',
   vector_io_provider_id: 'milvus',
   optimization_metric: 'faithfulness',
   optimization_max_rag_patterns: 8,
@@ -110,7 +110,7 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
-    expect(screen.getByText('Open GenAI Stack connection')).toBeInTheDocument();
+    expect(screen.getByText('MaaS connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         optimization_metric: 'faithfulness',
         input_data_secret_name: 's3-connection',
-        ogx_secret_name: 'ls-secret',
+        maas_secret_name: 'ls-secret',
         description: 'A test run',
       } as Partial<ConfigureSchema>,
     });
@@ -341,7 +341,7 @@ describe('AutoragInputParametersPanel', () => {
     const labels = parameterTerms.map((el) => el.textContent);
     expect(labels).toEqual([
       'Description',
-      'Open GenAI Stack connection',
+      'MaaS connection',
       'S3 connection',
       'Optimization metric',
     ]);

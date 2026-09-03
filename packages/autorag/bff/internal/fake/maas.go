@@ -3,20 +3,20 @@ package fake
 import (
 	"context"
 
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-// OGXClient is a fake implementation of ogx.OGXClientInterface for local development and testing.
-type OGXClient struct{}
+// MaaSClient is a fake implementation of maas.MaaSClientInterface for local development and testing.
+type MaaSClient struct{}
 
-var _ ogx.OGXClientInterface = (*OGXClient)(nil)
+var _ maas.MaaSClientInterface = (*MaaSClient)(nil)
 
-func (c *OGXClient) ListModels(_ context.Context, _, _ string) ([]models.OGXNativeModel, error) {
-	return []models.OGXNativeModel{
+func (c *MaaSClient) ListModels(_ context.Context, _, _ string) ([]models.MaaSNativeModel, error) {
+	return []models.MaaSNativeModel{
 		{
 			ID: "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
-			CustomMetadata: &models.OGXCustomMetadata{
+			CustomMetadata: &models.MaaSCustomMetadata{
 				ModelType:          "llm",
 				ProviderID:         "vllm-inference",
 				ProviderResourceID: "meta-llama/Llama-3.1-8B-Instruct",
@@ -24,7 +24,7 @@ func (c *OGXClient) ListModels(_ context.Context, _, _ string) ([]models.OGXNati
 		},
 		{
 			ID: "vllm-embedding/ibm-granite/granite-embedding-english-r2",
-			CustomMetadata: &models.OGXCustomMetadata{
+			CustomMetadata: &models.MaaSCustomMetadata{
 				ModelType:          "embedding",
 				ProviderID:         "vllm-embedding",
 				ProviderResourceID: "ibm-granite/granite-embedding-english-r2",
@@ -33,8 +33,8 @@ func (c *OGXClient) ListModels(_ context.Context, _, _ string) ([]models.OGXNati
 	}, nil
 }
 
-func (c *OGXClient) ListProviders(_ context.Context, _, _ string) ([]models.OGXProvider, error) {
-	return []models.OGXProvider{
+func (c *MaaSClient) ListProviders(_ context.Context, _, _ string) ([]models.MaaSProvider, error) {
+	return []models.MaaSProvider{
 		{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
 		{API: "vector_io", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
 	}, nil
