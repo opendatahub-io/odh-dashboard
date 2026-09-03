@@ -275,7 +275,10 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         onClose={() => {
           setPathModalRef(null);
         }}
-        providerRef={pathModalRef?.provider?.provider ?? ''}
+        title="Path"
+        description="The request path appended to the provider URL. If path variables were configured, they're shown with resolved values."
+        subContentTitle="Provider"
+        subContent={pathModalRef?.provider?.provider ?? ''}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}

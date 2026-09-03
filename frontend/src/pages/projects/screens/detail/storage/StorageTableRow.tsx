@@ -25,11 +25,13 @@ import ConnectedResources from '#~/pages/projects/screens/detail/connections/Con
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
-import { isModelStorage } from './utils';
+import { getPVCContextStorageType, StorageContextType } from './useStorageContextType';
 
 type StorageTableRowProps = {
   rowIndex: number;
   obj: StorageTableData;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded: boolean;
   storageClassesLoaded: boolean;
   onDeletePVC: (pvc: PersistentVolumeClaimKind) => void;
   onEditPVC: (pvc: PersistentVolumeClaimKind) => void;
@@ -39,6 +41,8 @@ type StorageTableRowProps = {
 const StorageTableRow: React.FC<StorageTableRowProps> = ({
   rowIndex,
   obj,
+  storageContextTypes,
+  storageContextTypesLoaded,
   storageClassesLoaded,
   onDeletePVC,
   onEditPVC,
@@ -48,7 +52,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
-  const modelStorage = isModelStorage(obj.pvc);
   const actions: IAction[] = [
     {
       title: <span data-testid="edit-storage-action">Edit storage</span>,
@@ -149,14 +152,20 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         </Content>
       </Td>
       <Td dataLabel="Storage context">
-        <Content component="p">
-          <Flex>
-            <FlexItem spacer={{ default: 'spacerSm' }}>
-              <HddIcon />
-            </FlexItem>
-            <FlexItem>{` ${modelStorage ? 'Model storage' : 'General purpose'}`}</FlexItem>
-          </Flex>
-        </Content>
+        {storageContextTypesLoaded ? (
+          <Content component="p">
+            <Flex>
+              <FlexItem spacer={{ default: 'spacerSm' }}>
+                <HddIcon />
+              </FlexItem>
+              <FlexItem>{` ${
+                getPVCContextStorageType(obj.pvc, storageContextTypes).title
+              }`}</FlexItem>
+            </Flex>
+          </Content>
+        ) : (
+          <Skeleton />
+        )}
       </Td>
       <Td dataLabel="Storage size">
         <StorageSizeBar pvc={obj.pvc} />
