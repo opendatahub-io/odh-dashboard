@@ -1,10 +1,10 @@
-name: Fast-forward stable to main
+name: Fast-forward main to stable
 
 on:
   workflow_dispatch:
     inputs:
       SYNC_STABLE:
-        description: 'Type SYNC_STABLE to confirm manual fast-forward of stable to main'
+        description: 'Type SYNC_STABLE to confirm manual fast-forward of main to stable'
         required: true
         type: string
   push:
@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   fast-forward:
-    name: Fast-forward stable to main
+    name: Fast-forward main to stable
     if: >-
       github.event_name == 'push' ||
       (github.ref == 'refs/heads/main' &&
@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Fast-forward stable to main
+      - name: Fast-forward main to stable
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -70,6 +70,5 @@ jobs:
 
           git merge --ff-only origin/main
           echo "stable after:  $(git rev-parse HEAD)"
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-          git push origin stable
-          echo "Fast-forwarded stable to main"
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push origin stable
+          echo "Fast-forwarded main to stable"
