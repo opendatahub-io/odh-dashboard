@@ -18,12 +18,12 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter.
-	$(GOLANGCI_LINT) run
+lint: golangci-lint ## Run golangci-lint linter (includes integration-tagged files).
+	$(GOLANGCI_LINT) run --build-tags=integration
 
 .PHONY: lint-fix
-lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
-	$(GOLANGCI_LINT) run --fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes (includes integration-tagged files).
+	$(GOLANGCI_LINT) run --build-tags=integration --fix
 
 .PHONY: test
 test: fmt vet ## Run tests.
