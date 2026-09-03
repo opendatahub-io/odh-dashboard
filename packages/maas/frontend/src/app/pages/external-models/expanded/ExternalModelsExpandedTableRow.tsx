@@ -14,6 +14,9 @@ import {
   ExternalModelsInfoPopoverTarget,
   ExternalModelsInfoPopoverLocation,
   MaaSEvents,
+  ExternalModelsInfoPopoverViewedProperties,
+  ExternalModelProviderDetailViewedProperties,
+  convertStringToExternalModelProviderType,
 } from '~/app/types/event-tracking';
 import { ExternalModelsExpandedRowColumns } from './columns';
 
@@ -48,7 +51,7 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                   infoTarget: ExternalModelsInfoPopoverTarget.PROVIDER_REFERENCE,
                   location: ExternalModelsInfoPopoverLocation.EXPANDED_ROW,
-                });
+                } satisfies ExternalModelsInfoPopoverViewedProperties);
               }}
               resource={getProviderRefResource(row)}
             />
@@ -60,9 +63,11 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               onClick={() => {
                 setProviderURLModalRef(row);
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: row.provider?.provider,
+                  providerType: convertStringToExternalModelProviderType(
+                    row.provider?.provider ?? '',
+                  ),
                   detailType: ExternalModelProviderDetailType.PROVIDER_URL,
-                });
+                } satisfies ExternalModelProviderDetailViewedProperties);
               }}
               data-testid={`expanded-table-row-view-url-button-${row.providerName}`}
             >
@@ -76,9 +81,11 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               onClick={() => {
                 setPathModalRef(row);
                 fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: row.provider?.provider,
+                  providerType: convertStringToExternalModelProviderType(
+                    row.provider?.provider ?? '',
+                  ),
                   detailType: ExternalModelProviderDetailType.PATH,
-                });
+                } satisfies ExternalModelProviderDetailViewedProperties);
               }}
               data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
             >

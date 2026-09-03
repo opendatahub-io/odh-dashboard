@@ -20,6 +20,8 @@ import {
   MaaSGovernanceStatusPopoverViewedProperties,
   EventTrackingPopoverType,
   convertStringToPopoverViewedStatus,
+  MaaSGovernanceGroupLabelSelectedProperties,
+  MaaSSettingsDetailsViewedProperties,
 } from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
@@ -268,7 +270,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   source: EventTrackingSource.OVERVIEW_MODEL,
                   resourceStatus: sub.phase ?? '',
-                })
+                } satisfies MaaSSettingsDetailsViewedProperties)
               }
               linkState={OVERVIEW_LINK_STATE}
               returnTo={returnTo}
@@ -364,7 +366,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                   resourceType: EventTrackingResourceType.AUTHPOLICY,
                   source: EventTrackingSource.OVERVIEW_MODEL,
                   resourceStatus: policy.phase ?? '',
-                })
+                } satisfies MaaSSettingsDetailsViewedProperties)
               }
               linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
@@ -435,7 +437,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
         policyCountWithSelectedGroup: policies.filter((policy) =>
           (policy.groups ?? []).includes(group),
         ).length,
-      });
+      } satisfies MaaSGovernanceGroupLabelSelectedProperties);
     },
     [subscriptions, policies],
   );

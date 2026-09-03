@@ -25,6 +25,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
   let controlSuiteTestDescription: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -34,6 +35,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         controlSuiteTestNamespace = `${fixtureData.controlSuiteTestNamespace}-${uuid}`;
         controlSuiteTestDescription = fixtureData.controlSuiteTestDescription;
         notebookImage = fixtureData.notebookImage;
+        hardwareProfileName = fixtureData.hardwareProfileName;
 
         if (!controlSuiteTestNamespace) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -97,6 +99,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Wait for workbench to run
@@ -174,6 +178,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Stop the Workbench and validate it has stopped successfully
