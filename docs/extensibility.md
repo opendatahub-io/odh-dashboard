@@ -434,11 +434,11 @@ const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
 
 ## Chunk Naming Strategy
 
-The build system uses a **single-chunk-per-plugin** strategy for extension code references. This section applies to extension packages that are bundled into the host application (i.e., workspace packages with a `./extensions` export). For Module Federation remotes, chunking is handled by each remote's own webpack build.
+The build system uses a **single-chunk-per-plugin** strategy for extension code references. This section applies to extension packages that are bundled into the host application (i.e., workspace packages with a `./extensions` export). For Module Federation remotes, chunking is handled by each remote's own rspack build.
 
 ### Scope
 
-The chunk grouping strategy **only affects dynamic imports originating from extension definition files** (files matching `extensions.ts` or files in an `extensions/` directory). Any other code-splitting within a plugin — such as `React.lazy()` route splitting inside components — retains normal webpack behavior and is not merged into the plugin chunk.
+The chunk grouping strategy **only affects dynamic imports originating from extension definition files** (files matching `extensions.ts` or files in an `extensions/` directory). Any other code-splitting within a plugin — such as `React.lazy()` route splitting inside components — retains normal rspack behavior and is not merged into the plugin chunk.
 
 ### Default Behavior
 
@@ -474,7 +474,7 @@ All three imports (`./src/deployments`, `./src/deploy`, `./src/hardware`) are bu
 
 ### Custom Chunk Names with `webpackChunkName`
 
-Extension authors can override the default grouping using webpack's [`webpackChunkName`](https://webpack.js.org/api/module-methods/#webpackchunkname) magic comment. This is useful when a plugin is large enough to benefit from logical separation into multiple chunks.
+Extension authors can override the default grouping using Rspack's webpack-compatible [`webpackChunkName`](https://webpack.js.org/api/module-methods/#webpackchunkname) magic comment. This is useful when a plugin is large enough to benefit from logical separation into multiple chunks.
 
 ```typescript
 const extensions = [
