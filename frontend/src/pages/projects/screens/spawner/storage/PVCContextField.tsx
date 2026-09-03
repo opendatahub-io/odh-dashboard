@@ -9,6 +9,10 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
+import {
+  GENERAL_PURPOSE_PVC_CONTEXT_TYPE,
+  MODEL_STORAGE_PVC_CONTEXT_TYPE,
+} from '#~/pages/projects/screens/detail/storage/useStorageContextType';
 
 type PVCContextFieldProps = {
   setModelName: (name: string) => void;
@@ -59,14 +63,14 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
           name="storage-context-general-radio"
           id="storage-context-general-radio"
           data-testid="general-purpose-radio"
-          label="General purpose"
+          label={GENERAL_PURPOSE_PVC_CONTEXT_TYPE.title}
           isChecked={isGeneralPurpose}
           onChange={() => {
             setIsGeneralPurpose(true);
             setValid(true);
             removeModelAnnotations();
           }}
-          description="Appropriate for all use cases."
+          description={GENERAL_PURPOSE_PVC_CONTEXT_TYPE.description}
         />
         <br />
         <Radio
@@ -74,7 +78,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
           name="storage-context-model-storage-radio"
           id="storage-context-model-storage-radio"
           data-testid="model-storage-radio"
-          label="Model storage"
+          label={MODEL_STORAGE_PVC_CONTEXT_TYPE.title}
           isChecked={!isGeneralPurpose}
           onChange={() => {
             setIsGeneralPurpose(false);
@@ -84,7 +88,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
               validatePath(modelPath);
             }
           }}
-          description="Appropriate for model storage. Enables you to define the model name and path."
+          description={MODEL_STORAGE_PVC_CONTEXT_TYPE.description}
           body={
             !isGeneralPurpose && (
               <FormSection title="Model details">
