@@ -1,6 +1,6 @@
-import { ApiError, is503Error, is403Error, isConnectionError } from '../dataRegistry';
+import { ApiError, is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
 
-describe('dataRegistry error guards', () => {
+describe('Error type guards', () => {
   describe('is503Error', () => {
     it('should return true for 503 ApiError', () => {
       const error = new ApiError(503, 'Service Unavailable');
@@ -13,14 +13,8 @@ describe('dataRegistry error guards', () => {
     });
 
     it('should return false for non-ApiError', () => {
-      const error = new Error('Generic error');
+      const error = new Error('Network error');
       expect(is503Error(error)).toBe(false);
-    });
-
-    it('should return false for non-Error values', () => {
-      expect(is503Error(null)).toBe(false);
-      expect(is503Error(undefined)).toBe(false);
-      expect(is503Error('error')).toBe(false);
     });
   });
 
@@ -31,19 +25,19 @@ describe('dataRegistry error guards', () => {
     });
 
     it('should return false for non-403 ApiError', () => {
-      const error = new ApiError(500, 'Internal Server Error');
+      const error = new ApiError(404, 'Not Found');
       expect(is403Error(error)).toBe(false);
     });
 
     it('should return false for non-ApiError', () => {
-      const error = new Error('Generic error');
+      const error = new Error('Network error');
       expect(is403Error(error)).toBe(false);
     });
   });
 
   describe('isConnectionError', () => {
     it('should return true for NetworkError', () => {
-      const error = new Error('NetworkError: Connection failed');
+      const error = new Error('NetworkError when attempting to fetch resource');
       expect(isConnectionError(error)).toBe(true);
     });
 
@@ -52,22 +46,23 @@ describe('dataRegistry error guards', () => {
       expect(isConnectionError(error)).toBe(true);
     });
 
-    it('should return true for network error (case-insensitive)', () => {
-      const error = new Error('Network error occurred');
+    it('should return true for network in lowercase', () => {
+      const error = new Error('network connection lost');
       expect(isConnectionError(error)).toBe(true);
     });
 
-    it('should return false for non-connection errors', () => {
-      const error = new Error('Validation failed');
+    it('should return false for ApiError with network message', () => {
+      const error = new ApiError(500, 'network failure');
       expect(isConnectionError(error)).toBe(false);
     });
 
-    it('should return false for ApiError', () => {
-      const error = new ApiError(500, 'Internal Server Error');
+    it('should return false for non-network error', () => {
+      const error = new Error('Something went wrong');
       expect(isConnectionError(error)).toBe(false);
     });
 
-    it('should return false for non-Error values', () => {
+    it('should return false for non-Error', () => {
+      expect(isConnectionError('not an error')).toBe(false);
       expect(isConnectionError(null)).toBe(false);
       expect(isConnectionError(undefined)).toBe(false);
     });

@@ -43,6 +43,7 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         onRegisterData={jest.fn()}
         onRefresh={jest.fn()}
         {...props}
+        onRetry={jest.fn()}
       />
     </MemoryRouter>,
   );
