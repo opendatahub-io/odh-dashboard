@@ -23,32 +23,71 @@ import {
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
-import { deleteGenericTable } from '~/app/api/dataRegistry';
+import { useVolume } from '~/app/hooks/useVolume';
+import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
+import { volumeToAsset } from '~/app/utilities/assetUtils';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
 import TableDetailView from './TableDetailView';
 
 const TableDetailPage: React.FC = () => {
-  const { project, collection, name } = useParams<{
+  const { assetType, project, collection, name } = useParams<{
+    assetType: string;
     project: string;
     collection: string;
     name: string;
   }>();
   const navigate = useNavigate();
 
-  const [asset, loaded, loadError, refresh] = useGenericTable(project, collection, name);
+<<<<<<< HEAD
+  const isVolume = assetType === 'volume';
+
+  const [genericTable, genericLoaded, genericError, refreshGenericTable] = useGenericTable(
+    isVolume ? undefined : project,
+    isVolume ? undefined : collection,
+    isVolume ? undefined : name,
+  );
+  const [volume, volumeLoaded, volumeError, refreshVolume] = useVolume(
+    isVolume ? project : undefined,
+    isVolume ? collection : undefined,
+    isVolume ? name : undefined,
+  );
+
+  const asset = React.useMemo(() => {
+    if (isVolume && volume && collection) {
+      return volumeToAsset(volume, collection);
+    }
+    return genericTable;
+  }, [isVolume, volume, genericTable, collection]);
+
+  const loaded = isVolume ? volumeLoaded : genericLoaded;
+  const loadError = isVolume ? volumeError : genericError;
+
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+
+  const handleSaved = React.useCallback(() => {
+    setIsEditModalOpen(false);
+    if (isVolume) {
+      refreshVolume();
+    } else {
+      refreshGenericTable();
+    }
+  }, [isVolume, refreshGenericTable, refreshVolume]);
 
   const handleDelete = React.useCallback(async () => {
     if (!project || !collection || !name) {
       return;
     }
-    await deleteGenericTable(project, collection, name);
+    if (isVolume) {
+      await deleteVolume(project, collection, name);
+    } else {
+      await deleteGenericTable(project, collection, name);
+    }
     navigate(browseUrl(project));
-  }, [project, collection, name, navigate]);
+  }, [project, collection, name, navigate, isVolume]);
 
   const displayName = name || 'Loading...';
 
@@ -115,25 +154,38 @@ const TableDetailPage: React.FC = () => {
       {isDeleteModalOpen && name ? (
         <DeleteAssetModal
           assetName={displayName}
-          assetType="table"
+          assetType={isVolume ? 'volume' : 'table'}
           onDelete={handleDelete}
           onClose={() => setIsDeleteModalOpen(false)}
         />
       ) : null}
-      {isEditModalOpen && asset && project && collection && name ? (
-        <EditAssetModal
-          asset={asset}
-          assetKind="table"
-          project={project}
-          collection={collection}
-          name={name}
-          onClose={() => setIsEditModalOpen(false)}
-          onSaved={() => {
-            setIsEditModalOpen(false);
-            refresh();
-          }}
-        />
-      ) : null}
+      {isEditModalOpen && project && collection && name
+        ? isVolume && volume
+          ? (
+              <EditAssetModal
+                asset={volume}
+                assetKind="volume"
+                project={project}
+                collection={collection}
+                name={name}
+                onClose={() => setIsEditModalOpen(false)}
+                onSaved={handleSaved}
+              />
+            )
+          : !isVolume && genericTable
+            ? (
+                <EditAssetModal
+                  asset={genericTable}
+                  assetKind="table"
+                  project={project}
+                  collection={collection}
+                  name={name}
+                  onClose={() => setIsEditModalOpen(false)}
+                  onSaved={handleSaved}
+                />
+              )
+            : null
+        : null}
     </>
   );
 
@@ -160,12 +212,12 @@ const TableDetailPage: React.FC = () => {
         <EmptyState
           headingLevel="h2"
           icon={SearchIcon}
-          titleText="Table not found"
+          titleText="Asset not found"
           variant={EmptyStateVariant.full}
-          data-testid="table-not-found-empty-state"
+          data-testid="asset-not-found-empty-state"
         >
           <EmptyStateBody>
-            The table you are looking for does not exist or you do not have permission to view it.
+            The asset you are looking for does not exist or you do not have permission to view it.
           </EmptyStateBody>
           <EmptyStateFooter>
             <Button
