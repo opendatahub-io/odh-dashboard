@@ -47,6 +47,23 @@ describe('KueueProjectsModal', () => {
     expect(screen.queryByTestId('kueue-projects-table')).not.toBeInTheDocument();
   });
 
+  it('shows error state when loading projects fails', () => {
+    useKueueProjectsForClusterQueueMock.mockReturnValue({
+      data: [],
+      loaded: true,
+      error: new Error('Failed to fetch local queues'),
+      refresh: jest.fn(),
+    });
+
+    render(<KueueProjectsModal clusterQueueName="gpu-cq" onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('kueue-projects-error-alert')).toBeInTheDocument();
+    expect(screen.getByText('Error loading Kueue projects')).toBeInTheDocument();
+    expect(screen.getByText('Failed to fetch local queues')).toBeInTheDocument();
+    expect(screen.queryByTestId('kueue-projects-table')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('kueue-projects-loading')).not.toBeInTheDocument();
+  });
+
   it('filters projects by name', async () => {
     const user = userEvent.setup();
     render(<KueueProjectsModal clusterQueueName="gpu-cq" onClose={jest.fn()} />);
