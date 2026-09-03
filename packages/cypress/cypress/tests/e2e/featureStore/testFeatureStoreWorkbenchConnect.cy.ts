@@ -115,6 +115,9 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
       cy.step('Select a notebook image');
       selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage);
 
+      cy.step('Select the default hardware profile');
+      createSpawnerPage.selectHardwareProfile(testData.hardwareProfileName);
+
       cy.step('Open the Select feature store modal');
       createSpawnerPage.findSelectFeatureStoreButton().click();
       createSpawnerPage.findSelectFeatureStoresModal().should('be.visible');
