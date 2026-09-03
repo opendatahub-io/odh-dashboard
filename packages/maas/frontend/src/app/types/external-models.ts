@@ -86,6 +86,14 @@ export type ExternalProvider = {
   status?: string;
 };
 
+export enum ProviderTypes {
+  OpenAI = 'OpenAI',
+  Anthropic = 'Anthropic',
+  AWSBedrock = 'AWS Bedrock',
+  Azure = 'Azure',
+  GoogleVertexAI = 'Google Vertex AI',
+}
+
 export type CreateExternalProviderRequest = {
   name: string;
   namespace: string;

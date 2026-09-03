@@ -7,6 +7,7 @@ import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespa
 import NoProjectsPage from '~/app/pages/external-models/NoProjectsPage';
 import { deploymentsExternalPath } from '~/app/pages/external-models/const';
 import { ExternalProvider } from '~/app/types/external-models';
+import MaaSExternalResourcesProjectSelector from '~/app/pages/external-models/MaaSExternalResourcesProjectSelector';
 import {
   externalProvidersManagementPath,
   ExternalProvidersFilterDataType,
@@ -15,7 +16,6 @@ import {
   initialExternalProvidersFilterData,
 } from './const';
 import EmptyExternalProvidersPage from './EmptyExternalProvidersPage';
-import ExternalProvidersProjectSelector from './ExternalProvidersProjectSelector';
 import DeleteExternalProviderModal from './DeleteExternalProviderModal';
 import { ExternalProvidersTable } from './ExternalProvidersTable';
 import ExternalProvidersToolBar from './ExternalProvidersToolbar';
@@ -126,7 +126,10 @@ const AllExternalProvidersPage: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <ExternalProvidersProjectSelector namespace={resolvedNamespace || ''} />
+            <MaaSExternalResourcesProjectSelector
+              namespace={resolvedNamespace || ''}
+              pathFunction={externalProvidersManagementPath}
+            />
           </StackItem>
           <StackItem>
             {!noProjects &&

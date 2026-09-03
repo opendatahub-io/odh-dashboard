@@ -11,7 +11,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
   },
   {
     label: 'Provider type',
-    field: 'providerType',
+    field: 'provider',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       a.provider.localeCompare(b.provider),
@@ -32,7 +32,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
   },
   {
     label: 'Authentication',
-    field: 'authentication',
+    field: 'authMechanism',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       a.authMechanism.localeCompare(b.authMechanism),
@@ -42,7 +42,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
   },
   {
     label: 'Credential secret',
-    field: 'credentialSecret',
+    field: 'credentialSecretRef',
     width: 10,
     sortable: false,
     info: {
@@ -52,7 +52,7 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
   },
   {
     label: 'Status',
-    field: 'status',
+    field: 'phase',
     width: 10,
     sortable: (a: ExternalProvider, b: ExternalProvider): number =>
       (a.phase ?? '').localeCompare(b.phase ?? ''),

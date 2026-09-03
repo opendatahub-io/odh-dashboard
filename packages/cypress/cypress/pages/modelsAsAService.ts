@@ -1759,7 +1759,7 @@ class ExternalModelsPage {
   }
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('external-models-project-selector');
+    return cy.findByTestId('maas-external-resources-project-selector');
   }
 
   findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1920,7 +1920,7 @@ class DeleteExternalModelModal extends DeleteModal {
   }
 }
 
-class ExternalModelPathModal extends Modal {
+class PathModal extends Modal {
   constructor() {
     super('Path');
   }
@@ -1933,8 +1933,8 @@ class ExternalModelPathModal extends Modal {
     return this.find().findByTestId('path-modal-input-value');
   }
 
-  findProviderRef(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('path-modal-provider-ref-content');
+  findSubContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-sub-content');
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2002,7 +2002,7 @@ class ExternalProvidersPage {
   }
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('external-providers-project-selector');
+    return cy.findByTestId('maas-external-resources-project-selector');
   }
 
   findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2150,28 +2150,6 @@ class DeleteExternalProviderModal extends DeleteModal {
   }
 }
 
-class ExternalProviderEndpointModal extends Modal {
-  constructor() {
-    super('Endpoint');
-  }
-
-  find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('provider-url-modal');
-  }
-
-  findExternalApiEndpoint(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('external-provider-endpoint-modal-input-value');
-  }
-
-  findAuthMechanism(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('external-provider-endpoint-modal-authentication-content');
-  }
-
-  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('external-provider-endpoint-modal-close-button');
-  }
-}
-
 export const maasWizardField = new MaaSWizardField();
 export const apiKeysPage = new APIKeysPage();
 export const subscriptionsTab = new SubscriptionsTab();
@@ -2196,10 +2174,9 @@ export const overviewTabPage = new OverviewTabPage();
 export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
-export const externalModelPathModal = new ExternalModelPathModal();
+export const pathModal = new PathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
 export const externalProvidersPage = new ExternalProvidersPage();
 export const deleteExternalProviderModal = new DeleteExternalProviderModal();
-export const externalProviderEndpointModal = new ExternalProviderEndpointModal();

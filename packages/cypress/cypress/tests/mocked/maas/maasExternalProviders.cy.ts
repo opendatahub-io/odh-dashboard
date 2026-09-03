@@ -7,10 +7,10 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockExternalProviders, mockMaasNamespaces } from '../../../utils/maasUtils';
 import {
-  externalProviderEndpointModal,
   externalProvidersPage,
   deleteExternalProviderModal,
   phaseModal,
+  pathModal,
 } from '../../../pages/modelsAsAService';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 
@@ -111,7 +111,7 @@ describe('External Providers Page', () => {
       const awsBedrockUsEastRow = externalProvidersPage.getRow('AWS Bedrock US East');
       awsBedrockUsEastRow.findName().should('contain.text', 'AWS Bedrock US East');
       awsBedrockUsEastRow.findDescription().should('contain.text', 'AWS Bedrock US East provider.');
-      awsBedrockUsEastRow.findProviderType().should('contain.text', 'aws-bedrock');
+      awsBedrockUsEastRow.findProviderType().should('contain.text', 'AWS Bedrock');
       awsBedrockUsEastRow.findPhaseLabel().should('contain.text', 'Ready');
       awsBedrockUsEastRow.findStatusSubtext().should('not.exist');
       awsBedrockUsEastRow
@@ -119,13 +119,9 @@ describe('External Providers Page', () => {
         .should('contain.text', 'bedrock-credentials-us-east');
       awsBedrockUsEastRow.findAuthMechanism().should('contain.text', 'Signature Version 4');
       awsBedrockUsEastRow.findEndpointUrlLink('bedrock-us-east').should('exist').click();
-      externalProviderEndpointModal
-        .findExternalApiEndpoint()
-        .should('have.value', 'bedrock.us-east-1.amazonaws.com');
-      externalProviderEndpointModal
-        .findAuthMechanism()
-        .should('contain.text', 'Signature Version 4');
-      externalProviderEndpointModal.findCloseButton().click();
+      pathModal.findInputValue().should('have.value', 'bedrock.us-east-1.amazonaws.com');
+      pathModal.findSubContent().should('contain.text', 'Signature Version 4');
+      pathModal.findCloseButton().click();
 
       // Verify the status modal content
       const invalidRow = externalProvidersPage.getRow('Invalid AWS Bedrock US West');
@@ -178,11 +174,11 @@ describe('External Providers Page', () => {
 
       // Sort by provider type
       externalProvidersPage.findColumnSortButton('Provider type').click();
-      externalProvidersPage.findRows().eq(0).should('contain.text', 'anthropic');
-      externalProvidersPage.findRows().eq(4).should('contain.text', 'aws-bedrock');
+      externalProvidersPage.findRows().eq(0).should('contain.text', 'Anthropic');
+      externalProvidersPage.findRows().eq(4).should('contain.text', 'AWS Bedrock');
       externalProvidersPage.findColumnSortButton('Provider type').click();
-      externalProvidersPage.findRows().eq(0).should('contain.text', 'aws-bedrock');
-      externalProvidersPage.findRows().eq(4).should('contain.text', 'anthropic');
+      externalProvidersPage.findRows().eq(0).should('contain.text', 'AWS Bedrock');
+      externalProvidersPage.findRows().eq(4).should('contain.text', 'Anthropic');
 
       // Sort by auth mechanism
       externalProvidersPage.findColumnSortButton('Authentication').click();

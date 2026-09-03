@@ -28,8 +28,13 @@ const DeleteExternalProviderModal: React.FC<DeleteExternalProviderModalProps> = 
       }}
       deleting={isDeleting}
       onDelete={async () => {
-        await deleteExternalProviderCallback(externalProvider.name);
-        onClose(true);
+        try {
+          await deleteExternalProviderCallback(externalProvider.name);
+          onClose(true);
+        } catch {
+          // Error already surfaced via the `error` prop from useDeleteExternalProvider.
+          // Keep the modal open so the user can see and dismiss the error.
+        }
       }}
       submitButtonLabel="Delete"
       deleteName={externalProvider.displayName || externalProvider.name}

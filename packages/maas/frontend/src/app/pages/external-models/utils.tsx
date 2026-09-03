@@ -59,7 +59,7 @@ export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): s
     case 'oauth2':
       return 'OAuth 2.0';
     default:
-      return authMechanism;
+      return '-';
   }
 };
 

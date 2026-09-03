@@ -7,9 +7,9 @@ import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalProvider } from '~/app/types/external-models';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
+import PathModal from '~/app/pages/external-models/modals/ExternalModelsPathModal';
 import { externalProvidersColumns } from './columns';
-import { getExternalProviderResource } from './utils';
-import ExternalProviderEndpointModal from './ExternalProviderEndpointModal';
+import { convertStringToProviderType, getExternalProviderResource } from './utils';
 
 type ExternalProvidersTableRowProps = {
   externalProvider: ExternalProvider;
@@ -41,7 +41,7 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
   const providerTypeCell = (
     <Td dataLabel={externalProvidersColumns[1].label} data-testid="external-provider-provider-type">
       <Label color="blue" variant="outline">
-        {externalProvider.provider}
+        {convertStringToProviderType(externalProvider.provider)}
       </Label>
     </Td>
   );
@@ -127,13 +127,17 @@ const ExternalProvidersTableRow: React.FC<ExternalProvidersTableRowProps> = ({
           {actionsCell}
         </ResourceTr>
       </Tbody>
-      <ExternalProviderEndpointModal
-        endpointURL={externalProvider.endpointUrl}
+      <PathModal
+        title="Endpoints"
+        description="Use the following URL endpoint to connect this provider to your application."
+        inputTitle="External API endpoint"
+        path={externalProvider.endpointUrl}
         isOpen={!!endpointURLModalRef}
         onClose={() => {
           setEndpointURLModalRef(null);
         }}
-        authentication={externalProvider.authMechanism}
+        subContentTitle="Authentication"
+        subContent={mapAuthMechanismToHumanReadable(externalProvider.authMechanism)}
       />
     </>
   );

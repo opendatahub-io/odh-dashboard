@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import { ExternalProvider } from '~/app/types/external-models';
+import { ExternalProvider, ProviderTypes } from '~/app/types/external-models';
 import { mapAuthMechanismToHumanReadable } from '~/app/pages/external-models/utils';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 import { ExternalProvidersFilterDataType, ExternalProvidersFilterOptions } from './const';
@@ -79,4 +79,21 @@ export const filterExternalProviders = (
 
     return true;
   });
+};
+
+export const convertStringToProviderType = (providerType: string): ProviderTypes | string => {
+  switch (providerType) {
+    case 'openai':
+      return ProviderTypes.OpenAI;
+    case 'anthropic':
+      return ProviderTypes.Anthropic;
+    case 'aws-bedrock':
+      return ProviderTypes.AWSBedrock;
+    case 'azure':
+      return ProviderTypes.Azure;
+    case 'google-vertex-ai':
+      return ProviderTypes.GoogleVertexAI;
+    default:
+      return '-';
+  }
 };
