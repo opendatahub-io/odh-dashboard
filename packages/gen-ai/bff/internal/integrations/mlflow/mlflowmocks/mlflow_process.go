@@ -21,7 +21,6 @@ import (
 const (
 	defaultMLflowPort         = 5001
 	defaultMLflowVersion      = "3.15.1"
-	defaultMLflowPython       = "3.12"
 	healthTimeout             = 90 * time.Second
 	healthPoll                = 2 * time.Second
 	shutdownWait              = 5 * time.Second
@@ -44,11 +43,13 @@ func mlflowVersion() string {
 	return defaultMLflowVersion
 }
 
-func mlflowPython() string {
-	if v := os.Getenv("MLFLOW_PYTHON"); v != "" {
-		return v
+func mlflowTestdataDir() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
 	}
-	return defaultMLflowPython
+	projectRoot := testutil.FindProjectRoot(cwd)
+	return filepath.Join(projectRoot, "testdata", "mlflow"), nil
 }
 
 // MLflowState tracks the MLflow child process, enabling targeted cleanup
@@ -94,10 +95,20 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 			fmt.Sprintf("Stop the external MLflow process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", port),
 			slog.Int("port", port))
 		cwd, cwdErr := os.Getwd()
-		if cwdErr == nil {
+		if cwdErr != nil {
+			logger.Warn("Failed to get working directory for DB upgrade", slog.String("error", cwdErr.Error()))
+		} else {
 			dataDir := filepath.Join(cwd, ".mlflow")
-			if uvBin, uvErr := testutil.ResolveUVBinary(); uvErr == nil {
-				upgradeMLflowDB(dataDir, version, uvBin, logger)
+			uvBin, uvErr := testutil.ResolveUVBinary()
+			if uvErr != nil {
+				logger.Warn("Failed to resolve uv binary for DB upgrade", slog.String("error", uvErr.Error()))
+			} else {
+				testdataDir, dirErr := mlflowTestdataDir()
+				if dirErr != nil {
+					logger.Warn("Failed to resolve MLflow testdata directory for DB upgrade", slog.String("error", dirErr.Error()))
+				} else {
+					upgradeMLflowDB(dataDir, version, testdataDir, uvBin, logger)
+				}
 			}
 		}
 		trackingURI := fmt.Sprintf("http://127.0.0.1:%d", port)
@@ -125,6 +136,11 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	}
 	logger.Debug("Resolved uv binary", slog.String("path", uvBin))
 
+	testdataDir, err := mlflowTestdataDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve MLflow testdata directory: %w", err)
+	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get working directory: %w", err)
@@ -134,12 +150,14 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, fmt.Errorf("failed to create MLflow data directory: %w", err)
 	}
 
-	upgradeMLflowDB(dataDir, version, uvBin, logger)
+	upgradeMLflowDB(dataDir, version, testdataDir, uvBin, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd := exec.CommandContext(ctx, uvBin,
-		"run", "--python", mlflowPython(), "--with", "mlflow=="+version,
+		"run", "--directory", testdataDir,
+		"--with", "mlflow=="+version,
+		"--with-requirements", "requirements.txt",
 		"mlflow", "server",
 		"--host", "127.0.0.1",
 		"--port", fmt.Sprintf("%d", port),
@@ -252,10 +270,12 @@ func CleanupMLflowState(
 	}
 }
 
-func upgradeMLflowDB(dataDir string, version, uvBin string, logger *slog.Logger) {
+func upgradeMLflowDB(dataDir, version, testdataDir, uvBin string, logger *slog.Logger) {
 	storeURI := fmt.Sprintf("sqlite:///%s/mlflow.db", dataDir)
 	cmd := exec.Command(uvBin,
-		"run", "--python", mlflowPython(), "--with", "mlflow=="+version,
+		"run", "--directory", testdataDir,
+		"--with", "mlflow=="+version,
+		"--with-requirements", "requirements.txt",
 		"mlflow", "db", "upgrade", storeURI,
 	)
 	cmd.Stdout = os.Stdout

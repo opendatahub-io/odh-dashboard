@@ -40,9 +40,7 @@ BFF_MLFLOW_DEV_URL ?= ""
 
 # MLflow configuration
 MLFLOW_VERSION ?= 3.15.1
-# MLflow 3.15.x is incompatible with Python 3.13 (anyio/starlette WSGI bridge); pin 3.12 for local dev.
-MLFLOW_PYTHON ?= 3.12
-export MLFLOW_PYTHON
+MLFLOW_DIR ?= testdata/mlflow
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
@@ -151,10 +149,10 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 .PHONY: mlflow-up
 mlflow-up: uv ## Start local MLflow tracking server via uv.
 	@mkdir -p $(MLFLOW_DATA)
-	@$(UV) run --python "$${MLFLOW_PYTHON}" --with mlflow==$(MLFLOW_VERSION) mlflow db upgrade sqlite:///$(MLFLOW_DATA)/mlflow.db 2>/dev/null || true
+	@$(UV) run --directory $(MLFLOW_DIR) --with mlflow==$(MLFLOW_VERSION) --with-requirements requirements.txt mlflow db upgrade sqlite:///$(MLFLOW_DATA)/mlflow.db 2>/dev/null || true
 	@echo "Starting MLflow server on port $(MLFLOW_PORT)... (Ctrl+C to stop)"
 	MLFLOW_ENABLE_WORKSPACES=true \
-	$(UV) run --python "$${MLFLOW_PYTHON}" --with mlflow==$(MLFLOW_VERSION) mlflow server \
+	$(UV) run --directory $(MLFLOW_DIR) --with mlflow==$(MLFLOW_VERSION) --with-requirements requirements.txt mlflow server \
 		--host 127.0.0.1 \
 		--port $(MLFLOW_PORT) \
 		--backend-store-uri sqlite:///$(MLFLOW_DATA)/mlflow.db \
