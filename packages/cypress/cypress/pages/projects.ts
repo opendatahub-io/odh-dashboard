@@ -236,6 +236,15 @@ class ProjectListPage {
   }
 
   /**
+   * Filter the project list by name and assert the empty-results state.
+   * Use after delete — unlike filterProjectByName, this does not wait for a row.
+   */
+  filterByNameAndExpectEmpty = (projectName: string) => {
+    this.applyNameFilter(projectName);
+    this.findEmptyResults().should('exist');
+  };
+
+  /**
    * Filter the project list by name and wait until that project appears.
    * Reloads if the first list fetch ran before the project was visible to the UI.
    */
