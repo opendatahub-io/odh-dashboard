@@ -258,21 +258,21 @@ Behavior:
 1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
 2. If already up to date, exit without a PR.
 3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
-4. On conflict or sync failure, a separate notify job opens (or comments on) a GitHub issue for manual `/upstream-sync` — **no PR**.
+4. On conflict, commit the partial sync (including conflict markers) and open a PR for manual resolution — **no separate issue**.
 5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
-6. Only if those checks pass, a separate **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, and creates or updates a PR against `main`.
+6. A **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, creates or updates a PR against `main`, and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
 
 ### Failure and conflict handling
 
-When the subtree sync hits conflicts or fails for another reason, the workflow does **not** open a PR. A **notify-failure** job records the problem in GitHub Issues instead:
+| Outcome | What happens |
+|---------|----------------|
+| **Clean sync** | Frontend lint/type-check/unit run in CI; PR opened with test results in the body. |
+| **Conflict** | Partial sync is committed (markers included); PR opened with `(conflicts — resolve manually)` in the title. Assignees are notified; resolve in the PR, run `--continue` and tests, then merge. |
+| **Hard failure** (not a conflict) | No PR. A **notify-failure** job opens or comments on a single tracking GitHub issue. |
 
-- **One open tracking issue at a time.** The job searches for an open issue whose title contains `Model registry upstream sync`. If one exists, it adds a comment with the latest run details. Otherwise it creates a new issue.
-- **Label:** `dashboard-area-model-registry` (when the label exists in the repo). Subscribe to that label or watch the issue for notifications; the workflow does not auto-assign an owner.
-- **Manual resolution:** Conflicts and other sync failures still require a human to run `/upstream-sync model-registry` (or `npm run update-subtree -w packages/model-registry`), resolve conflicts, run tests, and open a PR. The scheduled workflow automates only the conflict-free happy path.
+Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
 
-Because many historical sync PRs needed manual conflict resolution, expect the automation to open PRs only when upstream changes apply cleanly. Conflicts should produce at most one active tracking issue (with follow-up comments per failed run), not a new issue on every schedule tick.
-
-Manual sync with `/upstream-sync` remains available for conflicts and ad-hoc syncs.
+Manual sync with `/upstream-sync` remains available for ad-hoc syncs.
 
 ## Claude Code Skills
 
