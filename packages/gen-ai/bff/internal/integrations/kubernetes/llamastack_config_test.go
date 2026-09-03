@@ -1568,21 +1568,30 @@ func TestNewPassthroughProvider(t *testing.T) {
 }
 
 func TestHasPassthroughProvider(t *testing.T) {
+	const matchingURL = "https://apps.example.com/gen-ai/api/v1/genai-proxy/ns/test"
+
 	t.Run("returns false for default config", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
-		assert.False(t, config.HasPassthroughProvider())
+		assert.False(t, config.HasPassthroughProvider(matchingURL))
 	})
 
-	t.Run("returns true when passthrough provider exists", func(t *testing.T) {
+	t.Run("returns true when passthrough provider exists with matching URL", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
-		config.AddInferenceProvider(NewPassthroughProvider("genai-bff-proxy", "https://example.com/api/v1/genai-proxy/ns/test"))
-		assert.True(t, config.HasPassthroughProvider())
+		config.AddInferenceProvider(NewPassthroughProvider("genai-bff-proxy", matchingURL))
+		assert.True(t, config.HasPassthroughProvider(matchingURL))
+	})
+
+	t.Run("returns false when URL does not match", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddInferenceProvider(NewPassthroughProvider("genai-bff-proxy", "https://old-domain.com/gen-ai/api/v1/genai-proxy/ns/test"))
+		assert.False(t, config.HasPassthroughProvider(matchingURL),
+			"stale passthrough provider from previous GATEWAY_DOMAIN must not trigger zero-restart")
 	})
 
 	t.Run("returns false when only vllm providers exist", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		config.AddInferenceProvider(NewVLLMProvider("vllm-1", "http://svc:8000/v1"))
-		assert.False(t, config.HasPassthroughProvider())
+		assert.False(t, config.HasPassthroughProvider(matchingURL))
 	})
 
 	t.Run("returns false for passthrough with different provider ID", func(t *testing.T) {
@@ -1590,9 +1599,9 @@ func TestHasPassthroughProvider(t *testing.T) {
 		config.AddInferenceProvider(Provider{
 			ProviderID:   "custom-name",
 			ProviderType: "remote::passthrough",
-			Config:       map[string]interface{}{"base_url": "https://other.com"},
+			Config:       map[string]interface{}{"base_url": matchingURL},
 		})
-		assert.False(t, config.HasPassthroughProvider(),
+		assert.False(t, config.HasPassthroughProvider(matchingURL),
 			"custom endpoint passthrough must not be confused with BFF passthrough")
 	})
 }

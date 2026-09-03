@@ -354,7 +354,8 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		err = cfg.FromYAML(result)
 		require.NoError(t, err)
 
-		assert.True(t, cfg.HasPassthroughProvider(), "config should include passthrough provider")
+		expectedURL := "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-namespace"
+		assert.True(t, cfg.HasPassthroughProvider(expectedURL), "config should include passthrough provider with correct URL")
 
 		// Find the passthrough provider and verify its config
 		var passthrough *Provider
@@ -389,7 +390,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		err = cfg.FromYAML(result)
 		require.NoError(t, err)
 
-		assert.False(t, cfg.HasPassthroughProvider(), "config should NOT include passthrough when GatewayDomain is empty")
+		assert.False(t, cfg.HasPassthroughProvider("https://any.com/gen-ai/api/v1/genai-proxy/ns/my-namespace"), "config should NOT include passthrough when GatewayDomain is empty")
 	})
 }
 

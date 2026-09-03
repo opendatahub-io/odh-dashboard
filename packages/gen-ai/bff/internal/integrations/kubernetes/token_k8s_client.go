@@ -1370,23 +1370,46 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 }
 
+// buildPassthroughBaseURL returns the base_url that the BFF would register for
+// the remote::passthrough provider in the given namespace. Returns "" when
+// GatewayDomain is not configured, which signals that the zero-restart path
+// is unavailable for this deployment.
+func (kc *TokenKubernetesClient) buildPassthroughBaseURL(namespace string) string {
+	if kc.EnvConfig.GatewayDomain == "" {
+		return ""
+	}
+	pathPrefix := kc.EnvConfig.PathPrefix
+	if pathPrefix == "" {
+		pathPrefix = constants.PathPrefix
+	}
+	return fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
+		kc.EnvConfig.GatewayDomain, pathPrefix, kc.EnvConfig.APIPathPrefix, namespace)
+}
+
 // existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
-// whether it already contains a remote::passthrough inference provider. Returns
-// false (conservatively) on any read/parse error so the caller falls through to
-// the legacy "already exists" error path.
+// whether it already contains a remote::passthrough inference provider whose
+// base_url matches the URL the BFF would generate for this namespace. Returns
+// false (conservatively) on any read/parse error, missing config, or URL mismatch
+// so the caller falls through to the legacy "already exists" error path.
 func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Context, server *ogxapi.OGXServer, namespace string) bool {
+	expectedURL := kc.buildPassthroughBaseURL(namespace)
+	if expectedURL == "" {
+		// GatewayDomain not configured — zero-restart path requires a passthrough provider.
+		return false
+	}
 	if server.Spec.OverrideConfig == nil ||
 		server.Spec.OverrideConfig.Name == "" ||
 		server.Spec.OverrideConfig.Key == "" {
 		return false
 	}
-	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace)
+	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace, expectedURL)
 }
 
 // existingServerHasPassthroughFromConfigMap reads the named ConfigMap and checks
-// whether it contains a remote::passthrough inference provider in its config YAML.
-// Extracted for testability (avoids OGXServer CRD dependency in unit tests).
-func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx context.Context, cmName, cmKey, namespace string) bool {
+// whether it contains a remote::passthrough inference provider whose base_url
+// matches expectedBaseURL. Extracted for testability (avoids OGXServer CRD
+// dependency in unit tests).
+func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx context.Context, cmName, cmKey, namespace, expectedBaseURL string) bool {
 	var cm corev1.ConfigMap
 	if err := kc.Client.Get(ctx, types.NamespacedName{
 		Name:      cmName,
@@ -1404,7 +1427,7 @@ func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx c
 		kc.Logger.Debug("could not parse OGXServer config for passthrough detection", "error", err)
 		return false
 	}
-	return config.HasPassthroughProvider()
+	return config.HasPassthroughProvider(expectedBaseURL)
 }
 
 // ogxCommand returns the container command for the OGXServer pod.

@@ -422,13 +422,18 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 }
 
 // HasPassthroughProvider returns true if the config already contains a
-// remote::passthrough inference provider. Used to detect whether subsequent
-// model installs can skip OGXServer CR updates (zero-restart path).
-func (c *LlamaStackConfig) HasPassthroughProvider() bool {
+// remote::passthrough inference provider registered by the BFF, AND the
+// provider's base_url matches expectedBaseURL.
+//
+// Requiring the URL guards against stale configs written under a previous
+// GATEWAY_DOMAIN value: if the domain or path prefix changes, the existing
+// provider points at the wrong host and must NOT be reused for zero-restart.
+func (c *LlamaStackConfig) HasPassthroughProvider(expectedBaseURL string) bool {
 	for _, p := range c.Providers.Inference {
 		if p.ProviderType == constants.PassthroughProviderType &&
 			p.ProviderID == constants.PassthroughProviderID {
-			return true
+			baseURL, _ := p.Config["base_url"].(string)
+			return baseURL == expectedBaseURL
 		}
 	}
 	return false
