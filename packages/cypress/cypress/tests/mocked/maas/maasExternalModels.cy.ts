@@ -7,11 +7,12 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
-  externalModelPathModal,
+  pathModal,
   externalModelProviderUrlModal,
   externalModelsPage,
   deleteExternalModelModal,
   phaseModal,
+  externalProvidersPage,
 } from '../../../pages/modelsAsAService';
 import { mockExternalModels, mockMaasNamespaces } from '../../../utils/maasUtils';
 
@@ -99,6 +100,22 @@ describe('External Models Page', () => {
     externalModelsPage.findPage().should('not.exist');
   });
 
+  it('should link to the external providers page', () => {
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalmodel',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    cy.interceptOdh(
+      'GET /maas/api/v1/externalprovider',
+      { query: { namespace: TEST_PROJECT } },
+      { data: [] },
+    );
+    externalModelsPage.visit();
+    externalModelsPage.findExternalProvidersButton().click();
+    externalProvidersPage.findPageTitle().should('exist');
+  });
+
   describe('with external models', () => {
     beforeEach(() => {
       cy.interceptOdh(
@@ -136,9 +153,9 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
-      externalModelPathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      externalModelPathModal.findProviderRef().should('contain.text', 'openai');
-      externalModelPathModal.findCloseButton().click();
+      pathModal.findInputValue().should('have.value', '/v1/chat/completions');
+      pathModal.findSubContent().should('contain.text', 'openai');
+      pathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
       splitRow.findExpandButton().click();
@@ -165,9 +182,9 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal.findCloseButton().click();
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
-      externalModelPathModal.findInputValue().should('have.value', '/v1/messages');
-      externalModelPathModal.findProviderRef().should('contain.text', 'anthropic');
-      externalModelPathModal.findCloseButton().click();
+      pathModal.findInputValue().should('have.value', '/v1/messages');
+      pathModal.findSubContent().should('contain.text', 'anthropic');
+      pathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
       awaitingRow.findPhaseLabel().should('contain.text', 'Pending');
