@@ -78,6 +78,22 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('MaaS Models Endpoint', () => {
+    it('should retrieve all accessible MaaS models', async () => {
+      const result = await apiClient.get(`/api/v1/maas/models?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1api~1v1~1maas~1models/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 when namespace parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/maas/models');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
   describe('OGX Vector Store Providers Endpoint', () => {
     it('should retrieve vector store providers list', async () => {
       const result = await apiClient.get(

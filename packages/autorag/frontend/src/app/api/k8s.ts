@@ -8,6 +8,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   OgxModelsResponse,
+  MaaSModelsResponse,
   OgxVectorStoreProvidersResponse,
   NamespaceKind,
   SecretListItem,
@@ -86,6 +87,19 @@ export const getOgxModels =
       ),
     ).then((response) => {
       if (isModArchResponse<OgxModelsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getMaaSModels =
+  (hostPath: string) =>
+  (namespace: string) =>
+  (opts: APIOptions): Promise<MaaSModelsResponse> =>
+    handleRestFailures(
+      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`, { namespace }, opts),
+    ).then((response) => {
+      if (isModArchResponse<MaaSModelsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

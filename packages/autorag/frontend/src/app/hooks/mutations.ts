@@ -130,11 +130,13 @@ export function useCreatePipelineRunMutation(
   return useMutation({
     mutationKey: ['autorag', 'pipelineRun'],
     mutationFn: async (payload: ConfigureSchema) => {
+      const { ogx_secret_name: legacyOgxSecret, ...requestPayload } = payload;
+      void legacyOgxSecret;
       const response = await handleRestWithUIErrors(
         restCREATE<PipelineRun>(
           '',
           `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs?namespace=${namespace}`,
-          payload,
+          requestPayload,
         ),
       );
       if (isModArchResponse<PipelineRun>(response)) {

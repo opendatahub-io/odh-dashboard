@@ -72,7 +72,7 @@ function createConfigureSchema() {
       test_data_key: z.string().min(1).default(''),
 
       preset: z.enum(PRESETS).default(PRESET_FASTER),
-      ogx_secret_name: z.string().min(1).default(''),
+      ogx_secret_name: z.string().min(1).default('').optional(),
       vector_io_provider_id: z.string().min(1).default(''),
 
       generation_models: z.array(z.string()).min(1).default([]),

@@ -333,9 +333,6 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataKey == "" {
 		missing = append(missing, "input_data_key")
 	}
-	if req.OGXSecretName == "" {
-		missing = append(missing, "ogx_secret_name")
-	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
@@ -395,7 +392,9 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"input_data_secret_name": req.InputDataSecretName,
 		"input_data_bucket_name": req.InputDataBucketName,
 		"input_data_key":         req.InputDataKey,
-		"ogx_secret_name":        req.OGXSecretName,
+	}
+	if req.OGXSecretName != "" {
+		params["ogx_secret_name"] = req.OGXSecretName
 	}
 
 	preset := constants.DefaultPreset
