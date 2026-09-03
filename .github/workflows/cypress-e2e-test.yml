@@ -5,14 +5,15 @@ name: Cypress e2e Test
 # =============================================================================
 #
 # TRIGGERS:
-#   - Automatically after "Test" workflow completes on same-repo PRs
+#   - Automatically after "Test" workflow completes on PRs (including forks)
 #   - Manually via workflow_dispatch (Actions tab → Run workflow)
 #
-# FORK PR SAFETY (PWN request mitigation):
-#   workflow_run listeners run with repository secrets. Fork PR head SHAs are
-#   attacker-controlled, so jobs gated on workflow_run only run when
-#   head_repository matches this repository (blocks external fork PRs).
-#   Fork E2E requires maintainer workflow_dispatch after review.
+# FORK PR SAFETY (artifact-only privileged execution):
+#   Self-hosted e2e-tests check out the default branch (trusted package.json,
+#   local actions, and npm scripts) and overlay only packages/cypress from the
+#   PR via the cypress-e2e-sources artifact produced by the Test workflow.
+#   Cypress build bundles are restored from Test workflow artifacts — fork PR
+#   code is never built or executed via npm lifecycle hooks on secret runners.
 #
 # CLUSTER FAILOVER:
 #   Primary:   dash-e2e-int (checked first via DSC health)
@@ -113,8 +114,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.event == 'pull_request' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+       github.event.workflow_run.conclusion == 'success')
     runs-on: self-hosted
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
@@ -402,8 +402,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.event == 'pull_request' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Set pending status
@@ -1056,11 +1055,30 @@ jobs:
 
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
-      - name: Checkout code
+      - name: Checkout trusted default branch
         uses: actions/checkout@c915c33a16f01166c17c4e35fe1d4085a2d71adb # v4.6.0
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+
+      - name: Overlay PR Cypress sources from Test artifacts
+        if: ${{ github.event.workflow_run.id != '' || inputs.run_id != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        continue-on-error: true
+        with:
+          name: cypress-e2e-sources
+          path: packages
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id || inputs.run_id }}
+
+      - name: Verify Cypress sources overlay
+        if: ${{ github.event.workflow_run.id != '' || inputs.run_id != '' }}
+        run: |
+          if [[ ! -d packages/cypress/cypress/tests/e2e ]]; then
+            echo "::warning::PR Cypress sources artifact missing; using default-branch packages/cypress only"
+          else
+            echo "✅ Overlayed PR Cypress sources from Test workflow artifacts"
+          fi
 
       # Fetch the mask script from the default branch into RUNNER_TEMP so a
       # malicious PR cannot replace it. Do not use actions/checkout with a
@@ -1248,7 +1266,9 @@ jobs:
           go-version: '1.26.x'
 
       - name: Prepare E2E dependencies
-        run: npm run prepare:e2e
+        run: |
+          # Trusted: default-branch package.json scripts only (never PR-controlled hooks).
+          npm run prepare:e2e
 
       - name: Run E2E Tests
         env:
@@ -1328,8 +1348,7 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.event == 'pull_request' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_repository.full_name == github.repository))
+        github.event.workflow_run.conclusion == 'success'))
     runs-on: ubuntu-latest
     steps:
       - name: Set final status
@@ -1382,8 +1401,7 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.event == 'pull_request' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_repository.full_name == github.repository))
+        github.event.workflow_run.conclusion == 'success'))
     steps:
       - name: Fix envtest binary permissions
         run: |

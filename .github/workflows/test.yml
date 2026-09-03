@@ -277,6 +277,23 @@ jobs:
           package-name: ${{ matrix.package.name }}
           github-token: ${{ github.token }}
 
+  Cypress-E2E-Sources:
+    needs: [Setup]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Upload Cypress E2E sources for privileged workflow
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cypress-e2e-sources
+          path: packages/cypress
+          retention-days: 1
+          if-no-files-found: error
+
   Cypress-Mock-Tests:
     needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
@@ -431,6 +448,7 @@ jobs:
       - Unit-Tests
       - Contract-Tests
       - Cypress-Mock-Tests
+      - Cypress-E2E-Sources
       - Combine-Results-and-Upload
     steps:
       - name: Check for failures
