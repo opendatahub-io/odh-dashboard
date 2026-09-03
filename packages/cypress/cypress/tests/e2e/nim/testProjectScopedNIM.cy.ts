@@ -45,7 +45,10 @@ describe('A user can enable project-scoped NIM', () => {
 
       cy.step('Enter the NIM API key and submit');
       projectDetailsSettingsTab.findNIMApiKeyModal().should('be.visible');
-      projectDetailsSettingsTab.findNIMApiKeyInput().clear().type(Cypress.env('NGC_API_KEY'));
+      projectDetailsSettingsTab
+        .findNIMApiKeyInput()
+        .clear()
+        .type(Cypress.env('NGC_API_KEY'), { log: false });
       projectDetailsSettingsTab.findNIMApiKeySubmitButton().should('be.enabled').click();
 
       cy.step('Wait for NIM account validation on the project namespace (up to 7 minutes)');
