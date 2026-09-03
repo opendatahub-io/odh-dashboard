@@ -158,4 +158,35 @@ describe('useWorkloadRows', () => {
     });
     expect(renderResult.result.current.loaded).toBe(false);
   });
+
+  it('returns loaded empty result for clusterQueues scope with no cluster queues', async () => {
+    useFetchMock.mockImplementation(() => {
+      return {
+        data: { mode: 'clusterQueues', workloadsByClusterQueue: new Map() },
+        loaded: true,
+        error: undefined,
+        refresh: jest.fn(),
+      };
+    });
+    useProjectsMock.mockReturnValue([[], false, new Error('projects failed')]);
+
+    testHook(useWorkloadRows)({ mode: 'clusterQueues', clusterQueueNames: [] });
+
+    const fetchCallback = useFetchMock.mock.calls[0][0];
+    await expect(fetchCallback({ signal: new AbortController().signal })).resolves.toEqual({
+      mode: 'clusterQueues',
+      workloadsByClusterQueue: new Map(),
+    });
+    expect(fetchWorkloadsForClusterQueuesMock).not.toHaveBeenCalled();
+  });
+
+  it('passes initialPromisePurity to useFetch', () => {
+    testHook(useWorkloadRows)({ mode: 'clusterQueues', clusterQueueNames: ['gpu-cq'] });
+
+    expect(useFetchMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.anything(),
+      expect.objectContaining({ initialPromisePurity: true }),
+    );
+  });
 });

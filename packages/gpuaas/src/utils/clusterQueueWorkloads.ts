@@ -15,8 +15,8 @@ import { PodModel } from '@odh-dashboard/internal/api/models';
 import {
   getKueueWorkloadStatusWithMessage,
   KUEUE_QUEUE_LABEL,
-} from '@odh-dashboard/internal/concepts/kueue/index';
-import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { buildResourceFlavorByName, resolveWorkloadHardwareProfile } from './hardwareModels';
 import {
   type ClusterQueueWorkloadRow,
@@ -113,11 +113,8 @@ export const isKueueManagedWorkload = (
   }
 
   if (isServingWorkload(workload, pods)) {
-    const podRef = workload.metadata?.ownerReferences?.find(
-      (ownerRef) => ownerRef.kind.toLowerCase() === 'pod',
-    );
-    const pod = pods.find((candidate) => candidate.metadata.uid === podRef?.uid);
-    return Boolean(pod?.metadata.labels?.[KUEUE_QUEUE_LABEL]);
+    const servingPods = findServingWorkloadPods(workload, pods);
+    return servingPods.some((pod) => Boolean(pod.metadata.labels?.[KUEUE_QUEUE_LABEL]));
   }
 
   return true;
@@ -179,6 +176,37 @@ const isServingPod = (pod: PodKind): boolean => {
 
 const hasOwnerKind = (workload: WorkloadKind, kind: WorkloadOwnerType): boolean =>
   (workload.metadata?.ownerReferences ?? []).some((ownerRef) => ownerRef.kind === kind);
+
+const findOwnerRefByKind = (workload: WorkloadKind, kind: string) =>
+  (workload.metadata?.ownerReferences ?? []).find(
+    (ownerRef) => ownerRef.kind.toLowerCase() === kind.toLowerCase(),
+  );
+
+const findPodsOwnedBy = (pods: PodKind[], ownerUid: string): PodKind[] =>
+  pods.filter((pod) =>
+    (pod.metadata.ownerReferences ?? []).some((ownerRef) => ownerRef.uid === ownerUid),
+  );
+
+/** Resolves serving Pods via direct Pod owner or descendant Pods for RS/LWS owners. */
+const findServingWorkloadPods = (workload: WorkloadKind, pods: PodKind[]): PodKind[] => {
+  const replicaSetRef = findOwnerRefByKind(workload, WorkloadOwnerType.ReplicaSet);
+  if (replicaSetRef?.uid) {
+    return findPodsOwnedBy(pods, replicaSetRef.uid);
+  }
+
+  const leaderWorkerSetRef = findOwnerRefByKind(workload, WorkloadOwnerType.LeaderWorkerSet);
+  if (leaderWorkerSetRef?.uid) {
+    return findPodsOwnedBy(pods, leaderWorkerSetRef.uid);
+  }
+
+  const podRef = findOwnerRefByKind(workload, 'pod');
+  if (!podRef?.uid) {
+    return [];
+  }
+
+  const pod = pods.find((candidate) => candidate.metadata.uid === podRef.uid);
+  return pod ? [pod] : [];
+};
 
 /**
  * Model serving workloads: InferenceService / LLMInferenceService pods, ReplicaSet, or
@@ -454,10 +482,21 @@ export const fetchWorkloadsForClusterQueues = async (
     return new Map();
   }
 
-  const [namespaceData, resourceFlavors] = await Promise.all([
-    Promise.all(namespaces.map(fetchNamespaceWorkloadData)),
+  const [namespaceResults, resourceFlavors] = await Promise.all([
+    Promise.all(
+      namespaces.map(async (namespace) => {
+        try {
+          return await fetchNamespaceWorkloadData(namespace);
+        } catch {
+          return undefined;
+        }
+      }),
+    ),
     listResourceFlavors(),
   ]);
+  const namespaceData = namespaceResults.filter(
+    (result): result is NamespaceWorkloadData => result != null,
+  );
   const resourceFlavorByName = buildResourceFlavorByName(resourceFlavors);
   const workloadsByClusterQueue = new Map<string, ClusterQueueWorkloadRow[]>();
 

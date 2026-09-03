@@ -129,12 +129,12 @@ const useWorkloadRows = (
         return { mode: 'namespace', workloads };
       }
 
-      if (!projectsLoaded) {
-        throw new NotReadyError('Projects not loaded');
-      }
-
       if (currentScope.clusterQueueNames.length === 0) {
         return { mode: 'clusterQueues', workloadsByClusterQueue: new Map() };
+      }
+
+      if (!projectsLoaded) {
+        throw new NotReadyError('Projects not loaded');
       }
 
       const workloadsByClusterQueue = await fetchWorkloadsForClusterQueues(
@@ -149,7 +149,7 @@ const useWorkloadRows = (
       // eslint-disable-next-line react-hooks/exhaustive-deps -- keys trigger refetch when inputs change
     }, [scopeKey, namespacesKey, projectDisplayNamesKey, includeTerminal, projectsLoaded]),
     initialFetchResult,
-    { refreshRate },
+    { refreshRate, initialPromisePurity: true },
   );
 
   const loaded = scope.mode === 'namespace' ? workloadsLoaded : projectsLoaded && workloadsLoaded;

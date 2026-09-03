@@ -7,7 +7,7 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
 import { getPendingWorkloads } from '@odh-dashboard/internal/api/k8s/pendingWorkloads';
-import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { QuotaUsageWorkloadStatuses, QuotaUsageWorkloadTypes } from '../../types';
 import {
   applyQueuePositions,
@@ -488,6 +488,61 @@ describe('clusterQueueWorkloads', () => {
         type: QuotaUsageWorkloadTypes.Unknown,
       });
     });
+
+    it('includes admitted ReplicaSet-owned serving workloads with Kueue-labeled descendant pods', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'rs-serving-wl',
+          namespace: NS,
+          ownerReferences: [
+            { apiVersion: 'v1', kind: WorkloadOwnerType.ReplicaSet, name: 'rs', uid: 'rs-uid' },
+          ],
+        },
+        status: {
+          admission: { clusterQueue: CQ, podSetAssignments: [] },
+          conditions: admittedConditions,
+        },
+      });
+      const servingPod = {
+        ...makePod('pod-uid', {
+          'serving.kserve.io/inferenceservice': 'is-1',
+          'kueue.x-k8s.io/queue-name': LQ,
+        }),
+        metadata: {
+          name: 'serving-pod',
+          namespace: NS,
+          uid: 'pod-uid',
+          labels: {
+            'serving.kserve.io/inferenceservice': 'is-1',
+            'kueue.x-k8s.io/queue-name': LQ,
+          },
+          ownerReferences: [
+            { apiVersion: 'v1', kind: WorkloadOwnerType.ReplicaSet, name: 'rs', uid: 'rs-uid' },
+          ],
+        },
+      } as PodKind;
+
+      const rows = filterAndMapClusterQueueWorkloads(
+        CQ,
+        [
+          {
+            namespace: NS,
+            workloads: [workload],
+            localQueues: [localQueue(LQ, CQ)],
+            pods: [servingPod],
+          },
+        ],
+        projectDisplayNames,
+        emptyResourceFlavors,
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        name: 'rs-serving-wl',
+        type: QuotaUsageWorkloadTypes.Serve,
+        status: QuotaUsageWorkloadStatuses.Admitted,
+      });
+    });
   });
 
   describe('isKueueManagedWorkload', () => {
@@ -508,6 +563,42 @@ describe('clusterQueueWorkloads', () => {
       });
       const pod = makePod('pod-uid', { 'serving.kserve.io/inferenceservice': 'is-1' });
       expect(isKueueManagedWorkload(workload, [pod], localQueueByName)).toBe(false);
+    });
+
+    it('returns true for ReplicaSet-owned serving workloads with Kueue-labeled descendant pods', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'rs-serving-wl',
+          namespace: NS,
+          ownerReferences: [
+            { apiVersion: 'v1', kind: WorkloadOwnerType.ReplicaSet, name: 'rs', uid: 'rs-uid' },
+          ],
+        },
+        status: {
+          admission: { clusterQueue: CQ, podSetAssignments: [] },
+          conditions: admittedConditions,
+        },
+      });
+      const servingPod = {
+        ...makePod('pod-uid', {
+          'serving.kserve.io/inferenceservice': 'is-1',
+          'kueue.x-k8s.io/queue-name': LQ,
+        }),
+        metadata: {
+          name: 'serving-pod',
+          namespace: NS,
+          uid: 'pod-uid',
+          labels: {
+            'serving.kserve.io/inferenceservice': 'is-1',
+            'kueue.x-k8s.io/queue-name': LQ,
+          },
+          ownerReferences: [
+            { apiVersion: 'v1', kind: WorkloadOwnerType.ReplicaSet, name: 'rs', uid: 'rs-uid' },
+          ],
+        },
+      } as PodKind;
+
+      expect(isKueueManagedWorkload(workload, [servingPod], localQueueByName)).toBe(true);
     });
   });
 

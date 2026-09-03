@@ -17,20 +17,20 @@ const useNamespaceWorkloads = (
   projectDisplayName: string | undefined,
   options: UseNamespaceWorkloadsOptions = {},
 ): UseNamespaceWorkloadsResult => {
-  const scope =
-    namespace && projectDisplayName
-      ? { mode: 'namespace' as const, namespace, projectDisplayName }
-      : { mode: 'namespace' as const, namespace: '', projectDisplayName: '' };
+  const scope = namespace
+    ? { mode: 'namespace' as const, namespace, projectDisplayName: projectDisplayName ?? '' }
+    : { mode: 'namespace' as const, namespace: '', projectDisplayName: '' };
 
   const { data, loaded, error, refresh } = useWorkloadRows(scope, options);
 
-  const workloads = data.mode === 'namespace' ? data.workloads : [];
+  const workloads = namespace && data.mode === 'namespace' ? data.workloads : [];
+  const effectiveLoaded = namespace ? loaded : true;
 
   return {
-    workloads: namespace ? workloads : [],
-    loaded: namespace ? loaded : true,
+    workloads,
+    loaded: effectiveLoaded,
     error,
-    isEmpty: loaded && !error && workloads.length === 0,
+    isEmpty: effectiveLoaded && !error && workloads.length === 0,
     refresh,
   };
 };
