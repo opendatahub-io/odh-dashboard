@@ -5,6 +5,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
+
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
@@ -50,6 +52,13 @@ func (r *DashboardReconciler) ReconcileNamespacedRBAC(ctx context.Context, dashb
 
 func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
 	return r.cleanupNamespacedRBAC(ctx)
+}
+
+func (r *DashboardReconciler) ReconcileDegradedCondition(
+	cm *conditions.Manager,
+	statuses map[string]v1alpha1.ModuleStatus,
+) {
+	r.reconcileDegradedCondition(cm, statuses)
 }
 
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
