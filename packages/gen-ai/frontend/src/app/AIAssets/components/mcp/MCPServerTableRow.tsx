@@ -46,6 +46,9 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
         </Button>
       </MCPServerEndpointPopover>
     </Td>
+    <Td dataLabel="Source">{server.source || 'Unknown'}</Td>
+    <Td dataLabel="Tools">{server.tools || '0'}</Td>
+    <Td dataLabel="Version">{server.version}</Td>
   </Tr>
 );
 

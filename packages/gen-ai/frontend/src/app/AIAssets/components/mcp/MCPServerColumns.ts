@@ -26,6 +26,24 @@ const MCPServerColumns: SortableData<MCPServer>[] = [
     sortable: false,
     width: 15,
   },
+  {
+    field: 'source',
+    label: 'Source',
+    sortable: false,
+    width: 15,
+  },
+  {
+    field: 'tools',
+    label: 'Tools',
+    sortable: false,
+    width: 15,
+  },
+  {
+    field: 'version',
+    label: 'Version',
+    sortable: false,
+    width: 15,
+  },
 ];
 
 export default MCPServerColumns;

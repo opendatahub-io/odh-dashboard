@@ -20,6 +20,10 @@ export type MCPServerFromAPI = {
   logo: string | null;
   /** Server status from ConfigMap validation */
   status: 'healthy' | 'error' | 'unknown';
+  version: string;
+  source: string;
+  tools: MCPTool[];
+  tool_count: number;
 };
 
 /**
@@ -170,4 +174,6 @@ export interface MCPServer {
   tools: number;
   toolsList?: MCPTool[];
   version: string;
+  source: string;
+  logo: string | null;
 }
