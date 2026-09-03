@@ -1,4 +1,4 @@
-import { pollUntilSuccess } from './baseCommands';
+import { pollUntilSuccess, waitForNamespace } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -25,15 +25,24 @@ export const createOpenShiftProject = (
                 stderr: ${result.stderr}`);
       throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    // Add dashboard label immediately after project creation
-    const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
-    return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-      if (labelResult.exitCode !== 0) {
-        cy.log(`WARNING: Failed to add dashboard label to ${projectName}
-                  stdout: ${labelResult.stdout}
-                  stderr: ${labelResult.stderr}`);
-      }
-      return cy.wrap(result);
+    // Wait until the namespace is patchable, then require the dashboard label
+    // and Active phase so the A.I. projects filter can see it.
+    return waitForNamespace(projectName, 30, 1000).then(() => {
+      const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
+      return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
+        if (labelResult.exitCode !== 0) {
+          throw new Error(
+            `Failed to add dashboard label to ${projectName}: ${
+              labelResult.stderr || labelResult.stdout
+            }`,
+          );
+        }
+        return pollUntilSuccess(
+          `oc get project ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true" and .status.phase == "Active"'`,
+          `project ${projectName} dashboard-ready`,
+          { maxAttempts: 15, pollIntervalMs: 1000 },
+        ).then(() => cy.wrap(result));
+      });
     });
   });
 };
