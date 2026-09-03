@@ -85,7 +85,9 @@ describe('FeatureStoreTableRow', () => {
 
   it('should render Ready status label', () => {
     renderRow();
-    expect(screen.getByText('Ready')).toBeInTheDocument();
+    expect(screen.getByTestId('feature-store-status')).toHaveTextContent('Ready');
+    expect(screen.getByTestId('status-badge-ready')).toHaveTextContent('Ready');
+    expect(screen.getByTestId('feature-store-expand-toggle')).toBeInTheDocument();
   });
 
   it('should render Installing status label', () => {

@@ -1,3 +1,7 @@
+import type { UserAuthConfig } from '../../types';
+
+const FEATURE_STORE_ADMIN_DEV_FLAG = 'devFeatureFlags=featureStoreAdmin=true';
+
 class FeatureStoreCreatePage {
   visit() {
     cy.visitWithLogin(
@@ -6,9 +10,18 @@ class FeatureStoreCreatePage {
     this.wait();
   }
 
+  visitWithAdminFlag(user: UserAuthConfig) {
+    cy.visitWithLogin(`/develop-train/feature-store/create?${FEATURE_STORE_ADMIN_DEV_FLAG}`, user);
+    cy.testA11y();
+  }
+
   private wait() {
     cy.findByTestId('app-page-title').should('have.text', 'Create feature store');
     cy.testA11y();
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
   }
 
   findWizard() {

@@ -179,6 +179,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
     <>
       <Tr data-testid={`feature-store-row-${fs.metadata.namespace}-${fs.metadata.name}`}>
         <Td
+          data-testid="feature-store-expand-toggle"
           expand={{
             rowIndex,
             expandId: `feature-store-${fs.metadata.namespace}-${fs.metadata.name}`,
@@ -217,7 +218,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Project">{fs.metadata.namespace}</Td>
-        <Td dataLabel="Status">
+        <Td dataLabel="Status" data-testid="feature-store-status">
           {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
         </Td>
         <Td dataLabel="Version">{fs.status?.feastVersion ?? '-'}</Td>

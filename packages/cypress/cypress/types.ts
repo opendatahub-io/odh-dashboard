@@ -694,6 +694,24 @@ export type FeatureStoreTestData = {
   hardwareProfileName: string;
 };
 
+export type FeatureStoreAdminLifecycleTestData = {
+  createPageTitle: string;
+  managePageTitle: string;
+  statusReady: string;
+  wizardSteps: {
+    details: string;
+    registry: string;
+    onlineOfflineStores: string;
+    advancedOptions: string;
+    review: string;
+  };
+  expandedDetails: {
+    feastProject: string;
+    conditions: string;
+  };
+  deleteAction: string;
+};
+
 export type GenAiTestData = {
   projectNamePrefix: string;
   projectDescription: string;
