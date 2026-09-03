@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -74,7 +75,7 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
-) {
+) time.Duration {
 	logger := log.FromContext(ctx)
 
 	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
@@ -96,6 +97,7 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
 				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
 				conditions.WithSeverity(common.ConditionSeverityInfo))
+			return maasConsumerPortalRetryInterval
 		} else {
 			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
 				conditions.WithReason("Disabled"),
@@ -114,7 +116,10 @@ func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
 			conditions.WithMessage("MaaS Consumer Portal ConsoleLink reconciliation failed: %s", maasConsumerPortalErr),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
+		return maasConsumerPortalRetryInterval
 	}
+
+	return 0
 }
 
 // deployMaasConsumerPortalConsoleLink renders and applies the MaaS Consumer Portal

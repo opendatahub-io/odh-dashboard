@@ -111,7 +111,7 @@ func TestReconcileMaasConsumerPortalConsoleLink_DeployFails(t *testing.T) {
 	maasConsumerPortalCond := cm.GetCondition(conditionMaasConsumerPortalAvailable)
 	require.NotNil(t, maasConsumerPortalCond)
 	assert.Equal(t, metav1.ConditionFalse, maasConsumerPortalCond.Status)
-	assert.Equal(t, "Error", maasConsumerPortalCond.Reason)
+	assert.Equal(t, "MaasConsumerPortalDeployFailed", maasConsumerPortalCond.Reason)
 	assert.Contains(t, maasConsumerPortalCond.Message, "failed to write maas consumer portal params.env")
 	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
 	assert.Equal(t, maasConsumerPortalRetryInterval, retryAfter)

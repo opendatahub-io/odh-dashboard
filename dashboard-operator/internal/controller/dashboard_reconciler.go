@@ -210,7 +210,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// teardown below also ensures any portal resource carrying a stale
 	// part-of=dashboard label (from an older operator) is relabeled before the
 	// core teardown selector runs.
-	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+	portalRetryAfter := r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -262,7 +262,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -309,6 +309,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(statusErr, "Failed to update status")
 	}
 
+	// The portal is an optional operand, so its failures do not fail the core
+	// dashboard reconciliation. Schedule a retry so transient apply and delete
+	// failures heal even when neither object changes afterwards.
+	if portalRetryAfter > 0 && (result.RequeueAfter == 0 || portalRetryAfter < result.RequeueAfter) {
+		result.RequeueAfter = portalRetryAfter
+	}
+
 	return result, err
 }
 
@@ -332,6 +339,7 @@ func (r *DashboardReconciler) persistRemovedFailureStatus(
 }
 
 const observabilityRetryInterval = 5 * time.Minute
+const maasConsumerPortalRetryInterval = time.Minute
 
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,

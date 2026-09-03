@@ -86,7 +86,7 @@ func TestComputeKustomizeVariables(t *testing.T) {
 
 func TestMaasConsumerPortalManifestInfo(t *testing.T) {
 	// The ConsoleLink is part of the complete portal distribution bundle.
-	info := maasConsumerPortalManifestInfo("/base")
+	info := maasConsumerPortalConsoleLinkManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
 	assert.Equal(t, "distributions", info.ContextDir)
 	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
