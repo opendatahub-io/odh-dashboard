@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ import (
 const (
 	defaultMLflowPort         = 5001
 	defaultMLflowVersion      = "3.15.1"
+	defaultMLflowPython       = "3.12"
 	healthTimeout             = 90 * time.Second
 	healthPoll                = 2 * time.Second
 	shutdownWait              = 5 * time.Second
@@ -40,6 +42,13 @@ func mlflowVersion() string {
 		return v
 	}
 	return defaultMLflowVersion
+}
+
+func mlflowPython() string {
+	if v := os.Getenv("MLFLOW_PYTHON"); v != "" {
+		return v
+	}
+	return defaultMLflowPython
 }
 
 // MLflowState tracks the MLflow child process, enabling targeted cleanup
@@ -103,6 +112,13 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, nil
 	}
 
+	if isPortListening(port) && !isMLflowHealthy(port) {
+		return nil, fmt.Errorf(
+			"port %d is in use but MLflow /health is not OK — stop the stale process (lsof -t -i :%d | xargs kill) and retry",
+			port, port,
+		)
+	}
+
 	uvBin, err := testutil.ResolveUVBinary()
 	if err != nil {
 		return nil, fmt.Errorf("uv binary not found: %w", err)
@@ -123,7 +139,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd := exec.CommandContext(ctx, uvBin,
-		"run", "--with", "mlflow=="+version,
+		"run", "--python", mlflowPython(), "--with", "mlflow=="+version,
 		"mlflow", "server",
 		"--host", "127.0.0.1",
 		"--port", fmt.Sprintf("%d", port),
@@ -239,7 +255,7 @@ func CleanupMLflowState(
 func upgradeMLflowDB(dataDir string, version, uvBin string, logger *slog.Logger) {
 	storeURI := fmt.Sprintf("sqlite:///%s/mlflow.db", dataDir)
 	cmd := exec.Command(uvBin,
-		"run", "--with", "mlflow=="+version,
+		"run", "--python", mlflowPython(), "--with", "mlflow=="+version,
 		"mlflow", "db", "upgrade", storeURI,
 	)
 	cmd.Stdout = os.Stdout
@@ -250,6 +266,15 @@ func upgradeMLflowDB(dataDir string, version, uvBin string, logger *slog.Logger)
 			slog.String("error", err.Error()),
 		)
 	}
+}
+
+func isPortListening(port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 2*time.Second)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
 }
 
 func isMLflowHealthy(port int) bool {
