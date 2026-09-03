@@ -84,6 +84,12 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 
 	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
 	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
+	// Reject malformed subscription values before forwarding to MaaS (CWE-20).
+	// Valid MaaS subscription names are resource paths; 512 bytes is a generous upper bound.
+	if len(maasSubscription) > 512 {
+		app.badRequestResponse(w, r, errors.New("X-MaaS-Subscription header exceeds maximum length"))
+		return
+	}
 
 	// Resolve model → endpoint URL + credentials
 	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
@@ -124,13 +130,20 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Proxy the request to upstream.
-	// Use a dedicated client with 3-min timeout — LLM chat completions can take longer
-	// than the BFF's default httpClient timeout (92s, tuned for ASR transcription).
+	// Use a dedicated client — LLM completions can take longer than the BFF's default
+	// httpClient timeout (92s, tuned for ASR transcription).
 	// Reuse the same TLS transport for connection pooling and cert trust.
+	//
+	// For non-streaming responses, apply an explicit 3-minute deadline via Client.Timeout.
+	// For streaming responses, omit Client.Timeout: it bounds the entire body read, which
+	// would truncate a long stream mid-flight after WriteHeader has already committed.
+	// The parent request context (managed by the HTTP server) handles overall lifetime.
 	const chatCompletionTimeout = 3 * time.Minute
 	proxyClient := &http.Client{
-		Timeout:   chatCompletionTimeout,
 		Transport: app.httpClient.Transport,
+	}
+	if !isStreaming {
+		proxyClient.Timeout = chatCompletionTimeout
 	}
 
 	upstreamURL := baseURL + "/chat/completions"
