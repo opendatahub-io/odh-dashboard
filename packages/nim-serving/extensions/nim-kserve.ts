@@ -7,6 +7,7 @@ import type {
   WizardFieldApplyExtension,
   WizardFieldDeploymentFunctionsExtension,
   WizardFieldExtractorExtension,
+  WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
@@ -41,6 +42,18 @@ const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, 
       required: [SupportedArea.NIM_WIZARD],
     },
   };
+
+const nimTrackingPropertiesExtension: WizardTrackingPropertiesExtension<KServeDeployment> = {
+  type: 'model-serving.deployment/tracking-properties',
+  properties: {
+    platform: NIM_LEGACY_ID,
+    getProperties: () =>
+      import('../src/tracking/nimWizardTracking').then((m) => m.getNIMWizardTrackingProperties),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
 
 const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
   NIMPVCFieldValue,
@@ -118,6 +131,7 @@ const extensions: (
   | WizardFieldApplyExtension<NIMImageFieldValue, KServeDeployment>
   | WizardFieldApplyExtension<NIMPVCFieldValue, KServeDeployment>
   | WizardFieldDeploymentFunctionsExtension<NIMPVCFieldValue, KServeDeployment>
+  | WizardTrackingPropertiesExtension<KServeDeployment>
 )[] = [
   nimKServeFormDataExtension,
   {
@@ -138,6 +152,7 @@ const extensions: (
   nimPVCExtractorExtension,
   nimPVCDeployFunctionsExtension,
   nimImageExtractExtension,
+  nimTrackingPropertiesExtension,
 ];
 
 export default extensions;

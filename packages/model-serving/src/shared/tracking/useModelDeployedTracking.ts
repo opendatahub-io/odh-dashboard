@@ -19,6 +19,7 @@ import {
 import { MODEL_CAPABILITIES_FIELD_ID } from '../../components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 import type { WizardFormState } from '../../components/deploymentWizard/useDeploymentWizardReducer';
 import type { InitialWizardFormData } from '../types/form-data';
+import type { ExternalDataMap } from '../../components/deploymentWizard/ExternalDataLoader';
 
 export const getBaseModelDeployedTrackingProperties = (
   formState: WizardFormState,
@@ -67,6 +68,7 @@ export const useModelDeployedTracking = (
   initialWizardData?: InitialWizardFormData,
   platformId?: string,
   isEdit?: boolean,
+  externalData?: ExternalDataMap,
 ): {
   fireModelDeployedTracking: (
     outcome: 'submit' | 'cancel',
@@ -80,7 +82,7 @@ export const useModelDeployedTracking = (
 
   const fireModelDeployedTracking = React.useCallback(
     async (outcome: 'submit' | 'cancel', success?: boolean, errorMessage?: string) => {
-      const platformTrackingProperties = await getTrackingProperties();
+      const platformTrackingProperties = await getTrackingProperties(externalData);
       const wizardProperties = getModelDeployedTrackingProperties({
         navState: getDeployWizardNavState(location.state),
         validatedConfigurations: initialWizardData?.validatedConfigurations,
@@ -110,6 +112,7 @@ export const useModelDeployedTracking = (
       getTrackingProperties,
       trackEvent,
       isEdit,
+      externalData,
     ],
   );
 
