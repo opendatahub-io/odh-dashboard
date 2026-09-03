@@ -8,19 +8,21 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import {
+  createRoleBinding,
+  generateRoleBindingServiceAccount,
+  getRoleBinding,
+} from '@odh-dashboard/k8s-core/api/roleBindings';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import { RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
-  createRoleBinding,
   deleteRoleBinding,
   generateRoleBindingPermissions,
-  generateRoleBindingServiceAccount,
-  getRoleBinding,
   listRoleBindings,
   patchRoleBindingOwnerRef,
   patchRoleBindingSubjects,
 } from '#~/api/k8s/roleBindings';
-import { RoleBindingModel } from '#~/api/models/k8s';
 import {
   RoleBindingPermissionsRBType,
   RoleBindingPermissionsRoleType,

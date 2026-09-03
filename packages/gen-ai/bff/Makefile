@@ -23,6 +23,8 @@ MOCK_NEMO_CLIENT ?= false
 AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
+PLAYGROUND_NAMESPACE ?=
+KUBERNETES_MCP_SERVER_URL ?=
 
 # Inter-BFF Communication configuration
 BFF_MAAS_SERVICE_NAME ?= "odh-dashboard"
@@ -37,7 +39,7 @@ BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
 BFF_MLFLOW_DEV_URL ?= ""
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.12.0
+MLFLOW_VERSION ?= 3.15.1
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
@@ -146,12 +148,15 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 .PHONY: mlflow-up
 mlflow-up: uv ## Start local MLflow tracking server via uv.
 	@mkdir -p $(MLFLOW_DATA)
+	@$(UV) run --with mlflow==$(MLFLOW_VERSION) mlflow db upgrade sqlite:///$(MLFLOW_DATA)/mlflow.db 2>/dev/null || true
 	@echo "Starting MLflow server on port $(MLFLOW_PORT)... (Ctrl+C to stop)"
+	MLFLOW_ENABLE_WORKSPACES=true \
 	$(UV) run --with mlflow==$(MLFLOW_VERSION) mlflow server \
 		--host 127.0.0.1 \
 		--port $(MLFLOW_PORT) \
 		--backend-store-uri sqlite:///$(MLFLOW_DATA)/mlflow.db \
-		--default-artifact-root $(MLFLOW_DATA)/artifacts
+		--default-artifact-root $(MLFLOW_DATA)/artifacts \
+		--enable-workspaces
 
 .PHONY: mlflow-down
 mlflow-down: ## Stop local MLflow tracking server.
@@ -162,6 +167,17 @@ mlflow-down: ## Stop local MLflow tracking server.
 mlflow-clean: mlflow-down ## Remove local MLflow data.
 	rm -rf $(MLFLOW_DATA) $(MLFLOW_DATA)-test
 	@echo "MLflow data cleaned"
+
+.PHONY: mlflow-seed
+mlflow-seed: uv ## Seed local MLflow prompts + MCP registry (default + PLAYGROUND_NAMESPACE).
+	@curl --fail --silent --show-error --connect-timeout 2 --max-time 5 "http://127.0.0.1:$(MLFLOW_PORT)/health" >/dev/null 2>&1 || { \
+		echo "ERROR: MLflow is not running on :$(MLFLOW_PORT). Start it first (make mlflow-up)."; \
+		exit 1; \
+	}
+	MLFLOW_TRACKING_URI=http://127.0.0.1:$(MLFLOW_PORT) \
+	PLAYGROUND_NAMESPACE=$(PLAYGROUND_NAMESPACE) \
+	KUBERNETES_MCP_SERVER_URL=$(KUBERNETES_MCP_SERVER_URL) \
+	go test ./internal/integrations/mlflow/mlflowmocks/ -run "TestSeedMCPRegistry|TestSeedPrompts" -count=1
 
 ##@ Llama Stack
 

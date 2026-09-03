@@ -13,6 +13,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp/mcpmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -21,7 +23,10 @@ import (
 )
 
 var _ = Describe("MCPStatusHandler", func() {
-	var app *App
+	var (
+		app           *App
+		mockBFFClient *bffmocks.MockBFFClient
+	)
 
 	BeforeEach(func() {
 		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -34,6 +39,11 @@ var _ = Describe("MCPStatusHandler", func() {
 		mockK8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
 		require.NoError(GinkgoT(), err)
 
+		mockBFFFactory := bffmocks.NewMockClientFactory(logger).(*bffmocks.MockClientFactory)
+		mockBFFFactory.CreateClient(bffclient.BFFTargetMLflow, "")
+		mockBFFClient = mockBFFFactory.GetMockClient(bffclient.BFFTargetMLflow)
+		mockBFFClient.CallHandler = nil
+
 		app = &App{
 			config: config.EnvConfig{
 				Port:       4000,
@@ -43,6 +53,7 @@ var _ = Describe("MCPStatusHandler", func() {
 			repositories:            repositories.NewRepositoriesWithMCP(mockMCPFactory, logger),
 			kubernetesClientFactory: mockK8sFactory,
 			mcpClientFactory:        mockMCPFactory,
+			bffClientFactory:        mockBFFFactory,
 			dashboardNamespace:      "opendatahub",
 		}
 	})
@@ -190,7 +201,7 @@ var _ = Describe("MCPStatusHandler", func() {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	It("should return 400 when server_url parameter is missing", func() {
+	It("should return 400 when server_url and server_name are missing", func() {
 		t := GinkgoT()
 		rr := httptest.NewRecorder()
 
@@ -205,6 +216,99 @@ var _ = Describe("MCPStatusHandler", func() {
 
 		app.MCPStatusHandler(rr, req, nil)
 
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	It("should return 404 for registry server_name with no access endpoint", func() {
+		t := GinkgoT()
+		mockBFFClient.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name":             "com.brave.example/brave",
+					"access_endpoints": []map[string]interface{}{},
+				},
+			}, response)
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/status?namespace=demo&server_name=com.brave.example/brave", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPStatusHandler(rr, req, nil)
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	It("should prefer server_name over server_url when both are provided", func() {
+		t := GinkgoT()
+		serverURL := "http://localhost:9091/mcp"
+		mockBFFClient.CallHandler = func(_ context.Context, _, path string, _ interface{}, response interface{}) error {
+			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=demo", path)
+			return marshalToResponse(map[string]interface{}{
+				"data": map[string]interface{}{
+					"name": "com.example/kubernetes",
+					"access_endpoints": []map[string]interface{}{
+						{
+							"endpoint_url":   serverURL,
+							"transport_type": "streamable-http",
+						},
+					},
+				},
+			}, response)
+		}
+
+		encodedFakeURL := url.QueryEscape("https://nonexistent-server.com/mcp")
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(
+			"GET",
+			"/genai/v1/mcp/status?namespace=demo&server_name=com.example/kubernetes&server_url="+encodedFakeURL,
+			nil,
+		)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPStatusHandler(rr, req, nil)
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response MCPStatusEnvelope
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, serverURL, response.Data.ServerURL)
+	})
+
+	It("should return 503 when registry resolution requires MLflow BFF but it is unavailable", func() {
+		t := GinkgoT()
+		app.bffClientFactory = nil
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/status?namespace=demo&server_name=com.example/kubernetes", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPStatusHandler(rr, req, nil)
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	})
+
+	It("should return 400 for invalid registry server_name with empty path segment", func() {
+		t := GinkgoT()
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("GET", "/genai/v1/mcp/status?namespace=demo&server_name=com.example//kubernetes", nil)
+		require.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		app.MCPStatusHandler(rr, req, nil)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 

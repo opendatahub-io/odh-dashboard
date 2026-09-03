@@ -1,5 +1,5 @@
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { deleteLLMInferenceServiceConfig } from './LLMInferenceServiceConfigs';
 import {
   LLMInferenceServiceModel,

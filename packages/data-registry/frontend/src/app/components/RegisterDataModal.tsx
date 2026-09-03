@@ -13,6 +13,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createVolume, createGenericTable, createLabel, ApiError } from '~/app/api/dataRegistry';
 import { CreateVolumeRequest, CreateGenericTableRequest } from '~/app/types';
+import { useConnections } from '~/app/hooks/useConnections';
 import {
   registerDataSchema,
   registerDataDefaults,
@@ -44,6 +45,10 @@ const buildVolumeRequest = (data: RegisterDataFormData): CreateVolumeRequest => 
   }
   if (data.path && data.path !== '/') {
     request.location = data.path;
+  }
+  if (data.connection) {
+    // eslint-disable-next-line camelcase
+    request.connection_ref = data.connection;
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
@@ -83,6 +88,10 @@ const buildTableRequest = (data: RegisterDataFormData): CreateGenericTableReques
   }
   if (data.path && data.path !== '/') {
     request.location = data.path;
+  }
+  if (data.connection) {
+    // eslint-disable-next-line camelcase
+    request.connection_ref = data.connection;
   }
   if (data.labels.length > 0) {
     request.labels = data.labels;
@@ -131,6 +140,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onCreated,
   onManageCollections,
 }) => {
+  const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -205,7 +215,11 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
               collections={collections}
               onManageCollections={onManageCollections}
             />
-            <DataLocationSection />
+            <DataLocationSection
+              connections={connections}
+              connectionsLoaded={connectionsLoaded}
+              connectionsError={connectionsError}
+            />
             <PropertiesSection />
             <CustomPropertiesSection />
             {assetType === 'structured' ? <SchemaSection /> : null}

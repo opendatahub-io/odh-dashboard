@@ -1,4 +1,4 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { STATUS_ENDPOINT } from '#~/concepts/mlflow/const';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import { createSharedPollingStore } from '#~/utilities/createSharedPollingStore';
