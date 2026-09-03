@@ -148,6 +148,7 @@
     },
     "@cypress/code-coverage": {
       "js-yaml": "^4.2.0"
-    }
+    },
+    "browserslist": "^4.28.8"
   }
 }
