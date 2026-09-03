@@ -155,10 +155,6 @@ module.exports = (env) => ({
           'sass-loader',
         ],
       },
-      {
-        test: /\.ya?ml$/,
-        use: 'js-yaml-loader',
-      },
     ],
   },
   output: {

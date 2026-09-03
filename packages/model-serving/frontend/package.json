@@ -28,6 +28,7 @@
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {
+    "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
     "@module-federation/enhanced": "^0.24.1",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
