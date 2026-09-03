@@ -92,13 +92,24 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 // This is used for deployments (e.g. RHOAI/ODH) where the caller forwards the end-user's own
 // token instead of injecting `kubeflow-userid`/`kubeflow-groups` request headers. The header and
 // prefix are configurable so this can match whatever the calling proxy forwards.
+//
+// SECURITY: this assumes a trusted reverse proxy sits in front of this service and *replaces*
+// (not appends to) the configured header with a validated value before forwarding the request.
+// Go's http.Header.Get returns only the first value for a repeated header, so if the proxy ever
+// appends instead of replacing, a client-supplied value placed first would be trusted instead of
+// the validated one. As defense in depth, requests carrying more than one value for the header
+// are rejected outright rather than guessing which value is authoritative.
 func NewBearerTokenAuthenticator(tokenReviews authenticationv1client.TokenReviewInterface, header string, prefix string) (authenticator.Request, error) {
 	requestAuthenticator := authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
-		raw := req.Header.Get(header)
-		if raw == "" {
+		values := req.Header.Values(header)
+		if len(values) == 0 {
 			return nil, false, nil
 		}
+		if len(values) > 1 {
+			return nil, false, fmt.Errorf("multiple values found for header %q; refusing to authenticate", header)
+		}
 
+		raw := values[0]
 		token := raw
 		if prefix != "" {
 			if !strings.HasPrefix(raw, prefix) {
