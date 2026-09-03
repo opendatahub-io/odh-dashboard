@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,10 +46,15 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 		cleanupModuleResources(t)
 	})
 
-	// Deploy first, then confirm the module operand exists.
+	// Deploy first, then confirm the module operand and a managed core resource exist.
 	reconcile(t, r)
 	reconcile(t, r)
 	require.Len(t, listDeployments(t, "model-registry"), 1, "module Deployment should exist before removal")
+	// dashboard-core-config is a managed (non-operator-owned) ConfigMap the operator deploys; it
+	// carries the same part-of=dashboard label as operator-owned resources. Confirm it exists now
+	// so the post-teardown assertion below proves teardown actually deletes managed ConfigMaps
+	// rather than skipping every ConfigMap that shares the label.
+	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
 
 	// Flip to Removed and reconcile once to run the teardown path.
 	dashboard = getDashboard(t)
@@ -61,11 +67,15 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	assert.Empty(t, listDeployments(t, "model-registry"), "module Deployment should be removed")
 	assert.Empty(t, listServices(t, "model-registry"), "module Service should be removed")
 
-	// Operator-owned resources are preserved (skipped by name during teardown).
+	// The managed core ConfigMap is deleted — teardown discriminates by name, not just by label.
+	assertGone(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "dashboard-core-config", Namespace: integrationNamespace})
+
+	// Operator-owned resources are preserved (skipped by name during teardown). The webhook
+	// serving-cert Secret is intentionally not asserted: cert-manager issues it without the
+	// part-of label, so teardown never selects it and a survival check would be false confidence.
 	assertExists(t, &appsv1.Deployment{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})
 	assertExists(t, &corev1.ServiceAccount{}, types.NamespacedName{Name: "dashboard-operator", Namespace: integrationNamespace})
 	assertExists(t, &corev1.Service{}, types.NamespacedName{Name: "dashboard-operator-webhook", Namespace: integrationNamespace})
-	assertExists(t, &corev1.Secret{}, types.NamespacedName{Name: "dashboard-operator-webhook-tls", Namespace: integrationNamespace})
 	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
@@ -132,10 +142,14 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 }
 
 // seedOperatorOwnedResources creates the operator's own resources — Deployment,
-// ServiceAccount, ClusterRole, ClusterRoleBinding, the webhook Service and its serving-cert
-// Secret, and the operator config ConfigMap — all carrying the part-of=dashboard label the
-// operator's Helm chart stamps on them (commonLabels). Teardown lists them by label, then
-// must skip them by name. Cleanup is registered so cluster-scoped resources never leak.
+// ServiceAccount, ClusterRole, ClusterRoleBinding, the webhook Service, and the operator config
+// ConfigMap — all carrying the part-of=dashboard label the operator's Helm chart stamps on them
+// (commonLabels). Teardown lists them by label, then must skip them by name. Cleanup is registered
+// so cluster-scoped resources never leak.
+//
+// The webhook serving-cert Secret is deliberately not seeded: cert-manager issues it from the
+// chart's Certificate (no secretTemplate), so it never carries the part-of label and is never
+// selected by teardown — seeding + asserting its survival would only give false confidence.
 func seedOperatorOwnedResources(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
@@ -169,8 +183,6 @@ func seedOperatorOwnedResources(t *testing.T) {
 				Ports: []corev1.ServicePort{{Port: 443}},
 			},
 		},
-		// Webhook serving-cert Secret.
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-webhook-tls", Namespace: integrationNamespace, Labels: partOf}},
 		// Operator config ConfigMap the operator itself reads.
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: integrationNamespace, Labels: partOf}},
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-role", Labels: partOf}},
@@ -195,4 +207,12 @@ func assertExists(t *testing.T, obj client.Object, key types.NamespacedName) {
 	t.Helper()
 	require.NoError(t, k8sClient.Get(context.Background(), key, obj),
 		"expected %T %q to exist", obj, key.Name)
+}
+
+// assertGone asserts that getting the object at key returns NotFound.
+func assertGone(t *testing.T, obj client.Object, key types.NamespacedName) {
+	t.Helper()
+	err := k8sClient.Get(context.Background(), key, obj)
+	assert.True(t, apierrors.IsNotFound(err),
+		"expected %T %q to be gone, got err=%v", obj, key.Name, err)
 }

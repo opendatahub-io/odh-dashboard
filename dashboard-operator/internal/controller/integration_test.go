@@ -81,7 +81,7 @@ func TestMain(m *testing.M) {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: s})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create client: %v\n", err)
-		testEnv.Stop()
+		_ = testEnv.Stop()
 		os.Exit(1)
 	}
 
@@ -89,13 +89,15 @@ func TestMain(m *testing.M) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: integrationNamespace}}
 	if err := k8sClient.Create(ctx, ns); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create test namespace: %v\n", err)
-		testEnv.Stop()
+		_ = testEnv.Stop()
 		os.Exit(1)
 	}
 
 	code := m.Run()
 
-	testEnv.Stop()
+	if err := testEnv.Stop(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to stop envtest: %v\n", err)
+	}
 	os.Exit(code)
 }
 
@@ -622,7 +624,7 @@ func TestIntegration_MaasConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing
 		"ConsoleLink should be removed when managementState is Removed and portal is disabled")
 }
 
-// newReconciler builds a DashboardReconciler wired to the shared k8sClient.
+// newManifestReconciler builds a DashboardReconciler wired to the shared k8sClient.
 func newManifestReconciler(manifests string) *ctrlpkg.DashboardReconciler {
 	return newReconcilerWithClient(k8sClient, manifests)
 }

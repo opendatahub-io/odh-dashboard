@@ -160,12 +160,9 @@ func TestIntegration_Observability_Deployed(t *testing.T) {
 	assert.Equal(t, metav1.ConditionTrue, cond.Status)
 	assert.Equal(t, "Deployed", cond.Reason)
 
-	// The federation config should carry a perses proxy entry.
-	entries := parseFederationEntries(t, getFederationConfigMap(t))
-	assert.NotNil(t, findFederationEntry(entries, "perses"),
-		"perses federation entry should be present when observability is deployed")
-
-	// The rendered observability ConfigMap should have been applied.
+	// The rendered observability ConfigMap should have been applied. This is the signal that
+	// distinguishes the Deployed path: the perses federation entry is driven by the spec and is
+	// present in the _PersesCRDNotFound case too, so asserting on it here would prove nothing.
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{
 		Name:      "perses-dashboard-config",
 		Namespace: integrationNamespace,

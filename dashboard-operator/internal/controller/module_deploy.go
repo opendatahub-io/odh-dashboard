@@ -341,11 +341,19 @@ func (r *DashboardReconciler) deleteModuleResources(
 
 // addInterBFFParams writes each inter-BFF dependency's service coordinates into the
 // module's params.env (rendered into that module's generated <slug>-params ConfigMap).
-// It only maintains those keys — a module wires them into its container env via envFrom
-// or a kustomize replacement if it needs them. gen-ai, the only current consumer, still
-// hardcodes the maas coordinates in its Deployment, so these keys are inert for it today;
-// keeping the write/clear logic correct means the ConfigMap is right whenever a module
-// starts consuming it.
+//
+// These BFF_*_SERVICE_NAME/PORT keys are operator-owned: the operator adds them only when
+// the target module is deployed and clears them when it is not, so their presence in the
+// ConfigMap is not stable across reconciles. A consuming module MUST therefore:
+//   - NOT ship static defaults for these keys in its own params.env (the operator overwrites
+//     or deletes them), and
+//   - consume them at runtime via envFrom on the generated <slug>-params ConfigMap, NOT via a
+//     build-time kustomize `replacement` sourcing one of these keys — a replacement referencing
+//     a key that has been cleared (dependency disabled) fails manifest rendering.
+//
+// gen-ai, the only current consumer, still hardcodes the maas coordinates in its Deployment, so
+// these keys are inert for it today; keeping the write/clear logic correct means the ConfigMap is
+// right whenever a module starts consuming it via envFrom.
 func addInterBFFParams(params map[string]string, moduleName string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) {
 	mod := moduleRegistry[moduleName]
 	if mod.InterBFFDeps == nil {
