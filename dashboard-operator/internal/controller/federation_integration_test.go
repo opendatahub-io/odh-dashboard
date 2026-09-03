@@ -113,7 +113,7 @@ func TestIntegration_FederationConfigMap_AllModulesEnabled(t *testing.T) {
 	reconcile(t, r)
 	reconcile(t, r)
 
-	entries := parseFederationEntries(t, getFederationConfigMap(t))
+	entries := parseFederationEntries(t, getConfigMap(t, "federation-config"))
 
 	// Every registered module has a federation entry.
 	for _, name := range ctrlpkg.ModuleNames() {

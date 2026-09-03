@@ -150,3 +150,107 @@ func TestReconcileMaasConsumerPortalConsoleLink_DisabledDeleteFails(t *testing.T
 	assert.Equal(t, common.ConditionSeverityInfo, maasConsumerPortalCond.Severity)
 	assert.True(t, cm.IsHappy(), "Ready must remain True even when the portal delete fails (Info severity)")
 }
+
+func TestSetMaasConsumerPortalModuleCondition(t *testing.T) {
+	newDashboard := func(state string) *v1alpha1.Dashboard {
+		return &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+			MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: state},
+		}}
+	}
+	deployed := map[string]v1alpha1.ModuleStatus{
+		"maas":  {Phase: v1alpha1.ModulePhaseDeployed},
+		"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
+	}
+
+	t.Run("healthy dependencies leave the condition unchanged", func(t *testing.T) {
+		dashboard := newDashboard("Managed")
+		cm := maasConsumerPortalTestManager(t, dashboard)
+		(&DashboardReconciler{}).setMaasConsumerPortalModuleCondition(cm, dashboard, deployed)
+		assert.Equal(t, metav1.ConditionUnknown, cm.GetCondition(conditionMaasConsumerPortalAvailable).Status)
+	})
+
+	for _, phase := range []v1alpha1.ModulePhase{
+		v1alpha1.ModulePhaseDisabled,
+		v1alpha1.ModulePhaseNotDeployed,
+		v1alpha1.ModulePhaseDegraded,
+	} {
+		t.Run(string(phase)+" dependency reports unavailable", func(t *testing.T) {
+			dashboard := newDashboard("Managed")
+			cm := maasConsumerPortalTestManager(t, dashboard)
+			statuses := map[string]v1alpha1.ModuleStatus{
+				"maas":  {Phase: phase, Message: "dependency is unavailable"},
+				"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
+			}
+			(&DashboardReconciler{}).setMaasConsumerPortalModuleCondition(cm, dashboard, statuses)
+			condition := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+			require.NotNil(t, condition)
+			assert.Equal(t, metav1.ConditionFalse, condition.Status)
+			assert.Equal(t, "RequiredModuleUnavailable", condition.Reason)
+			assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+		})
+	}
+
+	t.Run("preserves an earlier portal failure", func(t *testing.T) {
+		dashboard := newDashboard("Managed")
+		cm := maasConsumerPortalTestManager(t, dashboard)
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("gateway domain is not set"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+
+		(&DashboardReconciler{}).setMaasConsumerPortalModuleCondition(cm, dashboard, map[string]v1alpha1.ModuleStatus{
+			"maas":  {Phase: v1alpha1.ModulePhaseDisabled, Message: "disabled"},
+			"genAi": {Phase: v1alpha1.ModulePhaseDeployed},
+		})
+
+		assert.Equal(t, "MaasConsumerPortalDomainRequired", cm.GetCondition(conditionMaasConsumerPortalAvailable).Reason)
+	})
+
+	for _, state := range []string{"Removed", ""} {
+		t.Run("portal "+state+" is a no-op", func(t *testing.T) {
+			dashboard := newDashboard(state)
+			cm := maasConsumerPortalTestManager(t, dashboard)
+			(&DashboardReconciler{}).setMaasConsumerPortalModuleCondition(cm, dashboard, map[string]v1alpha1.ModuleStatus{
+				"maas": {Phase: v1alpha1.ModulePhaseDisabled},
+			})
+			assert.Equal(t, metav1.ConditionUnknown, cm.GetCondition(conditionMaasConsumerPortalAvailable).Status)
+		})
+	}
+}
+
+func TestMaasConsumerPortalRequiredModuleSlugs(t *testing.T) {
+	spec := &v1alpha1.DashboardSpec{
+		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+		MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
+	}
+	assert.Equal(t, map[string]bool{"maas": true, "gen-ai": true}, maasConsumerPortalRequiredModuleSlugs(spec, resolveModuleStatuses(spec)))
+
+	spec.Modules = map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}
+	assert.Equal(t, map[string]bool{"gen-ai": true}, maasConsumerPortalRequiredModuleSlugs(spec, resolveModuleStatuses(spec)))
+
+	spec.MaasConsumerPortal.ManagementState = "Removed"
+	assert.Empty(t, maasConsumerPortalRequiredModuleSlugs(spec, resolveModuleStatuses(spec)))
+}
+
+func TestMarkMaasConsumerPortalFederationConfigMapFailed(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{}
+	cm := maasConsumerPortalTestManager(t, dashboard)
+	(&DashboardReconciler{}).markMaasConsumerPortalFederationConfigMapFailed(cm, errors.New("apply failed"))
+	condition := cm.GetCondition(conditionMaasConsumerPortalAvailable)
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "MaasConsumerPortalFederationConfigMapFailed", condition.Reason)
+	assert.Equal(t, common.ConditionSeverityInfo, condition.Severity)
+
+	t.Run("preserves an earlier portal failure", func(t *testing.T) {
+		dashboard := &v1alpha1.Dashboard{}
+		cm := maasConsumerPortalTestManager(t, dashboard)
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("gateway domain is not set"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+
+		(&DashboardReconciler{}).markMaasConsumerPortalFederationConfigMapFailed(cm, errors.New("apply failed"))
+		assert.Equal(t, "MaasConsumerPortalDomainRequired", cm.GetCondition(conditionMaasConsumerPortalAvailable).Reason)
+	})
+}
