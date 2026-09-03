@@ -703,10 +703,8 @@ func TestIntegration_PlatformContractConformance(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, k8sClient.Create(ctx, dashboard))
 
-	t.Cleanup(func() {
-		deleteDashboard(t)
-		cleanupModuleResources(t)
-	})
+	t.Cleanup(func() { deleteDashboard(t) })
+	t.Cleanup(func() { cleanupModuleResources(t) })
 
 	// The first reconcile adds the finalizer and the second deploys the module.
 	reconcile(t, r)
