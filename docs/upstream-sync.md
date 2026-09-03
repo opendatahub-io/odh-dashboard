@@ -272,6 +272,8 @@ Behavior:
 
 Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
 
+**Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `npm run update-subtree -w packages/model-registry -- --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
+
 Manual sync with `/upstream-sync` remains available for ad-hoc syncs.
 
 ## Claude Code Skills
