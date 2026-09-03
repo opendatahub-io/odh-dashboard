@@ -91,8 +91,8 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
+	// Resolve model → endpoint URL + credentials + the bare model ID the upstream expects.
+	baseURL, apiKey, resolvedModel, resolveErr := app.resolveProxyModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isProxyInfraError(resolveErr) {
@@ -103,19 +103,15 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Strip provider prefix and MaaS prefix from model ID in the proxied body.
-	// OGX may or may not strip the provider prefix before forwarding. Handle both:
-	//   "genai-bff-proxy/maas-publishers/llm/models/x" → "publishers/llm/models/x"
-	//   "maas-publishers/llm/models/x"                 → "publishers/llm/models/x"
+	// Rewrite the model field in the proxied body to the bare upstream model ID.
+	// resolveProxyModelEndpoint strips all BFF/OGX routing prefixes (passthrough provider,
+	// MaaS prefix, custom-endpoint provider prefix) so the upstream always receives its
+	// own identifier rather than the BFF-internal qualified form.
 	upstreamBody := body
-	upstreamModel := reqBody.Model
-	passthroughPrefix := constants.PassthroughProviderID + "/"
-	upstreamModel = strings.TrimPrefix(upstreamModel, passthroughPrefix)
-	upstreamModel = strings.TrimPrefix(upstreamModel, constants.MaaSProviderPrefix)
-	if upstreamModel != reqBody.Model {
+	if resolvedModel != reqBody.Model {
 		var bodyMap map[string]json.RawMessage
 		if err := json.Unmarshal(body, &bodyMap); err == nil {
-			quotedModel, _ := json.Marshal(upstreamModel)
+			quotedModel, _ := json.Marshal(resolvedModel)
 			bodyMap["model"] = quotedModel
 			if rewritten, err := json.Marshal(bodyMap); err == nil {
 				upstreamBody = rewritten
@@ -206,6 +202,9 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 				}
 			}
 			if readErr != nil {
+				if !errors.Is(readErr, io.EOF) {
+					app.logger.Warn("Upstream stream read failed", "model", reqBody.Model, "error", readErr)
+				}
 				break
 			}
 		}
@@ -235,19 +234,20 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 }
 
-// resolveProxyModelEndpoint resolves a model ID to its upstream endpoint URL and API key.
+// resolveProxyModelEndpoint resolves a model ID to its upstream endpoint URL, API key, and
+// the bare model ID the upstream service expects (resolvedModelID).
 // maasSubscription is the optional MaaS subscription name (from X-MaaS-Subscription header,
 // forwarded by OGX via forward_headers). When non-empty, getMaaSTokenForModel uses it to
 // issue a properly-scoped ephemeral token.
-func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey string, err error) {
+func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey, resolvedModelID string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		return "", "", fmt.Errorf("missing RequestIdentity in context")
+		return "", "", "", fmt.Errorf("missing RequestIdentity in context")
 	}
 
 	k8sClient, k8sErr := app.kubernetesClientFactory.GetClient(ctx)
 	if k8sErr != nil {
-		return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
+		return "", "", "", &proxyInfraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
 	}
 
 	// Strip passthrough provider prefix if present. OGX may forward the full
@@ -260,7 +260,7 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
 	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
-			return "", "", &proxyInfraError{msg: "MaaS is not available"}
+			return "", "", "", &proxyInfraError{msg: "MaaS is not available"}
 		}
 		// Strip "maas-" prefix to get the raw MaaS model ID (e.g. "publishers/llm/models/gemini-proxy")
 		// used by the MaaS BFF catalog.
@@ -272,29 +272,35 @@ func (app *App) resolveProxyModelEndpoint(ctx context.Context, modelID, namespac
 
 		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, maasModelID)
 		if urlErr != nil {
-			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
+			return "", "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
 
 		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, maasSubscription)
 		if token == "" {
-			return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
+			return "", "", "", &proxyInfraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
 		}
-		return inferenceURL, token, nil
+		return inferenceURL, token, maasModelID, nil
 	}
 
 	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
 	// provider-qualified (e.g. "openai/gpt-4o"). Check the ConfigMap for either form.
 	extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
 	if extURL != "" {
-		return extURL, extKey, nil
+		// Strip provider prefix so the upstream receives its own model identifier.
+		// "openai/gpt-4o" → "gpt-4o"; a bare ID like "gpt-4o" is already correct.
+		bareID := modelID
+		if idx := strings.Index(modelID, "/"); idx != -1 {
+			bareID = modelID[idx+1:]
+		}
+		return extURL, extKey, bareID, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
 	return app.resolveProxyNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
 }
 
-// resolveProxyNamespaceModel resolves a namespace model to its endpoint URL.
-func (app *App) resolveProxyNamespaceModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) (string, string, error) {
+// resolveProxyNamespaceModel resolves a namespace model to its endpoint URL and bare model name.
+func (app *App) resolveProxyNamespaceModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) (string, string, string, error) {
 	bareModelName := modelID
 	if idx := strings.Index(modelID, "/"); idx != -1 {
 		bareModelName = modelID[idx+1:]
@@ -303,15 +309,15 @@ func (app *App) resolveProxyNamespaceModel(ctx context.Context, k8sClient k8s.Ku
 	isvcURL, err := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			return "", "", fmt.Errorf("model %q not found: %w", bareModelName, err)
+			return "", "", "", fmt.Errorf("model %q not found: %w", bareModelName, err)
 		}
-		return "", "", &proxyInfraError{msg: fmt.Sprintf("failed to resolve model %q: %v", bareModelName, err)}
+		return "", "", "", &proxyInfraError{msg: fmt.Sprintf("failed to resolve model %q: %v", bareModelName, err)}
 	}
 	if isvcURL == "" {
-		return "", "", fmt.Errorf("empty URL for model %q", bareModelName)
+		return "", "", "", fmt.Errorf("empty URL for model %q", bareModelName)
 	}
 
-	return isvcURL, identity.Token, nil
+	return isvcURL, identity.Token, bareModelName, nil
 }
 
 // proxyInfraError signals an infrastructure failure (K8s client unavailable, MaaS down)
