@@ -28,6 +28,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -2482,5 +2483,118 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 		conn, err := pgvectorConnectionFromConfig(cfg)
 		require.NoError(t, err)
 		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
+	})
+}
+
+// TestInstallOGXServer_ZeroRestartPath verifies that InstallOGXServer returns the
+// existing OGXServer immediately (without creating a new one) when the server's
+// ConfigMap already contains a remote::passthrough provider whose base_url matches
+// the URL derived from the current EnvConfig.
+func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
+	const (
+		testNamespace  = "test-ns"
+		gatewayDomain  = "apps.cluster.example.com"
+		apiPathPrefix  = "/api/v1"
+		pathPrefix     = "/gen-ai"
+		cmName         = "ogx-config"
+		cmKey          = "config.yaml"
+		existingServer = "my-ogx-server"
+	)
+
+	passthroughURL := "https://" + gatewayDomain + pathPrefix + apiPathPrefix + "/genai-proxy/ns/" + testNamespace
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, ogxapi.AddToScheme(scheme))
+
+	buildClient := func(cmData string) *TokenKubernetesClient {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: testNamespace},
+			Data:       map[string]string{cmKey: cmData},
+		}
+		server := &ogxapi.OGXServer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      existingServer,
+				Namespace: testNamespace,
+				Labels:    map[string]string{OpenDataHubDashboardLabelKey: "true"},
+			},
+			Spec: ogxapi.OGXServerSpec{
+				OverrideConfig: &ogxapi.ConfigMapKeyRef{
+					Name: cmName,
+					Key:  cmKey,
+				},
+			},
+		}
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm, server).
+			Build()
+
+		return &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+			EnvConfig: config.EnvConfig{
+				GatewayDomain: gatewayDomain,
+				APIPathPrefix: apiPathPrefix,
+				PathPrefix:    pathPrefix,
+			},
+		}
+	}
+
+	t.Run("returns existing server when passthrough URL matches", func(t *testing.T) {
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+
+		result, err := kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, nil, false, mockBFF)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, existingServer, result.Name, "zero-restart path must return the existing server")
+	})
+
+	t.Run("returns error when vector stores are requested on existing passthrough server", func(t *testing.T) {
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+		vectorStores := []models.InstallVectorStore{{VectorStoreID: "store-1"}}
+
+		_, err = kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, vectorStores, false, mockBFF)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "vector stores", "must reject vector store installs on zero-restart path")
+	})
+
+	t.Run("does not take zero-restart path when passthrough URL is stale", func(t *testing.T) {
+		staleURL := "https://old-domain.com/gen-ai/api/v1/genai-proxy/ns/" + testNamespace
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, staleURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+
+		_, err = kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, nil, false, mockBFF)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
 }
