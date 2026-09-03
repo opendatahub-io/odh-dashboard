@@ -25,3 +25,7 @@ export type CQDcgmResult = {
   computePercentage: number | null | undefined;
   memoryPercentage: number | null | undefined;
 };
+
+export type KueueProject = {
+  name: string;
+};
