@@ -50,7 +50,7 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
         throw result;
       }
       if (isGrpcErrorKF(result)) {
-        throw new Error(result.message);
+        throw { ...result, error: result.message };
       }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
