@@ -2,7 +2,7 @@ import React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { getGenericErrorCode } from '#~/api/errorUtils';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 
 interface ExperimentLoadingErrorProps {
   error: Error;

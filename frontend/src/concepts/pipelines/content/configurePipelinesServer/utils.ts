@@ -1,4 +1,5 @@
-import { createSecret, assembleSecret, deleteSecret } from '#~/api';
+import { createSecret, deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { assembleSecret } from '#~/api';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';

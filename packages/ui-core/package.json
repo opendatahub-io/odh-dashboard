@@ -89,7 +89,19 @@
     "./components/connectionTypes/ConnectionDetailsHelperText": "./src/components/connectionTypes/ConnectionDetailsHelperText.tsx",
     "./components/connectionTypes/DefaultValueTextRenderer": "./src/components/connectionTypes/DefaultValueTextRenderer.tsx",
     "./components/connectionTypes/FormGroupText": "./src/components/connectionTypes/FormGroupText.tsx",
-    "./components/connectionTypes/UnspecifiedValue": "./src/components/connectionTypes/UnspecifiedValue.tsx"
+    "./components/connectionTypes/UnspecifiedValue": "./src/components/connectionTypes/UnspecifiedValue.tsx",
+    "./kueue/types": "./src/kueue/types.ts",
+    "./kueue/statusInfo": "./src/kueue/statusInfo.ts",
+    "./components/conditionalArea": "./src/components/conditionalArea.tsx",
+    "./components/MultiSelection": "./src/components/MultiSelection.tsx",
+    "./components/UnderlinedTruncateButton": "./src/components/UnderlinedTruncateButton.tsx",
+    "./hooks/useRefreshInterval": "./src/hooks/useRefreshInterval.ts",
+    "./hooks/useMakeFetchObject": "./src/hooks/useMakeFetchObject.ts",
+    "./types/prometheus": "./src/types/prometheus.ts",
+    "./utilities/clusterQueueUtils": "./src/utilities/clusterQueueUtils.ts",
+    "./hooks/useAssignedFlavor": "./src/hooks/useAssignedFlavor.ts",
+    "./hooks/useClusterQueue": "./src/hooks/useClusterQueue.ts",
+    "./utilities/axios": "./src/utilities/axios.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -101,20 +113,24 @@
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
+    "axios": "^1",
     "classnames": "^2.5.1",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/tsconfig": "*",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.0.0"
   },
   "peerDependencies": {
+    "@odh-dashboard/plugin-core": "*",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
     "@patternfly/react-styles": "^6",
+    "@patternfly/react-tokens": "^6",
     "@patternfly/react-table": "^6",
     "react": "^18",
     "react-router-dom": "^7",

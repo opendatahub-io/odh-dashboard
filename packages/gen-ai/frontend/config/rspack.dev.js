@@ -67,6 +67,7 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
@@ -96,7 +97,7 @@ module.exports = merge(
             protocol: PROXY_PROTOCOL,
           },
           changeOrigin: true,
-          onProxyReq,
+          on: { proxyReq: onProxyReq },
         },
       ],
     },

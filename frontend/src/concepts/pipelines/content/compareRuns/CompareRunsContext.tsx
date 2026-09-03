@@ -4,7 +4,7 @@ import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import useFetchState, {
   FetchStateCallbackPromise,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { conditionalArea } from '#~/concepts/areas';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
 import useNotification from '#~/utilities/useNotification';

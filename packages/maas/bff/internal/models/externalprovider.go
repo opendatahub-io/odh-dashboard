@@ -29,6 +29,9 @@ type ExternalProviderDetails struct {
 	Provider            string            `json:"provider"`
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
+	Status              string            `json:"status,omitempty"`
+	ConditionType       string            `json:"conditionType,omitempty"`
+	LastTransitionTime  string            `json:"lastTransitionTime,omitempty"`
 	StatusMessage       string            `json:"statusMessage,omitempty"`
 	Reason              string            `json:"reason,omitempty"`
 }
@@ -45,6 +48,9 @@ type ExternalProviderSummary struct {
 	Provider            string            `json:"provider"`
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
+	Status              string            `json:"status,omitempty"`
+	ConditionType       string            `json:"conditionType,omitempty"`
+	LastTransitionTime  string            `json:"lastTransitionTime,omitempty"`
 	StatusMessage       string            `json:"statusMessage,omitempty"`
 	Reason              string            `json:"reason,omitempty"`
 }

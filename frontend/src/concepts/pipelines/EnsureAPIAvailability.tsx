@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Bullseye, Spinner, Button, Flex, FlexItem, Title } from '@patternfly/react-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
-import { getGenericErrorCode } from '#~/api';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import {
   usePipelinesAPI,
   PipelineServerTimedOut,

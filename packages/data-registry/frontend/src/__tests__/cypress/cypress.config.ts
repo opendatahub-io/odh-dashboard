@@ -16,7 +16,7 @@ const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' 
 
 export default defineConfig({
   experimentalMemoryManagement: true,
-  reporter: 'mocha-junit-reporter',
+  reporter: '../../../node_modules/mocha-junit-reporter',
   reporterOptions: {
     mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
   },

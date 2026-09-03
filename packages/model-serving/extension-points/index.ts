@@ -9,7 +9,7 @@ import type {
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
-import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
 export type DeploymentConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';

@@ -5,17 +5,16 @@ import {
 } from './oc_commands/project';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
 
-export const createAndVerifyProject = (projectName: string): void => {
+export const createAndVerifyProject = (projectName: string): Cypress.Chainable<boolean> =>
   createOpenShiftProject(projectName).then((result) => {
     expect(result.exitCode).to.equal(0);
+    return verifyOpenShiftProjectExists(projectName).then((exists) => {
+      if (!exists) {
+        throw new Error(`Expected project ${projectName} to exist, but it does not.`);
+      }
+      return cy.wrap(true);
+    });
   });
-
-  verifyOpenShiftProjectExists(projectName).then((exists) => {
-    if (!exists) {
-      throw new Error(`Expected project ${projectName} to exist, but it does not.`);
-    }
-  });
-};
 
 // Best-effort cleanup for after() hooks — failures are logged, never thrown.
 export const cleanupTestProject = (projectName: string): void => {
@@ -31,11 +30,11 @@ export const cleanupTestProject = (projectName: string): void => {
   });
 };
 
-export const createCleanProject = (projectName: string): void => {
+export const createCleanProject = (projectName: string): Cypress.Chainable<boolean> =>
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
-      deleteOpenShiftProject(projectName, { wait: true }).then(() => {
+      return deleteOpenShiftProject(projectName, { wait: true }).then(() => {
         // Verify the project is actually gone before creating a new one
         // Projects can be in "Terminating" state even after delete --wait returns
         cy.log(`Waiting for project ${projectName} to be fully deleted...`);
@@ -52,14 +51,12 @@ export const createCleanProject = (projectName: string): void => {
             },
           );
         };
-        checkDeleted().then(() => {
+        return checkDeleted().then(() => {
           cy.log(`Creating project ${projectName}`);
-          createAndVerifyProject(projectName);
+          return createAndVerifyProject(projectName);
         });
       });
-    } else {
-      cy.log(`Creating project ${projectName}`);
-      createAndVerifyProject(projectName);
     }
+    cy.log(`Creating project ${projectName}`);
+    return createAndVerifyProject(projectName);
   });
-};
