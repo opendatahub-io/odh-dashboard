@@ -59,7 +59,7 @@ Otherwise extract the Jira key. If a full URL is provided, extract the key using
 
 ### Step 2: Fetch the Jira issue
 
-Call `jira_get_issue` with `fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks` and `comment_limit=50`.
+**Jira detail contract** (shared with `/upstream-test-audit` Step 2): call `jira_get_issue` with `fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks,created` and `comment_limit=20`.
 
 If the call fails with an auth or connection error, stop and report:
 
@@ -74,6 +74,7 @@ Extract from the issue:
 - **Labels** — especially `dashboard-area-*` labels
 - **Priority** — Blocker/Critical/Major/etc.
 - **Fix versions** — which RHOAI version
+- **Created** — issue created timestamp
 - **Comments** — often contain root cause analysis, fix PRs, stack traces
 - **Issue links** — linked PRs, related issues
 
@@ -110,23 +111,34 @@ Which repo caused this bug? (e.g., opendatahub-io/odh-model-controller)
 
 ### Step 4: Clone or update the upstream repo
 
+Do **not** ignore git or `gh` failures. Abort this clone/refresh (recommender: stop; audit: skip the repo) before recording `$REVISION` if any command fails.
+
 ```bash
+set -eu
 CACHE_DIR="$HOME/.cache/upstream-test-recommender/repos"
 REPO_DIR="$CACHE_DIR/$ORG/$REPO"
 mkdir -p "$CACHE_DIR/$ORG"
 
 if [ -d "$REPO_DIR/.git" ]; then
-  git -C "$REPO_DIR" fetch origin 2>&1
-  git -C "$REPO_DIR" checkout main 2>/dev/null || git -C "$REPO_DIR" checkout master 2>/dev/null
-  git -C "$REPO_DIR" pull --ff-only 2>/dev/null || git -C "$REPO_DIR" reset --hard origin/HEAD
+  git -C "$REPO_DIR" fetch origin
+  if git -C "$REPO_DIR" show-ref --verify --quiet refs/remotes/origin/main; then
+    BRANCH=main
+  elif git -C "$REPO_DIR" show-ref --verify --quiet refs/remotes/origin/master; then
+    BRANCH=master
+  else
+    echo "Could not find origin/main or origin/master in $ORG/$REPO"
+    exit 1
+  fi
+  git -C "$REPO_DIR" checkout "$BRANCH"
+  git -C "$REPO_DIR" pull --ff-only "origin/$BRANCH" || git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
 else
-  gh repo clone "$ORG/$REPO" "$REPO_DIR" 2>&1
+  gh repo clone "$ORG/$REPO" "$REPO_DIR"
 fi
 
 REVISION=$(git -C "$REPO_DIR" rev-parse HEAD)
 ```
 
-Record `$REVISION` with the audit findings. The audit skill reuses cached audits only when this SHA still matches.
+Record `$REVISION` only after the commands above succeed. The audit skill reuses cached audits only when this SHA still matches.
 
 ### Step 5: Audit the repo's test infrastructure
 
@@ -187,7 +199,7 @@ Use only the **canonical** classes in the table below. Map profile-specific term
 
 | Canonical class | Signature |
 |---|---|
-| **RBAC violation** | CrashLoopBackOff, "Forbidden", missing verbs/resources in ClusterRole |
+| **RBAC violation** | "Forbidden", missing verbs/resources in ClusterRole. CrashLoopBackOff alone is **not** RBAC — apply the [alias table](repo-profiles.md#profile-aliases--canonical-class) (Forbidden/missing verbs → RBAC violation; otherwise Deploy prerequisite) |
 | **Finalizer deadlock** | Resource stuck Terminating, finalizer not removed on parent deletion |
 | **CRD schema drift** | "validation error", field not in CRD spec, admission rejected |
 | **Deploy prerequisite** | Component not Ready, missing CRD, missing namespace, missing configmap |
@@ -365,7 +377,7 @@ This mode:
 1. **Scans Cypress E2E test files** in `packages/cypress/cypress/tests/e2e/`
 2. **For each test file**, identifies which upstream operators/CRDs it exercises (from `cy.intercept`, API calls, resource creation)
 3. **Maps each E2E test to upstream repos** using the repo profiles
-4. **Checks whether the upstream repo has a corresponding backend test** covering the same integration surface
+4. **Audits each mapped upstream repo** (Step 4–5, or a revision-matched cache) and checks whether it has a corresponding backend test covering the same integration surface. Coverage is `unknown` without that evidence.
 5. **Outputs a parity report** showing:
    - E2E tests with upstream backend coverage: count + list
    - E2E tests WITHOUT upstream backend coverage: count + list (these are the gaps)
@@ -385,16 +397,20 @@ find packages/cypress/cypress/tests/e2e -name "*.cy.ts" | sort
 # - Operators that must be running for the test to pass
 ```
 
-Map each dependency to an upstream repo via `repo-profiles.md` keywords. Then check:
+Map each dependency to an upstream repo via `repo-profiles.md` keywords.
+
+**Audit before reporting coverage.** Standalone `--parity` skips Jira Steps 2–3, so it must still sync and audit every mapped repo (Step 4 allowlist + clone, then Step 5) or reuse `~/.cache/upstream-test-recommender/audits/<org>/<repo>.json` when the stored `revision` matches the current HEAD. Then, **from that audit evidence only**, check:
 
 - Does that repo have envtest covering this resource kind?
 - Does that repo test manager startup with real RBAC?
 - Does that repo test the specific reconciliation path this E2E test exercises?
 
+If a repo cannot be audited (not allowlisted, clone failed, or no matching cache), mark coverage as `unknown`. Do **not** report a gap or a coverage hit without audit evidence.
+
 ## Error Handling
 
 - **Jira not accessible** → Print: "Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the Atlassian MCP server."
-- **Repo clone fails** → Print: "Could not clone <org/repo>. Check your GitHub authentication (`gh auth status`)."
+- **Repo clone or refresh fails** → Print: "Could not clone or update <org/repo>. Check your GitHub authentication (`gh auth status`) and network." Do not record `$REVISION` or audit that checkout.
 - **No Go in PATH** → Print: "Go not found. Install Go >= 1.21 to audit test infrastructure."
 - **Repo not identified** → Ask the user (see Step 3).
 - **Repo not in `repo-profiles.md`** → Ask before clone (see Step 3). If the user declines, stop.

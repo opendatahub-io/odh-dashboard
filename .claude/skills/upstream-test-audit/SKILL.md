@@ -55,10 +55,10 @@ Write `cypress_found_bugs.json` and `cypress_classified.json` only under `$WORK_
 
 ### Step 1: Fetch all cypress_found_bug issues
 
-Query Jira for all issues with the `cypress_found_bug` label. Use `jira_search` with pagination (`limit=50`, walk `start_at` / next page until exhausted). Fetch minimal fields: key, summary, priority, labels, created, fixVersions.
+Query Jira for all issues with the `cypress_found_bug` label. Use `jira_search` with pagination (`limit=50`, walk `start_at` / next page until exhausted). Fetch list fields only: key, summary, priority, labels, created, fixVersions. **Order by `key ASC`** (the repo pagination contract). Do not paginate on `created DESC` — equal timestamps can shift rows between pages. Sort by created/priority later in memory for ranking.
 
 ```text
-JQL=project = RHOAIENG AND labels = cypress_found_bug ORDER BY created DESC
+JQL=project = RHOAIENG AND labels = cypress_found_bug ORDER BY key ASC
 ```
 
 Apply `--since` filter if provided (append `AND created >= -Nd` to JQL).
@@ -73,10 +73,10 @@ Do **not** classify from the Step 1 list fields alone. Summary and labels are no
 
 For **each** issue in `$WORK_DIR/cypress_found_bugs.json`, before classifying:
 
-1. Call `jira_get_issue` with `fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks` and `comment_limit=50` (same as the recommender Step 2).
+1. Call `jira_get_issue` using the recommender **Jira detail contract** (`fields=summary,description,labels,priority,status,fixVersions,comment,issuelinks,created`, `comment_limit=20`).
 2. Extract text from the description, comments (especially GitHub PR URLs), and issue links.
 3. Classify using that full context plus summary/labels.
-4. Write the classified record incrementally to `$WORK_DIR/cypress_classified.json` (include repo, canonical class, category, PR URLs, and a short description excerpt needed later).
+4. Write the classified record incrementally to `$WORK_DIR/cypress_classified.json`, including the shared detail fields plus repo, canonical class, category, and PR URLs so Step 4 recommendations use the same complete issue record as the recommender.
 5. Discard the full issue payload from context before the next issue.
 
 Keep the Step 1 `jira_search` minimal. Do not add description, comments, or issuelinks to the paginated list query.
@@ -195,8 +195,8 @@ Detailed recommendations: N of M (truncated|complete)
 
 This skill processes many issues. Follow these rules to avoid context exhaustion:
 
-1. **List fetch stays minimal** — Step 1 requests only key, summary, priority, labels, created, fixVersions
-2. **Per-issue detail fetch** — `jira_get_issue` for description, comments, and issuelinks immediately before classifying that issue; discard after writing the classified record
+1. **List fetch stays thin** — Step 1 `jira_search` requests only key, summary, priority, labels, created, fixVersions (stable `ORDER BY key ASC`)
+2. **Per-issue detail fetch** — before classifying, call `jira_get_issue` with the shared Jira detail contract; persist those fields on the classified record so Step 4 recommendations use the same complete issue as the recommender; discard the payload from context after writing the record
 3. **Process in batches** — classify all issues first, then audit repos, then generate recommendations
 4. **Write to disk incrementally** — don't hold all data in context
 5. **Cache aggressively** — repo audits (keyed by revision), classification results
@@ -206,5 +206,5 @@ This skill processes many issues. Follow these rules to avoid context exhaustion
 - **Jira not accessible** → Print setup instructions (same as recommender)
 - **Too many issues** → Cap detailed recommendations as in Step 4; never auto-apply `--top 50`; do not omit issues from the inventory or full list
 - **Repo not in `repo-profiles.md`** → Skip clone/audit for that repo, note it in the report, continue
-- **Repo clone fails** → Skip that repo, note in report
+- **Repo clone or refresh fails** → Skip that repo, note in report. Do not record `$REVISION` or treat a stale checkout as current.
 - **Chart generation fails** → Fall back to table-only output
