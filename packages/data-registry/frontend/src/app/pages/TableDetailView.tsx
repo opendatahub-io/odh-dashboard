@@ -31,6 +31,25 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
   const formatBadge = asset.format ? getFormatBadge(asset.format) : undefined;
   const isUnstructured = asset.format && !isStructured(asset.format);
 
+  const formatTimestamp = (timestamp: string | null | undefined): string => {
+    if (!timestamp) {
+      return '-';
+    }
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+    return date.toLocaleString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: true,
+    });
+  };
+
   return (
     <Grid hasGutter>
       <GridItem md={7}>
@@ -120,22 +139,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Created</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-created-at">
-                    {asset.created_at ? (
-                      <>
-                        {new Date(asset.created_at).toLocaleString('en-US', {
-                          month: 'numeric',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          second: 'numeric',
-                          hour12: true,
-                        })}
-                        {asset.registered_by ? ` by ${asset.registered_by}` : null}
-                      </>
-                    ) : (
-                      '-'
-                    )}
+                    {formatTimestamp(asset.created_at)}
+                    {asset.created_at && asset.registered_by ? ` by ${asset.registered_by}` : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
@@ -162,22 +167,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
               <DescriptionListGroup>
                 <DescriptionListTerm>Created</DescriptionListTerm>
                 <DescriptionListDescription data-testid="asset-created-at">
-                  {asset.created_at ? (
-                    <>
-                      {new Date(asset.created_at).toLocaleString('en-US', {
-                        month: 'numeric',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        second: 'numeric',
-                        hour12: true,
-                      })}
-                      {asset.registered_by ? ` by ${asset.registered_by}` : null}
-                    </>
-                  ) : (
-                    '-'
-                  )}
+                  {formatTimestamp(asset.created_at)}
+                  {asset.created_at && asset.registered_by ? ` by ${asset.registered_by}` : null}
                 </DescriptionListDescription>
               </DescriptionListGroup>
 
@@ -186,22 +177,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Last modified</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-updated-at">
-                    {asset.updated_at ? (
-                      <>
-                        {new Date(asset.updated_at).toLocaleString('en-US', {
-                          month: 'numeric',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          second: 'numeric',
-                          hour12: true,
-                        })}
-                        {asset.updated_by ? ` by ${asset.updated_by}` : null}
-                      </>
-                    ) : (
-                      '-'
-                    )}
+                    {formatTimestamp(asset.updated_at)}
+                    {asset.updated_at && asset.updated_by ? ` by ${asset.updated_by}` : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
@@ -219,22 +196,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Last modified</DescriptionListTerm>
                   <DescriptionListDescription data-testid="asset-updated-at">
-                    {asset.updated_at ? (
-                      <>
-                        {new Date(asset.updated_at).toLocaleString('en-US', {
-                          month: 'numeric',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          second: 'numeric',
-                          hour12: true,
-                        })}
-                        {asset.updated_by ? ` by ${asset.updated_by}` : null}
-                      </>
-                    ) : (
-                      '-'
-                    )}
+                    {formatTimestamp(asset.updated_at)}
+                    {asset.updated_at && asset.updated_by ? ` by ${asset.updated_by}` : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
