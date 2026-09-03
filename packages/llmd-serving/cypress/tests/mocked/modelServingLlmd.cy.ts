@@ -37,6 +37,7 @@ import {
   initMockGatewayIntercepts,
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -44,7 +45,6 @@ import {
   ProjectModel,
   ServingRuntimeModel,
   TemplateModel,
-  SecretModel,
   LLMInferenceServiceModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {

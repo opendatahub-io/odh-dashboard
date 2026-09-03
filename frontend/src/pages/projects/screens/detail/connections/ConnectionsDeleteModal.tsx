@@ -1,5 +1,6 @@
 import React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import {
@@ -7,7 +8,7 @@ import {
   ConnectedNotebookContext,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
-import { deleteSecret, removeNotebookSecret } from '#~/api';
+import { removeNotebookSecret } from '#~/api';
 import ConnectedResourcesDeleteModal from '#~/pages/projects/components/ConnectedResourcesDeleteModal';
 
 type Props = {

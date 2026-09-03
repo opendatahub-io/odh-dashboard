@@ -5,16 +5,11 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { createRole, getRole } from '@odh-dashboard/k8s-core/api/roles';
+import { RoleModel } from '@odh-dashboard/k8s-core/api/models';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { RoleKind } from '#~/k8sTypes';
-import {
-  createRole,
-  deleteRole,
-  generateRoleInferenceService,
-  getRole,
-  updateRole,
-} from '#~/api/k8s/roles';
-import { RoleModel } from '#~/api/models/k8s';
+import { deleteRole, generateRoleInferenceService, updateRole } from '#~/api/k8s/roles';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

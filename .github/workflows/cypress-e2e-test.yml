@@ -5,8 +5,14 @@ name: Cypress e2e Test
 # =============================================================================
 #
 # TRIGGERS:
-#   - Automatically after "Test" workflow completes on PRs
+#   - Automatically after "Test" workflow completes on same-repo PRs
 #   - Manually via workflow_dispatch (Actions tab → Run workflow)
+#
+# FORK PR SAFETY (PWN request mitigation):
+#   workflow_run listeners run with repository secrets. Fork PR head SHAs are
+#   attacker-controlled, so jobs gated on workflow_run only run when
+#   head_repository matches this repository (blocks external fork PRs).
+#   Fork E2E requires maintainer workflow_dispatch after review.
 #
 # CLUSTER FAILOVER:
 #   Primary:   dash-e2e-int (checked first via DSC health)
@@ -105,9 +111,10 @@ jobs:
   # ---------------------------------------------------------------------------
   select-cluster:
     if: >-
-      github.event_name == 'workflow_dispatch' || 
-      (github.event.workflow_run.event == 'pull_request' && 
-       github.event.workflow_run.conclusion == 'success')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: self-hosted
     outputs:
       cluster_name: ${{ steps.select.outputs.cluster_name }}
@@ -393,9 +400,10 @@ jobs:
   # ---------------------------------------------------------------------------
   set-pending-status:
     if: >-
-      github.event_name == 'workflow_dispatch' || 
-      (github.event.workflow_run.event == 'pull_request' && 
-       github.event.workflow_run.conclusion == 'success')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Set pending status
@@ -421,7 +429,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@c915c33a16f01166c17c4e35fe1d4085a2d71adb # v4.6.0
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
@@ -687,9 +695,10 @@ jobs:
             MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
           fi
           
-          # Ensure compact JSON for GitHub Actions output
-          MATRIX=$(echo "$MATRIX" | jq -c '.')
-          
+          # Convert to objects with dynamic timeout: 30 min base + 7 min per tag, capped at 360 min
+          # Keep in sync with .github/scripts/test-e2e-timeout.sh
+          MATRIX=$(echo "$MATRIX" | jq -c '[.[] | {tag: ., timeout: [30 + 7 * (split(" ") | length), 360] | min}]')
+
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
           echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
@@ -708,7 +717,7 @@ jobs:
       missing-packages: ${{ steps.ensure.outputs.missing-packages }}
       test-run-id: ${{ steps.ensure.outputs.test-run-id }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@c915c33a16f01166c17c4e35fe1d4085a2d71adb # v4.6.0
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
@@ -736,7 +745,7 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.ensure-cypress-builds.outputs.missing-packages) }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@c915c33a16f01166c17c4e35fe1d4085a2d71adb # v4.6.0
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
@@ -766,11 +775,11 @@ jobs:
       !cancelled() && !failure() &&
       needs.select-cluster.result == 'success'
     runs-on: self-hosted
-    timeout-minutes: 90
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
-        tag: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
+        include: ${{ fromJson(needs.get-test-tags.outputs.matrix) }}
     env:
       CLUSTER_NAME: ${{ needs.select-cluster.outputs.cluster_name }}
       MATRIX_TAG: ${{ matrix.tag }}
@@ -1048,7 +1057,7 @@ jobs:
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@c915c33a16f01166c17c4e35fe1d4085a2d71adb # v4.6.0
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
@@ -1316,10 +1325,11 @@ jobs:
   set-final-status:
     needs: [select-cluster, e2e-tests]
     if: >-
-      always() && 
-      (github.event_name == 'workflow_dispatch' || 
-       (github.event.workflow_run.event == 'pull_request' && 
-        github.event.workflow_run.conclusion == 'success'))
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     steps:
       - name: Set final status
@@ -1368,7 +1378,12 @@ jobs:
   cleanup:
     needs: [e2e-tests]
     runs-on: self-hosted
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')) }}
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     steps:
       - name: Fix envtest binary permissions
         run: |

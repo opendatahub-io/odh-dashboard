@@ -1,7 +1,7 @@
 import {
   KueueWorkloadStatus,
   type KueueWorkloadStatusWithMessage,
-} from '@odh-dashboard/internal/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { getModelDeploymentStoppedStates } from '../utils';
 

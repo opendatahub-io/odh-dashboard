@@ -5,6 +5,7 @@ import {
   ExternalModelsInfoPopoverLocation,
   MaaSEvents,
   ExternalModelsInfoPopoverTarget,
+  ExternalModelsInfoPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { ExternalModel } from '~/app/types/external-models';
 import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
@@ -35,7 +36,7 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
           fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
             infoTarget: ExternalModelsInfoPopoverTarget.COLUMN_EXTERNAL_PROVIDER,
             location: ExternalModelsInfoPopoverLocation.TABLE_HEADER,
-          });
+          } satisfies ExternalModelsInfoPopoverViewedProperties);
         },
       },
     },
@@ -59,7 +60,7 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
           fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
             infoTarget: ExternalModelsInfoPopoverTarget.COLUMN_STATUS,
             location: ExternalModelsInfoPopoverLocation.TABLE_HEADER,
-          });
+          } satisfies ExternalModelsInfoPopoverViewedProperties);
         },
       },
     },

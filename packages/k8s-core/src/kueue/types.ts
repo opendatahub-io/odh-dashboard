@@ -1,6 +1,3 @@
-import type { ComponentType, SVGProps } from 'react';
-import type { LabelProps } from '@patternfly/react-core';
-
 export enum KueueWorkloadStatus {
   Queued = 'Queued',
   Failed = 'Failed',
@@ -41,40 +38,6 @@ export type KueueWorkloadStatusWithMessage = {
   };
 };
 
-export type KueueStatusInfo = {
-  label: string;
-  status?: LabelProps['status'];
-  color?: LabelProps['color'];
-  IconComponent: ComponentType<SVGProps<SVGSVGElement>>;
-  iconClassName?: string;
-};
-
-/**
- * Kueue statuses for which we show Kueue in the UI (label, subtitle, modal).
- * For Admitted/Running we use workbench state (Starting, Running) instead.
- */
-export const KUEUE_STATUSES_OVERRIDE_WORKBENCH: KueueWorkloadStatus[] = [
-  KueueWorkloadStatus.Queued,
-  KueueWorkloadStatus.Inadmissible,
-  KueueWorkloadStatus.Failed,
-  KueueWorkloadStatus.Preempted,
-  KueueWorkloadStatus.Evicted,
-  KueueWorkloadStatus.Requeued,
-  KueueWorkloadStatus.Complete,
-];
-
-/**
- * Kueue considers a Workload admitted only once QuotaReserved AND all AdmissionChecks are
- * ready — AdmissionCheck therefore represents a still-pending, potentially-blocking state and
- * must NOT be treated as past admission (see kueue.sigs.k8s.io AdmissionCheck docs). A pending
- * or retrying check can still prevent the Pod from being created.
- */
-export const KUEUE_STATUSES_PAST_ADMISSION: KueueWorkloadStatus[] = [
-  KueueWorkloadStatus.Admitted,
-  KueueWorkloadStatus.Running,
-  KueueWorkloadStatus.Complete,
-];
-
 /**
  * Kueue statuses that override the normal KServe deployment status in the Status column.
  * For Admitted/Running we show the standard KServe lifecycle state instead.
@@ -90,4 +53,30 @@ export const KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Requeued,
   KueueWorkloadStatus.AdmissionCheck,
   KueueWorkloadStatus.BlockedOnPreemptionGates,
+];
+
+/**
+ * Kueue considers a Workload admitted only once QuotaReserved AND all AdmissionChecks are
+ * ready — AdmissionCheck therefore represents a still-pending, potentially-blocking state and
+ * must NOT be treated as past admission (see kueue.sigs.k8s.io AdmissionCheck docs). A pending
+ * or retrying check can still prevent the Pod from being created.
+ */
+export const KUEUE_STATUSES_PAST_ADMISSION: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Admitted,
+  KueueWorkloadStatus.Running,
+  KueueWorkloadStatus.Complete,
+];
+
+/**
+ * Kueue statuses for which we show Kueue in the UI (label, subtitle, modal).
+ * For Admitted/Running we use workbench state (Starting, Running) instead.
+ */
+export const KUEUE_STATUSES_OVERRIDE_WORKBENCH: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.Inadmissible,
+  KueueWorkloadStatus.Failed,
+  KueueWorkloadStatus.Preempted,
+  KueueWorkloadStatus.Evicted,
+  KueueWorkloadStatus.Requeued,
+  KueueWorkloadStatus.Complete,
 ];

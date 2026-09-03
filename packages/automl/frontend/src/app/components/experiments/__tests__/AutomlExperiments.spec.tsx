@@ -10,7 +10,7 @@ import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 
 const mockGetGenericErrorCode = jest.fn();
-jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
   getGenericErrorCode: (error: unknown) => mockGetGenericErrorCode(error),
 }));
 

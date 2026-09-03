@@ -10,7 +10,7 @@ import {
   type TokenAuthEntry,
 } from '../auth';
 
-jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   assembleSecretSA: jest.fn(
     (displayName: string, saName: string, ns: string, k8sName?: string) => ({
       metadata: { name: k8sName ?? `${displayName}-${saName}`, namespace: ns },
@@ -21,7 +21,7 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   deleteSecret: jest.fn(() => Promise.resolve({})),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8s/serviceAccounts', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/serviceAccounts', () => ({
   assembleServiceAccount: jest.fn((name: string, ns: string) => ({
     metadata: { name, namespace: ns },
   })),
@@ -29,12 +29,12 @@ jest.mock('@odh-dashboard/internal/api/k8s/serviceAccounts', () => ({
   getServiceAccount: jest.fn(() => Promise.reject(new Error('not mocked'))),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8s/roles', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/roles', () => ({
   getRole: jest.fn(() => Promise.reject(new Error('not mocked'))),
   createRole: jest.fn((r: unknown) => Promise.resolve(r)),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8s/roleBindings', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/roleBindings', () => ({
   generateRoleBindingServiceAccount: jest.fn(
     (name: string, _saName: string, _ref: unknown, ns: string) => ({
       metadata: { name, namespace: ns },
@@ -44,11 +44,11 @@ jest.mock('@odh-dashboard/internal/api/k8s/roleBindings', () => ({
   createRoleBinding: jest.fn((rb: unknown) => Promise.resolve(rb)),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8sUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/k8sUtils', () => ({
   addOwnerReference: jest.fn((resource: unknown) => resource),
 }));
 
-jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
   getGenericErrorCode: jest.fn((error: unknown) => {
     const e = error as { statusObject?: { code?: number } };
     return e.statusObject?.code;
@@ -56,15 +56,15 @@ jest.mock('@odh-dashboard/internal/api/errorUtils', () => ({
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const secretsMock = require('@odh-dashboard/internal/api/k8s/secrets');
+const secretsMock = require('@odh-dashboard/k8s-core/api/secrets');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const serviceAccountsMock = require('@odh-dashboard/internal/api/k8s/serviceAccounts');
+const serviceAccountsMock = require('@odh-dashboard/k8s-core/api/serviceAccounts');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const rolesMock = require('@odh-dashboard/internal/api/k8s/roles');
+const rolesMock = require('@odh-dashboard/k8s-core/api/roles');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const roleBindingsMock = require('@odh-dashboard/internal/api/k8s/roleBindings');
+const roleBindingsMock = require('@odh-dashboard/k8s-core/api/roleBindings');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const k8sUtilsMock = require('@odh-dashboard/internal/api/k8sUtils');
+const k8sUtilsMock = require('@odh-dashboard/k8s-core/api/k8sUtils');
 
 const make404 = () => ({ statusObject: { code: 404, status: 'Failure', message: 'not found' } });
 const make409 = () => ({

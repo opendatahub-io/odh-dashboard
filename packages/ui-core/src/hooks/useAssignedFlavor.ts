@@ -1,8 +1,8 @@
 import * as React from 'react';
-import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { WorkloadKind } from '#~/k8sTypes';
-import { listWorkloads } from '#~/api';
-import { getAssignedFlavorFromWorkload } from '#~/utilities/clusterQueueUtils';
+import type { WorkloadKind } from '@odh-dashboard/k8s-core';
+import { listWorkloads } from '@odh-dashboard/k8s-core/api/workloads';
+import useFetch, { NotReadyError } from './useFetch';
+import { getAssignedFlavorFromWorkload } from '../utilities/clusterQueueUtils';
 
 /**
  * Resolves the Kueue-assigned flavor for a workload in a queue.

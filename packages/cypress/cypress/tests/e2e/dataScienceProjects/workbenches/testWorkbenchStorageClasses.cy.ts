@@ -65,8 +65,8 @@ describe('Workbench Storage Classes Tests', () => {
       .then((fixtureData: WBStorageClassesTestData) => {
         cy.log('Loaded test data from fixtures');
         projectName = `${fixtureData.projectName}-${uuid}`;
-        storageClassRWO = fixtureData.storageClassRWO;
-        storageClassMultiAccess = fixtureData.storageClassMultiAccess;
+        storageClassRWO = `${fixtureData.storageClassRWO}-${uuid}`;
+        storageClassMultiAccess = `${fixtureData.storageClassMultiAccess}-${uuid}`;
         workbenchNameRWO = fixtureData.workbenchRWO;
         workbenchNameMultiA = fixtureData.workbenchMultiAccessA;
         workbenchNameMultiB = fixtureData.workbenchMultiAccessB;
@@ -114,7 +114,8 @@ describe('Workbench Storage Classes Tests', () => {
 
     cy.step(`Navigate to the Project list tab and search for ${projectName}`);
     projectListPage.navigate();
-    projectListPage.openFilteredProject(projectName);
+    projectListPage.filterProjectByName(projectName);
+    projectListPage.findProjectLink(projectName).click();
   });
 
   it(

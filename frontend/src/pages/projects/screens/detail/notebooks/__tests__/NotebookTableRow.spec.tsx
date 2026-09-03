@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import NotebookTableRow from '#~/pages/projects/screens/detail/notebooks/NotebookTableRow';
 import {
   ProjectDetailsContext,
@@ -14,7 +15,6 @@ import {
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockNotebookState } from '#~/__mocks__/mockNotebookState';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 
 jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
   ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),

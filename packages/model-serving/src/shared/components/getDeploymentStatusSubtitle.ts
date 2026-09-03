@@ -3,12 +3,12 @@ import {
   t_global_text_color_status_danger_default as DangerColor,
   t_global_color_status_warning_300 as WarningColor,
 } from '@patternfly/react-tokens';
-import { getKueueStatusInfo } from '@odh-dashboard/internal/concepts/kueue/index';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import {
   appendModelDeploymentPodAdmissionSuffix,
   getModelDeploymentKueueDetailMessage,
-} from '@odh-dashboard/internal/concepts/kueue/messageUtils';
-import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '../types';
 import type { DeploymentStatus } from '../../../extension-points';
 

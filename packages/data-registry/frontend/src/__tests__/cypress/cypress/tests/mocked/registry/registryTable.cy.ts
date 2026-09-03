@@ -5,6 +5,12 @@ import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands
 
 const REGISTRY_API = '/data-registry/api/v1';
 
+const mockConnectionsResponse = [
+  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
+  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
+  { name: 'db-connection', displayName: 'Database Connection', connectionType: 'postgresql' },
+];
+
 const mockCollectionsResponse = {
   namespaces: [['analytics'], ['default']],
 };
@@ -97,6 +103,11 @@ const initIntercepts = () => {
   cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
     body: mockLabelsResponse,
   }).as('getLabels');
+  cy.interceptApi(
+    'GET /api/:apiVersion/connections/:namespace',
+    { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
+    mockConnectionsResponse,
+  ).as('getConnections');
 };
 
 const visitWithData = () => {
@@ -679,5 +690,118 @@ describe('Register Table', () => {
     cy.wait('@createTableConflict');
     cy.contains('Error registering data asset').should('exist');
     cy.findByTestId('register-data-modal').should('exist');
+  });
+});
+
+describe('Connection Selector', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should display available connections in dropdown', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-connection-toggle').click();
+    cy.contains('My S3 Connection').should('exist');
+    cy.contains('My URI Connection').should('exist');
+    cy.contains('Database Connection').should('exist');
+  });
+
+  it('should select a connection and display it in the toggle', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-connection-toggle').should('contain.text', 'Select a connection');
+    cy.findByTestId('data-connection-toggle').click();
+    cy.contains('My S3 Connection').click();
+
+    cy.findByTestId('data-connection-toggle').should('contain.text', 'My S3 Connection');
+  });
+
+  it('should show no connections available when empty', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/connections/:namespace',
+      { path: { apiVersion: CLIENT_API_VERSION, namespace: 'test-project' } },
+      [],
+    ).as('getEmptyConnections');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-connection-toggle').click();
+    cy.contains('No connections available').should('exist');
+  });
+
+  it('should include connection_ref in volume creation request', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'connected-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'other',
+        'storage-location': '',
+        config: {},
+      },
+    }).as('createVolumeWithConnection');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-name-input').type('connected-volume');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('data-connection-toggle').click();
+    cy.contains('My S3 Connection').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createVolumeWithConnection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'connected-volume',
+        content_type: 'other',
+        connection_ref: 'my-s3-connection',
+      });
+    });
+  });
+
+  it('should include connection_ref in table creation request', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`, {
+      statusCode: 200,
+      body: {
+        name: 'connected-table',
+        asset_type: 'table',
+        format: 'iceberg',
+        connection_ref: 'my-uri-connection',
+      },
+    }).as('createTableWithConnection');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-name-input').type('connected-table');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('data-connection-toggle').click();
+    cy.contains('My URI Connection').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createTableWithConnection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'connected-table',
+        format: 'iceberg',
+        connection_ref: 'my-uri-connection',
+      });
+    });
   });
 });

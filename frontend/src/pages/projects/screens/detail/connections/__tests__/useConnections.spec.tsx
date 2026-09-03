@@ -1,10 +1,10 @@
 import { act } from 'react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
+import { getSecretsByLabel } from '@odh-dashboard/k8s-core/api/secrets';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
-import { getSecretsByLabel } from '#~/api';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   getSecretsByLabel: jest.fn(),
 }));
 

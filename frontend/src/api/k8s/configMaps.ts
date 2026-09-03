@@ -1,14 +1,13 @@
 import {
   k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { ConfigMapModel } from '@odh-dashboard/k8s-core/api/models';
 import { ConfigMapKind, K8sAPIOptions } from '#~/k8sTypes';
-import { ConfigMapModel } from '#~/api/models';
 
 export const CONFIGMAP_PREFIX = 'configmap-';
 
@@ -32,21 +31,6 @@ export const assembleConfigMap = (
   },
   data: configMapData,
 });
-
-export const getConfigMap = (
-  projectName: string,
-  configMapName: string,
-  opts?: K8sAPIOptions,
-): Promise<ConfigMapKind> =>
-  k8sGetResource<ConfigMapKind>(
-    applyK8sAPIOptions(
-      {
-        model: ConfigMapModel,
-        queryOptions: { name: configMapName, ns: projectName },
-      },
-      opts,
-    ),
-  );
 
 export const createConfigMap = (
   data: ConfigMapKind,

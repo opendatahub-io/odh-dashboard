@@ -76,7 +76,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-type').should('contain.text', 'Structured');
     cy.findByTestId('asset-location').should('contain.text', 's3://bucket/claims');
     cy.findByTestId('asset-owner').should('contain.text', 'data-team');
-    cy.findByTestId('connection-ref-rhai').should('contain.text', 'my-s3-connection');
+    cy.findByTestId('connection-ref-label').should('contain.text', 'my-s3-connection');
   });
 
   it('should display asset type badge and Overview tab', () => {

@@ -44,6 +44,7 @@ export const useModelDeploymentSubmit = (
     formState,
     initialWizardData,
     deployMethod?.properties.platform,
+    !!existingDeployment,
   );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,

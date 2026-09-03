@@ -6,7 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { NamespaceKind } from '~/app/types';
+import { ConnectionModel, NamespaceKind } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -27,6 +27,23 @@ export const getNamespaces =
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/namespaces`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<NamespaceKind[]>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getConnections =
+  (hostPath: string) =>
+  (opts: APIOptions, namespace: string): Promise<ConnectionModel[]> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/connections/${encodeURIComponent(namespace)}`,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<ConnectionModel[]>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

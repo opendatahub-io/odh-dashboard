@@ -106,7 +106,7 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 	assert.True(t, names["modelRegistry"], "deployed module must be included")
 }
 
-func TestBuildFederationConfigMap_NotebooksTLSFalse(t *testing.T) {
+func TestBuildFederationConfigMap_TLS(t *testing.T) {
 	s := testScheme(t)
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
 
@@ -127,7 +127,7 @@ func TestBuildFederationConfigMap_NotebooksTLSFalse(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(data), &entries))
 
 	expected := map[string]bool{
-		"notebooks":     false,
+		"notebooks":     true,
 		"modelRegistry": true,
 		"genAi":         true,
 		"mlflow":        true,

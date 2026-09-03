@@ -19,8 +19,9 @@ class ProjectListToolbar extends Contextual<HTMLElement> {
     return this.find().findByLabelText(`Filter by ${name}`);
   }
 
-  findNameFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('project-list-name-filter');
+  findNameFilter(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    // data-testid is on the PF TextInputGroup wrapper; type/clear need the input.
+    return this.find().findByTestId('project-list-name-filter').find('input');
   }
 
   findUserFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -85,9 +86,88 @@ class ProjectListPage {
     this.wait();
   }
 
+  /**
+   * Wait until the projects page has finished loading. During Loading the page title
+   * exists in the DOM but has zero height, so visibility on app-page-title flakes.
+   */
+  private waitForProjectsPageReady(): void {
+    cy.findByTestId('app-page-title', { timeout: 30000 }).should('exist');
+    cy.get('[data-testid="project-view-table"], [data-testid="no-project"]', {
+      timeout: 60000,
+    }).should('be.visible');
+  }
+
   private wait() {
-    cy.findByTestId('app-page-title', { timeout: 15000 }).should('be.visible');
+    this.waitForProjectsPageReady();
     cy.testA11y();
+  }
+
+  private waitForProjectList(): void {
+    this.waitForProjectsPageReady();
+  }
+
+  private projectLinkHrefSelector(projectName: string): string {
+    return `[data-testid="project-view-table"] a[href$="/projects/${projectName}"], [data-testid="project-view-table"] a[href$="/projects/${projectName}/"]`;
+  }
+
+  private tableHasProjectLink(projectName: string): boolean {
+    const hrefSuffix = `/projects/${projectName}`;
+    return Cypress.$('[data-testid="project-view-table"] a[href]')
+      .toArray()
+      .some((el) => {
+        const path = (el.getAttribute('href') || '').split('?')[0];
+        return path.endsWith(hrefSuffix) || path.endsWith(`${hrefSuffix}/`);
+      });
+  }
+
+  /**
+   * Poll the live table for the project href. A one-shot jQuery find right after
+   * typing the name filter misses the row while React/k8s watch catch up.
+   * Do not pass a function to findByRole({ name }) — Cypress stringifies it.
+   */
+  private waitForProjectLinkInTable(projectName: string): Cypress.Chainable<boolean> {
+    const settleMs = 15000;
+    const pollMs = 500;
+    return cy.wrap(null, { log: false }).then(
+      { timeout: settleMs + 5000 },
+      () =>
+        new Cypress.Promise<boolean>((resolve) => {
+          const deadline = Date.now() + settleMs;
+          const poll = () => {
+            if (this.tableHasProjectLink(projectName)) {
+              resolve(true);
+            } else if (Date.now() >= deadline) {
+              resolve(false);
+            } else {
+              setTimeout(poll, pollMs);
+            }
+          };
+          poll();
+        }),
+    );
+  }
+
+  private applyNameFilter(projectName: string): void {
+    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
+    this.findProjectsTable(60000).should('be.visible');
+    this.findProjectTypeDropdownToggleIfPresent().then((present) => {
+      if (present) {
+        this.getTableToolbar()
+          .findProjectTypeDropdownToggle()
+          .then(($toggle) => {
+            if (!$toggle.text().includes('All projects')) {
+              this.getTableToolbar().selectProjectType('All projects');
+            }
+          });
+      }
+    });
+    this.getTableToolbar().findNameFilter().should('be.visible').clear().type(projectName);
+  }
+
+  private findProjectTypeDropdownToggleIfPresent(): Cypress.Chainable<boolean> {
+    return cy
+      .get('body')
+      .then(($body) => $body.find('[data-testid="project-type-dropdown-toggle"]').length > 0);
   }
 
   findPageTitle() {
@@ -117,8 +197,8 @@ class ProjectListPage {
     return cy.findByTestId('launch-standalone-notebook-server');
   }
 
-  findProjectsTable() {
-    return cy.findByTestId('project-view-table');
+  findProjectsTable(timeout?: number) {
+    return cy.findByTestId('project-view-table', timeout !== undefined ? { timeout } : {});
   }
 
   getProjectRow(projectName: string) {
@@ -126,10 +206,13 @@ class ProjectListPage {
   }
 
   findProjectLink(projectName: string, timeout?: number) {
-    return this.findProjectsTable().findByRole('link', {
-      name: projectName,
-      ...(timeout !== undefined ? { timeout } : {}),
-    });
+    const t = timeout ?? Cypress.config('defaultCommandTimeout');
+    if (Cypress.env('MOCK')) {
+      return this.findProjectsTable().findByRole('link', { name: projectName, timeout: t });
+    }
+    // E2E: PatternFly Truncate leaves the link without a usable accessible name.
+    // Cypress also stringifies function `name` matchers, so use the k8s href.
+    return cy.get(this.projectLinkHrefSelector(projectName), { timeout: t });
   }
 
   findEmptyResults() {
@@ -153,13 +236,32 @@ class ProjectListPage {
   }
 
   /**
-   * Filter Project by name using the Project filter from the Projects view
-   * @param projectName Project Name
+   * Filter the project list by name and wait until that project appears.
+   * Reloads if the first list fetch ran before the project was visible to the UI.
    */
   filterProjectByName = (projectName: string) => {
-    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
-    const projectListToolbar = projectListPage.getTableToolbar();
-    projectListToolbar.findNameFilter().type(projectName);
+    const maxAttempts = 6;
+    const waitForLink = (attemptNumber = 1): Cypress.Chainable<boolean> => {
+      this.applyNameFilter(projectName);
+      return this.waitForProjectLinkInTable(projectName).then((found) => {
+        if (found) {
+          cy.log(`✅ Project "${projectName}" visible in list`);
+          return cy.wrap(true);
+        }
+        if (attemptNumber >= maxAttempts) {
+          return this.findProjectLink(projectName, 60000)
+            .should('exist')
+            .then(() => cy.wrap(true));
+        }
+        cy.log(
+          `⏳ Project "${projectName}" not in list yet (attempt ${attemptNumber}/${maxAttempts}), reloading`,
+        );
+        cy.reload();
+        this.waitForProjectList();
+        return waitForLink(attemptNumber + 1);
+      });
+    };
+    return waitForLink();
   };
 
   /**

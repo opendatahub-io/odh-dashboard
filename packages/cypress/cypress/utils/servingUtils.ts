@@ -17,11 +17,11 @@ import {
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
 } from './models';
 

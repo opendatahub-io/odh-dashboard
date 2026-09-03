@@ -1,5 +1,5 @@
-import type { WorkloadCondition } from '#~/k8sTypes';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './types';
+import type { WorkloadCondition } from '../k8sTypes';
 
 const QUOTA_REGEX = /insufficient unused quota|quota.*exceed|exceed.*quota/i;
 const QUEUE_NOT_FOUND_REGEX =

@@ -1,11 +1,5 @@
 import { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
-export const ConfigMapModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  kind: 'ConfigMap',
-  plural: 'configmaps',
-};
-
 export const EventModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Event',
@@ -44,31 +38,11 @@ export const NamespaceModel: K8sModelCommon = {
   plural: 'namespaces',
 };
 
-export const RoleModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  apiGroup: 'rbac.authorization.k8s.io',
-  kind: 'Role',
-  plural: 'roles',
-};
-
-export const RoleBindingModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  apiGroup: 'rbac.authorization.k8s.io',
-  kind: 'RoleBinding',
-  plural: 'rolebindings',
-};
-
 export const ClusterRoleModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'rbac.authorization.k8s.io',
   kind: 'ClusterRole',
   plural: 'clusterroles',
-};
-
-export const SecretModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  kind: 'Secret',
-  plural: 'secrets',
 };
 
 export const SelfSubjectAccessReviewModel: K8sModelCommon = {
@@ -89,12 +63,6 @@ export const ServiceModel: K8sModelCommon = {
   apiVersion: 'v1',
   kind: 'Service',
   plural: 'services',
-};
-
-export const ServiceAccountModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  kind: 'ServiceAccount',
-  plural: 'serviceaccounts',
 };
 
 export const DataScienceClusterModel: K8sModelCommon = {

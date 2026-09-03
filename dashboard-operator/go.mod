@@ -3,7 +3,7 @@ module github.com/opendatahub-io/odh-dashboard/dashboard-operator
 go 1.26.5
 
 require (
-	github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260506180717-e15e712db78d
+	github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260521122631-f102be7331a4
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1

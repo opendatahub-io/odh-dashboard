@@ -4,6 +4,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import type { WorkloadKind } from '#~/k8sTypes';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
@@ -18,7 +19,6 @@ import {
   useWatchLLMISPods,
 } from '#~/api/k8s/workloads';
 import { useKueueStatusForDeployments } from '#~/pages/modelServing/useKueueStatusForDeployments';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 jest.mock('#~/concepts/hardwareProfiles/kueueUtils');
 jest.mock('#~/api/k8s/workloads', () => ({
@@ -27,10 +27,6 @@ jest.mock('#~/api/k8s/workloads', () => ({
   useWatchISPods: jest.fn(),
   useWatchLLMISPods: jest.fn(),
   buildWorkloadMapForDeployments: jest.fn(),
-}));
-jest.mock('#~/concepts/kueue/index', () => ({
-  ...jest.requireActual('#~/concepts/kueue/index'),
-  KUEUE_QUEUE_LABEL: 'kueue.x-k8s.io/queue-name',
 }));
 
 const useKueueConfigurationMock = jest.mocked(useKueueConfiguration);

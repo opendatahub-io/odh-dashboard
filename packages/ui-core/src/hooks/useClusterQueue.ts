@@ -1,7 +1,7 @@
 import * as React from 'react';
-import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { ClusterQueueKind } from '#~/k8sTypes';
-import { getClusterQueue } from '#~/api';
+import type { ClusterQueueKind } from '@odh-dashboard/k8s-core';
+import { getClusterQueue } from '@odh-dashboard/k8s-core/api/clusterQueues';
+import useFetch, { NotReadyError } from './useFetch';
 
 type UseClusterQueueResult = {
   clusterQueue: ClusterQueueKind | null;

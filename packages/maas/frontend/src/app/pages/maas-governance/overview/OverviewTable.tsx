@@ -4,7 +4,10 @@ import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useTableColumnSort, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  MaaSEvents,
+  MaaSGovernanceOverviewRowExpandedProperties,
+} from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import OverviewTableRow from './OverviewTableRow';
 
@@ -41,7 +44,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
       fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_ROW_EXPANDED, {
         subscriptionCount: row.subscriptions.length,
         policyCount: row.authPolicies.length,
-      });
+      } satisfies MaaSGovernanceOverviewRowExpandedProperties);
     }
     setExpandedModels((prev) => {
       const next = new Set(prev);

@@ -117,7 +117,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		Port:          9043,
 		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE",
 		ManifestSlug:  "notebooks",
-		TLS:           false,
+		TLS:           true,
 	},
 }
 
