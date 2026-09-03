@@ -148,5 +148,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |
 | **Coverage Boost**                 | `skills/coverage-boost/`               | Parsing coverage reports to find uncovered lines, then generating targeted unit tests to boost coverage for a package or file |
 | **envtest Debug**                  | `skills/envtest-debug/`                | Debugging envtest integration test failures — analyzes output, identifies failure patterns, suggests fixes |
+| **Upstream Test Recommender**      | `skills/upstream-test-recommender/`    | Analyzing a `cypress_found_bug` Jira issue — identifies upstream repo, audits test infra, classifies bug, recommends test using repo's own tools. `--implement` generates test code. `--parity` runs backend/frontend test parity analysis |
+| **Upstream Test Audit**            | `skills/upstream-test-audit/`          | Batch analysis of all `cypress_found_bug` issues — generates HTML executive report with SVG charts, per-repo gap analysis, and team responsibility breakdown |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
