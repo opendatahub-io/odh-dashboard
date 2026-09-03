@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,11 +17,13 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -37,6 +40,7 @@ const integrationNamespace = "integration-test"
 var (
 	testEnv   *envtest.Environment
 	k8sClient client.Client
+	restCfg   *rest.Config
 )
 
 func TestMain(m *testing.M) {
@@ -51,6 +55,10 @@ func TestMain(m *testing.M) {
 	}
 	if err := routev1.AddToScheme(s); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to add routev1 scheme: %v\n", err)
+		os.Exit(1)
+	}
+	if err := apiextensionsv1.AddToScheme(s); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to add apiextensionsv1 scheme: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -68,11 +76,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "failed to start envtest: %v\n", err)
 		os.Exit(1)
 	}
+	restCfg = cfg
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: s})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create client: %v\n", err)
-		testEnv.Stop()
+		_ = testEnv.Stop()
 		os.Exit(1)
 	}
 
@@ -80,13 +89,15 @@ func TestMain(m *testing.M) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: integrationNamespace}}
 	if err := k8sClient.Create(ctx, ns); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create test namespace: %v\n", err)
-		testEnv.Stop()
+		_ = testEnv.Stop()
 		os.Exit(1)
 	}
 
 	code := m.Run()
 
-	testEnv.Stop()
+	if err := testEnv.Stop(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to stop envtest: %v\n", err)
+	}
 	os.Exit(code)
 }
 
@@ -611,6 +622,69 @@ func TestIntegration_MaasConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing
 
 	assert.Nil(t, getConsoleLink(t, ctrlpkg.MaasConsumerPortalConsoleLinkName),
 		"ConsoleLink should be removed when managementState is Removed and portal is disabled")
+}
+
+// newManifestReconciler builds a DashboardReconciler wired to the shared k8sClient.
+func newManifestReconciler(manifests string) *ctrlpkg.DashboardReconciler {
+	return newReconcilerWithClient(k8sClient, manifests)
+}
+
+// newReconcilerWithClient builds a DashboardReconciler with an explicit client.
+// The observability _Deployed test uses this to inject an isolated client whose
+// RESTMapper has been warmed with the Perses CRD.
+func newReconcilerWithClient(cli client.Client, manifests string) *ctrlpkg.DashboardReconciler {
+	return &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                cli.Scheme(),
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+}
+
+// deleteIgnoreNotFound deletes each object via the shared client, ignoring NotFound.
+func deleteIgnoreNotFound(t *testing.T, objs ...client.Object) {
+	t.Helper()
+	ctx := context.Background()
+	for _, o := range objs {
+		if err := k8sClient.Delete(ctx, o); client.IgnoreNotFound(err) != nil {
+			t.Logf("warning: failed to delete %T %s: %v", o, o.GetName(), err)
+		}
+	}
+}
+
+// newIsolatedClient builds a fresh client with its own RESTMapper. The
+// observability _Deployed test uses it so that listing PersesDashboards (which
+// caches a positive REST mapping once the CRD exists) never poisons the shared
+// client's mapper that _PersesCRDNotFound relies on staying empty.
+func newIsolatedClient(t *testing.T) client.Client {
+	t.Helper()
+	c, err := client.New(restCfg, client.Options{Scheme: k8sClient.Scheme()})
+	require.NoError(t, err)
+
+	return c
+}
+
+// readParamsEnv parses a KEY=VALUE params.env file into a map, mirroring the
+// controller's own readExistingParams (blank and comment lines skipped). Used to
+// assert the inter-BFF service-discovery env vars the reconciler writes.
+func readParamsEnv(t *testing.T, path string) map[string]string {
+	t.Helper()
+	params := map[string]string{}
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if k, v, ok := strings.Cut(line, "="); ok {
+			params[k] = v
+		}
+	}
+
+	return params
 }
 
 func TestIntegration_StandaloneEnableModule(t *testing.T) {
