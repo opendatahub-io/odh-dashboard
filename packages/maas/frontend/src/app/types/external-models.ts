@@ -81,7 +81,18 @@ export type ExternalProvider = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  lastTransitionTime?: string;
+  conditionType?: string;
+  status?: string;
 };
+
+export enum ProviderTypes {
+  OpenAI = 'OpenAI',
+  Anthropic = 'Anthropic',
+  AWSBedrock = 'AWS Bedrock',
+  Azure = 'Azure',
+  GoogleVertexAI = 'Google Vertex AI',
+}
 
 export type CreateExternalProviderRequest = {
   name: string;

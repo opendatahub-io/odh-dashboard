@@ -2,21 +2,22 @@ import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelector } from 'mod-arch-core';
-import { deploymentsExternalPath } from './const';
 
-type ExternalModelsProjectSelectorProps = {
+type MaaSExternalResourcesProjectSelectorProps = {
   namespace: string;
+  pathFunction: (namespace: string) => string;
 } & Omit<React.ComponentProps<typeof ProjectSelector>, 'onSelection' | 'namespace'>;
 
-const ExternalModelsProjectSelector: React.FC<ExternalModelsProjectSelectorProps> = ({
+const MaaSExternalResourcesProjectSelector: React.FC<MaaSExternalResourcesProjectSelectorProps> = ({
   namespace,
+  pathFunction,
   ...projectSelectorProps
 }) => {
   const navigate = useNavigate();
   const { namespaces, updatePreferredNamespace, namespacesLoaded } = useNamespaceSelector();
 
   return (
-    <div data-testid="external-models-project-selector">
+    <div data-testid="maas-external-resources-project-selector">
       <ProjectSelector
         {...projectSelectorProps}
         showTitle
@@ -25,7 +26,7 @@ const ExternalModelsProjectSelector: React.FC<ExternalModelsProjectSelectorProps
             ? (namespaces.find((n) => n.name === projectName) ?? undefined)
             : undefined;
           updatePreferredNamespace(match);
-          navigate(deploymentsExternalPath(projectName));
+          navigate(pathFunction(projectName));
         }}
         namespace={namespace}
         isLoading={!namespacesLoaded}
@@ -35,4 +36,4 @@ const ExternalModelsProjectSelector: React.FC<ExternalModelsProjectSelectorProps
   );
 };
 
-export default ExternalModelsProjectSelector;
+export default MaaSExternalResourcesProjectSelector;
