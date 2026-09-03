@@ -43,7 +43,7 @@ describe('Eval Hub E2E — Stop and Reconfigure', () => {
 
   retryableBefore(() => {
     ensureAdminOcSession();
-    cy.fixture('e2e/eval-hub/testEvalHubSingleBenchmark.yaml', 'utf8').then(
+    cy.fixture('e2e/eval-hub/testEvalHubStopReconfigure.yaml', 'utf8').then(
       (yamlContent: string) => {
         testData = yaml.load(yamlContent) as EvalHubTestData;
         evalHubCrName = testData.evalHubCrName;

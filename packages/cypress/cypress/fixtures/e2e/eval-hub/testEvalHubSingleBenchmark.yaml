@@ -17,7 +17,7 @@ inferenceModelName: evalhub-llm
 defaultExperimentName: EvalHub
 additionalBenchmarkParams: |
   {
-    "num_examples": 10,
-    "limit": 5,
+    "num_examples": 2,
+    "limit": 2,
     "tokenizer": "google/flan-t5-small"
   }
