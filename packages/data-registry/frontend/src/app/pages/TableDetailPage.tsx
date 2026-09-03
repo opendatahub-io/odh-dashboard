@@ -84,6 +84,7 @@ const TableDetailPage: React.FC = () => {
           <MenuToggle
             ref={toggleRef}
             variant="plain"
+            isDisabled={!loaded}
             onClick={() => setIsActionsOpen((prev) => !prev)}
             isExpanded={isActionsOpen}
             aria-label="Actions"

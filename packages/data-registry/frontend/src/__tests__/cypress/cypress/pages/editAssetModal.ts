@@ -10,7 +10,7 @@ class EditAssetModal extends Modal {
   }
 
   findCancelButton() {
-    return this.find().findByRole('button', { name: 'Cancel' });
+    return cy.findByTestId('edit-asset-cancel');
   }
 
   // Asset details section (shared with register-data, read-only in edit mode)
@@ -119,7 +119,7 @@ class EditAssetModal extends Modal {
   }
 
   findErrorAlert() {
-    return this.find().find('.pf-v6-c-alert');
+    return this.find().findByTestId('edit-asset-error');
   }
 }
 

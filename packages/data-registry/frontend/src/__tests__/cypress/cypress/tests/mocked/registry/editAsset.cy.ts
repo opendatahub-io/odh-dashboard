@@ -101,6 +101,9 @@ describe('Edit Table Asset', () => {
       `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
       { body: tableResponse },
     ).as('updateTable');
+    cy.intercept('POST', `${REGISTRY_API}/test-project/labels`, {
+      body: { name: 'new-label' },
+    }).as('createLabel');
 
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-edit').click();
@@ -186,6 +189,25 @@ describe('Edit Table Asset', () => {
     });
   });
 
+  it('should clear the final custom property', () => {
+    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+    cy.intercept(
+      'PATCH',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { body: tableResponse },
+    ).as('updateTable');
+
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-edit').click();
+    editAssetModal.findCustomPropertyRemove(0).click();
+    editAssetModal.findSaveButton().click();
+
+    cy.wait('@updateTable').then((interception) => {
+      expect(interception.request.body).to.have.property('properties').that.deep.equals({});
+    });
+  });
+
   it('should close modal on cancel', () => {
     cy.visit('/main-view/tables/test-project/analytics/claims-data');
     cy.wait('@getTable');
@@ -234,7 +256,7 @@ describe('Edit Volume Asset', () => {
     cy.visit('/main-view/volumes/test-project/default/training-docs');
     cy.wait('@getVolume');
 
-    cy.intercept('PATCH', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
+    cy.intercept('PUT', `${REGISTRY_API}/test-project/namespaces/default/volumes/training-docs`, {
       body: volumeResponse,
     }).as('updateVolume');
 

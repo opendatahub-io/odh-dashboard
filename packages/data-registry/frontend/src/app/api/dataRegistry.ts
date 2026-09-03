@@ -1,3 +1,4 @@
+import * as z from 'zod';
 import {
   AssetResponse,
   AssetListResponse,
@@ -25,13 +26,42 @@ class ApiError extends Error {
   }
 }
 
-const fetchJSON = async <T>(url: string): Promise<T> => {
+const schemaFieldSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  description: z.string().optional(),
+  nullable: z.boolean().optional(),
+});
+
+const assetResponseSchema = z
+  .object({
+    name: z.string(),
+    // eslint-disable-next-line camelcase
+    asset_type: z.string(),
+    columns: z.array(schemaFieldSchema).optional(),
+  })
+  .passthrough();
+
+const volumeInfoSchema = z
+  .object({
+    name: z.string(),
+    'catalog-name': z.string(),
+    'schema-name': z.string(),
+    'volume-type': z.string(),
+    'storage-location': z.string(),
+  })
+  .passthrough();
+
+const fetchJSON = async <T>(url: string, schema?: z.ZodType<T>): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {
     const text = await response.text();
     throw new ApiError(response.status, `API error ${response.status}: ${text}`);
   }
-  return response.json();
+  if (!schema) {
+    return response.json();
+  }
+  return schema.parse(await response.json());
 };
 
 const fetchRequest = async (url: string, method: string, body?: unknown): Promise<Response> => {
@@ -87,6 +117,7 @@ export const fetchGenericTable = (
         collection,
       )}/generic-tables/${encodeURIComponent(name)}`,
     ),
+    assetResponseSchema,
   );
 
 export const deleteGenericTable = (
@@ -132,6 +163,7 @@ export const fetchVolume = (
         collection,
       )}/volumes/${encodeURIComponent(name)}`,
     ),
+    volumeInfoSchema,
   );
 
 export const deleteVolume = (project: string, collection: string, name: string): Promise<void> =>
@@ -196,7 +228,7 @@ export const updateGenericTable = async (
 
 export type UpdateVolumeRequest = {
   comment?: string;
-  'storage-location'?: string;
+  storage_location?: string;
   owner?: string;
   add_labels?: string[];
   remove_labels?: string[];
@@ -215,7 +247,7 @@ export const updateVolume = async (
         collection,
       )}/volumes/${encodeURIComponent(name)}`,
     ),
-    'PATCH',
+    'PUT',
     data,
   );
 };

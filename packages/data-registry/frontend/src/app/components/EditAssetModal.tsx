@@ -54,16 +54,14 @@ const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string
   return connectionRef.id;
 };
 
-let nextId = 0;
-
-const buildFormDefaults = (props: EditAssetModalProps): EditAssetFormData => {
+const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
   const { asset, assetKind, collection } = props;
   const isTable = assetKind === 'table';
   const properties = asset.properties ?? {};
 
   const customProperties = Object.entries(properties)
     .filter(([key]) => !WELL_KNOWN_PROPERTIES.has(key))
-    .map(([key, value]) => ({ id: ++nextId, key, value }));
+    .map(([key, value], index) => ({ id: idStart + index + 1, key, value }));
 
   return {
     assetType: isTable ? 'structured' : 'unstructured',
@@ -82,8 +80,8 @@ const buildFormDefaults = (props: EditAssetModalProps): EditAssetFormData => {
     piiStatus: properties.pii_status || '',
     customProperties,
     schemaFields: isTable
-      ? (asset.columns ?? []).map((col) => ({
-          id: ++nextId,
+      ? (asset.columns ?? []).map((col, index) => ({
+          id: idStart + customProperties.length + index + 1,
           name: col.name,
           type: col.type,
           description: col.description ?? '',
@@ -99,15 +97,26 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+  const idRef = React.useRef(0);
 
-  const defaults = React.useMemo(() => buildFormDefaults(props), [props]);
-  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset.labels]);
+  const defaults = React.useMemo(() => {
+    const result = buildFormDefaults(props, idRef.current);
+    idRef.current += result.customProperties.length + result.schemaFields.length;
+    return result;
+    // buildFormDefaults only reads these stable asset inputs from props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asset, assetKind, collection]);
+  const originalLabels = React.useMemo(() => asset.labels ?? [], [asset]);
 
   const form = useForm<EditAssetFormData>({
     resolver: zodResolver(editAssetSchema),
     defaultValues: defaults,
     mode: 'onBlur',
   });
+
+  React.useEffect(() => {
+    form.reset(defaults);
+  }, [defaults, form]);
 
   const handleSubmit = React.useCallback(
     async (data: EditAssetFormData) => {
@@ -148,7 +157,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
             pii: data.piiStatus || undefined,
             ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
             ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-            ...(Object.keys(customProps).length > 0 ? { properties: customProps } : {}),
+            properties: customProps,
             schema_fields: data.schemaFields.map((col) => ({
               name: col.name,
               type: col.type,
@@ -173,10 +182,10 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
 
           await updateVolume(project, collection, name, {
             comment: data.description,
-            'storage-location': data.path || undefined,
+            storage_location: data.path || undefined,
             ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
             ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
-            ...(Object.keys(allProperties).length > 0 ? { properties: allProperties } : {}),
+            properties: allProperties,
           });
         }
         onSaved();
@@ -199,7 +208,12 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
       <ModalHeader title={`Edit "${asset.name}"`} />
       <ModalBody>
         {error ? (
-          <Alert variant="danger" isInline title="Error saving changes">
+          <Alert
+            variant="danger"
+            isInline
+            title="Error saving changes"
+            data-testid="edit-asset-error"
+          >
             {error}
           </Alert>
         ) : null}
@@ -223,7 +237,12 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         >
           Save
         </Button>
-        <Button variant="link" onClick={onClose} isDisabled={isSubmitting}>
+        <Button
+          variant="link"
+          onClick={onClose}
+          isDisabled={isSubmitting}
+          data-testid="edit-asset-cancel"
+        >
           Cancel
         </Button>
       </ModalFooter>
