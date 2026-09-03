@@ -186,6 +186,15 @@ func isManagedSandbox(obj *unstructured.Unstructured) bool {
 	return labels[agents.LabelManagedBy] == agents.ManagedByValue
 }
 
+// managedSandboxOrNotFound rejects sandboxes not deployed through agent-ops.
+// Mutations and detail must agree with the list label selector.
+func managedSandboxOrNotFound(obj *unstructured.Unstructured) error {
+	if !isManagedSandbox(obj) {
+		return agents.ErrNotFound
+	}
+	return nil
+}
+
 func isRetryableListError(err error) bool {
 	return apierrors.IsServerTimeout(err) ||
 		apierrors.IsServiceUnavailable(err) ||

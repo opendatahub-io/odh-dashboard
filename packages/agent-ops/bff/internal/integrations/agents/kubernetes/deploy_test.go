@@ -242,10 +242,11 @@ func TestDeleteAgent_Unmanaged(t *testing.T) {
 	require.NoError(t, err)
 
 	err = client.DeleteAgent(context.Background(), ns, "foreign-agent")
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
 
 	_, err = dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "foreign-agent", metav1.GetOptions{})
-	assert.Error(t, err, "Sandbox should be deleted regardless of labels")
+	require.NoError(t, err, "unmanaged Sandbox must not be deleted")
 }
 
 func TestDeployAgent_FullParams(t *testing.T) {
@@ -326,6 +327,9 @@ func seedSandboxWithMode(t *testing.T, dynamicClient *fakedynamic.FakeDynamicCli
 		"metadata": map[string]any{
 			"name":      name,
 			"namespace": ns,
+			"labels": map[string]any{
+				agents.LabelManagedBy: agents.ManagedByValue,
+			},
 		},
 		"spec": map[string]any{
 			"operatingMode": mode,
@@ -336,6 +340,69 @@ func seedSandboxWithMode(t *testing.T, dynamicClient *fakedynamic.FakeDynamicCli
 	}}
 	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), obj, metav1.CreateOptions{})
 	require.NoError(t, err)
+}
+
+func seedUnmanagedSandboxWithMode(t *testing.T, dynamicClient *fakedynamic.FakeDynamicClient, ns, name, mode string) {
+	t.Helper()
+	obj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
+		"kind":       "Sandbox",
+		"metadata": map[string]any{
+			"name":      name,
+			"namespace": ns,
+			"labels": map[string]any{
+				agents.LabelManagedBy: "some-other-tool",
+			},
+		},
+		"spec": map[string]any{
+			"operatingMode": mode,
+		},
+		"status": map[string]any{
+			"selector": "app=" + name,
+		},
+	}}
+	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), obj, metav1.CreateOptions{})
+	require.NoError(t, err)
+}
+
+func TestStopAgent_Unmanaged(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedUnmanagedSandboxWithMode(t, dynamicClient, ns, "foreign-agent", "Running")
+
+	err := client.StopAgent(context.Background(), ns, "foreign-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "foreign-agent", metav1.GetOptions{})
+	require.NoError(t, err)
+	mode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	assert.Equal(t, "Running", mode, "unmanaged Sandbox operatingMode must be unchanged")
+}
+
+func TestStartAgent_Unmanaged(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedUnmanagedSandboxWithMode(t, dynamicClient, ns, "foreign-agent", "Suspended")
+
+	err := client.StartAgent(context.Background(), ns, "foreign-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "foreign-agent", metav1.GetOptions{})
+	require.NoError(t, err)
+	mode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	assert.Equal(t, "Suspended", mode, "unmanaged Sandbox operatingMode must be unchanged")
+}
+
+func TestRestartAgent_Unmanaged(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedUnmanagedSandboxWithMode(t, dynamicClient, ns, "foreign-agent", "Running")
+
+	err := client.RestartAgent(context.Background(), ns, "foreign-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
 }
 
 func TestStopAgent_Success(t *testing.T) {

@@ -53,6 +53,9 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 	if err != nil {
 		return mapK8sError(err)
 	}
+	if err := managedSandboxOrNotFound(cr); err != nil {
+		return err
+	}
 
 	rv := cr.GetResourceVersion()
 	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{
@@ -77,6 +80,9 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return mapK8sError(err)
+	}
+	if err := managedSandboxOrNotFound(cr); err != nil {
+		return err
 	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
@@ -108,6 +114,9 @@ func (c *Client) RestartAgent(ctx context.Context, namespace, name string) error
 	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return mapK8sError(err)
+	}
+	if err := managedSandboxOrNotFound(cr); err != nil {
+		return err
 	}
 
 	podSelector := ""
@@ -143,6 +152,9 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return mapK8sError(err)
+	}
+	if err := managedSandboxOrNotFound(cr); err != nil {
+		return err
 	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
