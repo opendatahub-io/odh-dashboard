@@ -623,6 +623,7 @@ func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboa
 	}
 	if err := r.deleteModuleResources(ctx, statuses); err != nil {
 		log.FromContext(ctx).Error(err, "Failed to clean up disabled module resources")
+		return nil, err
 	}
 	r.overlayStandaloneReadiness(ctx, statuses)
 	return statuses, nil

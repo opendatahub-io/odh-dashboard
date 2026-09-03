@@ -219,6 +219,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// demand before the core teardown so MaaS Consumer Portal-only operation retains them.
 		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
 		if err != nil {
+			r.persistRemovedFailureStatus(ctx, dashboard, cm, "ModuleDeployFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Consumer Portal-required modules: %w", err)
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
@@ -230,6 +231,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses); err != nil {
+			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
@@ -308,6 +310,25 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return result, err
+}
+
+// persistRemovedFailureStatus records a retryable failure that occurs before
+// the normal Removed-state status update. A status-write failure is logged but
+// does not replace the original reconciliation error.
+func (r *DashboardReconciler) persistRemovedFailureStatus(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	reason string,
+	failure error,
+) {
+	cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+		conditions.WithReason(reason),
+		conditions.WithMessage("Dashboard removal reconciliation failed: %s", failure))
+	cm.Sort()
+	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+		log.FromContext(ctx).Error(statusErr, "Failed to update status after removal failure")
+	}
 }
 
 const observabilityRetryInterval = 5 * time.Minute

@@ -3,6 +3,7 @@ package controller_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -13,7 +14,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -105,6 +108,25 @@ func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testin
 	assert.Equal(t, "ExplicitOverride", statuses["maas"].Reason)
 	assert.Error(t, reconciler.Get(context.Background(), types.NamespacedName{Name: "maas-ui", Namespace: testNamespace}, &appsv1.Deployment{}))
 	assert.Error(t, reconciler.Get(context.Background(), types.NamespacedName{Name: "maas-ui", Namespace: testNamespace}, &corev1.Service{}))
+}
+
+func TestReconcileModuleDemand_ReturnsCleanupError(t *testing.T) {
+	scheme := testScheme(t)
+	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
+				return errors.New("simulated delete failure")
+			},
+		}).Build(),
+		Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace,
+	}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	assert.Nil(t, statuses)
+	require.ErrorContains(t, err, "deleting deployment for module maas: simulated delete failure")
 }
 
 func TestReconcileModuleDemand_OverlaysStandaloneReadiness(t *testing.T) {
