@@ -6,9 +6,7 @@ import {
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../pages/deploymentWizard/fields/NIMPVCField';
-
-const NIM_IMAGE_FIELD_ID = 'nim-serving/nimImage';
-const NIM_PVC_FIELD_ID = 'nim-serving/pvcStorage';
+import { NIM_IMAGE_FIELD_ID, NIM_PVC_STORAGE_FIELD_ID } from '../constants';
 
 type TrackingProperties = Record<string, string | number | boolean | undefined>;
 
@@ -81,7 +79,7 @@ export const getNIMWizardTrackingProperties = (
       : undefined,
     externalData,
   );
-  const pvcValue = wizardState[NIM_PVC_FIELD_ID];
+  const pvcValue = wizardState[NIM_PVC_STORAGE_FIELD_ID];
 
   if (!isNIMPVCFieldValue(pvcValue)) {
     return properties;

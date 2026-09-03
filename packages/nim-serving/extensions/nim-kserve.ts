@@ -12,14 +12,14 @@ import type {
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
-import { NIM_LEGACY_ID } from '../src/constants';
+import { NIM_IMAGE_FIELD_ID, NIM_LEGACY_ID, NIM_PVC_STORAGE_FIELD_ID } from '../src/constants';
 import type { NIMImageFieldValue } from '../src/pages/deploymentWizard/fields/NIMImageField';
 import type { NIMPVCFieldValue } from '../src/pages/deploymentWizard/fields/NIMPVCField';
 
 const nimPVCApplyExtension: WizardFieldApplyExtension<NIMPVCFieldValue, KServeDeployment> = {
   type: 'model-serving.deployment/wizard-field-apply',
   properties: {
-    fieldId: 'nim-serving/pvcStorage',
+    fieldId: NIM_PVC_STORAGE_FIELD_ID,
     platform: NIM_LEGACY_ID,
     apply: () =>
       import('../src/nimKServe/fields/nimPVCApplyExtract').then((m) => m.applyNIMPVCFieldData),
@@ -33,7 +33,7 @@ const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, 
   {
     type: 'model-serving.deployment/wizard-field-extractor',
     properties: {
-      fieldId: 'nim-serving/pvcStorage',
+      fieldId: NIM_PVC_STORAGE_FIELD_ID,
       platform: KSERVE_ID,
       extract: () =>
         import('../src/nimKServe/fields/nimPVCApplyExtract').then((m) => m.extractNIMPVCFieldData),
@@ -61,7 +61,7 @@ const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
 > = {
   type: 'model-serving.deployment/wizard-field-deployment-functions',
   properties: {
-    fieldId: 'nim-serving/pvcStorage',
+    fieldId: NIM_PVC_STORAGE_FIELD_ID,
     platform: NIM_LEGACY_ID,
     preDeploy: () =>
       import('../src/nimKServe/fields/nimPVCDeployFunctions').then((m) => m.nimPVCPreDeploy),
@@ -75,7 +75,7 @@ const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
 const nimImageApplyExtension: WizardFieldApplyExtension<NIMImageFieldValue, KServeDeployment> = {
   type: 'model-serving.deployment/wizard-field-apply',
   properties: {
-    fieldId: 'nim-serving/nimImage',
+    fieldId: NIM_IMAGE_FIELD_ID,
     platform: NIM_LEGACY_ID,
     apply: () =>
       import('../src/nimKServe/fields/nimImageApplyExtract').then((m) => m.applyNIMImageFieldData),
@@ -94,7 +94,7 @@ const nimImageExtractExtension: WizardFieldExtractorExtension<
   // undefined for non-NIM deployments so plain KServe edits are unaffected.
   type: 'model-serving.deployment/wizard-field-extractor',
   properties: {
-    fieldId: 'nim-serving/nimImage',
+    fieldId: NIM_IMAGE_FIELD_ID,
     platform: KSERVE_ID,
     extract: () =>
       import('../src/nimKServe/fields/nimImageApplyExtract').then(

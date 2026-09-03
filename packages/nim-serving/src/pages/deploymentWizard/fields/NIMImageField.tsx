@@ -20,6 +20,7 @@ import {
   parseImageString,
 } from '../../../api/images/utils';
 import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
+import { NIM_IMAGE_FIELD_ID } from '../../../constants';
 
 export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
   !!data && typeof data === 'object' && 'nimImages' in data && 'accountStatus' in data;
@@ -355,7 +356,7 @@ export type NIMImageFieldType = WizardField<
 >;
 
 export const NIMImageFieldWizardField: NIMImageFieldType = {
-  id: 'nim-serving/nimImage',
+  id: NIM_IMAGE_FIELD_ID,
   step: 'modelSource',
   type: 'addition',
   isActive: (wizardFormData) =>

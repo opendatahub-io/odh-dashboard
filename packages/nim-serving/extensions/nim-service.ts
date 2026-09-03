@@ -21,12 +21,12 @@ import type { NIMImageFieldValue } from '../src/pages/deploymentWizard/fields/NI
 import type { NIMPVCFieldValue } from '../src/pages/deploymentWizard/fields/NIMPVCField';
 // Allow this import as it consists of constants only.
 // eslint-disable-next-line no-restricted-syntax
-import { NIM_SERVICE_ID } from '../src/constants';
+import { NIM_IMAGE_FIELD_ID, NIM_PVC_STORAGE_FIELD_ID, NIM_SERVICE_ID } from '../src/constants';
 
 const nimImageApplyExtension: WizardFieldApplyExtension<NIMImageFieldValue, NIMDeployment> = {
   type: 'model-serving.deployment/wizard-field-apply',
   properties: {
-    fieldId: 'nim-serving/nimImage',
+    fieldId: NIM_IMAGE_FIELD_ID,
     platform: NIM_SERVICE_ID,
     apply: () =>
       import('../src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
@@ -42,7 +42,7 @@ const nimImageExtractorExtension: WizardFieldExtractorExtension<NIMImageFieldVal
   {
     type: 'model-serving.deployment/wizard-field-extractor',
     properties: {
-      fieldId: 'nim-serving/nimImage',
+      fieldId: NIM_IMAGE_FIELD_ID,
       platform: NIM_SERVICE_ID,
       extract: () =>
         import('../src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
@@ -57,7 +57,7 @@ const nimImageExtractorExtension: WizardFieldExtractorExtension<NIMImageFieldVal
 const nimPVCApplyExtension: WizardFieldApplyExtension<NIMPVCFieldValue, NIMDeployment> = {
   type: 'model-serving.deployment/wizard-field-apply',
   properties: {
-    fieldId: 'nim-serving/pvcStorage',
+    fieldId: NIM_PVC_STORAGE_FIELD_ID,
     platform: NIM_SERVICE_ID,
     apply: () =>
       import('../src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
@@ -72,7 +72,7 @@ const nimPVCApplyExtension: WizardFieldApplyExtension<NIMPVCFieldValue, NIMDeplo
 const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, NIMDeployment> = {
   type: 'model-serving.deployment/wizard-field-extractor',
   properties: {
-    fieldId: 'nim-serving/pvcStorage',
+    fieldId: NIM_PVC_STORAGE_FIELD_ID,
     platform: NIM_SERVICE_ID,
     extract: () =>
       import('../src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
@@ -90,7 +90,7 @@ const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
 > = {
   type: 'model-serving.deployment/wizard-field-deployment-functions',
   properties: {
-    fieldId: 'nim-serving/pvcStorage',
+    fieldId: NIM_PVC_STORAGE_FIELD_ID,
     platform: NIM_SERVICE_ID,
     preDeploy: () =>
       import('../src/pages/deploymentWizard/fields/nimPVCDeployFunctions').then(

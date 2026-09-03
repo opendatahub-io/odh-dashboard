@@ -1,6 +1,7 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMPVCStorageMode } from '../../pages/deploymentWizard/fields/NIMPVCField';
 import { getNIMWizardTrackingProperties } from '../nimWizardTracking';
+import { NIM_IMAGE_FIELD_ID, NIM_PVC_STORAGE_FIELD_ID } from '../../constants';
 
 const wizardState = (fields: Record<string, unknown>): WizardFormData['state'] =>
   fields as WizardFormData['state'];
@@ -11,7 +12,7 @@ const imageValue = {
 };
 
 const imageExternalData = {
-  'nim-serving/nimImage': {
+  [NIM_IMAGE_FIELD_ID]: {
     data: {
       nimImages: [
         {
@@ -30,8 +31,8 @@ describe('getNIMWizardTrackingProperties', () => {
     expect(
       getNIMWizardTrackingProperties(
         wizardState({
-          'nim-serving/nimImage': imageValue,
-          'nim-serving/pvcStorage': {
+          [NIM_IMAGE_FIELD_ID]: imageValue,
+          [NIM_PVC_STORAGE_FIELD_ID]: {
             storageMode: NIMPVCStorageMode.NEW,
             pvcName: 'user-pvc',
             subPath: 'private-path',
@@ -54,8 +55,8 @@ describe('getNIMWizardTrackingProperties', () => {
     expect(
       getNIMWizardTrackingProperties(
         wizardState({
-          'nim-serving/nimImage': imageValue,
-          'nim-serving/pvcStorage': {
+          [NIM_IMAGE_FIELD_ID]: imageValue,
+          [NIM_PVC_STORAGE_FIELD_ID]: {
             storageMode: NIMPVCStorageMode.EXISTING,
             pvcName: 'user-pvc',
             subPath: 'private-path',
@@ -76,14 +77,14 @@ describe('getNIMWizardTrackingProperties', () => {
     expect(
       getNIMWizardTrackingProperties(
         wizardState({
-          'nim-serving/nimImage': imageValue,
-          'nim-serving/pvcStorage': {
+          [NIM_IMAGE_FIELD_ID]: imageValue,
+          [NIM_PVC_STORAGE_FIELD_ID]: {
             storageMode: NIMPVCStorageMode.NEW,
             storageClassName: '',
             storageSizeGi: 50,
           },
         }),
-        { 'nim-serving/nimImage': { data: { nimImages: [] } } },
+        { [NIM_IMAGE_FIELD_ID]: { data: { nimImages: [] } } },
       ),
     ).toEqual({
       nimImage: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
