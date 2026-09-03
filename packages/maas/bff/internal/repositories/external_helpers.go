@@ -9,6 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
@@ -64,20 +65,8 @@ func authMechanismToCRD(mechanism models.AuthMechanism) string {
 	return string(mechanism)
 }
 
-func applyDisplayAnnotations(annotations map[string]string, displayName, description string) map[string]string {
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	if displayName != "" {
-		annotations[constants.DisplayNameAnnotation] = displayName
-	}
-	if description != "" {
-		annotations[constants.DescriptionAnnotation] = description
-	}
-	return annotations
-}
-
-func applyOptionalDisplayAnnotations(annotations map[string]string, displayName, description *string) map[string]string {
+// applyDisplayAnnotations updates display metadata annotations on a resource.
+func applyDisplayAnnotations(annotations map[string]string, displayName, description *string) map[string]string {
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
@@ -104,7 +93,7 @@ func buildExternalProviderUnstructured(request models.CreateExternalProviderRequ
 	obj.SetKind("ExternalProvider")
 	obj.SetName(request.Name)
 	obj.SetNamespace(request.Namespace)
-	obj.SetAnnotations(applyDisplayAnnotations(nil, request.DisplayName, request.Description))
+	obj.SetAnnotations(applyDisplayAnnotations(nil, &request.DisplayName, &request.Description))
 
 	spec := map[string]interface{}{
 		"provider": request.Provider,
@@ -112,7 +101,7 @@ func buildExternalProviderUnstructured(request models.CreateExternalProviderRequ
 		"auth": map[string]interface{}{
 			"type": authMechanismToCRD(request.AuthMechanism),
 			"secretRef": map[string]interface{}{
-				"name": request.CredentialSecretRef,
+				"name": normalizeSecretRefName(request.CredentialSecretRef),
 			},
 		},
 	}
@@ -320,7 +309,7 @@ func buildExternalModelUnstructured(request models.CreateExternalModelRequest) *
 	obj.SetKind("ExternalModel")
 	obj.SetName(request.Name)
 	obj.SetNamespace(request.Namespace)
-	obj.SetAnnotations(applyDisplayAnnotations(nil, request.DisplayName, request.Description))
+	obj.SetAnnotations(applyDisplayAnnotations(nil, &request.DisplayName, &request.Description))
 
 	spec := map[string]interface{}{
 		"externalProviderRefs": buildExternalProviderRefs(request.ProviderRefs),
@@ -394,11 +383,11 @@ func buildExternalProviderRefs(refs []models.ProviderRef) []interface{} {
 		if config := stringMapToUnstructured(ref.Config); config != nil {
 			entry["config"] = config
 		}
-		if ref.AuthMechanism != nil && ref.CredentialSecretRef != "" {
+		if ref.AuthMechanism != nil && normalizeSecretRefName(ref.CredentialSecretRef) != "" {
 			entry["auth"] = map[string]interface{}{
 				"type": authMechanismToCRD(*ref.AuthMechanism),
 				"secretRef": map[string]interface{}{
-					"name": ref.CredentialSecretRef,
+					"name": normalizeSecretRefName(ref.CredentialSecretRef),
 				},
 			}
 		}
@@ -413,6 +402,55 @@ const maxEndpointFQDNLength = 253
 
 func normalizeEndpointURL(raw string) string {
 	return strings.TrimSpace(raw)
+}
+
+func normalizeSecretRefName(raw string) string {
+	return strings.TrimSpace(raw)
+}
+
+// ValidateSecretRefName checks the trimmed value against ExternalProvider/ExternalModel CRD secretRef.name rules.
+func ValidateSecretRefName(raw string) error {
+	name := normalizeSecretRefName(raw)
+	if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
+		return fmt.Errorf("must be a valid Kubernetes Secret name")
+	}
+	return nil
+}
+
+// ValidateCredentialSecretRef validates ExternalProvider credentialSecretRef.
+func ValidateCredentialSecretRef(raw string) error {
+	if strings.TrimSpace(raw) == "" {
+		return fmt.Errorf("credentialSecretRef is required")
+	}
+	if err := ValidateSecretRefName(raw); err != nil {
+		return fmt.Errorf("credentialSecretRef %s", err.Error())
+	}
+	return nil
+}
+
+// ValidateProviderRefCredentialSecretRef validates ExternalModel providerRef credentialSecretRef.
+func ValidateProviderRefCredentialSecretRef(raw string) error {
+	if strings.TrimSpace(raw) == "" {
+		return fmt.Errorf("providerRef.credentialSecretRef is required when providerRef.authMechanism is set")
+	}
+	if err := ValidateSecretRefName(raw); err != nil {
+		return fmt.Errorf("providerRef.credentialSecretRef %s", err.Error())
+	}
+	return nil
+}
+
+// ValidateSecretName validates Kubernetes Secret metadata.name.
+func ValidateSecretName(raw string) error {
+	if strings.TrimSpace(raw) == "" {
+		return fmt.Errorf("name is required")
+	}
+	if raw != strings.TrimSpace(raw) {
+		return fmt.Errorf("name must not contain leading or trailing whitespace")
+	}
+	if errs := validation.IsDNS1123Subdomain(raw); len(errs) > 0 {
+		return fmt.Errorf("name must be a valid Kubernetes Secret name")
+	}
+	return nil
 }
 
 // ValidateEndpointURL checks ExternalProvider spec.endpoint against the CRD:

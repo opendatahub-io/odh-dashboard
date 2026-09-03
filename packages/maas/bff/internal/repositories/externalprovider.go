@@ -94,7 +94,7 @@ func (r *ExternalProvidersRepository) UpdateExternalProvider(ctx context.Context
 		}
 		if request.CredentialSecretRef != "" {
 			auth["secretRef"] = map[string]interface{}{
-				"name": request.CredentialSecretRef,
+				"name": normalizeSecretRefName(request.CredentialSecretRef),
 			}
 		}
 		existingSpec["auth"] = auth
@@ -107,7 +107,7 @@ func (r *ExternalProvidersRepository) UpdateExternalProvider(ctx context.Context
 		}
 	}
 	existing.Object["spec"] = existingSpec
-	existing.SetAnnotations(applyOptionalDisplayAnnotations(existing.GetAnnotations(), request.DisplayName, request.Description))
+	existing.SetAnnotations(applyDisplayAnnotations(existing.GetAnnotations(), request.DisplayName, request.Description))
 
 	updated, err := kubeClient.Resource(constants.ExternalProviderGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {

@@ -136,7 +136,7 @@ func (r *ExternalModelsRepository) UpdateExternalModel(ctx context.Context, name
 		existingSpec["externalProviderRefs"] = buildExternalProviderRefs(request.ProviderRefs)
 	}
 	existing.Object["spec"] = existingSpec
-	existing.SetAnnotations(applyOptionalDisplayAnnotations(existing.GetAnnotations(), request.DisplayName, request.Description))
+	existing.SetAnnotations(applyDisplayAnnotations(existing.GetAnnotations(), request.DisplayName, request.Description))
 
 	updated, err := kubeClient.Resource(constants.ExternalModelGvr).Namespace(namespace).Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {

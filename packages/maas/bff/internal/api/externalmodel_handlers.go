@@ -192,8 +192,8 @@ func validateProviderRefs(refs []models.ProviderRef) error {
 			if !ref.AuthMechanism.IsValid() {
 				return errors.New("providerRef.authMechanism must be 'apikey', 'sigv4', or 'oauth2'")
 			}
-			if strings.TrimSpace(ref.CredentialSecretRef) == "" {
-				return errors.New("providerRef.credentialSecretRef is required when providerRef.authMechanism is set")
+			if err := repositories.ValidateProviderRefCredentialSecretRef(ref.CredentialSecretRef); err != nil {
+				return err
 			}
 		}
 	}
