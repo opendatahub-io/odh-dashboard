@@ -176,6 +176,14 @@ describe('External Providers Page', () => {
         .eq(4)
         .should('contain.text', 'Pending Anthropic Development');
 
+      // Sort by provider type
+      externalProvidersPage.findColumnSortButton('Provider type').click();
+      externalProvidersPage.findRows().eq(0).should('contain.text', 'anthropic');
+      externalProvidersPage.findRows().eq(4).should('contain.text', 'aws-bedrock');
+      externalProvidersPage.findColumnSortButton('Provider type').click();
+      externalProvidersPage.findRows().eq(0).should('contain.text', 'aws-bedrock');
+      externalProvidersPage.findRows().eq(4).should('contain.text', 'anthropic');
+
       // Sort by auth mechanism
       externalProvidersPage.findColumnSortButton('Authentication').click();
       externalProvidersPage.findRows().eq(0).should('contain.text', 'API key');

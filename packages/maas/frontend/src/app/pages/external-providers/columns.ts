@@ -13,7 +13,8 @@ export const externalProvidersColumns: SortableData<ExternalProvider>[] = [
     label: 'Provider type',
     field: 'providerType',
     width: 10,
-    sortable: false,
+    sortable: (a: ExternalProvider, b: ExternalProvider): number =>
+      a.provider.localeCompare(b.provider),
     info: {
       popover:
         'The cloud or API provider this resource connects to (e.g. OpenAI, Anthropic, AWS Bedrock).',
