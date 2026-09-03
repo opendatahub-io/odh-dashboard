@@ -146,6 +146,21 @@ func TestConfigMapPredicate_Update(t *testing.T) {
 			want:    true,
 		},
 		{
+			// The PlatformType/PlatformVersion annotations are consumed only from
+			// odh-dashboard-config; dashboard-operator-config contributes reconcile
+			// inputs via Data alone, so an annotation change on it is a no-op.
+			name:    "consumed annotation change on operator config does not fire",
+			old:     newConfigMap(operatorConfigMapName, testNamespace, map[string]string{"reconcileInterval": "30s"}, nil),
+			updated: newConfigMap(operatorConfigMapName, testNamespace, map[string]string{"reconcileInterval": "30s"}, map[string]string{annotations.PlatformVersion: "2.21.0"}),
+			want:    false,
+		},
+		{
+			name:    "operator config data change fires a reconcile",
+			old:     newConfigMap(operatorConfigMapName, testNamespace, map[string]string{"reconcileInterval": "30s"}, nil),
+			updated: newConfigMap(operatorConfigMapName, testNamespace, map[string]string{"reconcileInterval": "60s"}, nil),
+			want:    true,
+		},
+		{
 			name:    "unrelated annotation churn does not fire",
 			old:     newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{}"}),
 			updated: newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{"kubectl.kubernetes.io/last-applied-configuration": "{\"data\":{}}"}),

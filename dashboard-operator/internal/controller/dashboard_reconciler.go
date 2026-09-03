@@ -1088,7 +1088,9 @@ func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj cli
 // compared, not the whole map, so unrelated metadata churn — resourceVersion
 // bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
 // last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
-// reconcile.
+// reconcile. The annotation comparison is scoped to odh-dashboard-config, the
+// only ConfigMap those annotations are consumed from; dashboard-operator-config
+// contributes reconcile inputs through Data alone.
 func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
@@ -1105,8 +1107,14 @@ func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
 				return true
 			}
 
-			annotationChanged := oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
-				oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion]
+			// PlatformType / PlatformVersion annotations are read only from
+			// odh-dashboard-config (readDistributionConfig). Restrict the
+			// annotation comparison to that ConfigMap so annotation churn on
+			// dashboard-operator-config — which contributes only via Data — does
+			// not enqueue a no-op reconcile.
+			annotationChanged := newCM.Name == distributionConfigMapName &&
+				(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
+					oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
 
 			return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
 		},
