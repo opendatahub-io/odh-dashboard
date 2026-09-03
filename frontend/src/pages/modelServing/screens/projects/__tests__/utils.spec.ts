@@ -4,6 +4,7 @@ import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -16,7 +17,7 @@ import {
   isValueFromEnvVar,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
-import { createPvc, createSecret } from '#~/api';
+import { createPvc } from '#~/api';
 import {
   getNIMData,
   getNIMResource,
@@ -24,9 +25,12 @@ import {
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
+}));
+
+jest.mock('#~/api', () => ({
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
 }));

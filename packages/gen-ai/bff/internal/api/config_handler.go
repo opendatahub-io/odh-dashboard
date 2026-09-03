@@ -12,7 +12,8 @@ type BFFConfigEnvelope Envelope[*models.BFFConfigModel, None]
 // BFFConfigHandler handles requests for BFF configuration
 func (app *App) BFFConfigHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	config := &models.BFFConfigModel{
-		IsCustomLSD: app.config.LlamaStackURL != "",
+		IsCustomLSD:        app.config.LlamaStackURL != "",
+		SandboxesAvailable: app.isSandboxAvailable(),
 	}
 
 	configEnvelope := BFFConfigEnvelope{

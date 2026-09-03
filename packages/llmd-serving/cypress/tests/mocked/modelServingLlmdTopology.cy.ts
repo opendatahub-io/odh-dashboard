@@ -26,12 +26,12 @@ import {
 } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ModelTypeLabel } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   LLMInferenceServiceConfigModel,
   LLMInferenceServiceModel,
   ProjectModel,
-  SecretModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {

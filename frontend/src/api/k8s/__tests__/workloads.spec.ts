@@ -3,6 +3,7 @@ import type { PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadKind } from '#~/k8sTypes';
@@ -12,7 +13,6 @@ import {
   buildWorkloadMapForDeployments,
   listWorkloads,
 } from '#~/api/k8s/workloads';
-import { WorkloadModel } from '#~/api/models/kueue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
