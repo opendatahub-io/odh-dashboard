@@ -304,3 +304,26 @@ export const applyLineageFilters = (
 
   return filteredData;
 };
+
+/** Left-to-right layer order, then label, for predictable keyboard tab traversal. */
+export const assignLineageKeyboardTabOrder = (data: LineageData): LineageData => {
+  const sortedNodeIds = data.nodes
+    .toSorted((a, b) => {
+      const layerDiff = (a.layer ?? 0) - (b.layer ?? 0);
+      if (layerDiff !== 0) {
+        return layerDiff;
+      }
+      return a.label.localeCompare(b.label);
+    })
+    .map((node) => node.id);
+
+  const tabOrderById = new Map(sortedNodeIds.map((id, index) => [id, index + 1]));
+
+  return {
+    ...data,
+    nodes: data.nodes.map((node) => ({
+      ...node,
+      keyboardTabOrder: tabOrderById.get(node.id),
+    })),
+  };
+};

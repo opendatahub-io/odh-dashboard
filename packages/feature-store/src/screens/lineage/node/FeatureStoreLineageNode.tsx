@@ -16,7 +16,9 @@ import { CubeIcon } from '@patternfly/react-icons';
 import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
 import { useEdgeHighlighting } from '@odh-dashboard/internal/components/lineage/edge/edgeStateUtils';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import LineageTaskPill from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
+import LineageTaskPill, {
+  TaskPillDimensions,
+} from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
 import {
   LineageSourceAnchor,
   LineageTargetAnchor,
@@ -26,6 +28,7 @@ import {
   getEntityTypeIcon,
   getEntityTypeBackgroundColor,
   getEntityTypeAccentColor,
+  LineageEntityType,
 } from '../../../utils/featureStoreObjects.tsx';
 import {
   FEATURE_STORE_EVENTS,
@@ -37,9 +40,21 @@ type LineageNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
+type LineageNodeData = {
+  entityType?: LineageEntityType;
+  features?: { name: string }[];
+  truncateLength?: number;
+  keyboardTabOrder?: number;
+  pillDimensions?: TaskPillDimensions;
+};
+
+const isLineageNodeData = (value: unknown): value is LineageNodeData =>
+  typeof value === 'object' && value !== null;
+
 const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = observer(
   ({ element, onSelect, selected }) => {
-    const data = element.getData();
+    const nodeData = element.getData();
+    const data = isLineageNodeData(nodeData) ? nodeData : undefined;
     const [hover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
     const { setClickPosition } = useLineageClick();
@@ -60,9 +75,10 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       AnchorEnd.target,
     );
 
-    const hasTypeColors = !selected && !!data?.entityType;
-    const entityIcon = data?.entityType ? (
-      <g aria-hidden="true">{getEntityTypeIcon(data.entityType, selected)}</g>
+    const entityType = data?.entityType;
+    const hasTypeColors = !selected && !!entityType;
+    const entityIcon = entityType ? (
+      <g aria-hidden="true">{getEntityTypeIcon(entityType, selected, hasTypeColors)}</g>
     ) : (
       <g aria-hidden="true">
         <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.var }} />
@@ -71,17 +87,17 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
     const pillBackgroundColor = hasTypeColors
-      ? getEntityTypeBackgroundColor(data.entityType)
+      ? getEntityTypeBackgroundColor(entityType)
       : undefined;
-    const pillAccentColor = hasTypeColors ? getEntityTypeAccentColor(data.entityType) : undefined;
+    const pillAccentColor = hasTypeColors ? getEntityTypeAccentColor(entityType) : undefined;
 
     // Create badge for feature views showing feature count
     const badge = (() => {
       const featureCount = data?.features?.length ?? 0;
       if (
-        data?.entityType &&
+        entityType &&
         ['batch_feature_view', 'on_demand_feature_view', 'stream_feature_view'].includes(
-          data.entityType,
+          entityType,
         ) &&
         featureCount > 0
       ) {
@@ -212,13 +228,31 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
 
     const accessibleName = badge ? `${element.getLabel()}, ${badge}` : element.getLabel();
     const nodeHeight = bounds.height > 0 ? bounds.height : 32;
+    const pillDimensions = data?.pillDimensions;
+    const focusPadding = 4;
+    const focusRing =
+      pillDimensions && pillDimensions.pillWidth > 0
+        ? {
+            x: pillDimensions.offsetX - focusPadding,
+            y: -focusPadding,
+            width: pillDimensions.pillWidth + focusPadding * 2,
+            height: pillDimensions.height + focusPadding * 2,
+            rx: (pillDimensions.height + focusPadding * 2) / 2,
+          }
+        : {
+            x: -focusPadding,
+            y: -focusPadding,
+            width: nodeWidth + focusPadding * 2,
+            height: nodeHeight + focusPadding * 2,
+            rx: (nodeHeight + focusPadding * 2) / 2,
+          };
 
     return (
       <g
         ref={hoverRef}
         className={nodeClassName}
         role="button"
-        tabIndex={0}
+        tabIndex={data?.keyboardTabOrder ?? 0}
         aria-label={accessibleName}
         aria-pressed={selected}
         data-testid={`feature-store-lineage-node-${element.getId()}`}
@@ -233,21 +267,6 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       >
-        {isFocused && (
-          <rect
-            data-focus-ring="true"
-            x={-4}
-            y={-4}
-            width={nodeWidth + 8}
-            height={nodeHeight + 8}
-            fill="none"
-            stroke="var(--pf-t--global--color--brand--default)"
-            strokeWidth={2}
-            rx={(nodeHeight + 8) / 2}
-            pointerEvents="none"
-            aria-hidden="true"
-          />
-        )}
         <LineageTaskPill
           element={element}
           onSelect={undefined} // Disable default selection
@@ -267,6 +286,21 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover
         />
+        {isFocused && (
+          <rect
+            data-focus-ring="true"
+            x={focusRing.x}
+            y={focusRing.y}
+            width={focusRing.width}
+            height={focusRing.height}
+            fill="none"
+            stroke="var(--pf-t--global--color--brand--default)"
+            strokeWidth={2}
+            rx={focusRing.rx}
+            pointerEvents="none"
+            aria-hidden="true"
+          />
+        )}
       </g>
     );
   },

@@ -80,13 +80,21 @@ export type LineageEntityType =
 export const getEntityTypeIcon = (
   entityType: LineageEntityType,
   selected = false,
+  onAccentStrip = false,
 ): React.ReactNode => {
   const iconColor = selected ? '#ffffff' : undefined;
   const iconSize = { width: '24px', height: '24px' };
 
   switch (entityType) {
     case 'entity':
-      return <EntityIcon style={{ color: iconColor || chartColorBlack.var, ...iconSize }} />;
+      return (
+        <EntityIcon
+          style={{
+            color: iconColor || (onAccentStrip ? '#ffffff' : chartColorBlack.var),
+            ...iconSize,
+          }}
+        />
+      );
     case 'batch_data_source':
     case 'push_data_source':
     case 'request_data_source':

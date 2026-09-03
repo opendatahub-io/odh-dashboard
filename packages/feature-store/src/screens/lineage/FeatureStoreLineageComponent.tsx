@@ -6,7 +6,7 @@ import { createLineageComponentFactory } from '@odh-dashboard/internal/component
 import { useLineageCenter } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
 import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
 import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
-import { applyLineageFilters } from './utils';
+import { applyLineageFilters, assignLineageKeyboardTabOrder } from './utils';
 import { LineagePageProvider } from './LineagePageContext';
 import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
 import FeatureStoreLineageLegend from '../../components/FeatureStoreLineageLegend';
@@ -89,7 +89,10 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           searchFilters,
         });
 
-        return { visualizationData: filteredResult, conversionError: null };
+        return {
+          visualizationData: assignLineageKeyboardTabOrder(filteredResult),
+          conversionError: null,
+        };
       } catch (err) {
         return {
           visualizationData: empty,
@@ -110,7 +113,10 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           searchFilters,
         });
 
-        return { visualizationData: filteredResult, conversionError: null };
+        return {
+          visualizationData: assignLineageKeyboardTabOrder(filteredResult),
+          conversionError: null,
+        };
       } catch (err) {
         return {
           visualizationData: empty,
@@ -165,9 +171,30 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     />
   );
 
-  const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => (
-    <FeatureStoreLineageNodePopover {...props} featureViewName={featureViewName} />
-  );
+  const PopoverComponent = (props: Parameters<typeof FeatureStoreLineageNodePopover>[0]) => {
+    const handleClose = () => {
+      const nodeId = props.node?.id;
+      props.onClose();
+      if (nodeId) {
+        requestAnimationFrame(() => {
+          const nodeElement = document.querySelector(
+            `[data-testid="feature-store-lineage-node-${nodeId}"]`,
+          );
+          if (nodeElement instanceof SVGElement) {
+            nodeElement.focus();
+          }
+        });
+      }
+    };
+
+    return (
+      <FeatureStoreLineageNodePopover
+        {...props}
+        onClose={handleClose}
+        featureViewName={featureViewName}
+      />
+    );
+  };
 
   if (!project) {
     return (

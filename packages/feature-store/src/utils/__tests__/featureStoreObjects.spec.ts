@@ -63,6 +63,11 @@ describe('getEntityTypeIcon', () => {
     expect(featureViewIcon.props.style?.color).toBe(chartColorPurple.var);
     expect(featureServiceIcon.props.style?.color).toBe(chartColorGreen.var);
   });
+
+  it('uses a contrasting icon color on the entity accent strip', () => {
+    const entityIcon = getEntityTypeIcon('entity', false, true) as React.ReactElement;
+    expect(entityIcon.props.style?.color).toBe('#ffffff');
+  });
 });
 
 describe('LINEAGE_OBJECT_TYPE_LEGEND', () => {
