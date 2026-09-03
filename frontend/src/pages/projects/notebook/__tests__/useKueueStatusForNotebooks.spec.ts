@@ -1,5 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
@@ -7,7 +8,6 @@ import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { useKueueStatusForNotebooks } from '#~/pages/projects/notebook/useKueueStatusForNotebooks';
 import type { NotebookState } from '#~/pages/projects/notebook/types';
 import { useWatchWorkloads } from '#~/api/k8s/workloads';

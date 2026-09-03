@@ -44,5 +44,17 @@ const (
 
 	// ExternalModel routes
 	ExternalModelListPath   = ApiPathPrefix + "/externalmodel"
+	ExternalModelCreatePath = ApiPathPrefix + "/externalmodel"
+	ExternalModelUpdatePath = ApiPathPrefix + "/externalmodel/:namespace/:name"
 	ExternalModelDeletePath = ApiPathPrefix + "/externalmodel/:namespace/:name"
+
+	// ExternalProvider routes
+	ExternalProviderListPath   = ApiPathPrefix + "/externalprovider"
+	ExternalProviderCreatePath = ApiPathPrefix + "/externalprovider"
+	ExternalProviderUpdatePath = ApiPathPrefix + "/externalprovider/:namespace/:name"
+	ExternalProviderDeletePath = ApiPathPrefix + "/externalprovider/:namespace/:name"
+
+	// Secret routes
+	SecretListPath   = ApiPathPrefix + "/secrets"
+	SecretCreatePath = ApiPathPrefix + "/secrets"
 )

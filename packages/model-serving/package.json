@@ -18,6 +18,7 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./shared": "./src/shared/index.ts",
     "./shared/types": "./src/shared/types.ts",
     "./shared/components": "./src/shared/components/index.ts",
@@ -79,14 +80,15 @@
     "./__mocks__/mockLegacyNimResource": "./src/__mocks__/mockLegacyNimResource.ts",
     "./__mocks__/mockPrometheusBias": "./src/__mocks__/mockPrometheusBias.ts",
     "./__mocks__/mockPrometheusServing": "./src/__mocks__/mockPrometheusServing.ts",
-    "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts"
+    "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts",
+    "./__mocks__/mockValidatedConfigurations": "./__mocks__/mockValidatedConfigurations.ts",
+    "./__mocks__/mockPrometheusQueryResponse": "./__mocks__/mockPrometheusQueryResponse.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/hardware-profiles": "*",
-    "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/model-registry": "*",
+    "axios": "^1.17.0",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/trustyai": "*",
     "@odh-dashboard/ui-core": "*",

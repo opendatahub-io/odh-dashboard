@@ -8,11 +8,11 @@ import {
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import type { ToggleState } from '@odh-dashboard/ui-core';
-import { getKueueStatusInfo } from '@odh-dashboard/internal/concepts/kueue/index';
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import {
   KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT,
   type KueueWorkloadStatusWithMessage,
-} from '@odh-dashboard/internal/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '../types';
 
 type ModelStatusIconProps = {

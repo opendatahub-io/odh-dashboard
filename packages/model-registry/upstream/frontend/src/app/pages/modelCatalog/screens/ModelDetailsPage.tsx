@@ -48,9 +48,10 @@ const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
 
 type ModelDetailsPageProps = {
   tab: string;
+  customNoRegistriesButton?: (variant: 'primary' | 'secondary') => React.ReactNode;
 };
 
-const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegistriesButton }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -128,10 +129,14 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     return modelRegistries.length === 0 ? (
-      registerButtonTooltip(
-        'Request access to a model registry',
-        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-        variant,
+      customNoRegistriesButton ? (
+        customNoRegistriesButton(variant)
+      ) : (
+        registerButtonTooltip(
+          'Request access to a model registry',
+          'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+          variant,
+        )
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonTooltip('', 'Model location is unavailable', variant)

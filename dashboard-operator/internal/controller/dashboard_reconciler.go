@@ -35,23 +35,66 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
 func getOperatorDeploymentName() string {
-	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
-		return name
-	}
-	return "dashboard-operator"
+	return envOrDefault("OPERATOR_DEPLOYMENT_NAME", "dashboard-operator")
 }
 
-func operatorOwnedResourceNames() map[string]bool {
+// operatorServiceAccountName and resolveDistributionConfigMapName resolve the names the operator's
+// Helm chart rendered for its own ServiceAccount and config ConfigMap. Both derive from user-settable
+// chart values (serviceAccount.name, config.name), so the chart plumbs the rendered names in via
+// env — the Go side must not re-derive them by convention, or a non-default install would delete
+// the operator's own resources during managementState: Removed teardown. Defaults match the chart.
+func operatorServiceAccountName() string {
+	// Defaults to the deployment name: the chart's default serviceAccount.name renders to exactly
+	// that, and unit tests that override the deployment name expect the SA to track it.
+	return envOrDefault("OPERATOR_SERVICE_ACCOUNT_NAME", operatorDeploymentName)
+}
+
+// resolveDistributionConfigMapName returns the name of the chart-rendered config ConfigMap
+// (dashboard.configMapName / .Values.config.name, default odh-dashboard-config). This is the
+// ConfigMap the operator reads for distribution identity and which teardown must preserve. Its
+// name is user-settable, so the chart plumbs it in via OPERATOR_CONFIGMAP_NAME.
+func resolveDistributionConfigMapName() string {
+	return envOrDefault("OPERATOR_CONFIGMAP_NAME", distributionConfigMapName)
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+// operatorOwnedResources returns the set of the operator's own resources that teardown must never
+// delete, keyed by "<Kind>/<name>". Teardown selects resources by the part-of=dashboard label the
+// chart's commonLabels stamp on everything it renders — including operator-owned resources — so
+// these must be skipped by name. Keying on kind+name (not name alone) keeps a genuinely
+// module-owned resource that happens to share a name (e.g. a module ConfigMap named
+// odh-dashboard-config) from silently surviving teardown.
+//
+// The webhook serving-cert Secret is intentionally absent: cert-manager issues it from the chart's
+// Certificate (which has no secretTemplate), so it never carries the part-of label and is never
+// selected by teardown's label query — no skip entry is needed.
+func operatorOwnedResources() map[string]bool {
 	base := operatorDeploymentName
 	return map[string]bool{
-		base:                  true,
-		base + "-role":        true,
-		base + "-rolebinding": true,
+		"Deployment/" + base:                              true,
+		"ServiceAccount/" + operatorServiceAccountName():  true,
+		"Service/" + base + "-webhook":                    true, // dashboard.webhookServiceName
+		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
+		"ClusterRole/" + base + "-role":                   true,
+		"ClusterRoleBinding/" + base + "-rolebinding":     true,
 	}
+}
+
+// isOperatorOwned reports whether a resource of the given kind and name is one of the operator's
+// own resources that teardown must preserve.
+func isOperatorOwned(resources map[string]bool, kind, name string) bool {
+	return resources[kind+"/"+name]
 }
 
 var persesdashboardGVK = schema.GroupVersionKind{
@@ -64,6 +107,18 @@ var deploymentGVK = schema.GroupVersionKind{
 	Group:   "apps",
 	Version: "v1",
 	Kind:    "Deployment",
+}
+
+var consoleLinkGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLink",
+}
+
+var consoleLinkListGVK = schema.GroupVersionKind{
+	Group:   "console.openshift.io",
+	Version: "v1",
+	Kind:    "ConsoleLinkList",
 }
 
 // Version is set at build time via -ldflags.
@@ -125,6 +180,31 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Ready is the rollup condition — auto-derived by the Manager from
+	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
+	// MaasConsumerPortalAvailable. It is never set explicitly. The manager is built
+	// here, before the managementState branch, because the maas consumer portal is
+	// reconciled unconditionally below regardless of the core dashboard's state.
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeProvisioningSucceeded),
+		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
+		conditionMaasConsumerPortalAvailable,
+	)
+
+	// The maas consumer portal is an independent operand: it is reconciled once per
+	// loop, decoupled from the core dashboard's managementState, so it runs with
+	// or without the core dashboard. Its resources carry a distinct part-of
+	// label (see maasConsumerPortalPartOf) so core-dashboard teardown never touches
+	// them. This reconcile sets the MaasConsumerPortalAvailable condition — deploying
+	// the ConsoleLink when enabled, removing it when disabled. Running before the
+	// teardown below also ensures any portal resource carrying a stale
+	// part-of=dashboard label (from an older operator) is relabeled before the
+	// core teardown selector runs.
+	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
@@ -138,13 +218,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.ModuleStatuses = nil
 		dashboard.Status.Distribution = nil
 
-		cm := conditions.NewManager(
-			dashboard,
-			string(common.ConditionTypeReady),
-			string(common.ConditionTypeProvisioningSucceeded),
-			string(common.ConditionTypeDegraded),
-			conditionObservabilityAvailable,
-		)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed via managementState"))
@@ -184,17 +257,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if pvErr != nil {
 		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
 	}
-
-	// Ready is the rollup condition — auto-derived by the Manager from
-	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
-	// It is never set explicitly.
-	cm := conditions.NewManager(
-		dashboard,
-		string(common.ConditionTypeReady),
-		string(common.ConditionTypeProvisioningSucceeded),
-		string(common.ConditionTypeDegraded),
-		conditionObservabilityAvailable,
-	)
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
@@ -495,6 +557,57 @@ func (r *DashboardReconciler) reconcileObservability(
 	}
 }
 
+// reconcileMaasConsumerPortalConsoleLink deploys or removes the MaaS Consumer
+// Portal ConsoleLink based on spec.maasConsumerPortal, and reports the outcome via
+// the MaasConsumerPortalAvailable condition. All False states use Info severity so the
+// portal never affects the Ready rollup.
+func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+) {
+	logger := log.FromContext(ctx)
+
+	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case maasConsumerPortalErr == nil:
+		cm.MarkTrue(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("MaaS Consumer Portal ConsoleLink applied successfully"))
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDisabled):
+		// Explicitly remove the ConsoleLink when the portal is disabled — the
+		// SSA deployer is additive and does not prune. Benign cases (absent
+		// object, ConsoleLink CRD not installed) are already treated as success
+		// inside deleteMaasConsumerPortalConsoleLink, so a non-nil error here is a
+		// genuine failure: surface it on the condition (Info severity, like the
+		// deploy-failed branch) rather than falsely reporting a clean Disabled
+		// state while a stale ConsoleLink lingers.
+		if delErr := deleteMaasConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
+			logger.Error(delErr, "Failed to delete maas consumer portal ConsoleLink")
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
+				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		} else {
+			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+				conditions.WithReason("Disabled"),
+				conditions.WithMessage("MaaS Consumer Portal is not enabled"),
+				conditions.WithSeverity(common.ConditionSeverityInfo))
+		}
+	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDomainRequired):
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDomainRequired"),
+			conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Info("MaaS Consumer Portal enabled but gateway domain not set, skipping ConsoleLink")
+	default:
+		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
+			conditions.WithReason("MaasConsumerPortalDeployFailed"),
+			conditions.WithError(maasConsumerPortalErr),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
+	}
+}
+
 func (r *DashboardReconciler) reconcileURL(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -677,6 +790,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	inNamespace := client.InNamespace(r.ApplicationsNamespace)
 
+	// The operator's own Helm chart stamps platform.opendatahub.io/part-of=dashboard
+	// (commonLabels) onto every resource it renders — including the webhook Service and
+	// the operator ConfigMap, both of which land in the applications namespace. Teardown
+	// must skip these by kind+name so it never deletes operator-owned resources (e.g. deleting
+	// the webhook Service breaks the failurePolicy: Fail ValidatingWebhookConfiguration).
+	operatorResources := operatorOwnedResources()
+
 	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
 		if err := r.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
@@ -684,6 +804,9 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 		items := extractItems(list)
 		for i := range items {
+			if isOperatorOwned(operatorResources, kind, items[i].GetName()) {
+				continue
+			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
 			if err := r.Delete(ctx, items[i]); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err)
@@ -699,7 +822,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range deployments.Items {
 		dep := &deployments.Items[i]
-		if dep.Name == operatorDeploymentName {
+		if isOperatorOwned(operatorResources, "Deployment", dep.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
@@ -718,15 +841,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
-	operatorResources := operatorOwnedResourceNames()
-
 	var serviceAccounts corev1.ServiceAccountList
 	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
 		return fmt.Errorf("listing ServiceAccounts: %w", err)
 	}
 	for i := range serviceAccounts.Items {
 		sa := &serviceAccounts.Items[i]
-		if operatorResources[sa.Name] {
+		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
@@ -761,7 +882,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoles.Items {
 		cr := &clusterRoles.Items[i]
-		if operatorResources[cr.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
@@ -776,12 +897,36 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoleBindings.Items {
 		crb := &clusterRoleBindings.Items[i]
-		if operatorResources[crb.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
 		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
+		}
+	}
+
+	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
+	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
+	// part-of=dashboard and is matched here. The maas consumer portal ConsoleLink is
+	// an independent operand labeled part-of=maas-consumer-portal, so it is not
+	// selected by this teardown — it is managed solely by
+	// reconcileMaasConsumerPortalConsoleLink, independent of the core dashboard's
+	// managementState. Guard against clusters where the ConsoleLink CRD is not
+	// installed (non-OpenShift).
+	consoleLinks := &unstructured.UnstructuredList{}
+	consoleLinks.SetGroupVersionKind(consoleLinkListGVK)
+	if err := r.List(ctx, consoleLinks, matchLabels); err != nil {
+		if !meta.IsNoMatchError(err) {
+			return fmt.Errorf("listing ConsoleLinks: %w", err)
+		}
+	} else {
+		for i := range consoleLinks.Items {
+			cl := &consoleLinks.Items[i]
+			logger.Info("Deleting managed resource", "kind", "ConsoleLink", "name", cl.GetName())
+			if err := r.Delete(ctx, cl); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("deleting ConsoleLink %s: %w", cl.GetName(), err)
+			}
 		}
 	}
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { EventStatus } from '#~/types';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 
 const getStatusLabel = () => screen.getByTestId('notebook-status-text').textContent;

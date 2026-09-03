@@ -5,14 +5,13 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   GatewayConfigModel,
   GatewayModel,
   HTTPRouteModel,
-  LocalQueueModel,
   RayJobModel,
   TrainJobModel,
-  WorkloadModel,
 } from '@odh-dashboard/internal/api/models';
 import {
   initIntercepts,

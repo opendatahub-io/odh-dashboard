@@ -1,0 +1,74 @@
+name: Fast-forward main to stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      SYNC_STABLE:
+        description: 'Type SYNC_STABLE to confirm manual fast-forward of main to stable'
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: stable-ff-${{ github.workflow }}
+  cancel-in-progress: false
+
+# Read-only default; the fast-forward job escalates to contents:write only for git push.
+permissions:
+  contents: read
+
+jobs:
+  fast-forward:
+    name: Fast-forward main to stable
+    if: >-
+      github.event_name == 'push' ||
+      (github.ref == 'refs/heads/main' &&
+       github.event.inputs.SYNC_STABLE == 'SYNC_STABLE')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check stable branch exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/${{ github.repository }}/branches/stable" --silent 2>/dev/null; then
+            echo "ERROR: Branch 'stable' does not exist. Skipping sync."
+            exit 1
+          fi
+          echo "Branch 'stable' exists."
+
+      - name: Checkout stable
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: stable
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fast-forward main to stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+
+          echo "stable before: $(git rev-parse HEAD)"
+          echo "main target:   $(git rev-parse origin/main)"
+
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]]; then
+            echo "No changes — stable is already up to date with main"
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "ERROR: Cannot fast-forward. stable has diverged from main."
+            echo "Manual intervention required."
+            exit 1
+          fi
+
+          git merge --ff-only origin/main
+          echo "stable after:  $(git rev-parse HEAD)"
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push origin stable
+          echo "Fast-forwarded main to stable"

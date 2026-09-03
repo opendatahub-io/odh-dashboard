@@ -17,7 +17,7 @@ import {
   ensureEvalHubCrReady,
   waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
-import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,

@@ -18,6 +18,8 @@ var ComputeFederationConfigHash = computeFederationConfigHash
 
 var MainDashboardDeploymentName = mainDashboardDeploymentName
 
+const FederationHashAnnotation = federationHashAnnotation
+
 func BuildFederationConfigMap(r *DashboardReconciler, statuses map[string]v1alpha1.ModuleStatus, dashboard *v1alpha1.Dashboard) (*corev1.ConfigMap, error) {
 	return r.buildFederationConfigMap(statuses, dashboard)
 }
@@ -53,3 +55,11 @@ func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
 	return r.gcStaleNamespacedRBAC(ctx, desired)
 }
+
+const MaasConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
+
+const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailable
+
+var ConsoleLinkGVK = consoleLinkGVK
+
+var ConsoleLinkListGVK = consoleLinkListGVK

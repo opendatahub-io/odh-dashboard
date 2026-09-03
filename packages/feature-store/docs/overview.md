@@ -13,7 +13,7 @@
 - **Discovery**: Backend resolves upstream host from a Kubernetes `FeatureStore` CR (or equivalent) using label `feature-store-ui=enabled` on the target service.
 - **Browse UI**: List and inspect projects, entities, feature views, features, feature services, data sources, saved datasets, lineage, search, and overview metrics.
 - **Admin UI** (flag-gated): Create, manage, and delete FeatureStore CRs. Gated by `featureStoreAdmin` flag (`SupportedArea.FEATURE_STORE_ADMIN`) and `accessAllowedRouteHoC` SSAR checks. Disabled by default.
-- **No Webpack remote**: Library package; `extensions.ts` registers with the host; `package.json` exports `./extensions`, `./routes`, `./types/*`, `./components/*`, and `./screens/lineage/*` for the plugin system.
+- **No Module Federation remote**: Library package; `extensions.ts` registers with the host; `package.json` exports `./extensions`, `./routes`, `./types/*`, `./components/*`, and `./screens/lineage/*` for the plugin system.
 
 ## Key Concepts
 

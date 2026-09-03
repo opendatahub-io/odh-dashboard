@@ -13,7 +13,7 @@ import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProf
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { ensureEvalHubCrReady } from '../../../utils/oc_commands/evalHubInstance';
-import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import { ensureMlflowCrReady } from '../../../utils/oc_commands/mlflow';
 import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,

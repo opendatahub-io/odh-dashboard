@@ -22,70 +22,28 @@ import {
   FlexItem,
   Pagination,
   Dropdown,
-  DropdownItem,
   DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
+import { tableDetailUrl, volumeDetailUrl } from '~/app/utilities/routes';
+import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
   loaded: boolean;
   error: Error | undefined;
   labels: string[];
+  project: string;
   onManageCollections: () => void;
+  onManageLabels: () => void;
   onRegisterData: () => void;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
-
-const FORMAT_LABELS: Record<
-  string,
-  { text: string; color: 'blue' | 'green' | 'orange' | 'purple' | 'grey' }
-> = {
-  iceberg: { text: 'Structured', color: 'blue' },
-  parquet: { text: 'Structured', color: 'blue' },
-  csv: { text: 'Structured', color: 'blue' },
-  postgresql: { text: 'Structured', color: 'blue' },
-  mysql: { text: 'Structured', color: 'blue' },
-  milvus: { text: 'Structured', color: 'blue' },
-  delta: { text: 'Structured', color: 'blue' },
-  'application/pdf': { text: 'Unstructured', color: 'orange' },
-  pdf: { text: 'Unstructured', color: 'orange' },
-  documents: { text: 'Unstructured', color: 'orange' },
-  images: { text: 'Unstructured', color: 'orange' },
-  audio: { text: 'Unstructured', color: 'orange' },
-  video: { text: 'Unstructured', color: 'orange' },
-  binary: { text: 'Unstructured', color: 'orange' },
-  other: { text: 'Unstructured', color: 'orange' },
-};
-
-const UNSTRUCTURED_FORMATS = [
-  'documents',
-  'images',
-  'audio',
-  'video',
-  'binary',
-  'other',
-  'application/pdf',
-  'pdf',
-];
-
-const FORMAT_OPTIONS: { key: string; label: string }[] = [
-  { key: 'iceberg', label: 'Apache Iceberg' },
-  { key: 'parquet', label: 'Apache Parquet' },
-  { key: 'csv', label: 'CSV' },
-  { key: 'delta', label: 'Delta Lake' },
-  { key: 'postgresql', label: 'PostgreSQL' },
-  { key: 'milvus', label: 'Milvus' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'images', label: 'Images' },
-  { key: 'audio', label: 'Audio' },
-  { key: 'video', label: 'Video' },
-  { key: 'binary', label: 'Binary' },
-  { key: 'other', label: 'Other' },
-];
 
 const CATEGORY_LABELS: Record<FilterCategory, string> = {
   labels: 'Labels',
@@ -93,20 +51,14 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   format: 'Format',
 };
 
-const getFormatBadge = (
-  format: string,
-): { text: string; color: 'blue' | 'green' | 'orange' | 'purple' | 'grey' } =>
-  FORMAT_LABELS[format.toLowerCase()] ?? { text: 'Unknown', color: 'grey' };
-
-const isStructured = (format: string): boolean =>
-  !UNSTRUCTURED_FORMATS.includes(format.toLowerCase());
-
 const RegistryTable: React.FC<RegistryTableProps> = ({
   assets,
   loaded,
   error,
   labels,
+  project,
   onManageCollections,
+  onManageLabels,
   onRegisterData,
 }) => {
   const [searchText, setSearchText] = React.useState('');
@@ -194,6 +146,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       return (
         <Select
           isOpen={isValueOpen}
+          maxMenuHeight="300px"
           onSelect={(_event, value) => {
             const val = String(value);
             setSelectedLabels((prev) =>
@@ -218,7 +171,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             </MenuToggle>
           )}
         >
-          <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <SelectList>
             {labels.map((label) => (
               <SelectOption
                 key={label}
@@ -268,6 +221,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       <Select
         isOpen={isValueOpen}
         selected={selectedFormat}
+        maxMenuHeight="300px"
         onSelect={(_event, value) => {
           setSelectedFormat(value === selectedFormat ? '' : String(value));
           setIsValueOpen(false);
@@ -287,7 +241,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </MenuToggle>
         )}
       >
-        <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <SelectList>
           {FORMAT_OPTIONS.map((f) => (
             <SelectOption key={f.key} value={f.key}>
               {f.label}
@@ -417,6 +371,13 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   >
                     Manage collections
                   </DropdownItem>
+                  <DropdownItem
+                    key="manage-labels"
+                    onClick={onManageLabels}
+                    data-testid="manage-labels-action"
+                  >
+                    Manage labels
+                  </DropdownItem>
                 </DropdownList>
               </Dropdown>
             </ToolbarItem>
@@ -531,7 +492,20 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                 return (
                   <Tr key={`${asset.collection}-${asset.name}`}>
                     <Td dataLabel="Name">
-                      <Button variant="link" isInline>
+                      <Button
+                        variant="link"
+                        isInline
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={
+                              asset.assetType === 'volume'
+                                ? volumeDetailUrl(project, asset.collection, asset.name)
+                                : tableDetailUrl(project, asset.collection, asset.name)
+                            }
+                          />
+                        )}
+                      >
                         {asset.name}
                       </Button>
                       {asset.description ? (

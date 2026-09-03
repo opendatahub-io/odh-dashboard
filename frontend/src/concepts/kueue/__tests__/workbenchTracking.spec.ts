@@ -1,4 +1,4 @@
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { getWorkbenchKueueTrackingProperties } from '#~/concepts/kueue/workbenchTracking';
 
 describe('getWorkbenchKueueTrackingProperties', () => {

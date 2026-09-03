@@ -2,10 +2,10 @@ import * as React from 'react';
 import { ButtonVariant } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
 import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreProjectSelector';
 import { PipelineServerTimedOut, usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { getGenericErrorCode } from '#~/api/errorUtils';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 
 export type PipelineCoreApplicationPageProps = {
