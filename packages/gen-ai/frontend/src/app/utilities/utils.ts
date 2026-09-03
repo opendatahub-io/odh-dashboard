@@ -2,12 +2,12 @@
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AAModelResponse,
   AIModel,
   LlamaModel,
   TokenInfo,
   MCPServerFromAPI,
   MCPServerConfig,
-  MaaSModel,
 } from '~/app/types';
 
 /**
@@ -98,7 +98,7 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-  maasModels: MaaSModel[],
+  maasModels: AIModel[],
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -115,9 +115,9 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.id === id);
+  const maasModel = maasModels.find((m) => m.model_id === id);
   if (maasModel) {
-    return maasModel.ready;
+    return maasModel.status === 'Running';
   }
 
   return false;
@@ -255,27 +255,25 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
 
 /**
  * Converts a MaaS model to AIModel format
- * @param maasModel - The MaaS model to convert
- * @returns The converted AIModel
+ * @param model - The model response (from BFF /v1/models) to convert to AIModel with parsed endpoints
+ * @returns The converted AIModel with internalEndpoint and externalEndpoint populated
  */
-export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
-  model_name: maasModel.display_name || maasModel.id,
-  model_id: maasModel.id,
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-  usecase: maasModel.usecase || 'LLM',
-  description: maasModel.description || '',
-  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
-  status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.display_name || maasModel.id,
-  model_source_type: 'maas',
-  capabilities: maasModel.capabilities ?? [],
-  externalEndpoint: maasModel.url || undefined,
-  internalEndpoint: undefined,
-  model_type: maasModel.model_type,
-  subscriptions: maasModel.subscriptions,
-});
+export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
+  let internalEndpoint: string | undefined;
+  let externalEndpoint: string | undefined;
+
+  for (const endpoint of model.endpoints) {
+    if (endpoint.startsWith('external:')) {
+      externalEndpoint = endpoint.replace(/^external:\s*/, '');
+    } else if (endpoint.startsWith('internal:')) {
+      internalEndpoint = endpoint.replace(/^internal:\s*/, '');
+    } else {
+      internalEndpoint = endpoint;
+    }
+  }
+
+  return { ...model, internalEndpoint, externalEndpoint };
+};
 
 /**
  * Properties for clipboard copy tracking events

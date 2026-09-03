@@ -407,6 +407,9 @@ export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
+  /** Raw MaaS model identifier. For MaaS models, this equals model_id. Present when the
+   * context has enriched the AIModel from a raw MaaS source. */
+  id?: string;
 }
 
 export type ExternalModelRequest = {
@@ -618,6 +621,22 @@ export interface SubscriptionInfo {
   name: string;
   displayName?: string;
   description?: string;
+}
+
+/** Raw MaaS model as returned by the MaaS API (before conversion to AIModel). */
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  display_name?: string;
+  usecase?: string;
+  description?: string;
+  url?: string;
+  capabilities?: string[];
+  model_type?: LlamaModelType;
+  subscriptions?: SubscriptionInfo[];
 }
 
 export type MaaSTokenRequest = {
