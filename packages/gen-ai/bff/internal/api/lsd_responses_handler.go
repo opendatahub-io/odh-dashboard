@@ -949,12 +949,26 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 	} else {
 		// Bare model ID (e.g. "gpt-4o") — search all registered models by ModelID.
 		// OGX strips the provider prefix before forwarding to the passthrough handler.
+		//
+		// Collect all matches: if more than one provider registers the same bare ID the
+		// lookup is ambiguous and we fail closed rather than silently routing to the wrong
+		// endpoint or leaking another provider's credentials (CWE-441).
+		var matches []*models.RegisteredModel
 		for i := range externalModelsConfig.RegisteredResources.Models {
 			m := &externalModelsConfig.RegisteredResources.Models[i]
 			if m.ModelID == modelID {
-				foundModel = m
-				break
+				matches = append(matches, m)
 			}
+		}
+		switch len(matches) {
+		case 1:
+			foundModel = matches[0]
+		default:
+			if len(matches) > 1 {
+				app.logger.Warn("Ambiguous bare model ID — multiple providers register the same ModelID; use a provider-qualified ID",
+					"modelID", modelID, "count", len(matches))
+			}
+			// Return empty strings: no match or ambiguous match is not routable.
 		}
 	}
 
