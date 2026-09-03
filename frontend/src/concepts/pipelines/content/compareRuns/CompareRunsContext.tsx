@@ -10,6 +10,7 @@ import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
 import useNotification from '#~/utilities/useNotification';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { GrpcStatusCode } from '#~/api/pipelines/errorUtils';
 
 type CompareRunsContextType = {
   runs: PipelineRunKF[];
@@ -46,12 +47,15 @@ export const CompareRunsContextProvider = conditionalArea<CompareRunsContextProv
   const { api } = usePipelinesAPI();
   const fetchValidRuns = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
     (opts) =>
-      allSettledPromises<PipelineRunKF, { grpcCode: number; result: PipelineRunKF }>(
+      allSettledPromises<PipelineRunKF, { grpcCode?: number; result?: PipelineRunKF }>(
         runIdsArray.map((id) => api.getPipelineRun(opts, id)),
       ).then(([successful, rejected]) => {
         const nonNotFound = rejected
-          .filter(({ reason }) => reason.grpcCode !== 5)
-          .map(({ reason }) => reason.result);
+          .filter(
+            ({ reason }) => reason.grpcCode != null && reason.grpcCode !== GrpcStatusCode.NOT_FOUND,
+          )
+          .map(({ reason }) => reason.result)
+          .filter((result): result is PipelineRunKF => result != null);
         return [...successful.map(({ value }) => value), ...nonNotFound];
       }),
     [api, runIdsArray],
