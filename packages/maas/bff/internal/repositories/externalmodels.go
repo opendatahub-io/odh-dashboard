@@ -84,7 +84,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(ctx context.Context, requ
 	created, err := client.GetDynamicClient().Resource(constants.ExternalModelGvr).Namespace(request.Namespace).Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("ExternalModel '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalModel '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 		return nil, fmt.Errorf("failed to create ExternalModel: %w", err)
 	}
@@ -120,7 +120,7 @@ func (r *ExternalModelsRepository) UpdateExternalModel(ctx context.Context, name
 	existing, err := kubeClient.Resource(constants.ExternalModelGvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, fmt.Errorf("ExternalModel '%s' not found", name)
+			return nil, fmt.Errorf("%w: ExternalModel '%s' not found", ErrNotFound, name)
 		}
 		return nil, fmt.Errorf("failed to get ExternalModel: %w", err)
 	}

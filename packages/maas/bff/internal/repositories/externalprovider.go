@@ -50,7 +50,7 @@ func (r *ExternalProvidersRepository) CreateExternalProvider(ctx context.Context
 	created, err := client.GetDynamicClient().Resource(constants.ExternalProviderGvr).Namespace(request.Namespace).Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("ExternalProvider '%s' already exists", request.Name)
+			return nil, fmt.Errorf("%w: ExternalProvider '%s' already exists", ErrAlreadyExists, request.Name)
 		}
 		return nil, fmt.Errorf("failed to create ExternalProvider: %w", err)
 	}
@@ -71,7 +71,7 @@ func (r *ExternalProvidersRepository) UpdateExternalProvider(ctx context.Context
 	existing, err := kubeClient.Resource(constants.ExternalProviderGvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, fmt.Errorf("ExternalProvider '%s' not found", name)
+			return nil, fmt.Errorf("%w: ExternalProvider '%s' not found", ErrNotFound, name)
 		}
 		return nil, fmt.Errorf("failed to get ExternalProvider: %w", err)
 	}
