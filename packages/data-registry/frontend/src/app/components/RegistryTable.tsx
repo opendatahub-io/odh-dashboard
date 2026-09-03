@@ -34,6 +34,10 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 import DeleteAssetModal from './DeleteAssetModal';
+import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
+import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
+import ConnectionError from '~/app/components/errors/ConnectionError';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
@@ -44,7 +48,8 @@ type RegistryTableProps = {
   onManageCollections: () => void;
   onManageLabels: () => void;
   onRegisterData: () => void;
-  onRefresh: () => void;
+  onRetry: () => void;
+  hasWriteAccess?: boolean;
 };
 
 type FilterCategory = 'labels' | 'assetType' | 'format';
@@ -64,7 +69,8 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   onManageCollections,
   onManageLabels,
   onRegisterData,
-  onRefresh,
+  onRetry,
+  hasWriteAccess = true,
 }) => {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -169,9 +175,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       }
       notification.success('Asset deleted', `${asset.name} was deleted successfully.`);
       setDeleteAsset(null);
-      onRefresh();
+      onRetry();
     },
-    [notification, onRefresh, project],
+    [notification, onRetry, project],
   );
 
   // Value dropdown content based on category
@@ -287,6 +293,27 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   };
 
   if (error) {
+    if (is503Error(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ServiceUnavailableError onRetry={onRetry} />
+        </PageSection>
+      );
+    }
+    if (is403Error(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <AccessDeniedError resource="this project" />
+        </PageSection>
+      );
+    }
+    if (isConnectionError(error)) {
+      return (
+        <PageSection hasBodyWrapper={false} isFilled>
+          <ConnectionError onRetry={onRetry} />
+        </PageSection>
+      );
+    }
     return (
       <PageSection hasBodyWrapper={false} isFilled>
         <EmptyState
@@ -374,7 +401,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             </ToolbarItem>
             {/* Register data button */}
             <ToolbarItem>
-              <Button variant="primary" onClick={onRegisterData} data-testid="register-data-button">
+              <Button
+                variant="primary"
+                onClick={onRegisterData}
+                isDisabled={!hasWriteAccess}
+                data-testid="register-data-button"
+              >
                 Register data
               </Button>
             </ToolbarItem>
@@ -401,6 +433,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   <DropdownItem
                     key="manage-collections"
                     onClick={onManageCollections}
+                    isDisabled={!hasWriteAccess}
                     data-testid="manage-collections-action"
                   >
                     Manage collections
@@ -408,6 +441,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                   <DropdownItem
                     key="manage-labels"
                     onClick={onManageLabels}
+                    isDisabled={!hasWriteAccess}
                     data-testid="manage-labels-action"
                   >
                     Manage labels
