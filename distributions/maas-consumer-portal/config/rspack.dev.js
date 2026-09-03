@@ -8,7 +8,7 @@ const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
 
-// Derived from frontend/config/webpack.dev.js — token acquisition, route
+// Derived from frontend/config/rspack.dev.js — token acquisition, route
 // discovery, and proxy setup are duplicated across 7+ bundler configs in the
 // repo. Extract into a shared dev-proxy utility in packages/app-config.
 

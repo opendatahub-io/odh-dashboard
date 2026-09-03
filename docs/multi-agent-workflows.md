@@ -189,7 +189,7 @@ Some operations must run in one session at a time:
 
 ### Session Limits
 
-Run 3–4 concurrent sessions maximum. Each session consumes memory and CPU for file watching, TypeScript compilation, and webpack builds. Monitor system resources and reduce sessions if the machine slows down.
+Run 3–4 concurrent sessions maximum. Each session consumes memory and CPU for file watching, TypeScript compilation, and rspack builds. Monitor system resources and reduce sessions if the machine slows down.
 
 ### Context Management
 

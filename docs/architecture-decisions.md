@@ -18,7 +18,7 @@ Key architectural decisions for the ODH Dashboard monorepo. For formal ADRs, see
 
 ## Why Module Federation?
 
-**Decision**: Use Webpack Module Federation for runtime code-splitting
+**Decision**: Use Module Federation for runtime code-splitting (via `@module-federation/enhanced`; see [ADR 0002](adr/0002-use-rspack-module-federation.md))
 
 **Rationale**:
 - **Plugin architecture**: External teams can build features independently

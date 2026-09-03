@@ -26,7 +26,7 @@ npm install && npm run start:dev
 | Command             | Description                              |
 | ------------------- | ---------------------------------------- |
 | `npm install`       | Install dependencies                     |
-| `npm run start:dev` | Start webpack dev server with hot reload |
+| `npm run start:dev` | Start dev server with hot reload |
 
 ### Build & Bundle
 
@@ -105,7 +105,7 @@ import icon from '~/app/assets/icons/workflow.svg';
 <span dangerouslySetInnerHTML={{ __html: icon }} />
 ```
 
-> **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via webpack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.
+> **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via rspack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.
 
 **CSS background SVG** (must be in `bgimages/` directory):
 
@@ -123,7 +123,7 @@ import icon from '~/app/assets/icons/workflow.svg';
 
 ### Custom CSS from Third-Party Packages
 
-When importing CSS from a new npm package, you may encounter webpack errors. Register the package's stylesheet path in `config/stylePaths.js` to enable proper CSS module parsing.
+When importing CSS from a new npm package, you may encounter rspack errors. Register the package's stylesheet path in `config/stylePaths.js` to enable proper CSS module parsing.
 
 ### Theming
 
@@ -153,7 +153,7 @@ This project maintains high code quality standards through automated tooling:
 
 ### Module Federation
 
-This application uses Webpack's Module Federation for:
+This application uses Module Federation for:
 
 - Dynamic module loading
 - Shared dependencies across micro-frontends
