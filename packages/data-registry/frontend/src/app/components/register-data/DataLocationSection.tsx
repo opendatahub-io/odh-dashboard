@@ -23,9 +23,13 @@ type DataLocationSectionProps =
       connectionsLoaded: boolean;
       connectionsError?: Error;
       pathLabel?: never;
+      showConnection?: never;
+      isConnectionReadOnly?: never;
     }
   | {
       pathLabel?: string;
+      showConnection?: boolean;
+      isConnectionReadOnly?: boolean;
       connections?: never;
       connectionsLoaded?: never;
       connectionsError?: never;
@@ -37,6 +41,8 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
     connectionsLoaded = true,
     connectionsError,
     pathLabel = 'Path',
+    showConnection = false,
+    isConnectionReadOnly = false,
   } = props;
   const isEditMode = !('connections' in props);
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
@@ -67,7 +73,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         </Alert>
       ) : null}
 
-      {isEditMode ? null : (
+      {!isEditMode || showConnection ? (
         <Controller
           name="connection"
           control={control}
@@ -87,7 +93,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                     onClick={() => setIsConnectionOpen((prev) => !prev)}
                     isExpanded={isConnectionOpen}
                     isFullWidth
-                    isDisabled={!!connectionsError}
+                    isDisabled={!!connectionsError || isConnectionReadOnly}
                     data-testid="data-connection-toggle"
                   >
                     {!connectionsLoaded ? <Spinner size="sm" /> : getToggleLabel(field.value)}
@@ -116,7 +122,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
             </FormGroup>
           )}
         />
-      )}
+      ) : null}
 
       <Controller
         name="path"

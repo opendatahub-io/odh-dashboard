@@ -72,7 +72,7 @@ const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAss
     labels: asset.labels ?? [],
     connection: isTable
       ? getConnectionDisplayValue(asset.connection_ref)
-      : asset['storage-location'] || '',
+      : asset.properties?.['connection-ref'] || '',
     path: isTable ? (asset.location ?? '') : asset['storage-location'],
     purpose: properties.purpose || '',
     license: properties.license || '',
@@ -220,7 +220,11 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         <FormProvider {...form}>
           <Form>
             <AssetDetailsSection isEditMode />
-            <DataLocationSection pathLabel={isTable ? 'Path' : 'Storage location'} />
+            <DataLocationSection
+              pathLabel={isTable ? 'Path' : 'Storage location'}
+              showConnection
+              isConnectionReadOnly
+            />
             <PropertiesSection />
             <CustomPropertiesSection />
             {isTable ? <SchemaSection /> : null}
