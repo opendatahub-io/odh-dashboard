@@ -44,15 +44,20 @@ export const CompareRunsContextProvider = conditionalArea<CompareRunsContextProv
 
   // get runs from run ids
   const { api } = usePipelinesAPI();
-  const fetchSuccessfulRuns = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
+  const fetchValidRuns = React.useCallback<FetchStateCallbackPromise<PipelineRunKF[]>>(
     (opts) =>
-      allSettledPromises(runIdsArray.map((id) => api.getPipelineRun(opts, id))).then(
-        ([successful]) => successful.map(({ value }) => value),
-      ),
+      allSettledPromises<PipelineRunKF, { grpcCode: number; result: PipelineRunKF }>(
+        runIdsArray.map((id) => api.getPipelineRun(opts, id)),
+      ).then(([successful, rejected]) => {
+        const nonNotFound = rejected
+          .filter(({ reason }) => reason.grpcCode !== 5)
+          .map(({ reason }) => reason.result);
+        return [...successful.map(({ value }) => value), ...nonNotFound];
+      }),
     [api, runIdsArray],
   );
 
-  const [runs, loaded] = useFetchState(fetchSuccessfulRuns, []);
+  const [runs, loaded] = useFetchState(fetchValidRuns, []);
 
   // cleanup runs search param url
   const notification = useNotification();

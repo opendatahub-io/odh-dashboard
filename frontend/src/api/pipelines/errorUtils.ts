@@ -14,6 +14,19 @@ type ResultErrorKF = {
   error_message: string;
 };
 
+class GrpcError extends Error {
+  grpcCode: number;
+
+  result?: unknown;
+
+  constructor(message: string, grpcCode: number, result?: unknown) {
+    super(message);
+    this.name = 'PipelineApiError';
+    this.grpcCode = grpcCode;
+    this.result = result;
+  }
+}
+
 const isErrorKF = (e: unknown): e is ErrorKF =>
   typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
 
@@ -46,11 +59,8 @@ const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
-      if (isErrorKF(result)) {
+      if (isErrorKF(result) || isGrpcErrorKF(result)) {
         throw result;
-      }
-      if (isGrpcErrorKF(result)) {
-        throw { ...result, error: result.message };
       }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
@@ -67,6 +77,9 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     .catch((e) => {
       if (isErrorKF(e)) {
         throw new Error(e.error);
+      }
+      if (isGrpcErrorKF(e)) {
+        throw new GrpcError(e.message, e.code, e);
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
