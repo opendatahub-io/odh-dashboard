@@ -785,8 +785,6 @@ export type EvalHubTestData = {
   servingRuntimeYamlPath: string;
   /** Fixture path for the HardwareProfile CR. */
   hardwareProfileResourceYamlPath: string;
-  /** `metadata.name` of the HardwareProfile (used for cleanup). */
-  hardwareProfileName: string;
 };
 
 export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {

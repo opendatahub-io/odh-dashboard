@@ -9,7 +9,6 @@ modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-inst
 inferenceServiceName: evalhub-llm
 servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
 hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
-hardwareProfileName: cypress-gen-ai-hardware-profile
 # Benchmark + evaluation config
 benchmarkCardTitle: Basic science Q&A
 inferenceModelName: evalhub-llm

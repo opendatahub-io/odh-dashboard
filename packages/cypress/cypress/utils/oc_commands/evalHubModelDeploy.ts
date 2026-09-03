@@ -1,6 +1,9 @@
 import { pollUntilSuccess } from './baseCommands';
+import {
+  createEvalHubHardwareProfile,
+  getEvalHubApplicationsNamespace,
+} from './evalHubHardwareProfile';
 import { checkInferenceServiceState } from './modelServing';
-import { createCleanHardwareProfile } from './hardwareProfiles';
 import type { EvalHubTestData } from '../../types';
 
 /**
@@ -43,13 +46,14 @@ export function setupTenantAndDeployModel(
   td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
 ): void {
+  const appsNs = getEvalHubApplicationsNamespace();
+
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
   cy.exec(
     `oc label namespace ${ns} opendatahub.io/generated-namespace=true evalhub.trustyai.opendatahub.io/tenant= --overwrite`,
   );
 
   cy.step('Wait for operator to reconcile tenant resources');
-  const appsNs = Cypress.env('APPLICATIONS_NAMESPACE') as string;
   pollUntilSuccess(
     `oc -n ${ns} get sa evalhub-${appsNs}-job -o name`,
     'operator-provisioned ServiceAccount',
@@ -74,7 +78,7 @@ export function setupTenantAndDeployModel(
     hardwareProfileResourceYamlPath,
   } = td;
 
-  createCleanHardwareProfile(hardwareProfileResourceYamlPath);
+  createEvalHubHardwareProfile(hardwareProfileResourceYamlPath, hwProfileName);
 
   cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
     const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;

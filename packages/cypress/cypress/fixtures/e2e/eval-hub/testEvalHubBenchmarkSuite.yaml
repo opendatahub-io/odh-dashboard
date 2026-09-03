@@ -9,7 +9,6 @@ modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-inst
 inferenceServiceName: evalhub-suite-llm
 servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
 hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
-hardwareProfileName: cypress-gen-ai-hardware-profile
 # Benchmark suite config — "Toxicity and Ethical Principles" (toxigen, truthfulqa_mc1, bigbench_hhh)
 collectionId: toxicity-and-ethical-principles
 collectionName: Toxicity and Ethical Principles

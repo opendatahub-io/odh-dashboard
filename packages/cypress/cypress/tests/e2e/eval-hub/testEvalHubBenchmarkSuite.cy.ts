@@ -10,7 +10,6 @@ import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_comm
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 import type { EvalHubBenchmarkSuiteTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -22,6 +21,10 @@ import {
   grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
+import {
+  cleanupEvalHubHardwareProfile,
+  getEvalHubHardwareProfileName,
+} from '../../../utils/oc_commands/evalHubHardwareProfile';
 
 /**
  * Live-cluster Eval Hub E2E — benchmark suite (collection) flow.
@@ -52,7 +55,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
       (yamlContent: string) => {
         testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
         evalHubCrName = testData.evalHubCrName;
-        hardwareProfileName = testData.hardwareProfileName;
+        hardwareProfileName = getEvalHubHardwareProfileName(uuid);
         evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         collectionId = testData.collectionId;
@@ -102,7 +105,7 @@ describe('Eval Hub E2E — Benchmark Suite', () => {
 
     if (hardwareProfileName) {
       cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
-      cleanupHardwareProfiles(hardwareProfileName);
+      cleanupEvalHubHardwareProfile(hardwareProfileName);
     }
   });
 
