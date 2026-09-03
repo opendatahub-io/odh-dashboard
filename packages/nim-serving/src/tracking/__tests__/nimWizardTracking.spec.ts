@@ -14,14 +14,16 @@ const imageValue = {
 const imageExternalData = {
   [NIM_IMAGE_FIELD_ID]: {
     data: {
-      nimImages: [
-        {
-          name: 'arctic-embed-l',
-          displayName: 'Snowflake Arctic Embed Large Embedding',
-          namespace: 'nim/snowflake',
-          tags: ['1.0.1'],
-        },
-      ],
+      nimImages: {
+        images: [
+          {
+            name: 'arctic-embed-l',
+            displayName: 'Snowflake Arctic Embed Large Embedding',
+            namespace: 'nim/snowflake',
+            tags: ['1.0.1'],
+          },
+        ],
+      },
     },
   },
 };
@@ -84,7 +86,7 @@ describe('getNIMWizardTrackingProperties', () => {
             storageSizeGi: 50,
           },
         }),
-        { [NIM_IMAGE_FIELD_ID]: { data: { nimImages: [] } } },
+        { [NIM_IMAGE_FIELD_ID]: { data: { nimImages: { images: [] } } } },
       ),
     ).toEqual({
       nimImage: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',

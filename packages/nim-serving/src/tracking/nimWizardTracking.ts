@@ -51,11 +51,15 @@ const getNIMImageProperties = (
   };
   const imageData = externalData?.[NIM_IMAGE_FIELD_ID]?.data;
 
-  if (!isRecord(imageData) || !Array.isArray(imageData.nimImages)) {
+  if (
+    !isRecord(imageData) ||
+    !isRecord(imageData.nimImages) ||
+    !Array.isArray(imageData.nimImages.images)
+  ) {
     return properties;
   }
 
-  const image = imageData.nimImages.find(
+  const image = imageData.nimImages.images.find(
     (candidate): candidate is NIMImage & { namespace: string; tags: string[] } =>
       isNIMImage(candidate) &&
       getImageRepository(candidate.namespace, candidate.name) === imageValue.repository &&
