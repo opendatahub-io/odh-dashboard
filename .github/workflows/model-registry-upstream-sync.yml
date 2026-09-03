@@ -186,6 +186,16 @@ jobs:
             echo "Upstream tip advanced for non-subtree paths only, or no actionable commits." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Record sync commit range
+        id: sync_range
+        if: steps.outcome.outputs.status == 'synced'
+        run: |
+          BASE_SHA=$(git rev-parse origin/main)
+          SYNC_SHA=$(git rev-parse HEAD)
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "sync_sha=$SYNC_SHA" >> "$GITHUB_OUTPUT"
+          echo "Sync range: $BASE_SHA..$SYNC_SHA"
+
       - name: Install model-registry frontend dependencies
         if: steps.outcome.outputs.status == 'synced'
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -233,8 +243,18 @@ jobs:
       - name: Package sync patches for publish job
         if: steps.outcome.outputs.status == 'synced'
         run: |
+          BASE_SHA="${{ steps.sync_range.outputs.base_sha }}"
+          SYNC_SHA="${{ steps.sync_range.outputs.sync_sha }}"
+          unexpected_paths=$(git diff --name-only "$BASE_SHA..$SYNC_SHA" |
+            grep -Ev '^packages/model-registry/(package\.json|upstream/)' || true)
+          if [[ -n "$unexpected_paths" ]]; then
+            echo "::error::Sync changed files outside the approved subtree:"
+            echo "$unexpected_paths"
+            exit 1
+          fi
+          rm -rf sync-artifacts/patches
           mkdir -p sync-artifacts/patches
-          git format-patch -o sync-artifacts/patches origin/main..HEAD
+          git format-patch -o sync-artifacts/patches "$BASE_SHA..$SYNC_SHA"
           ls -la sync-artifacts/patches
 
       - name: Upload sync artifacts
@@ -330,7 +350,7 @@ jobs:
 
   publish:
     needs: sync
-    if: needs.sync.outputs.status == 'synced'
+    if: needs.sync.result == 'success' && needs.sync.outputs.status == 'synced'
     runs-on: ubuntu-latest
     permissions:
       # Authenticated only in this job, after validation has already passed.
