@@ -43,7 +43,6 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
-const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 
 var operatorDeploymentName = getOperatorDeploymentName()
 
@@ -211,19 +210,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// teardown below also ensures any portal resource carrying a stale
 	// part-of=dashboard label (from an older operator) is relabeled before the
 	// core teardown selector runs.
-	portalRetryAfter := r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+	r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
 
-		if err := r.teardownManagedResources(ctx, dashboard); err != nil {
+		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
+		// demand before the core teardown so MaaS Consumer Portal-only operation retains them.
+		nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile MaaS Consumer Portal-required modules: %w", err)
+		}
+		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
+		dashboard.Status.ModuleStatuses = nextStatuses
+		r.setMaasConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		if err := r.deployMaasConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
+			r.markMaasConsumerPortalFederationConfigMapFailed(cm, err)
+			logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
+		}
+
+		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
 		dashboard.Status.ObservedGeneration = dashboard.Generation
 		dashboard.Status.Phase = common.PhaseNotReady
 		dashboard.Status.URL = ""
-		dashboard.Status.ModuleStatuses = nil
 		dashboard.Status.Distribution = nil
 
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -248,7 +260,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
-		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
+		return ctrl.Result{}, nil
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -295,19 +307,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(statusErr, "Failed to update status")
 	}
 
-	// The portal is an optional operand, so its failures do not fail the core
-	// dashboard reconciliation. Schedule a retry, however, so transient apply
-	// and delete failures heal even when neither the Dashboard nor ConsoleLink
-	// changes afterwards.
-	if portalRetryAfter > 0 && (result.RequeueAfter == 0 || portalRetryAfter < result.RequeueAfter) {
-		result.RequeueAfter = portalRetryAfter
-	}
-
 	return result, err
 }
 
 const observabilityRetryInterval = 5 * time.Minute
-const maasConsumerPortalRetryInterval = time.Minute
 
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
@@ -446,40 +449,23 @@ func (r *DashboardReconciler) reconcileDeployment(
 		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
 	}
 
-	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
-
-	if err := r.deployModuleManifests(ctx, dashboard, nextStatuses); err != nil {
+	nextStatuses, err := r.reconcileModuleDemand(ctx, dashboard)
+	if err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("ModuleDeployFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to deploy module manifests: %w", err)
 	}
 
-	// GC disabled modules
-	if err := r.deleteModuleResources(ctx, nextStatuses); err != nil {
-		logger.Error(err, "Failed to clean up disabled module resources")
-	}
-
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
-	// Overlay readiness from module deployments (before federation ConfigMap
-	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
-	r.overlayStandaloneReadiness(ctx, nextStatuses)
-
 	// Persist module statuses now so early returns from steps 6-9 don't leave
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
-	for name, next := range nextStatuses {
-		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
-			prev.Phase == next.Phase &&
-			prev.Reason == next.Reason &&
-			prev.Message == next.Message {
-			next.LastTransitionTime = prev.LastTransitionTime
-			nextStatuses[name] = next
-		}
-	}
+	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
+	r.setMaasConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
 
 	// Reconcile cross-namespace RBAC (notebooks, model-registry)
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
@@ -501,6 +487,10 @@ func (r *DashboardReconciler) reconcileDeployment(
 			conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+	if err := r.deployMaasConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
+		r.markMaasConsumerPortalFederationConfigMapFailed(cm, err)
+		logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
 	}
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
@@ -572,61 +562,6 @@ func (r *DashboardReconciler) reconcileObservability(
 			conditions.WithError(obsErr))
 		logger.Error(obsErr, "Failed to deploy observability manifests")
 	}
-}
-
-// reconcileMaasConsumerPortalConsoleLink deploys or removes the MaaS Consumer
-// Portal ConsoleLink based on spec.maasConsumerPortal, and reports the outcome via
-// the MaasConsumerPortalAvailable condition. All False states use Info severity so the
-// portal never affects the Ready rollup.
-func (r *DashboardReconciler) reconcileMaasConsumerPortalConsoleLink(
-	ctx context.Context,
-	dashboard *v1alpha1.Dashboard,
-	cm *conditions.Manager,
-) time.Duration {
-	logger := log.FromContext(ctx)
-
-	switch maasConsumerPortalErr := deployMaasConsumerPortalConsoleLink(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
-	case maasConsumerPortalErr == nil:
-		cm.MarkTrue(conditionMaasConsumerPortalAvailable,
-			conditions.WithReason("Deployed"),
-			conditions.WithMessage("MaaS Consumer Portal ConsoleLink applied successfully"))
-	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDisabled):
-		// Explicitly remove the ConsoleLink when the portal is disabled — the
-		// SSA deployer is additive and does not prune. Benign cases (absent
-		// object, ConsoleLink CRD not installed) are already treated as success
-		// inside deleteMaasConsumerPortalConsoleLink, so a non-nil error here is a
-		// genuine failure: surface it on the condition (Info severity, like the
-		// deploy-failed branch) rather than falsely reporting a clean Disabled
-		// state while a stale ConsoleLink lingers.
-		if delErr := deleteMaasConsumerPortalConsoleLink(ctx, r.Client); delErr != nil {
-			logger.Error(delErr, "Failed to delete maas consumer portal ConsoleLink")
-			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
-				conditions.WithReason("MaasConsumerPortalDeleteFailed"),
-				conditions.WithMessage("failed to delete maas consumer portal ConsoleLink: %s", delErr.Error()),
-				conditions.WithSeverity(common.ConditionSeverityInfo))
-			return maasConsumerPortalRetryInterval
-		} else {
-			cm.MarkFalse(conditionMaasConsumerPortalAvailable,
-				conditions.WithReason("Disabled"),
-				conditions.WithMessage("MaaS Consumer Portal is not enabled"),
-				conditions.WithSeverity(common.ConditionSeverityInfo))
-		}
-	case errors.Is(maasConsumerPortalErr, ErrMaasConsumerPortalDomainRequired):
-		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
-			conditions.WithReason("MaasConsumerPortalDomainRequired"),
-			conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		logger.Info("MaaS Consumer Portal enabled but gateway domain not set, skipping ConsoleLink")
-	default:
-		cm.MarkFalse(conditionMaasConsumerPortalAvailable,
-			conditions.WithReason("MaasConsumerPortalDeployFailed"),
-			conditions.WithError(maasConsumerPortalErr),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		logger.Error(maasConsumerPortalErr, "Failed to deploy maas consumer portal ConsoleLink")
-		return maasConsumerPortalRetryInterval
-	}
-
-	return 0
 }
 
 func (r *DashboardReconciler) reconcileURL(
@@ -809,8 +744,12 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 // teardownManagedResources deletes all resources labeled with
 // platform.opendatahub.io/part-of=dashboard in the applications namespace,
 // and cleans up cross-namespace resources.
-func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
+func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
 	logger := log.FromContext(ctx)
+	maasConsumerPortalRequiredModules := maasConsumerPortalRequiredModuleSlugs(&dashboard.Spec, statuses)
+	shouldPreserve := func(resource client.Object) bool {
+		return maasConsumerPortalRequiredModules[resource.GetLabels()[moduleComponentLabel]]
+	}
 
 	matchLabels := client.MatchingLabels{
 		labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
@@ -831,7 +770,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 		items := extractItems(list)
 		for i := range items {
-			if isOperatorOwned(operatorResources, kind, items[i].GetName()) {
+			if isOperatorOwned(operatorResources, kind, items[i].GetName()) || shouldPreserve(items[i]) {
 				continue
 			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
@@ -849,7 +788,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range deployments.Items {
 		dep := &deployments.Items[i]
-		if isOperatorOwned(operatorResources, "Deployment", dep.Name) {
+		if isOperatorOwned(operatorResources, "Deployment", dep.Name) || shouldPreserve(dep) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
@@ -874,7 +813,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range serviceAccounts.Items {
 		sa := &serviceAccounts.Items[i]
-		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) {
+		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) || shouldPreserve(sa) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
@@ -909,7 +848,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoles.Items {
 		cr := &clusterRoles.Items[i]
-		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) {
+		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) || shouldPreserve(cr) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
@@ -924,7 +863,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoleBindings.Items {
 		crb := &clusterRoleBindings.Items[i]
-		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) {
+		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) || shouldPreserve(crb) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)

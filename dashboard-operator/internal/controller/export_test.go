@@ -37,6 +37,10 @@ func (r *DashboardReconciler) DeleteModuleResources(ctx context.Context, statuse
 	return r.deleteModuleResources(ctx, statuses)
 }
 
+func (r *DashboardReconciler) ReconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
+	return r.reconcileModuleDemand(ctx, dashboard)
+}
+
 func (r *DashboardReconciler) CleanupLegacySidecarResources(ctx context.Context) error {
 	return r.cleanupLegacySidecarResources(ctx)
 }
@@ -73,10 +77,6 @@ func (r *DashboardReconciler) ReconcileDegradedCondition(
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
 	return r.gcStaleNamespacedRBAC(ctx, desired)
 }
-
-const MaasConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
-
-const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailable
 
 var ConsoleLinkGVK = consoleLinkGVK
 

@@ -67,32 +67,6 @@ func observabilityManifestInfo(basePath string, platform cluster.Platform) rende
 	}
 }
 
-// maasConsumerPortalHostPrefix is prepended to Gateway.Domain to derive the
-// MaaS Consumer Portal host (e.g. maas-consumer-portal.<domain>).
-const maasConsumerPortalHostPrefix = "maas-consumer-portal"
-
-// maasConsumerPortalManifestInfo points at the portal distribution
-// bundle. The ConsoleLink reconciler currently filters the rendered resources
-// to ConsoleLink only; full portal lifecycle reconciliation is added separately.
-func maasConsumerPortalManifestInfo(basePath string) render.ManifestInfo {
-	return render.ManifestInfo{
-		Path:       basePath,
-		ContextDir: "distributions",
-		SourcePath: "maas-consumer-portal",
-	}
-}
-
-// maasConsumerPortalURL is temporary ConsoleLink behavior pending the portal
-// URL decision. It currently derives a nested hostname from Gateway.Domain;
-// it must be replaced if the platform-managed hostname option is selected.
-func maasConsumerPortalURL(domain string) (string, bool) {
-	if domain == "" {
-		return "", false
-	}
-
-	return fmt.Sprintf("https://%s.%s/", maasConsumerPortalHostPrefix, domain), true
-}
-
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {
 	params := map[string]string{}
 
