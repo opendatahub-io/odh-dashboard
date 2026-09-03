@@ -1,51 +1,49 @@
 class DataRegistryPage {
-  visit(project?: string) {
-    const url = project ? `/ai-hub/data?project=${project}` : '/ai-hub/data';
-    cy.visit(url);
+  visit(project: string) {
+    cy.visit(`/data-registry?project=${project}`);
   }
 
-  findProjectSelector() {
-    return cy.findByTestId('project-selector');
+  waitForErrorState() {
+    cy.get('[data-testid="error-display"]', { timeout: 10000 }).should('exist');
   }
 
-  findRegisterDataButton() {
-    return cy.findByTestId('register-data-button');
+  shouldShowServiceUnavailable() {
+    cy.contains('Data Registry service is temporarily unavailable').should('be.visible');
   }
 
-  findManageCollectionsAction() {
-    return cy.findByTestId('manage-collections-action');
-  }
-
-  findManageLabelsAction() {
-    return cy.findByTestId('manage-labels-action');
-  }
-
-  findRetryButton() {
-    return cy.findByTestId('retry-button');
-  }
-
-  findErrorMessage(text: string) {
-    return cy.contains(text);
-  }
-
-  shouldShowServiceUnavailableError() {
-    this.findErrorMessage('Data Registry service is temporarily unavailable').should('be.visible');
-    this.findRetryButton().should('be.visible');
-  }
-
-  shouldShowAccessDeniedError() {
-    this.findErrorMessage('Access denied').should('be.visible');
-    this.findRetryButton().should('not.exist');
+  shouldShowAccessDenied() {
+    cy.contains('You do not have access to this project').should('be.visible');
   }
 
   shouldShowConnectionError() {
-    this.findErrorMessage('Connection failed').should('be.visible');
-    this.findRetryButton().should('be.visible');
+    cy.contains('Connection failed').should('be.visible');
   }
 
-  shouldDisableWriteActions() {
-    this.findRegisterDataButton().should('be.disabled');
+  shouldDisableRegisterDataButton() {
+    cy.get('[data-testid="register-data-button"]').should('be.disabled');
+  }
+
+  shouldDisableManageCollectionsAction() {
+    cy.get('[data-testid="actions-dropdown"]').click();
+    cy.get('[data-testid="manage-collections-action"]').should(
+      'have.attr',
+      'aria-disabled',
+      'true',
+    );
+  }
+
+  shouldDisableManageLabelsAction() {
+    cy.get('[data-testid="actions-dropdown"]').click();
+    cy.get('[data-testid="manage-labels-action"]').should('have.attr', 'aria-disabled', 'true');
+  }
+
+  clickRetryButton() {
+    cy.get('[data-testid="retry-button"]').click();
+  }
+
+  shouldShowData() {
+    cy.get('[data-testid="registry-table"]').should('exist');
   }
 }
 
-export const dataRegistryPage = new DataRegistryPage();
+export default new DataRegistryPage();

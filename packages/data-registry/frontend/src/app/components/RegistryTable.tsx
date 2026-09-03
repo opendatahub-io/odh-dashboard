@@ -271,7 +271,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     if (is403Error(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <AccessDeniedError resource="this project" />
+          <AccessDeniedError />
         </PageSection>
       );
     }

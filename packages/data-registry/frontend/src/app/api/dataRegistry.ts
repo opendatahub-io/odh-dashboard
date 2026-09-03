@@ -177,6 +177,7 @@ export const is403Error = (error: unknown): boolean =>
   error instanceof ApiError && error.status === 403;
 
 export const isConnectionError = (error: unknown): boolean =>
+  !(error instanceof ApiError) &&
   error instanceof Error &&
   (error.message.includes('NetworkError') ||
     error.message.includes('Failed to fetch') ||

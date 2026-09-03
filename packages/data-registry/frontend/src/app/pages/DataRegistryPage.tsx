@@ -96,7 +96,7 @@ const DataRegistryPage: React.FC = () => {
     if (is403Error(namespacesError)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <AccessDeniedError resource="this project" />
+          <AccessDeniedError />
         </PageSection>
       );
     }
@@ -191,7 +191,7 @@ const DataRegistryPage: React.FC = () => {
           <RegistryTable
             assets={assets}
             loaded={assetsLoaded && collectionsLoaded}
-            error={assetsError}
+            error={assetsError ?? collectionsError}
             labels={labels}
             project={selectedProject}
             onManageCollections={() => {
