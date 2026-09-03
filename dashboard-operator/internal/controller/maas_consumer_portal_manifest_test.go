@@ -17,7 +17,7 @@ const (
 	maasConsumerPortalCoreBFFImage = "registry.example.com/odh-core-bff@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
-func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
+func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	// Render a copy of the checked-in bundle: reconciliation writes params.env at
 	// runtime, so rendering the source directory directly would mutate the worktree.
 	source := filepath.Join("..", "..", "..", "manifests", "distributions", maasConsumerPortalName)
@@ -29,8 +29,8 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	params["dashboard-namespace"] = "portal-test"
 	params["gateway-name"] = "portal-gateway"
 	params["maas-consumer-portal-url"] = "https://portal.apps.example.com/"
-	params["portal-federation-config"] = "portal-federation-test"
-	params["portal-hostname"] = "portal.apps.example.com"
+	params["maas-consumer-portal-federation-config"] = "maas-consumer-portal-federation-test"
+	params["maas-consumer-portal-hostname"] = "portal.apps.example.com"
 	params["section-title"] = "OpenShift Self Managed Services"
 	require.NoError(t, writeParamsEnv(dir, params))
 
@@ -82,7 +82,7 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 	assert.Contains(t, container["args"], "--platform-type=OpenShift")
 	assert.Contains(t, container["args"], "--namespace=portal-test")
 	assert.Contains(t, container["args"], "--static-assets-dir=/static/maas-consumer-portal")
-	assert.Contains(t, container["args"], "--mf-remotes-config=/etc/odh-dashboard/portal-federation-config.json")
+	assert.Contains(t, container["args"], "--mf-remotes-config=/etc/odh-dashboard/maas-consumer-portal-federation-config.json")
 	containerSecurityContext := container["securityContext"].(map[string]interface{})
 	assert.Equal(t, true, containerSecurityContext["runAsNonRoot"])
 	assert.Equal(t, true, containerSecurityContext["readOnlyRootFilesystem"])
@@ -92,15 +92,15 @@ func TestRenderMaasConsumerPortalManifestBundle(t *testing.T) {
 
 	volumeMounts := container["volumeMounts"].([]interface{})
 	assert.Equal(t, "/etc/tls/private", namedManifestObject(t, volumeMounts, "portal-tls")["mountPath"])
-	assert.Equal(t, "/etc/odh-dashboard", namedManifestObject(t, volumeMounts, "portal-federation-config")["mountPath"])
+	assert.Equal(t, "/etc/odh-dashboard", namedManifestObject(t, volumeMounts, "maas-consumer-portal-federation-config")["mountPath"])
 	assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount", namedManifestObject(t, volumeMounts, "portal-sa-token")["mountPath"])
 
 	volumes, found, err := unstructured.NestedSlice(deployment.Object, "spec", "template", "spec", "volumes")
 	require.NoError(t, err)
 	require.True(t, found)
-	federationVolume := namedManifestObject(t, volumes, "portal-federation-config")
+	federationVolume := namedManifestObject(t, volumes, "maas-consumer-portal-federation-config")
 	federationConfigMap := federationVolume["configMap"].(map[string]interface{})
-	assert.Equal(t, "portal-federation-test", federationConfigMap["name"])
+	assert.Equal(t, "maas-consumer-portal-federation-test", federationConfigMap["name"])
 	require.NotNil(t, namedManifestObject(t, volumes, "portal-tls")["secret"])
 	require.NotNil(t, namedManifestObject(t, volumes, "portal-sa-token")["projected"])
 

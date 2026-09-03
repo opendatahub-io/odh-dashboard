@@ -28,9 +28,9 @@ type ModuleDefinition struct {
 	ProxyPaths              []proxyRoute
 	// InterBFFDeps injects service-discovery env vars into this module's container.
 	InterBFFDeps []interBFFDependency
-	// RequiredByMaasConsumerPortal identifies the modules required when the
+	// RequiredByMaaSConsumerPortal identifies the modules required when the
 	// MaaS Consumer Portal operand is managed independently of the dashboard.
-	RequiredByMaasConsumerPortal bool
+	RequiredByMaaSConsumerPortal bool
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
@@ -50,7 +50,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
 		ManifestSlug:                 "gen-ai",
 		TLS:                          true,
-		RequiredByMaasConsumerPortal: true,
+		RequiredByMaaSConsumerPortal: true,
 		InterBFFDeps: []interBFFDependency{{
 			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
 			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
@@ -74,7 +74,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
 		ManifestSlug:                 "maas",
 		TLS:                          true,
-		RequiredByMaasConsumerPortal: true,
+		RequiredByMaaSConsumerPortal: true,
 	},
 	"evalHub": {
 		Name:                  "evalHub",
@@ -139,8 +139,8 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
 	coreRequiresModules := spec.ManagementState != "Removed"
-	maasConsumerPortalRequiresModules := spec.MaasConsumerPortal != nil &&
-		spec.MaasConsumerPortal.ManagementState == "Managed"
+	maasConsumerPortalRequiresModules := spec.MaaSConsumerPortal != nil &&
+		spec.MaaSConsumerPortal.ManagementState == "Managed"
 
 	// Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 	for name, mod := range moduleRegistry {
@@ -156,7 +156,7 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 			continue
 		}
 
-		if !coreRequiresModules && (!maasConsumerPortalRequiresModules || !mod.RequiredByMaasConsumerPortal) {
+		if !coreRequiresModules && (!maasConsumerPortalRequiresModules || !mod.RequiredByMaaSConsumerPortal) {
 			result[name] = v1alpha1.ModuleStatus{
 				Phase:              v1alpha1.ModulePhaseNotDeployed,
 				Reason:             "NotRequired",

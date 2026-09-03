@@ -8,7 +8,7 @@ spec:
       kind: Gateway
       namespace: openshift-ingress
   hostnames:
-    - portal-hostname
+    - maas-consumer-portal-hostname
   rules:
     - matches:
         - path:

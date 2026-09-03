@@ -345,7 +345,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 		},
 		Spec: v1alpha1.DashboardSpec{
 			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
-			MaasConsumerPortal: &v1alpha1.MaasConsumerPortalSpec{ManagementState: "Managed"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
 		},
 	}
 	cli := fake.NewClientBuilder().
@@ -357,7 +357,7 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 		Client:                cli,
 		Scheme:                scheme,
 		ManifestsBasePath:     manifests,
-		Platform:              cluster.OpenDataHub,
+		Platform:              cluster.SelfManagedRhoai,
 		Namespace:             testNamespace,
 		ApplicationsNamespace: testNamespace,
 	}

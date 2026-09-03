@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/api/common/validation"
@@ -60,6 +61,10 @@ func TestMain(m *testing.M) {
 	}
 	if err := apiextensionsv1.AddToScheme(s); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to add apiextensionsv1 scheme: %v\n", err)
+		os.Exit(1)
+	}
+	if err := gatewayv1.Install(s); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to add Gateway API scheme: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -133,6 +138,9 @@ data:
   key: value
 `), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+	// Provide the same minimal core fixture in the RHOAI overlay for tests that
+	// exercise RHOAI-specific reconciliation.
+	require.NoError(t, os.CopyFS(filepath.Join(base, "rhoai"), os.DirFS(overlay)))
 
 	// Per-module manifests: basePath/modules/<slug>/
 	// The module path must match deployModuleManifests in module_deploy.go.

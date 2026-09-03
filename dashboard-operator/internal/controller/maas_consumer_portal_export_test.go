@@ -8,21 +8,21 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func (r *DashboardReconciler) PatchMaasConsumerPortalDeploymentFederationHash(ctx context.Context, configData string) error {
-	return r.patchMaasConsumerPortalDeploymentFederationHash(ctx, configData)
+func (r *DashboardReconciler) PatchMaaSConsumerPortalDeploymentFederationHash(ctx context.Context, configData string) error {
+	return r.patchMaaSConsumerPortalDeploymentFederationHash(ctx, configData)
 }
 
-func (r *DashboardReconciler) DeployMaasConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
-	return r.deployMaasConsumerPortalFederationConfigMap(ctx, dashboard, statuses)
+func (r *DashboardReconciler) DeployMaaSConsumerPortalFederationConfigMap(ctx context.Context, dashboard *v1alpha1.Dashboard, statuses map[string]v1alpha1.ModuleStatus) error {
+	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses)
 }
 
-func BuildMaasConsumerPortalFederationConfigMap(
+func BuildMaaSConsumerPortalFederationConfigMap(
 	r *DashboardReconciler,
 	statuses map[string]v1alpha1.ModuleStatus,
 ) (*corev1.ConfigMap, error) {
-	return r.buildMaasConsumerPortalFederationConfigMap(statuses)
+	return r.buildMaaSConsumerPortalFederationConfigMap(statuses)
 }
 
-const MaasConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
+const MaaSConsumerPortalConsoleLinkName = maasConsumerPortalConsoleLinkName
 
-const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailable
+const ConditionMaaSConsumerPortalAvailable = conditionMaaSConsumerPortalAvailable

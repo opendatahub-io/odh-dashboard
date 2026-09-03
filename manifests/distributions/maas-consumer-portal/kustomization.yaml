@@ -47,7 +47,7 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.portal-hostname
+      fieldPath: data.maas-consumer-portal-hostname
     targets:
       - select:
           group: gateway.networking.k8s.io
@@ -106,10 +106,10 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.portal-federation-config
+      fieldPath: data.maas-consumer-portal-federation-config
     targets:
       - select:
           kind: Deployment
           name: maas-consumer-portal
         fieldPaths:
-          - spec.template.spec.volumes.[name=portal-federation-config].configMap.name
+          - spec.template.spec.volumes.[name=maas-consumer-portal-federation-config].configMap.name

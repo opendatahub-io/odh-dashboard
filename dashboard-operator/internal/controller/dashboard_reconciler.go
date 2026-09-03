@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -165,6 +166,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			if err := r.deleteMaaSConsumerPortalResources(ctx); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Consumer Portal resources: %w", err)
+			}
 			if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
 			}
@@ -189,7 +193,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, ObservabilityAvailable, and
-	// MaasConsumerPortalAvailable. It is never set explicitly. The manager is built
+	// MaaSConsumerPortalAvailable. It is set explicitly only when both operands are
+	// Removed. The manager is built
 	// here, before the managementState branch, because the maas consumer portal is
 	// reconciled unconditionally below regardless of the core dashboard's state.
 	cm := conditions.NewManager(
@@ -198,19 +203,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
 		conditionObservabilityAvailable,
-		conditionMaasConsumerPortalAvailable,
+		conditionMaaSConsumerPortalAvailable,
 	)
-
-	// The maas consumer portal is an independent operand: it is reconciled once per
-	// loop, decoupled from the core dashboard's managementState, so it runs with
-	// or without the core dashboard. Its resources carry a distinct part-of
-	// label (see maasConsumerPortalPartOf) so core-dashboard teardown never touches
-	// them. This reconcile sets the MaasConsumerPortalAvailable condition — deploying
-	// the ConsoleLink when enabled, removing it when disabled. Running before the
-	// teardown below also ensures any portal resource carrying a stale
-	// part-of=dashboard label (from an older operator) is relabeled before the
-	// core teardown selector runs.
-	portalRetryAfter := r.reconcileMaasConsumerPortalConsoleLink(ctx, dashboard, cm)
+	// MaaS Consumer Portal availability is recalculated from its managed resources on every
+	// reconciliation. Clear a stale failure now; failures recorded later in this
+	// cycle (for example federation ConfigMap reconciliation) remain intact.
+	cm.ClearCondition(conditionMaaSConsumerPortalAvailable)
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
@@ -224,11 +222,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 		dashboard.Status.ModuleStatuses = nextStatuses
-		r.setMaasConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
-		if err := r.deployMaasConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
-			r.markMaasConsumerPortalFederationConfigMapFailed(cm, err)
+		r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+		if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
+			r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
 			logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
 		}
+		portalRetryAfter := r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, nextStatuses)
 
 		if err := r.teardownManagedResources(ctx, dashboard, nextStatuses); err != nil {
 			r.persistRemovedFailureStatus(ctx, dashboard, cm, "TeardownFailed", err)
@@ -236,13 +235,16 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		dashboard.Status.ObservedGeneration = dashboard.Generation
-		dashboard.Status.Phase = common.PhaseNotReady
 		dashboard.Status.URL = ""
 		dashboard.Status.Distribution = nil
 
+		// Core Dashboard removal is intentional. Treat its conditions as
+		// informational so a Managed MaaS Consumer Portal can determine the
+		// aggregate Dashboard readiness independently.
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
-			conditions.WithMessage("Dashboard has been removed via managementState"))
+			conditions.WithMessage("Dashboard has been removed via managementState"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
@@ -251,9 +253,17 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeReady),
-			conditions.WithReason("Removed"),
-			conditions.WithMessage("Dashboard has been removed via managementState"))
+		if dashboard.Spec.MaaSConsumerPortal == nil || dashboard.Spec.MaaSConsumerPortal.ManagementState != "Managed" {
+			// With neither operand managed, retain the established Removed state.
+			cm.MarkFalse(string(common.ConditionTypeReady),
+				conditions.WithReason("Removed"),
+				conditions.WithMessage("Dashboard has been removed via managementState"))
+		}
+		if cm.IsHappy() {
+			dashboard.Status.Phase = common.PhaseReady
+		} else {
+			dashboard.Status.Phase = common.PhaseNotReady
+		}
 		cm.Sort()
 
 		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
@@ -307,13 +317,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
-	}
-
-	// The portal is an optional operand, so its failures do not fail the core
-	// dashboard reconciliation. Schedule a retry so transient apply and delete
-	// failures heal even when neither object changes afterwards.
-	if portalRetryAfter > 0 && (result.RequeueAfter == 0 || portalRetryAfter < result.RequeueAfter) {
-		result.RequeueAfter = portalRetryAfter
 	}
 
 	return result, err
@@ -494,7 +497,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	// stale status on the CR (the outer Reconcile always calls Status().Update).
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
-	r.setMaasConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
+	r.setMaaSConsumerPortalModuleCondition(cm, dashboard, nextStatuses)
 
 	// Reconcile cross-namespace RBAC (notebooks, model-registry)
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
@@ -517,10 +520,11 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	if err := r.deployMaasConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
-		r.markMaasConsumerPortalFederationConfigMapFailed(cm, err)
+	if err := r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, nextStatuses); err != nil {
+		r.markMaaSConsumerPortalFederationConfigMapFailed(cm, err)
 		logger.Error(err, "Failed to deploy MaaS Consumer Portal federation ConfigMap")
 	}
+	portalRetryAfter := r.reconcileMaaSConsumerPortal(ctx, dashboard, cm, nextStatuses)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
@@ -554,6 +558,9 @@ func (r *DashboardReconciler) reconcileDeployment(
 		requeueAfter = cfg.ReconcileInterval
 	}
 
+	if portalRetryAfter > 0 && (requeueAfter == 0 || portalRetryAfter < requeueAfter) {
+		requeueAfter = portalRetryAfter
+	}
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
@@ -903,10 +910,10 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	// ConsoleLinks are cluster-scoped and have no Go type, so they are listed
 	// as unstructured. Only the core dashboard link (rhodslink/odhlink) carries
-	// part-of=dashboard and is matched here. The maas consumer portal ConsoleLink is
+	// part-of=dashboard and is matched here. The MaaS Consumer Portal ConsoleLink is
 	// an independent operand labeled part-of=maas-consumer-portal, so it is not
 	// selected by this teardown — it is managed solely by
-	// reconcileMaasConsumerPortalConsoleLink, independent of the core dashboard's
+	// reconcileMaaSConsumerPortal, independent of the core dashboard's
 	// managementState. Guard against clusters where the ConsoleLink CRD is not
 	// installed (non-OpenShift).
 	consoleLinks := &unstructured.UnstructuredList{}
@@ -1030,6 +1037,12 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.Secret{}).
+		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&gatewayv1.HTTPRoute{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(consoleLink).
 		Watches(

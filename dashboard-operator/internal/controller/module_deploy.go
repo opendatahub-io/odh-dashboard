@@ -618,6 +618,15 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 // are common dependencies rather than resources owned by a single operand.
 func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
 	statuses := resolveModuleStatuses(&dashboard.Spec)
+	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
+	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
+	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
+		for _, name := range maasConsumerPortalRequiredModuleNames() {
+			if statuses[name].Reason != "ExplicitOverride" {
+				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
+			}
+		}
+	}
 	if err := r.deployModuleManifests(ctx, dashboard, statuses); err != nil {
 		return nil, err
 	}
