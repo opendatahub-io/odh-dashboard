@@ -152,6 +152,7 @@
     "browserslist": "^4.28.8",
     "flatted": "^3.4.2",
     "handlebars": "^4.7.9",
-    "serialize-javascript": "^7.0.5"
+    "serialize-javascript": "^7.0.5",
+    "undici": "^6.28.0"
   }
 }
