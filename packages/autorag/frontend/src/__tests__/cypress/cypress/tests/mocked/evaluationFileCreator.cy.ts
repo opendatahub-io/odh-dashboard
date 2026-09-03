@@ -14,6 +14,10 @@ const STORAGE_SECRET = 'data-connection';
 // autorag input data/pdf/bank_policies_pdf/documents/ contains two PDFs.
 const DOCUMENTS_FOLDER_NAME = 'documents';
 const DOCUMENT_NAMES = ['all_bank_policies.pdf', 'all_bank_policies_2.pdf'];
+const MAAS_MODEL_IDS = {
+  generation: 'maas-generation',
+  embedding: 'maas-embedding',
+} as const;
 
 const initIntercepts = () => {
   // Connection types come from the host dashboard API, not the autorag BFF —
@@ -23,9 +27,9 @@ const initIntercepts = () => {
     data: {
       models: [
         // eslint-disable-next-line camelcase
-        { id: 'maas-generation', display_name: 'MaaS generation', description: '' },
+        { id: MAAS_MODEL_IDS.generation, display_name: 'MaaS generation', description: '' },
         // eslint-disable-next-line camelcase
-        { id: 'maas-embedding', display_name: 'MaaS embedding', description: '' },
+        { id: MAAS_MODEL_IDS.embedding, display_name: 'MaaS embedding', description: '' },
       ],
     },
   });
@@ -134,14 +138,20 @@ describe('EvaluationFileCreator', () => {
     autoragConfigurePage.findEditModelsButton().click();
     autoragConfigurePage.findModelSettingsModal().should('be.visible');
     autoragConfigurePage.findSaveModelsButton().should('be.disabled');
-    autoragConfigurePage.findGenerationTable().should('contain.text', 'maas-generation');
-    autoragConfigurePage.findGenerationTable().should('contain.text', 'maas-embedding');
+    autoragConfigurePage.findGenerationTable().should('contain.text', MAAS_MODEL_IDS.generation);
+    autoragConfigurePage.findGenerationTable().should('contain.text', MAAS_MODEL_IDS.embedding);
 
-    autoragConfigurePage.findModelRow('maas-generation').find('input[type="checkbox"]').click();
+    autoragConfigurePage
+      .findModelRow(MAAS_MODEL_IDS.generation)
+      .find('input[type="checkbox"]')
+      .click();
     autoragConfigurePage.findEmbeddingTab().click();
-    autoragConfigurePage.findEmbeddingTable().should('contain.text', 'maas-generation');
-    autoragConfigurePage.findEmbeddingTable().should('contain.text', 'maas-embedding');
-    autoragConfigurePage.findModelRow('maas-generation').find('input[type="checkbox"]').click();
+    autoragConfigurePage.findEmbeddingTable().should('contain.text', MAAS_MODEL_IDS.generation);
+    autoragConfigurePage.findEmbeddingTable().should('contain.text', MAAS_MODEL_IDS.embedding);
+    autoragConfigurePage
+      .findModelRow(MAAS_MODEL_IDS.generation)
+      .find('input[type="checkbox"]')
+      .click();
     autoragConfigurePage.findSaveModelsButton().should('be.enabled').click();
     autoragConfigurePage.findModelSettingsModal().should('not.exist');
   });

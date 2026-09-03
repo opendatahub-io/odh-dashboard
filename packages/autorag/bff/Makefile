@@ -89,6 +89,29 @@ run: fmt vet envtest ## Runs the project.
 		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
 		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
 
+.PHONY: debug
+debug: fmt vet envtest delve ## Runs the project with Delve debugger on port 2345.
+	@echo "Starting BFF with Delve debugger on port 2345..."
+	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	$(DLV) debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
+		--port="$(PORT)" \
+		--auth-method="$(AUTH_METHOD)" \
+		--auth-token-header="$(AUTH_TOKEN_HEADER)" \
+		--auth-token-prefix="$(AUTH_TOKEN_PREFIX)" \
+		--static-assets-dir="$(STATIC_ASSETS_DIR)" \
+		--mock-k8s-client="$(MOCK_K8S_CLIENT)" \
+		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
+		--mock-s3-client="$(MOCK_S3_CLIENT)" \
+		--mock-ogx-client="$(MOCK_OGX_CLIENT)" \
+		--mock-maas-client="$(MOCK_MAAS_CLIENT)" \
+		--dev-mode="$(DEV_MODE)" \
+		--dev-mode-client-port="$(DEV_MODE_CLIENT_PORT)" \
+		--deployment-mode="$(DEPLOYMENT_MODE)" \
+		--log-level="$(LOG_LEVEL)" \
+		--allowed-origins="$(ALLOWED_ORIGINS)" \
+		--insecure-skip-verify="$(INSECURE_SKIP_VERIFY)" \
+		$(if $(BUNDLE_PATHS),--bundle-paths="$(BUNDLE_PATHS)")
+
 ##@ Dependencies
 
 ## Location to install dependencies to
@@ -103,6 +126,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.12.2
 ENVTEST_VERSION ?= v0.24.1
+DELVE_VERSION ?= v1.26.0
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
@@ -113,6 +137,12 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,${GOLANGCI_LINT_VERSION})
+
+DLV ?= $(LOCALBIN)/dlv-$(DELVE_VERSION)
+.PHONY: delve
+delve: $(DLV) ## Download Delve locally if necessary.
+$(DLV): $(LOCALBIN)
+	$(call go-install-tool,$(DLV),github.com/go-delve/delve/cmd/dlv,${DELVE_VERSION})
 
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist

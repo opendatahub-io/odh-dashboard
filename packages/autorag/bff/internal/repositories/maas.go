@@ -37,24 +37,17 @@ type MaaSClient interface {
 
 type MaaSService struct {
 	client MaaSClient
-	mock   bool
 }
 
 type MaaSModelService interface {
 	ListModels(context.Context, string, map[string]string) (MaaSModelsResponse, error)
 }
 
-func NewMaaSService(client MaaSClient, mock bool) *MaaSService {
-	return &MaaSService{client: client, mock: mock}
+func NewMaaSService(client MaaSClient) *MaaSService {
+	return &MaaSService{client: client}
 }
 
 func (s *MaaSService) ListModels(ctx context.Context, token string, headers map[string]string) (MaaSModelsResponse, error) {
-	if s.mock {
-		return MaaSModelsResponse{Data: MaaSModelsData{Models: []MaaSModel{
-			{ID: "maas-model-1", DisplayName: "MaaS model 1", Description: "Mock MaaS model"},
-			{ID: "maas-embedding-1", DisplayName: "MaaS embedding 1", Description: "Mock MaaS model"},
-		}}}, nil
-	}
 	response, err := s.client.ListModels(ctx, token, headers)
 	if err != nil {
 		return MaaSModelsResponse{}, classifyMaaSError(err)

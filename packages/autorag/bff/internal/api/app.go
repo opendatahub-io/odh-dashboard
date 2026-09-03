@@ -225,17 +225,23 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
 	}
-	maasURL := cfg.MaaSDevURL
-	if maasURL == "" {
-		maasNamespace := os.Getenv("POD_NAMESPACE")
-		if maasNamespace == "" {
-			maasNamespace = "opendatahub"
+	var maasClient repositories.MaaSClient
+	if cfg.MockMaaSClient {
+		maasClient = &fake.MaaSClient{}
+	} else {
+		maasURL := cfg.MaaSDevURL
+		if maasURL == "" {
+			maasNamespace := os.Getenv("POD_NAMESPACE")
+			if maasNamespace == "" {
+				maasNamespace = "opendatahub"
+			}
+			scheme := "http"
+			if cfg.MaaSTLSEnabled {
+				scheme = "https"
+			}
+			maasURL = fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/api/v1", scheme, cfg.MaaSServiceName, maasNamespace, cfg.MaaSServicePort)
 		}
-		scheme := "http"
-		if cfg.MaaSTLSEnabled {
-			scheme = "https"
-		}
-		maasURL = fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d/api/v1", scheme, cfg.MaaSServiceName, maasNamespace, cfg.MaaSServicePort)
+		maasClient = maas.NewClient(maasURL, cfg.MaaSAuthMethod, cfg.MaaSAuthTokenHeader, cfg.MaaSAuthTokenPrefix, nil)
 	}
 
 	app := &App{
@@ -276,7 +282,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		},
 		maas: &MaaSHandler{
 			logger:     logger,
-			service:    repositories.NewMaaSService(maas.NewClient(maasURL, cfg.MaaSAuthMethod, cfg.MaaSAuthTokenHeader, cfg.MaaSAuthTokenPrefix, nil), cfg.MockMaaSClient),
+			service:    repositories.NewMaaSService(maasClient),
 			authMethod: cfg.MaaSAuthMethod,
 		},
 	}
