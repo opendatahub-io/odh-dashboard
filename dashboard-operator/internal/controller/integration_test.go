@@ -25,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/api/common/validation"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
@@ -679,6 +681,58 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 
 	// Verify URL was extracted from Gateway.Domain.
 	assert.Equal(t, "https://test.example.com/", dashboard.Status.URL)
+}
+
+func TestIntegration_PlatformContractConformance(t *testing.T) {
+	manifests := createIntegrationManifests(t, []string{"model-registry"})
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                k8sClient,
+		Scheme:                k8sClient.Scheme(),
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept("modelRegistry"),
+	})
+
+	ctx := context.Background()
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+
+	t.Cleanup(func() {
+		deleteDashboard(t)
+		cleanupModuleResources(t)
+	})
+
+	// The first reconcile adds the finalizer and the second deploys the module.
+	reconcile(t, r)
+	reconcile(t, r)
+
+	// envtest has no kubelet to update Deployment status. Report the operand as
+	// available so the next reconcile can exercise the successful Ready contract.
+	deployments := listDeployments(t, "model-registry")
+	require.Len(t, deployments, 1)
+	deployment := &deployments[0]
+	require.NotNil(t, deployment.Spec.Replicas)
+	deployment.Status.Replicas = *deployment.Spec.Replicas
+	deployment.Status.ReadyReplicas = *deployment.Spec.Replicas
+	deployment.Status.AvailableReplicas = *deployment.Spec.Replicas
+	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
+
+	reconcile(t, r)
+	dashboard = getDashboard(t)
+	require.Equal(t, common.PhaseReady, dashboard.Status.Phase)
+
+	validation.ValidatePlatformContract(t, k8sClient, validation.ContractOptions{
+		GVK:          v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),
+		InstanceName: v1alpha1.DashboardInstanceName,
+		Timeout:      5 * time.Second,
+		PollInterval: 100 * time.Millisecond,
+	})
 }
 
 func TestIntegration_StandaloneDisableModule(t *testing.T) {
