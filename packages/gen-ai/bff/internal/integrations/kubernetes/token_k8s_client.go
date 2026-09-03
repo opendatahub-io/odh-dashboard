@@ -2193,20 +2193,20 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
-		// Without GatewayDomain the remote::passthrough provider cannot be registered,
-		// so non-embedding inference models would be validated but never routable.
-		// Fail fast rather than installing an OGX server that cannot serve inference.
+		// Without GatewayDomain the remote::passthrough provider cannot be registered.
+		// MaaS and custom_endpoint models are resolved per-request by the BFF proxy and
+		// do NOT need the passthrough provider. Only namespace (ISVC) models are routed
+		// through the OGX passthrough, so fail fast only for those.
 		for _, m := range installModels {
-			if m.ModelType != string(models.ModelTypeTranscription) &&
-				m.ModelType != string(models.ModelTypeEmbedding) {
+			if m.ModelSourceType == models.ModelSourceTypeNamespace {
 				return "", fmt.Errorf(
-					"cannot install inference model %q: GATEWAY_DOMAIN is not configured, "+
+					"cannot install namespace inference model %q: GATEWAY_DOMAIN is not configured, "+
 						"which is required to register the remote::passthrough inference provider",
 					m.ModelName,
 				)
 			}
 		}
-		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no inference models requested)")
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no namespace inference models requested)")
 	}
 
 	// Optionally enable RBAC authentication using Kubernetes auth provider.

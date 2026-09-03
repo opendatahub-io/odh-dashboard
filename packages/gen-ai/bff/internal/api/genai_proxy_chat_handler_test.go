@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
@@ -92,6 +93,9 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 			if ok {
 				flusher.Flush()
 			}
+			// Sleep between chunks so the proxy's Read loop sees them as separate reads,
+			// making the writeCount > 1 assertion deterministic.
+			time.Sleep(20 * time.Millisecond)
 			fmt.Fprint(w, "data: [DONE]\n\n")
 			if ok {
 				flusher.Flush()

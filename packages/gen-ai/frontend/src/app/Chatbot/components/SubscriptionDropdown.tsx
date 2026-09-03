@@ -44,7 +44,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
       return [];
     }
     const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    const matchingModel = maasModels.find((m) => m.id === maasModelId);
+    const matchingModel = maasModels.find((m) => (m.id ?? m.model_id) === maasModelId);
     return (matchingModel?.subscriptions ?? []).filter(
       (s) => typeof s.name === 'string' && s.name !== '',
     );

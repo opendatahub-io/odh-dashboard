@@ -262,7 +262,10 @@ export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
   let internalEndpoint: string | undefined;
   let externalEndpoint: string | undefined;
 
-  for (const endpoint of model.endpoints) {
+  for (const endpoint of Array.isArray(model.endpoints) ? model.endpoints : []) {
+    if (typeof endpoint !== 'string') {
+      continue;
+    }
     if (endpoint.startsWith('external:')) {
       externalEndpoint = endpoint.replace(/^external:\s*/, '');
     } else if (endpoint.startsWith('internal:')) {
