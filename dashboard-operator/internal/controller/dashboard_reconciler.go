@@ -1049,24 +1049,28 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Complete(r)
 }
 
-// watchedConfigMaps is the set of ConfigMap names, in the operator namespace,
-// whose contents feed reconcile inputs: platform version and distribution
-// identity (odh-dashboard-config), and the reconcile interval
-// (dashboard-operator-config). Changes to these must trigger a reconcile so the
-// Dashboard status stays fresh even when nothing else touches the CR
-// (RHOAIENG-81919). It never changes at runtime, so it is a package-level value
-// rather than rebuilt per event.
-var watchedConfigMaps = map[string]bool{
-	distributionConfigMapName: true,
-	operatorConfigMapName:     true,
-}
-
 // isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
-// operator namespace that feed reconcile inputs. Both the predicate and the map
-// func route through this single helper so their nil handling and scoping
-// cannot drift.
+// operator namespace whose contents feed reconcile inputs: platform version and
+// distribution identity (the distribution config, odh-dashboard-config by
+// default) and the reconcile interval (dashboard-operator-config). Changes to
+// these must trigger a reconcile so the Dashboard status stays fresh even when
+// nothing else touches the CR (RHOAIENG-81919).
+//
+// The distribution config name is user-settable (chart value config.name, plumbed
+// in via OPERATOR_CONFIGMAP_NAME), so it is resolved through the same helper the
+// readers use rather than compared against the hardcoded default — otherwise a
+// non-default install would watch the wrong ConfigMap and status would go stale.
+//
+// Both the predicate and the map func route through this single helper so their
+// nil handling and scoping cannot drift.
 func (r *DashboardReconciler) isWatchedConfigMap(obj client.Object) bool {
-	return obj != nil && obj.GetNamespace() == r.Namespace && watchedConfigMaps[obj.GetName()]
+	if obj == nil || obj.GetNamespace() != r.Namespace {
+		return false
+	}
+
+	name := obj.GetName()
+
+	return name == resolveDistributionConfigMapName() || name == operatorConfigMapName
 }
 
 // mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
@@ -1088,8 +1092,9 @@ func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj cli
 // compared, not the whole map, so unrelated metadata churn — resourceVersion
 // bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
 // last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
-// reconcile. The annotation comparison is scoped to odh-dashboard-config, the
-// only ConfigMap those annotations are consumed from; dashboard-operator-config
+// reconcile. The annotation comparison is scoped to the distribution config, the
+// only ConfigMap those annotations are consumed from (resolved via the same helper
+// the readers use, so a chart-customized name is honored); dashboard-operator-config
 // contributes reconcile inputs through Data alone.
 func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
 	return predicate.Funcs{
@@ -1107,12 +1112,13 @@ func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
 				return true
 			}
 
-			// PlatformType / PlatformVersion annotations are read only from
-			// odh-dashboard-config (readDistributionConfig). Restrict the
-			// annotation comparison to that ConfigMap so annotation churn on
-			// dashboard-operator-config — which contributes only via Data — does
-			// not enqueue a no-op reconcile.
-			annotationChanged := newCM.Name == distributionConfigMapName &&
+			// PlatformType / PlatformVersion annotations are read only from the
+			// distribution config (readDistributionConfig). Restrict the annotation
+			// comparison to that ConfigMap — resolved via the same helper the readers
+			// use, so a chart-customized name is honored — so annotation churn on
+			// dashboard-operator-config, which contributes only via Data, does not
+			// enqueue a no-op reconcile.
+			annotationChanged := newCM.Name == resolveDistributionConfigMapName() &&
 				(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
 					oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
 

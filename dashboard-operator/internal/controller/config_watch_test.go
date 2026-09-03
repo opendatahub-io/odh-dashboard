@@ -187,3 +187,44 @@ func TestConfigMapPredicate_Update(t *testing.T) {
 		})
 	}
 }
+
+// TestConfigMapWatch_HonorsCustomDistributionConfigMapName verifies the watch
+// tracks the resolved distribution config name rather than the hardcoded default.
+// The distribution config ConfigMap name is user-settable (chart value
+// config.name, plumbed in via OPERATOR_CONFIGMAP_NAME); readDistributionConfig /
+// readPlatformVersion resolve it through resolveDistributionConfigMapName. If the
+// watch kept the literal default, a non-default install would miss updates to its
+// real ConfigMap and status.releases[platform].version would go stale — the exact
+// failure this PR fixes (RHOAIENG-81919).
+func TestConfigMapWatch_HonorsCustomDistributionConfigMapName(t *testing.T) {
+	const customName = "custom-distribution-config"
+	t.Setenv("OPERATOR_CONFIGMAP_NAME", customName)
+
+	r := &ctrlpkg.DashboardReconciler{Namespace: testNamespace}
+	p := r.ConfigMapPredicate()
+
+	custom := newConfigMap(customName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil)
+
+	t.Run("map func enqueues for the custom-named ConfigMap", func(t *testing.T) {
+		reqs := r.MapConfigMapToDashboard(context.Background(), custom)
+		require.Len(t, reqs, 1)
+		assert.Equal(t, v1alpha1.DashboardInstanceName, reqs[0].Name)
+	})
+
+	t.Run("the hardcoded default name is not watched once a custom name is set", func(t *testing.T) {
+		def := newConfigMap(distributionConfigMapName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, nil)
+		assert.Empty(t, r.MapConfigMapToDashboard(context.Background(), def))
+		assert.False(t, p.Create(event.CreateEvent{Object: def}))
+	})
+
+	t.Run("predicate fires on data change for the custom ConfigMap", func(t *testing.T) {
+		assert.True(t, p.Create(event.CreateEvent{Object: custom}))
+		updated := newConfigMap(customName, testNamespace, map[string]string{"platformVersion": "2.21.0"}, nil)
+		assert.True(t, p.Update(event.UpdateEvent{ObjectOld: custom, ObjectNew: updated}))
+	})
+
+	t.Run("predicate fires on consumed annotation change for the custom ConfigMap", func(t *testing.T) {
+		annoUpdated := newConfigMap(customName, testNamespace, map[string]string{"platformVersion": "2.20.0"}, map[string]string{annotations.PlatformVersion: "2.21.0"})
+		assert.True(t, p.Update(event.UpdateEvent{ObjectOld: custom, ObjectNew: annoUpdated}))
+	})
+}
