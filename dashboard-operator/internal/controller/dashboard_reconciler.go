@@ -40,19 +40,61 @@ const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 var operatorDeploymentName = getOperatorDeploymentName()
 
 func getOperatorDeploymentName() string {
-	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
-		return name
-	}
-	return "dashboard-operator"
+	return envOrDefault("OPERATOR_DEPLOYMENT_NAME", "dashboard-operator")
 }
 
-func operatorOwnedResourceNames() map[string]bool {
+// operatorServiceAccountName and resolveDistributionConfigMapName resolve the names the operator's
+// Helm chart rendered for its own ServiceAccount and config ConfigMap. Both derive from user-settable
+// chart values (serviceAccount.name, config.name), so the chart plumbs the rendered names in via
+// env — the Go side must not re-derive them by convention, or a non-default install would delete
+// the operator's own resources during managementState: Removed teardown. Defaults match the chart.
+func operatorServiceAccountName() string {
+	// Defaults to the deployment name: the chart's default serviceAccount.name renders to exactly
+	// that, and unit tests that override the deployment name expect the SA to track it.
+	return envOrDefault("OPERATOR_SERVICE_ACCOUNT_NAME", operatorDeploymentName)
+}
+
+// resolveDistributionConfigMapName returns the name of the chart-rendered config ConfigMap
+// (dashboard.configMapName / .Values.config.name, default odh-dashboard-config). This is the
+// ConfigMap the operator reads for distribution identity and which teardown must preserve. Its
+// name is user-settable, so the chart plumbs it in via OPERATOR_CONFIGMAP_NAME.
+func resolveDistributionConfigMapName() string {
+	return envOrDefault("OPERATOR_CONFIGMAP_NAME", distributionConfigMapName)
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+// operatorOwnedResources returns the set of the operator's own resources that teardown must never
+// delete, keyed by "<Kind>/<name>". Teardown selects resources by the part-of=dashboard label the
+// chart's commonLabels stamp on everything it renders — including operator-owned resources — so
+// these must be skipped by name. Keying on kind+name (not name alone) keeps a genuinely
+// module-owned resource that happens to share a name (e.g. a module ConfigMap named
+// odh-dashboard-config) from silently surviving teardown.
+//
+// The webhook serving-cert Secret is intentionally absent: cert-manager issues it from the chart's
+// Certificate (which has no secretTemplate), so it never carries the part-of label and is never
+// selected by teardown's label query — no skip entry is needed.
+func operatorOwnedResources() map[string]bool {
 	base := operatorDeploymentName
 	return map[string]bool{
-		base:                  true,
-		base + "-role":        true,
-		base + "-rolebinding": true,
+		"Deployment/" + base:                              true,
+		"ServiceAccount/" + operatorServiceAccountName():  true,
+		"Service/" + base + "-webhook":                    true, // dashboard.webhookServiceName
+		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
+		"ClusterRole/" + base + "-role":                   true,
+		"ClusterRoleBinding/" + base + "-rolebinding":     true,
 	}
+}
+
+// isOperatorOwned reports whether a resource of the given kind and name is one of the operator's
+// own resources that teardown must preserve.
+func isOperatorOwned(resources map[string]bool, kind, name string) bool {
+	return resources[kind+"/"+name]
 }
 
 var persesdashboardGVK = schema.GroupVersionKind{
@@ -748,6 +790,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	inNamespace := client.InNamespace(r.ApplicationsNamespace)
 
+	// The operator's own Helm chart stamps platform.opendatahub.io/part-of=dashboard
+	// (commonLabels) onto every resource it renders — including the webhook Service and
+	// the operator ConfigMap, both of which land in the applications namespace. Teardown
+	// must skip these by kind+name so it never deletes operator-owned resources (e.g. deleting
+	// the webhook Service breaks the failurePolicy: Fail ValidatingWebhookConfiguration).
+	operatorResources := operatorOwnedResources()
+
 	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
 		if err := r.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
@@ -755,6 +804,9 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 		items := extractItems(list)
 		for i := range items {
+			if isOperatorOwned(operatorResources, kind, items[i].GetName()) {
+				continue
+			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
 			if err := r.Delete(ctx, items[i]); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err)
@@ -770,7 +822,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range deployments.Items {
 		dep := &deployments.Items[i]
-		if dep.Name == operatorDeploymentName {
+		if isOperatorOwned(operatorResources, "Deployment", dep.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
@@ -789,15 +841,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
-	operatorResources := operatorOwnedResourceNames()
-
 	var serviceAccounts corev1.ServiceAccountList
 	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
 		return fmt.Errorf("listing ServiceAccounts: %w", err)
 	}
 	for i := range serviceAccounts.Items {
 		sa := &serviceAccounts.Items[i]
-		if operatorResources[sa.Name] {
+		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
@@ -832,7 +882,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoles.Items {
 		cr := &clusterRoles.Items[i]
-		if operatorResources[cr.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
@@ -847,7 +897,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoleBindings.Items {
 		crb := &clusterRoleBindings.Items[i]
-		if operatorResources[crb.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
