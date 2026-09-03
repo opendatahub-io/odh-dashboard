@@ -118,8 +118,8 @@ func testSandboxCR(namespace, name string, extra ...func(*unstructured.Unstructu
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
 	obj.SetLabels(map[string]string{
-		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-		agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
+		agents.LabelManagedBy:    agents.ManagedByValue,
+		agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
 	})
 	obj.Object["status"] = map[string]any{
 		"phase": "Ready",
@@ -221,51 +221,7 @@ func TestClient_ListAgentsFromConditionsOnlySandboxCR(t *testing.T) {
 	assert.Equal(t, "ready", list.Items[0].Status)
 }
 
-func testOpenShellSandboxCR(namespace, name string, extra ...func(*unstructured.Unstructured)) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   sandboxGVR.Group,
-		Version: sandboxGVR.Version,
-		Kind:    "Sandbox",
-	})
-	obj.SetName(name)
-	obj.SetNamespace(namespace)
-	obj.SetLabels(map[string]string{
-		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-		agents.LabelOpenShellSandboxID: "sandbox-uuid-123",
-	})
-	obj.Object["status"] = map[string]any{
-		"phase": "Ready",
-	}
-	for _, fn := range extra {
-		fn(obj)
-	}
-	return obj
-}
-
-func TestClient_ListAgentsFromOpenShellSandboxCR(t *testing.T) {
-	namespace := "openshell-ns"
-	agentName := "openshell-agent"
-
-	sandbox := testOpenShellSandboxCR(namespace, agentName)
-	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
-	seedSandboxCR(t, dynamicClient, sandbox)
-
-	client := newTestAgentClient(t)
-	client.k8sClient = &dynamicTestK8sClient{
-		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
-		dynamic:             dynamicClient,
-	}
-
-	list, err := client.ListAgents(context.Background(), namespace)
-	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, agentName, list.Items[0].Name)
-	assert.Equal(t, agents.AgentTypeAgent, list.Items[0].ResourceType)
-	assert.Equal(t, "ready", list.Items[0].Status)
-}
-
-func TestClient_ListAgentsSkipsSandboxesWithoutOpenShellLabel(t *testing.T) {
+func TestClient_ListAgentsSkipsSandboxesWithoutManagedByLabel(t *testing.T) {
 	namespace := "shared-ns"
 	agentName := "agent-type-only"
 
@@ -290,11 +246,16 @@ func TestClient_ListAgentsSkipsSandboxesWithoutOpenShellLabel(t *testing.T) {
 	assert.Empty(t, list.Items)
 }
 
-func TestClient_GetAgentFromOpenShellSandboxCR(t *testing.T) {
-	namespace := "openshell-ns"
-	agentName := "openshell-agent"
+func TestClient_ListAgentsSkipsOpenShellOnlySandboxes(t *testing.T) {
+	namespace := "shared-ns"
+	agentName := "openshell-only-agent"
 
-	sandbox := testOpenShellSandboxCR(namespace, agentName)
+	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
+		obj.SetLabels(map[string]string{
+			"openshell.ai/managed-by": "openshell",
+		})
+	})
+
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
 	seedSandboxCR(t, dynamicClient, sandbox)
 
@@ -304,22 +265,15 @@ func TestClient_GetAgentFromOpenShellSandboxCR(t *testing.T) {
 		dynamic:             dynamicClient,
 	}
 
-	detail, err := client.GetAgent(context.Background(), namespace, agentName)
+	list, err := client.ListAgents(context.Background(), namespace)
 	require.NoError(t, err)
-	require.NotNil(t, detail)
-	assert.Equal(t, agentName, detail.Metadata.Name)
-	assert.Equal(t, agents.OpenShellManagedByValue, detail.Metadata.Labels[agents.LabelOpenShellManagedBy])
-	assert.Equal(t, "", detail.Metadata.Labels[agents.LabelAgentType])
-
-	result := mapper.AgentDetailToRuntimeDetail(detail)
-	require.NotNil(t, result)
-	assert.Equal(t, agents.AgentTypeAgent, result.Runtime.Type)
+	assert.Empty(t, list.Items)
 }
 
 func TestAgentLabelSelectors(t *testing.T) {
 	selectors := agentLabelSelectors()
 	require.Len(t, selectors, 1)
-	assert.Equal(t, fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue), selectors[0])
+	assert.Equal(t, fmt.Sprintf("%s=%s", agents.LabelManagedBy, agents.ManagedByValue), selectors[0])
 }
 
 func TestClient_GetAgentFromSandboxCR(t *testing.T) {

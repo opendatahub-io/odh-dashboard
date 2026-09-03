@@ -121,13 +121,15 @@ paths:
       summary: List agent runtimes
       description: |
         Returns deployed agent and tool runtimes from Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`)
-        labeled `openshell.ai/managed-by=openshell`.
+        labeled `app.kubernetes.io/managed-by=odh-agent-ops`.
         Results are deduplicated by namespace and name.
   /api/v1/agents/runtimes/{ns}/{name}:
     summary: Get agent runtime detail.
     description: >-
       Returns full agent detail, runtime info, workload status, service endpoints,
-      and conditions for a single deployed agent.
+      and conditions for a single deployed agent labeled
+      `app.kubernetes.io/managed-by=odh-agent-ops`. Returns 404 for sandboxes
+      without this label.
     get:
       tags:
         - AgentOperation

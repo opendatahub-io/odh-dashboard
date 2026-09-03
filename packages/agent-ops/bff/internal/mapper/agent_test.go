@@ -16,7 +16,7 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			Name:      "sample-support-agent",
 			Namespace: "agent-ops-demo",
 			Labels: map[string]string{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 			Annotations: map[string]string{
 				agents.AnnotationDescription: "Customer support agent",
@@ -57,15 +57,12 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", result.Runtime.EndpointURL)
 }
 
-func TestAgentDetailToRuntimeDetail_OpenShellDefaultsResourceType(t *testing.T) {
+func TestAgentDetailToRuntimeDetail_AlwaysReturnsAgentResourceType(t *testing.T) {
 	detail := &agents.AgentDetail{
 		Metadata: agents.AgentMetadata{
-			Name:      "openshell-agent",
-			Namespace: "openshell-ns",
-			Labels: map[string]string{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-				agents.LabelOpenShellSandboxID: "uuid-123",
-			},
+			Name:      "minimal-agent",
+			Namespace: "test-ns",
+			Labels:    map[string]string{},
 		},
 		ReadyStatus:  "Ready",
 		WorkloadType: agents.WorkloadTypeSandbox,
@@ -97,6 +94,7 @@ func TestAgentSummaryToRuntime(t *testing.T) {
 		Framework:    "langgraph",
 		Status:       "Ready",
 		ResourceType: "agent",
+		ServiceName:  "sample-support-agent",
 		ServiceFQDN:  "sample-support-agent.agent-ops-demo.svc.cluster.local",
 		Ports: []agents.AgentServicePort{
 			{Name: "http", Port: 8080},
@@ -113,6 +111,30 @@ func TestAgentSummaryToRuntime(t *testing.T) {
 	assert.Equal(t, "", runtime.EndpointURL)
 	assert.False(t, runtime.LastSyncTime.IsZero())
 	assert.Equal(t, 12, int(runtime.LastSyncTime.Day()))
+}
+
+func TestServiceNameFromSummary_PrefersServiceName(t *testing.T) {
+	item := agents.AgentSummary{
+		Name:        "sandbox-name",
+		ServiceName: "actual-svc",
+		ServiceFQDN: "different.ns.svc.cluster.local",
+	}
+	assert.Equal(t, "actual-svc", serviceNameFromSummary(item))
+}
+
+func TestServiceNameFromSummary_FallsBackToFQDN(t *testing.T) {
+	item := agents.AgentSummary{
+		Name:        "sandbox-name",
+		ServiceFQDN: "from-fqdn.ns.svc.cluster.local",
+	}
+	assert.Equal(t, "from-fqdn", serviceNameFromSummary(item))
+}
+
+func TestServiceNameFromSummary_FallsBackToName(t *testing.T) {
+	item := agents.AgentSummary{
+		Name: "sandbox-name",
+	}
+	assert.Equal(t, "sandbox-name", serviceNameFromSummary(item))
 }
 
 func TestParseTime(t *testing.T) {

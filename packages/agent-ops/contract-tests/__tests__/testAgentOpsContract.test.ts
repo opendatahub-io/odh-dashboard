@@ -75,6 +75,114 @@ describe('Agent Ops API Contract Tests', () => {
     });
   });
 
+  (clusterMode ? describe.skip : describe)('Agent Runtime Detail Endpoint (mock)', () => {
+    it('should return runtime detail for a pre-seeded agent', async () => {
+      const result = await apiClient.get(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent',
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/AgentRuntimeDetailResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 404 for a non-existent agent', async () => {
+      const result = await apiClient.get('/api/v1/agents/runtimes/agent-ops-demo/no-such-agent');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(404);
+      }
+    });
+  });
+
+  (clusterMode ? describe.skip : describe)('Agent Lifecycle Endpoints', () => {
+    it('should stop a running agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent/stop',
+        undefined,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LifecycleResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 409 when stopping an already-stopped agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent/stop',
+        undefined,
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(409);
+      }
+    });
+
+    it('should start a stopped agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent/start',
+        undefined,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LifecycleResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 409 when starting an already-running agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent/start',
+        undefined,
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(409);
+      }
+    });
+
+    it('should restart a running agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent/restart',
+        undefined,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/LifecycleResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 404 when stopping a non-existent agent', async () => {
+      const result = await apiClient.post(
+        '/api/v1/agents/runtimes/agent-ops-demo/no-such-agent/stop',
+        undefined,
+      );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(404);
+      }
+    });
+  });
+
+  (clusterMode ? describe.skip : describe)('Delete Agent Endpoint', () => {
+    it('should delete a pre-seeded agent', async () => {
+      const result = await apiClient.delete(
+        '/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent',
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.status).toBe(204);
+      }
+    });
+
+    it('should return 404 when deleting a non-existent agent', async () => {
+      const result = await apiClient.delete('/api/v1/agents/runtimes/agent-ops-demo/no-such-agent');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(404);
+      }
+    });
+  });
+
   describe('Deploy Agent Endpoint', () => {
     it('should deploy an agent with minimal params', async () => {
       const result = await apiClient.post('/api/v1/agents/deploy', {

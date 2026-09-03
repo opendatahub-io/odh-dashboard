@@ -113,7 +113,7 @@ func TestDeployAgent_CreatesSandboxCR(t *testing.T) {
 	sandbox, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "my-agent", metav1.GetOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, "Sandbox", sandbox.GetKind())
-	assert.Equal(t, managedByValue, sandbox.GetLabels()[labelManagedBy])
+	assert.Equal(t, agents.ManagedByValue, sandbox.GetLabels()[agents.LabelManagedBy])
 
 	spec := sandbox.Object["spec"].(map[string]any)
 	assert.Equal(t, "Running", spec["operatingMode"])
@@ -143,7 +143,7 @@ func TestDeployAgent_AlreadyExistsManaged(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": ns,
 			"labels": map[string]any{
-				labelManagedBy: managedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 		},
 	}}
@@ -173,7 +173,7 @@ func TestDeployAgent_AlreadyExistsReuses(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": ns,
 			"labels": map[string]any{
-				labelManagedBy: "some-other-tool",
+				agents.LabelManagedBy: "some-other-tool",
 			},
 		},
 	}}
@@ -201,7 +201,7 @@ func TestDeleteAgent_Success(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": ns,
 			"labels": map[string]any{
-				labelManagedBy: managedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 		},
 	}}
@@ -234,7 +234,7 @@ func TestDeleteAgent_Unmanaged(t *testing.T) {
 			"name":      "foreign-agent",
 			"namespace": ns,
 			"labels": map[string]any{
-				labelManagedBy: "some-other-tool",
+				agents.LabelManagedBy: "some-other-tool",
 			},
 		},
 	}}
@@ -250,7 +250,7 @@ func TestDeleteAgent_Unmanaged(t *testing.T) {
 
 func TestDeployAgent_FullParams(t *testing.T) {
 	ns := "test-ns"
-	client, _ := newDeployTestClient(t,
+	client, dynamicClient := newDeployTestClient(t,
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
 	)
 
@@ -275,4 +275,153 @@ func TestDeployAgent_FullParams(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "full-agent", result.Name)
 	assert.Equal(t, ns, result.Namespace)
+
+	sandbox, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "full-agent", metav1.GetOptions{})
+	require.NoError(t, err)
+
+	labels := sandbox.GetLabels()
+	assert.Equal(t, agents.ManagedByValue, labels[agents.LabelManagedBy])
+	assert.Equal(t, agents.AgentTypeAgent, labels[agents.LabelAgentType])
+	assert.Equal(t, agents.WorkloadTypeSandbox, labels[agents.LabelWorkloadType])
+	assert.Equal(t, "full-agent", labels["app.kubernetes.io/name"])
+	assert.Equal(t, "agent", labels["app.kubernetes.io/component"])
+	assert.Empty(t, labels["openshell.ai/managed-by"], "must not contain openshell labels")
+
+	annotations := sandbox.GetAnnotations()
+	assert.Equal(t, "Full test agent", annotations[agents.AnnotationDescription])
+	assert.Equal(t, "a2a", annotations[agents.AnnotationProtocol])
+	assert.Equal(t, "langgraph", annotations[agents.AnnotationFramework])
+	assert.Equal(t, "quay.io/example/full-agent:v2.0.0", annotations[agents.AnnotationImageRef])
+
+	spec := sandbox.Object["spec"].(map[string]any)
+	podSpec := spec["podTemplate"].(map[string]any)["spec"].(map[string]any)
+	container := podSpec["containers"].([]any)[0].(map[string]any)
+	assert.Equal(t, "quay.io/example/full-agent:v2.0.0", container["image"])
+
+	ports := container["ports"].([]any)
+	require.Len(t, ports, 1)
+	assert.Equal(t, int64(9000), ports[0].(map[string]any)["containerPort"])
+
+	envVars := container["env"].([]any)
+	envMap := make(map[string]string)
+	for _, ev := range envVars {
+		e := ev.(map[string]any)
+		envMap[e["name"].(string)] = e["value"].(string)
+	}
+	assert.Equal(t, "debug", envMap["LOG_LEVEL"])
+	assert.Contains(t, envMap, "AGENT_ENDPOINT")
+	assert.Contains(t, envMap, "HOST")
+	assert.Contains(t, envMap, "PORT")
+
+	secrets := podSpec["imagePullSecrets"].([]any)
+	require.Len(t, secrets, 1)
+	assert.Equal(t, "my-pull-secret", secrets[0].(map[string]any)["name"])
+}
+
+func seedSandboxWithMode(t *testing.T, dynamicClient *fakedynamic.FakeDynamicClient, ns, name, mode string) {
+	t.Helper()
+	obj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
+		"kind":       "Sandbox",
+		"metadata": map[string]any{
+			"name":      name,
+			"namespace": ns,
+		},
+		"spec": map[string]any{
+			"operatingMode": mode,
+		},
+		"status": map[string]any{
+			"selector": "app=" + name,
+		},
+	}}
+	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), obj, metav1.CreateOptions{})
+	require.NoError(t, err)
+}
+
+func TestStopAgent_Success(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "Running")
+
+	err := client.StopAgent(context.Background(), ns, "my-agent")
+	require.NoError(t, err)
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "my-agent", metav1.GetOptions{})
+	require.NoError(t, err)
+	mode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	assert.Equal(t, "Suspended", mode)
+}
+
+func TestStopAgent_NotFound(t *testing.T) {
+	client, _ := newDeployTestClient(t)
+	err := client.StopAgent(context.Background(), "test-ns", "missing")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
+}
+
+func TestStopAgent_AlreadyStopped(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "Suspended")
+
+	err := client.StopAgent(context.Background(), ns, "my-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrConflict)
+}
+
+func TestStartAgent_Success(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "Suspended")
+
+	err := client.StartAgent(context.Background(), ns, "my-agent")
+	require.NoError(t, err)
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "my-agent", metav1.GetOptions{})
+	require.NoError(t, err)
+	mode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	assert.Equal(t, "Running", mode)
+}
+
+func TestStartAgent_NotFound(t *testing.T) {
+	client, _ := newDeployTestClient(t)
+	err := client.StartAgent(context.Background(), "test-ns", "missing")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
+}
+
+func TestStartAgent_AlreadyRunning(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "Running")
+
+	err := client.StartAgent(context.Background(), ns, "my-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrConflict)
+}
+
+func TestStartAgent_AlreadyRunningEmptyMode(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "")
+
+	err := client.StartAgent(context.Background(), ns, "my-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrConflict)
+}
+
+func TestRestartAgent_Success(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+	seedSandboxWithMode(t, dynamicClient, ns, "my-agent", "Running")
+
+	err := client.RestartAgent(context.Background(), ns, "my-agent")
+	require.NoError(t, err)
+}
+
+func TestRestartAgent_NotFound(t *testing.T) {
+	client, _ := newDeployTestClient(t)
+	err := client.RestartAgent(context.Background(), "test-ns", "missing")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
 }

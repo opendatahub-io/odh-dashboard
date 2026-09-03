@@ -111,7 +111,7 @@ func TestGetAgentDetailDoesNotFallBackToDeployment(t *testing.T) {
 	require.ErrorIs(t, err, agents.ErrNotFound)
 }
 
-func TestGetAgentDetailReturnsUnlabeledSandbox(t *testing.T) {
+func TestGetAgentDetailRejectsUnlabeledSandbox(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "unlabeled-sandbox"
 
@@ -127,10 +127,8 @@ func TestGetAgentDetailReturnsUnlabeledSandbox(t *testing.T) {
 		dynamic:             dynamicClient,
 	}
 
-	detail, err := client.GetAgent(context.Background(), namespace, agentName)
-	require.NoError(t, err)
-	require.NotNil(t, detail)
-	assert.Equal(t, agentName, detail.Metadata.Name)
+	_, err := client.GetAgent(context.Background(), namespace, agentName)
+	require.ErrorIs(t, err, agents.ErrNotFound)
 }
 
 func TestGetAgentDetailReturnsForbiddenWhenSandboxGetDenied(t *testing.T) {

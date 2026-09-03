@@ -13,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Client reads agent Sandbox CRs from the Kubernetes API.
@@ -101,7 +102,11 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 				continue
 			}
 			seen[name] = struct{}{}
-			service := mapService(c.getServiceBestEffort(ctx, namespace, name))
+			svcName := sandboxServiceName(sandbox)
+			if svcName == "" {
+				svcName = name
+			}
+			service := mapService(c.getServiceBestEffort(ctx, namespace, svcName))
 			summaries = append(summaries, sandboxToSummary(sandbox, service))
 		}
 	}
@@ -133,7 +138,15 @@ func (c *Client) getAgentDetail(ctx context.Context, namespace, name string) (*a
 		return nil, fmt.Errorf("failed to get sandbox %q in namespace %q: %w", name, namespace, err)
 	}
 
-	service := mapService(c.getServiceBestEffort(ctx, namespace, name))
+	if !isManagedSandbox(obj) {
+		return nil, agents.ErrNotFound
+	}
+
+	svcName := sandboxServiceName(*obj)
+	if svcName == "" {
+		svcName = name
+	}
+	service := mapService(c.getServiceBestEffort(ctx, namespace, svcName))
 	detail := sandboxToDetail(*obj, service)
 	return detail, nil
 }
@@ -163,6 +176,14 @@ func requestIdentityFromContext(ctx context.Context) (*k8s.RequestIdentity, erro
 		return nil, errors.New("invalid RequestIdentity in context")
 	}
 	return identity, nil
+}
+
+// isManagedSandbox returns true when the sandbox carries the managed-by label
+// that matches the list selector. This keeps the detail endpoint consistent
+// with list: only sandboxes deployed through agent-ops are surfaced.
+func isManagedSandbox(obj *unstructured.Unstructured) bool {
+	labels := obj.GetLabels()
+	return labels[agents.LabelManagedBy] == agents.ManagedByValue
 }
 
 func isRetryableListError(err error) bool {

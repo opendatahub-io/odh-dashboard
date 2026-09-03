@@ -39,8 +39,8 @@ func TestSandboxToSummary(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": "test-ns",
 			"labels": map[string]any{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-				agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
+				agents.LabelManagedBy:    agents.ManagedByValue,
+				agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
 			},
 			"annotations": map[string]any{
 				agents.AnnotationDisplayName: "My Agent",
@@ -64,16 +64,15 @@ func TestSandboxToSummary(t *testing.T) {
 	assert.Equal(t, agents.AgentTypeAgent, summary.ResourceType)
 }
 
-func TestSandboxToSummaryOpenShellDefaultsResourceType(t *testing.T) {
+func TestSandboxToSummaryAlwaysReturnsAgentResourceType(t *testing.T) {
 	sandbox := unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
 		"kind":       "Sandbox",
 		"metadata": map[string]any{
-			"name":      "openshell-agent",
-			"namespace": "openshell-ns",
+			"name":      "minimal-agent",
+			"namespace": "test-ns",
 			"labels": map[string]any{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-				agents.LabelOpenShellSandboxID: "uuid-123",
+				"some-other-label": "some-value",
 			},
 		},
 		"status": map[string]any{
@@ -82,7 +81,7 @@ func TestSandboxToSummaryOpenShellDefaultsResourceType(t *testing.T) {
 	}}
 
 	summary := sandboxToSummary(sandbox, nil)
-	assert.Equal(t, "openshell-agent", summary.Name)
+	assert.Equal(t, "minimal-agent", summary.Name)
 	assert.Equal(t, agents.AgentTypeAgent, summary.ResourceType)
 }
 
@@ -94,7 +93,7 @@ func TestSandboxToDetail(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": "test-ns",
 			"labels": map[string]any{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 			"annotations": map[string]any{
 				agents.AnnotationDescription: "Detail agent",
@@ -120,6 +119,7 @@ func TestSandboxToDetail(t *testing.T) {
 		},
 		"status": map[string]any{
 			"phase":       "Ready",
+			"service":     "my-agent",
 			"serviceFQDN": "my-agent.test-ns.svc.cluster.local",
 		},
 	}}
@@ -130,6 +130,7 @@ func TestSandboxToDetail(t *testing.T) {
 	assert.Equal(t, "Detail agent", detail.Metadata.Annotations[agents.AnnotationDescription])
 	assert.Equal(t, "crewai", detail.Framework)
 	assert.Equal(t, "quay.io/example/agent:1.0", detail.ContainerImage)
+	assert.Equal(t, "my-agent", detail.ServiceName)
 	assert.Equal(t, "my-agent.test-ns.svc.cluster.local", detail.ServiceFQDN)
 	assert.Equal(t, agents.WorkloadTypeSandbox, detail.WorkloadType)
 	assert.Equal(t, "ready", detail.ReadyStatus)
@@ -263,7 +264,7 @@ func TestSandboxToSummaryAndDetailFromConditionsOnly(t *testing.T) {
 			"name":      "weatherservice",
 			"namespace": "dan",
 			"labels": map[string]any{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 		},
 		"spec": map[string]any{"operatingMode": "Running"},
@@ -312,6 +313,44 @@ func TestServiceNameFromFQDN(t *testing.T) {
 	assert.Equal(t, "my-agent", serviceNameFromFQDN("my-agent.test-ns.svc.cluster.local"))
 	assert.Equal(t, "backing-svc", serviceNameFromFQDN("backing-svc.test-ns.svc.cluster.local."))
 	assert.Equal(t, "", serviceNameFromFQDN(""))
+}
+
+func TestSandboxServiceName(t *testing.T) {
+	t.Run("prefers status.service over FQDN parsing", func(t *testing.T) {
+		sandbox := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "x", "namespace": "ns"},
+			"status": map[string]any{
+				"service":     "actual-svc",
+				"serviceFQDN": "different-name.ns.svc.cluster.local",
+			},
+		}}
+		assert.Equal(t, "actual-svc", sandboxServiceName(sandbox))
+	})
+
+	t.Run("falls back to FQDN when status.service absent", func(t *testing.T) {
+		sandbox := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "x", "namespace": "ns"},
+			"status": map[string]any{
+				"serviceFQDN": "from-fqdn.ns.svc.cluster.local",
+			},
+		}}
+		assert.Equal(t, "from-fqdn", sandboxServiceName(sandbox))
+	})
+
+	t.Run("returns empty when neither field set", func(t *testing.T) {
+		sandbox := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "x", "namespace": "ns"},
+			"status":   map[string]any{},
+		}}
+		assert.Equal(t, "", sandboxServiceName(sandbox))
+	})
+
+	t.Run("returns empty when no status", func(t *testing.T) {
+		sandbox := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "x", "namespace": "ns"},
+		}}
+		assert.Equal(t, "", sandboxServiceName(sandbox))
+	})
 }
 
 func TestSandboxEndpointURLUsesServiceNameFromFQDN(t *testing.T) {

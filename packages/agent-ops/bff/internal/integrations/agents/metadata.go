@@ -15,22 +15,18 @@ const (
 	AnnotationFramework = "opendatahub.io/agent-framework"
 	AnnotationImageRef  = "opendatahub.io/agent-image"
 
-	LabelOpenShellManagedBy = "openshell.ai/managed-by"
-	OpenShellManagedByValue = "openshell"
-	LabelOpenShellSandboxID = "openshell.ai/sandbox-id"
+	LabelManagedBy = "app.kubernetes.io/managed-by"
+	ManagedByValue = "odh-agent-ops"
 
 	AgentTypeAgent = "agent"
 
 	WorkloadTypeSandbox = "sandbox"
 )
 
-// ResolveAgentResourceType returns the agent resource type from sandbox labels.
-// Discovery is OpenShell-only; sandboxes with openshell.ai/managed-by=openshell are agents.
-func ResolveAgentResourceType(labels map[string]string) string {
-	if labels[LabelOpenShellManagedBy] == OpenShellManagedByValue {
-		return AgentTypeAgent
-	}
-	return ""
+// ResolveAgentResourceType returns the resource type for any Sandbox CR the BFF lists.
+// The label selector on list calls already gates ownership, so every listed CR is an agent.
+func ResolveAgentResourceType(_ map[string]string) string {
+	return AgentTypeAgent
 }
 
 const (

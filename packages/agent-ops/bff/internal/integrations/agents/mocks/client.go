@@ -102,7 +102,7 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			Name:      params.Name,
 			Namespace: params.Namespace,
 			Labels: map[string]string{
-				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelManagedBy: agents.ManagedByValue,
 			},
 		},
 		WorkloadType: agents.WorkloadTypeSandbox,

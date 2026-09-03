@@ -98,7 +98,7 @@ export const mockAgentRuntimeDetail = (
     serviceFqdn: runtime.serviceFqdn,
     containerImage: 'quay.io/example/support-agent:latest',
     labels: {
-      'openshell.ai/managed-by': 'openshell',
+      'app.kubernetes.io/managed-by': 'odh-agent-ops',
     },
     annotations: {
       'openshift.io/display-name': runtime.displayName,

@@ -7,21 +7,16 @@ import (
 )
 
 func TestResolveAgentResourceType(t *testing.T) {
-	t.Run("returns agent for OpenShell managed-by", func(t *testing.T) {
+	t.Run("always returns agent", func(t *testing.T) {
 		labels := map[string]string{
-			LabelOpenShellManagedBy: OpenShellManagedByValue,
+			LabelAgentType:  AgentTypeAgent,
+			LabelManagedBy:  ManagedByValue,
+			"arbitrary-key": "arbitrary-value",
 		}
 		assert.Equal(t, AgentTypeAgent, ResolveAgentResourceType(labels))
 	})
 
-	t.Run("ignores agent-type label without OpenShell managed-by", func(t *testing.T) {
-		labels := map[string]string{
-			LabelAgentType: AgentTypeAgent,
-		}
-		assert.Equal(t, "", ResolveAgentResourceType(labels))
-	})
-
-	t.Run("returns empty when no OpenShell discovery labels", func(t *testing.T) {
-		assert.Equal(t, "", ResolveAgentResourceType(map[string]string{"foo": "bar"}))
+	t.Run("returns agent with empty labels", func(t *testing.T) {
+		assert.Equal(t, AgentTypeAgent, ResolveAgentResourceType(nil))
 	})
 }

@@ -28,7 +28,7 @@ const (
 
 func agentLabelSelectors() []string {
 	return []string{
-		fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue),
+		fmt.Sprintf("%s=%s", agents.LabelManagedBy, agents.ManagedByValue),
 	}
 }
 
@@ -53,6 +53,7 @@ func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentSe
 		StatusMessage: sandboxConditionMessage(sandbox),
 		ResourceType:  agents.ResolveAgentResourceType(labels),
 		WorkloadType:  agents.WorkloadTypeSandbox,
+		ServiceName:   sandboxServiceName(sandbox),
 		ServiceFQDN:   serviceFQDN,
 		PodIP:         sandboxPodIP(sandbox),
 		Ports:         append([]agents.AgentServicePort(nil), ports...),
@@ -83,6 +84,7 @@ func sandboxToDetail(sandbox unstructured.Unstructured, service *agents.AgentSer
 		DisplayName:    mapper.AgentDisplayName(annotations, sandbox.GetName()),
 		Framework:      mapper.AgentFramework(annotations),
 		ContainerImage: mapper.ContainerImageFromSpec(spec),
+		ServiceName:    sandboxServiceName(sandbox),
 		ServiceFQDN:    sandboxServiceFQDN(sandbox),
 		WorkloadType:   agents.WorkloadTypeSandbox,
 		ReadyStatus:    sandboxPhase(sandbox),
@@ -189,11 +191,7 @@ func normalizeSandboxPhase(phase string) string {
 }
 
 func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.AgentService {
-	fqdn := sandboxServiceFQDN(sandbox)
-	if fqdn == "" {
-		return nil
-	}
-	serviceName := serviceNameFromFQDN(fqdn)
+	serviceName := sandboxServiceName(sandbox)
 	if serviceName == "" {
 		return nil
 	}
@@ -251,6 +249,17 @@ func sandboxPodIP(sandbox unstructured.Unstructured) string {
 		}
 	}
 	return stringField(status["podIP"])
+}
+
+func sandboxServiceName(sandbox unstructured.Unstructured) string {
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	if name := stringField(status["service"]); name != "" {
+		return name
+	}
+	return serviceNameFromFQDN(stringField(status["serviceFQDN"]))
 }
 
 func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {

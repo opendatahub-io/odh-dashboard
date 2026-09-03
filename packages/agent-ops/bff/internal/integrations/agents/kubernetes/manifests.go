@@ -9,11 +9,9 @@ import (
 )
 
 const (
-	labelManagedBy = "app.kubernetes.io/managed-by"
 	labelAppName   = "app.kubernetes.io/name"
 	labelComponent = "app.kubernetes.io/component"
 
-	managedByValue = "odh-agent-ops"
 	componentValue = "agent"
 	containerName  = "agent"
 
@@ -47,12 +45,11 @@ func buildSandboxCR(params *agents.DeployAgentParams) *unstructured.Unstructured
 	}
 
 	labels := map[string]any{
-		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
-		agents.LabelAgentType:          agents.AgentTypeAgent,
-		agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
-		labelManagedBy:                 managedByValue,
-		labelAppName:                   params.Name,
-		labelComponent:                 componentValue,
+		agents.LabelManagedBy:    agents.ManagedByValue,
+		agents.LabelAgentType:    agents.AgentTypeAgent,
+		agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
+		labelAppName:             params.Name,
+		labelComponent:           componentValue,
 	}
 
 	annotations := map[string]any{

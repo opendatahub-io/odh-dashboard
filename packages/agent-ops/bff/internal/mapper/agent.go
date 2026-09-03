@@ -193,6 +193,9 @@ func serviceFQDNFromStatus(status map[string]any) string {
 }
 
 func serviceNameFromSummary(item agents.AgentSummary) string {
+	if item.ServiceName != "" {
+		return item.ServiceName
+	}
 	if name := serviceNameFromFQDN(item.ServiceFQDN); name != "" {
 		return name
 	}

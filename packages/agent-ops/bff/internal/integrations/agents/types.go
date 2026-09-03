@@ -18,6 +18,7 @@ type AgentSummary struct {
 	StatusMessage string
 	ResourceType  string
 	WorkloadType  string
+	ServiceName   string
 	ServiceFQDN   string
 	PodIP         string
 	Ports         []AgentServicePort
@@ -34,6 +35,7 @@ type AgentDetail struct {
 	DisplayName        string
 	Framework          string
 	ContainerImage     string
+	ServiceName        string
 	ServiceFQDN        string
 	WorkloadType       string
 	ReadyStatus        string
