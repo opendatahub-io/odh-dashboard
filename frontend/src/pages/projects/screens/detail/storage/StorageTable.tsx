@@ -10,6 +10,7 @@ import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import { StorageTableData } from './types';
 import ClusterStorageModal from './ClusterStorageModal';
+import { useStorageContextType } from './useStorageContextType';
 
 type StorageTableProps = {
   pvcs: PersistentVolumeClaimKind[];
@@ -22,6 +23,7 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const [editPVC, setEditPVC] = React.useState<PersistentVolumeClaimKind | undefined>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const [storageContextTypes, storageContextTypesLoaded] = useStorageContextType();
   const [alertDismissed, setAlertDismissed] = React.useState<boolean>(false);
   const storageTableData: StorageTableData[] = pvcs.map((pvc) => ({
     pvc,
@@ -40,10 +42,10 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   const getStorageColumns = () => {
-    let storageColumns = columns;
+    let storageColumns = columns({ storageContextTypes });
 
     if (!isStorageClassesAvailable) {
-      storageColumns = columns.filter((column) => column.field !== 'storage');
+      storageColumns = storageColumns.filter((column) => column.field !== 'storage');
     }
 
     if (!workbenchEnabled) {
@@ -83,6 +85,8 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
             key={data.pvc.metadata.uid}
             rowIndex={i}
             obj={data}
+            storageContextTypes={storageContextTypes}
+            storageContextTypesLoaded={storageContextTypesLoaded}
             storageClassesLoaded={storageClassesLoaded}
             onEditPVC={setEditPVC}
             onDeletePVC={setDeleteStorage}
