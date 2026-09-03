@@ -184,6 +184,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       tags: [
         '@Sanity',
         '@SanitySet1',
+        '@GenAI',
         '@PromptManagement',
         '@MLflow',
         '@NonConcurrent',
