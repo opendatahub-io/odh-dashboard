@@ -14,6 +14,7 @@ import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8s
 import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { LocalQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import {
   NotebookModel,
@@ -21,7 +22,6 @@ import {
   PVCModel,
   ProjectModel,
   HardwareProfileModel,
-  LocalQueueModel,
 } from '../../../../utils/models';
 import { be } from '../../../../utils/should';
 import { verifyRelativeURL } from '../../../../utils/url';

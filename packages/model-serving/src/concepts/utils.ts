@@ -3,7 +3,7 @@ import type { PodKind } from '@odh-dashboard/k8s-core';
 import {
   KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT,
   type KueueWorkloadStatusWithMessage,
-} from '@odh-dashboard/internal/concepts/kueue/types';
+} from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
 const isKueuePreAdmissionBlocking = (
