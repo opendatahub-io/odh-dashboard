@@ -39,8 +39,6 @@ type HandlersProps = {
 
 const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) => {
   cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
-  // The cluster storage table fetches serving runtimes and inference services (KServe
-  // connected-resources extension) to show which deployments use each PVC.
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
