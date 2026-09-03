@@ -78,13 +78,24 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Contains(t, errResp["error"].(map[string]interface{})["message"], "messages")
 	})
 
-	It("should proxy streaming request successfully", func() {
+	It("should proxy streaming request successfully and forward chunks as separate writes", func() {
 		t := GinkgoT()
 
+		// Send two SSE events as separate Flush calls so the proxy must forward
+		// at least two distinct writes — a single buffered write would pass the
+		// body/status assertions below but prove nothing about streaming behaviour.
 		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, "data: {\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\"}\n\ndata: [DONE]\n\n")
+			flusher, ok := w.(http.Flusher)
+			fmt.Fprint(w, "data: {\"id\":\"chatcmpl-1\",\"object\":\"chat.completion.chunk\"}\n\n")
+			if ok {
+				flusher.Flush()
+			}
+			fmt.Fprint(w, "data: [DONE]\n\n")
+			if ok {
+				flusher.Flush()
+			}
 		}))
 		defer upstream.Close()
 
@@ -102,11 +113,12 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		req = req.WithContext(ctx)
 
 		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
-		rr := httptest.NewRecorder()
-		app.GenAIProxyNSChatCompletionsHandler(rr, req, params)
+		crr := &countingResponseRecorder{ResponseRecorder: httptest.NewRecorder()}
+		app.GenAIProxyNSChatCompletionsHandler(crr, req, params)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Contains(t, rr.Body.String(), "chat.completion.chunk")
+		assert.Equal(t, http.StatusOK, crr.Code)
+		assert.Contains(t, crr.Body.String(), "chat.completion.chunk")
+		assert.Greater(t, crr.writeCount, 1, "streaming proxy must forward upstream chunks as separate writes, not buffer into one")
 	})
 
 	It("should return 400 when messages is not a JSON array", func() {
@@ -244,6 +256,19 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Contains(t, rr.Body.String(), "chatcmpl-123")
 	})
 })
+
+// countingResponseRecorder wraps httptest.ResponseRecorder and counts the number
+// of Write calls so tests can assert that a streaming proxy forwards multiple
+// upstream chunks as separate writes rather than buffering everything.
+type countingResponseRecorder struct {
+	*httptest.ResponseRecorder
+	writeCount int
+}
+
+func (c *countingResponseRecorder) Write(b []byte) (int, error) {
+	c.writeCount++
+	return c.ResponseRecorder.Write(b)
+}
 
 // redirectTransport intercepts all HTTP requests and rewrites their URL to point
 // at a local test server, preserving the original path and query.

@@ -2193,7 +2193,20 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		kc.Logger.Info("Added remote::passthrough provider (Responses API resolves models per-request, supports zero restart)",
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
-		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured)")
+		// Without GatewayDomain the remote::passthrough provider cannot be registered,
+		// so non-embedding inference models would be validated but never routable.
+		// Fail fast rather than installing an OGX server that cannot serve inference.
+		for _, m := range installModels {
+			if m.ModelType != string(models.ModelTypeTranscription) &&
+				m.ModelType != string(models.ModelTypeEmbedding) {
+				return "", fmt.Errorf(
+					"cannot install inference model %q: GATEWAY_DOMAIN is not configured, "+
+						"which is required to register the remote::passthrough inference provider",
+					m.ModelName,
+				)
+			}
+		}
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured, no inference models requested)")
 	}
 
 	// Optionally enable RBAC authentication using Kubernetes auth provider.
