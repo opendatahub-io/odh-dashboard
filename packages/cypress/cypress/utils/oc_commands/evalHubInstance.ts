@@ -85,20 +85,44 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
   return cy.exec(cmd, { failOnNonZeroExit: false });
 };
 
+const waitForEvaluationJobsCreated = (
+  namespace: string,
+  timeoutMs: number,
+): Cypress.Chainable<Cypress.Exec> => {
+  const pollIntervalMs = 10000;
+  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+
+  return pollUntilSuccess(
+    `oc get jobs -n ${namespace} -o json | jq -e '(.items | length) > 0'`,
+    `Evaluation jobs created in ${namespace}`,
+    { maxAttempts, pollIntervalMs },
+  );
+};
+
 /**
- * Polls until ALL Jobs in the namespace have finished (no active pods remaining).
- * Works for both single-benchmark runs (1 job) and benchmark suite runs (N jobs).
+ * Polls until all evaluation Jobs in the namespace have reached a terminal state.
+ *
+ * The first poll requires a Job to exist so an empty namespace cannot be treated as
+ * a completed evaluation. Once a Job has been observed, an empty list is accepted
+ * because the Kubernetes TTL controller may delete completed Jobs before the next poll.
+ * Works for both single-benchmark runs (1 Job) and benchmark suite runs (N Jobs).
  */
 export const waitForEvaluationJobComplete = (
   namespace: string,
   timeoutMs = 900000,
 ): Cypress.Chainable<Cypress.Exec> => {
   const pollIntervalMs = 10000;
-  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+  const startTime = Date.now();
+  const creationTimeoutMs = Math.min(timeoutMs, 120000);
 
-  return pollUntilSuccess(
-    `oc get jobs -n ${namespace} -o json | jq -e '(.items | length) > 0 and ([.items[] | (.status.active // 0)] | all(. == 0))'`,
-    `All evaluation jobs complete in ${namespace}`,
-    { maxAttempts, pollIntervalMs },
-  );
+  return waitForEvaluationJobsCreated(namespace, creationTimeoutMs).then(() => {
+    const remainingTimeoutMs = Math.max(timeoutMs - (Date.now() - startTime), pollIntervalMs);
+    const maxAttempts = Math.ceil(remainingTimeoutMs / pollIntervalMs);
+
+    return pollUntilSuccess(
+      `oc get jobs -n ${namespace} -o json | jq -e '(.items | length) == 0 or ([.items[] | any(.status.conditions[]?; (.status == "True" and (.type == "Complete" or .type == "Failed")))] | all)'`,
+      `All evaluation jobs complete in ${namespace}`,
+      { maxAttempts, pollIntervalMs },
+    );
+  });
 };

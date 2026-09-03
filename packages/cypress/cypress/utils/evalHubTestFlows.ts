@@ -154,14 +154,14 @@ export const verifyEvaluationCompletedAndViewResults = (
 
   cy.step('Verify About this result popover opens');
   evaluationResultsPage.findFirstAboutResultButton().click();
-  cy.findByRole('dialog').should('be.visible');
-  cy.findByRole('dialog').find('button[aria-label="Close"]').click();
+  evaluationResultsPage.findAboutResultDialog().should('be.visible');
+  evaluationResultsPage.closeAboutResultDialog();
 
   cy.step('Open event log modal and verify it renders');
   evaluationResultsPage.findViewLogButton().click();
   evaluationResultsPage.findEventLogModal().should('be.visible');
   evaluationResultsPage.findLogContent().should('be.visible');
-  evaluationResultsPage.findEventLogModal().find('button[aria-label="Close"]').click();
+  evaluationResultsPage.closeEventLogModal();
 
   cy.step('Return to evaluations list and verify Complete status');
   cy.visitWithLogin(

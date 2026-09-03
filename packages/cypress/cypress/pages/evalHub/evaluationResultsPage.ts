@@ -63,8 +63,20 @@ class EvaluationResultsPage {
     return cy.get('[data-testid^="about-result-"]').first();
   }
 
+  findAboutResultDialog() {
+    return cy.findByRole('dialog');
+  }
+
+  closeAboutResultDialog(): void {
+    this.findAboutResultDialog().findByRole('button', { name: 'Close' }).click();
+  }
+
   findEventLogModal() {
     return cy.findByTestId('evaluation-event-log-modal');
+  }
+
+  closeEventLogModal(): void {
+    this.findEventLogModal().findByRole('button', { name: 'Close' }).click();
   }
 
   findLogContent() {
