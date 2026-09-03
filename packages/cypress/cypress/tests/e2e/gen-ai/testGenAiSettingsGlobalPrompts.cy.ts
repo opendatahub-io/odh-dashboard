@@ -24,7 +24,7 @@ import {
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { createCleanProject, findActiveProjectByPrefix } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
 import {
   chatbotPromptModal,
@@ -64,35 +64,30 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       })
       .then(() => {
         const prefix = testData.projectNamePrefix;
-        return cy
-          .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
-            failOnNonZeroExit: false,
-          })
-          .then((result) => {
-            const existing = result.stdout.split(' ').find((name) => name.startsWith(prefix));
-            if (existing) {
-              projectName = existing;
-              cy.log(`Reusing existing project: ${projectName}`);
-            } else {
-              projectName = `${prefix}-${uuid}`;
-              cy.step(`Create project ${projectName}`);
-              createCleanProject(projectName);
-              waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
-            }
+        return findActiveProjectByPrefix(prefix).then((existing) => {
+          if (existing) {
+            projectName = existing;
+            cy.log(`Reusing existing project: ${projectName}`);
+          } else {
+            projectName = `${prefix}-${uuid}`;
+            cy.step(`Create project ${projectName}`);
+            createCleanProject(projectName);
+            waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+          }
 
-            return cy
-              .exec(`oc get inferenceservices -n ${projectName} --no-headers 2>/dev/null | wc -l`, {
-                failOnNonZeroExit: false,
-              })
-              .then((isResult) => {
-                if (parseInt(isResult.stdout.trim(), 10) > 0) {
-                  cy.log('Model already deployed');
-                  return;
-                }
-                cy.step('Deploy Gen AI model');
-                deployGenAiModel(projectName, testData);
-              });
-          });
+          return cy
+            .exec(`oc get inferenceservices -n ${projectName} --no-headers 2>/dev/null | wc -l`, {
+              failOnNonZeroExit: false,
+            })
+            .then((isResult) => {
+              if (parseInt(isResult.stdout.trim(), 10) > 0) {
+                cy.log('Model already deployed');
+                return;
+              }
+              cy.step('Deploy Gen AI model');
+              deployGenAiModel(projectName, testData);
+            });
+        });
       })
       .then(() => {
         cy.step('Enable prompt management features');

@@ -31,6 +31,48 @@ export const cleanupTestProject = (projectName: string): void => {
   });
 };
 
+/**
+ * Find an existing project matching a name prefix that is safe to reuse.
+ *
+ * A plain `oc get projects` name match is not enough: another spec sharing the
+ * same prefix (e.g. NonConcurrent Gen AI tests) may have just deleted it in
+ * its `after()` hook, leaving the namespace in a `Terminating` state that
+ * still shows up in the list but will reject further `oc apply`/`oc exec`
+ * calls. Only a project whose phase is `Active` is safe to reuse.
+ *
+ * @param prefix Project name prefix to search for
+ * @returns The reusable project name, or undefined if none is found
+ */
+export const findActiveProjectByPrefix = (prefix: string): Cypress.Chainable<string | undefined> =>
+  cy
+    .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, { failOnNonZeroExit: false })
+    .then((result) => {
+      const candidates = result.stdout.split(' ').filter((name) => name.startsWith(prefix));
+
+      const checkNext = (index: number): Cypress.Chainable<string | undefined> => {
+        if (index >= candidates.length) {
+          return cy.wrap<string | undefined>(undefined);
+        }
+        const candidate = candidates[index];
+        return cy
+          .exec(`oc get project ${candidate} -o jsonpath='{.status.phase}'`, {
+            failOnNonZeroExit: false,
+          })
+          .then((phaseResult): Cypress.Chainable<string | undefined> => {
+            const phase = phaseResult.stdout.trim();
+            if (phaseResult.exitCode === 0 && phase === 'Active') {
+              return cy.wrap<string | undefined>(candidate);
+            }
+            cy.log(
+              `Project '${candidate}' is not reusable (phase: ${phase || 'unknown'}), skipping`,
+            );
+            return checkNext(index + 1);
+          });
+      };
+
+      return checkNext(0);
+    });
+
 export const createCleanProject = (projectName: string): void => {
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
