@@ -4,7 +4,7 @@ Reference data for upstream repos that cause `cypress_found_bug` issues. Maps re
 
 ## Repo Detection
 
-Match the upstream repo from Jira issue content using these signals (in priority order). The recommender skill applies `--repo` **before** this list when the user supplied it.
+Match the upstream repo from Jira issue content using these signals (in priority order). The recommender skill applies `--repo` **before** this list when the user supplied it. The `### org/repo` headings below are the clone allowlist: do not `gh repo clone` a repository that is not listed here unless the user confirms (see the recommender skill).
 
 1. **Fix PR link** — most reliable. Extract org/repo from the GitHub PR URL.
 2. **Jira labels** — `dashboard-area-*` labels map to repos (see table below).
