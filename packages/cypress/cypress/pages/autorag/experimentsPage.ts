@@ -1,6 +1,12 @@
 import { appChrome } from '../appChrome';
 
+const AUTORAG_DEV_FEATURE_FLAGS = 'devFeatureFlags=autorag=true,genAiStudio=true';
+
 class AutoragExperimentsPage {
+  pathWithDevFlags(): string {
+    return `/?${AUTORAG_DEV_FEATURE_FLAGS}`;
+  }
+
   visit(namespace: string) {
     // First navigate to home to ensure we're authenticated and dashboard is loaded
     cy.visitWithLogin('/');

@@ -23,7 +23,7 @@ export const configureAutomlRun = (
   uuid: string,
 ): void => {
   cy.step('Login and wait for pipeline server');
-  cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+  cy.visitWithLogin(automlExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
   waitForManagedPipelines(projectName);
 
