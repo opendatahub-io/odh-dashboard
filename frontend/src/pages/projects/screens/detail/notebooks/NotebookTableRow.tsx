@@ -145,16 +145,22 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       notebookNamespace,
       getDeletedHardwareProfilePatches(bindingStateInfo, obj.notebook),
     )
-      .then(() => {
-        obj.refresh().then(() => setInProgress(false));
-      })
+      .then(
+        () => obj.refresh(),
+        (e) => {
+          notification.error(
+            `Failed to stop workbench ${notebookName}`,
+            e instanceof Error ? e.message : String(e),
+          );
+        },
+      )
       .catch((e) => {
         notification.error(
-          `Failed to stop workbench ${notebookName}`,
+          `Failed to refresh workbench ${notebookName}`,
           e instanceof Error ? e.message : String(e),
         );
-        setInProgress(false);
-      });
+      })
+      .finally(() => setInProgress(false));
   }, [
     podSpecOptionsState,
     notebookName,
