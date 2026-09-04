@@ -25,7 +25,7 @@ import (
 // tree for the all-modules-enabled federation test.
 var allModuleSlugs = []string{
 	"model-registry", "gen-ai", "mlflow", "maas", "eval-hub",
-	"automl", "autorag", "agent-ops", "notebooks",
+	"automl", "autorag", "agent-ops", "notebooks", "data-registry",
 }
 
 // TestIntegration_AddInterBFFParams verifies the reconciler injects service-discovery
@@ -99,6 +99,7 @@ func TestIntegration_FederationConfigMap_AllModulesEnabled(t *testing.T) {
 			"mlflowoperator": {ManagementState: "Managed"},
 			"trustyai":       {ManagementState: "Managed"},
 			"aipipelines":    {ManagementState: "Managed"},
+			"feastoperator":  {ManagementState: "Managed"},
 		},
 	})
 
