@@ -12,6 +12,9 @@ roles:
     - fix
     - retro
     - prioritize
+agents:
+    # Dashboard's review overlay. All other roles use Fullsend's stock agents.
+    - source: harness/review.yaml
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/

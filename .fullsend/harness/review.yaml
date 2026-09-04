@@ -1,0 +1,40 @@
+base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c9afd4bd574c98793b96/harness/review.yaml#sha256=c805713f74d2d5c21eeefefaee42962136a6c83954a8d468463f8e13861e8d08
+
+skills:
+  - skills/pr-review
+  - skills/review-host-contract
+  - skills/issue-labels
+  - skills/description-jira
+
+host_files:
+  - src: dimensions.json
+    dest: /sandbox/workspace/.fullsend/dimensions.json
+  - src: .run/collected.json
+    dest: /sandbox/workspace/.fullsend/.run/collected.json
+    optional: true
+  - src: .run/jira.json
+    dest: /sandbox/workspace/.fullsend/.run/jira.json
+    optional: true
+
+model: sonnet
+
+env:
+  runner:
+    REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
+    REVIEW_PROTECTED_PATHS: ".claude/,.cursor/,.gitattributes,.github/,.pre-commit-config.yaml,AGENTS.md,agents/,api-servers/,CLAUDE.md,CODEOWNERS,Containerfile,Dockerfile,harness/,images/,plugins/,policies/,scripts/,skills/"
+  sandbox:
+    REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
+    REVIEW_PROTECTED_PATHS: ".claude/,.cursor/,.gitattributes,.github/,.pre-commit-config.yaml,AGENTS.md,agents/,api-servers/,CLAUDE.md,CODEOWNERS,Containerfile,Dockerfile,harness/,images/,plugins/,policies/,scripts/,skills/"
+
+validation_loop:
+  script: scripts/validate-output-schema.sh
+  schema: schemas/review-result.schema.json
+  max_iterations: 1
+
+post_script: scripts/post-review.sh
+pre_script: scripts/pre-review.sh
+
+forge:
+  github:
+    post_script: scripts/post-review.sh
+    pre_script: scripts/pre-review.sh
