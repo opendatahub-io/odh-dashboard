@@ -385,6 +385,7 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = (props) => {
                 key={label}
                 variant={isEditMode ? 'outline' : undefined}
                 onClose={() => handleRemoveLabel(label)}
+                closeBtnProps={{ 'data-testid': `data-label-remove-${label}` }}
                 data-testid={`data-label-${label}`}
               >
                 {label}

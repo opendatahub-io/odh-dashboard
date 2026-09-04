@@ -39,6 +39,7 @@ const assetResponseSchema = z
     // eslint-disable-next-line camelcase
     asset_type: z.string(),
     columns: z.array(schemaFieldSchema).optional(),
+    labels: z.array(z.string()).nullable().optional(),
   })
   .passthrough();
 
@@ -49,6 +50,7 @@ const volumeInfoSchema = z
     'schema-name': z.string(),
     'volume-type': z.string(),
     'storage-location': z.string(),
+    labels: z.array(z.string()).nullable().optional(),
   })
   .passthrough();
 

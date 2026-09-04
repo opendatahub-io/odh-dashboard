@@ -44,14 +44,17 @@ type EditAssetModalProps = EditTableModalProps | EditVolumeModalProps;
 
 const WELL_KNOWN_PROPERTIES = new Set(['purpose', 'license', 'maturity', 'pii_status']);
 
-const getConnectionDisplayValue = (connectionRef?: ConnectionRef | null): string => {
+const getConnectionDisplayValue = (connectionRef?: ConnectionRef | string | null): string => {
   if (!connectionRef) {
     return 'None';
   }
-  if (connectionRef.type === 'rhai') {
-    return connectionRef.secret_name;
+  if (typeof connectionRef === 'string') {
+    return connectionRef;
   }
-  return connectionRef.id;
+  if (connectionRef.type === 'rhai') {
+    return connectionRef.secret_name || 'None';
+  }
+  return connectionRef.id || 'None';
 };
 
 const buildFormDefaults = (props: EditAssetModalProps, idStart: number): EditAssetFormData => {
@@ -149,12 +152,12 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
         if (isTable) {
           await updateGenericTable(project, collection, name, {
             description: data.description,
-            format: data.format || undefined,
-            location: data.path || undefined,
-            purpose: data.purpose || undefined,
-            license: data.license || undefined,
-            maturity: data.maturity || undefined,
-            pii: data.piiStatus || undefined,
+            format: data.format,
+            location: data.path,
+            purpose: data.purpose,
+            license: data.license,
+            maturity: data.maturity,
+            pii: data.piiStatus,
             ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
             ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
             properties: customProps,
@@ -182,7 +185,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = (props) => {
 
           await updateVolume(project, collection, name, {
             comment: data.description,
-            storage_location: data.path || undefined,
+            storage_location: data.path,
             ...(addLabels.length > 0 ? { add_labels: addLabels } : {}),
             ...(removeLabels.length > 0 ? { remove_labels: removeLabels } : {}),
             properties: allProperties,

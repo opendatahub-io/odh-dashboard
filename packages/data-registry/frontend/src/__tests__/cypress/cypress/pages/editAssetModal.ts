@@ -47,7 +47,7 @@ class EditAssetModal extends Modal {
   }
 
   removeLabel(name: string) {
-    return this.findLabel(name).find('button').click();
+    return cy.findByTestId(`data-label-remove-${name}`).click();
   }
 
   // Data location section
