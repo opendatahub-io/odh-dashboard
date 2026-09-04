@@ -101,7 +101,7 @@ core-bff/
 ### Frontend
 
 - **Node.js**: >= 22.18.0
-- **npm**: 11.8.0
+- **pnpm**: 11.22.0
 
 ### BFF
 
@@ -394,7 +394,7 @@ pnpm run test:contract:xks         # foundation + xks tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.25+** for the BFF and **Node 22.18+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:

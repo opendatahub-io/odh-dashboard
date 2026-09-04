@@ -96,7 +96,7 @@ git commit -m "Fix lint issues and add feature"
 ### One-time skip options
 
 ```bash
-# Method 1: Using npm script (recommended)
+# Method 1: Using the repository script (recommended)
 pnpm run commit:skip-lint-hook -- -m "Your commit message"
 
 # Method 2: Using environment variable
@@ -300,7 +300,7 @@ cd backend && pnpm exec eslint --fix src/specific-file.ts
 ### Need to bypass the hook?
 
 ```bash
-# Method 1: npm script (recommended)
+# Method 1: Repository script (recommended)
 pnpm run commit:skip-lint-hook -- -m "Emergency fix"
 
 # Method 2: Environment variable
@@ -319,7 +319,7 @@ unset SKIP_LINT_HOOK  # Re-enable when done
 ### Need to force linting when SKIP_LINT_HOOK is set?
 
 ```bash
-# Method 1: npm script (recommended)
+# Method 1: Repository script (recommended)
 pnpm run commit:force-lint-hook -- -m "Ready for review"
 
 # Method 2: Environment variable override

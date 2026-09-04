@@ -13,8 +13,10 @@ The AutoML UI provides an intuitive interface for generating ML models through a
 ## Quick Start
 
 ```bash
+# Run from the repository root
+pnpm install
 cd packages/automl/frontend
-pnpm install && pnpm run start:dev
+pnpm run start:dev
 ```
 
 ---
@@ -25,7 +27,7 @@ pnpm install && pnpm run start:dev
 
 | Command             | Description                              |
 | ------------------- | ---------------------------------------- |
-| `pnpm install`       | Install dependencies                     |
+| `pnpm install`       | Install workspace dependencies (run from the repository root) |
 | `pnpm run start:dev` | Start dev server with hot reload |
 
 ### Build & Bundle

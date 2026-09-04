@@ -26,10 +26,13 @@ ODH requires the following to run:
 
    ```bash
    cd odh-dashboard
-   corepack enable
-   corepack prepare pnpm@11.22.0 --activate
+   npm install --global pnpm@11.22.0
+   pnpm --version  # should print 11.22.0
    pnpm install
    ```
+
+   The repository uses one pnpm workspace and one root `pnpm-lock.yaml`. Run the install
+   from the repository root; do not create package-local `package-lock.json` files.
 
 ### Build project
 
