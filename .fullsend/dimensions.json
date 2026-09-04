@@ -1,0 +1,167 @@
+{
+  "comment": "Review dimension registry. Findings dimensions are dispatched by the local pr-review orchestrator and adjudicated by the challenger. Context adapters provide trusted host data and are never reviewed as findings.",
+  "dimensions": [
+    {
+      "id": "correctness",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "always",
+      "definition": "skills/pr-review/sub-agents/correctness.md",
+      "failure_severity": "high",
+      "fallback": true,
+      "budget_priority": 1,
+      "re_review": "full",
+      "categories": [
+        "logic-error", "nil-deref", "off-by-one", "edge-case", "api-contract",
+        "missing-test", "test-inadequate", "pattern-violation", "test-weakened",
+        "test-removed", "mock-loosened", "assertion-weakened", "coverage-reduced",
+        "test-poisoning", "split-payload", "stale-reference"
+      ]
+    },
+    {
+      "id": "security",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "auth, permissions, secrets, data handling, string literals, config, or metadata are touched",
+      "definition": "skills/pr-review/sub-agents/security.md",
+      "pre_pass": "skills/pr-review/sub-agents/security-triage.md",
+      "failure_severity": "high",
+      "budget_priority": 2,
+      "re_review": "skip-unless-requalified",
+      "categories": [
+        "auth-bypass", "rbac-violation", "data-exposure", "privilege-escalation",
+        "injection-vuln", "sandbox-escape", "xss", "ssrf", "insecure-deserialization",
+        "prompt-injection", "unicode-steganography", "bidi-override", "homoglyph-attack",
+        "instruction-smuggling", "fail-open", "permission-expansion",
+        "permission-reduction", "role-escalation", "workflow-permission", "secret-exposure"
+      ]
+    },
+    {
+      "id": "intent-coherence",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "linked issues exist or changes are non-trivial",
+      "definition": "skills/pr-review/sub-agents/intent-coherence.md",
+      "failure_severity": "info",
+      "budget_priority": 3,
+      "re_review": "skip-unless-requalified",
+      "categories": [
+        "scope-exceeded", "tier-mismatch", "unauthorized-change", "scope-creep",
+        "missing-authorization", "misleading-label", "design-direction",
+        "complexity-ratio", "misplaced-abstraction", "architectural-conflict",
+        "design-smell", "over-engineering", "under-engineering"
+      ]
+    },
+    {
+      "id": "style-conventions",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "always",
+      "definition": "skills/pr-review/sub-agents/style-conventions.md",
+      "failure_severity": "info",
+      "budget_priority": 4,
+      "re_review": "trivial",
+      "categories": [
+        "naming-convention", "error-handling-idiom", "api-shape",
+        "code-organization", "doc-style", "pattern-inconsistency"
+      ]
+    },
+    {
+      "id": "odh-style",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "changed files include TSX, CSS, or SCSS outside upstream directories, especially custom styling, PatternFly components, wrappers, utility classes, or custom class names",
+      "definition": "skills/pr-review/sub-agents/odh-style.md",
+      "failure_severity": "info",
+      "budget_priority": 3,
+      "re_review": "skip-unless-requalified",
+      "categories": [
+        "pf-priority-order", "pf-wrapper", "pf-token", "custom-class-naming",
+        "patternfly-gap"
+      ]
+    },
+    {
+      "id": "odh-rbac",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "changed code touches routes, pages, actions, data-fetching hooks, Kubernetes resources, permissions, SSAR, isAdmin, auth, namespaces, backend endpoints, or Go BFF proxy behavior",
+      "definition": "skills/pr-review/sub-agents/odh-rbac.md",
+      "failure_severity": "high",
+      "budget_priority": 2,
+      "re_review": "skip-unless-requalified",
+      "categories": [
+        "missing-ssar", "rbac-fail-open", "assumed-admin-access",
+        "namespace-scope", "limited-user-degradation", "rbac-data-exposure"
+      ]
+    },
+    {
+      "id": "odh-jira-eval",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "the PR references a Jira issue and the trusted Jira snapshot has status ok; the Jira specialist decides whether the snapshot contains evaluable criteria or requirements",
+      "definition": "skills/pr-review/sub-agents/odh-jira-eval.md",
+      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "failure_severity": "info",
+      "budget_priority": 3,
+      "re_review": "full",
+      "categories": [
+        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
+        "jira-eval-unavailable"
+      ]
+    },
+    {
+      "id": "docs-currency",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "the repository has documentation files",
+      "definition": "skills/pr-review/sub-agents/docs-currency.md",
+      "inline_skill": "skills/docs-review/SKILL.md",
+      "failure_severity": "info",
+      "budget_priority": 4,
+      "re_review": "skip-unless-requalified",
+      "categories": ["stale-doc", "missing-doc", "incorrect-doc", "incomplete-doc"]
+    },
+    {
+      "id": "cross-repo-contracts",
+      "kind": "llm-subagent",
+      "output": "findings",
+      "dispatch": "conditional",
+      "when": "public APIs, exported interfaces, schemas, or CLI args are modified",
+      "definition": "skills/pr-review/sub-agents/cross-repo-contracts.md",
+      "failure_severity": "info",
+      "budget_priority": 4,
+      "re_review": "skip-unless-requalified",
+      "categories": [
+        "breaking-api", "breaking-schema", "breaking-config", "breaking-cli",
+        "missing-deprecation", "missing-version-bump", "backward-incompatible"
+      ]
+    },
+    {
+      "id": "jira-snapshot",
+      "kind": "cli-adapter",
+      "output": "context",
+      "dispatch": "always",
+      "runner": "scripts/fetch-jira-context.sh",
+      "producer_file": ".run/jira.json",
+      "failure_severity": "info",
+      "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
+    },
+    {
+      "id": "description-jira",
+      "kind": "llm-subagent",
+      "output": "section:product_ask",
+      "dispatch": "always",
+      "definition": "skills/description-jira/SKILL.md",
+      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "failure_severity": "info",
+      "re_review": "full",
+      "notes": "Compare the PR description with trusted Jira context. Keep this structured section out of finding synthesis and the challenger."
+    }
+  ]
+}

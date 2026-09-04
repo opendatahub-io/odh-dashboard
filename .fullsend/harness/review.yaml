@@ -3,15 +3,18 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c
 agent: agents/review.md
 
 skills:
-  # Fullsend's base pr-review, code-review, docs-review, risk, forge, and label
-  # skills remain inherited. These are Dashboard-only additions.
-  - skills/dashboard-review
-  # These symlinks resolve to the Dashboard's maintained review skills.
+  # This local skill replaces Fullsend's inherited pr-review with the
+  # registry-driven dimensions orchestrator.
+  - skills/pr-review
+  - skills/description-jira
+  # These symlinks remain available for repository-specific context.
   - skills/style-review
   - skills/rbac-review
   - skills/jira-eval-review
 
 host_files:
+  - src: dimensions.json
+    dest: /sandbox/workspace/.fullsend/dimensions.json
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
     optional: true
