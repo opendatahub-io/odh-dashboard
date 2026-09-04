@@ -51,6 +51,44 @@ describe('NIMImageFieldComponent', () => {
     mockUseAccessReview.mockReturnValue([true, true]);
   });
 
+  it('should provide NIM-specific review details', () => {
+    const { NIMImageFieldWizardField } = require('../NIMImageField');
+    const sections = NIMImageFieldWizardField.getReviewSections?.({
+      repository: 'nvcr.io/nim/meta/llama-3.2-1b-instruct',
+      tag: '1.8',
+    });
+
+    expect(sections).toEqual([
+      {
+        title: 'Model details',
+        items: [
+          {
+            key: 'nimModelType',
+            replaces: 'modelType',
+            label: 'Model type',
+            value: expect.any(Function),
+          },
+          {
+            key: 'nimModelLocation',
+            replaces: 'modelLocationData-locationType',
+            label: 'Model location',
+            value: expect.any(Function),
+          },
+          {
+            key: 'nimImage',
+            label: 'NIM image',
+            value: expect.any(Function),
+          },
+        ],
+      },
+    ]);
+
+    const items = sections?.[0].items ?? [];
+    expect(items[0].value({} as never)).toBe('NVIDIA NIM');
+    expect(items[1].value({} as never)).toBe('NVIDIA NIM');
+    expect(items[2].value({} as never)).toBe('nvcr.io/nim/meta/llama-3.2-1b-instruct:1.8');
+  });
+
   it('should show info alert when no project is selected', () => {
     renderComponent({
       externalData: {
