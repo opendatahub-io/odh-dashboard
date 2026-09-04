@@ -26,6 +26,10 @@ func (r *DashboardReconciler) PatchDeploymentFederationHash(ctx context.Context,
 	return r.patchDeploymentFederationHash(ctx, configData)
 }
 
+func (r *DashboardReconciler) DeleteModuleResources(ctx context.Context, statuses map[string]v1alpha1.ModuleStatus) error {
+	return r.deleteModuleResources(ctx, statuses)
+}
+
 func (r *DashboardReconciler) AutoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	return r.autoDetectObservability(ctx, dashboard)
 }
