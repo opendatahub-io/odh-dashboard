@@ -21,7 +21,7 @@ import { Link } from 'react-router-dom';
 import { AssetResponse } from '~/app/types';
 import SchemaColumnsTable from '~/app/components/SchemaColumnsTable';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
-import { browseUrl } from '~/app/utilities/routes';
+import { collectionDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge } from '~/app/utilities/formatUtils';
 
 type TableDetailViewProps = {
@@ -65,7 +65,9 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({ asset, project }) => 
                 <DescriptionListDescription data-testid="asset-collection">
                   {asset.collection ? (
                     project ? (
-                      <Link to={browseUrl(project)}>{asset.collection}</Link>
+                      <Link to={collectionDetailUrl(project, asset.collection)}>
+                        {asset.collection}
+                      </Link>
                     ) : (
                       asset.collection
                     )

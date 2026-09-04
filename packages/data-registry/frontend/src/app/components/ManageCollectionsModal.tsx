@@ -7,17 +7,17 @@ import {
   Button,
   Alert,
   SearchInput,
+  Stack,
+  StackItem,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  MenuToggle,
 } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import { CollectionInfo } from '~/app/hooks/useCollections';
+import { collectionDetailUrl } from '~/app/utilities/routes';
 import CreateCollectionModal from './CreateCollectionModal';
 import DeleteCollectionModal from './DeleteCollectionModal';
 
@@ -39,7 +39,6 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   const [filterText, setFilterText] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<CollectionInfo | null>(null);
-  const [openKebab, setOpenKebab] = React.useState<string | null>(null);
 
   const filteredCollections = React.useMemo(
     () =>
@@ -67,32 +66,38 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
       >
         <ModalHeader title="Manage collections" />
         <ModalBody>
-          <Alert variant="info" isInline isPlain title="Changes affect all project assets">
-            Editing or deleting a collection updates or removes it from every asset using it within
-            this project.
-          </Alert>
-          <Toolbar>
-            <ToolbarContent>
-              <ToolbarItem>
-                <SearchInput
-                  placeholder="Filter by name, descri..."
-                  value={filterText}
-                  onChange={(_event, value) => setFilterText(value)}
-                  onClear={() => setFilterText('')}
-                  data-testid="collection-filter"
-                />
-              </ToolbarItem>
-              <ToolbarItem>
-                <Button
-                  variant="primary"
-                  onClick={() => setIsCreateOpen(true)}
-                  data-testid="create-collection-button"
-                >
-                  Create collection
-                </Button>
-              </ToolbarItem>
-            </ToolbarContent>
-          </Toolbar>
+          <Stack hasGutter>
+            <StackItem>
+              <Alert variant="info" isInline title="Changes affect all project assets">
+                Editing or deleting a collection updates or removes it from every asset using it
+                within this project.
+              </Alert>
+            </StackItem>
+            <StackItem>
+              <Toolbar>
+                <ToolbarContent>
+                  <ToolbarItem>
+                    <SearchInput
+                      placeholder="Filter by name, descri..."
+                      value={filterText}
+                      onChange={(_event, value) => setFilterText(value)}
+                      onClear={() => setFilterText('')}
+                      data-testid="collection-filter"
+                    />
+                  </ToolbarItem>
+                  <ToolbarItem>
+                    <Button
+                      variant="primary"
+                      onClick={() => setIsCreateOpen(true)}
+                      data-testid="create-collection-button"
+                    >
+                      Create collection
+                    </Button>
+                  </ToolbarItem>
+                </ToolbarContent>
+              </Toolbar>
+            </StackItem>
+          </Stack>
           <Table aria-label="Collections" data-testid="collections-table">
             <Thead>
               <Tr>
@@ -105,43 +110,24 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
             <Tbody>
               {filteredCollections.map((collection) => (
                 <Tr key={collection.name}>
-                  <Td dataLabel="Name">{collection.name}</Td>
+                  <Td dataLabel="Name">
+                    <Link to={collectionDetailUrl(project, collection.name)}>
+                      {collection.name}
+                    </Link>
+                  </Td>
                   <Td dataLabel="Description">{collection.description}</Td>
                   <Td dataLabel="Assets">
                     {collection.assetNames.length > 0 ? collection.assetNames.join(', ') : '–'}
                   </Td>
                   <Td isActionCell>
-                    <Dropdown
-                      isOpen={openKebab === collection.name}
-                      onSelect={() => setOpenKebab(null)}
-                      onOpenChange={(open) => setOpenKebab(open ? collection.name : null)}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() =>
-                            setOpenKebab(openKebab === collection.name ? null : collection.name)
-                          }
-                          isExpanded={openKebab === collection.name}
-                          variant="plain"
-                          aria-label={`Actions for ${collection.name}`}
-                          data-testid={`collection-kebab-${collection.name}`}
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
-                      )}
+                    <Button
+                      variant="plain"
+                      aria-label={`Delete ${collection.name}`}
+                      onClick={() => setDeleteTarget(collection)}
+                      data-testid={`collection-delete-${collection.name}`}
                     >
-                      <DropdownList>
-                        <DropdownItem
-                          key="delete"
-                          onClick={() => {
-                            setDeleteTarget(collection);
-                            setOpenKebab(null);
-                          }}
-                        >
-                          Delete
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
+                      <TrashIcon />
+                    </Button>
                   </Td>
                 </Tr>
               ))}

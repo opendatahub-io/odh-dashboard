@@ -1,6 +1,7 @@
 import React from 'react';
 import { fetchCollectionDetails } from '~/app/api/dataRegistry';
-import { RegistryAsset } from '~/app/hooks/useAssets';
+import type { RegistryAsset } from '~/app/hooks/useAssets';
+import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
 
 export type CollectionInfo = {
   name: string;
@@ -40,10 +41,8 @@ export const useCollections = (
     Promise.all(
       collectionNames.map(async (name) => {
         const detail = await fetchCollectionDetails(project, name);
-        return {
-          name,
-          description: detail.properties.description || '',
-        };
+        const description = parseCollectionDescription(detail.properties, project, name);
+        return { name, description };
       }),
     )
       .then((details) => {
