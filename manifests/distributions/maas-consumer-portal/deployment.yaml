@@ -102,6 +102,7 @@ spec:
               memory: 128Mi
               ephemeral-storage: 100Mi
             limits:
+              cpu: 100m
               memory: 256Mi
           volumeMounts:
             - name: tmp

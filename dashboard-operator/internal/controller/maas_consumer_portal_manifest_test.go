@@ -89,6 +89,10 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	assert.Equal(t, false, containerSecurityContext["allowPrivilegeEscalation"])
 	capabilities := containerSecurityContext["capabilities"].(map[string]interface{})
 	assert.Contains(t, capabilities["drop"], "ALL")
+	containerResources := container["resources"].(map[string]interface{})
+	containerLimits := containerResources["limits"].(map[string]interface{})
+	assert.Equal(t, "100m", containerLimits["cpu"])
+	assert.Equal(t, "256Mi", containerLimits["memory"])
 
 	volumeMounts := container["volumeMounts"].([]interface{})
 	assert.Equal(t, "/etc/tls/private", namedManifestObject(t, volumeMounts, "portal-tls")["mountPath"])
@@ -163,9 +167,15 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "UDP", "port": int64(5353)}, map[string]interface{}{"protocol": "TCP", "port": int64(5353)}}, egress[0].(map[string]interface{})["ports"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"ipBlock": map[string]interface{}{"cidr": "0.0.0.0/0"}}}, egress[1].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(6443)}}, egress[1].(map[string]interface{})["ports"])
-	assert.Equal(t, []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "maas-ui"}}}}, egress[2].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{
+		"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "portal-test"}},
+		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "maas-ui"}},
+	}}, egress[2].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8243)}}, egress[2].(map[string]interface{})["ports"])
-	assert.Equal(t, []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}}}}, egress[3].(map[string]interface{})["to"])
+	assert.Equal(t, []interface{}{map[string]interface{}{
+		"namespaceSelector": map[string]interface{}{"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": "portal-test"}},
+		"podSelector":       map[string]interface{}{"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"}},
+	}}, egress[3].(map[string]interface{})["to"])
 	assert.Equal(t, []interface{}{map[string]interface{}{"protocol": "TCP", "port": int64(8143)}}, egress[3].(map[string]interface{})["ports"])
 }
 

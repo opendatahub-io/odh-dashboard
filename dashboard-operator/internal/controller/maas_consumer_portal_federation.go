@@ -61,11 +61,11 @@ func maasConsumerPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuse
 }
 
 // patchMaaSConsumerPortalDeploymentFederationHash triggers a rollout only when
-// the MaaS Consumer Portal remote configuration changes. Task 2/4 own creation
-// of this Deployment, so an absent MaaS Consumer Portal workload is an expected no-op.
+// the MaaS Consumer Portal remote configuration changes. An absent portal
+// Deployment is expected while its bundle has not yet been applied.
 func (r *DashboardReconciler) patchMaaSConsumerPortalDeploymentFederationHash(ctx context.Context, configData string) error {
 	var deployment appsv1.Deployment
-	key := client.ObjectKey{Name: "maas-consumer-portal", Namespace: r.ApplicationsNamespace}
+	key := client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: r.ApplicationsNamespace}
 	if err := r.Get(ctx, key, &deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -90,7 +90,7 @@ func (r *DashboardReconciler) patchMaaSConsumerPortalDeploymentFederationHash(ct
 }
 
 // buildMaaSConsumerPortalFederationConfigMap contains only services required by the
-// standalone MaaS Consumer Portal. The proxy paths are registry-owned; URL-model-specific
+// standalone MaaS Consumer Portal. The proxy paths are registry-owned; portal-specific
 // ingress rewriting remains outside aggregate module orchestration.
 func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	statuses map[string]v1alpha1.ModuleStatus,
@@ -111,8 +111,8 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
 		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: r.ApplicationsNamespace,
-			Labels: map[string]string{labels.PlatformPartOf: "maas-consumer-portal",
-				"app.kubernetes.io/part-of": "maas-consumer-portal", moduleComponentLabel: "maas-consumer-portal"}},
+			Labels: map[string]string{labels.PlatformPartOf: maasConsumerPortalPartOf,
+				"app.kubernetes.io/part-of": maasConsumerPortalPartOf, moduleComponentLabel: maasConsumerPortalPartOf}},
 		Data: map[string]string{federationConfigKey: string(data)},
 	}, nil
 }
@@ -134,9 +134,9 @@ func (r *DashboardReconciler) deployMaaSConsumerPortalFederationConfigMap(ctx co
 		return fmt.Errorf("converting MaaS Consumer Portal federation ConfigMap: %w", err)
 	}
 	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"),
-		deploy.WithLabel(labels.PlatformPartOf, "maas-consumer-portal"),
-		deploy.WithLabel("app.kubernetes.io/part-of", "maas-consumer-portal"),
-		deploy.WithLabel(moduleComponentLabel, "maas-consumer-portal"))
+		deploy.WithLabel(labels.PlatformPartOf, maasConsumerPortalPartOf),
+		deploy.WithLabel("app.kubernetes.io/part-of", maasConsumerPortalPartOf),
+		deploy.WithLabel(moduleComponentLabel, maasConsumerPortalPartOf))
 	if err := deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: []unstructured.Unstructured{resource}}); err != nil {
 		return fmt.Errorf("deploying MaaS Consumer Portal federation ConfigMap: %w", err)

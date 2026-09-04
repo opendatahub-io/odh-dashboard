@@ -398,6 +398,22 @@ func TestValidateProxyEntries(t *testing.T) {
 			errSubstr: "has trailing slash in proxy path /gen-ai/api/ (will be appended automatically)",
 		},
 		{
+			name: "ServeMux single-segment wildcard rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "wildcard", service: moduleProxyServiceEntry{Path: "/module/{id}", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "http.ServeMux wildcard syntax",
+		},
+		{
+			name: "ServeMux multi-segment wildcard rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "wildcard", service: moduleProxyServiceEntry{Path: "/module/{path...}", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "http.ServeMux wildcard syntax",
+		},
+		{
 			name: "module path /core-bff/api collides with reserved prefix",
 			entries: []normalizedProxyEntry{
 				{entryName: "selfCollide", service: moduleProxyServiceEntry{Path: "/core-bff/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
@@ -542,6 +558,39 @@ func TestValidateProxyEntries(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
+		})
+	}
+}
+
+func TestInitModuleProxies_RejectsServeMuxWildcardPathsBeforeRegistration(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "single segment wildcard", path: "/module/{id}"},
+		{name: "multi-segment wildcard", path: "/module/{path...}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configFile := writeTempConfig(t, []moduleFederationEntry{{
+				Name: "wildcard",
+				ProxyService: []moduleProxyServiceEntry{{
+					Path: tt.path, TLS: false,
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+				}},
+			}})
+			app := newTestApp(func(a *App) {
+				a.config.MFRemotesConfig = configFile
+				a.config.DevMode = true
+			})
+
+			err := app.initModuleProxies()
+			require.ErrorContains(t, err, "http.ServeMux wildcard syntax")
+			assert.Empty(t, app.moduleProxies)
+			assert.NotPanics(t, func() {
+				app.registerModuleProxies(http.NewServeMux())
+			})
 		})
 	}
 }

@@ -37,6 +37,9 @@ spec:
         - podSelector:
             matchLabels:
               deployment: maas-ui
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dashboard-namespace
       ports:
         - protocol: TCP
           port: 8243
@@ -44,6 +47,9 @@ spec:
         - podSelector:
             matchLabels:
               deployment: gen-ai-ui
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dashboard-namespace
       ports:
         - protocol: TCP
           port: 8143

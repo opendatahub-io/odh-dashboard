@@ -5,6 +5,7 @@ const ContextualTildeResolverPlugin = require('./contextualTildeResolverPlugin')
 const CheckSingletonDuplicatesPlugin = require('./checkSingletonDuplicatesPlugin');
 const createRspackCommon = require('../../base/config/rspack.common.js');
 const GenerateDistributionExtensionsPlugin = require('../../base/config/generateDistributionExtensionsPlugin.js');
+const { dependencies: portalDependencies } = require('../package.json');
 
 const SRC_DIR = path.resolve(__dirname, '../src');
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -30,7 +31,7 @@ const { sharedPluginModules, getSharedModuleMetadata } = require(path.resolve(
 
 const EAGER_SINGLETON_PACKAGES = Object.keys(sharedPluginModules).filter((name) => {
   const meta = getSharedModuleMetadata(name);
-  return meta.eager && !meta.allowFallback;
+  return meta.eager && !meta.allowFallback && Object.hasOwn(portalDependencies, name);
 });
 
 // Resolve from the portal's own node_modules so every copy collapses to the workspace-hoisted one.

@@ -103,6 +103,12 @@ replacements:
         options:
           delimiter: "="
           index: 1
+      - select:
+          kind: NetworkPolicy
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.egress.2.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+          - spec.egress.3.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params

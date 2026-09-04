@@ -16,6 +16,10 @@ func (r *DashboardReconciler) DeployMaaSConsumerPortalFederationConfigMap(ctx co
 	return r.deployMaaSConsumerPortalFederationConfigMap(ctx, dashboard, statuses)
 }
 
+func (r *DashboardReconciler) DeleteMaaSConsumerPortalResources(ctx context.Context) error {
+	return r.deleteMaaSConsumerPortalResources(ctx)
+}
+
 func BuildMaaSConsumerPortalFederationConfigMap(
 	r *DashboardReconciler,
 	statuses map[string]v1alpha1.ModuleStatus,

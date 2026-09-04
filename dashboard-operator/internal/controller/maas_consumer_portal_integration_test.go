@@ -56,13 +56,9 @@ func getConsoleLink(t *testing.T, name string) *unstructured.Unstructured {
 	return cl
 }
 
-func deleteConsoleLinkIfExists(t *testing.T, name string) {
+func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
 	t.Helper()
-
-	cl := &unstructured.Unstructured{}
-	cl.SetGroupVersionKind(ctrlpkg.ConsoleLinkGVK)
-	cl.SetName(name)
-	_ = k8sClient.Delete(context.Background(), cl)
+	require.NoError(t, r.DeleteMaaSConsumerPortalResources(context.Background()))
 }
 
 func getPortalResource(t *testing.T, apiVersion, kind, name string) *unstructured.Unstructured {
@@ -124,8 +120,8 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 
 	t.Cleanup(func() {
 		deleteDashboard(t)
+		cleanupMaaSConsumerPortalResources(t, r)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
@@ -170,6 +166,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	// this envtest can verify the aggregate Ready condition for portal-only use.
 	deployment := &appsv1.Deployment{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, deployment))
+	deployment.Status.ObservedGeneration = deployment.Generation
 	deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
 	for _, name := range []string{"maas-ui", "gen-ai-ui"} {
@@ -183,10 +180,10 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	route := &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
 	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
-		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue},
-		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue},
+		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 	}}}
-	require.NoError(t, k8sClient.Update(ctx, route))
+	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
 
 	updated := getDashboard(t)
@@ -195,8 +192,8 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
 	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", updated.Status.MaaSConsumerPortalURL)
 
-	// Updating a portal input reapplies the complete bundle and only publishes
-	// the new URL after the already-ready operand remains healthy.
+	// Updating a portal input reapplies the complete bundle, but retains the
+	// previous URL until the Deployment and HTTPRoute have observed the update.
 	t.Setenv("RELATED_IMAGE_ODH_CORE_BFF_IMAGE", "registry.example.com/odh-core-bff:updated")
 	updated.Spec.Gateway.Domain = "updated.example.com"
 	require.NoError(t, k8sClient.Update(ctx, updated))
@@ -214,6 +211,15 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", href)
+	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
+
+	deployment.Status.ObservedGeneration = deployment.Generation
+	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
+	for i := range route.Status.Parents[0].Conditions {
+		route.Status.Parents[0].Conditions[i].ObservedGeneration = route.Generation
+	}
+	require.NoError(t, k8sClient.Status().Update(ctx, route))
+	reconcile(t, r)
 	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	// A transient bundle apply error reports an actionable condition, requests a
@@ -301,8 +307,8 @@ func TestIntegration_MaaSConsumerPortalConsoleLinkPreservedWhenCoreRemoved(t *te
 
 	t.Cleanup(func() {
 		deleteDashboard(t)
+		cleanupMaaSConsumerPortalResources(t, r)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
@@ -356,8 +362,8 @@ func TestIntegration_MaaSConsumerPortalConsoleLinkRemovedWhenDisabled(t *testing
 
 	t.Cleanup(func() {
 		deleteDashboard(t)
+		cleanupMaaSConsumerPortalResources(t, r)
 		cleanupModuleResources(t)
-		deleteConsoleLinkIfExists(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
 	})
 
 	reconcile(t, r)
@@ -401,9 +407,8 @@ func TestIntegration_MaaSConsumerPortalModuleDemandMatrix(t *testing.T) {
 			require.NoError(t, k8sClient.Create(context.Background(), dashboard))
 			t.Cleanup(func() {
 				deleteDashboard(t)
+				cleanupMaaSConsumerPortalResources(t, r)
 				cleanupModuleResources(t)
-				deleteConsoleLinkIfExists(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
-				_ = k8sClient.Delete(context.Background(), &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal-federation-config", Namespace: integrationNamespace}})
 			})
 			reconcile(t, r)
 			reconcile(t, r)

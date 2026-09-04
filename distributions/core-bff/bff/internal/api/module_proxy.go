@@ -181,6 +181,9 @@ func validateProxyPaths(entries []normalizedProxyEntry) error {
 		if strings.HasSuffix(e.service.Path, "/") {
 			return fmt.Errorf("entry %s has trailing slash in proxy path %s (will be appended automatically)", e.entryName, e.service.Path)
 		}
+		if strings.ContainsAny(e.service.Path, "{}") {
+			return fmt.Errorf("entry %s has http.ServeMux wildcard syntax in proxy path %s", e.entryName, e.service.Path)
+		}
 	}
 
 	seen := make(map[string]string)

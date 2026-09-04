@@ -36,15 +36,15 @@ import (
 const maasConsumerPortalTestNamespace = "maas-consumer-portal-test"
 
 func TestMaaSConsumerPortalAvailabilityHelpers(t *testing.T) {
-	readyRoute := gatewayv1.HTTPRoute{Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
-		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue},
-		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue},
-	}}}}}}
-	splitConditionRoute := gatewayv1.HTTPRoute{Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{
-		{Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}},
-		{Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue}}},
-	}}}}
-	availableDeployment := appsv1.Deployment{Status: appsv1.DeploymentStatus{Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}}}
+	readyRoute := portalTestRoute(2,
+		metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2},
+		metav1.Condition{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2},
+	)
+	splitConditionRoute := portalTestRouteWithParents(2,
+		[]metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2}},
+		[]metav1.Condition{{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2}},
+	)
+	availableDeployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Generation: 2}, Status: appsv1.DeploymentStatus{ObservedGeneration: 2, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}}}
 
 	tests := []struct {
 		name            string
@@ -54,15 +54,33 @@ func TestMaaSConsumerPortalAvailabilityHelpers(t *testing.T) {
 		wantDeployReady bool
 	}{
 		{name: "accepted and resolved route with available deployment", route: readyRoute, deployment: availableDeployment, wantRouteReady: true, wantDeployReady: true},
-		{name: "route without resolved references", route: gatewayv1.HTTPRoute{Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}}}}}}, deployment: availableDeployment, wantDeployReady: true},
+		{name: "route without resolved references", route: portalTestRoute(2, metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2}), deployment: availableDeployment, wantDeployReady: true},
 		{name: "route conditions split across parents", route: splitConditionRoute, deployment: availableDeployment, wantDeployReady: true},
+		{name: "route with stale accepted condition", route: portalTestRoute(2, metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 1}, metav1.Condition{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 2}), deployment: availableDeployment, wantDeployReady: true},
+		{name: "route with stale resolved references condition", route: portalTestRoute(2, metav1.Condition{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: 2}, metav1.Condition{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: 1}), deployment: availableDeployment, wantDeployReady: true},
 		{name: "deployment without available condition", route: readyRoute, wantRouteReady: true},
+		{name: "deployment with stale observed generation", route: readyRoute, deployment: appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Generation: 2}, Status: appsv1.DeploymentStatus{ObservedGeneration: 1, Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}}}, wantRouteReady: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.wantRouteReady, portalRouteReady(&tt.route))
 			assert.Equal(t, tt.wantDeployReady, deploymentAvailable(&tt.deployment))
 		})
+	}
+}
+
+func portalTestRoute(generation int64, conditions ...metav1.Condition) gatewayv1.HTTPRoute {
+	return portalTestRouteWithParents(generation, conditions)
+}
+
+func portalTestRouteWithParents(generation int64, conditions ...[]metav1.Condition) gatewayv1.HTTPRoute {
+	parents := make([]gatewayv1.RouteParentStatus, 0, len(conditions))
+	for _, conditionSet := range conditions {
+		parents = append(parents, gatewayv1.RouteParentStatus{Conditions: conditionSet})
+	}
+	return gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{Generation: generation},
+		Status:     gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: parents}},
 	}
 }
 
@@ -219,6 +237,16 @@ spec:
 	deployment := &appsv1.Deployment{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace}, deployment))
 	assert.NotEmpty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])
+
+	t.Run("does not fail while the federation ConfigMap is unavailable", func(t *testing.T) {
+		cli := fake.NewClientBuilder().WithScheme(s).Build()
+		r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
+
+		require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://maas-consumer-portal.apps.example.com/"))
+		deployment := &appsv1.Deployment{}
+		require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace}, deployment))
+		assert.Empty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])
+	})
 }
 
 func TestReconcileRemovedMaaSConsumerPortal_CleanupFailureRetries(t *testing.T) {

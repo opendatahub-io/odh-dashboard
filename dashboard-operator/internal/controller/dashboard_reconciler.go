@@ -1029,10 +1029,7 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	// a platformVersion bump in odh-dashboard-config would not trigger a
 	// reconcile, leaving status.releases[platform].version stale until an
 	// unrelated event fired (RHOAIENG-81919).
-	consoleLink := &unstructured.Unstructured{}
-	consoleLink.SetGroupVersionKind(consoleLinkGVK)
-
-	return ctrl.NewControllerManagedBy(mgr).
+	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -1042,15 +1039,68 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&gatewayv1.HTTPRoute{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
-		Owns(consoleLink).
 		Watches(
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
 			builder.WithPredicates(r.configMapPredicate()),
-		).
-		Complete(r)
+		)
+
+	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
+		return err
+	}
+
+	return controllerBuilder.Complete(r)
+}
+
+// addOptionalOwnedResourceWatches adds watches for APIs used only by the MaaS
+// Consumer Portal. The Dashboard controller also runs on clusters where those
+// APIs are not installed, so absent APIs must not prevent manager startup.
+func addOptionalOwnedResourceWatches(mapper meta.RESTMapper, controllerBuilder *builder.Builder) error {
+	resources, err := optionalOwnedResources(mapper)
+	if err != nil {
+		return err
+	}
+	for _, resource := range resources {
+		controllerBuilder.Owns(resource)
+	}
+	return nil
+}
+
+func optionalOwnedResources(mapper meta.RESTMapper) ([]client.Object, error) {
+	var resources []client.Object
+	for _, resource := range []struct {
+		gvk    schema.GroupVersionKind
+		object client.Object
+	}{
+		{gvk: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), object: &gatewayv1.HTTPRoute{}},
+		{gvk: consoleLinkGVK, object: newConsoleLinkObject()},
+	} {
+		available, err := apiResourceAvailable(mapper, resource.gvk)
+		if err != nil {
+			return nil, fmt.Errorf("discovering %s API: %w", resource.gvk, err)
+		}
+		if !available {
+			ctrl.Log.Info("Optional API is unavailable; skipping owned-resource watch", "groupVersionKind", resource.gvk.String())
+			continue
+		}
+		resources = append(resources, resource.object)
+	}
+	return resources, nil
+}
+
+func newConsoleLinkObject() *unstructured.Unstructured {
+	consoleLink := &unstructured.Unstructured{}
+	consoleLink.SetGroupVersionKind(consoleLinkGVK)
+	return consoleLink
+}
+
+func apiResourceAvailable(mapper meta.RESTMapper, gvk schema.GroupVersionKind) (bool, error) {
+	_, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if meta.IsNoMatchError(err) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
