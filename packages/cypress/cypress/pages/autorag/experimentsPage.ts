@@ -8,20 +8,8 @@ class AutoragExperimentsPage {
   }
 
   visit(namespace: string) {
-    // First navigate to home to ensure we're authenticated and dashboard is loaded
-    cy.visitWithLogin('/');
-
-    // Reload once to pick up any recent config changes (e.g., feature flags just enabled)
-    // This ensures the dashboard frontend has the latest OdhDashboardConfig
+    cy.visit(`/gen-ai-studio/autorag/experiments/${namespace}?${AUTORAG_DEV_FEATURE_FLAGS}`);
     cy.reload();
-
-    // Wait for AutoRAG nav item to ensure feature is fully loaded in the UI
-    // This prevents 404 errors when feature flag was just enabled
-    // Cypress will automatically retry this assertion until it passes or times out
-    this.findNavItem().should('exist');
-
-    // Now navigate to AutoRAG experiments page
-    cy.visit(`/gen-ai-studio/autorag/experiments/${namespace}`);
     this.wait();
   }
 
