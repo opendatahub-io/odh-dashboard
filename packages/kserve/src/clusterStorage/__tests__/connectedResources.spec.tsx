@@ -118,4 +118,24 @@ describe('useConnectedKServeResources', () => {
     renderResult.rerender(project);
     expect(renderResult.result.current.loaded).toBe(true);
   });
+
+  it('should be loaded when the inference services watch errors', () => {
+    mockUseWatchInferenceServices.mockReturnValue([[], false, new Error('boom')]);
+    mockUseWatchServingRuntimes.mockReturnValue([[], false, undefined]);
+
+    const renderResult = testHook(useConnectedKServeResources)(project);
+    expect(renderResult.result.current.loaded).toBe(true);
+  });
+
+  it('should be loaded when the serving runtimes watch errors, even with inference services present', () => {
+    mockUseWatchInferenceServices.mockReturnValue([
+      [mockInferenceServiceK8sResource({ name: 'is-1', runtimeName: 'sr-1' })],
+      true,
+      undefined,
+    ]);
+    mockUseWatchServingRuntimes.mockReturnValue([[], false, new Error('boom')]);
+
+    const renderResult = testHook(useConnectedKServeResources)(project);
+    expect(renderResult.result.current.loaded).toBe(true);
+  });
 });

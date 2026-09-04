@@ -19,17 +19,23 @@ export type KServeConnectedResourcesData = {
 export const useConnectedKServeResources = (
   project: ProjectKind,
 ): ClusterStorageConnectedResources<KServeConnectedResourcesData> => {
-  const [inferenceServices, inferenceServicesLoaded] = useWatchInferenceServices(project);
-  const [servingRuntimes, servingRuntimesLoaded] = useWatchServingRuntimes(project);
+  const [inferenceServices, inferenceServicesLoaded, inferenceServicesError] =
+    useWatchInferenceServices(project);
+  const [servingRuntimes, servingRuntimesLoaded, servingRuntimesError] =
+    useWatchServingRuntimes(project);
+
+  const inferenceServicesFinished = inferenceServicesLoaded || !!inferenceServicesError;
+  const servingRuntimesFinished = servingRuntimesLoaded || !!servingRuntimesError;
 
   return React.useMemo(
     () => ({
       // Labels are derived by filtering inference services, so with zero of them there is nothing to
       // show regardless of serving runtimes — no need to wait on that second list.
-      loaded: inferenceServicesLoaded && (inferenceServices.length === 0 || servingRuntimesLoaded),
+      loaded:
+        inferenceServicesFinished && (inferenceServices.length === 0 || servingRuntimesFinished),
       data: { inferenceServices, servingRuntimes },
     }),
-    [inferenceServices, inferenceServicesLoaded, servingRuntimes, servingRuntimesLoaded],
+    [inferenceServices, inferenceServicesFinished, servingRuntimes, servingRuntimesFinished],
   );
 };
 
