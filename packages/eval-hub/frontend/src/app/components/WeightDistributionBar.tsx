@@ -21,6 +21,9 @@ type WeightDistributionBarProps = {
   onWeightsChange?: (weights: number[]) => void;
 };
 
+const getFeasibleMinimumPercent = (pairTotal: number): number =>
+  Math.min(MIN_SEGMENT_PERCENT, Math.floor(pairTotal / 2));
+
 const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
   segments,
   onWeightsChange,
@@ -77,7 +80,7 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
         state.startPercentages,
         state.dividerIndex,
         nextLeftValue,
-        MIN_SEGMENT_PERCENT,
+        getFeasibleMinimumPercent(state.pairTotal),
       );
 
       onWeightsChange(percentagesToWeights(nextPercentages));
@@ -130,7 +133,7 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
         percentages,
         dividerIndex,
         percentages[dividerIndex] + delta,
-        MIN_SEGMENT_PERCENT,
+        getFeasibleMinimumPercent(percentages[dividerIndex] + percentages[dividerIndex + 1]),
       );
       onWeightsChange(percentagesToWeights(nextPercentages));
     },

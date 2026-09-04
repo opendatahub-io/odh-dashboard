@@ -222,7 +222,12 @@ paths:
         - Bearer: []
       parameters:
         - $ref: '#/components/parameters/collectionId'
-        - $ref: '#/components/parameters/namespace'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
       requestBody:
         required: false
         content:

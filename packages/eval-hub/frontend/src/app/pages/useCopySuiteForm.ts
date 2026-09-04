@@ -19,6 +19,7 @@ export type CopySuiteBenchmark = {
   name: string;
   weight: number;
   primaryMetric?: string;
+  lowerIsBetter?: boolean;
   numSamples?: number;
   datasetSize?: number;
   randomSeed?: number;
@@ -44,6 +45,7 @@ type UseCopySuiteFormParams = {
   namespace: string | undefined;
   sourceCollection: Collection | undefined;
   providers: Provider[];
+  providersLoaded: boolean;
 };
 
 const resolveProviderBenchmark = (
@@ -94,6 +96,7 @@ const buildInitialBenchmarks = (
 
   return sourceBenchmarks.map((cb, index) => {
     const pb = resolveProviderBenchmark(cb, providers);
+    const primaryScore = cb.primary_score ?? pb?.primary_score;
     const datasetSize = pb?.dataset_size ?? undefined;
     const initialNumSamples =
       cb.parameters?.limit != null ? Number(cb.parameters.limit) : (datasetSize ?? undefined);
@@ -103,7 +106,8 @@ const buildInitialBenchmarks = (
       providerId: cb.provider_id ?? '',
       name: pb?.name ?? cb.id,
       weight: normalizedWeights[index] ?? 0,
-      primaryMetric: cb.primary_score?.metric ?? pb?.primary_score?.metric,
+      primaryMetric: primaryScore?.metric,
+      lowerIsBetter: primaryScore?.lower_is_better,
       numSamples: clampNumSamples(initialNumSamples, datasetSize),
       datasetSize,
       randomSeed:
@@ -139,6 +143,7 @@ export function useCopySuiteForm({
   namespace,
   sourceCollection,
   providers,
+  providersLoaded,
 }: UseCopySuiteFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -161,6 +166,9 @@ export function useCopySuiteForm({
     if (!sourceCollection || initializedRef.current) {
       return;
     }
+    if (!providersLoaded) {
+      return;
+    }
     initializedRef.current = true;
     setSuiteName(sourceCollection.name);
     setSuiteDescription(sourceCollection.description ?? '');
@@ -171,7 +179,7 @@ export function useCopySuiteForm({
         : DEFAULT_SUITE_THRESHOLD,
     );
     setBenchmarks(buildInitialBenchmarks(sourceCollection, providers));
-  }, [sourceCollection, providers]);
+  }, [sourceCollection, providers, providersLoaded]);
 
   // ── Derived values ───────────────────────────────────────────────────
 
@@ -255,7 +263,7 @@ export function useCopySuiteForm({
       provider_id: b.providerId || undefined,
       weight: b.weight,
       primary_score: b.primaryMetric
-        ? { metric: b.primaryMetric, lower_is_better: false }
+        ? { metric: b.primaryMetric, lower_is_better: b.lowerIsBetter ?? false }
         : undefined,
       pass_criteria: { threshold: b.threshold / 100 },
       parameters: {

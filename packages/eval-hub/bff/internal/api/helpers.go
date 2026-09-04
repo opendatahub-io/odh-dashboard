@@ -16,6 +16,8 @@ type Envelope[D any, M any] struct {
 
 type None *struct{}
 
+var errEmptyBody = errors.New("body must not be empty")
+
 func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
 	js, err := json.MarshalIndent(data, "", "\t")
@@ -71,7 +73,7 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
 
 		case errors.Is(err, io.EOF):
-			return errors.New("body must not be empty")
+			return errEmptyBody
 
 		case errors.As(err, &maxBytesError):
 			return fmt.Errorf("body must not be larger than %d bytes", maxBytesError.Limit)

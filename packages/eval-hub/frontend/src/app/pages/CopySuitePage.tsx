@@ -75,6 +75,7 @@ const CopySuitePage: React.FC = () => {
     namespace,
     sourceCollection,
     providers,
+    providersLoaded,
   });
 
   // ── Category dropdown ──────────────────────────────────────────────

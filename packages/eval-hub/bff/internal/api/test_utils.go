@@ -79,22 +79,7 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
 	}
 
-	if k8Factory == nil {
-		k8Factory = &testK8sFactory{}
-	}
-
-	mockFactory := ehmocks.NewMockClientFactory()
-	if ehClient != nil {
-		mockFactory.SetMockClient(ehClient)
-	}
-
-	app := &App{
-		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
-		logger:                  testLogger,
-		kubernetesClientFactory: k8Factory,
-		evalHubClientFactory:    mockFactory,
-		repositories:            repositories.NewRepositories(),
-	}
+	app := newTestAppWithEvalHub(k8Factory, ehClient)
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)
@@ -115,6 +100,25 @@ func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Fact
 		return empty, nil, err
 	}
 	return out, res, nil
+}
+
+func newTestAppWithEvalHub(k8Factory kubernetes.KubernetesClientFactory, ehClient evalhub.EvalHubClientInterface) *App {
+	if k8Factory == nil {
+		k8Factory = &testK8sFactory{}
+	}
+
+	mockFactory := ehmocks.NewMockClientFactory()
+	if ehClient != nil {
+		mockFactory.SetMockClient(ehClient)
+	}
+
+	return &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
+		logger:                  testLogger,
+		kubernetesClientFactory: k8Factory,
+		evalHubClientFactory:    mockFactory,
+		repositories:            repositories.NewRepositories(),
+	}
 }
 
 // testK8sFactory is a minimal K8s factory for unit tests that extracts identity from kubeflow headers.

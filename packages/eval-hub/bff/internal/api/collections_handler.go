@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -120,9 +121,19 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
 	var input evalhub.CloneCollectionRequest
-	if err := app.ReadJSON(w, r, &input); err != nil {
-		app.badRequestResponse(w, r, err)
-		return
+	if r.Body != http.NoBody {
+		if err := app.ReadJSON(w, r, &input); err != nil {
+			if !errors.Is(err, errEmptyBody) {
+				app.badRequestResponse(w, r, err)
+				return
+			}
+		}
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
 	}
 
 	collection, err := client.CloneCollection(ctx, id, namespace, input)

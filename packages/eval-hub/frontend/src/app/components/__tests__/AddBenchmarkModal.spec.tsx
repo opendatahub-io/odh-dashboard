@@ -82,6 +82,7 @@ describe('AddBenchmarkModal', () => {
         name: 'ARC Easy',
         weight: 1,
         primaryMetric: 'accuracy',
+        lowerIsBetter: false,
         numSamples: 1000,
         datasetSize: 1000,
         randomSeed: 4,

@@ -95,6 +95,7 @@ const defaultParams: FormParams = {
   namespace: 'test-namespace',
   sourceCollection,
   providers,
+  providersLoaded: true,
 };
 
 const renderForm = (overrides: Partial<FormParams> = {}) =>
@@ -152,6 +153,59 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     expect(result.result.current.isValid).toBe(true);
+  });
+
+  it('should initialize with loaded providers when the collection resolves first', async () => {
+    const collectionWithDefaults: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-one',
+          provider_id: 'provider-one',
+          weight: 1,
+        },
+      ],
+    };
+    const result = renderHook((params: FormParams) => useCopySuiteForm(params), {
+      initialProps: {
+        ...defaultParams,
+        sourceCollection: undefined,
+        providers: [],
+        providersLoaded: false,
+      } as FormParams,
+    });
+
+    result.rerender({
+      ...defaultParams,
+      sourceCollection: collectionWithDefaults,
+      providers: [],
+      providersLoaded: false,
+    });
+
+    expect(result.result.current.suiteName).toBe('');
+    expect(result.result.current.benchmarks).toEqual([]);
+
+    result.rerender({
+      ...defaultParams,
+      sourceCollection: collectionWithDefaults,
+      providers,
+      providersLoaded: true,
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    expect(result.result.current.benchmarks).toEqual([
+      expect.objectContaining({
+        id: 'benchmark-one',
+        name: 'Benchmark One',
+        datasetSize: 1000,
+        numSamples: 1000,
+        randomSeed: 5,
+        primaryMetric: 'accuracy',
+        threshold: 70,
+        availableMetrics: ['accuracy', 'f1'],
+      }),
+    ]);
   });
 
   it('should clamp an oversized saved limit to the provider dataset size on init', async () => {
@@ -288,6 +342,7 @@ describe('useCopySuiteForm', () => {
             id: 'benchmark-one',
             provider_id: 'provider-one',
             weight: 1,
+            primary_score: { metric: 'accuracy', lower_is_better: false },
             pass_criteria: { threshold: 0.75 },
             parameters: { limit: 250, num_fewshot: 3 },
           }),
@@ -301,6 +356,47 @@ describe('useCopySuiteForm', () => {
     );
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
     expect(result.result.current.isSubmitting).toBe(false);
+  });
+
+  it('should preserve a true lower-is-better setting when cloning a suite', async () => {
+    const sourceWithLowerIsBetter: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          primary_score: { metric: 'accuracy', lower_is_better: true },
+        },
+      ],
+    };
+    const clonedCollection: Collection = {
+      resource: { id: 'cloned-collection' },
+      name: 'Curated suite copy',
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({ sourceCollection: sourceWithLowerIsBetter });
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    expect(result.result.current.benchmarks[0]).toEqual(
+      expect.objectContaining({ lowerIsBetter: true }),
+    );
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        benchmarks: [
+          expect.objectContaining({
+            primary_score: { metric: 'accuracy', lower_is_better: true },
+          }),
+        ],
+      }),
+    );
   });
 
   it('should save a clone and return to the benchmark suites page', async () => {

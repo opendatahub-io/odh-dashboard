@@ -46,6 +46,7 @@ const AddBenchmarkModal: React.FC<AddBenchmarkModalProps> = ({
       name: string;
       metrics: string[];
       primaryMetric?: string;
+      lowerIsBetter?: boolean;
       threshold: number;
       datasetSize?: number;
       numFewShot?: number;
@@ -63,6 +64,7 @@ const AddBenchmarkModal: React.FC<AddBenchmarkModalProps> = ({
             name: pb.name,
             metrics: pb.metrics ?? [],
             primaryMetric: pb.primary_score?.metric,
+            lowerIsBetter: pb.primary_score?.lower_is_better,
             threshold: pb.pass_criteria
               ? normalizeThreshold(pb.pass_criteria.threshold)
               : DEFAULT_THRESHOLD,
@@ -112,6 +114,7 @@ const AddBenchmarkModal: React.FC<AddBenchmarkModalProps> = ({
         name: b.name,
         weight: 1,
         primaryMetric: b.primaryMetric ?? b.metrics[0],
+        lowerIsBetter: b.lowerIsBetter,
         numSamples: b.datasetSize,
         datasetSize: b.datasetSize,
         randomSeed: b.numFewShot,
