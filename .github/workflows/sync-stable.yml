@@ -46,12 +46,12 @@ jobs:
         with:
           ref: stable
           fetch-depth: 0
-          persist-credentials: false
+          # Uses automatic GITHUB_TOKEN - no manual secrets needed!
 
       - name: Fast-forward main to stable
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
 
           echo "stable before: $(git rev-parse HEAD)"
@@ -70,5 +70,5 @@ jobs:
 
           git merge --ff-only origin/main
           echo "stable after:  $(git rev-parse HEAD)"
-          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" push origin stable
+          git push origin stable
           echo "Fast-forwarded main to stable"
