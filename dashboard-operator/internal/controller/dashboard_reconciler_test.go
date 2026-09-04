@@ -766,6 +766,35 @@ func TestReconcile_StatusContract(t *testing.T) {
 	}
 }
 
+func TestReconcileDegradedCondition(t *testing.T) {
+	dashboard := &v1alpha1.Dashboard{}
+	cm := conditions.NewManager(
+		dashboard,
+		string(common.ConditionTypeReady),
+		string(common.ConditionTypeDegraded),
+	)
+	r := &ctrlpkg.DashboardReconciler{}
+
+	r.ReconcileDegradedCondition(cm, map[string]v1alpha1.ModuleStatus{
+		"modelRegistry": {Phase: v1alpha1.ModulePhaseDegraded},
+		"genAi":         {Phase: v1alpha1.ModulePhaseDegraded},
+		"mlflow":        {Phase: v1alpha1.ModulePhaseDeployed},
+	})
+
+	degraded := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "ModulesDegraded", degraded.Reason)
+	assert.Equal(t, "2 module(s) degraded", degraded.Message)
+	assert.Equal(t, common.ConditionSeverityError, degraded.Severity)
+	ready := conditions.FindStatusCondition(dashboard, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "ModulesDegraded", ready.Reason)
+	assert.Equal(t, "2 module(s) degraded", ready.Message)
+	assert.False(t, cm.IsHappy())
+}
+
 func TestReconcile_DistinctNamespaces(t *testing.T) {
 	s := testScheme(t)
 
