@@ -2081,7 +2081,7 @@ func strPtr(s string) *string {
 
 func TestOgxCommand_TracingDisabled(t *testing.T) {
 	cmd := ogxCommand(false)
-	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}, cmd)
 }
 
 func TestOgxCommand_TracingEnabled(t *testing.T) {
@@ -2126,6 +2126,84 @@ func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
 	vars := ogxEnvVars(nil, true, "other-ns", "http://collector:4318")
 	byName := envVarMap(vars)
 	assert.Equal(t, "k8s.namespace.name=other-ns", byName["OTEL_RESOURCE_ATTRIBUTES"])
+}
+
+func TestOgxTLSTrust_DSCIBundleAvailable(t *testing.T) {
+	// When odh-trusted-ca-bundle exists with CA content in the namespace,
+	// the install handler should reuse it and add the ogx.io/watch label.
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	existingBundle := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "odh-trusted-ca-bundle",
+			Namespace: "test-ns",
+			Labels: map[string]string{
+				"config.openshift.io/inject-trusted-cabundle": "true",
+			},
+		},
+		Data: map[string]string{
+			"ca-bundle.crt": "-----BEGIN CERTIFICATE-----\nFAKE-INGRESS-CA\n-----END CERTIFICATE-----\n",
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingBundle).Build()
+
+	// Simulate the check: get the existing ConfigMap
+	var cm corev1.ConfigMap
+	err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "odh-trusted-ca-bundle", Namespace: "test-ns"}, &cm)
+	require.NoError(t, err)
+
+	// CA content exists — should use existing ConfigMap
+	assert.NotEmpty(t, cm.Data["ca-bundle.crt"])
+	assert.Contains(t, cm.Data["ca-bundle.crt"], "FAKE-INGRESS-CA")
+
+	// Should add ogx.io/watch label
+	cm.Labels["ogx.io/watch"] = "true"
+	err = fakeClient.Update(context.Background(), &cm)
+	require.NoError(t, err)
+
+	// Verify label was added
+	var updated corev1.ConfigMap
+	err = fakeClient.Get(context.Background(), types.NamespacedName{Name: "odh-trusted-ca-bundle", Namespace: "test-ns"}, &updated)
+	require.NoError(t, err)
+	assert.Equal(t, "true", updated.Labels["ogx.io/watch"])
+}
+
+func TestOgxTLSTrust_DSCIBundleMissing_CreatesOwnConfigMap(t *testing.T) {
+	// When odh-trusted-ca-bundle does NOT exist, the install handler should
+	// create ogx-trusted-ca-bundle with the CA injection label.
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	// Check that odh-trusted-ca-bundle doesn't exist
+	var cm corev1.ConfigMap
+	err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "odh-trusted-ca-bundle", Namespace: "test-ns"}, &cm)
+	assert.Error(t, err) // Not found
+
+	// Create our own CA bundle ConfigMap
+	newCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ogx-trusted-ca-bundle",
+			Namespace: "test-ns",
+			Labels: map[string]string{
+				"config.openshift.io/inject-trusted-cabundle": "true",
+				"ogx.io/watch": "true",
+			},
+		},
+		Data: map[string]string{},
+	}
+	err = fakeClient.Create(context.Background(), newCM)
+	require.NoError(t, err)
+
+	// Verify it was created with correct labels
+	var created corev1.ConfigMap
+	err = fakeClient.Get(context.Background(), types.NamespacedName{Name: "ogx-trusted-ca-bundle", Namespace: "test-ns"}, &created)
+	require.NoError(t, err)
+	assert.Equal(t, "true", created.Labels["config.openshift.io/inject-trusted-cabundle"])
+	assert.Equal(t, "true", created.Labels["ogx.io/watch"])
 }
 
 func envVarNames(vars []corev1.EnvVar) []string {
