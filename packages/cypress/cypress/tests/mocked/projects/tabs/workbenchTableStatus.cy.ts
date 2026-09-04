@@ -264,10 +264,20 @@ describe('Workbench page', () => {
       {
         statusCode: 415,
         body: {
-          statusCode: 415,
-          code: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
-          error: 'Unsupported Media Type',
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          code: 415,
+          reason: 'DashboardProxyError',
           message: 'Unsupported Media Type: application/json-patch+json',
+          details: {
+            causes: [
+              {
+                reason: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+                message: 'Unsupported Media Type: application/json-patch+json',
+              },
+            ],
+          },
         },
       },
     ).as('stopWorkbenchRejected');

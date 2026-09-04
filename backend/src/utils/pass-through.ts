@@ -25,7 +25,7 @@ export type K8sFailureStatus = K8sStatus & {
 export const isK8sStatus = (data: unknown): data is K8sStatus =>
   typeof data === 'object' && data !== null && (data as K8sStatus).kind === 'Status';
 
-const describeFailure = (response: unknown): string => {
+export const describeFailure = (response: unknown): string => {
   if (typeof response === 'string') {
     return response;
   }
@@ -37,14 +37,15 @@ const describeFailure = (response: unknown): string => {
 
 /**
  * Wraps a failure produced by the dashboard backend itself (not by Kubernetes) in the K8s Status
- * shape, so that clients of the pass-through never receive a non-Status error body.
+ * shape, so that clients of the pass-through never receive a non-Status error body. The message is
+ * generic; the underlying error is only logged server-side so cluster internals never reach the
+ * client.
  */
 export const toK8sFailureStatus = (
   code: number,
-  response: unknown,
+  message: string,
   cause?: string,
 ): K8sFailureStatus => {
-  const message = describeFailure(response);
   return {
     kind: 'Status',
     apiVersion: 'v1',

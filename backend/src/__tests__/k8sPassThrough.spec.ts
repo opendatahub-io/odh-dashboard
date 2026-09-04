@@ -219,9 +219,11 @@ describe('k8s pass-through inject', () => {
           kind: 'Status',
           status: 'Failure',
           code: 500,
-          message: 'connect ECONNREFUSED',
+          reason: 'DashboardProxyError',
+          message: 'Kubernetes request failed',
         }),
       );
+      expect(response.body).not.toContain('ECONNREFUSED');
     });
 
     it('should pass a Kubernetes Status failure through unchanged', async () => {
