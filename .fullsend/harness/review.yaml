@@ -3,15 +3,12 @@ base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c
 skills:
   - skills/pr-review
   - skills/review-host-contract
-  - skills/issue-labels
-  - skills/description-jira
+  # These symlinks resolve to the Dashboard's maintained review skills.
+  - skills/style-review
+  - skills/rbac-review
+  - skills/jira-eval-review
 
 host_files:
-  - src: dimensions.json
-    dest: /sandbox/workspace/.fullsend/dimensions.json
-  - src: .run/collected.json
-    dest: /sandbox/workspace/.fullsend/.run/collected.json
-    optional: true
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
     optional: true

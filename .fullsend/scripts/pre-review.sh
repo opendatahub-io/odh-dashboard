@@ -5,10 +5,8 @@
 # Local changes from the stock script:
 #   1. If the PR body is missing required Dashboard template headings, post a
 #      comment and skip the sandbox.
-#   2. Run every cli-adapter in dimensions.json. Output goes to `.run/`.
-#      Findings payloads are folded into `.run/collected.json`. Context
-#      snapshots stay at producer_file so host_files can copy them. The
-#      sandbox does not receive Jira credentials.
+#   2. Hydrate the trusted Jira snapshot. The sandbox receives that sanitized
+#      context file, never Jira credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -103,10 +101,6 @@ run_self_test() {
     fail=1
   else
     echo "PASS pre-sot required list"
-  fi
-  if ! bash "${_SCRIPT_DIR}/run-dimension-producers.sh" --self-test; then
-    echo "FAIL dimension producer self-test" >&2
-    fail=1
   fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
@@ -314,11 +308,4 @@ See the [PR template](${_TEMPLATE_URL}). Then push or comment \`/fs-review\`.
 fi
 
 # ---------------------------------------------------------------------------
-# CLI adapters on the host (before the sandbox). Output → `.run/`.
-# Findings → `.run/collected.json`. Does not post GitHub comments.
-# ---------------------------------------------------------------------------
-if ! bash "${_SCRIPT_DIR}/run-dimension-producers.sh"; then
-  echo "::warning::dimension producers failed; leaving stub collected.json"
-fi
-
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
