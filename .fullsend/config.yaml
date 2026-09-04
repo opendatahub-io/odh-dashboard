@@ -6,12 +6,7 @@
 version: "1"
 runtime: claude
 roles:
-    - triage
-    - coder
     - review
-    - fix
-    - retro
-    - prioritize
 agents:
     # Dashboard's review overlay. All other roles use Fullsend's stock agents.
     - source: harness/review.yaml
