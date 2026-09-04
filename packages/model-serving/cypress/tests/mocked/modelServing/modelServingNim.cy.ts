@@ -465,7 +465,7 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.nim
       .findStorageModeSelect()
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
-    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
@@ -536,11 +536,25 @@ describe('NIM Models Deployments', () => {
         }),
       ]),
     );
+    // KServe contributes the "Connected resources" column: a serving runtime mounting the PVC plus
+    // the inference service targeting that runtime surface the deployment on the PVC's row.
+    cy.interceptK8sList(
+      ServingRuntimeModel,
+      mockK8sResourceList([mockNimServingRuntime({ pvcName: 'nim-cache' })]),
+    );
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
 
     clusterStorage.visit('test-project');
 
     // The nim-serving package contributes the "NIM storage" context, so the PVC is labelled by it
     clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('NIM storage');
+
+    // The connected KServe deployment is listed by its inference service display name (not the
+    // serving runtime's generic "NVIDIA NIM" name)
+    clusterStorage
+      .getClusterStorageRow('NIM Cache')
+      .findConnectedResources()
+      .should('contain.text', 'Test Name');
 
     // TODO followup PR: can edit and update subpath
   });

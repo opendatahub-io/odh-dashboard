@@ -1,6 +1,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
@@ -22,6 +23,7 @@ import {
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
+  PVCModel,
   ServingRuntimeModel,
 } from './models';
 
@@ -111,4 +113,12 @@ export const initInterceptsForAllProjects = (): void => {
   );
 
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
+  // The NIM edit modal reads the runtime's `nim-pvc` volume (see mockNimServingRuntime) and
+  // fetches the PVC. Without this stub the request falls through and, if it resolves at test
+  // teardown, throws an unhandled "Unexpected end of JSON input" from an empty body.
+  cy.interceptK8s(
+    { model: PVCModel, ns: 'nim-project', name: 'my-nim-pvc' },
+    mockPVCK8sResource({ name: 'my-nim-pvc', namespace: 'nim-project' }),
+  );
 };
