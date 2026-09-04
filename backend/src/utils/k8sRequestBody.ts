@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 
 const EMPTY_BODY_METHODS = new Set(['DELETE', 'GET', 'HEAD', 'OPTIONS']);
+const JSON_CONTENT_TYPE = /application\/json/i;
 
 /**
  * Fastify 5 rejects a request that declares `Content-Type: application/json` but sends an empty
@@ -14,15 +15,17 @@ export const stripEmptyJsonContentType = (req: FastifyRequest): void => {
   if (!EMPTY_BODY_METHODS.has(req.method)) {
     return;
   }
+  // A chunked request carries a body regardless of any content-length it also sends, so it is
+  // never treated as bodyless.
+  if (req.headers['transfer-encoding']) {
+    return;
+  }
   const contentLength = req.headers['content-length'];
-  // `content-length` is absent on chunked requests too, and those do carry a body. Only treat
-  // the request as bodyless when neither header indicates otherwise, so a chunked payload is
-  // never silently dropped by having its content type removed.
-  if (contentLength !== '0' && (contentLength || req.headers['transfer-encoding'])) {
+  if (contentLength && contentLength !== '0') {
     return;
   }
   const contentType = req.headers['content-type'];
-  if (contentType && /application\/json/i.test(contentType)) {
+  if (contentType && JSON_CONTENT_TYPE.test(contentType)) {
     delete req.headers['content-type'];
   }
 };

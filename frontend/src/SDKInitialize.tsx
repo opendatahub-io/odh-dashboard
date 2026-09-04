@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { AppInitSDK, isUtilsConfigSet, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { AppInitSDK, isUtilsConfigSet } from '@openshift/dynamic-plugin-sdk-utils';
 import { PluginStore } from '@openshift/dynamic-plugin-sdk';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { isK8sStatus, K8sStatusError } from '@odh-dashboard/k8s-core';
 import { WS_HOSTNAME } from './utilities/const';
+import { toK8sFetchError } from './utilities/k8sFetchError';
 
 const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
   appFetch: (url, options) =>
@@ -14,22 +14,10 @@ const config: React.ComponentProps<typeof AppInitSDK>['configurations'] = {
         return response;
       }
 
-      const result = await response.clone().text();
-      let data: K8sStatus | unknown;
-      try {
-        data = JSON.parse(result);
-      } catch (e) {
-        // Parsing error, just fallback on SDK logic
-        return response;
-      }
-      if (isK8sStatus(data)) {
-        // TODO: SDK does not support error states, we need them though
-        // Turn it into an error object so we can use .catch
-        throw new K8sStatusError(data);
-      }
-
-      // Not a status object, let the normal SDK flow take over
-      return response;
+      // Any 4xx/5xx is a failure. The SDK only recognizes K8s Status bodies as errors, so every
+      // other error body (backend rejections, router pages) must be converted here or the SDK
+      // would hand it to callers as if it were the requested resource.
+      throw toK8sFetchError(response.status, response.statusText, await response.text());
     }),
   /** Disable api discovery -- use static models */
   apiDiscovery: () => null,

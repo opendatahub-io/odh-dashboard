@@ -18,8 +18,43 @@ export type PassThroughData = {
   overrideAccept?: string;
 };
 
+export type K8sFailureStatus = K8sStatus & {
+  details?: { causes: { reason: string; message: string }[] };
+};
+
 export const isK8sStatus = (data: unknown): data is K8sStatus =>
-  (data as K8sStatus).kind === 'Status';
+  typeof data === 'object' && data !== null && (data as K8sStatus).kind === 'Status';
+
+const describeFailure = (response: unknown): string => {
+  if (typeof response === 'string') {
+    return response;
+  }
+  if (typeof response === 'object' && response !== null && 'message' in response) {
+    return String((response as { message: unknown }).message);
+  }
+  return 'Kube request failed';
+};
+
+/**
+ * Wraps a failure produced by the dashboard backend itself (not by Kubernetes) in the K8s Status
+ * shape, so that clients of the pass-through never receive a non-Status error body.
+ */
+export const toK8sFailureStatus = (
+  code: number,
+  response: unknown,
+  cause?: string,
+): K8sFailureStatus => {
+  const message = describeFailure(response);
+  return {
+    kind: 'Status',
+    apiVersion: 'v1',
+    status: 'Failure',
+    code,
+    reason: 'DashboardProxyError',
+    message,
+    ...(cause ? { details: { causes: [{ reason: cause, message }] } } : {}),
+  };
+};
 
 const passThroughCatch = (fastify: KubeFastifyInstance) => (error: Error) => {
   let errorMessage = 'Unknown error';

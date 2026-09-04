@@ -15,6 +15,8 @@ import {
 import { TrainJobModel } from '@odh-dashboard/internal/api/models';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
+import { toastNotifications } from '../../../pages/components/ToastNotifications';
+import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import {
   modelTrainingGlobal,
   trainingJobTable,
@@ -315,6 +317,45 @@ describe('Model Training Pause/Resume', () => {
 
       cy.wait('@pauseWorkload');
       pauseTrainingJobModal.shouldBeOpen(false);
+    });
+  });
+
+  describe('Pause failure', () => {
+    it('should report the failure and keep the job running when the pause request is rejected', () => {
+      initIntercepts();
+
+      cy.intercept(
+        {
+          method: 'PATCH',
+          pathname: getK8sAPIResourceURL(WorkloadModel, undefined, {
+            ns: projectName,
+            name: 'workload-running-job',
+          }),
+        },
+        {
+          statusCode: 415,
+          body: {
+            statusCode: 415,
+            code: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+            error: 'Unsupported Media Type',
+            message: 'Unsupported Media Type: application/json-patch+json',
+          },
+        },
+      ).as('pauseWorkloadRejected');
+
+      modelTrainingGlobal.visit(projectName);
+
+      const row = trainingJobTable.getTableRow('running-job');
+      row.findStatus().should('contain.text', 'Running');
+      row.findPauseResumeToggle().click();
+
+      pauseTrainingJobModal.shouldBeOpen();
+      pauseTrainingJobModal.pause();
+
+      cy.wait('@pauseWorkloadRejected');
+      toastNotifications.findToastNotification(0).should('contain.text', 'Failed to pause job');
+      row.findStatus().should('contain.text', 'Running');
+      row.findStatus().should('not.contain.text', 'Paused');
     });
   });
 

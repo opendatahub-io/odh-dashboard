@@ -42,6 +42,7 @@ describe('WebSocket K8s Proxy', () => {
       readyState: WebSocket.OPEN,
       send: jest.fn(),
       close: jest.fn(),
+      terminate: jest.fn(),
       on: jest.fn(),
       once: jest.fn(),
       ping: jest.fn(),
@@ -347,9 +348,9 @@ describe('WebSocket K8s Proxy', () => {
         expect.stringContaining('Client socket not ready'),
       );
 
-      // closeWebSocket only closes OPEN sockets, so target (which is OPEN) will be closed
-      // but source (which is CONNECTING) will not
       expect(mockTargetSocket.close).toHaveBeenCalled();
+      expect(mockSourceSocket.terminate).toHaveBeenCalled();
+      expect(mockSourceSocket.close).not.toHaveBeenCalled();
     });
 
     it('should close connection when send fails', async () => {
@@ -565,19 +566,15 @@ describe('WebSocket K8s Proxy', () => {
       );
     });
 
-    it('should handle unexpected responses from K8s API', async () => {
+    it('should abort the CONNECTING K8s handshake on an unexpected response', async () => {
       await routeHandler(mockConnection, mockRequest);
+      mockTargetSocket.readyState = WebSocket.CONNECTING;
 
       const unexpectedResponseHandler = mockTargetSocket.on.mock.calls.find(
         (call: any) => call[0] === 'unexpected-response',
       )?.[1];
 
-      const mockResponse = {
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-      };
-
-      unexpectedResponseHandler(undefined, mockResponse);
+      unexpectedResponseHandler(undefined, { statusCode: 403, statusMessage: 'Forbidden' });
 
       expect(mockLog.error).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -586,8 +583,20 @@ describe('WebSocket K8s Proxy', () => {
         }),
         expect.stringContaining('Unexpected response from K8s API'),
       );
-      expect(mockSourceSocket.close).toHaveBeenCalled();
-      expect(mockTargetSocket.close).toHaveBeenCalled();
+      expect(mockTargetSocket.terminate).toHaveBeenCalledTimes(1);
+      expect(mockTargetSocket.close).not.toHaveBeenCalled();
+      expect(mockSourceSocket.close).toHaveBeenCalledWith(
+        1011,
+        'unexpected response: 403 Forbidden',
+      );
+
+      mockLog.error.mockClear();
+      jest.advanceTimersByTime(CONNECTION_TIMEOUT_MS);
+      expect(mockLog.error).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('WebSocket connection timeout'),
+      );
+      expect(mockTargetSocket.terminate).toHaveBeenCalledTimes(1);
     });
 
     it('should not throw when unexpected-response 403 closes sockets', async () => {
