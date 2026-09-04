@@ -89,21 +89,21 @@ const DataRegistryPage: React.FC = () => {
     if (is503Error(namespacesError)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ServiceUnavailableError onRetry={namespacesRefresh} />
+          <ServiceUnavailableError onRetry={namespacesRefresh} error={namespacesError} />
         </PageSection>
       );
     }
     if (is403Error(namespacesError)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <AccessDeniedError />
+          <AccessDeniedError error={namespacesError} />
         </PageSection>
       );
     }
     if (isConnectionError(namespacesError)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ConnectionError onRetry={namespacesRefresh} />
+          <ConnectionError onRetry={namespacesRefresh} error={namespacesError} />
         </PageSection>
       );
     }
