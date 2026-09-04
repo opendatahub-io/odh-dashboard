@@ -93,9 +93,9 @@ paths:
           in: query
           required: false
           description: >-
-            Secret type filter (key matching is case-sensitive, keys must be uppercase):
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-            - 'maas': Filters for Models as a Service secrets (classification keys: MAAS_API_KEY, MAAS_BASE_URL)
+            Secret type filter:
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT). Key matching is case-sensitive.
+            - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has MAAS_API_KEY and MAAS_BASE_URL, or the legacy aliases OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL. The API-key key may be present but empty.
             - Omit for all secrets
 
             Type Classification Precedence:
@@ -129,14 +129,16 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Key matching is case-sensitive; keys must be uppercase.
+        Storage classification-key matching is case-sensitive.
+        MaaS classification-key matching is case-insensitive and accepts MAAS_API_KEY and MAAS_BASE_URL
+        plus the legacy OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL aliases.
 
         Secret Type Classification Precedence:
         The type of each secret is determined using the following precedence:
         1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
         2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
            - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'maas': Models as a Service secrets (classification keys: MAAS_API_KEY, MAAS_BASE_URL)
+           - 'maas': Models as a Service secrets (MAAS_API_KEY and MAAS_BASE_URL, or legacy OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL)
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).

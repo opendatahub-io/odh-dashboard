@@ -136,6 +136,7 @@ curl -s 'http://localhost:4000/api/v1/maas/vector-stores?namespace=default&secre
 ### Full E2E
 
 1. Create a secret with Models as a Service credentials (use the in-cluster service DNS name):
+
    ```bash
    oc create secret generic my-maas-secret \
      --namespace=<namespace> \
@@ -147,12 +148,14 @@ curl -s 'http://localhost:4000/api/v1/maas/vector-stores?namespace=default&secre
    > For a BFF running on your laptop, use mock mode (`MOCK_MAAS_CLIENT=true`) instead of a localhost URL in the secret.
 
 2. Start the BFF without mock flags:
+
    ```bash
    cd packages/autorag/bff
    make run
    ```
 
-3. Call the endpoint:
+3. Call the endpoint. This HTTP example is loopback-only and non-portable; do not send the bearer token to a non-localhost host:
+
    ```bash
    curl -s -H "Authorization: Bearer $(oc whoami -t)" \
      'http://localhost:4000/api/v1/maas/vector-stores?namespace=<namespace>&secretName=my-maas-secret' | jq

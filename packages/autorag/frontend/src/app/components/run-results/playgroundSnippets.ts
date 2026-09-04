@@ -27,10 +27,10 @@ export const generateCurlSnippet = (
   if (credentials) {
     const hostname = escapeShellDoubleQuote(credentials.hostname);
     const apiKey = escapeShellDoubleQuote(credentials.apiKey);
+    const authHeader = apiKey ? `  -H "Authorization: Bearer ${apiKey}" \\\n` : '';
     return `curl -X POST "https://${hostname}/v1/responses" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${apiKey}" \\
-  -d '${body}'`;
+${authHeader}  -d '${body}'`;
   }
   return `MAAS_BASE_URL=$(oc get secret ${secretName} -n ${namespace} \\
   -o jsonpath='{.data.MAAS_BASE_URL}' | base64 -d)
@@ -54,6 +54,7 @@ export const generateNodeSnippet = (
   if (credentials) {
     const hostname = escapeDoubleQuotedString(credentials.hostname);
     const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    const authHeader = apiKey ? `\n    "Authorization": "Bearer ${apiKey}",` : '';
     return `// Build the JSON request body
 const payload = ${body};
 
@@ -61,8 +62,7 @@ const payload = ${body};
 const response = await fetch("https://${hostname}/v1/responses", {
   method: "POST",
   headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer ${apiKey}",
+    "Content-Type": "application/json",${authHeader}
   },
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(30_000),
@@ -297,10 +297,10 @@ export const generatePythonSnippet = (
   if (credentials) {
     const hostname = escapeDoubleQuotedString(credentials.hostname);
     const apiKey = escapeDoubleQuotedString(credentials.apiKey);
+    const authHeader = apiKey ? `\n        "Authorization": "Bearer ${apiKey}",` : '';
     return `import requests
 
 base_url = "https://${hostname}"
-api_key = "${apiKey}"
 
 # Build the request payload
 payload = ${params}
@@ -309,8 +309,7 @@ payload = ${params}
 response = requests.post(
     f"{base_url}/v1/responses",
     headers={
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",${authHeader}
     },
     json=payload,
     timeout=30,

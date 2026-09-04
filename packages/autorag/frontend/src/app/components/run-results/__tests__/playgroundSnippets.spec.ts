@@ -181,6 +181,17 @@ describe('credential injection', () => {
     expect(result).not.toContain('test-ns');
   });
 
+  it.each([
+    { name: 'curl', fn: generateCurlSnippet },
+    { name: 'Node.js', fn: generateNodeSnippet },
+    { name: 'Python', fn: generatePythonSnippet },
+  ])('should omit Authorization when apiKey is empty for $name', ({ fn }) => {
+    const result = fn(mockParams, { hostname: 'maas.example.com', apiKey: '' });
+    expect(result).toContain('maas.example.com');
+    expect(result).not.toContain('Authorization');
+    expect(result).not.toContain('Bearer');
+  });
+
   it.each(generators)(
     'should not contain credentials when no credentials provided for $name',
     ({ fn }) => {
