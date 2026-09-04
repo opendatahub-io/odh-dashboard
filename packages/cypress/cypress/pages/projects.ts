@@ -547,7 +547,7 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   }
 
   findNIMApiKeyCloseButton() {
-    return cy.findByTestId('nim-api-key-close');
+    return cy.findByTestId('nim-api-key-close', { timeout: 60000 });
   }
 }
 

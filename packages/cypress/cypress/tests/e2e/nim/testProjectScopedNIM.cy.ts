@@ -55,10 +55,7 @@ describe('A user can enable project-scoped NIM', () => {
       waitForNIMAccountValidation(projectName);
 
       cy.step('Verify the key was validated and close the modal');
-      projectDetailsSettingsTab
-        .findNIMApiKeyCloseButton()
-        .should('be.visible', { timeout: 60000 })
-        .click();
+      projectDetailsSettingsTab.findNIMApiKeyCloseButton().should('be.visible').click();
 
       cy.step('Verify the card now shows the enabled management actions');
       projectDetailsSettingsTab.findNIMRemoveButton().should('exist');
