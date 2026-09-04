@@ -4,12 +4,6 @@ metadata:
   name: maas-consumer-portal
 rules:
   - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - subjectaccessreviews
-    verbs:
-      - create
-  - apiGroups:
       - datasciencecluster.opendatahub.io
     resources:
       - datascienceclusters
