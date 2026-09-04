@@ -136,8 +136,7 @@ export type KueueWorkbenchTestData = {
 export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
-  waitingForQuotaMessage: string;
-  queuePositionMarker: string;
+  exceededQuotaMessage: string;
 };
 
 export type WBControlSuiteTestData = {
