@@ -5,16 +5,16 @@ This project is a chatbot UI built with PatternFly, React, and TypeScript. It pr
 ## Quick-start
 
 ```bash
-git https://github.com/opendatahub-io/gen-ai.git
-cd gen-ai
-pnpm install && pnpm run start:dev
+# Run from the odh-dashboard repository root
+pnpm install
+cd packages/gen-ai/frontend
+pnpm run start:dev
 ```
 
 ## Development scripts
 
 ```sh
-# Install development/build dependencies
-pnpm install
+# Dependencies are installed from the repository root; see Quick-start above
 
 # Start the development server
 pnpm run start:dev

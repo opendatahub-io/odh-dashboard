@@ -2,8 +2,8 @@
 [BFF requirements]: ./bff/README.md#pre-requisites
 [frontend dev setup]: ./frontend/docs/dev-setup.md#development
 [BFF dev setup]: ./bff/README.md#development
-[issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
-[contributing guidelines]: https://github.com/opendatahub-io/mod-arch-library/blob/main/CONTRIBUTING.md
+[issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
+[contributing guidelines]: ../../CONTRIBUTING.md
 
 # Contributing
 
@@ -26,7 +26,7 @@ To run the federated development environment first make sure you have the latest
 From the root of the repo:
 
 ```shell
-npm i
+pnpm install
 cd packages/maas
 make dev-install-dependencies
 ```

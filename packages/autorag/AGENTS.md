@@ -93,8 +93,8 @@ mod-arch-starter/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **pnpm**: 11.22.0
 
 ### BFF
 

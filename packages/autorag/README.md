@@ -30,7 +30,8 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 
 ## Prerequisites
 
-- **[Node.js](https://nodejs.org/)**: v22.0.0 or later
+- **[Node.js](https://nodejs.org/)**: v22.18.0 or later
+- **pnpm**: 11.22.0 (the version pinned by the repository)
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 
@@ -71,14 +72,15 @@ The `.env.local` file is gitignored and should never be committed.
 
 ### Frontend Development
 
-```bash
-# Navigate to the frontend directory
-cd frontend
+Install workspace dependencies from the repository root, then start the frontend
+from this package:
 
-# Install dependencies
+```bash
+# From the repository root
 pnpm install
 
-# Start development server
+# From packages/autorag
+cd packages/autorag/frontend
 pnpm run start:dev
 ```
 

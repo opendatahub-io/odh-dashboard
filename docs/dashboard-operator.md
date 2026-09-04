@@ -239,7 +239,7 @@ dashboard-operator/
 |   +-- webhook/                    # Webhook configuration
 |-- Dockerfile                      # Multi-stage Go build
 |-- Makefile                        # Build, test, generate, lint targets
-+-- go.mod                          # Go module (separate from monorepo npm)
++-- go.mod                          # Go module (separate from the pnpm workspace)
 ```
 
 ## Development Workflow

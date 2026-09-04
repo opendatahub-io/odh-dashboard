@@ -266,7 +266,7 @@ describe('getModuleFederationConfigs', () => {
 
     it('should throw error when workspace package query fails', () => {
       mockExecSync.mockImplementation(() => {
-        throw new Error('npm query failed');
+        throw new Error('workspace package query failed');
       });
 
       expect(() => getModuleFederationConfigs(true)).toThrow();

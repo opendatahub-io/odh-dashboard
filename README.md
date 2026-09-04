@@ -27,8 +27,8 @@ A dashboard for Open Data Hub components, featuring user flows to navigate and i
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.9.2
+- **Node.js**: >= 22.18.0
+- **pnpm**: 11.22.0 (the version pinned in `package.json`)
 - **Go**: >= 1.26 (for packages with Backend-for-Frontend services)
 
 For detailed development setup requirements, see [Dev setup & Requirements].
@@ -40,7 +40,10 @@ For detailed development setup requirements, see [Dev setup & Requirements].
 git clone https://github.com/opendatahub-io/odh-dashboard.git
 cd odh-dashboard
 
-# Install dependencies (installs all workspace dependencies)
+# Install the repository-pinned package manager (npm is only used for this bootstrap step)
+npm install --global pnpm@11.22.0
+
+# Install all workspace dependencies from the repository root
 pnpm install
 
 # Copy environment configuration

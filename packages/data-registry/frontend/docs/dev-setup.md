@@ -4,22 +4,23 @@
 
 This project requires the following tools to be installed on your system:
 
-- [Node.js and pnpm](https://nodejs.org/)
-  - Node recommended version -> `22.17.0`
-  - pnpm version -> `10.8.2`
+- [Node.js](https://nodejs.org/) `>=22.18.0`
+- [pnpm](https://pnpm.io/) `11.22.0` (pinned in the repository root)
 
 ## Development
 
 1. Clone the repository
 
       ``` bash
-      git clone https://github.com/opendatahub-io/mod-arch-library
+      git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
-2. Within the repo context, install project dependencies
+2. Install dependencies from the repository root, then switch to this frontend
 
      ```bash
-     cd mod-arch/clients/ui/frontend && pnpm install
+     cd odh-dashboard
+     pnpm install
+     cd packages/data-registry/frontend
      ```
 
 ### Build project
@@ -36,7 +37,7 @@ This is the default context for running a local UI.  Make sure you build the pro
 pnpm run start:dev
 ```
 
-For in-depth local run guidance review the [contribution guidelines](../../../ui/CONTRIBUTING.md).
+For in-depth local run guidance review the [contribution guidelines](../../CONTRIBUTING.md).
 
 ### Testing
 

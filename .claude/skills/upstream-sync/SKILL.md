@@ -110,7 +110,7 @@ When conflicts are detected:
 
 ### Phase 4: Lint and Tests
 
-After the sync completes successfully, run lint and tests. Check which scripts are available in the package's upstream frontend:
+After the sync completes successfully, run lint and tests. These commands intentionally use npm because they run inside the independently maintained upstream frontend, which keeps its own npm lockfile; do not replace them with the root pnpm commands. Check which scripts are available in the package's upstream frontend:
 
 ```bash
 jq -r '.scripts | keys[] | select(test("^(test:|type-check)"))' packages/<package-name>/upstream/frontend/package.json
