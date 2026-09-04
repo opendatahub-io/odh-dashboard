@@ -11,9 +11,10 @@ import { DisconnectedIcon } from '@patternfly/react-icons';
 
 type ConnectionErrorProps = {
   onRetry: () => void;
+  error?: Error;
 };
 
-const ConnectionError: React.FC<ConnectionErrorProps> = ({ onRetry }) => (
+const ConnectionError: React.FC<ConnectionErrorProps> = ({ onRetry, error }) => (
   <EmptyState
     headingLevel="h2"
     titleText="Connection failed"
@@ -23,6 +24,13 @@ const ConnectionError: React.FC<ConnectionErrorProps> = ({ onRetry }) => (
   >
     <EmptyStateBody>
       Unable to connect to the Data Registry service. Check your network connection and try again.
+      {error ? (
+        <>
+          <br />
+          <br />
+          {error.message}
+        </>
+      ) : null}
     </EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>

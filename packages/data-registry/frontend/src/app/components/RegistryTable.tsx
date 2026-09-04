@@ -264,21 +264,21 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     if (is503Error(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ServiceUnavailableError onRetry={onRetry} />
+          <ServiceUnavailableError onRetry={onRetry} error={error} />
         </PageSection>
       );
     }
     if (is403Error(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <AccessDeniedError />
+          <AccessDeniedError error={error} />
         </PageSection>
       );
     }
     if (isConnectionError(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ConnectionError onRetry={onRetry} />
+          <ConnectionError onRetry={onRetry} error={error} />
         </PageSection>
       );
     }
