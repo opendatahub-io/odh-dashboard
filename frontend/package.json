@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "run-s build:prod",
-    "build:analyze": "cross-env RSDOCTOR=true npm run build:prod",
+    "build:analyze": "cross-env RSDOCTOR=true pnpm run build:prod",
     "build:clean": "rimraf ./public",
     "build:prod": "rspack --config ./config/rspack.prod.js",
     "format": "prettier --write \"./**/*.ts\" \"./**/*.tsx\" \"./**/*.scss\"",

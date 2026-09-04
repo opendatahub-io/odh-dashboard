@@ -11,6 +11,7 @@ on:
       - 'Dockerfile'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'manifests/**'
       - '.github/workflows/pr-build-validation.yml'
 
