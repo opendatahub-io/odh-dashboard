@@ -11,7 +11,7 @@ spec:
     - Egress
   ingress:
     - ports:
-        - port: 9043
+        - port: 9143
           protocol: TCP
       from:
         - namespaceSelector:

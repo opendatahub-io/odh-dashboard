@@ -119,6 +119,16 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ManifestSlug:  "notebooks",
 		TLS:           true,
 	},
+	"dataRegistry": {
+		Name:                  "dataRegistry",
+		ContainerName:         "data-registry-ui",
+		Port:                  9143,
+		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
+		ManifestSlug:          "data-registry",
+		TLS:                   true,
+		RequiredDSCComponents: []string{"feastoperator"},
+		ProxyPaths:            []proxyRoute{{Path: "/data-registry/api", PathRewrite: "/api"}},
+	},
 }
 
 // resolveModuleStatuses determines the status of each module based on
