@@ -806,6 +806,17 @@ describe('Pipeline topology', () => {
     });
 
     it('test logs of another step', () => {
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: { container: 'step-copy-artifacts', tailLines: '500' },
+        },
+        { statusCode: 200, body: '' },
+      );
+
       navigateToLogsTab();
 
       pipelineRunDetails.findLogsSuccessAlert().should('be.visible');
