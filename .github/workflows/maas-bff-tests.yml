@@ -4,7 +4,7 @@ on:
     paths:
       - "packages/maas/**"
       - ".github/workflows/maas-bff-tests.yml"
-      - ".github/actions/module-caches/**"
+      - ".github/actions/pnpm-setup/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -14,7 +14,7 @@ on:
     paths:
       - "packages/maas/**"
       - ".github/workflows/maas-bff-tests.yml"
-      - ".github/actions/module-caches/**"
+      - ".github/actions/pnpm-setup/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -71,31 +71,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: maas node_modules cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: packages/maas/frontend/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-maas-${{ hashFiles('packages/maas/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-maas-
-
-      - name: Install maas dependencies
-        working-directory: packages/maas/frontend
-        run: npm install
 
       - name: Unit tests (Jest)
         working-directory: packages/maas/frontend
-        run: npm run test:unit
+        run: pnpm run test:unit
 
       - name: Check if there are uncommitted file changes
         working-directory: packages/maas/frontend
