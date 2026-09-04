@@ -12,7 +12,7 @@ const RESOURCES_PATH = 'resources/autorag';
  * Full configure flow for an AutoRAG run.
  *
  * Handles: login, wait for DSPA, navigate to experiments, create run,
- * fill name/description, select OGX secret, select S3 connection,
+ * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
  * and select first available vector store.
  *
@@ -38,10 +38,10 @@ export const configureAutoragRun = (
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
-  cy.step('Select OGX secret');
-  autoragConfigurePage.findOgxSecretSelector().click();
-  autoragConfigurePage.findOgxSecretSelector().type(testData.ogxSecretName);
-  autoragConfigurePage.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
+  cy.step('Select MaaS secret');
+  autoragConfigurePage.findMaasSecretSelector().click();
+  autoragConfigurePage.findMaasSecretSelector().type(testData.maasSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
 
   cy.step('Click Next to go to Configure step');
   autoragConfigurePage.findNextButton().click();

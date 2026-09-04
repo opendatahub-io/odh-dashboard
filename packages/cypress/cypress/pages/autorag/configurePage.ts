@@ -18,12 +18,12 @@ class AutoragConfigurePage {
     return cy.findByTestId('autorag-description-input');
   }
 
-  findOgxSecretSelector() {
-    return cy.findByTestId('ogx-secret-selector');
+  findMaasSecretSelector() {
+    return cy.findByTestId('maas-secret-selector');
   }
 
-  findAddOgxConnectionButton() {
-    return cy.findByTestId('add-ogx-connection-button');
+  findAddMaasConnectionButton() {
+    return cy.findByTestId('add-maas-connection-button');
   }
 
   findNextButton() {

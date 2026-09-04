@@ -3,7 +3,7 @@ import * as yaml from 'js-yaml';
 
 import { pollUntilSuccess } from './baseCommands';
 import { allowOgxAccess } from './ogxNetworkPolicy';
-import { createOgxSecret } from './ogxSecret';
+import { createMaasSecret } from './maasSecret';
 import type { CommandLineResult } from '../../types';
 
 // ---------------------------------------------------------------------------
@@ -582,9 +582,9 @@ export const getOgxServiceURL = (namespace: string): Cypress.Chainable<string> =
 
 /**
  * Provision AutoRAG infrastructure in a namespace:
- * OGX Distribution with config, credentials secret, and network policy.
+ * OGX Distribution with config, MaaS credentials secret, and network policy.
  */
-export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
+export const provisionAutoragInfrastructure = (namespace: string, maasSecretName: string): void => {
   cy.step('Deploy vector store');
   deployVectorStore(namespace);
 
@@ -600,10 +600,10 @@ export const provisionAutoragInfrastructure = (namespace: string, ogxSecretName:
   cy.step('Wait for OGX Distribution to be ready');
   waitForDistributionReady(namespace);
 
-  cy.step('Discover OGX service URL and create credentials secret');
+  cy.step('Discover OGX service URL and create MaaS credentials secret');
   getOgxServiceURL(namespace).then((ogxUrl) => {
     cy.log(`OGX service URL: ${ogxUrl}`);
-    createOgxSecret(namespace, ogxSecretName, ogxUrl, 'no-auth');
+    createMaasSecret(namespace, maasSecretName, ogxUrl, 'no-auth');
   });
 
   cy.step('Create NetworkPolicy for OGX access');
@@ -645,8 +645,8 @@ export const cleanupOgxSecret = (namespace: string, secretName: string): void =>
  * Full cleanup of all AutoRAG infrastructure resources.
  * Each cleanup is independent and resilient — failure of one doesn't block others.
  */
-export const cleanupAutoragInfrastructure = (namespace: string, ogxSecretName: string): void => {
+export const cleanupAutoragInfrastructure = (namespace: string, maasSecretName: string): void => {
   cleanupOgx(namespace);
   cleanupVectorStore(namespace);
-  cleanupOgxSecret(namespace, ogxSecretName);
+  cleanupOgxSecret(namespace, maasSecretName);
 };
