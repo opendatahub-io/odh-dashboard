@@ -4959,9 +4959,6 @@ importers:
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
-      '@odh-dashboard/model-registry':
-        specifier: workspace:*
-        version: link:../model-registry
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../plugin-core
