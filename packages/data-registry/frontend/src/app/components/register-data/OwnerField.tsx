@@ -14,7 +14,7 @@ const OwnerField: React.FC = () => {
     watch,
   } = useFormContext<RegisterDataFormData>();
   const { userSettings } = useSettings();
-  const userId = userSettings?.userId || '';
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
   const currentOwner = watch('owner');
 
   const ownerOptions = React.useMemo(() => {
@@ -37,7 +37,7 @@ const OwnerField: React.FC = () => {
       render={({ field }) => (
         <FormGroup label="Owner" isRequired fieldId="asset-owner">
           <TypeaheadSelect
-            key={`${userId}-${currentOwner}`}
+            key={userId}
             id="asset-owner"
             placeholder="Select or type owner"
             initialOptions={ownerOptions}
