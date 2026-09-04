@@ -709,19 +709,19 @@ For debugging local frontend changes against a cluster:
 
 ```bash
 lsof -ti :9001,4010 | xargs -rt kill -9  # Kill existing processes
-npm --prefix frontend run start:dev:ext
+pnpm --dir frontend run start:dev:ext
 ```
 
 **Terminal 2 - Cypress:**
 
 ```bash
-npm --prefix frontend run cypress:open
+pnpm --dir frontend run cypress:open
 ```
 
 ### One-Liner (Single Terminal)
 
 ```bash
-lsof -ti :9001,4010 | xargs -rt kill -9 ; (npm --prefix frontend run start:dev:ext &) && npm --prefix frontend run cypress:open
+lsof -ti :9001,4010 | xargs -rt kill -9 ; (pnpm --dir frontend run start:dev:ext &) && pnpm --dir frontend run cypress:open
 ```
 
 For more details, see [testing.md](./testing.md#cypress-tests).

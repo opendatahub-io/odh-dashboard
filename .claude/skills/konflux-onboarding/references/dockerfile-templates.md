@@ -48,6 +48,7 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
+# npm only bootstraps the repository-pinned pnpm binary.
 RUN npm install -g pnpm@11.22.0
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
@@ -114,6 +115,7 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
+# npm only bootstraps the repository-pinned pnpm binary.
 RUN npm install -g pnpm@11.22.0
 RUN pnpm install --frozen-lockfile --ignore-scripts
 

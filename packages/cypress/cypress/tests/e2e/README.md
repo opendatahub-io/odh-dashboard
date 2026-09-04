@@ -33,8 +33,8 @@ Learn more about the Dashboard through our documentation:
 
 Before you begin, ensure you have the following installed:
 
-* **Node.js**: Version 14 or higher
-* **npm**: Comes with Node.js, ensure it's up to date
+* **Node.js**: Version 22.18.0 or higher
+* **pnpm**: Version 11.22.0 (the repository-pinned version)
 * **Cypress**: This will be installed as part of the project setup
 
 ## Setting Up Cypress
@@ -271,7 +271,8 @@ Initially, please refer to the general ODH-Dashboard contribution guidelines, wh
 * **Submitting Changes:** Once your changes are ready, run the linter, commit them and push to your branch:
 
   ```bash
-  pnpm run test:lint/pnpm run test:fix
+  pnpm run test:lint
+  # Use `pnpm run test:fix` to apply automatic fixes
   git add .
   git commit -m "Add my new test"
   git push origin feature/my-new-feature

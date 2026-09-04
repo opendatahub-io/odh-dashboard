@@ -145,7 +145,7 @@ pnpm run test:contract
 **Update README when:**
 - Adding new environment variables
 - Changing configuration options
-- Adding new make targets or npm scripts
+- Adding new make targets or package scripts
 
 ## Code Review Expectations
 

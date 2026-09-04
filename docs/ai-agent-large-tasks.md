@@ -88,7 +88,7 @@ A condition that holds up across many turns usually has:
 A test result, a build exit code, a file count, an empty queue.
 
 ```text
-Good: npm test exits 0 for the auth module
+Good: pnpm test exits 0 for the auth module
 Bad:  make the tests better
 ```
 

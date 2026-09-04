@@ -71,7 +71,7 @@ Makefile provides `make login` using `OC_URL`, `OC_USER`, `OC_PASSWORD` (or `OC_
 
 ### How the host discovers remotes
 
-`frontend/config/moduleFederation.js` runs `npm query .workspace --json` and filters packages with a `module-federation` key in `package.json`. Override with `MODULE_FEDERATION_CONFIG` env var (JSON string).
+`frontend/config/moduleFederation.js` uses `scripts/query-workspace-packages.js` to read `pnpm-workspace.yaml` and filters packages with a `module-federation` key in `package.json`. Override with `MODULE_FEDERATION_CONFIG` env var (JSON string).
 
 In dev mode, the backend reads the same config and proxies:
 - `/_mf/{name}/*` → each package's local dev server (static assets + `remoteEntry.js`)

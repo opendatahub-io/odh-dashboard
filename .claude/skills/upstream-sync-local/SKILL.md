@@ -137,7 +137,7 @@ When conflicts are detected:
 
 ### Phase 4: Run Tests
 
-After the sync completes successfully, run tests. Check which test scripts are available in the package's upstream frontend:
+After the sync completes successfully, run tests. These commands intentionally use npm because they run inside the independently maintained upstream frontend, which keeps its own npm lockfile; do not replace them with the root pnpm commands. Check which test scripts are available in the package's upstream frontend:
 
 ```bash
 jq -r '.scripts | keys[] | select(test("^(test:|type-check)"))' packages/<package-name>/upstream/frontend/package.json

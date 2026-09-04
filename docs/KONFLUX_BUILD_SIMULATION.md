@@ -13,19 +13,16 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 
 #### Hermetic Lockfile Validation
 - ✅ **Detects unsupported dependency protocols** that break downstream RHOAI hermetic builds
-  - Fails on: `git+`, `github:`, `file:` protocols in `package-lock.json`
-  - Requires: All dependencies must have HTTP/HTTPS URLs
+  - Fails on: `git+`, `github:`, and `file:` protocols in `pnpm-lock.yaml`
+  - Requires: Dependencies must resolve through sources supported by Hermeto/Cachi2
   - Why: Hermeto/Cachi2 (RHOAI's dependency resolver) cannot fetch from git/file protocols
-  - Example failure: `"resolved": "git+https://github.com/..."` → Must use registry version
+  - Example failure: a lockfile `resolution` or `tarball` containing `git+https://...` → use a registry version
 
-- ✅ **Validates all dependencies have resolved URLs**
-  - Prevents: "Cannot resolve package" errors in hermetic builds
-  - Checks: Every entry in `package-lock.json` has a `resolved` field
-
-- ✅ **Tests hermetic npm install** with `--network=none`
-  - Simulates: Actual RHOAI build environment (network disabled)
-  - Catches: Lockfile-out-of-sync issues without running full Docker build
-  - Speed: ~30 seconds vs 10+ minutes for full build
+- ✅ **Tests a hermetic pnpm install** with `--offline`
+  - Simulates: Actual RHOAI build environment after the dependency store is populated
+  - Catches: Lockfile-out-of-sync issues and dependencies that require network access
+  - Speed: ~30 seconds vs 10+ minutes for a full Docker build
+  - Note: The check first populates a pnpm store, then installs from that store with networking disabled.
 
 #### Workspace Dependency Validation
 - ✅ **Dynamically detects workspace scope** from `package.json`
@@ -140,12 +137,12 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 - ✅ **Dynamic module discovery**
   - Discovers: All `packages/*/Dockerfile.workspace` files automatically
   - Detects: Which packages have changed files in the PR
-  - Triggers: Also rebuilds all modules when root `package.json` or `package-lock.json` change
+  - Triggers: The BFF matrix also rebuilds all modules when root `package.json` or `pnpm-lock.yaml` change; `pnpm-workspace.yaml` still triggers the overall workflow and hermetic preflight
   - Future-proof: New modules with a `Dockerfile.workspace` are picked up without config changes
 
 - ✅ **BFF Docker image build**
   - Builds: Each affected module's `Dockerfile.workspace` (same Dockerfile that Konflux uses post-merge)
-  - Catches: Go compilation errors, missing COPY dependencies, npm install failures
+  - Catches: Go compilation errors, missing COPY dependencies, and pnpm install failures
   - Parallel: Affected modules build concurrently via matrix strategy
 
 - ✅ **BFF startup crash detection**
@@ -244,27 +241,31 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 **Fix:**
 1. Find the dependency in `package.json`
-2. Replace with registry version:
+2. Replace it with a registry version and update the lockfile:
    ```bash
-   npm install package-name@version --save-exact
-   npm install  # Update lockfile
+   pnpm add package-name@version --save-exact
+   ```
+   For a dependency owned by a workspace package, run the command from the repository root with that package selected, for example:
+   ```bash
+   pnpm --filter @odh-dashboard/<package> add package-name@version --save-exact
    ```
 
 **Error: Hermetic install failed (network disabled)**
 ```bash
 ❌ FAIL: Hermetic install failed
-npm ERR! network request to https://registry.npmjs.org/package failed
+ERR_PNPM_NO_OFFLINE_TARBALL  A package is missing from the offline store
 ```
 
 **Fix:**
-1. Lockfile is out of sync:
+1. Refresh dependencies from the repository root:
    ```bash
-   rm -rf node_modules package-lock.json
-   npm install
+   rm -rf node_modules
+   pnpm install
    ```
-2. Or dependency has dynamic resolution:
-   - Check for `*` or `^` versions
-   - Use exact versions with `--save-exact`
+   Do not delete `pnpm-lock.yaml`; regenerate it only when dependency manifests intentionally change.
+2. Or the dependency has dynamic or unsupported resolution:
+   - Check the lockfile for `git+`, `github:`, or `file:` protocols
+   - Use an exact registry version with `--save-exact`
 
 ### Workspace Dependency Failures
 
@@ -287,7 +288,7 @@ COPY packages/app-config /usr/src/app/packages/app-config
 ```
 
 **Fix:**
-Add to Dockerfile after `npm install`:
+Add to Dockerfile after `pnpm install`:
 ```dockerfile
 RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 ```
@@ -329,7 +330,7 @@ RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 2. Verify `publicPath` is correct
 3. Ensure all chunks are generated:
    ```bash
-   npm run build
+   pnpm run build
    ls frontend/public/*.bundle.js
    ```
 
@@ -391,8 +392,8 @@ on:
 
 ## Maintenance
 
-### Update Node.js version
-When updating Node.js version in the project, update in the workflow:
+### Update Node.js or pnpm versions
+When updating Node.js or pnpm in the project, update the repository source of truth (`package.json` and `pnpm-workspace.yaml`) and then update the workflow:
 
 ```yaml
 - uses: actions/setup-node@v4
@@ -400,7 +401,7 @@ When updating Node.js version in the project, update in the workflow:
     node-version: '22'  # Update this
 ```
 
-Also update in Dockerfile base image:
+Also update the Dockerfile base image and the `packageManager` field in `package.json`:
 ```dockerfile
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"  # Update this
 ```

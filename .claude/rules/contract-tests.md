@@ -721,7 +721,7 @@ swagger-cli validate bff/openapi/src/your-api.yaml
 
 **Solutions**:
 1. Verify `@odh-dashboard/contract-tests` is in `devDependencies`
-2. Run `pnpm install` in your module directory
+2. Run `pnpm install` from the repository root (the monorepo workspace owns the lockfile)
 3. Check TypeScript can find the types
 4. Ensure `@jest-environment node` comment exists
 

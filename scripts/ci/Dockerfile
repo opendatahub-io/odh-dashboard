@@ -94,7 +94,7 @@ RUN python3.11 -m ensurepip --upgrade && \
 RUN dnf clean all
 RUN rm -rf /var/cache/yum
 
-# Copy full repository (excluding files from .dockerignore) so npm workspaces can resolve properly
+# Copy full repository (excluding files from .dockerignore) so the pnpm workspace can resolve properly
 WORKDIR $USER_HOME
 COPY . .
 RUN chown -R $USER:0 $USER_HOME

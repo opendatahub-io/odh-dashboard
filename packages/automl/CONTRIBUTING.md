@@ -156,7 +156,7 @@ Related to RHOAIENG-5678
 
 - Adding new environment variables
 - Changing configuration options
-- Adding new `make` targets or npm scripts
+- Adding new `make` targets or package scripts
 - Modifying deployment modes or startup procedures
 - Updating prerequisites or system requirements
 
