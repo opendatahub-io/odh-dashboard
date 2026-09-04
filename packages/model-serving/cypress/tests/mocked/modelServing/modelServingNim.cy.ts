@@ -465,7 +465,7 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.nim
       .findStorageModeSelect()
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
-    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
