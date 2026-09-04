@@ -9,6 +9,25 @@ const segments: WeightSegment[] = [
 ];
 
 describe('WeightDistributionBar', () => {
+  it('should set divider accessibility bounds from the adjacent segments', () => {
+    const weightedSegments: WeightSegment[] = [
+      { label: 'First', weight: 20, percentage: 0 },
+      { label: 'Second', weight: 30, percentage: 0 },
+      { label: 'Third', weight: 50, percentage: 0 },
+    ];
+
+    render(<WeightDistributionBar segments={weightedSegments} onWeightsChange={jest.fn()} />);
+
+    expect(screen.getByTestId('weight-divider-0')).toHaveAttribute(
+      'aria-orientation',
+      'horizontal',
+    );
+    expect(screen.getByTestId('weight-divider-0')).toHaveAttribute('aria-valuemin', '1');
+    expect(screen.getByTestId('weight-divider-0')).toHaveAttribute('aria-valuemax', '49');
+    expect(screen.getByTestId('weight-divider-1')).toHaveAttribute('aria-valuemin', '21');
+    expect(screen.getByTestId('weight-divider-1')).toHaveAttribute('aria-valuemax', '99');
+  });
+
   it('should keep keyboard adjustments non-negative when pair total is below twice the minimum', () => {
     const onWeightsChange = jest.fn();
     render(<WeightDistributionBar segments={segments} onWeightsChange={onWeightsChange} />);

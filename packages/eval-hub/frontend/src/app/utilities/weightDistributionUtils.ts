@@ -1,4 +1,4 @@
-const MIN_SEGMENT_PERCENT = 1;
+export const MIN_SEGMENT_PERCENT = 1;
 
 /** Prototype palette order: blue, teal, purple, gold, orange, green. */
 export const WEIGHT_SEGMENT_COLORS = [
@@ -66,5 +66,3 @@ export const adjustAdjacentPercentages = (
 /** Convert display percentages into normalized decimal weights for the API. */
 export const percentagesToWeights = (percentages: number[]): number[] =>
   percentages.map((percentage) => percentage / 100);
-
-export { MIN_SEGMENT_PERCENT };

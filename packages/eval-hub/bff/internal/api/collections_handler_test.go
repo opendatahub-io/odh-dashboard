@@ -87,7 +87,7 @@ func TestCloneCollectionHandler(t *testing.T) {
 		Name: "My Cloned Suite",
 	}
 
-	result, response, err := setupApiTestWithEvalHub[CloneCollectionEnvelope](
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
 		http.MethodPost,
 		ApiPathPrefix+"/evaluations/collections/collection-001/clones?namespace=test-ns",
 		body, nil, identity, mockClient,
@@ -103,7 +103,7 @@ func TestCloneCollectionHandlerEmptyBody(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 
-	result, response, err := setupApiTestWithEvalHub[CloneCollectionEnvelope](
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
 		http.MethodPost,
 		ApiPathPrefix+"/evaluations/collections/collection-001/clones?namespace=test-ns",
 		nil, nil, identity, mockClient,

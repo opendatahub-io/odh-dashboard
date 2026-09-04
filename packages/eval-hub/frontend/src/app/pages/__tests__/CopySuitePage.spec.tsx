@@ -172,7 +172,7 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByLabelText('Loading collection data')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading benchmark suite')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
   });
 
@@ -283,6 +283,11 @@ describe('CopySuitePage', () => {
 
     renderPage();
 
-    expect(screen.getByTestId('add-benchmarks-button')).toHaveAttribute('aria-disabled', 'true');
+    const addBenchmarksButton = screen.getByTestId('add-benchmarks-button');
+    expect(addBenchmarksButton).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(addBenchmarksButton);
+
+    expect(screen.queryByTestId('add-benchmark-modal')).not.toBeInTheDocument();
   });
 });

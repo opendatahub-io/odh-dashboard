@@ -14,7 +14,6 @@ import (
 
 type CollectionsEnvelope Envelope[evalhub.CollectionsResponse, None]
 type CollectionEnvelope Envelope[evalhub.Collection, None]
-type CloneCollectionEnvelope Envelope[evalhub.Collection, None]
 
 func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -151,7 +150,7 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	envelope := CloneCollectionEnvelope{Data: *collection}
+	envelope := CollectionEnvelope{Data: *collection}
 	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

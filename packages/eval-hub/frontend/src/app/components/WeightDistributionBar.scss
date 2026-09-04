@@ -1,4 +1,4 @@
-.weight-distribution-bar {
+.evalhub-weight-distribution-bar {
   position: relative;
   display: flex;
   width: 100%;
@@ -8,7 +8,7 @@
   overflow: hidden;
 }
 
-.weight-distribution-bar__segment {
+.evalhub-weight-distribution-bar__segment {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,7 +17,7 @@
   overflow: hidden;
 }
 
-.weight-distribution-bar__segment-label {
+.evalhub-weight-distribution-bar__segment-label {
   color: var(--pf-t--global--text--color--on-brand--default);
   font-size: var(--pf-t--global--font--size--sm);
   font-weight: var(--pf-t--global--font--weight--body--bold);
@@ -26,7 +26,7 @@
   user-select: none;
 }
 
-.weight-distribution-bar__divider {
+.evalhub-weight-distribution-bar__divider {
   position: absolute;
   top: 0;
   width: 12px;
@@ -40,14 +40,14 @@
   border: 0;
   background: transparent;
 
-  &:focus-visible .weight-distribution-bar__divider-handle {
+  &:focus-visible .evalhub-weight-distribution-bar__divider-handle {
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.2),
       0 0 0 3px var(--pf-t--global--border--color--hover);
   }
 }
 
-.weight-distribution-bar__divider-handle {
+.evalhub-weight-distribution-bar__divider-handle {
   width: 4px;
   height: 100%;
   margin-inline: auto;
@@ -56,17 +56,17 @@
   border-radius: var(--pf-t--global--border--radius--small);
 }
 
-.weight-distribution-bar__legend {
+.evalhub-weight-distribution-bar__legend {
   margin-top: var(--pf-t--global--spacer--md);
   flex-wrap: wrap;
 }
 
-.weight-distribution-bar__legend-label {
+.evalhub-weight-distribution-bar__legend-label {
   margin: 0;
   color: var(--pf-t--global--text--color--regular);
 }
 
-.weight-distribution-bar__legend-dot {
+.evalhub-weight-distribution-bar__legend-dot {
   display: inline-block;
   width: 10px;
   height: 10px;

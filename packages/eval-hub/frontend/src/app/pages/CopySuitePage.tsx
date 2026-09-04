@@ -28,7 +28,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
@@ -115,7 +115,7 @@ const CopySuitePage: React.FC = () => {
   if (!loaded || !providersLoaded) {
     return (
       <Bullseye>
-        <Spinner aria-label="Loading collection data" />
+        <Spinner aria-label="Loading benchmark suite" />
       </Bullseye>
     );
   }
@@ -174,11 +174,7 @@ const CopySuitePage: React.FC = () => {
       empty={false}
     >
       <PageSection hasBodyWrapper={false} isFilled>
-        <Content
-          component="h1"
-          data-testid="app-page-title"
-          style={{ marginBlockStart: 0, marginBlockEnd: 0 }}
-        >
+        <Content component="h1" data-testid="app-page-title" className="pf-v6-u-mt-0 pf-v6-u-mb-0">
           Copy suite
         </Content>
         <Content component="p" data-testid="copy-suite-description">
@@ -275,7 +271,10 @@ const CopySuitePage: React.FC = () => {
           )}
 
           {/* ── Benchmarks ─────────────────────────────────────── */}
-          <Card className="copy-suite-page__benchmarks-card" data-testid="benchmarks-section">
+          <Card
+            className="evalhub-copy-suite-page__benchmarks-card"
+            data-testid="benchmarks-section"
+          >
             <CardTitle>
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
@@ -291,7 +290,11 @@ const CopySuitePage: React.FC = () => {
                     <Button
                       variant="secondary"
                       data-testid="add-benchmarks-button"
-                      onClick={() => setIsAddBenchmarkOpen(true)}
+                      onClick={() => {
+                        if (form.benchmarks.length < MAX_BENCHMARKS) {
+                          setIsAddBenchmarkOpen(true);
+                        }
+                      }}
                       isAriaDisabled={form.benchmarks.length >= MAX_BENCHMARKS}
                     >
                       Add benchmarks
@@ -301,7 +304,7 @@ const CopySuitePage: React.FC = () => {
               </Flex>
             </CardTitle>
             <CardBody>
-              <Content component="p" className="copy-suite-page__benchmarks-description">
+              <Content component="p" className="evalhub-copy-suite-page__benchmarks-description">
                 Choose the primary metric, number of samples, random seed, and threshold used to
                 calculate the result for each benchmark.
               </Content>
@@ -315,7 +318,7 @@ const CopySuitePage: React.FC = () => {
           </Card>
 
           {/* ── Footer actions ─────────────────────────────────── */}
-          <ActionGroup className="copy-suite-page__footer">
+          <ActionGroup className="evalhub-copy-suite-page__footer">
             <Button
               variant="primary"
               data-testid="copy-suite-save-and-run"

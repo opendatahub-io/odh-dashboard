@@ -148,14 +148,14 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
     <div data-testid="weight-distribution">
       <div
         ref={barRef}
-        className="weight-distribution-bar"
+        className="evalhub-weight-distribution-bar"
         aria-label="Benchmark weight distribution"
         data-testid="weight-distribution-bar"
       >
         {segments.map((segment, index) => (
           <div
             key={`${segment.label}-${index}`}
-            className="weight-distribution-bar__segment"
+            className="evalhub-weight-distribution-bar__segment"
             style={{
               flex: `0 0 ${percentages[index]}%`,
               backgroundColor: getWeightSegmentColor(index),
@@ -164,37 +164,47 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
             aria-label={`${segment.label}: ${percentages[index]}%`}
             data-testid={`weight-segment-${index}`}
           >
-            <span className="weight-distribution-bar__segment-label">{percentages[index]}%</span>
+            <span className="evalhub-weight-distribution-bar__segment-label">
+              {percentages[index]}%
+            </span>
           </div>
         ))}
         {onWeightsChange
           ? segments.slice(0, -1).map((segment, index) => {
               const dividerPosition = getDividerPosition(percentages, index);
+              const precedingPercentage = percentages
+                .slice(0, index)
+                .reduce((sum, value) => sum + value, 0);
+              const pairTotal = percentages[index] + percentages[index + 1];
+              const feasibleMinimumPercent = getFeasibleMinimumPercent(pairTotal);
               return (
                 <button
                   type="button"
                   key={`divider-${segment.label}-${index}`}
                   role="slider"
-                  aria-orientation="vertical"
+                  aria-orientation="horizontal"
                   tabIndex={0}
-                  className="weight-distribution-bar__divider"
+                  className="evalhub-weight-distribution-bar__divider"
                   style={{ left: `${dividerPosition}%` }}
                   aria-label={`Adjust weight between ${segment.label} and ${segments[index + 1].label}`}
-                  aria-valuemin={MIN_SEGMENT_PERCENT}
-                  aria-valuemax={100 - MIN_SEGMENT_PERCENT}
+                  aria-valuemin={precedingPercentage + feasibleMinimumPercent}
+                  aria-valuemax={precedingPercentage + pairTotal - feasibleMinimumPercent}
                   aria-valuenow={dividerPosition}
                   onMouseDown={() => handleDragStart(index)}
                   onKeyDown={(event) => handleKeyDown(index, event)}
                   data-testid={`weight-divider-${index}`}
                 >
-                  <div className="weight-distribution-bar__divider-handle" aria-hidden="true" />
+                  <div
+                    className="evalhub-weight-distribution-bar__divider-handle"
+                    aria-hidden="true"
+                  />
                 </button>
               );
             })
           : null}
       </div>
       <Flex
-        className="weight-distribution-bar__legend"
+        className="evalhub-weight-distribution-bar__legend"
         gap={{ default: 'gapMd' }}
         data-testid="weight-distribution-legend"
       >
@@ -203,12 +213,15 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <FlexItem>
                 <span
-                  className="weight-distribution-bar__legend-dot"
+                  className="evalhub-weight-distribution-bar__legend-dot"
                   style={{ backgroundColor: getWeightSegmentColor(index) }}
                 />
               </FlexItem>
               <FlexItem>
-                <Content component="small" className="weight-distribution-bar__legend-label">
+                <Content
+                  component="small"
+                  className="evalhub-weight-distribution-bar__legend-label"
+                >
                   {segment.label} {percentages[index]}%
                 </Content>
               </FlexItem>

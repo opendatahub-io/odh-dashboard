@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection } from '~/app/api/k8s';
@@ -16,7 +16,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
-jest.mock('react-router-dom', () => ({
+jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
 }));
 

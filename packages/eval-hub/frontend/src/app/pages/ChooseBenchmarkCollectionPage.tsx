@@ -32,7 +32,7 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';

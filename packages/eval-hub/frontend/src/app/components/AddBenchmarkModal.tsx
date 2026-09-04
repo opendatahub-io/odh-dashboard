@@ -16,6 +16,7 @@ import {
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import type { Provider } from '~/app/types';
 import type { CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
+import './AddBenchmarkModal.scss';
 
 type AddBenchmarkModalProps = {
   providers: Provider[];
@@ -171,10 +172,7 @@ const AddBenchmarkModal: React.FC<AddBenchmarkModalProps> = ({
                           <strong>{b.name}</strong>
                           <Content
                             component="small"
-                            style={{
-                              display: 'block',
-                              color: 'var(--pf-t--global--text--color--subtle)',
-                            }}
+                            className="evalhub-add-benchmark-modal__benchmark-details"
                           >
                             {b.providerName} &middot; {b.id}
                           </Content>

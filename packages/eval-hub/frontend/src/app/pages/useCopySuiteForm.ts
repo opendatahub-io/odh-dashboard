@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';

@@ -60,26 +60,22 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
   }
 
   return (
-    <div className="benchmark-config-accordion" data-testid="benchmark-config-accordion">
+    <div className="evalhub-benchmark-config-accordion" data-testid="benchmark-config-accordion">
       {benchmarks.map((benchmark, index) => {
         const isExpanded = expanded.has(index);
         const itemId = `benchmark-${index}`;
 
         return (
-          <div
-            key={`${benchmark.id}-${index}`}
-            className="benchmark-config-accordion__item"
-            data-testid={`benchmark-item-${index}`}
-          >
+          <div key={`${benchmark.id}-${index}`} data-testid={`benchmark-item-${index}`}>
             <Flex
               alignItems={{ default: 'alignItemsFlexStart' }}
-              className="benchmark-config-accordion__row"
+              className="evalhub-benchmark-config-accordion__row"
             >
-              <FlexItem className="benchmark-config-accordion__main">
+              <FlexItem className="evalhub-benchmark-config-accordion__main">
                 <Flex
                   alignItems={{ default: 'alignItemsFlexStart' }}
                   gap={{ default: 'gapSm' }}
-                  className="benchmark-config-accordion__header"
+                  className="evalhub-benchmark-config-accordion__header"
                 >
                   <FlexItem>
                     <Button
@@ -89,29 +85,32 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                         isExpanded ? `Collapse ${benchmark.name}` : `Expand ${benchmark.name}`
                       }
                       data-testid={`benchmark-expand-toggle-${index}`}
-                      className="benchmark-config-accordion__expand-toggle"
+                      className="evalhub-benchmark-config-accordion__expand-toggle"
                       onClick={() => toggleExpand(index)}
                     >
                       {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                     </Button>
                   </FlexItem>
-                  <FlexItem className="benchmark-config-accordion__content">
+                  <FlexItem className="evalhub-benchmark-config-accordion__content">
                     <Flex direction={{ default: 'column' }} gap={{ default: 'gapLg' }}>
                       <FlexItem>
                         <Title
                           headingLevel="h3"
                           size="md"
-                          className="benchmark-config-accordion__title"
+                          className="evalhub-benchmark-config-accordion__title"
                         >
                           {benchmark.name}
                         </Title>
-                        <Content component="p" className="benchmark-config-accordion__benchmark-id">
+                        <Content
+                          component="p"
+                          className="evalhub-benchmark-config-accordion__benchmark-id"
+                        >
                           {benchmark.providerId ? `${benchmark.providerId}-` : ''}
                           {benchmark.id}
                         </Content>
                       </FlexItem>
                       {isExpanded ? (
-                        <FlexItem className="benchmark-config-accordion__fields">
+                        <FlexItem className="evalhub-benchmark-config-accordion__fields">
                           {benchmark.availableMetrics.length > 0 ? (
                             <FormGroup label="Primary metric" fieldId={`${itemId}-metric`}>
                               <Select
@@ -213,7 +212,7 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                 </Flex>
               </FlexItem>
               {canRemove ? (
-                <FlexItem className="benchmark-config-accordion__remove">
+                <FlexItem className="evalhub-benchmark-config-accordion__remove">
                   <Button
                     variant="link"
                     isInline
