@@ -70,7 +70,7 @@ if [ -z "$PACKAGE_NAME" ]; then
 fi
 
 # Verify required tools are available early
-for tool in git npm jq; do
+for tool in git jq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     clean_exit 1 "Required tool '$tool' not found in PATH" true
   fi
@@ -385,7 +385,7 @@ _get_commit_url() {
 }
 
 _get_continue_cmd() {
-  echo "npm run update-subtree -w $WORKSPACE_LOCATION -- --continue"
+  echo "pnpm --filter $WORKSPACE_LOCATION run update-subtree -- --continue"
 }
 
 _pre_apply_hook() {
