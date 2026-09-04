@@ -41,9 +41,8 @@ describe('SecretSelector', () => {
         />,
       );
 
-      // Skeleton should be present during loading
-      const skeleton = document.querySelector('.pf-v6-c-skeleton');
-      expect(skeleton).toBeInTheDocument();
+      expect(screen.getByTestId('test-selector-loading')).toBeInTheDocument();
+      expect(document.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
     });
   });
 

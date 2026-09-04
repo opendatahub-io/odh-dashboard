@@ -203,7 +203,11 @@ const SecretSelector: React.FC<SecretSelectorProps> = ({
   );
 
   if (isLoading) {
-    return <Skeleton />;
+    return (
+      <div data-testid={`${dataTestId}-loading`}>
+        <Skeleton />
+      </div>
+    );
   }
 
   return (

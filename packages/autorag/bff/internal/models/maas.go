@@ -8,8 +8,12 @@ package models
 // "field present but empty", enabling defensive degradation when upstream
 // Models as a Service changes its schema.
 type MaaSNativeModel struct {
-	ID             string              `json:"id"`                        // Model identifier from MaaS
-	CustomMetadata *MaaSCustomMetadata `json:"custom_metadata,omitempty"` // Nested metadata from Models as a Service (nil if schema changes)
+	ID                 string              `json:"id"`                             // Model identifier from MaaS
+	Identifier         string              `json:"identifier,omitempty"`           // Llama Stack / OGX native list uses identifier
+	ModelType          string              `json:"model_type,omitempty"`           // Top-level type on OGX/Llama Stack native models
+	ProviderID         string              `json:"provider_id,omitempty"`          // Top-level provider on OGX/Llama Stack native models
+	ProviderResourceID string              `json:"provider_resource_id,omitempty"` // Top-level resource path on OGX/Llama Stack native models
+	CustomMetadata     *MaaSCustomMetadata `json:"custom_metadata,omitempty"`      // Nested metadata from Models as a Service (nil if schema changes)
 }
 
 // MaaSCustomMetadata represents the custom_metadata nested object in MaaS's response.

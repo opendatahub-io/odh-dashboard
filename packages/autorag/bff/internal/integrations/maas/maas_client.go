@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -69,37 +70,73 @@ func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 	})
 }
 
+func isRetryableListStatus(statusCode int) bool {
+	switch statusCode {
+	case http.StatusNotFound, http.StatusMovedPermanently, http.StatusFound,
+		http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *MaaSClient) getJSON(
+	ctx context.Context,
+	baseURL, apiKey, operation, resource string,
+	maxBytes int64,
+	relPaths []string,
+) ([]byte, error) {
+	base := strings.TrimRight(baseURL, "/")
+	var lastStatus int
+	var lastBody []byte
+	for _, rel := range relPaths {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+rel, nil)
+		if err != nil {
+			return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service %s: %s", resource, err.Error()))
+		}
+		req.Header.Set("Accept", "application/json")
+		setAuthHeader(req, apiKey)
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, wrapClientError(err, operation)
+		}
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxBytes))
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, NewMaaSError(ErrCodeInternalError,
+				fmt.Sprintf("failed to read Models as a Service %s response body: %s", resource, readErr.Error()),
+				http.StatusInternalServerError)
+		}
+		if resp.StatusCode == http.StatusOK {
+			return body, nil
+		}
+		lastStatus = resp.StatusCode
+		lastBody = body
+		if !isRetryableListStatus(resp.StatusCode) {
+			return nil, mapHTTPStatusToError(resp.StatusCode, body, resource)
+		}
+	}
+	if lastStatus == 0 {
+		return nil, NewMaaSError(ErrCodeInternalError, fmt.Sprintf("no request paths for Models as a Service %s", resource), http.StatusInternalServerError)
+	}
+	return nil, mapHTTPStatusToError(lastStatus, lastBody, resource)
+}
+
 // ListModels retrieves all available models from MaaS.
 // Deserializes into MaaSNativeModel structs so that upstream schema changes are surfaced
 // explicitly rather than hidden behind the OpenAI SDK.
-// maas v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
+// maas/ogx v0.4.0+ serves endpoints under /v1/; older OGX/Llama Stack images used /v1/openai/v1/.
 func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Minute)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/models", nil)
-	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service models: %s", err.Error()))
-	}
-
-	req.Header.Set("Accept", "application/json")
-	setAuthHeader(req, apiKey)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, wrapClientError(err, "ListModels")
-	}
-	defer resp.Body.Close()
-
 	const maxModelsResponseBytes = 2 << 20 // 2 MiB
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxModelsResponseBytes))
+	body, err := c.getJSON(ctx, baseURL, apiKey, "ListModels", "models", maxModelsResponseBytes, []string{
+		"/v1/models",
+		"/v1/openai/v1/models",
+	})
 	if err != nil {
-		return nil, NewMaaSError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read Models as a Service models response body: %s", err.Error()),
-			http.StatusInternalServerError)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, mapHTTPStatusToError(resp.StatusCode, body, "models")
+		return nil, err
 	}
 
 	var envelope struct {
@@ -122,34 +159,18 @@ func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]
 func (c *MaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/providers", nil)
-	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Models as a Service providers: %s", err.Error()))
-	}
-
-	req.Header.Set("Accept", "application/json")
-	setAuthHeader(req, apiKey)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, wrapClientError(err, "ListProviders")
-	}
-	defer resp.Body.Close()
-
 	const maxProvidersResponseBytes = 1 << 20 // 1 MiB
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProvidersResponseBytes))
+	body, err := c.getJSON(ctx, baseURL, apiKey, "ListProviders", "providers", maxProvidersResponseBytes, []string{
+		"/v1/providers",
+		"/v1/openai/v1/providers",
+	})
 	if err != nil {
-		return nil, NewMaaSError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read Models as a Service providers response body: %s", err.Error()),
-			http.StatusInternalServerError)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, mapHTTPStatusToError(resp.StatusCode, body, "providers")
+		return nil, err
 	}
 
 	var envelope struct {
-		Data []models.MaaSProvider `json:"data"`
+		Data      []models.MaaSProvider `json:"data"`
+		Providers []models.MaaSProvider `json:"providers"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		var bare []models.MaaSProvider
@@ -160,8 +181,10 @@ func (c *MaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) 
 			fmt.Sprintf("failed to parse Models as a Service providers response: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
-
-	return envelope.Data, nil
+	if len(envelope.Data) > 0 {
+		return envelope.Data, nil
+	}
+	return envelope.Providers, nil
 }
 
 // setAuthHeader sets the Authorization header when an API key is provided.

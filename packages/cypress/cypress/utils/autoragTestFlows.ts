@@ -39,10 +39,9 @@ export const configureAutoragRun = (
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   cy.step('Select MaaS secret');
-  // SecretSelector renders a skeleton (no test id) until type=maas secrets load.
+  // SecretSelector renders a skeleton until type=maas secrets load.
   autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
   autoragConfigurePage.findMaasSecretSelector().click();
-  autoragConfigurePage.findMaasSecretSelector().find('input').clear();
   autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
   autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
 

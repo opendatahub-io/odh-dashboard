@@ -102,6 +102,21 @@ func TestTranslateMaaSModel(t *testing.T) {
 		}
 	})
 
+	t.Run("llama stack identifier and top-level model_type", func(t *testing.T) {
+		result, ok := repo.translateMaaSModel(models.MaaSNativeModel{
+			Identifier:         "autorag-llm",
+			ModelType:          "llm",
+			ProviderID:         "vllm-inference-llm",
+			ProviderResourceID: "autorag-llm",
+		})
+		if !ok {
+			t.Fatal("expected ok")
+		}
+		if result.ID != "autorag-llm" || result.Type != "llm" || result.Provider != "vllm-inference-llm" {
+			t.Errorf("unexpected: %+v", result)
+		}
+	})
+
 	t.Run("nil custom_metadata degrades to unknown", func(t *testing.T) {
 		result, ok := repo.translateMaaSModel(models.MaaSNativeModel{ID: "mystery"})
 		if !ok || result.Type != "unknown" {
@@ -398,6 +413,25 @@ func TestGetMaaSVectorStoreProviders(t *testing.T) {
 		}
 		if data.VectorStoreProviders[0].ProviderID != "milvus" || data.VectorStoreProviders[1].ProviderID != "chromadb" {
 			t.Errorf("unexpected providers: %+v", data.VectorStoreProviders)
+		}
+	})
+
+	t.Run("accepts vector_io prefixed api values", func(t *testing.T) {
+		maasClient := &mockMaaSClient{
+			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
+				return []models.MaaSProvider{
+					{API: "vector_io::pgvector", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
+				}, nil
+			},
+		}
+		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
+
+		data, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(data.VectorStoreProviders) != 1 || data.VectorStoreProviders[0].ProviderID != "pgvector" {
+			t.Errorf("unexpected: %+v", data.VectorStoreProviders)
 		}
 	})
 

@@ -110,7 +110,11 @@ const AutoragVectorStoreSelector: React.FC = () => {
   }, [providers, fieldValue, fieldOnChange, isLoading]);
 
   if (isLoading) {
-    return <Skeleton width="200px" height="36px" />;
+    return (
+      <div data-testid="vector-store-select-loading">
+        <Skeleton width="200px" height="36px" />
+      </div>
+    );
   }
 
   const noProviders = providers.length === 0;

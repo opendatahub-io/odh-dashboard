@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"strings"
 
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -74,23 +75,38 @@ func (r *MaaSRepository) GetMaaSModels(ctx context.Context, namespace, secretNam
 //     generation models). If missing, it defaults to "unknown" so the model still appears.
 //   - provider and resource_path are optional — empty strings are acceptable.
 func (r *MaaSRepository) translateMaaSModel(native models.MaaSNativeModel) (models.MaaSModel, bool) {
-	if native.ID == "" {
+	id := native.ID
+	if id == "" {
+		id = native.Identifier
+	}
+	if id == "" {
 		r.logger.Warn("skipping Models as a Service model with empty ID")
 		return models.MaaSModel{}, false
 	}
 
-	result := models.MaaSModel{ID: native.ID}
+	result := models.MaaSModel{ID: id}
 
-	if native.CustomMetadata == nil {
-		r.logger.Warn("Models as a Service model missing custom_metadata — upstream schema may have changed",
-			"model_id", native.ID)
-		result.Type = "unknown"
-		return result, true
+	if native.CustomMetadata != nil {
+		result.Type = native.CustomMetadata.ModelType
+		result.Provider = native.CustomMetadata.ProviderID
+		result.ResourcePath = native.CustomMetadata.ProviderResourceID
 	}
 
-	result.Type = native.CustomMetadata.ModelType
-	result.Provider = native.CustomMetadata.ProviderID
-	result.ResourcePath = native.CustomMetadata.ProviderResourceID
+	// OGX / Llama Stack native /v1/models uses top-level model_type (no custom_metadata).
+	if result.Type == "" {
+		result.Type = native.ModelType
+	}
+	if result.Provider == "" {
+		result.Provider = native.ProviderID
+	}
+	if result.ResourcePath == "" {
+		result.ResourcePath = native.ProviderResourceID
+	}
+
+	if native.CustomMetadata == nil && native.ModelType == "" {
+		r.logger.Warn("Models as a Service model missing type metadata — upstream schema may have changed",
+			"model_id", id)
+	}
 
 	if result.Type == "" {
 		result.Type = "unknown"
@@ -117,7 +133,7 @@ func (r *MaaSRepository) GetMaaSVectorStoreProviders(ctx context.Context, namesp
 
 	vectorStoreProviders := make([]models.MaaSVectorStoreProvider, 0)
 	for _, p := range allProviders {
-		if p.API == vectorIOAPI {
+		if isVectorIOProvider(p) {
 			vectorStoreProviders = append(vectorStoreProviders, models.MaaSVectorStoreProvider{
 				ProviderID:   p.ProviderID,
 				ProviderType: p.ProviderType,
@@ -126,6 +142,11 @@ func (r *MaaSRepository) GetMaaSVectorStoreProviders(ctx context.Context, namesp
 	}
 
 	return &models.MaaSVectorStoreProvidersData{VectorStoreProviders: vectorStoreProviders}, nil
+}
+
+func isVectorIOProvider(p models.MaaSProvider) bool {
+	api := strings.ToLower(strings.TrimSpace(p.API))
+	return api == vectorIOAPI || strings.HasPrefix(api, vectorIOAPI+"::")
 }
 
 // --- Credential Helpers ---

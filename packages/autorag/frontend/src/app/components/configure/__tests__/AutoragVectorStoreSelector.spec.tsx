@@ -281,6 +281,7 @@ describe('AutoragVectorStoreSelector', () => {
     renderWithProviders(<AutoragVectorStoreSelector />);
 
     expect(screen.queryByTestId('vector-store-select-toggle')).not.toBeInTheDocument();
+    expect(screen.getByTestId('vector-store-select-loading')).toBeInTheDocument();
     expect(document.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
   });
 

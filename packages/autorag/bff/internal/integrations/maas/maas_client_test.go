@@ -154,6 +154,25 @@ func TestMaaSClient_ListModels(t *testing.T) {
 		require.ErrorAs(t, err, &maasErr)
 		assert.Equal(t, ErrCodeConnectionFailed, maasErr.Code)
 	})
+
+	t.Run("falls back to openai prefix when /v1/models is 404", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/v1/models" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			assert.Equal(t, "/v1/openai/v1/models", r.URL.Path)
+			jsonResponse(t, w, map[string]any{
+				"data": []models.MaaSNativeModel{{ID: "from-openai-prefix"}},
+			})
+		})
+		defer ts.Close()
+
+		got, err := c.ListModels(context.Background(), ts.URL, "")
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "from-openai-prefix", got[0].ID)
+	})
 }
 
 // --- ListProviders ---
@@ -174,6 +193,43 @@ func TestMaaSClient_ListProviders(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 		assert.Equal(t, "ollama", got[0].ProviderID)
+	})
+
+	t.Run("parses providers key envelope", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			jsonResponse(t, w, map[string]any{
+				"providers": []models.MaaSProvider{
+					{API: "vector_io", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
+				},
+			})
+		})
+		defer ts.Close()
+
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "pgvector", got[0].ProviderID)
+	})
+
+	t.Run("falls back to openai prefix when /v1/providers is 404", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/v1/providers" {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			assert.Equal(t, "/v1/openai/v1/providers", r.URL.Path)
+			jsonResponse(t, w, map[string]any{
+				"data": []models.MaaSProvider{
+					{API: "vector_io", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
+				},
+			})
+		})
+		defer ts.Close()
+
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "pgvector", got[0].ProviderID)
 	})
 
 	t.Run("falls back to bare array format", func(t *testing.T) {
