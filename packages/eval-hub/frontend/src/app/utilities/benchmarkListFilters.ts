@@ -17,10 +17,12 @@ export const isBenchmarkSortOption = (value: unknown): value is BenchmarkSortOpt
   typeof value === 'string' && BENCHMARK_SORT_VALUES.includes(value);
 
 export const getAvailableCategories = (benchmarks: BenchmarkFilterable[]): string[] =>
-  [...new Set(benchmarks.map((b) => b.category).filter((c): c is string => Boolean(c)))].toSorted();
+  // eslint-disable-next-line no-restricted-properties
+  [...new Set(benchmarks.map((b) => b.category).filter((c): c is string => Boolean(c)))].sort();
 
 export const getAvailableMetrics = (benchmarks: BenchmarkFilterable[]): string[] =>
-  [...new Set(benchmarks.flatMap((b) => b.metrics ?? []).filter(Boolean))].toSorted();
+  // eslint-disable-next-line no-restricted-properties
+  [...new Set(benchmarks.flatMap((b) => b.metrics ?? []).filter(Boolean))].sort();
 
 export const hasActiveBenchmarkFilters = (filterData: BenchmarkFilterDataType): boolean =>
   filterData[BenchmarkFilterOptions.name].trim() !== '' ||
@@ -65,9 +67,11 @@ export const sortBenchmarks = <T extends BenchmarkFilterable>(
 ): T[] => {
   switch (sortOption) {
     case BenchmarkSortOption.NAME:
-      return benchmarks.toSorted(compareBenchmarkNames);
+      // eslint-disable-next-line no-restricted-properties
+      return [...benchmarks].sort(compareBenchmarkNames);
     case BenchmarkSortOption.CATEGORY:
-      return benchmarks.toSorted((a, b) => {
+      // eslint-disable-next-line no-restricted-properties
+      return [...benchmarks].sort((a, b) => {
         const catCmp = (a.category ?? '').localeCompare(b.category ?? '', undefined, {
           sensitivity: 'base',
         });
