@@ -861,4 +861,3 @@ No blocking issues found. The migration can proceed with the following condition
 4. Use pnpm 11 (not 10) — pnpm 10's audit endpoint is dead (HTTP 410)
 5. Defer `catalog:` protocol adoption until Dependabot support stabilizes
 6. Confirm RHOAI Konflux cluster Hermeto version includes the hermeto#1619 fix
-
