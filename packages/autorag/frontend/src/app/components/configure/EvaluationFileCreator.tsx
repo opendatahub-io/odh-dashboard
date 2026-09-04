@@ -33,6 +33,10 @@ import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3File
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import type { EvaluationFileEntry } from '~/app/types';
+import {
+  SUPPORTED_FORMAT_EXTENSIONS,
+  SUPPORTED_FORMAT_HINT,
+} from '~/app/utilities/autoragInputDataFile';
 import './EvaluationFileCreator.scss';
 
 const MIN_ROWS = 1;
@@ -446,8 +450,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
         }}
         selection="checkbox"
         allowFolderSelection={false}
-        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
-        unselectableReason="You can only select document files"
+        selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
+        unselectableReason={SUPPORTED_FORMAT_HINT}
         rootPath={
           !inputDataIsFile && inputDataKey.trim()
             ? `/${inputDataKey.replace(/^\//, '')}`
