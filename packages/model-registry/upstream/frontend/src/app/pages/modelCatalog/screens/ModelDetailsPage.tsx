@@ -20,10 +20,10 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
-import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
+import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData';
 import {
   decodeParams,
   getModelName,
@@ -65,14 +65,23 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     ModelRegistrySelectorContext,
   );
   const actionExtensions = useExtensions(isActionExtension);
-  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
-    isNavigateToDeploymentWizardWithDataExtension,
+  const isDeployAvailable = React.useMemo(
+    () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
+    [actionExtensions],
   );
-  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
+  );
+
+  const catalogDeployProps = useCatalogDeployPrefillData(
+    model,
+    artifacts,
+    artifactLoaded,
+    artifactsLoadError,
+    decodedParams.sourceId || '',
+    decodedParams.modelName || '',
   );
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -238,7 +247,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                 <ExtensibleActions
                   actions={actionExtensions}
                   group={MODEL_CATALOG_DEPLOY_GROUP}
-                  componentProps={{ model }}
+                  componentProps={catalogDeployProps}
                 />
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>

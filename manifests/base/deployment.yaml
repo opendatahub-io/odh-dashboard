@@ -47,6 +47,22 @@ spec:
               ephemeral-storage: 50Mi
             limits:
               memory: 1Gi
+          # The dashboard app binds to 127.0.0.1 (loopback) only and is reached
+          # in-pod via the kube-rbac-proxy sidecar, so probes MUST use `exec: curl`
+          # against loopback — a tcpSocket/httpGet probe on the pod IP is refused.
+          startupProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - -s
+                - --max-time
+                - '10'
+                - http://127.0.0.1:8080/api/health
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 3
+            failureThreshold: 20
           livenessProbe:
             exec:
               command:
@@ -56,9 +72,8 @@ spec:
                 - --max-time
                 - '10'
                 - http://127.0.0.1:8080/
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -70,9 +85,8 @@ spec:
                 - --max-time
                 - '10'
                 - http://127.0.0.1:8080/api/health
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           volumeMounts:
@@ -107,14 +121,22 @@ spec:
               name: dashboard-ui
             - containerPort: 8444
               name: proxy-health
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8444
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8444
               scheme: HTTPS
-            initialDelaySeconds: 30
             timeoutSeconds: 1
-            periodSeconds: 5
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -122,7 +144,6 @@ spec:
               path: /healthz
               port: 8444
               scheme: HTTPS
-            initialDelaySeconds: 5
             timeoutSeconds: 1
             periodSeconds: 5
             successThreshold: 1
@@ -169,14 +190,22 @@ spec:
               ephemeral-storage: 10Mi
             limits:
               memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8943
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthcheck
               port: 8943
               scheme: HTTPS
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -184,9 +213,8 @@ spec:
               path: /healthcheck
               port: 8943
               scheme: HTTPS
-            initialDelaySeconds: 15
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           volumeMounts:
