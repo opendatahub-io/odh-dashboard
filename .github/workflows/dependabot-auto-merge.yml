@@ -88,12 +88,15 @@ jobs:
             lockfile="pnpm-lock.yaml"
             if [ -f "$lockfile" ]; then
               for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
-                is_pre1=$(jq -r --arg d "$dep" '
-                  [.packages // {} | keys[]
-                   | select(startswith($d + "@"))
-                   | split("@") | last]
-                  | any(startswith("0."))
-                ' "$lockfile" 2>/dev/null || echo "false")
+                is_pre1=$(ruby -ryaml -e '
+                  lock = YAML.load_file(ARGV[0])
+                  dependency = ARGV[1]
+                  prefix = "/#{dependency}@"
+                  versions = lock.fetch("packages", {}).keys.filter_map do |key|
+                    key.start_with?(prefix) ? key.delete_prefix(prefix).split("(", 2).first : nil
+                  end
+                  puts versions.any? { |version| version.start_with?("0.") }
+                ' "$lockfile" "$dep" 2>/dev/null || echo "false")
                 if [ "$is_pre1" = "true" ]; then
                   echo "Pre-1.0 package detected in group: $dep in $lockfile"
                   has_pre1=true

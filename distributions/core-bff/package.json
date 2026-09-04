@@ -6,7 +6,6 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "packageManager": "npm@11.8.0",
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts"
   },

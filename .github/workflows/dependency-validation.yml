@@ -86,7 +86,17 @@ jobs:
             exit 1
           fi
 
-          jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-head.json | sort > head-ids.txt
+          if jq -e 'has("error") and (.error != null)' audit-head.json >/dev/null 2>&1; then
+            echo "::error::pnpm audit failed in ${AUDIT_DIR}: $(jq -r '.error.message // .error.code // "unknown error"' audit-head.json)"
+            exit 1
+          fi
+
+          if ! jq -e 'has("advisories")' audit-head.json >/dev/null 2>&1; then
+            echo "::error::pnpm audit returned an unexpected JSON shape in ${AUDIT_DIR}"
+            exit 1
+          fi
+
+          jq -r '[.advisories | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-head.json | sort > head-ids.txt
 
           echo "Advisory IDs on head:"
           cat head-ids.txt
@@ -119,12 +129,22 @@ jobs:
             fi
 
             if ! jq empty audit-base.json 2>/dev/null; then
-              echo "::warning::pnpm audit produced invalid JSON on base; treating as zero advisories"
+              echo "::error::pnpm audit produced invalid JSON on base"
               [ -s audit-base.err ] && cat audit-base.err
-              touch base-ids.txt
-            else
-              jq -r '[.advisories // {} | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-base.json | sort > base-ids.txt
+              exit 1
             fi
+
+            if jq -e 'has("error") and (.error != null)' audit-base.json >/dev/null 2>&1; then
+              echo "::error::pnpm audit failed on base: $(jq -r '.error.message // .error.code // "unknown error"' audit-base.json)"
+              exit 1
+            fi
+
+            if ! jq -e 'has("advisories")' audit-base.json >/dev/null 2>&1; then
+              echo "::error::pnpm audit returned an unexpected JSON shape on base"
+              exit 1
+            fi
+
+            jq -r '[.advisories | to_entries[].value | .github_advisory_id // .url] | unique | .[]' audit-base.json | sort > base-ids.txt
           fi
 
           echo "Advisory IDs on base:"

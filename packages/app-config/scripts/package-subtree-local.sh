@@ -186,7 +186,7 @@ fi
 
 LOCAL_REPO="${LOCAL_REPO/#\~/$HOME}"
 
-for tool in git npm jq; do
+for tool in git jq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     clean_exit 1 "Required tool '$tool' not found in PATH" true
   fi
@@ -574,7 +574,7 @@ _get_commit_url() {
 }
 
 _get_continue_cmd() {
-  local continue_cmd="npm run update-subtree-local -w $WORKSPACE_LOCATION -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
+  local continue_cmd="pnpm --filter $WORKSPACE_LOCATION run update-subtree-local -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
   if [ -n "$COMMIT_SHA" ]; then
     continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
   fi

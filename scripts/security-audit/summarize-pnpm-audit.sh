@@ -57,7 +57,7 @@ jq -c --arg dir "$DIR" --arg mode "$MODE" '
     end;
 
   def is_direct:
-    (.findings // [] | any(.paths[]? | test("^\\.>[^>]+$")));
+    (.findings // [] | any(.paths[]? | test("^[^>]+>[^>]+$")));
 
   def advisory_urls:
     [ (.url // empty), (.github_advisory_id // empty | select(startswith("GHSA-")) | "https://github.com/advisories/" + .) ]

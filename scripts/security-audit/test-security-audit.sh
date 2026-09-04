@@ -62,6 +62,30 @@ echo "$OUT" | jq -e '.findings[0].bucket == "actionable"' >/dev/null || fail "ex
 echo "$OUT" | jq -e '.findings[0].isDirect == true' >/dev/null || fail "expected direct dependency"
 pass "pnpm actionable finding"
 
+# --- pnpm workspace direct dependency paths ---
+cat > "$TMP/pnpm-workspace-paths.json" <<'EOF'
+{
+  "advisories": {
+    "1": {
+      "findings": [{"paths": ["backend>fastify"], "dev": false}],
+      "module_name": "fastify", "severity": "high", "patched_versions": ">=1.0.0"
+    },
+    "2": {
+      "findings": [{"paths": ["packages/foo>axios"], "dev": false}],
+      "module_name": "axios", "severity": "high", "patched_versions": ">=1.0.0"
+    },
+    "3": {
+      "findings": [{"paths": ["backend>transitive>dep"], "dev": false}],
+      "module_name": "dep", "severity": "high", "patched_versions": ">=1.0.0"
+    }
+  }
+}
+EOF
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-workspace-paths.json")
+echo "$OUT" | jq -e '[.findings[] | select(.name == "fastify" or .name == "axios") | .isDirect] | all' >/dev/null || fail "workspace direct paths should be direct"
+echo "$OUT" | jq -e '[.findings[] | select(.name == "dep")][0].isDirect == false' >/dev/null || fail "transitive path should not be direct"
+pass "pnpm workspace direct dependency paths"
+
 # --- govulncheck keeps findings when error overlay set ---
 printf '%s\n' \
   '{"osv":{"id":"GO-2024-TEST","affected":[{"ranges":[{"type":"SEMVER","events":[{"introduced":"0"},{"fixed":"1.2.3"}]}]}]}}' \
