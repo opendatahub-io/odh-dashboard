@@ -1,4 +1,4 @@
-import { PORTAL_SIGN_OUT_PATH, portalLogout } from '../UserDropdown';
+import { portalLogout } from '../UserDropdown';
 
 jest.mock('mod-arch-core', () => ({
   useSettings: jest.fn(),
@@ -14,6 +14,6 @@ describe('portalLogout', () => {
 
     portalLogout(redirect);
 
-    expect(redirect).toHaveBeenCalledWith(PORTAL_SIGN_OUT_PATH);
+    expect(redirect).toHaveBeenCalledWith('/oauth2/sign_out');
   });
 });
