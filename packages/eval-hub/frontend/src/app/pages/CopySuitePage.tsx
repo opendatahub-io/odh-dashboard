@@ -305,8 +305,8 @@ const CopySuitePage: React.FC = () => {
             </CardTitle>
             <CardBody>
               <Content component="p" className="evalhub-copy-suite-page__benchmarks-description">
-                Choose the primary metric, number of samples, random seed, and threshold used to
-                calculate the result for each benchmark.
+                Choose the primary metric, number of samples, number of few-shot examples, and
+                threshold used to calculate the result for each benchmark.
               </Content>
               <BenchmarkConfigAccordion
                 benchmarks={form.benchmarks}

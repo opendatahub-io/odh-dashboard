@@ -42,6 +42,14 @@ import BenchmarkCard from '~/app/components/BenchmarkCard';
 import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import {
+  filterBenchmarks,
+  getAvailableCategories,
+  getAvailableMetrics,
+  hasActiveBenchmarkFilters,
+  isBenchmarkSortOption,
+  sortBenchmarks,
+} from '~/app/utilities/benchmarkListFilters';
+import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
   BenchmarkSortOption,
@@ -50,10 +58,6 @@ import {
 } from './const';
 
 const PAGE_SIZES = [12, 24, 36];
-
-const BENCHMARK_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
-const isBenchmarkSortOption = (value: unknown): value is BenchmarkSortOption =>
-  typeof value === 'string' && BENCHMARK_SORT_VALUES.includes(value);
 
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -106,60 +110,24 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const [sortOption, setSortOption] = React.useState(BenchmarkSortOption.DEFAULT);
   const [isSortOpen, setIsSortOpen] = React.useState(false);
 
-  const availableCategories = React.useMemo<string[]>(
-    () =>
-      [
-        ...new Set(allBenchmarks.map((b) => b.category).filter((c): c is string => Boolean(c))),
-      ].toSorted(),
+  const availableCategories = React.useMemo(
+    () => getAvailableCategories(allBenchmarks),
     [allBenchmarks],
   );
 
-  const availableMetrics = React.useMemo<string[]>(
-    () => [...new Set(allBenchmarks.flatMap((b) => b.metrics ?? []).filter(Boolean))].toSorted(),
-    [allBenchmarks],
-  );
+  const availableMetrics = React.useMemo(() => getAvailableMetrics(allBenchmarks), [allBenchmarks]);
 
   const onClearFilters = React.useCallback(() => setFilterData(initialBenchmarkFilterData), []);
 
-  const filteredBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
-    const nameFilter = filterData[BenchmarkFilterOptions.name].toLowerCase().trim() || undefined;
-    const categoryFilters = filterData[BenchmarkFilterOptions.category];
-    const metricsFilters = filterData[BenchmarkFilterOptions.metrics];
+  const filteredBenchmarks = React.useMemo<FlatBenchmark[]>(
+    () => filterBenchmarks(allBenchmarks, filterData),
+    [allBenchmarks, filterData],
+  );
 
-    return allBenchmarks.filter((b) => {
-      if (
-        nameFilter &&
-        !b.name.toLowerCase().includes(nameFilter) &&
-        !b.id.toLowerCase().includes(nameFilter)
-      ) {
-        return false;
-      }
-      if (categoryFilters.length > 0 && !categoryFilters.includes(b.category ?? '')) {
-        return false;
-      }
-      if (
-        metricsFilters.length > 0 &&
-        !(b.metrics?.some((m) => metricsFilters.includes(m)) ?? false)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [allBenchmarks, filterData]);
-
-  const sortedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
-    switch (sortOption) {
-      case BenchmarkSortOption.NAME:
-        return filteredBenchmarks.toSorted((a, b) => a.name.localeCompare(b.name));
-      case BenchmarkSortOption.CATEGORY:
-        return filteredBenchmarks.toSorted((a, b) => {
-          const catCmp = (a.category ?? '').localeCompare(b.category ?? '');
-          return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
-        });
-      default:
-        return filteredBenchmarks;
-    }
-  }, [filteredBenchmarks, sortOption]);
+  const sortedBenchmarks = React.useMemo<FlatBenchmark[]>(
+    () => sortBenchmarks(filteredBenchmarks, sortOption),
+    [filteredBenchmarks, sortOption],
+  );
 
   React.useEffect(() => {
     setPage(1);
@@ -175,10 +143,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
       prev?.id === benchmark.id && prev.providerId === benchmark.providerId ? undefined : benchmark,
     );
   };
-  const hasActiveFilters =
-    filterData[BenchmarkFilterOptions.name].trim() !== '' ||
-    filterData[BenchmarkFilterOptions.category].length > 0 ||
-    filterData[BenchmarkFilterOptions.metrics].length > 0;
+  const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
 
   return (
     <Drawer isExpanded={!!selectedBenchmark}>

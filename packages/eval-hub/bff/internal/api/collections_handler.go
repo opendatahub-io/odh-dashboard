@@ -121,11 +121,17 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 
 	var input evalhub.CloneCollectionRequest
 	if r.Body != http.NoBody {
-		if err := app.ReadJSON(w, r, &input); err != nil {
+		var request *evalhub.CloneCollectionRequest
+		if err := app.ReadJSON(w, r, &request); err != nil {
 			if !errors.Is(err, errEmptyBody) {
 				app.badRequestResponse(w, r, err)
 				return
 			}
+		} else if request == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("body must not be null"))
+			return
+		} else {
+			input = *request
 		}
 	}
 	for _, benchmark := range input.Benchmarks {

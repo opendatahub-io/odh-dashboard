@@ -36,7 +36,9 @@ const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
   typeof b === 'object' &&
   'id' in b &&
   typeof b.id === 'string' &&
-  b.id.trim().length > 0;
+  b.id.trim().length > 0 &&
+  (!('weight' in b) ||
+    (typeof b.weight === 'number' && Number.isFinite(b.weight) && b.weight >= 0));
 
 const validateCollection = (data: unknown): void => {
   if (!data || typeof data !== 'object') {

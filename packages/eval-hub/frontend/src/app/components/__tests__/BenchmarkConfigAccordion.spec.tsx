@@ -11,7 +11,7 @@ const benchmarks: CopySuiteBenchmark[] = [
     weight: 0.5,
     primaryMetric: 'accuracy',
     numSamples: 100,
-    randomSeed: 2,
+    numFewShot: 2,
     threshold: 70,
     availableMetrics: ['accuracy', 'f1'],
   },
@@ -22,7 +22,7 @@ const benchmarks: CopySuiteBenchmark[] = [
     weight: 0.5,
     primaryMetric: 'accuracy',
     numSamples: 200,
-    randomSeed: 3,
+    numFewShot: 3,
     threshold: 75,
     availableMetrics: ['accuracy'],
   },
@@ -49,7 +49,7 @@ describe('BenchmarkConfigAccordion', () => {
     expect(screen.getByText('provider-one-arc_easy')).toBeInTheDocument();
     expect(screen.getByText('TruthfulQA')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-samples-input-0')).toHaveValue(100);
-    expect(screen.getByTestId('benchmark-seed-input-1')).toHaveValue(3);
+    expect(screen.getByTestId('benchmark-few-shot-input-1')).toHaveValue(3);
     expect(screen.getAllByRole('spinbutton', { name: 'Threshold' })).toHaveLength(2);
     expect(screen.getAllByRole('button', { name: 'Remove' })).toHaveLength(2);
   });
@@ -80,14 +80,34 @@ describe('BenchmarkConfigAccordion', () => {
     expect(onUpdate).toHaveBeenCalledWith(0, 'primaryMetric', 'f1');
   });
 
-  it('should update the sample count, random seed, and threshold', () => {
+  it('should update the selected metric direction when metrics have different directions', () => {
+    const onUpdate = jest.fn();
+    renderAccordion({
+      onUpdate,
+      benchmarks: [
+        {
+          ...benchmarks[0],
+          availableMetrics: ['accuracy', 'perplexity'],
+          metricDirections: { accuracy: false, perplexity: true },
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByTestId('benchmark-metric-toggle-0'));
+    fireEvent.click(screen.getByRole('option', { name: 'Perplexity' }));
+
+    expect(onUpdate).toHaveBeenNthCalledWith(1, 0, 'primaryMetric', 'perplexity');
+    expect(onUpdate).toHaveBeenNthCalledWith(2, 0, 'lowerIsBetter', true);
+  });
+
+  it('should update the sample count, few-shot example count, and threshold', () => {
     const onUpdate = jest.fn();
     renderAccordion({ onUpdate, benchmarks: [{ ...benchmarks[0], datasetSize: 817 }] });
 
     fireEvent.change(screen.getByTestId('benchmark-samples-input-0'), {
       target: { value: '500' },
     });
-    fireEvent.change(screen.getByTestId('benchmark-seed-input-0'), {
+    fireEvent.change(screen.getByTestId('benchmark-few-shot-input-0'), {
       target: { value: '9' },
     });
     const thresholdInput = screen.getAllByRole('spinbutton', { name: 'Threshold' })[0];
@@ -97,7 +117,7 @@ describe('BenchmarkConfigAccordion', () => {
     fireEvent.blur(thresholdInput);
 
     expect(onUpdate).toHaveBeenCalledWith(0, 'numSamples', 500);
-    expect(onUpdate).toHaveBeenCalledWith(0, 'randomSeed', 9);
+    expect(onUpdate).toHaveBeenCalledWith(0, 'numFewShot', 9);
     expect(onUpdate).toHaveBeenCalledWith(0, 'threshold', 85);
   });
 

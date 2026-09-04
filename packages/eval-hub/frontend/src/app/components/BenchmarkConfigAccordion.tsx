@@ -120,7 +120,13 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                                 selected={benchmark.primaryMetric}
                                 onSelect={(_event, value) => {
                                   if (typeof value === 'string') {
+                                    const lowerIsBetter =
+                                      benchmark.metricDirections?.[value] ??
+                                      (value === benchmark.primaryMetric
+                                        ? benchmark.lowerIsBetter
+                                        : false);
                                     onUpdate(index, 'primaryMetric', value);
+                                    onUpdate(index, 'lowerIsBetter', lowerIsBetter);
                                   }
                                   setMetricOpenIndex(null);
                                 }}
@@ -183,15 +189,18 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                               </FormGroup>
                             </GridItem>
                             <GridItem span={6}>
-                              <FormGroup label="Random seed" fieldId={`${itemId}-seed`}>
+                              <FormGroup
+                                label="Number of few-shot examples"
+                                fieldId={`${itemId}-few-shot`}
+                              >
                                 <TextInput
-                                  id={`${itemId}-seed`}
-                                  data-testid={`benchmark-seed-input-${index}`}
+                                  id={`${itemId}-few-shot`}
+                                  data-testid={`benchmark-few-shot-input-${index}`}
                                   type="number"
-                                  value={benchmark.randomSeed ?? ''}
+                                  value={benchmark.numFewShot ?? ''}
                                   onChange={(_e, val) => {
                                     const num = val === '' ? undefined : Number(val);
-                                    onUpdate(index, 'randomSeed', num);
+                                    onUpdate(index, 'numFewShot', num);
                                   }}
                                 />
                               </FormGroup>

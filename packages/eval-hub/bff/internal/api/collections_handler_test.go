@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -135,6 +136,19 @@ func TestCloneCollectionHandlerEmptyChunkedBody(t *testing.T) {
 	defer response.Body.Close()
 
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
+}
+
+func TestCloneCollectionHandlerNullBody(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/collection-001/clones?namespace=test-ns",
+		json.RawMessage("null"), nil, identity, &erroringEHClient{},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 }
 
 func TestCloneCollectionHandlerInvalidBenchmarkID(t *testing.T) {

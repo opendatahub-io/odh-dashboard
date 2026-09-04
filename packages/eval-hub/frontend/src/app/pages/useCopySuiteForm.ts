@@ -20,9 +20,10 @@ export type CopySuiteBenchmark = {
   weight: number;
   primaryMetric?: string;
   lowerIsBetter?: boolean;
+  metricDirections?: Record<string, boolean>;
   numSamples?: number;
   datasetSize?: number;
-  randomSeed?: number;
+  numFewShot?: number;
   threshold: number;
   availableMetrics: string[];
 };
@@ -110,9 +111,9 @@ const buildInitialBenchmarks = (
       lowerIsBetter: primaryScore?.lower_is_better,
       numSamples: clampNumSamples(initialNumSamples, datasetSize),
       datasetSize,
-      randomSeed:
-        cb.parameters?.num_fewshot != null
-          ? Number(cb.parameters.num_fewshot)
+      numFewShot:
+        cb.parameters?.num_few_shot != null
+          ? Number(cb.parameters.num_few_shot)
           : (pb?.num_few_shot ?? undefined),
       threshold: cb.pass_criteria
         ? normalizeThreshold(cb.pass_criteria.threshold)
@@ -268,7 +269,7 @@ export function useCopySuiteForm({
       pass_criteria: { threshold: b.threshold / 100 },
       parameters: {
         ...(b.numSamples != null ? { limit: b.numSamples } : {}),
-        ...(b.randomSeed != null ? { num_fewshot: b.randomSeed } : {}),
+        ...(b.numFewShot != null ? { num_few_shot: b.numFewShot } : {}),
       },
     }));
     /* eslint-enable camelcase */

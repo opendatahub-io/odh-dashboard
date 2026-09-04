@@ -55,7 +55,7 @@ const sourceCollection: Collection = {
       weight: 1,
       primary_score: { metric: 'accuracy', lower_is_better: false },
       pass_criteria: { threshold: 0.75 },
-      parameters: { limit: 250, num_fewshot: 3 },
+      parameters: { limit: 250, num_few_shot: 3 },
     },
   ],
 };
@@ -84,7 +84,7 @@ const newBenchmark: CopySuiteBenchmark = {
   weight: 1,
   primaryMetric: 'accuracy',
   numSamples: 100,
-  randomSeed: 2,
+  numFewShot: 2,
   threshold: 70,
   availableMetrics: ['accuracy'],
 };
@@ -147,7 +147,7 @@ describe('useCopySuiteForm', () => {
         primaryMetric: 'accuracy',
         numSamples: 250,
         datasetSize: 1000,
-        randomSeed: 3,
+        numFewShot: 3,
         threshold: 75,
         availableMetrics: ['accuracy', 'f1'],
       }),
@@ -200,7 +200,7 @@ describe('useCopySuiteForm', () => {
         name: 'Benchmark One',
         datasetSize: 1000,
         numSamples: 1000,
-        randomSeed: 5,
+        numFewShot: 5,
         primaryMetric: 'accuracy',
         threshold: 70,
         availableMetrics: ['accuracy', 'f1'],
@@ -215,7 +215,7 @@ describe('useCopySuiteForm', () => {
         benchmarks: [
           {
             ...sourceCollection.benchmarks![0],
-            parameters: { limit: 1500, num_fewshot: 3 },
+            parameters: { limit: 1500, num_few_shot: 3 },
           },
         ],
       },
@@ -344,7 +344,7 @@ describe('useCopySuiteForm', () => {
             weight: 1,
             primary_score: { metric: 'accuracy', lower_is_better: false },
             pass_criteria: { threshold: 0.75 },
-            parameters: { limit: 250, num_fewshot: 3 },
+            parameters: { limit: 250, num_few_shot: 3 },
           }),
         ],
       }),
