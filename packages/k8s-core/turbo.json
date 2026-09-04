@@ -5,6 +5,12 @@
     "test:contract": {
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
+    },
+    "kueue:test:api": {
+      "cache": false
+    },
+    "kueue:test:integration": {
+      "cache": false
     }
   }
 }

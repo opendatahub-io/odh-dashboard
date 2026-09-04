@@ -4,6 +4,9 @@
   "tasks": {
     "test:contract": {
       "cache": false
+    },
+    "trainer:check": {
+      "cache": false
     }
   }
 }

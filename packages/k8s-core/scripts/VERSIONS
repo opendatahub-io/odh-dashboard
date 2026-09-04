@@ -1,0 +1,8 @@
+# Kueue CRD Version Pin — source of truth for k8s-core contract tests.
+# Reference: https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/ai_workloads/red-hat-build-of-kueue
+# RHBoK 1.4.1 ships upstream Kueue v0.18.x (OLM channel stable-v1.4)
+# To adopt new upstream: KUEUE_TAG=v0.20.0 npm run kueue:check
+# If tests pass, bump KUEUE_TAG here and commit.
+RHBOK_CHANNEL=stable-v1.4
+RHBOK_VERSION=1.4.1
+KUEUE_TAG=v0.18.7

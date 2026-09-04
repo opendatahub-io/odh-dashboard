@@ -1,0 +1,5 @@
+# Trainer CRD Version Pin — source of truth for model-training contract tests.
+# Reference: https://github.com/kubeflow/trainer
+# To adopt new upstream: TRAINER_TAG=v2.5.0 npm run trainer:check
+# If tests pass, bump TRAINER_TAG here and commit.
+TRAINER_TAG=v2.3.0

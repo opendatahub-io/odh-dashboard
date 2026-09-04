@@ -11,7 +11,9 @@
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "test:unit": "jest --testPathIgnorePatterns=trainerContract",
-    "test:contract": "jest --testPathPattern=trainerContract"
+    "test:contract": "jest --testPathPattern=trainerContract",
+    "trainer:update": "bash scripts/update-trainer-schemas.sh",
+    "trainer:check": "npm run trainer:update && npm run test:contract && npm run type-check"
   },
   "exports": {
     "./extensions": "./extensions.ts",

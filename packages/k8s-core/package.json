@@ -42,7 +42,9 @@
     "test:unit": "jest --testPathIgnorePatterns=kueueContract",
     "test:contract": "jest --testPathPattern=kueueContract",
     "kueue:update": "bash scripts/update-kueue-schemas.sh",
-    "kueue:check": "npm run kueue:update && npm run test:contract && npm run type-check"
+    "kueue:check": "npm run kueue:update && npm run test:contract && npm run type-check",
+    "kueue:test:api": "bash scripts/dryrun-tests.sh",
+    "kueue:test:integration": "bash scripts/integration-smoke.sh"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

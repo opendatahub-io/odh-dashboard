@@ -11,7 +11,6 @@ import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '../api/models
 import { KUEUE_QUEUE_LABEL } from '../kueue/workloadStatus';
 
 const KUEUE_VERSION = 'v1beta2';
-const TRAINER_VERSION = 'v1alpha1';
 
 const FRONTEND_KUEUE_MODELS = [
   {
@@ -191,16 +190,6 @@ describe('Kueue CRD contract tests', () => {
   describe('Kueue queue label contract', () => {
     it('uses the canonical Kueue queue label key', () => {
       expect(KUEUE_QUEUE_LABEL).toBe('kueue.x-k8s.io/queue-name');
-    });
-
-    it('TrainJob CRD exposes metadata object for queue labels', () => {
-      const schema = getVersionSchema(
-        loadCrd(fixturePath('trainer.kubeflow.org_trainjobs.yaml')),
-        TRAINER_VERSION,
-      );
-      const metadataSchema = resolveSchemaPath(schema, 'metadata');
-      expect(metadataSchema).toBeDefined();
-      expect(schemaSupportsType(metadataSchema, 'object')).toBe(true);
     });
   });
 });
