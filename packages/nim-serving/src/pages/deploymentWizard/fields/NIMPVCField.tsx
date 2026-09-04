@@ -360,6 +360,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                 isRequired={false}
                 placeholder="Select cluster storage..."
                 collapsibleGroupsThreshold={12}
+                maxMenuHeight="300px"
               />
             </FormGroup>
 

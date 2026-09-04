@@ -1,5 +1,5 @@
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { NIM_PVC_ANNOTATION } from '../../clusterStorage/clusterStorage';
+import { NIM_PVC_ANNOTATION } from '../../../clusterStorage/clusterStorage';
 import { PVCCategory, categorizePVCs } from '../nimPVCUtils';
 
 const makePVC = (name: string, annotations: Record<string, string> = {}) =>

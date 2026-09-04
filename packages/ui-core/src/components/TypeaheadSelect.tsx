@@ -115,8 +115,6 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
-const DEFAULT_MAX_MENU_HEIGHT = '300px';
-
 const createGroupToggleOption = (groupName: string): TypeaheadSelectOption => ({
   // PF requires a value; selection is gated by isGroupToggle, not by this string.
   value: `typeahead-group-toggle:${groupName}`,
@@ -148,7 +146,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   dataTestId,
   inputIcon,
   collapsibleGroupsThreshold,
-  maxMenuHeight = DEFAULT_MAX_MENU_HEIGHT,
+  maxMenuHeight,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -639,7 +637,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               {group}
             </SelectOption>
             {renderedOptions}
-            {addDivider && <Divider />}
+            {addDivider && <Divider key={`${group}-divider`} />}
           </>
         ),
         nextIndex: index,
@@ -653,7 +651,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           <SelectGroup key={group} label={group} data-testid={testId}>
             {renderedOptions}
           </SelectGroup>
-          {addDivider && <Divider />}
+          {addDivider && <Divider key={`${group}-divider`} />}
         </>
       ),
       nextIndex: index,
@@ -681,7 +679,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         groupIndex !== groupEntries.length - 1,
       );
       idx = nextIndex;
-      return node;
+      return <React.Fragment key={groupName}>{node}</React.Fragment>;
     });
     const selectOpts = ungroupedSelections.map((opt) => tSelectOption(opt, idx++));
 
@@ -697,9 +695,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     return (
       <>
         {createNode}
-        {showDividerAfterCreate ? <Divider /> : null}
+        {showDividerAfterCreate ? <Divider key="typeahead-divider-after-create" /> : null}
         {groupOpts}
-        {showDividerBeforeUngrouped ? <Divider /> : null}
+        {showDividerBeforeUngrouped ? <Divider key="typeahead-divider-before-ungrouped" /> : null}
         {selectOpts}
       </>
     );
@@ -714,7 +712,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         onOpenChange={(open) => !open && closeMenu()}
         toggle={toggle}
         shouldFocusFirstItemOnOpen={false}
-        maxMenuHeight={maxMenuHeight}
+        {...(maxMenuHeight !== undefined ? { maxMenuHeight } : {})}
         ref={innerRef}
         {...props}
       >
