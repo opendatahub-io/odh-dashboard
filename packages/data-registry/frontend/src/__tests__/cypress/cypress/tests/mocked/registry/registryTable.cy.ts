@@ -74,11 +74,11 @@ const mockLabelsResponse = {
   labels: ['production', 'claims', 'embeddings', 'source-docs'],
 };
 
-const initIntercepts = () => {
+const initIntercepts = (options = {}) => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
     { path: { apiVersion: CLIENT_API_VERSION } },
-    mockUserSettings({ userId: 'test-user' }),
+    mockUserSettings({ userId: 'test-user', ...options }),
   );
   cy.interceptApi('GET /api/:apiVersion/namespaces', { path: { apiVersion: CLIENT_API_VERSION } }, [
     mockNamespace({ name: 'test-project' }),
@@ -801,6 +801,173 @@ describe('Connection Selector', () => {
         name: 'connected-table',
         format: 'iceberg',
         connection_ref: 'my-uri-connection',
+      });
+    });
+  });
+
+  it('should include owner field when creating volume', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'test-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'other',
+        'storage-location': '',
+      },
+    }).as('createVolume');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-name-input').type('test-volume');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createVolume').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'test-volume',
+        content_type: 'other',
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should include owner field when creating table', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables`, {
+      statusCode: 200,
+      body: {
+        name: 'test-table',
+        asset_type: 'table',
+        format: 'iceberg',
+      },
+    }).as('createTable');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-structured').click();
+
+    cy.findByTestId('data-name-input').type('test-table');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createTable').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'test-table',
+        format: 'iceberg',
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should allow selecting Unassigned as owner', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces/analytics/volumes`, {
+      statusCode: 200,
+      body: {
+        name: 'unassigned-volume',
+        'catalog-name': 'test-project',
+        'schema-name': 'analytics',
+        'volume-type': 'other',
+        'storage-location': '',
+      },
+    }).as('createVolume');
+
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
+
+    cy.findByTestId('data-name-input').type('unassigned-volume');
+
+    cy.findByTestId('data-collection-toggle').click();
+    cy.contains('analytics').click();
+
+    // Scroll up to see owner field (it's above collection)
+    cy.findByTestId('data-name-input').scrollIntoView();
+
+    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
+    cy.findByPlaceholderText('Select or type owner').clear();
+    cy.findByPlaceholderText('Select or type owner').type('Unas');
+    cy.contains('li', 'Unassigned').click();
+
+    cy.findByTestId('register-data-submit').click();
+
+    cy.wait('@createVolume').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        name: 'unassigned-volume',
+        owner: 'Unassigned',
+      });
+    });
+  });
+});
+
+describe('Create Collection with Owner', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should include owner field when creating collection', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
+      statusCode: 200,
+      body: {
+        namespace: ['new-collection'],
+        properties: {},
+      },
+    }).as('createCollection');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-collections-action').click();
+    cy.findByTestId('create-collection-button').click();
+
+    cy.findByTestId('collection-name-input').type('new-collection');
+
+    cy.findByTestId('create-collection-submit').click();
+
+    cy.wait('@createCollection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        namespace: ['new-collection'],
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should allow selecting Unassigned as collection owner', () => {
+    cy.intercept('POST', `${REGISTRY_API}/test-project/namespaces`, {
+      statusCode: 200,
+      body: {
+        namespace: ['unassigned-collection'],
+        properties: {},
+      },
+    }).as('createCollection');
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-collections-action').click();
+    cy.findByTestId('create-collection-button').click();
+
+    cy.findByTestId('collection-name-input').type('unassigned-collection');
+
+    // Ensure form is ready and owner field is visible
+    cy.findByTestId('collection-name-input').scrollIntoView();
+
+    cy.findByPlaceholderText('Select or type owner', { timeout: 10000 }).should('be.visible');
+    cy.findByPlaceholderText('Select or type owner').clear();
+    cy.findByPlaceholderText('Select or type owner').type('Unas');
+    cy.contains('li', 'Unassigned').click();
+
+    cy.findByTestId('create-collection-submit').click();
+
+    cy.wait('@createCollection').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        namespace: ['unassigned-collection'],
+        owner: 'Unassigned',
       });
     });
   });
