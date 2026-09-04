@@ -90,6 +90,13 @@ describe('generateNodeSnippet', () => {
     expect(result).toContain('result.output ?? result');
   });
 
+  it('should include Authorization only when the secret has a MaaS API key', () => {
+    const result = generateNodeSnippet(mockParams);
+    expect(result).toContain('if (apiKey)');
+    expect(result).toContain('headers.Authorization');
+    expect(result).toContain('secret.data?.[key]');
+  });
+
   it('should show k8s client with secretName and namespace when no credentials', () => {
     const result = generateNodeSnippet(mockParams);
     expect(result).toContain('k8s.KubeConfig');
@@ -141,6 +148,13 @@ describe('generatePythonSnippet', () => {
     expect(result).toContain('timeout=30');
     expect(result).toContain('raise_for_status()');
     expect(result).toContain('result.get("output", result)');
+  });
+
+  it('should include Authorization only when the secret has a MaaS API key', () => {
+    const result = generatePythonSnippet(mockParams);
+    expect(result).toContain('if api_key:');
+    expect(result).toContain('headers["Authorization"]');
+    expect(result).toContain('(secret.data or {}).get(name)');
   });
 
   it('should show k8s client with secretName and namespace when no credentials', () => {

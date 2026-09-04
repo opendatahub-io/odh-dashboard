@@ -93,9 +93,19 @@ const secret = await k8sApi.readNamespacedSecret({
 });
 
 // Secret values are base64-encoded; decode them to get the raw strings
-const decode = (key) => Buffer.from(secret.data[key], "base64").toString();
+const decode = (key) => {
+  const raw = secret.data?.[key];
+  if (!raw) {
+    return "";
+  }
+  return Buffer.from(raw, "base64").toString();
+};
 const baseURL = decode("MAAS_BASE_URL");
 const apiKey = decode("MAAS_API_KEY");
+const headers = { "Content-Type": "application/json" };
+if (apiKey) {
+  headers.Authorization = \`Bearer \${apiKey}\`;
+}
 
 // Build the JSON request body
 const payload = ${body};
@@ -103,10 +113,7 @@ const payload = ${body};
 // Send a request to the Responses API
 const response = await fetch(\`\${baseURL}/v1/responses\`, {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": \`Bearer \${apiKey}\`,
-  },
+  headers,
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(30_000),
 });
@@ -327,8 +334,17 @@ v1 = client.CoreV1Api()
 secret = v1.read_namespaced_secret("${secretName}", "${namespace}")
 
 # Secret values are base64-encoded; decode them to get the raw strings
-base_url = base64.b64decode(secret.data["MAAS_BASE_URL"]).decode()
-api_key = base64.b64decode(secret.data["MAAS_API_KEY"]).decode()
+def decode_secret(name):
+    raw = (secret.data or {}).get(name)
+    if not raw:
+        return ""
+    return base64.b64decode(raw).decode()
+
+base_url = decode_secret("MAAS_BASE_URL")
+api_key = decode_secret("MAAS_API_KEY")
+headers = {"Content-Type": "application/json"}
+if api_key:
+    headers["Authorization"] = f"Bearer {api_key}"
 
 # Build the request payload
 payload = ${params}
@@ -336,10 +352,7 @@ payload = ${params}
 # Send a request to the Responses API
 response = requests.post(
     f"{base_url}/v1/responses",
-    headers={
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    },
+    headers=headers,
     json=payload,
     timeout=30,
 )

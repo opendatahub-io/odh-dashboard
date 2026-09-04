@@ -574,6 +574,8 @@ paths:
           required: true
           schema:
             type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
             example: 'my-maas-secret'
       responses:
         "200":

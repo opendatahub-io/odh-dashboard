@@ -76,6 +76,23 @@ describe('normalizePipelineRun', () => {
     expect(result.runtime_config?.parameters).toEqual({ maas_secret_name: 'new-secret' });
   });
 
+  it('should prefer ogx_secret_name over llama_stack_secret_name regardless of iteration order', () => {
+    const ogxFirst = makeRun({
+      ogx_secret_name: 'ogx-secret',
+      llama_stack_secret_name: 'llama-secret',
+    });
+    const llamaFirst = makeRun({
+      llama_stack_secret_name: 'llama-secret',
+      ogx_secret_name: 'ogx-secret',
+    });
+    expect(normalizePipelineRun(ogxFirst).runtime_config?.parameters).toEqual({
+      maas_secret_name: 'ogx-secret',
+    });
+    expect(normalizePipelineRun(llamaFirst).runtime_config?.parameters).toEqual({
+      maas_secret_name: 'ogx-secret',
+    });
+  });
+
   it('should prefer canonical key value regardless of iteration order', () => {
     const run = makeRun({
       maas_secret_name: 'new-secret',

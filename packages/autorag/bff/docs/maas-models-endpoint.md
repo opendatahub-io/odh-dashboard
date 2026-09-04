@@ -20,7 +20,7 @@ This document describes the GET endpoint for retrieving available models from a 
 The endpoint:
 1. Validates `namespace` and `secretName` query parameters
 2. Reads the specified Kubernetes secret from the namespace
-3. Extracts `maas_base_url` and `maas_api_key` from the secret (exact key match, case-sensitive)
+3. Extracts `MAAS_BASE_URL` and `MAAS_API_KEY` from the secret (key names are matched case-insensitively; legacy `OGX_CLIENT_*` keys are accepted)
 4. Creates a Models as a Service client using those credentials
 5. Calls the Models as a Service server to list available models
 6. Translates the response from Models as a Service's native format into a stable public API format
@@ -28,12 +28,12 @@ The endpoint:
 
 ### Secret Requirements
 
-The secret must contain the following keys (exact match, case-sensitive):
+The secret must contain a matching pair of keys (names are matched case-insensitively):
 
 | Key | Description |
 |-----|-------------|
-| `maas_base_url` | The URL of the Models as a Service server (e.g., `http://maas-svc.my-namespace.svc.cluster.local:8321`) |
-| `maas_api_key` | The API key for authenticating with the Models as a Service server |
+| `MAAS_BASE_URL` (or legacy `OGX_CLIENT_BASE_URL`) | The URL of the Models as a Service server (e.g., `http://maas-svc.my-namespace.svc.cluster.local:8321`) |
+| `MAAS_API_KEY` (or legacy `OGX_CLIENT_API_KEY`) | The API key for authenticating with the Models as a Service server. The key may be present but empty for no-auth servers. |
 
 ### Middleware Chain
 
@@ -50,9 +50,9 @@ The `AttachMaaSClientFromSecret` middleware determines how to create the Models 
 | Priority | Condition | Behavior |
 |----------|-----------|----------|
 | 1 | `MockMaaSClient` flag is set | Creates a mock client, skips secret lookup |
-| 2 | Auth is disabled | Requires `MaaS_URL` env var, uses it with empty token |
-| 3 | `MaaS_URL` env var is set | Developer override, skips secret lookup, uses env var URL |
-| 4 | Normal (production) | Reads credentials from the named Kubernetes secret |
+| 2 | Normal | Reads credentials from the named Kubernetes secret (`secretName` + `namespace`) |
+
+There is no `MaaS_URL` environment override. Local development should use `MOCK_MAAS_CLIENT=true`, or a secret whose base URL is a reachable in-cluster address. Loopback URLs in the secret are rejected.
 
 ## Response Format
 
@@ -156,42 +156,25 @@ make run MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true
 curl 'http://localhost:4000/api/v1/maas/models?namespace=default&secretName=any-secret'
 ```
 
-### Developer Override
-
-Start the BFF with `MaaS_URL` to skip secret lookup and point to a specific Models as a Service server:
-
-```bash
-cd packages/autorag/bff
-make run MaaS_URL=http://localhost:8321
-```
-
-```bash
-curl -H "Authorization: Bearer $(oc whoami -t)" \
-  'http://localhost:4000/api/v1/maas/models?namespace=default&secretName=any-secret'
-```
-
 ### Full E2E
 
-1. Port-forward the Models as a Service service:
-   ```bash
-   oc port-forward svc/<maas-service> -n <namespace> 8321:8321
-   ```
-
-2. Create a secret with Models as a Service credentials:
+1. Create a secret with Models as a Service credentials. Use an in-cluster service DNS name (loopback URLs such as `http://localhost:8321` are rejected):
    ```bash
    oc create secret generic my-maas-secret \
      --namespace=<namespace> \
-     --from-literal=maas_base_url=http://localhost:8321 \
-     --from-literal=maas_api_key=dummy
+     --from-literal=MAAS_BASE_URL=http://<maas-service>.<namespace>.svc.cluster.local:8321 \
+     --from-literal=MAAS_API_KEY=dummy
    ```
 
-3. Start the BFF without mock flags:
+   For a BFF running on your laptop, prefer mock mode (`MOCK_MAAS_CLIENT=true`) instead of pointing the secret at a port-forwarded localhost URL.
+
+2. Start the BFF without mock flags:
    ```bash
    cd packages/autorag/bff
    make run
    ```
 
-4. Call the endpoint:
+3. Call the endpoint:
    ```bash
    curl -H "Authorization: Bearer $(oc whoami -t)" \
      'http://localhost:4000/api/v1/maas/models?namespace=<namespace>&secretName=my-maas-secret'

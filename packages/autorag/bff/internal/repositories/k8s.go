@@ -18,20 +18,6 @@ var storageTypeRequiredKeys = map[string][]string{
 	},
 }
 
-// maasTypeRequiredKeys lists key sets that qualify a secret as type=maas.
-// FilterSecretInfos matches if a secret has all keys for any entry, so pre-migration
-// OGX secrets still appear in the MaaS connection dropdown.
-var maasTypeRequiredKeys = map[string][]string{
-	"maas": {
-		"MAAS_API_KEY",
-		"MAAS_BASE_URL",
-	},
-	"ogx": {
-		"OGX_CLIENT_API_KEY",
-		"OGX_CLIENT_BASE_URL",
-	},
-}
-
 var maasCredentialBaseURLKeys = []string{"maas_base_url", "ogx_client_base_url"}
 var maasCredentialAPIKeyKeys = []string{"maas_api_key", "ogx_client_api_key"}
 
@@ -68,7 +54,7 @@ func (r *K8sRepository) GetFilteredSecrets(
 	case "storage":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	case "maas":
-		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
+		filtered = filterMaasSecrets(secretInfos)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -137,6 +123,37 @@ func secretDataHasKey(data map[string][]byte, names ...string) bool {
 	return false
 }
 
+func secretInfoHasAnyKeyCI(data map[string]string, names ...string) bool {
+	for k := range data {
+		for _, name := range names {
+			if strings.EqualFold(k, name) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isMaasCompatibleSecret reports whether a secret has a MaaS or legacy OGX
+// base-URL key and the matching API-key key (the API-key value may be empty).
+func isMaasCompatibleSecret(secret kubernetes.SecretInfo) bool {
+	hasMaasPair := secretInfoHasAnyKeyCI(secret.Data, "maas_base_url") &&
+		secretInfoHasAnyKeyCI(secret.Data, "maas_api_key")
+	hasOgxPair := secretInfoHasAnyKeyCI(secret.Data, "ogx_client_base_url") &&
+		secretInfoHasAnyKeyCI(secret.Data, "ogx_client_api_key")
+	return hasMaasPair || hasOgxPair
+}
+
+func filterMaasSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0)
+	for _, secret := range secrets {
+		if isMaasCompatibleSecret(secret) {
+			filtered = append(filtered, secret)
+		}
+	}
+	return filtered
+}
+
 // detectType determines the type for a secret, checking annotation first,
 // then falling back to key-based detection with MaaS (including legacy OGX keys)
 // prioritized over storage.
@@ -150,8 +167,7 @@ func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
-		if kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["maas"]) ||
-			kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["ogx"]) {
+		if isMaasCompatibleSecret(secret) {
 			return "maas"
 		}
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)

@@ -167,6 +167,30 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
+	t.Run("empty filter treats lowercase MaaS keys as maas", func(t *testing.T) {
+		secret := kubernetes.SecretInfo{
+			Data: map[string]string{
+				"maas_api_key":  "k",
+				"maas_base_url": "u",
+			},
+		}
+		if got := detectType(secret, ""); got != "maas" {
+			t.Errorf("got %q, want maas", got)
+		}
+	})
+
+	t.Run("empty filter treats lowercase OGX keys as maas", func(t *testing.T) {
+		secret := kubernetes.SecretInfo{
+			Data: map[string]string{
+				"ogx_client_api_key":  "k",
+				"ogx_client_base_url": "u",
+			},
+		}
+		if got := detectType(secret, ""); got != "maas" {
+			t.Errorf("got %q, want maas", got)
+		}
+	})
+
 	t.Run("empty filter treats legacy OGX keys as maas", func(t *testing.T) {
 		secret := ogxSecret("s")
 		if got := detectType(secret, ""); got != "maas" {
@@ -249,6 +273,51 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 		if !names["maas-conn"] || !names["ogx-conn"] {
 			t.Errorf("names = %v, want maas-conn and ogx-conn", names)
+		}
+	})
+
+	t.Run("maas type includes lowercase MaaS and OGX keys and empty API keys", func(t *testing.T) {
+		k8sLower := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					{
+						UUID: "uid-lower-maas", Name: "lower-maas",
+						Data: map[string]string{
+							"maas_api_key":  "k",
+							"maas_base_url": "https://maas.example.com",
+						},
+					},
+					{
+						UUID: "uid-lower-ogx", Name: "lower-ogx",
+						Data: map[string]string{
+							"ogx_client_api_key":  "k",
+							"ogx_client_base_url": "https://ogx.example.com",
+						},
+					},
+					{
+						UUID: "uid-empty-key", Name: "empty-key",
+						Data: map[string]string{
+							"MAAS_API_KEY":  "",
+							"MAAS_BASE_URL": "https://maas.example.com",
+						},
+					},
+					plainSecret("db-creds"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sLower, context.Background(), "ns", "maas")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 3 {
+			t.Fatalf("expected 3 maas secrets, got %d", len(result))
+		}
+		names := map[string]bool{}
+		for _, s := range result {
+			names[s.Name] = true
+		}
+		if !names["lower-maas"] || !names["lower-ogx"] || !names["empty-key"] {
+			t.Errorf("names = %v", names)
 		}
 	})
 
