@@ -49,3 +49,41 @@ export const buildQuotaUtilsTestTree = (): QuotaTreeNode[] =>
 /** Cohort-only tree with no unassigned bucket. */
 export const buildCohortOnlyQuotaTree = (): QuotaTreeNode[] =>
   buildQuotaHierarchyTree([makeCohort('production')], [makeCQ('prod-serving', 'production')]);
+
+/** Same-named CQ/cohort siblings under production — tests selectionFromPath backtracking. */
+export const buildDuplicateSiblingNameQuotaTree = (): QuotaTreeNode[] => [
+  {
+    id: 'cohort-production',
+    name: 'production',
+    type: 'cohort',
+    cohortName: 'production',
+    selectable: true,
+    children: [
+      {
+        id: 'cq-inference-edge',
+        name: 'inference-edge',
+        type: 'clusterQueue',
+        selectable: true,
+        children: [],
+        clusterQueue: makeCQ('inference-edge', 'production'),
+      },
+      {
+        id: 'cohort-inference-edge',
+        name: 'inference-edge',
+        type: 'cohort',
+        cohortName: 'inference-edge',
+        selectable: true,
+        children: [
+          {
+            id: 'cq-prod-serving',
+            name: 'prod-serving',
+            type: 'clusterQueue',
+            selectable: true,
+            children: [],
+            clusterQueue: makeCQ('prod-serving', 'inference-edge'),
+          },
+        ],
+      },
+    ],
+  },
+];

@@ -1,4 +1,11 @@
-import { buildCohortOnlyQuotaTree, buildQuotaUtilsTestTree } from './quotaHierarchyFixtures';
+import {
+  buildCohortOnlyQuotaTree,
+  buildDuplicateSiblingNameQuotaTree,
+  buildQuotaUtilsTestTree,
+  makeCQ,
+  makeCohort,
+} from './quotaHierarchyFixtures';
+import { buildQuotaHierarchyTree } from '../buildQuotaHierarchyTree';
 import { QUOTA_NODE_TYPE } from '../../types';
 import {
   collectAllExpandableNodeIds,
@@ -11,6 +18,7 @@ import {
   filterQuotaTreeByName,
   nodeIdFromSelection,
   selectionFromPath,
+  syncQuotaSelectionWithTree,
 } from '../quotaUsageTreeUtils';
 
 describe('quotaUsageTreeUtils', () => {
@@ -77,6 +85,66 @@ describe('quotaUsageTreeUtils', () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0].name).toBe('production');
     expect(filtered[0].children[0].children[0].name).toBe('prod-serving');
+  });
+
+  it('keeps full subtree when a parent cohort name matches the search query', () => {
+    const filtered = filterQuotaTreeByName(tree, 'production');
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].name).toBe('production');
+    expect(filtered[0].children[0].name).toBe('inference-edge');
+    expect(filtered[0].children[0].children[0].name).toBe('prod-serving');
+  });
+
+  it('keeps unassigned cluster queues when the unassigned bucket name matches', () => {
+    const filtered = filterQuotaTreeByName(tree, 'unassigned');
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].name).toBe('Unassigned');
+    expect(filtered[0].children[0].name).toBe('legacy-batch');
+  });
+
+  it('backtracks to the next same-named sibling when the first path match is a dead end', () => {
+    const duplicateNameTree = buildDuplicateSiblingNameQuotaTree();
+    const clusterQueueSelection = selectionFromPath(duplicateNameTree, [
+      'production',
+      'inference-edge',
+      'prod-serving',
+    ]);
+
+    expect(clusterQueueSelection?.type).toBe(QUOTA_NODE_TYPE.clusterQueue);
+    if (clusterQueueSelection?.type !== QUOTA_NODE_TYPE.clusterQueue) {
+      return;
+    }
+    expect(nodeIdFromSelection(clusterQueueSelection)).toBe('cq-prod-serving');
+    expect(clusterQueueSelection.clusterQueueName).toBe('prod-serving');
+  });
+
+  it('re-derives cluster queue selection from refreshed tree data', () => {
+    const staleSelection = selectionFromPath(tree, [
+      'production',
+      'inference-edge',
+      'prod-serving',
+    ]);
+    if (!staleSelection || staleSelection.type !== QUOTA_NODE_TYPE.clusterQueue) {
+      expect(staleSelection?.type).toBe(QUOTA_NODE_TYPE.clusterQueue);
+      return;
+    }
+
+    const refreshedTree = buildQuotaHierarchyTree(
+      [makeCohort('production'), makeCohort('inference-edge', 'production')],
+      [makeCQ('prod-serving', 'inference-edge', '8'), makeCQ('legacy-batch')],
+    );
+
+    const syncedSelection = syncQuotaSelectionWithTree(refreshedTree, staleSelection);
+    if (!syncedSelection || syncedSelection.type !== QUOTA_NODE_TYPE.clusterQueue) {
+      expect(syncedSelection?.type).toBe(QUOTA_NODE_TYPE.clusterQueue);
+      return;
+    }
+
+    expect(syncedSelection.clusterQueue).not.toBe(staleSelection.clusterQueue);
+    expect(
+      syncedSelection.clusterQueue.spec.resourceGroups?.[0]?.flavors?.[0]?.resources?.[0]
+        ?.nominalQuota,
+    ).toBe('8');
   });
 
   it('collects expandable and search-expanded node ids', () => {

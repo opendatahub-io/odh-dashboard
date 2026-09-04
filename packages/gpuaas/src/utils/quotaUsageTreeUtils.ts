@@ -55,7 +55,10 @@ export const selectionFromPath = (
       if (segmentIndex === path.length - 1) {
         return node;
       }
-      return findNode(node.children, segmentIndex + 1);
+      const childMatch = findNode(node.children, segmentIndex + 1);
+      if (childMatch) {
+        return childMatch;
+      }
     }
     return undefined;
   };
@@ -144,6 +147,29 @@ export const getDefaultQuotaSelection = (tree: QuotaTreeNode[]): QuotaSelection 
   return path ? selectionFromNode(firstCohort, path) : undefined;
 };
 
+/** Keeps the current selection when possible, but re-derives it from the latest tree data. */
+export const syncQuotaSelectionWithTree = (
+  tree: QuotaTreeNode[],
+  current?: QuotaSelection,
+): QuotaSelection | undefined => {
+  if (!current) {
+    return getDefaultQuotaSelection(tree);
+  }
+
+  const nodeId = nodeIdFromSelection(current);
+  const node = findQuotaTreeNode(tree, nodeId);
+  if (!node) {
+    return getDefaultQuotaSelection(tree);
+  }
+
+  const path = getQuotaNodePath(tree, nodeId);
+  if (!path) {
+    return getDefaultQuotaSelection(tree);
+  }
+
+  return selectionFromNode(node, path) ?? getDefaultQuotaSelection(tree);
+};
+
 export const filterQuotaTreeByName = (nodes: QuotaTreeNode[], search: string): QuotaTreeNode[] => {
   const query = search.trim().toLowerCase();
   if (!query) {
@@ -151,18 +177,27 @@ export const filterQuotaTreeByName = (nodes: QuotaTreeNode[], search: string): Q
   }
 
   const filterNode = (node: QuotaTreeNode): QuotaTreeNode | undefined => {
+    const isNodeNameMatch = node.name.toLowerCase().includes(query);
+
     if (node.type === QUOTA_NODE_TYPE.unassigned) {
+      if (isNodeNameMatch) {
+        return { ...node, children: node.children };
+      }
       const children = node.children
         .map(filterNode)
         .filter((child): child is QuotaTreeNode => child !== undefined);
       return children.length > 0 ? { ...node, children } : undefined;
     }
 
+    if (isNodeNameMatch) {
+      return { ...node, children: node.children };
+    }
+
     const filteredChildren = node.children
       .map(filterNode)
       .filter((child): child is QuotaTreeNode => child !== undefined);
 
-    if (node.name.toLowerCase().includes(query) || filteredChildren.length > 0) {
+    if (filteredChildren.length > 0) {
       return { ...node, children: filteredChildren };
     }
     return undefined;

@@ -22,11 +22,7 @@ import {
   QUOTA_USAGE_TREE_DRAWER_PANEL_ID,
 } from '../const';
 import { QuotaSelection, QuotaTreeNode } from '../types';
-import {
-  findQuotaTreeNode,
-  getDefaultQuotaSelection,
-  nodeIdFromSelection,
-} from '../utils/quotaUsageTreeUtils';
+import { syncQuotaSelectionWithTree } from '../utils/quotaUsageTreeUtils';
 
 const drawerNavBodyStyle: React.CSSProperties = {
   minWidth: 0,
@@ -47,12 +43,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({ tree, loaded, err
       setSelection(undefined);
       return;
     }
-    setSelection((current) => {
-      if (current && findQuotaTreeNode(tree, nodeIdFromSelection(current))) {
-        return current;
-      }
-      return getDefaultQuotaSelection(tree);
-    });
+    setSelection((current) => syncQuotaSelectionWithTree(tree, current));
   }, [loaded, tree]);
 
   if (error) {
@@ -104,9 +95,9 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({ tree, loaded, err
             <DrawerPanelContent
               id={QUOTA_USAGE_TREE_DRAWER_PANEL_ID}
               isResizable
-              defaultSize="50%"
-              minSize="50%"
-              maxSize="82%"
+              defaultSize="75%"
+              minSize="60%"
+              maxSize="85%"
               data-testid="quota-usage-detail-drawer"
             >
               <QuotaUsageDetailPanel

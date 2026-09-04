@@ -391,6 +391,27 @@ describe('GPUaaS Infrastructure Page', () => {
   });
 
   describe('Quota usage section', () => {
+    const nestedCohortQuotaUsageIntercepts: Pick<
+      InitInterceptsOptions,
+      'clusterQueues' | 'cohortNames' | 'resourceFlavors'
+    > = {
+      clusterQueues: [
+        {
+          name: 'prod-serving',
+          cohortName: 'inference-edge',
+          gpuFlavorName: 'a100-flavor',
+          gpuNominalQuota: 4,
+        },
+        {
+          name: 'legacy-batch',
+          gpuFlavorName: 'a100-flavor',
+          gpuNominalQuota: 2,
+        },
+      ],
+      cohortNames: ['production', { name: 'inference-edge', parentName: 'production' }],
+      resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
+    };
+
     beforeEach(() => {
       asClusterAdminUser();
     });
@@ -450,24 +471,27 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findQuotaUsageCollapseAll().should('exist');
     });
 
+    it('should render nested cohort tree and navigate breadcrumb segments', () => {
+      initIntercepts(nestedCohortQuotaUsageIntercepts);
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageCollapseAll().should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('production').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('inference-edge').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('prod-serving').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'prod-serving');
+      infrastructurePage.findQuotaUsageBreadcrumb().should('contain.text', 'production');
+      infrastructurePage.findQuotaUsageBreadcrumb().should('contain.text', 'inference-edge');
+      infrastructurePage.findQuotaUsageBreadcrumbSegment('production').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'production');
+      infrastructurePage.findQuotaUsageTreeNode('inference-edge').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'inference-edge');
+      infrastructurePage.findQuotaUsageBreadcrumbSegment('production').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'production');
+    });
+
     it('should select cohort nodes and filter tree results by search', () => {
-      initIntercepts({
-        clusterQueues: [
-          {
-            name: 'prod-serving',
-            cohortName: 'inference-edge',
-            gpuFlavorName: 'a100-flavor',
-            gpuNominalQuota: 4,
-          },
-          {
-            name: 'legacy-batch',
-            gpuFlavorName: 'a100-flavor',
-            gpuNominalQuota: 2,
-          },
-        ],
-        cohortNames: ['production', { name: 'inference-edge', parentName: 'production' }],
-        resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
-      });
+      initIntercepts(nestedCohortQuotaUsageIntercepts);
       infrastructurePage.visit();
       infrastructurePage.switchToQuotaUsageTab();
       infrastructurePage.findQuotaUsageTreeNode('Unassigned').should('exist');

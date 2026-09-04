@@ -136,12 +136,29 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-breadcrumb');
   }
 
+  findQuotaUsageBreadcrumbSegment(segment: string) {
+    return cy.findByTestId(`quota-usage-breadcrumb-${segment}`);
+  }
+
   findQuotaUsageDetailTitle() {
     return cy.findByTestId('quota-usage-detail-title');
   }
 
   findQuotaUsageNavSearch() {
     return cy.findByTestId('quota-usage-nav-search');
+  }
+
+  findQuotaUsageNavSearchEmpty() {
+    return cy.findByTestId('quota-usage-nav-search-empty');
+  }
+
+  findQuotaUsageNavSearchOrEmptyState() {
+    return cy.get('[data-testid="quota-usage-nav-search"], [data-testid="quota-usage-empty"]');
+  }
+
+  shouldHaveQuotaUsageNavSearchOrEmptyState() {
+    this.findQuotaUsageNavSearchOrEmptyState().should('exist');
+    return this;
   }
 
   findQuotaUsageCollapseAll() {

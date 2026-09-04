@@ -125,15 +125,14 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
               </Label>
             </FlexItem>
           </Flex>
+          <Content component="p" data-testid="quota-usage-detail-placeholder">
+            {selection.type === 'unassigned'
+              ? QUOTA_UNASSIGNED_TOOLTIP
+              : 'Summary and accelerator usage details will appear here.'}
+          </Content>
         </Stack>
       </DrawerHead>
-      <DrawerPanelBody className={scrollableBodyClassName}>
-        <Content component="p" data-testid="quota-usage-detail-placeholder">
-          {selection.type === 'unassigned'
-            ? QUOTA_UNASSIGNED_TOOLTIP
-            : 'Summary and accelerator usage details will appear here.'}
-        </Content>
-      </DrawerPanelBody>
+      <DrawerPanelBody className={scrollableBodyClassName} />
     </>
   );
 };

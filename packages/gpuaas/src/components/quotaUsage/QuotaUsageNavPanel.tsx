@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Button, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
+import {
+  Button,
+  EmptyState,
+  EmptyStateVariant,
+  SearchInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import QuotaUsageTreeView from './QuotaUsageTreeView';
 import { QuotaSelection, QuotaTreeNode } from '../../types';
 import {
@@ -76,8 +84,14 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
     return merged;
   }, [allExpanded, expandedNodeIds, filteredTree, searchExpandedIds]);
 
-  const treeExpandKey =
-    allExpanded === false ? 'collapsed' : allExpanded === true ? 'expanded' : 'mixed';
+  let treeExpandKey: string;
+  if (allExpanded === undefined) {
+    treeExpandKey = `mixed-${searchValue.trim()}`;
+  } else if (allExpanded) {
+    treeExpandKey = 'expanded';
+  } else {
+    treeExpandKey = 'collapsed';
+  }
 
   const handleToggleExpandAll = React.useCallback(() => {
     if (allExpanded === false) {
@@ -119,16 +133,16 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
       setAllExpanded(undefined);
       setExpandedNodeIds((prev) => {
         if (allExpandedRef.current === true) {
-          const next = collectAllExpandableNodeIds(filteredTree);
-          next.delete(nodeId);
-          return next;
+          const expandableNodeIds = collectAllExpandableNodeIds(tree);
+          expandableNodeIds.delete(nodeId);
+          return expandableNodeIds;
         }
-        const next = new Set(prev);
-        next.delete(nodeId);
-        return next;
+        const expandableNodeIds = new Set(prev);
+        expandableNodeIds.delete(nodeId);
+        return expandableNodeIds;
       });
     },
-    [filteredTree],
+    [tree],
   );
 
   const navToolbar = (
@@ -176,6 +190,14 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
         onExpand={handleExpand}
         onCollapse={handleCollapse}
       />
+      {filteredTree.length === 0 && (
+        <EmptyState
+          headingLevel="h4"
+          titleText="No results found"
+          variant={EmptyStateVariant.sm}
+          data-testid="quota-usage-nav-search-empty"
+        />
+      )}
     </>
   );
 };
