@@ -7,10 +7,6 @@ skills:
   # registry-driven dimensions orchestrator.
   - skills/pr-review
   - skills/description-jira
-  # These symlinks remain available for repository-specific context.
-  - skills/style-review
-  - skills/rbac-review
-  - skills/jira-eval-review
 
 host_files:
   - src: dimensions.json
