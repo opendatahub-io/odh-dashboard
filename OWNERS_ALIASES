@@ -21,6 +21,7 @@ aliases:
     - nickmazzi
     - paulovmr
     - caponetto
+    - danreed-rh
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
