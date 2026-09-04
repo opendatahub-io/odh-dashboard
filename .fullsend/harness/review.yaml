@@ -1,8 +1,11 @@
 base: https://raw.githubusercontent.com/fullsend-ai/agents/91f61f3441baedf3f912c9afd4bd574c98793b96/harness/review.yaml#sha256=c805713f74d2d5c21eeefefaee42962136a6c83954a8d468463f8e13861e8d08
 
+agent: agents/review.md
+
 skills:
-  - skills/pr-review
-  - skills/review-host-contract
+  # Fullsend's base pr-review, code-review, docs-review, risk, forge, and label
+  # skills remain inherited. These are Dashboard-only additions.
+  - skills/dashboard-review
   # These symlinks resolve to the Dashboard's maintained review skills.
   - skills/style-review
   - skills/rbac-review

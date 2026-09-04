@@ -1,12 +1,12 @@
 ---
-name: pr-review
-description: Dashboard PR review that combines general code review with the maintained Dashboard style, RBAC, and Jira evaluation guidance.
+name: dashboard-review
+description: Add Dashboard-specific style, RBAC, and Jira checks to Fullsend's standard PR review.
 ---
 
-# Dashboard PR review
+# Dashboard review extension
 
-Review the pull request identified by `GITHUB_PR_URL`. This is a single
-reviewer workflow, not a custom sub-agent framework.
+Apply these checks in addition to Fullsend's inherited `pr-review`. Do not
+replace, repeat, or bypass the upstream review.
 
 ## Inputs and trust boundary
 
@@ -21,9 +21,7 @@ reviewer workflow, not a custom sub-agent framework.
 
 ## Review dimensions
 
-Always assess correctness, tests, regressions, API compatibility, security,
-and repository conventions. Then use the maintained Dashboard skills when the
-changed paths make them relevant:
+Use the maintained Dashboard skills when the changed paths make them relevant:
 
 - `style-review` for TSX, CSS, SCSS, PatternFly, wrapper, or custom-class
   changes.
@@ -59,14 +57,6 @@ Severity:
   addressed before routine merge.
 - `low` / `info`: useful but non-blocking improvement.
 
-## Result
-
-Write exactly one valid JSON object to
-`$FULLSEND_OUTPUT_DIR/agent-result.json`, following the supplied
-`review-result.schema.json`. Include `head_sha`, `pr_number`, `repo`, a concise
-`change_summary`, calibrated `risk` and `confidence`, `findings`, and
-`verification`. Set `action` to `request-changes` for critical/high findings
-or functional medium findings; otherwise use `comment` or `approve`.
-
-Do not post GitHub comments or labels. The host validates, formats, and posts
-the result after the sandbox exits.
+Return Dashboard findings and Jira context to the main review agent for
+deduplication with Fullsend's findings. Do not write a second result, post
+GitHub comments, or create labels.

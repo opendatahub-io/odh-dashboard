@@ -6,15 +6,9 @@
 #   1. Set the GitHub review action from findings (critical/high →
 #      request-changes, and so on) and rewrite the sticky comment.
 #   2. Do not append the /fs-fix "Next steps" footer.
-#   3. Require Dashboard PR-template headings. Pre-review skips the
-#      agent when they are missing; this script still flags them if the
-#      agent ran.
-#   4. If the agent omitted host-collected producer findings from
-#      `.run/collected.json`, append ones that are not already covered
-#      at the same file and nearby line.
-#   5. Link file/line references in the sticky summary and suppress inline
+#   3. Link file/line references in the sticky summary and suppress inline
 #      review comments by omitting line numbers only from the CLI payload.
-#   6. Render the durable structured review: change summary, host status,
+#   4. Render the durable structured review: change summary, host status,
 #      blast-radius risk, confidence rationale, decisions, findings, Jira
 #      coherence, verification, inspected evidence, signals, and labels.
 
@@ -51,10 +45,6 @@ set -euo pipefail
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 
-_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=pr-description-sot.sh
-source "${_SCRIPT_DIR}/pr-description-sot.sh"
-
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
 transform_review_result() {
   python3 - "$1" <<'PY'
@@ -64,8 +54,6 @@ from urllib.parse import quote
 
 FUNCTIONAL_CATEGORIES = {
     "correctness", "security", "protected-path",
-    # Host-injected when REQUIRED_PR_HEADINGS is non-empty and a heading is missing.
-    "description-sot",
 }
 
 def is_functional(finding):
@@ -133,53 +121,6 @@ def compute_action(result):
         return "comment", "needs-human"
     return action, reason
 
-def norm_heading(text):
-    text = (text or "").strip().rstrip(":").strip()
-    return re.sub(r"\s+", " ", text).lower()
-
-def section_bodies(body):
-    matches = list(re.finditer(r"^(#{1,6})\s+(.+?)\s*$", body or "", re.M))
-    out = {}
-    for i, m in enumerate(matches):
-        start = m.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
-        out[norm_heading(m.group(2))] = body[start:end]
-    return out
-
-def is_filled(text):
-    text = re.sub(r"<!--.*?-->", "", text or "", flags=re.S).strip()
-    if not text:
-        return False
-    compact = re.sub(r"\s+", " ", text).strip().strip("*_`")
-    return re.fullmatch(r"(n/?a|na|none|tbd|todo|\.{3}|replace this.*)", compact, re.I) is None
-
-def inject_description_sot_findings(result):
-    """Append findings for missing or empty required PR headings."""
-    required = [h.strip() for h in os.environ.get("REVIEW_REQUIRED_HEADINGS", "").splitlines() if h.strip()]
-    if not required:
-        return result
-    body = os.environ.get("REVIEW_PR_BODY", "")
-    sections = section_bodies(body)
-    findings = list(result.get("findings") or [])
-    existing_desc = {f.get("description") for f in findings if (f.get("category") or "") == "description-sot"}
-    for heading in required:
-        content = sections.get(norm_heading(heading))
-        if content is not None and is_filled(content):
-            continue
-        desc = f"PR description is missing required section `{heading}` (heading absent or no real content)."
-        if desc in existing_desc:
-            continue
-        findings.append({
-            "severity": "medium",
-            "category": "description-sot",
-            "file": ".github/pull_request_template.md",
-            "description": desc,
-            "remediation": "Fill this section with real content in the PR body (see .github/pull_request_template.md). Edit REQUIRED_PR_HEADINGS in pr-description-sot.sh to change the list.",
-            "why": "Required PR-body sections are the source of truth; the host enforces them so review does not depend on the agent.",
-        })
-    result["findings"] = findings
-    return result
-
 def apply_product_ask(result):
     """Raise risk / lower confidence for unjustified Jira-vs-description mismatch.
     Needs-human refuses approve later. Description remains SoT."""
@@ -214,85 +155,15 @@ def apply_product_ask(result):
     return result
 
 
-def nearby_finding(left, right, window=5):
-    left_file = (left.get("file") or "").strip().lower()
-    right_file = (right.get("file") or "").strip().lower()
-    if not left_file or left_file != right_file or left_file == "n/a":
-        return False
-    try:
-        left_line = int(left.get("line") or 0)
-        right_line = int(right.get("line") or 0)
-    except (TypeError, ValueError):
-        return False
-    if left_line < 1 or right_line < 1:
-        return False
-    return abs(left_line - right_line) <= window
-
-def load_producer_findings(path):
-    """Flatten findings from collected.json (array of envelopes) or one envelope."""
-    try:
-        with open(path, encoding="utf-8") as fh:
-            payload = json.load(fh)
-    except (OSError, json.JSONDecodeError):
-        return []
-    if isinstance(payload, list):
-        extra = []
-        for envelope in payload:
-            if isinstance(envelope, dict):
-                extra.extend(envelope.get("findings") or [])
-        return extra
-    if isinstance(payload, dict):
-        return list(payload.get("findings") or [])
-    return []
-
-def merge_producer_findings(result):
-    """Keep producer rows the agent dropped. Skip a producer finding when
-    the agent already has one at the same file and a nearby line."""
-    path = os.environ.get("REVIEW_PRODUCER_JSON") or ""
-    if not path or not os.path.isfile(path):
-        return result
-    extra = load_producer_findings(path)
-    if not extra:
-        return result
-    existing = list(result.get("findings") or [])
-    added = []
-    for finding in extra:
-        if any(nearby_finding(finding, row) for row in existing):
-            continue
-        desc = (finding.get("description") or "").strip()
-        if desc and any((row.get("description") or "").strip() == desc for row in existing):
-            continue
-        added.append(finding)
-    if not added:
-        return result
-    result = dict(result)
-    result["findings"] = existing + added
-    return result
-
 def augment_inspected(result):
-    """Record host-visible producers and verification limits for audit."""
+    """Record verification limits for audit."""
     inspected = dict(result.get("inspected") or {})
-    producers = list(inspected.get("producers") or [])
-    path = os.environ.get("REVIEW_PRODUCER_JSON") or ""
-    try:
-        with open(path, encoding="utf-8") as fh:
-            envelopes = json.load(fh)
-        if isinstance(envelopes, dict):
-            envelopes = [envelopes]
-        for envelope in envelopes if isinstance(envelopes, list) else []:
-            dimension = envelope.get("dimension") if isinstance(envelope, dict) else None
-            if dimension and dimension not in producers:
-                producers.append(dimension)
-    except (OSError, json.JSONDecodeError):
-        pass
     could_not_verify = list(inspected.get("could_not_verify") or [])
     for row in result.get("verification") or []:
         if row.get("result") == "could-not-verify":
             note = row.get("notes") or row.get("label")
             if note and note not in could_not_verify:
                 could_not_verify.append(note)
-    if producers:
-        inspected["producers"] = producers
     if could_not_verify:
         inspected["could_not_verify"] = could_not_verify
     if inspected:
@@ -469,8 +340,6 @@ def render_body(result, previous_md, action):
 with open(sys.argv[1], encoding="utf-8") as fh:
     result = json.load(fh)
 previous_md = os.environ.get("REVIEW_PREVIOUS_MARKDOWN", "")
-result = inject_description_sot_findings(result)
-result = merge_producer_findings(result)
 result = normalize_host_verification(result)
 result = augment_inspected(result)
 result = apply_product_ask(result)
@@ -639,88 +508,6 @@ run_legacy_self_test() {
   else
     echo "PASS overwrite stays out of sticky"
   fi
-
-  cat > "${tmp}/producer.json" <<'EOF'
-[
-  {"dimension":"alpha","findings":[
-    {"severity":"high","category":"alpha","file":"helpers.ts","line":7,"description":"Math.random IDs"},
-    {"severity":"medium","category":"alpha","file":"helpers.ts","line":24,"description":"object URL leak"}
-  ]}
-]
-EOF
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","findings":[{"severity":"high","category":"security","file":"helpers.ts","line":7,"description":"predictable IDs"}]}' > "${tmp}/with-sec.json"
-  export REVIEW_PRODUCER_JSON="${tmp}/producer.json"
-  local merged
-  merged=$(transform_review_result "${tmp}/with-sec.json")
-  unset REVIEW_PRODUCER_JSON
-  if ! printf '%s' "${merged}" | jq -e \
-    '.findings | length == 2 and any(.line == 7 and .category == "security") and any(.line == 24 and .category == "alpha")' \
-    >/dev/null; then
-    echo "FAIL producer merge: expected security :7 kept and leak :24 added, got $(printf '%s' "${merged}" | jq -c '[.findings[] | {line,category}]')" >&2
-    fail=1
-  else
-    echo "PASS producer merge adds unique finding, skips same-line duplicate"
-  fi
-
-  # Missing required heading → host injects description-sot → request-changes
-  export REVIEW_REQUIRED_HEADINGS=$'Description\nHow Has This Been Tested?\nTest Impact'
-  export REVIEW_PR_BODY=$'## Description\nUsers cannot export.\n'
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve"}' > "${tmp}/sot-missing.json"
-  local sot
-  sot=$(transform_review_result "${tmp}/sot-missing.json")
-  if [[ "$(jq -r .action <<<"${sot}")" != "request-changes" ]]; then
-    echo "FAIL description-sot: want request-changes for missing heading" >&2
-    fail=1
-  elif [[ "$(jq '[.findings // [] | .[] | select(.category=="description-sot")] | length' <<<"${sot}")" != "2" ]]; then
-    echo "FAIL description-sot: expected two missing-heading findings" >&2
-    fail=1
-  else
-    echo "PASS description-sot missing heading blocks"
-  fi
-
-  export REVIEW_PR_BODY=$'## Description\nUsers cannot export.\n\n## How Has This Been Tested?\nUnit tests.\n\n## Test Impact\nExisting tests cover the change.\n'
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve"}' > "${tmp}/sot-ok.json"
-  sot=$(transform_review_result "${tmp}/sot-ok.json")
-  if [[ "$(jq -r .action <<<"${sot}")" != "approve" ]]; then
-    echo "FAIL description-sot: want approve when required headings present" >&2
-    fail=1
-  elif [[ "$(jq '[.findings // [] | .[] | select(.category=="description-sot")] | length' <<<"${sot}")" != "0" ]]; then
-    echo "FAIL description-sot: unexpected finding when headings present" >&2
-    fail=1
-  else
-    echo "PASS description-sot headings present"
-  fi
-
-  # Words in prose are not headings; Impact/Test plan are optional
-  export REVIEW_PR_BODY=$'Description How Has This Been Tested? Test Impact in a sentence.\n'
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve"}' > "${tmp}/sot-prose.json"
-  sot=$(transform_review_result "${tmp}/sot-prose.json")
-  if [[ "$(jq '[.findings // [] | .[] | select(.category=="description-sot")] | length' <<<"${sot}")" != "3" ]]; then
-    echo "FAIL description-sot: prose should not count as headings" >&2
-    fail=1
-  else
-    echo "PASS description-sot ignores prose"
-  fi
-  if [[ "${REQUIRED_PR_HEADINGS[*]}" != "Description How Has This Been Tested? Test Impact" ]]; then
-    echo "FAIL description-sot: REQUIRED_PR_HEADINGS drifted" >&2
-    fail=1
-  else
-    echo "PASS description-sot required list"
-  fi
-
-  local tmpl
-  tmpl="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../.github/pull_request_template.md"
-  export REVIEW_PR_BODY
-  REVIEW_PR_BODY="$(cat "${tmpl}")"
-  printf '%s' '{"pr_number":1,"repo":"o/r","head_sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","action":"approve"}' > "${tmp}/sot-tmpl.json"
-  sot=$(transform_review_result "${tmp}/sot-tmpl.json")
-  if [[ "$(jq '[.findings // [] | .[] | select(.category=="description-sot")] | length' <<<"${sot}")" != "3" ]]; then
-    echo "FAIL description-sot: unused Dashboard template must still look unfilled" >&2
-    fail=1
-  else
-    echo "PASS description-sot Dashboard template is unfilled"
-  fi
-  unset REVIEW_REQUIRED_HEADINGS REVIEW_PR_BODY
 
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
@@ -992,21 +779,7 @@ elif [[ -f prior-review.txt ]]; then
 fi
 export REVIEW_PREVIOUS_MARKDOWN="${PREVIOUS_MD}"
 
-# Required headings: fetch the PR body when REQUIRED_PR_HEADINGS is set.
-# Edit the list in pr-description-sot.sh.
-if [[ ${#REQUIRED_PR_HEADINGS[@]} -gt 0 ]]; then
-  REVIEW_REQUIRED_HEADINGS=$(printf '%s\n' "${REQUIRED_PR_HEADINGS[@]}")
-  export REVIEW_REQUIRED_HEADINGS
-  REVIEW_PR_BODY=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" --json body --jq .body 2>/dev/null || true)
-  export REVIEW_PR_BODY
-  echo "Checking ${#REQUIRED_PR_HEADINGS[@]} required PR heading(s)"
-else
-  export REVIEW_REQUIRED_HEADINGS=""
-  export REVIEW_PR_BODY=""
-fi
-
 echo "Transforming review result (action + comment body) using ${RESULT_FILE}"
-export REVIEW_PRODUCER_JSON="${REVIEW_PRODUCER_JSON:-${_SCRIPT_DIR}/../.run/collected.json}"
 REVIEW_SIGNALS=$(gh pr view "${PR_NUMBER}" --repo "${REPO_FULL_NAME}" \
   --json additions,deletions,changedFiles \
   --jq '"+\(.additions) / −\(.deletions) · \(.changedFiles) " + (if .changedFiles == 1 then "file" else "files" end)' \

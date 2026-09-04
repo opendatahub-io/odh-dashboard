@@ -2,11 +2,8 @@
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
-# Local changes from the stock script:
-#   1. If the PR body is missing required Dashboard template headings, post a
-#      comment and skip the sandbox.
-#   2. Hydrate the trusted Jira snapshot. The sandbox receives that sanitized
-#      context file, never Jira credentials.
+# Local change from the stock script: hydrate the trusted Jira snapshot. The
+# sandbox receives that sanitized context file, never Jira credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -20,11 +17,7 @@
 #   GITHUB_PR_URL  — must be a valid GitHub pull request URL
 set -euo pipefail
 
-REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
-
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=pr-description-sot.sh
-source "${_SCRIPT_DIR}/pr-description-sot.sh"
 
 normalize_dispatch_context() {
   local work_item_url
@@ -47,7 +40,7 @@ normalize_dispatch_context() {
 }
 
 run_self_test() {
-  local fail=0 got
+  local fail=0
   if ! (
     unset GITHUB_PR_URL PR_NUMBER
     FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
@@ -59,48 +52,6 @@ run_self_test() {
     fail=1
   else
     echo "PASS pre-context matrix dispatch normalization"
-  fi
-  got=$(sot_missing_headings $'## Description\nUsers cannot export.\n' | tr '\n' ' ')
-  if [[ "${got}" != "How Has This Been Tested? Test Impact " ]]; then
-    echo "FAIL pre-sot: expected testing headings missing, got '${got}'" >&2
-    fail=1
-  else
-    echo "PASS pre-sot missing headings"
-  fi
-  got=$(sot_missing_headings $'## Description\nx\n\n## How Has This Been Tested?\ny\n\n## Test Impact\nz\n')
-  if [[ -n "${got}" ]]; then
-    echo "FAIL pre-sot: expected none missing, got '${got}'" >&2
-    fail=1
-  else
-    echo "PASS pre-sot headings present"
-  fi
-  got=$(sot_missing_headings $'Description How Has This Been Tested? Test Impact in prose.\n' | tr '\n' ' ')
-  if [[ "${got}" != "Description How Has This Been Tested? Test Impact " ]]; then
-    echo "FAIL pre-sot: prose should not count as headings, got '${got}'" >&2
-    fail=1
-  else
-    echo "PASS pre-sot ignores prose"
-  fi
-  got=$(sot_missing_headings $'## Description\n<!-- what changed -->\n\n## How Has This Been Tested?\nN/A\n\n## Test Impact\nTBD\n' | tr '\n' ' ')
-  if [[ "${got}" != "Description How Has This Been Tested? Test Impact " ]]; then
-    echo "FAIL pre-sot: placeholders should not count as content, got '${got}'" >&2
-    fail=1
-  else
-    echo "PASS pre-sot placeholders are empty"
-  fi
-  local tmpl="${_SCRIPT_DIR}/../../.github/pull_request_template.md"
-  got=$(sot_missing_headings "$(cat "${tmpl}")" | tr '\n' ' ')
-  if [[ "${got}" != "Description How Has This Been Tested? Test Impact " ]]; then
-    echo "FAIL pre-sot: unused Dashboard template must still look unfilled, got '${got}'" >&2
-    fail=1
-  else
-    echo "PASS pre-sot Dashboard template is unfilled"
-  fi
-  if [[ "${REQUIRED_PR_HEADINGS[*]}" != "Description How Has This Been Tested? Test Impact" ]]; then
-    echo "FAIL pre-sot: REQUIRED_PR_HEADINGS drifted" >&2
-    fail=1
-  else
-    echo "PASS pre-sot required list"
   fi
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
@@ -214,15 +165,12 @@ if [[ -n "${REVIEW_SKIP_AUTHORS:-}" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Required PR headings — skip the agent when they are missing.
-# Edit the list in pr-description-sot.sh (keep in sync with post-review).
-# Title/body are exported for CLI context adapters (Jira key parse).
+# Fetch title/body for trusted Jira-key parsing.
 # ---------------------------------------------------------------------------
 PR_VIEW="$(GH_TOKEN="${_TOKEN}" gh pr view "${PR_NUMBER}" \
-  --repo "${REPO_FULL_NAME}" --json title,body,headRefOid 2>/dev/null || true)"
+  --repo "${REPO_FULL_NAME}" --json title,body 2>/dev/null || true)"
 PR_TITLE="$(printf '%s' "${PR_VIEW}" | jq -r '.title // empty')"
 PR_BODY="$(printf '%s' "${PR_VIEW}" | jq -r '.body // empty')"
-PR_HEAD_SHA="$(printf '%s' "${PR_VIEW}" | jq -r '.headRefOid // empty')"
 export REVIEW_PR_TITLE="${PR_TITLE}"
 export REVIEW_PR_BODY="${PR_BODY}"
 
@@ -253,59 +201,4 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
   rm -rf "${_JIRA_ARTIFACT_DIR}"
 fi
 
-if [[ ${#REQUIRED_PR_HEADINGS[@]} -gt 0 ]]; then
-  _SOT_MISSING=()
-  while IFS= read -r _sot_line; do
-    [[ -n "${_sot_line}" ]] && _SOT_MISSING+=("${_sot_line}")
-  done < <(sot_missing_headings "${PR_BODY}")
-  if [[ ${#_SOT_MISSING[@]} -gt 0 ]]; then
-    echo "::notice::PR #${PR_NUMBER} missing required description sections — skipping review agent"
-
-    _MISSING_MD=""
-    for h in "${_SOT_MISSING[@]}"; do
-      _MISSING_MD="${_MISSING_MD}- \`${h}\`"$'\n'
-    done
-
-    _SHORT_SHA="${PR_HEAD_SHA:0:7}"
-    _TEMPLATE_URL="https://github.com/${REPO_FULL_NAME}/blob/main/.github/pull_request_template.md"
-    COMMENT_BODY="${REVIEW_STICKY_MARKER}
-<!-- fullsend:review-poc -->
-<!-- **Head SHA:** ${PR_HEAD_SHA} -->
-
-Finished Review · \`skipped\` · Commit: \`${_SHORT_SHA:-unknown}\`
-
-Review did not run. Fill required sections with real content (not N/A / TBD): **Description**, **How Has This Been Tested?**, and **Test Impact**.
-
-Missing:
-${_MISSING_MD}
-See the [PR template](${_TEMPLATE_URL}). Then push or comment \`/fs-review\`.
-"
-
-    _BOT="$(GH_TOKEN="${_TOKEN}" gh api user --jq .login 2>/dev/null || true)"
-    _COMMENT_ID="$(GH_TOKEN="${_TOKEN}" gh api --paginate "repos/${REPO_FULL_NAME}/issues/${PR_NUMBER}/comments" \
-      | jq -s --arg bot "${_BOT}" --arg marker "${REVIEW_STICKY_MARKER}" \
-        'add | map(select($bot != "" and .user.login == $bot and (.body | contains($marker)))) | first | .id // empty')"
-    if [[ -n "${_COMMENT_ID}" && "${_COMMENT_ID}" != "null" ]]; then
-      echo "Updating sticky comment ${_COMMENT_ID} with skip notice"
-      jq -n --arg body "${COMMENT_BODY}" '{body: $body}' \
-        | GH_TOKEN="${_TOKEN}" gh api --method PATCH "repos/${REPO_FULL_NAME}/issues/comments/${_COMMENT_ID}" --input - >/dev/null \
-        || true
-    else
-      printf '%s' "${COMMENT_BODY}" | GH_TOKEN="${_TOKEN}" gh issue comment "${PR_NUMBER}" \
-        --repo "${REPO_FULL_NAME}" --body-file - 2>/dev/null || true
-    fi
-
-    if [[ -n "${FULLSEND_PRESCRIPT_OUTPUT:-}" ]]; then
-      {
-        echo "skipped=true"
-        echo "reason=PR description missing required sections"
-      } >> "${FULLSEND_PRESCRIPT_OUTPUT}"
-    else
-      echo "::warning::FULLSEND_PRESCRIPT_OUTPUT unset — cannot skip sandbox; post-script will still flag missing headings"
-    fi
-    exit 0
-  fi
-fi
-
-# ---------------------------------------------------------------------------
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"
