@@ -10,11 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
@@ -412,4 +414,87 @@ func TestPatchDeploymentFederationHash_DeploymentNotFound(t *testing.T) {
 
 	err := r.PatchDeploymentFederationHash(context.Background(), `[{"name":"genAi"}]`)
 	require.NoError(t, err, "NotFound should be a no-op, not an error")
+}
+
+func TestDeleteModuleResources_ConfigMaps(t *testing.T) {
+	tests := []struct {
+		name       string
+		phase      v1alpha1.ModulePhase
+		wantDelete bool
+	}{
+		{name: "disabled module", phase: v1alpha1.ModulePhaseDisabled, wantDelete: true},
+		{name: "not-deployed module", phase: v1alpha1.ModulePhaseNotDeployed, wantDelete: true},
+		{name: "deployed module", phase: v1alpha1.ModulePhaseDeployed, wantDelete: false},
+		{name: "degraded module", phase: v1alpha1.ModulePhaseDegraded, wantDelete: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+			moduleConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+				Name:      "mlflow-params",
+				Namespace: testNamespace,
+				Labels: map[string]string{
+					labels.PlatformPartOf:         "dashboard",
+					"app.kubernetes.io/component": "mlflow",
+				},
+			}}
+			coreConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+				Name:      "dashboard-core-config",
+				Namespace: testNamespace,
+				Labels: map[string]string{
+					labels.PlatformPartOf: "dashboard",
+				},
+			}}
+			otherModuleConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+				Name:      "gen-ai-params",
+				Namespace: testNamespace,
+				Labels: map[string]string{
+					labels.PlatformPartOf:         "dashboard",
+					"app.kubernetes.io/component": "gen-ai",
+				},
+			}}
+			otherNamespaceConfigMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+				Name:      "mlflow-params",
+				Namespace: "other-ns",
+				Labels: map[string]string{
+					labels.PlatformPartOf:         "dashboard",
+					"app.kubernetes.io/component": "mlflow",
+				},
+			}}
+
+			cli := fake.NewClientBuilder().WithScheme(s).WithObjects(
+				moduleConfigMap,
+				coreConfigMap,
+				otherModuleConfigMap,
+				otherNamespaceConfigMap,
+			).Build()
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			statuses := allDeployedStatuses()
+			statuses["mlflow"] = v1alpha1.ModuleStatus{Phase: tt.phase}
+			require.NoError(t, r.DeleteModuleResources(context.Background(), statuses))
+
+			err := cli.Get(context.Background(), types.NamespacedName{
+				Name: moduleConfigMap.Name, Namespace: moduleConfigMap.Namespace,
+			}, &corev1.ConfigMap{})
+			if tt.wantDelete {
+				assert.True(t, apierrors.IsNotFound(err), "module ConfigMap should be deleted")
+				require.NoError(t, r.DeleteModuleResources(context.Background(), statuses), "cleanup should be idempotent")
+			} else {
+				require.NoError(t, err, "module ConfigMap should be retained")
+			}
+
+			for _, retained := range []*corev1.ConfigMap{coreConfigMap, otherModuleConfigMap, otherNamespaceConfigMap} {
+				err := cli.Get(context.Background(), types.NamespacedName{
+					Name: retained.Name, Namespace: retained.Namespace,
+				}, &corev1.ConfigMap{})
+				require.NoErrorf(t, err, "ConfigMap %s/%s should be retained", retained.Namespace, retained.Name)
+			}
+		})
+	}
 }
