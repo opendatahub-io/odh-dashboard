@@ -5,28 +5,28 @@ This guide outlines how to run the upstream Notebooks and integrate it with a lo
 ## Prerequisites
 
 1. **Start the ODH Backend:**
-    Ensure your ODH backend server is running. Run in the root of the ODH project:
+   Ensure your ODH backend server is running. Run in the root of the ODH project:
 
-    ```bash
-    pnpm run dev:backend
-    ```
+   ```bash
+   pnpm run dev:backend
+   ```
 
 2. **Start the ODH Frontend:**
-    The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
+   The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
 
-    ```bash
-    pnpm run dev:frontend
-    ```
+   ```bash
+   pnpm run dev:frontend
+   ```
 
-    **Important:** Do not use `pnpm run start:dev:ext` for the ODH frontend when testing this upstream integration.
+   **Important:** Do not use `pnpm run start:dev:ext` for the ODH frontend when testing this upstream integration.
 
 3. **Notebooks UI Requirements:**
-    Ensure you have met the [frontend requirements] and [BFF requirements] for the Notebooks UI. You can run Notebooks in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
+   Ensure you have met the [frontend requirements] and [BFF requirements] for the Notebooks UI. You can run Notebooks in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
 
-    ```bash
-    cd packages/notebooks/upstream/developing
-    make tilt-up
-    ```
+   ```bash
+   cd packages/notebooks/upstream/developing
+   make tilt-up
+   ```
 
 ## Notebooks Setup
 

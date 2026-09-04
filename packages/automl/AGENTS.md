@@ -394,7 +394,7 @@ pnpm dlx mod-arch-installer my-module --flavor kubeflow
 | Flag                           | Description                              | Default  |
 | ------------------------------ | ---------------------------------------- | -------- |
 | `--flavor <kubeflow\|default>` | Kubeflow (MUI) or PatternFly-only flavor | kubeflow |
-| `--skip-install`               | Skip `pnpm install` in frontend           | false    |
+| `--skip-install`               | Skip `pnpm install` in frontend          | false    |
 | `--no-git`                     | Skip git initialization                  | false    |
 
 ### Flavor Differences
