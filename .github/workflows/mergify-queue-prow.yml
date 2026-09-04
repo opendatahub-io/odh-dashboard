@@ -1,0 +1,23 @@
+name: Prow on Mergify queue drafts
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test-all:
+    if: >
+      github.event.pull_request.draft &&
+      startsWith(github.head_ref, 'mergify/merge-queue/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Comment /test all for Prow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr comment "$PR_URL" --body "/test all"
