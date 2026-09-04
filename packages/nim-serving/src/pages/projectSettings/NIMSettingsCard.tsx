@@ -19,11 +19,13 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useNIMSettingsAccessAllowed } from './useNIMSettingsAccessAllowed';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
 import { deleteNIMResources } from '../../api/accounts/api';
+import { fireNimAccountRemoved, NimFailureCategory } from '../../tracking/nimTrackingConstants';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -76,7 +78,13 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     try {
       await deleteNIMResources(namespace);
     } catch (e) {
-      stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+      const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
+      stopPollingDeleteStatus(error);
+      fireNimAccountRemoved({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: NimFailureCategory.DELETE_FAILED,
+      });
       return;
     }
     let retries = 10;
@@ -86,12 +94,28 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         if (!result) {
           stopPollingDeleteStatus();
           setIsDeleteModalOpen(false);
+          fireNimAccountRemoved({
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
         } else if (retries === 0) {
-          stopPollingDeleteStatus(new Error('NIM resources were not deleted in time.'));
+          const error = new Error('NIM resources were not deleted in time.');
+          stopPollingDeleteStatus(error);
+          fireNimAccountRemoved({
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: NimFailureCategory.DELETE_TIMEOUT,
+          });
         }
         retries -= 1;
       } catch (e) {
-        stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+        const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
+        stopPollingDeleteStatus(error);
+        fireNimAccountRemoved({
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: NimFailureCategory.DELETE_FAILED,
+        });
       }
     }, 1000);
   }, [namespace, refresh, stopPollingDeleteStatus]);
