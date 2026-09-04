@@ -335,7 +335,7 @@ func (r *DashboardReconciler) setMaaSConsumerPortalModuleCondition(
 	}
 	for _, name := range maasConsumerPortalRequiredModuleNames() {
 		status := statuses[name]
-		if status.Phase == v1alpha1.ModulePhaseDeployed {
+		if moduleHealthy(status.Phase) {
 			continue
 		}
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable,

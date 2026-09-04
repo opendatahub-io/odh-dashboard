@@ -100,7 +100,7 @@ spec:
             requests:
               cpu: 50m
               memory: 128Mi
-              ephemeral-storage: 10Mi
+              ephemeral-storage: 100Mi
             limits:
               memory: 256Mi
           volumeMounts:

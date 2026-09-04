@@ -23,6 +23,16 @@ const maasConsumerPortalFederationConfigMapName = "maas-consumer-portal-federati
 
 const maasConsumerPortalFederationHashAnnotation = "dashboard.opendatahub.io/maas-consumer-portal-federation-config-hash"
 
+// modulePresent means a module's deployed resources remain usable for lifecycle
+// and federation purposes. A degraded module is present but not healthy.
+func modulePresent(phase v1alpha1.ModulePhase) bool {
+	return phase == v1alpha1.ModulePhaseDeployed || phase == v1alpha1.ModulePhaseDegraded
+}
+
+func moduleHealthy(phase v1alpha1.ModulePhase) bool {
+	return phase == v1alpha1.ModulePhaseDeployed
+}
+
 func maasConsumerPortalRequiredModuleNames() []string {
 	names := make([]string, 0, len(moduleRegistry))
 	for name, module := range moduleRegistry {
@@ -43,7 +53,7 @@ func maasConsumerPortalRequiredModuleSlugs(spec *v1alpha1.DashboardSpec, statuse
 	for _, name := range maasConsumerPortalRequiredModuleNames() {
 		module := moduleRegistry[name]
 		status := statuses[name]
-		if status.Phase == v1alpha1.ModulePhaseDeployed || status.Phase == v1alpha1.ModulePhaseDegraded {
+		if modulePresent(status.Phase) {
 			requiredModules[module.ManifestSlug] = true
 		}
 	}
@@ -89,7 +99,7 @@ func (r *DashboardReconciler) buildMaaSConsumerPortalFederationConfigMap(
 	for _, name := range maasConsumerPortalRequiredModuleNames() {
 		mod := moduleRegistry[name]
 		status := statuses[name]
-		if status.Phase != v1alpha1.ModulePhaseDeployed && status.Phase != v1alpha1.ModulePhaseDegraded {
+		if !modulePresent(status.Phase) {
 			continue
 		}
 		entries = append(entries, r.moduleFederationEntry(name, mod))
