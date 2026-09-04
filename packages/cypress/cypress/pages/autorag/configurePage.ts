@@ -18,8 +18,8 @@ class AutoragConfigurePage {
     return cy.findByTestId('autorag-description-input');
   }
 
-  findMaasSecretSelector() {
-    return cy.findByTestId('maas-secret-selector');
+  findMaasSecretSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('maas-secret-selector', options);
   }
 
   findAddMaasConnectionButton() {
@@ -91,8 +91,8 @@ class AutoragConfigurePage {
   }
 
   // Step 2 - Vector store
-  findVectorStoreSelector() {
-    return cy.findByTestId('vector-store-select-toggle');
+  findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('vector-store-select-toggle', options);
   }
 
   findVectorStoreOption(providerId: string) {
@@ -186,8 +186,8 @@ class AutoragConfigurePage {
   }
 
   // Submit
-  findCreateRunButton() {
-    return cy.findByTestId('autorag-create-run-button');
+  findCreateRunButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy.findByTestId('autorag-create-run-button', options);
   }
 }
 

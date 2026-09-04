@@ -39,8 +39,11 @@ export const configureAutoragRun = (
   autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
 
   cy.step('Select MaaS secret');
+  // SecretSelector renders a skeleton (no test id) until type=maas secrets load.
+  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
   autoragConfigurePage.findMaasSecretSelector().click();
-  autoragConfigurePage.findMaasSecretSelector().type(testData.maasSecretName);
+  autoragConfigurePage.findMaasSecretSelector().find('input').clear();
+  autoragConfigurePage.findMaasSecretSelector().find('input').type(testData.maasSecretName);
   autoragConfigurePage.findSelectOption(new RegExp(testData.maasSecretName, 'i')).click();
 
   cy.step('Click Next to go to Configure step');
@@ -112,7 +115,11 @@ export const configureAutoragRun = (
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
   cy.step('Select first available vector store');
-  autoragConfigurePage.findVectorStoreSelector().should('not.be.disabled').click();
+  // Toggle is a skeleton until GET /maas/vector-stores finishes (port-forward to OGX/MaaS).
+  autoragConfigurePage
+    .findVectorStoreSelector({ timeout: 120000 })
+    .should('not.be.disabled')
+    .click();
   autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
   autoragConfigurePage
     .findVectorStoreSelector()
@@ -125,7 +132,7 @@ export const configureAutoragRun = (
  */
 export const submitAutoragRun = (): void => {
   cy.step('Submit the form');
-  autoragConfigurePage.findCreateRunButton().click();
+  autoragConfigurePage.findCreateRunButton({ timeout: 120000 }).should('be.enabled').click();
 
   cy.step('Verify redirect to results page');
   cy.url().should('include', '/gen-ai-studio/autorag/results/');
