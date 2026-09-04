@@ -99,7 +99,7 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 	existing, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, fmt.Errorf("MaaSModelRef '%s' not found", name)
+			return nil, fmt.Errorf("%w: MaaSModelRef '%s' not found", ErrNotFound, name)
 		}
 		return nil, fmt.Errorf("failed to get MaaSModelRef: %w", err)
 	}
@@ -196,15 +196,27 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
 	if uid != "" {
-		obj.SetOwnerReferences([]metav1.OwnerReference{
-			{
-				UID:                types.UID(uid),
-				Name:               name,
-				APIVersion:         "serving.kserve.io/v1alpha2",
-				Kind:               "LLMInferenceService",
-				BlockOwnerDeletion: &[]bool{false}[0],
-			},
-		})
+		ownerAPIVersion := ""
+		ownerKind := ""
+		switch modelRef.Kind {
+		case "ExternalModel":
+			ownerAPIVersion = "inference.opendatahub.io/v1alpha1"
+			ownerKind = "ExternalModel"
+		case "LLMInferenceService":
+			ownerAPIVersion = "serving.kserve.io/v1alpha2"
+			ownerKind = "LLMInferenceService"
+		}
+		if ownerAPIVersion != "" && ownerKind != "" {
+			obj.SetOwnerReferences([]metav1.OwnerReference{
+				{
+					UID:                types.UID(uid),
+					Name:               modelRef.Name,
+					APIVersion:         ownerAPIVersion,
+					Kind:               ownerKind,
+					BlockOwnerDeletion: &[]bool{false}[0],
+				},
+			})
+		}
 	}
 	annotations := map[string]string{}
 	if displayName != "" {

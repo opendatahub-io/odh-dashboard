@@ -230,6 +230,51 @@ func TestEnrichExternalModelSummaries_AuthOverride(t *testing.T) {
 	}
 }
 
+func TestValidateSecretRefName(t *testing.T) {
+	valid := []string{
+		"my-secret",
+		"openai-api-key",
+		"aws-bedrock-secret",
+		" my-secret",
+		"my-secret ",
+		" my-secret ",
+	}
+	for _, raw := range valid {
+		if err := ValidateSecretRefName(raw); err != nil {
+			t.Errorf("%q: unexpected error: %v", raw, err)
+		}
+	}
+
+	invalid := []string{
+		"",
+		"   ",
+		"my secret",
+		"My_Secret",
+		"-leading",
+		"trailing-",
+	}
+	for _, raw := range invalid {
+		if err := ValidateSecretRefName(raw); err == nil {
+			t.Errorf("%q: expected error", raw)
+		}
+	}
+}
+
+func TestNormalizeSecretRefName(t *testing.T) {
+	if got := normalizeSecretRefName("  my-new-secret  "); got != "my-new-secret" {
+		t.Fatalf("normalizeSecretRefName() = %q, want %q", got, "my-new-secret")
+	}
+}
+
+func TestValidateSecretName(t *testing.T) {
+	if err := ValidateSecretName("my-new-secret"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := ValidateSecretName("   my-new-secret   "); err == nil {
+		t.Fatal("expected whitespace error")
+	}
+}
+
 func TestValidateEndpointURL(t *testing.T) {
 	valid := []string{
 		"api.openai.com",
