@@ -66,17 +66,17 @@ First, check the current branch state:
 Run the update-subtree script from the `packages/<package-name>` directory:
 
 ```bash
-cd packages/<package-name> && npm run update-subtree
+cd packages/<package-name> && pnpm run update-subtree
 ```
 
 **[PR Test Mode]** Pass the `--pr` flag with the PR URL:
 ```bash
-cd packages/<package-name> && npm run update-subtree -- --pr=<pr-url>
+cd packages/<package-name> && pnpm run update-subtree -- --pr=<pr-url>
 ```
 
 Or if continuing after conflict resolution:
 ```bash
-cd packages/<package-name> && npm run update-subtree -- --continue
+cd packages/<package-name> && pnpm run update-subtree -- --continue
 ```
 
 Parse the output to detect:
@@ -105,7 +105,7 @@ When conflicts are detected:
 
 4. **After resolution**:
    - Stage the resolved files: `git add <file1> <file2> ...`
-   - Continue the sync: `cd packages/<package-name> && npm run update-subtree -- --continue`
+   - Continue the sync: `cd packages/<package-name> && pnpm run update-subtree -- --continue`
    - Repeat this phase if more conflicts are encountered
 
 ### Phase 4: Lint and Tests

@@ -98,7 +98,7 @@ RUN pnpm install --frozen-lockfile            # @odh-dashboard/* workspace packa
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN npm ci --omit=optional                    # upstream webpack toolchain
-RUN npm run build:prod                        # NOT pnpm — upstream is an npm island
+RUN npm run build:prod                        # upstream is an npm island
 ```
 
 For notebooks, the default `UI_SOURCE_CODE` is
@@ -317,9 +317,9 @@ Upstream module frontends require both package managers locally:
 pnpm install
 
 # Upstream webpack toolchain (repeat after subtree sync)
-pnpm --filter @odh-dashboard/model-registry run install:module
-pnpm --filter @odh-dashboard/notebooks run install:module
+(cd packages/model-registry/upstream/frontend && npm ci)
+(cd packages/notebooks/upstream/workspaces/frontend && npm ci)
 ```
 
 CI for model-registry (`model-registry-frontend-tests.yml`) follows the same pattern:
-`pnpm-setup` at root, then `npm install` in `upstream/frontend`.
+`pnpm-setup` at root, then `npm ci` in `upstream/frontend`.

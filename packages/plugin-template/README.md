@@ -32,8 +32,8 @@ This is a starter template with no active scripts (`scripts__options` in `packag
 After copying and renaming, uncomment the scripts block and run:
 
 ```bash
-npx turbo run build --filter=@odh-dashboard/<your-package-name>
-npx turbo run test-unit --filter=@odh-dashboard/<your-package-name>
+pnpm exec turbo run build --filter=@odh-dashboard/<your-package-name>
+pnpm exec turbo run test-unit --filter=@odh-dashboard/<your-package-name>
 ```
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

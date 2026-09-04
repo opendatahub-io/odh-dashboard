@@ -26,7 +26,7 @@ Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which s
 
 ```bash
 cd distributions/maas-consumer-portal
-OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 npm run dev
+OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 pnpm run dev
 ```
 
 `MOCK_USER` sets the identity header the mock BFF expects (`kubeflow-userid`). Use `user@example.com` — that is the mock user’s identity with RBAC bindings in the maas mock client.
@@ -51,7 +51,7 @@ oc port-forward -n $NS pod/$POD 8243:8243 8143:8143
 
 ```bash
 cd distributions/maas-consumer-portal
-MAAS_BFF_TARGET=https://localhost:8243 GENAI_BFF_TARGET=https://localhost:8143 npm run dev
+MAAS_BFF_TARGET=https://localhost:8243 GENAI_BFF_TARGET=https://localhost:8143 pnpm run dev
 ```
 
 BFF targets use `https://` because on-cluster BFFs serve over TLS.

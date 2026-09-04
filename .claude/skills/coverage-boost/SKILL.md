@@ -39,7 +39,7 @@ Create a timestamp marker, run the appropriate coverage command, then find the r
 ```bash
 COVERAGE_MARKER=$(mktemp)
 
-npx turbo run test-unit-coverage --filter='@odh-dashboard/<package-name>' 2>&1
+pnpm exec turbo run test-unit-coverage --filter='@odh-dashboard/<package-name>' 2>&1
 ```
 
 **For the frontend core:**
@@ -47,14 +47,14 @@ npx turbo run test-unit-coverage --filter='@odh-dashboard/<package-name>' 2>&1
 COVERAGE_MARKER=$(mktemp)
 
 cd /path/to/repo/frontend
-npx jest --silent --coverage --collectCoverageFrom='src/<target-path>/**/*.{ts,tsx}' 2>&1
+pnpm exec jest --silent --coverage --collectCoverageFrom='src/<target-path>/**/*.{ts,tsx}' 2>&1
 ```
 
 **For a single file:**
 ```bash
 COVERAGE_MARKER=$(mktemp)
 
-npx jest --silent --coverage --collectCoverageFrom='<relative-path-to-file>' --findRelatedTests '<relative-path-to-file>' 2>&1
+pnpm exec jest --silent --coverage --collectCoverageFrom='<relative-path-to-file>' --findRelatedTests '<relative-path-to-file>' 2>&1
 ```
 
 After running, parse the JSON coverage report to extract uncovered lines:
@@ -148,10 +148,10 @@ describe('useMyHook', () => {
 
 ```bash
 # Run the new tests
-npx jest --silent <path-to-new-test-file>
+pnpm exec jest --silent <path-to-new-test-file>
 
 # Re-run coverage to confirm improvement
-npx jest --silent --coverage --collectCoverageFrom='<target-file>' --findRelatedTests <target-file>
+pnpm exec jest --silent --coverage --collectCoverageFrom='<target-file>' --findRelatedTests <target-file>
 ```
 
 Fix any test failures before reporting results.

@@ -13,7 +13,7 @@ There are two sync methods:
 | **PR sync** | `update-subtree` | Sync from the official upstream repo (or test an upstream PR) |
 | **Local sync** | `update-subtree-local` | Sync from a local clone of the upstream repo |
 
-Both scripts live in `packages/app-config/scripts/` and are invoked via npm workspace scripts.
+Both scripts live in `packages/app-config/scripts/` and are invoked via pnpm workspace scripts.
 
 ## How It Works
 
@@ -52,7 +52,7 @@ Use PR sync to pull changes from the official upstream repository.
 
 ```bash
 # From the repository root
-npm run update-subtree -w packages/model-registry
+pnpm --filter ./packages/model-registry run update-subtree
 ```
 
 This fetches the upstream repo, finds all new commits since the last sync, and applies them.
@@ -62,7 +62,7 @@ This fetches the upstream repo, finds all new commits since the last sync, and a
 To test an upstream PR's changes before the PR merges:
 
 ```bash
-npm run update-subtree -w packages/model-registry -- --pr=https://github.com/kubeflow/model-registry/pull/1234
+pnpm --filter ./packages/model-registry run update-subtree -- --pr=https://github.com/kubeflow/model-registry/pull/1234
 ```
 
 This temporarily overrides the `package.json` config to point at the PR's branch, applies the changes, then marks all commits with `[DO NOT MERGE - PR TEST SYNC]`. After testing, discard this branch.
@@ -92,7 +92,7 @@ Use local sync to test changes from a local clone of the upstream repository bef
 
 ```bash
 # Sync all new commits from a local branch
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local -- \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/my-changes
 ```
@@ -111,24 +111,24 @@ npm run update-subtree-local -w packages/model-registry -- \
 
 ```bash
 # Sync all new commits from a branch
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local -- \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui
 
 # Cherry-pick a single commit
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local -- \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --commit=abc1234
 
 # Sync up to a specific commit
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local -- \
   --local-repo=/path/to/local/model-registry \
   --branch=main \
   --up-to=def5678
 
 # Continue after resolving conflicts
-npm run update-subtree-local -w packages/model-registry -- \
+pnpm --filter ./packages/model-registry run update-subtree-local -- \
   --local-repo=/path/to/local/model-registry \
   --branch=feature/new-ui \
   --continue
@@ -191,10 +191,10 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 
    ```bash
    # For PR sync
-   npm run update-subtree -w packages/<package-name> -- --continue
+   pnpm --filter ./packages/<package-name> run update-subtree -- --continue
 
    # For local sync (must pass --local-repo and --branch again)
-   npm run update-subtree-local -w packages/<package-name> -- \
+   pnpm --filter ./packages/<package-name> run update-subtree-local -- \
      --local-repo=/path/to/local/upstream-repo \
      --branch=feature/my-changes \
      --continue
@@ -227,7 +227,7 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 2. Create a branch in odh-dashboard (e.g., `git checkout -b test/my-upstream-feature`)
 3. Run local sync to bring upstream changes into the monorepo:
    ```bash
-   npm run update-subtree-local -w packages/model-registry -- \
+   pnpm --filter ./packages/model-registry run update-subtree-local -- \
      --local-repo=/path/to/local/model-registry \
      --branch=feature/my-changes
    ```

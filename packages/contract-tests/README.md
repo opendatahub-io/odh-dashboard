@@ -22,7 +22,7 @@ API contract by checking real HTTP responses against OpenAPI/JSON Schemas.
 ### 2. Run your first test
 
 ```bash
-npm run test:contract
+pnpm run test:contract
 ```
 
 That's it! The framework handles everything automatically.
@@ -34,13 +34,13 @@ Run contract tests with one command:
 
 ```bash
 # From any package directory (preferred via workspace)
-npm run test:contract
+pnpm run test:contract
 
 # With HTML reports (opens browser automatically)
-npm run test:contract -- --open
+pnpm run test:contract -- --open
 
 # Combine options
-npm run test:contract -- --open
+pnpm run test:contract -- --open
 
 ```
 
@@ -54,10 +54,10 @@ go run ./cmd --mock-k8s-client --mock-mr-client --port 8080 --allowed-origins="*
 
 # Terminal 2: Run contract tests (auto-detects BFF URL)
 cd packages/your-package
-npm run test:contract
+pnpm run test:contract
 
 # Or run with custom BFF URL and report opening
-CONTRACT_MOCK_BFF_URL=http://localhost:8080 npm run test:contract -- --open
+CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract -- --open
 ```
 
 ### Option 3: Turbo Orchestration (CI Optimized)
@@ -65,19 +65,19 @@ Use Turbo for intelligent test execution across multiple packages:
 
 ```bash
 # Run contract tests for all packages with contract tests
-npx turbo run test:contract
+pnpm exec turbo run test:contract
 
 # Run for specific package
-npx turbo run test:contract --filter=@odh-dashboard/model-registry
+pnpm exec turbo run test:contract --filter=@odh-dashboard/model-registry
 
-# Or use npm run (from root package.json)
-npm run test:contract -- --open
+# Or use pnpm run (from root package.json)
+pnpm run test:contract -- --open
 
 # Run with automatic report opening (opens browser for each package)
-npx turbo run test:contract -- --open
+pnpm exec turbo run test:contract -- --open
 
 # Combine with package filtering
-npx turbo run test:contract --filter=@odh-dashboard/model-registry -- --open
+pnpm exec turbo run test:contract --filter=@odh-dashboard/model-registry -- --open
 
 ```
 
@@ -413,7 +413,7 @@ If something goes wrong:
 1. **Check directories**: Ensure you have `contract-tests/` and `upstream/bff/` directories
 2. **Verify BFF setup**: Check that your BFF has a Makefile with `build` and `run` targets
 3. **Test BFF manually**: Try `make build && make run` in your BFF directory
-4. **Check contract tests**: Run `npm run test:contract` from your package directory
+4. **Check contract tests**: Run `pnpm run test:contract` from your package directory
 5. **Verify OpenAPI specs**: Ensure your OpenAPI files are in the expected location
 6. **Check environment**: Make sure `odh-ct-bff-consumer` command is available
 

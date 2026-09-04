@@ -41,7 +41,7 @@ git clone https://github.com/opendatahub-io/odh-dashboard.git
 cd odh-dashboard
 
 # Install dependencies (installs all workspace dependencies)
-npm install
+pnpm install
 
 # Copy environment configuration
 cp .env.local.example .env.local
@@ -53,7 +53,7 @@ Start the development server with hot-reloading:
 
 ```bash
 # Start both frontend and backend in development mode
-npm run dev
+pnpm run dev
 
 # The dashboard will be available at:
 # - Frontend: http://localhost:4010
@@ -66,50 +66,50 @@ npm run dev
 
 ```bash
 # Start development server (frontend + backend)
-npm run dev
+pnpm run dev
 
 # Build all packages
-npm run build
+pnpm run build
 
 # Run all tests
-npm run test
+pnpm run test
 
 # Run tests for a specific workspace
-npm run test:frontend
-npm run test:backend
+pnpm run test:frontend
+pnpm run test:backend
 
 # Lint all packages
-npm run lint
+pnpm run lint
 
 # Type check all packages
-npm run type-check
+pnpm run type-check
 
 # Format code
-npm run format
+pnpm run format
 ```
 
 ### Working with Individual Packages
 
 ```bash
 # Run commands in a specific workspace
-cd frontend && npm run start:dev
-cd backend && npm run start:dev
-cd packages/gen-ai && npm run build
+cd frontend && pnpm run start:dev
+cd backend && pnpm run start:dev
+cd packages/gen-ai && pnpm run build
 ```
 
 ### Build for Production
 
 ```bash
 # Build all packages
-npm run build
+pnpm run build
 
 # Start production build
-npm run start
+pnpm run start
 ```
 
 ## Project Structure
 
-This is a **monorepo** using npm workspaces and Turbo for orchestration:
+This is a **monorepo** using pnpm workspaces and Turbo for orchestration:
 
 ```
 odh-dashboard/
@@ -139,25 +139,25 @@ Key technologies:
 
 ```bash
 # Run all tests
-npm run test
+pnpm run test
 
 # Unit tests
-npm run test-unit
-npm run test-unit-coverage
+pnpm run test-unit
+pnpm run test-unit-coverage
 
 # Frontend tests
-npm run test:frontend
-npm run test:frontend:coverage
+pnpm run test:frontend
+pnpm run test:frontend:coverage
 
 # Backend tests
-npm run test:backend
-npm run test:backend:unit-coverage
+pnpm run test:backend
+pnpm run test:backend:unit-coverage
 
 # E2E tests (Cypress)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
 # Contract tests
-npm run test:contract
+pnpm run test:contract
 ```
 
 See [docs/testing.md](docs/testing.md) for comprehensive testing guide.

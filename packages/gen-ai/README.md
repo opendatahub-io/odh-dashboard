@@ -63,10 +63,10 @@ Note that `.env.local` is gitignored and should never be committed. Use `.env.lo
 cd frontend
 
 # Install dependencies
-npm ci
+pnpm install --frozen-lockfile
 
 # Start development server
-npm run start:dev
+pnpm run start:dev
 ```
 
 ### Backend (BFF)

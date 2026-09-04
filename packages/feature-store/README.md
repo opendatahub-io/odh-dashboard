@@ -54,7 +54,7 @@ No separate dev server is needed. Feature Store code is compiled into the host d
 
 ```bash
 # From repo root -- starts both backend and frontend
-npm run dev
+pnpm run dev
 ```
 
 For local development, the backend needs to reach the Feast service. Since Feast runs inside the cluster, use the port-forward script to discover and wire up all active Feature Stores automatically:
@@ -77,10 +77,10 @@ See [`scripts/feast-dev-portforward.md`](scripts/feast-dev-portforward.md) for f
 ### Scripts
 
 ```bash
-npm run lint          # Lint
-npm run lint:fix      # Lint and auto-fix
-npm run test-unit     # Run unit tests
-npm run type-check    # TypeScript type checking
+pnpm run lint          # Lint
+pnpm run lint:fix      # Lint and auto-fix
+pnpm run test-unit     # Run unit tests
+pnpm run type-check    # TypeScript type checking
 ```
 
 ## Package Exports

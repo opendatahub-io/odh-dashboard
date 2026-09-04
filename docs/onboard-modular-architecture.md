@@ -4,7 +4,7 @@ This guide outlines the steps to create and onboard a new modular architecture m
 
 ## Prerequisites
 
-- Node.js and npm installed.
+- Node.js and pnpm installed.
 - Access to the ODH Dashboard repository.
 
 > **Recommended**: Use the `/module-onboarding` Claude Code skill to automate this entire process, including standalone manifest creation and dashboard-operator registration. After module scaffolding, use `/konflux-onboarding` for CI/CD pipeline setup. These skills are the recommended method for onboarding new modules.
@@ -24,7 +24,7 @@ cd packages
 Start a new modular architecture project using the installer. Replace `<your-module-name>` with the desired name for your module.
 
 ```bash
-npx mod-arch-installer -n <your-module-name>
+pnpm dlx mod-arch-installer -n <your-module-name>
 ```
 
 ### 3. Configure the Port
@@ -32,7 +32,7 @@ npx mod-arch-installer -n <your-module-name>
 Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
 
 ```bash
-npm run validate:ports
+pnpm run validate:ports
 ```
 
 This prints a complete list of all current port assignments, sourced directly from the workspace `package.json` files and `federation-configmap.yaml`.
@@ -46,7 +46,7 @@ Pick an unused port and update both `Makefile` and `package.json`:
 
    ```makefile
    dev-frontend-federated:
-       cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=<your-port> npm run start:dev
+       cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=<your-port> pnpm run start:dev
    ```
 
 2. **Update `package.json`**:
@@ -91,13 +91,13 @@ Now that your project is configured, you can run the entire stack (backend, fron
 From the root of the repository, run:
 
 ```bash
-npm run dev:frontend
+pnpm run dev:frontend
 ```
 
 And in another terminal:
 
 ```bash
-npm run dev:backend
+pnpm run dev:backend
 ```
 
 And once you have that, in another terminal run:
