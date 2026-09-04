@@ -36,7 +36,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   onCreated,
 }) => {
   const { userSettings } = useSettings();
-  const userId = userSettings?.userId || '';
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [owner, setOwner] = React.useState('');
@@ -137,7 +137,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           </FormGroup>
           <FormGroup label="Owner" isRequired fieldId="collection-owner">
             <TypeaheadSelect
-              key={`${userId}-${owner}`}
+              key={userId}
               id="collection-owner"
               placeholder="Select or type owner"
               initialOptions={[

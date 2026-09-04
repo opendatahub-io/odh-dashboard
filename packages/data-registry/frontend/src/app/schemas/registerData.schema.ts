@@ -30,7 +30,7 @@ export const registerDataSchema = z
     description: z.string().max(500, 'Description must be 500 characters or fewer'),
     format: z.string(),
     collection: z.string().min(1, 'Collection is required'),
-    owner: z.string().min(1, 'Owner is required'),
+    owner: z.string().trim().min(1, 'Owner is required'),
     labels: z.array(z.string()),
     connection: z.string(),
     path: z.string(),
