@@ -32,12 +32,17 @@
     "./api/workloads": "./src/api/workloads.ts",
     "./kueue/types": "./src/kueue/types.ts",
     "./kueue/messageUtils": "./src/kueue/messageUtils.ts",
-    "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts"
+    "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts",
+    "./__tests__/helpers/crdSchemaHelpers": "./src/__tests__/helpers/crdSchemaHelpers.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:unit": "jest --testPathIgnorePatterns=kueueContract",
+    "test:contract": "jest --testPathPattern=kueueContract",
+    "kueue:update": "bash scripts/update-kueue-schemas.sh",
+    "kueue:check": "npm run kueue:update && npm run test:contract && npm run type-check"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
@@ -48,6 +53,10 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "@types/js-yaml": "^4.0.9",
+    "jest": "^29.7.0",
+    "js-yaml": "^4.1.0"
   }
 }

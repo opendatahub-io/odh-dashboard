@@ -1,0 +1,23 @@
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: sentinel-trainjob-scale
+  namespace: kueue-sentinel
+  labels:
+    kueue.x-k8s.io/queue-name: sentinel-local-queue
+spec:
+  runtimeRef:
+    apiGroup: trainer.kubeflow.org
+    kind: ClusterTrainingRuntime
+    name: sentinel-runtime
+  suspend: true
+  trainer:
+    numNodes: 2
+    numProcPerNode: 1
+    resourcesPerNode:
+      requests:
+        cpu: "100m"
+        memory: 128Mi
+      limits:
+        cpu: "200m"
+        memory: 256Mi

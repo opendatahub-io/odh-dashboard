@@ -1,0 +1,7 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: sentinel-default
+spec:
+  nodeLabels:
+    kubernetes.io/os: linux
