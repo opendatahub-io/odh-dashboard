@@ -1,5 +1,5 @@
 name: Module caches
-description: Restores and saves root and per-module node_modules caches, including the shared Cypress binary cache. Runs npm install when cache is not an exact hit.
+description: Restores and saves root and per-module node_modules caches, including the shared Cypress binary cache. Runs pnpm install when cache is not an exact hit.
 inputs:
   node-version:
     description: Node.js version used for cache key generation.
@@ -18,16 +18,19 @@ runs:
     - name: Set Cypress cache to workspace-local path
       shell: bash
       run: echo "CYPRESS_CACHE_FOLDER=${{ github.workspace }}/.cache/Cypress" >> "$GITHUB_ENV"
-    - name: Use pinned npm version
+    - name: Verify pinned pnpm version
       shell: bash
       run: |
         pkg_manager="$(jq -r .packageManager package.json)"
-        if [[ ! "$pkg_manager" =~ ^npm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "::error::Invalid packageManager field: must match npm@MAJOR.MINOR.PATCH"
+        if [[ ! "$pkg_manager" =~ ^pnpm@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Invalid packageManager field: must match pnpm@MAJOR.MINOR.PATCH"
           exit 1
         fi
-        npm install -g "$pkg_manager" --prefix "$(dirname "$(which node)")/.."
-        echo "npm: $(npm --version)"
+        expected="${pkg_manager#pnpm@}"
+        if [[ "$(pnpm --version)" != "$expected" ]]; then
+          echo "::error::Expected pnpm $expected, found $(pnpm --version)"
+          exit 1
+        fi
     - name: Root node_modules cache
       id: root-cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -39,17 +42,17 @@ runs:
           frontend/src/node_modules
           packages/*/node_modules
           .cache/Cypress
-        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
     - name: Install root dependencies
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npm install
+      run: pnpm install --frozen-lockfile
     - name: Ensure Cypress binary is installed
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npx --no-install cypress install
+      run: pnpm exec cypress install
 
     - name: agent-ops node_modules cache
       id: agent-ops-cache
