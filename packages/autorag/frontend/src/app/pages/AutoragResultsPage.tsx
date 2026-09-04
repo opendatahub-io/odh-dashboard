@@ -212,7 +212,7 @@ function AutoragResultsPage(): React.JSX.Element {
   }, [secretFetchError, notification]);
 
   const maasCredentials = React.useMemo(() => {
-    if (!secretData?.MAAS_BASE_URL || !secretData.MAAS_API_KEY) {
+    if (!secretData?.MAAS_BASE_URL || !('MAAS_API_KEY' in secretData)) {
       return undefined;
     }
     return {

@@ -94,6 +94,16 @@ func s3Secret(name string) kubernetes.SecretInfo {
 	}
 }
 
+func ogxSecret(name string) kubernetes.SecretInfo {
+	return kubernetes.SecretInfo{
+		UUID: "uid-" + name, Name: name,
+		Data: map[string]string{
+			"OGX_CLIENT_API_KEY":  "legacy-key",
+			"OGX_CLIENT_BASE_URL": "https://ogx.example.com",
+		},
+	}
+}
+
 func maasSecret(name string) kubernetes.SecretInfo {
 	return kubernetes.SecretInfo{
 		UUID: "uid-" + name, Name: name,
@@ -157,6 +167,13 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
+	t.Run("empty filter treats legacy OGX keys as maas", func(t *testing.T) {
+		secret := ogxSecret("s")
+		if got := detectType(secret, ""); got != "maas" {
+			t.Errorf("got %q, want maas", got)
+		}
+	})
+
 	t.Run("empty filter falls back to storage when no maas keys", func(t *testing.T) {
 		secret := s3Secret("s")
 		if got := detectType(secret, ""); got != "s3" {
@@ -178,6 +195,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 	allSecrets := []kubernetes.SecretInfo{
 		s3Secret("aws-conn"),
 		maasSecret("maas-conn"),
+		ogxSecret("ogx-conn"),
 		plainSecret("db-creds"),
 	}
 
@@ -193,8 +211,8 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 3 {
-			t.Fatalf("expected 3, got %d", len(result))
+		if len(result) != 4 {
+			t.Fatalf("expected 4, got %d", len(result))
 		}
 	})
 
@@ -219,14 +237,18 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 1 {
-			t.Fatalf("expected 1 maas secret, got %d", len(result))
+		if len(result) != 2 {
+			t.Fatalf("expected 2 maas secrets (MaaS + legacy OGX), got %d", len(result))
 		}
-		if result[0].Name != "maas-conn" {
-			t.Errorf("Name = %q", result[0].Name)
+		names := map[string]bool{}
+		for _, s := range result {
+			names[s.Name] = true
+			if s.Type != "maas" {
+				t.Errorf("%s Type = %q, want maas", s.Name, s.Type)
+			}
 		}
-		if result[0].Type != "maas" {
-			t.Errorf("Type = %q, want maas", result[0].Type)
+		if !names["maas-conn"] || !names["ogx-conn"] {
+			t.Errorf("names = %v, want maas-conn and ogx-conn", names)
 		}
 	})
 
@@ -322,12 +344,21 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		s := result[0]
-		if s.Data["MAAS_API_KEY"] != "[REDACTED]" {
-			t.Errorf("MAAS_API_KEY = %q, want [REDACTED]", s.Data["MAAS_API_KEY"])
+		found := false
+		for _, item := range result {
+			if item.Name != "maas-conn" {
+				continue
+			}
+			found = true
+			if item.Data["MAAS_API_KEY"] != "[REDACTED]" {
+				t.Errorf("MAAS_API_KEY = %q, want [REDACTED]", item.Data["MAAS_API_KEY"])
+			}
+			if item.Data["MAAS_BASE_URL"] != "[REDACTED]" {
+				t.Errorf("MAAS_BASE_URL = %q, want [REDACTED]", item.Data["MAAS_BASE_URL"])
+			}
 		}
-		if s.Data["MAAS_BASE_URL"] != "[REDACTED]" {
-			t.Errorf("MAAS_BASE_URL = %q, want [REDACTED]", s.Data["MAAS_BASE_URL"])
+		if !found {
+			t.Fatal("maas-conn not in results")
 		}
 	})
 }
@@ -393,6 +424,59 @@ func TestGetSecretCredentials(t *testing.T) {
 		}
 		if _, ok := result["OTHER_FIELD"]; ok {
 			t.Error("OTHER_FIELD should not be present")
+		}
+	})
+
+	t.Run("includes empty API key when present", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "no-auth", Namespace: "ns"},
+					Data: map[string][]byte{
+						"MAAS_API_KEY":  []byte(""),
+						"MAAS_BASE_URL": []byte("https://maas.example.com"),
+					},
+				}, nil
+			},
+		}
+
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "no-auth")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := result["MAAS_API_KEY"]; !ok {
+			t.Fatal("MAAS_API_KEY should be present when the secret key exists")
+		}
+		if result["MAAS_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("")) {
+			t.Errorf("MAAS_API_KEY = %q", result["MAAS_API_KEY"])
+		}
+	})
+
+	t.Run("maps legacy OGX keys to MAAS names", func(t *testing.T) {
+		k8s := &mockK8sService{
+			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return &v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "legacy", Namespace: "ns"},
+					Data: map[string][]byte{
+						"OGX_CLIENT_API_KEY":  []byte("legacy-key"),
+						"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+					},
+				}, nil
+			},
+		}
+
+		result, err := repo.GetSecretCredentials(k8s, context.Background(), "ns", "legacy")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result["MAAS_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("legacy-key")) {
+			t.Errorf("MAAS_API_KEY = %q", result["MAAS_API_KEY"])
+		}
+		if result["MAAS_BASE_URL"] != base64.StdEncoding.EncodeToString([]byte("https://ogx.example.com")) {
+			t.Errorf("MAAS_BASE_URL = %q", result["MAAS_BASE_URL"])
+		}
+		if _, ok := result["OGX_CLIENT_API_KEY"]; ok {
+			t.Error("OGX_CLIENT_API_KEY should not be returned")
 		}
 	})
 

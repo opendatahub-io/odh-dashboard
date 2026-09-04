@@ -144,7 +144,7 @@ func resolveMaaSCredentials(ctx context.Context, k8sService kubernetes.Service, 
 		return "", "", fmt.Errorf("secret %q not found in namespace %q", secretName, namespace)
 	}
 
-	baseURL, err := kubernetes.LookupSecretValue(secret.Data, "maas_base_url")
+	baseURL, err := kubernetes.LookupSecretValue(secret.Data, maasCredentialBaseURLKeys...)
 	if err != nil {
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}
@@ -152,18 +152,16 @@ func resolveMaaSCredentials(ctx context.Context, k8sService kubernetes.Service, 
 		return "", "", fmt.Errorf("secret %q is missing or has empty value for required key: maas_base_url: %w", secretName, ErrMaaSCredentialValidation)
 	}
 
-	apiKey, err := kubernetes.LookupSecretValue(secret.Data, "maas_api_key")
+	apiKey, err := kubernetes.LookupSecretValue(secret.Data, maasCredentialAPIKeyKeys...)
 	if err != nil {
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}
 	// API key is optional — MaaS servers can run without auth, so empty API key is valid.
 	// Only reject if the key is entirely absent from the secret, not if present-but-empty.
-	if _, keyPresent := secret.Data["maas_api_key"]; !keyPresent {
-		// Case-insensitive fallback: check if any case variant exists
-		if apiKey == "" {
-			// key not found by any variant — reject
-			return "", "", fmt.Errorf("secret %q is missing required key: maas_api_key: %w", secretName, ErrMaaSCredentialValidation)
-		}
+	// LookupSecretValue is case-insensitive; do not use a case-sensitive map access here
+	// (MaasConnectionModal stores MAAS_API_KEY, not maas_api_key).
+	if !secretDataHasKey(secret.Data, maasCredentialAPIKeyKeys...) {
+		return "", "", fmt.Errorf("secret %q is missing required key: maas_api_key: %w", secretName, ErrMaaSCredentialValidation)
 	}
 
 	if err := isValidMaaSURL(baseURL); err != nil {

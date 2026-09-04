@@ -580,6 +580,38 @@ describe('AutoragResultsPage', () => {
       });
     });
 
+    it('should pass maasCredentials when API key is empty (no-auth MaaS)', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'my-maas-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: {
+          MAAS_BASE_URL: btoa('https://maas.example.com'),
+          MAAS_API_KEY: '',
+        },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        maasCredentials: {
+          baseUrl: btoa('https://maas.example.com'),
+          apiKey: '',
+        },
+      });
+    });
+
     it('should not pass maasCredentials when secret data is missing required keys', () => {
       const mockPipelineRun = createMockPipelineRun(undefined, {
         maas_secret_name: 'my-maas-secret',

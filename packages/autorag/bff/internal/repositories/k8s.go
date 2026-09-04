@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -17,12 +18,22 @@ var storageTypeRequiredKeys = map[string][]string{
 	},
 }
 
+// maasTypeRequiredKeys lists key sets that qualify a secret as type=maas.
+// FilterSecretInfos matches if a secret has all keys for any entry, so pre-migration
+// OGX secrets still appear in the MaaS connection dropdown.
 var maasTypeRequiredKeys = map[string][]string{
 	"maas": {
 		"MAAS_API_KEY",
 		"MAAS_BASE_URL",
 	},
+	"ogx": {
+		"OGX_CLIENT_API_KEY",
+		"OGX_CLIENT_BASE_URL",
+	},
 }
+
+var maasCredentialBaseURLKeys = []string{"maas_base_url", "ogx_client_base_url"}
+var maasCredentialAPIKeyKeys = []string{"maas_api_key", "ogx_client_api_key"}
 
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
@@ -80,9 +91,11 @@ func (r *K8sRepository) GetFilteredSecrets(
 	return result, nil
 }
 
-// GetSecretCredentials retrieves a named secret and returns only the MaaS credential
-// keys (MAAS_BASE_URL, MAAS_API_KEY) with base64-encoded values.
-// Returns an empty map if the secret contains no MaaS keys.
+// GetSecretCredentials retrieves a named secret and returns MaaS credential keys
+// (MAAS_BASE_URL, MAAS_API_KEY) with base64-encoded values.
+// Legacy OGX_CLIENT_* keys are mapped to the same MAAS_* names so the frontend
+// playground does not need to know about the old schema.
+// Empty API key values are included (no-auth MaaS). Missing keys are omitted.
 func (r *K8sRepository) GetSecretCredentials(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -93,19 +106,40 @@ func (r *K8sRepository) GetSecretCredentials(
 		return nil, err
 	}
 
-	maasKeys := maasTypeRequiredKeys["maas"]
-	data := make(map[string]string, len(maasKeys))
-	for _, key := range maasKeys {
-		if value, ok := secret.Data[key]; ok {
-			data[key] = base64.StdEncoding.EncodeToString(value)
+	data := make(map[string]string, 2)
+	if secretDataHasKey(secret.Data, maasCredentialBaseURLKeys...) {
+		value, lookupErr := kubernetes.LookupSecretValue(secret.Data, maasCredentialBaseURLKeys...)
+		if lookupErr != nil {
+			return nil, lookupErr
 		}
+		data["MAAS_BASE_URL"] = base64.StdEncoding.EncodeToString([]byte(value))
+	}
+	if secretDataHasKey(secret.Data, maasCredentialAPIKeyKeys...) {
+		value, lookupErr := kubernetes.LookupSecretValue(secret.Data, maasCredentialAPIKeyKeys...)
+		if lookupErr != nil {
+			return nil, lookupErr
+		}
+		data["MAAS_API_KEY"] = base64.StdEncoding.EncodeToString([]byte(value))
 	}
 
 	return data, nil
 }
 
+// secretDataHasKey reports whether data contains any of the names, ignoring key case.
+func secretDataHasKey(data map[string][]byte, names ...string) bool {
+	for k := range data {
+		for _, name := range names {
+			if strings.EqualFold(k, name) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // detectType determines the type for a secret, checking annotation first,
-// then falling back to key-based detection with LLS prioritized over storage.
+// then falling back to key-based detection with MaaS (including legacy OGX keys)
+// prioritized over storage.
 func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	if secret.Type != "" {
 		return secret.Type
@@ -116,7 +150,8 @@ func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
-		if kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["maas"]) {
+		if kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["maas"]) ||
+			kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["ogx"]) {
 			return "maas"
 		}
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
