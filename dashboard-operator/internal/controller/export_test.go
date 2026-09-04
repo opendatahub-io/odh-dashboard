@@ -4,6 +4,9 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 
@@ -72,3 +75,11 @@ const ConditionMaasConsumerPortalAvailable = conditionMaasConsumerPortalAvailabl
 var ConsoleLinkGVK = consoleLinkGVK
 
 var ConsoleLinkListGVK = consoleLinkListGVK
+
+func (r *DashboardReconciler) MapConfigMapToDashboard(ctx context.Context, obj client.Object) []reconcile.Request {
+	return r.mapConfigMapToDashboard(ctx, obj)
+}
+
+func (r *DashboardReconciler) ConfigMapPredicate() predicate.Predicate {
+	return r.configMapPredicate()
+}
