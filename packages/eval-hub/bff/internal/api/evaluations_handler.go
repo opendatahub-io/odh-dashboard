@@ -111,7 +111,7 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("name is required"))
 		return
 	}
-	if input.Model.Name == "" {
+	if input.Model == nil || input.Model.Name == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("model name is required"))
 		return
 	}
