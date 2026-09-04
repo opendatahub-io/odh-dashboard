@@ -661,8 +661,14 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	if degradedModules > 0 {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("ModulesDegraded"),
-			conditions.WithError(fmt.Errorf("%d module(s) degraded", degradedModules)),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
+			conditions.WithMessage("%d module(s) degraded", degradedModules),
+			conditions.WithSeverity(common.ConditionSeverityError))
+		// Degraded is a negative-polarity condition. The condition manager only
+		// rolls up false/unknown dependents, so explicitly make Ready unhappy when
+		// Degraded=True.
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("ModulesDegraded"),
+			conditions.WithMessage("%d module(s) degraded", degradedModules))
 	}
 }
 
