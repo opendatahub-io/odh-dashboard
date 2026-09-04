@@ -11,7 +11,7 @@ const extensions: Extension[] = [
       id: 'deploy-catalog-model',
       label: 'Deploy model',
       group: 'model-catalog.deploy',
-      component: () => import('../modelCatalog/CatalogDeployAction'),
+      component: () => import('../modelRegistry/DeployPrefillAction'),
     },
   },
 ];

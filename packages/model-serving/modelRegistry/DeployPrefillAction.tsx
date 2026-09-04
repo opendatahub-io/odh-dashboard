@@ -1,17 +1,16 @@
 import React from 'react';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
-import type { CatalogDeployActionComponentProps } from '@odh-dashboard/model-registry/shared';
-import useAvailablePlatformIds from '../modelRegistry/useAvailablePlatformIds';
-import { useNavigateToDeploymentWizardWithData } from '../modelRegistry/useNavigateToDeploymentWizardWithData';
-import { getDeployButtonState } from '../modelRegistry/getDeployButtonState';
+import useAvailablePlatformIds from './useAvailablePlatformIds';
+import { useNavigateToDeploymentWizardWithData } from './useNavigateToDeploymentWizardWithData';
+import { getDeployButtonState } from './getDeployButtonState';
+import type { DeployPrefillActionProps } from '../src/shared/types/deploy-prefill';
 
 /**
- * Model catalog deploy action registered as `core.action` by model-serving.
+ * Deploy action registered as `core.action` by model-serving.
  *
- * Expects catalog prefill data from the model-registry consumer via `componentProps`.
- * The extension is only registered when model serving and model catalog are available.
+ * Expects {@link DeployPrefillActionProps} from the page consumer via `componentProps`.
  */
-const CatalogDeployAction: React.FC<CatalogDeployActionComponentProps> = ({
+const DeployPrefillAction: React.FC<DeployPrefillActionProps> = ({
   deployPrefill,
   deployPrefillLoaded,
   deployPrefillError,
@@ -57,4 +56,4 @@ const CatalogDeployAction: React.FC<CatalogDeployActionComponentProps> = ({
   );
 };
 
-export default CatalogDeployAction;
+export default DeployPrefillAction;

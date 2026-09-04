@@ -1,8 +1,8 @@
 import React from 'react';
 import type {
-  CatalogDeployActionComponentProps,
+  DeployPrefillActionProps,
   DeployPrefillData,
-} from '@odh-dashboard/model-registry/shared';
+} from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
 import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogModelDetails';
 import {
@@ -18,7 +18,7 @@ const useCatalogDeployPrefillData = (
   artifactsLoadError: Error | undefined,
   sourceId: string,
   modelName: string,
-): CatalogDeployActionComponentProps => {
+): DeployPrefillActionProps => {
   const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
   const uri = artifacts.items.length > 0 ? getModelArtifactUri(artifacts.items) : '';
   const cancelReturnRoute = getCatalogModelDetailsRoute({
