@@ -6,7 +6,6 @@ skills:
   # This local skill replaces Fullsend's inherited pr-review with the
   # registry-driven dimensions orchestrator.
   - skills/pr-review
-  - skills/description-jira
 
 host_files:
   - src: dimensions.json

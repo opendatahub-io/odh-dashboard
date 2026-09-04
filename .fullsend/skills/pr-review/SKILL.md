@@ -52,6 +52,7 @@ Each `dimensions[]` object:
 | `id` | Stable dimension key |
 | `kind` | `llm-subagent` or `cli-adapter` |
 | `output` | `findings` (default) · `context` · `section:<name>` |
+| `include_findings` | For a `section:*` LLM, also collect its returned `findings[]` into synthesis |
 | `dispatch` | `always` or `conditional` |
 | `when` | For `conditional` LLM rows: when this dimension is in scope |
 | `definition` | Sub-agent markdown path (`llm-subagent` only) |
@@ -686,14 +687,17 @@ calls in the **same message** as the findings sub-agents in step 4.
 For each `llm-subagent` whose `output` starts with `section:` and
 was selected in step 3c (snapshot present and `status` is `ok`):
 
-1. **Do not** include the diff, source files, or `meta-prompt.md`.
-2. Compose a short prompt: the skill `definition` body, PR title and
-   body, and an instruction to read `context_file` (e.g.
+1. Unless `include_findings` is true, **do not** include the diff,
+   source files, or `meta-prompt.md`. When it is true, include the same
+   verified diff and PR-head source context used by findings dimensions.
+2. Compose the prompt from the row's `definition`, PR title/body, and
+   an instruction to read `context_file` (e.g.
    `/sandbox/workspace/.fullsend/.run/jira.json`). Do not call Jira or GitHub issue
-   APIs. Do not emit `findings[]`.
-3. The return value is the named schema object (for
-   `section:product_ask`, a `product_ask` object). Copy it onto
-   `agent-result.json` in step 7.
+   APIs. When `include_findings` is true, require an object containing
+   the named section plus `findings[]`; otherwise require only the section object.
+3. Copy the named schema object (for `section:product_ask`, the
+   `product_ask` member) onto `agent-result.json` in step 7. When
+   `include_findings` is true, collect its `findings[]` in step 5.
 
 If the section LLM times out or returns nothing, set that field to
 `{"status":"none"}`. Do **not** fail the review and do **not** add a
@@ -701,8 +705,8 @@ If the section LLM times out or returns nothing, set that field to
 
 ### 5. Collect findings
 
-Collect two kinds of **findings** arrays, then concatenate. Do **not**
-include section payloads or context snapshots.
+Collect three possible kinds of **findings** arrays, then concatenate.
+Do **not** include section payloads or context snapshots.
 
 1. **Findings LLM sub-agents** that ran in step 4. Each returns a
    JSON array of findings in the standard format. Ignore `section:*`
@@ -714,6 +718,9 @@ include section payloads or context snapshots.
    empty (do not fail the whole review). If an envelope `status` is
    `empty` / `skipped`, continue. If `status` is `error` and there is
    one `info` finding, keep it.
+3. **Section LLM findings** only for registry rows with
+   `include_findings: true`. Collect the returned `findings[]`, but do
+   not send the named section object through synthesis or challenger.
 
 Standard finding shape:
 
@@ -1088,6 +1095,18 @@ challenger-adjudicated finding set. Classify blockers consistently so the
   `reject`. Use it only when no amount of code-level iteration will make the PR
   mergeable.
 
+#### 6g. Recommend contextual labels
+
+After the final finding set and verdict inputs are known, invoke the
+inherited `issue-labels` skill. Give it the PR metadata, changed files,
+and final findings. It may inspect existing repository labels and recent
+labeling conventions as its instructions require.
+
+- Copy a non-empty recommendation to `label_actions` in the result.
+- Do not invent labels or recommend Fullsend control labels.
+- If no existing contextual label clearly applies, omit `label_actions`.
+- Label recommendations do not affect finding severity or the verdict.
+
 ### 7. Produce the review result
 
 Produce the structured instance that the host renders. Do not compose review
@@ -1136,6 +1155,8 @@ Every non-failure result must include:
   could not be verified.
 - `product_ask` from the section LLM, including `{ "status": "none" }` when no
   Jira snapshot exists.
+- Optional `label_actions` from the `issue-labels` skill when contextual
+  repository labels clearly apply.
 
 After writing the file, validate it before exiting:
 
@@ -1216,4 +1237,3 @@ wins.
   view, gh api, curl, etc.) that a subagent already executed unless
   resolving a specific conflict between subagent findings. See step 6
   for details.
-

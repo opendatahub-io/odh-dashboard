@@ -99,22 +99,6 @@
       ]
     },
     {
-      "id": "odh-jira-eval",
-      "kind": "llm-subagent",
-      "output": "findings",
-      "dispatch": "conditional",
-      "when": "the PR references a Jira issue and the trusted Jira snapshot has status ok; the Jira specialist decides whether the snapshot contains evaluable criteria or requirements",
-      "definition": "skills/pr-review/sub-agents/odh-jira-eval.md",
-      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
-      "failure_severity": "info",
-      "budget_priority": 3,
-      "re_review": "full",
-      "categories": [
-        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
-        "jira-eval-unavailable"
-      ]
-    },
-    {
       "id": "docs-currency",
       "kind": "llm-subagent",
       "output": "findings",
@@ -157,11 +141,16 @@
       "kind": "llm-subagent",
       "output": "section:product_ask",
       "dispatch": "always",
-      "definition": "skills/description-jira/SKILL.md",
+      "definition": "skills/pr-review/sub-agents/description-jira.md",
       "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "include_findings": true,
       "failure_severity": "info",
       "re_review": "full",
-      "notes": "Compare the PR description with trusted Jira context. Keep this structured section out of finding synthesis and the challenger."
+      "categories": [
+        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
+        "jira-eval-unavailable"
+      ],
+      "notes": "One Jira sub-agent compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask stays out of challenger synthesis; findings enter it."
     }
   ]
 }
