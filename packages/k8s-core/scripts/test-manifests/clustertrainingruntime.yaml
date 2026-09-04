@@ -5,8 +5,7 @@ metadata:
 spec:
   mlPolicy:
     numNodes: 1
-    torch:
-      numProcPerNode: 1
+    torch: {}
   template:
     spec:
       replicatedJobs:

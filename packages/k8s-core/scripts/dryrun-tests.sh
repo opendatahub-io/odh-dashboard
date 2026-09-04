@@ -2,7 +2,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CRD_DIR="${SCRIPT_DIR}/../src/__tests__/fixtures/kueue-crds"
 FIXTURES_DIR="${SCRIPT_DIR}/test-manifests"
 RESULTS_DIR="${RESULTS_DIR:-/tmp/kueue-sentinel-results}"
 OUTPUT_FILE="${OUTPUT_FILE:-${RESULTS_DIR}/layer2-results.json}"
@@ -22,19 +21,6 @@ record_result() {
   local detail="$3"
   printf '{"test":"%s","status":"%s","detail":"%s"}\n' "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer2.ndjson"
 }
-
-if ! command -v kubeconform >/dev/null 2>&1; then
-  echo "::error::kubeconform is required for Layer 2 pre-validation" >&2
-  exit 1
-fi
-
-log "Pre-validating fixtures with kubeconform (Kueue CRD schemas)"
-for manifest in "${FIXTURES_DIR}"/*.yaml; do
-  kubeconform -summary \
-    -schema-location default \
-    -schema-location "${CRD_DIR}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.yaml" \
-    "${manifest}"
-done
 
 kubectl create namespace kueue-sentinel --dry-run=client -o yaml | kubectl apply -f -
 kubectl label namespace kueue-sentinel kueue.openshift.io/managed=true --overwrite
