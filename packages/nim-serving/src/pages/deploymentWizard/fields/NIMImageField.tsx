@@ -387,6 +387,8 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
           label: 'Model type',
           value: () => NIM_MODEL_TYPE,
         },
+        // Use replaces with isVisible returning false to hide the existing model location row,
+        // since it is redundant with the model type for NIM models.
         {
           key: 'nimModelLocation',
           replaces: 'modelLocationData-locationType',
