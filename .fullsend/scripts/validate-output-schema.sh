@@ -30,7 +30,7 @@ if ! python3 -c "import jsonschema" 2>/dev/null; then
   exit 1
 fi
 
-if ! python3 -c "
+if ! python3 - "${RESULT_FILE}" "${FULLSEND_OUTPUT_SCHEMA}" <<'PY'
 import json, sys
 from jsonschema import validate, ValidationError
 
@@ -49,6 +49,7 @@ except ValidationError as e:
         allowed = ', '.join(sorted(e.schema['properties'].keys()))
         print(f'  allowed properties: {allowed}')
     sys.exit(1)
-" "${RESULT_FILE}" "${FULLSEND_OUTPUT_SCHEMA}"; then
+PY
+then
   exit 1
 fi
