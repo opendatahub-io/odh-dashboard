@@ -113,6 +113,41 @@ describe('getNIMWizardTrackingProperties', () => {
     });
   });
 
+  it('should fall back to the catalog image name when the display name is empty', () => {
+    expect(
+      getNIMWizardTrackingProperties(
+        wizardState({
+          [NIM_IMAGE_FIELD_ID]: imageValue,
+          [NIM_PVC_STORAGE_FIELD_ID]: {
+            storageMode: NIMPVCStorageMode.EXISTING,
+            storageClassName: '',
+            storageSizeGi: 75,
+          },
+        }),
+        {
+          [NIM_IMAGE_FIELD_ID]: {
+            data: {
+              nimImages: {
+                images: [
+                  {
+                    name: 'arctic-embed-l',
+                    displayName: '',
+                    namespace: 'nim/snowflake',
+                    tags: ['1.0.1'],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ),
+    ).toEqual({
+      nimImage: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+      nimImageName: 'arctic-embed-l',
+      nimPvcType: 'existing',
+    });
+  });
+
   it('should omit the display name when the catalog image is unavailable', () => {
     expect(
       getNIMWizardTrackingProperties(

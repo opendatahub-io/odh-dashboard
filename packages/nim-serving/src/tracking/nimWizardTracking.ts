@@ -67,7 +67,7 @@ const getNIMImageProperties = (
   );
 
   if (image) {
-    properties.nimImageName = image.displayName ?? image.name;
+    properties.nimImageName = image.displayName || image.name;
   }
 
   return properties;
