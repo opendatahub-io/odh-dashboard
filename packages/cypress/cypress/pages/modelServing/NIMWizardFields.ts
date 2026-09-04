@@ -46,4 +46,8 @@ export class NIMWizardFields extends SubComponentBase {
   findExistingPVCSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findScope().findByTestId('nim-existing-pvc-select');
   }
+
+  findExistingPVCInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findExistingPVCSelect().find('input');
+  }
 }

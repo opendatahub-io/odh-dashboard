@@ -33,6 +33,10 @@ func (r *DashboardReconciler) PatchDeploymentFederationHash(ctx context.Context,
 	return r.patchDeploymentFederationHash(ctx, configData)
 }
 
+func (r *DashboardReconciler) DeleteModuleResources(ctx context.Context, statuses map[string]v1alpha1.ModuleStatus) error {
+	return r.deleteModuleResources(ctx, statuses)
+}
+
 func (r *DashboardReconciler) CleanupLegacySidecarResources(ctx context.Context) error {
 	return r.cleanupLegacySidecarResources(ctx)
 }
