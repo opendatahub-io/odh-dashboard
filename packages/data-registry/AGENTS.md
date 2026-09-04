@@ -193,11 +193,11 @@ Data Registry API contract that the proxy routes forward to lives alongside it a
 
 ### Current Endpoints
 
-| Method | Path                 | Description                          |
-| ------ | -------------------- | ------------------------------------ |
-| GET    | `/healthcheck`       | Liveness probe                       |
-| GET    | `/api/v1/user`       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+| Method | Path                   | Description                                                                                                                                                         |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/healthcheck`         | Liveness probe                                                                                                                                                      |
+| GET    | `/api/v1/user`         | Returns authenticated user info                                                                                                                                     |
+| GET    | `/api/v1/namespaces`   | List namespaces (dev/mock mode only)                                                                                                                                |
 | \*     | `/api/v1/*` (catchall) | Data Registry API proxy — see [bff/README.md](bff/README.md#data-registry-api-proxy) and [`bff/openapi/src/data-registry.yaml`](bff/openapi/src/data-registry.yaml) |
 
 ---
@@ -234,22 +234,22 @@ Data Registry API contract that the proxy routes forward to lives alongside it a
 
 ### BFF Configuration Flags
 
-| Flag                    | Env Var                | Description                              | Default       |
-| ----------------------- | ---------------------- | ---------------------------------------- | ------------- |
-| `-port`                 | `PORT`                 | Listen port                              | 4000          |
-| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone`, `kubeflow`, or `federated` | standalone    |
-| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors                | false         |
-| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s               | false         |
-| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets       | ./static      |
-| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG                 | INFO          |
-| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins             | ""            |
-| `-auth-method`          | `AUTH_METHOD`          | `internal` (mock) or `user_token`        | internal      |
-| `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from         | Authorization |
-| `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix                    | Bearer        |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
-| `-data-registry-api-url` | `DATA_REGISTRY_API_URL` | Upstream Data Registry API base URL (overrides ConfigMap lookup) | "" |
-| `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | ConfigMap (pod's namespace) holding the API URL | data-registry-config |
-| `-data-registry-configmap-key` | `DATA_REGISTRY_CONFIGMAP_KEY` | Key within that ConfigMap holding the URL | apiURL |
+| Flag                            | Env Var                        | Description                                                      | Default              |
+| ------------------------------- | ------------------------------ | ---------------------------------------------------------------- | -------------------- |
+| `-port`                         | `PORT`                         | Listen port                                                      | 4000                 |
+| `-deployment-mode`              | `DEPLOYMENT_MODE`              | `standalone`, `kubeflow`, or `federated`                         | standalone           |
+| `-dev-mode`                     | `DEV_MODE`                     | Enables relaxed behaviors                                        | false                |
+| `-mock-k8s-client`              | `MOCK_K8S_CLIENT`              | Use in-memory stub for k8s                                       | false                |
+| `-static-assets-dir`            | `STATIC_ASSETS_DIR`            | Directory to serve frontend assets                               | ./static             |
+| `-log-level`                    | `LOG_LEVEL`                    | ERROR, WARN, INFO, DEBUG                                         | INFO                 |
+| `-allowed-origins`              | `ALLOWED_ORIGINS`              | Comma-separated CORS origins                                     | ""                   |
+| `-auth-method`                  | `AUTH_METHOD`                  | `internal` (mock) or `user_token`                                | internal             |
+| `-auth-header`                  | `AUTH_HEADER`                  | Header to read bearer token from                                 | Authorization        |
+| `-auth-prefix`                  | `AUTH_PREFIX`                  | Expected value prefix                                            | Bearer               |
+| `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                              | false                |
+| `-data-registry-api-url`        | `DATA_REGISTRY_API_URL`        | Upstream Data Registry API base URL (overrides ConfigMap lookup) | ""                   |
+| `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | ConfigMap (pod's namespace) holding the API URL                  | data-registry-config |
+| `-data-registry-configmap-key`  | `DATA_REGISTRY_CONFIGMAP_KEY`  | Key within that ConfigMap holding the URL                        | apiURL               |
 
 ---
 
@@ -422,7 +422,7 @@ pnpm dlx mod-arch-installer my-module --flavor kubeflow
 | Flag                           | Description                              | Default  |
 | ------------------------------ | ---------------------------------------- | -------- |
 | `--flavor <kubeflow\|default>` | Kubeflow (MUI) or PatternFly-only flavor | kubeflow |
-| `--skip-install`               | Skip `pnpm install` in frontend           | false    |
+| `--skip-install`               | Skip `pnpm install` in frontend          | false    |
 | `--no-git`                     | Skip git initialization                  | false    |
 
 ### Flavor Differences

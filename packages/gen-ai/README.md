@@ -139,12 +139,12 @@ make dev-bff-mock
 
 `MOCK_MLFLOW_CLIENT=true` starts the **full** local MLflow stack: tracking server on `:5001` (seeded with prompts and MCP registry rows) and MLflow BFF on `:4020`. Prompts and MCP registry APIs both work whenever this flag is active.
 
-| Command | Cluster | MLflow |
-|---------|---------|--------|
-| `make dev-start` | Yes | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`) |
-| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes | Full stack (same MLflow behavior as `dev-start-mlflow`) |
-| `make dev-start-mock` | No | Full stack (hardcoded in Makefile) |
-| `make dev-start-mlflow` | Yes | Full stack (hardcoded in Makefile) |
+| Command                                                      | Cluster | MLflow                                                  |
+| ------------------------------------------------------------ | ------- | ------------------------------------------------------- |
+| `make dev-start`                                             | Yes     | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`)  |
+| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes     | Full stack (same MLflow behavior as `dev-start-mlflow`) |
+| `make dev-start-mock`                                        | No      | Full stack (hardcoded in Makefile)                      |
+| `make dev-start-mlflow`                                      | Yes     | Full stack (hardcoded in Makefile)                      |
 
 Add to `packages/gen-ai/.env.local` for MLflow on your usual `dev-start` workflow:
 
@@ -194,7 +194,7 @@ If you want to be able to set breakpoints in vscode, you must first ensure the f
       "host": "localhost",
       "showLog": true,
       "trace": "verbose"
-    },
+    }
   ]
 }
 ```
