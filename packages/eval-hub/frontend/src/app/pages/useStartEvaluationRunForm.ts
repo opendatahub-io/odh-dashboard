@@ -228,15 +228,14 @@ export function useStartEvaluationRunForm({
   const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
 
   React.useEffect(() => {
-    if (
-      !experimentsLoaded ||
-      !namespace ||
-      experimentAutoSelected ||
-      experimentManuallyChangedRef.current
-    ) {
+    if (!experimentsLoaded || !namespace || experimentAutoSelected) {
       return;
     }
     setExperimentAutoSelected(true);
+
+    if (experimentManuallyChangedRef.current) {
+      return;
+    }
 
     if (initialValues?.experimentName) {
       const match = experiments.find((e) => e.name === initialValues.experimentName);

@@ -562,6 +562,35 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     startEvaluationRunPage.findExperimentModeNew().should('be.checked');
     startEvaluationRunPage.findExperimentModeExisting().should('not.be.checked');
   });
+
+  it('should select an existing experiment when switching back while experiments load', () => {
+    let resolveExperiments: ((value: unknown) => void) | undefined;
+    const delayed = new Promise((resolve) => {
+      resolveExperiments = resolve;
+    });
+
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+      return delayed.then(() => {
+        req.reply({
+          body: { data: { experiments: [{ id: 'exp-1', name: 'EvalHub' }] } },
+        });
+      });
+    }).as('mlflowExperimentsDelayed');
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findExperimentModeNew().click();
+    startEvaluationRunPage.findExperimentModeExisting().click();
+    startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
+
+    cy.then(() => {
+      resolveExperiments!(undefined);
+    });
+
+    cy.wait('@mlflowExperimentsDelayed');
+
+    cy.findByTestId('mlflow-experiment-selector-toggle').should('contain.text', 'EvalHub');
+  });
 });
 
 describe('Start Evaluation Run - Pre-recorded Mode', () => {
