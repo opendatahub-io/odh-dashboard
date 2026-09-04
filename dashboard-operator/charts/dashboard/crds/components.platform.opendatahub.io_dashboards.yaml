@@ -200,29 +200,36 @@ spec:
                     Module controllers set conditions to communicate health signals to the
                     orchestrator and to human operators.
                   properties:
+                    lastHeartbeatTime:
+                      description: |-
+                        Deprecated: LastHeartbeatTime is present only for backward
+                        compatibility with existing CRDs. New code should not set this field.
+                      format: date-time
+                      type: string
                     lastTransitionTime:
                       description: |-
-                        LastTransitionTime is the last time the condition transitioned from one
-                        status to another.
+                        lastTransitionTime is the last time the condition transitioned from
+                        one status to another.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        Message is a human-readable description providing details about the
-                        condition's last transition.
+                        message is a human-readable message indicating details about the
+                        transition.
                       type: string
                     observedGeneration:
                       description: |-
-                        ObservedGeneration is the .metadata.generation of the resource that
-                        the condition was set based upon. If this does not match the resource's
+                        observedGeneration represents the .metadata.generation that the
+                        condition was set based upon. If this does not match the resource's
                         current generation, the condition is likely stale.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
                       description: |-
-                        Reason is a programmatic, one-word CamelCase identifier for the
-                        condition's last transition, suitable for machine consumption.
+                        reason contains a programmatic identifier indicating the reason for
+                        the condition's last transition. The value should be a CamelCase
+                        string.
                       type: string
                     severity:
                       description: |-
@@ -230,16 +237,18 @@ spec:
                         purely informational. Empty string (default) indicates error severity.
                       type: string
                     status:
-                      description: Status is the status of the condition (True, False,
-                        Unknown).
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
                       type: string
                     type:
-                      description: Type is the condition type, e.g. ConditionTypeReady,
-                        ConditionTypeDegraded.
-                      minLength: 1
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
                   required:
-                  - lastTransitionTime
                   - status
                   - type
                   type: object
