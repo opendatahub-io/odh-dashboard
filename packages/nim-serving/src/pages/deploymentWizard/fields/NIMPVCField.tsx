@@ -24,14 +24,13 @@ import useFetch, {
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
-import { isNIMPVC, NIM_PVC_SUBPATH_ANNOTATION } from '../../clusterStorage/clusterStorage';
 import { categorizePVCs, type ExistingPVCOption } from './nimPVCUtils';
+import { NIM_PVC_STORAGE_FIELD_ID } from '../../../constants';
 
 export {
   NIM_PVC_ANNOTATION,
   NIM_PVC_SUBPATH_ANNOTATION,
 } from '../../clusterStorage/clusterStorage';
-import { NIM_PVC_STORAGE_FIELD_ID } from '../../../constants';
 
 export enum NIMPVCStorageMode {
   NEW = 'new',
