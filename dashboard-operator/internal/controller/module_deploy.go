@@ -264,6 +264,19 @@ func (r *DashboardReconciler) deleteModuleResources(
 			}
 		}
 
+		var configMaps corev1.ConfigMapList
+		if err := r.List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
+			errs = append(errs, fmt.Errorf("listing configmaps for module %s: %w", name, err))
+		} else {
+			for i := range configMaps.Items {
+				if err := r.Delete(ctx, &configMaps.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting configmap for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
+			}
+		}
+
 		var services corev1.ServiceList
 		if err := r.List(ctx, &services, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing services for module %s: %w", name, err))

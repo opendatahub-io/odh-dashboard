@@ -17,3 +17,11 @@ export const mockCancelledGoogleRpcStatus = ({
   message,
   details: [],
 });
+
+export const mockNotFoundGoogleRpcStatus = ({
+  message = '',
+}: MockGoogleRpcStatusKF): GoogleRpcStatusKF => ({
+  code: 5,
+  message,
+  details: [],
+});
