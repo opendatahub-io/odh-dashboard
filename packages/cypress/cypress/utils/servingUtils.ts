@@ -118,7 +118,7 @@ export const initInterceptsForAllProjects = (): void => {
   // fetches the PVC. Without this stub the request falls through and, if it resolves at test
   // teardown, throws an unhandled "Unexpected end of JSON input" from an empty body.
   cy.interceptK8s(
-    { model: PVCModel, ns: 'nim-project', name: 'nim-pvc' },
-    mockPVCK8sResource({ name: 'nim-pvc', namespace: 'nim-project' }),
+    { model: PVCModel, ns: 'nim-project', name: 'my-nim-pvc' },
+    mockPVCK8sResource({ name: 'my-nim-pvc', namespace: 'nim-project' }),
   );
 };
