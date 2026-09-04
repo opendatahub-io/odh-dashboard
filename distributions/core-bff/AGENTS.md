@@ -85,7 +85,7 @@ core-bff/
 │   │   ├── rspack.prod.js       # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
-│   ├── package.json             # NPM dependencies and scripts
+│   ├── package.json             # Node.js dependencies and scripts
 │   └── README.md                # Frontend documentation
 ├── docs/                        # Project documentation
 ├── scripts/                     # Utility scripts
@@ -156,19 +156,19 @@ make docker-build-federated    # Federated mode
 
 ```bash
 # Frontend tests (lint + type-check + unit + cypress)
-cd frontend && npm run test
+cd frontend && pnpm run test
 
 # BFF tests
 cd bff && make lint && make test
 
 # Contract tests
-npm run test:contract
+pnpm run test:contract
 
 # Cypress E2E tests only
-cd frontend && npm run test:cypress-ci
+cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 ---
@@ -275,22 +275,22 @@ schemas.
 
 ### Before Submitting
 
-- Run lint: `npm run test:lint`
-- Run tests: `npm run test`
+- Run lint: `pnpm run test:lint`
+- Run tests: `pnpm run test`
 - Ensure Module Federation metadata stays correct in `config/moduleFederation.js`
 
 ### Frontend Scripts
 
 ```bash
-npm run start:dev        # Development server
-npm run build            # Production build
-npm run build:prod       # Explicit production build
-npm run test             # Full test suite
-npm run test:lint        # Lint only
-npm run test:type-check  # TypeScript check only
-npm run test:unit        # Jest unit tests only
-npm run cypress:open:mock  # Open Cypress GUI
-npm run cypress:run:mock   # Run Cypress headless
+pnpm run start:dev        # Development server
+pnpm run build            # Production build
+pnpm run build:prod       # Explicit production build
+pnpm run test             # Full test suite
+pnpm run test:lint        # Lint only
+pnpm run test:type-check  # TypeScript check only
+pnpm run test:unit        # Jest unit tests only
+pnpm run cypress:open:mock  # Open Cypress GUI
+pnpm run cypress:run:mock   # Run Cypress headless
 ```
 
 ### Environment Variables (Frontend)
@@ -353,16 +353,16 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ```bash
 # Run all tests
-npm run test
+pnpm run test
 
 # Unit tests only
-npm run test:unit
+pnpm run test:unit
 
 # Cypress E2E (builds frontend, starts server, runs tests)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
 # Cypress GUI for debugging
-npm run cypress:open:mock
+pnpm run cypress:open:mock
 ```
 
 ### BFF Testing
@@ -383,11 +383,11 @@ tests validate behavior unique to OpenShift or XKS (e.g., feature flag defaults)
 
 ```bash
 # Run both platforms (umbrella script)
-npm run test:contract
+pnpm run test:contract
 
 # Run a single platform
-npm run test:contract:openshift   # foundation + openshift tests
-npm run test:contract:xks         # foundation + xks tests
+pnpm run test:contract:openshift   # foundation + openshift tests
+pnpm run test:contract:xks         # foundation + xks tests
 ```
 
 ---
@@ -398,7 +398,7 @@ npm run test:contract:xks         # foundation + xks tests
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:
-   - Frontend: `npm run test` in `frontend/`
+   - Frontend: `pnpm run test` in `frontend/`
    - BFF: `make lint && make test` in `bff/`
 5. Keep docs updated (`docs/*.md`, `frontend/docs/*.md`) when you change workflows, env vars, or
    deployment steps

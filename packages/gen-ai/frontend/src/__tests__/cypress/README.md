@@ -11,7 +11,7 @@ Cypress tests for the Gen-AI plugin running in **mocked mode** with stubbed back
 Builds a production bundle, serves it from the mock BFF, runs tests, then cleans up:
 
 ```bash
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 ```
 
 ### Headless Mode
@@ -19,7 +19,7 @@ npm run test:cypress-ci
 Run tests in headless mode (requires dev server running separately):
 
 ```bash
-npm run cypress:run:mock
+pnpm run cypress:run:mock
 ```
 
 ### Interactive Mode
@@ -27,7 +27,7 @@ npm run cypress:run:mock
 Open Cypress UI for debugging and test development:
 
 ```bash
-npm run cypress:open
+pnpm run cypress:open
 ```
 
 ## Test Filtering with Tags
@@ -36,13 +36,13 @@ Filter tests by tags using the `@cypress/grep` plugin:
 
 ```bash
 # Run MCP server tests only
-npm run cypress:run:mock -- --env grepTags=@MCPServers
+pnpm run cypress:run:mock -- --env grepTags=@MCPServers
 
 # Run multiple tags (AND)
-npm run cypress:run:mock -- --env grepTags="@GenAI+@Authentication"
+pnpm run cypress:run:mock -- --env grepTags="@GenAI+@Authentication"
 
 # Run multiple tags (OR)
-npm run cypress:run:mock -- --env grepTags="@GenAI,@MCPServers"
+pnpm run cypress:run:mock -- --env grepTags="@GenAI,@MCPServers"
 ```
 
 **Available Tags:**

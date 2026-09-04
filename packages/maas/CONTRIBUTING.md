@@ -36,7 +36,7 @@ Then to run the development server if you are properly logged into a cluster:
 1. Open a terminal in the root of odh-dashboard
 
 ```shell
-npm run dev
+pnpm run dev
 ```
 
 2. Open a second terminal in the `packages/maas` directory

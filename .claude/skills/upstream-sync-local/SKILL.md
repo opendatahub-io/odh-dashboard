@@ -76,7 +76,7 @@ Before running the sync:
 Run the update-subtree-local script from the repository root:
 
 ```bash
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch>
 ```
@@ -85,13 +85,13 @@ npm run update-subtree-local -w packages/<package-name> -- \
 
 ```bash
 # Cherry-pick a single commit
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --commit=<sha>
 
 # Sync up to a specific commit
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --up-to=<sha>
@@ -100,7 +100,7 @@ npm run update-subtree-local -w packages/<package-name> -- \
 **Continuing after conflict resolution:**
 
 ```bash
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --continue
@@ -128,7 +128,7 @@ When conflicts are detected:
    - Stage the resolved files: `git add <file1> <file2> ...`
    - Continue the sync:
      ```bash
-     npm run update-subtree-local -w packages/<package-name> -- \
+     pnpm --filter ./packages/<package-name> run update-subtree-local -- \
        --local-repo=<local-repo-path> \
        --branch=<branch> \
        --continue

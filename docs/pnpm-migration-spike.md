@@ -9,6 +9,8 @@
 
 ## Purpose
 
+> **Historical document**: This spike records the pre-migration baseline and planned prerequisites. The migration is now implemented on the repository's pnpm workspace branch; use the current root `README.md`, `docs/dev-setup.md`, and `docs/workspace-dockerfiles.md` for day-to-day instructions.
+
 De-risk the npm-to-pnpm migration before any code changes land. This document covers
 each prerequisite task from the spike, provides a go/no-go verdict, and serves as a
 reference for the implementation stories (S1–S5).
@@ -80,7 +82,7 @@ autoInstallPeers: true
 
 ---
 
-## 2. Current npm Inventory
+## 2. Pre-Migration npm Inventory
 
 | Metric | Value |
 |--------|-------|
@@ -796,7 +798,7 @@ Existing clones: delete `node_modules`, install pnpm, then run `pnpm install`.
 | Add a dep | `npm install lodash` | `pnpm add lodash` |
 | Add a dev dep | `npm install -D jest` | `pnpm add -D jest` |
 | Remove a dep | `npm uninstall lodash` | `pnpm remove lodash` |
-| Run installed binary | `npx eslint .` | `pnpm exec eslint .` |
+| Run installed binary | `pnpm exec eslint .` | `pnpm exec eslint .` |
 | Run remote binary | `npx create-react-app` | `pnpm dlx create-react-app` |
 | CI install | `npm ci` | `pnpm install --frozen-lockfile` |
 | Run in a package | `npm run build --prefix frontend` | `pnpm --filter frontend build` |

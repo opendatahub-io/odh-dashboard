@@ -13,7 +13,7 @@ You can check the [contributing guidelines] for more information on how to contr
 Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
 
 ```bash
-npx mod-arch-installer my-module --flavor default
+pnpm dlx mod-arch-installer my-module --flavor default
 ```
 
 See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
@@ -30,7 +30,7 @@ When the BFF is running locally (`make dev-bff` from `packages/agent-ops/`):
 | `http://localhost:4000/mod-arch/openapi.json` | Machine-readable spec |
 | `http://localhost:4000/mod-arch/openapi.yaml` | YAML spec |
 
-After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `npm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
+After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `pnpm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
 
 [Open the spec in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/main/packages/agent-ops/api/openapi/agent-ops.yaml)
 

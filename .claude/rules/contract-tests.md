@@ -194,13 +194,13 @@ describe('Your Module API Contract Tests', () => {
 From your module directory:
 
 ```bash
-npm run test:contract
+pnpm run test:contract
 ```
 
 From the workspace root (using Turbo):
 
 ```bash
-npx turbo run test:contract --filter=@odh-dashboard/your-module
+pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module
 ```
 
 ## Test Writing Patterns
@@ -608,13 +608,13 @@ paths:
 
 ```bash
 cd packages/your-module
-npm run test:contract
+pnpm run test:contract
 ```
 
 **Run with HTML reports** (auto-opens browser):
 
 ```bash
-npm run test:contract -- --open
+pnpm run test:contract -- --open
 ```
 
 ### Using Turbo (Recommended for CI)
@@ -622,19 +622,19 @@ npm run test:contract -- --open
 **Run all contract tests**:
 
 ```bash
-npx turbo run test:contract
+pnpm exec turbo run test:contract
 ```
 
 **Run for specific module**:
 
 ```bash
-npx turbo run test:contract --filter=@odh-dashboard/your-module
+pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module
 ```
 
 **Run with reports**:
 
 ```bash
-npx turbo run test:contract -- --open
+pnpm exec turbo run test:contract -- --open
 ```
 
 ### CI/CD Integration
@@ -644,7 +644,7 @@ Contract tests run automatically in CI/CD pipelines via Turbo:
 ```yaml
 # Example GitHub Actions workflow
 - name: Run Contract Tests
-  run: npx turbo run test:contract
+  run: pnpm exec turbo run test:contract
 ```
 
 The framework handles:
@@ -689,7 +689,7 @@ curl http://localhost:8108/healthcheck
 **Verify schema**:
 ```bash
 # Install OpenAPI validator
-npm install -g @apidevtools/swagger-cli
+pnpm add -g @apidevtools/swagger-cli
 
 # Validate your schema
 swagger-cli validate bff/openapi/src/your-api.yaml
@@ -721,7 +721,7 @@ swagger-cli validate bff/openapi/src/your-api.yaml
 
 **Solutions**:
 1. Verify `@odh-dashboard/contract-tests` is in `devDependencies`
-2. Run `npm install` in your module directory
+2. Run `pnpm install` in your module directory
 3. Check TypeScript can find the types
 4. Ensure `@jest-environment node` comment exists
 
@@ -859,9 +859,9 @@ describe('Model Registry List Endpoint', () => {
 
 ### After Implementation
 
-- [ ] Ran tests locally: `npm run test:contract`
+- [ ] Ran tests locally: `pnpm run test:contract`
 - [ ] Verified all tests pass
-- [ ] Checked tests run via Turbo: `npx turbo run test:contract --filter=@odh-dashboard/your-module`
+- [ ] Checked tests run via Turbo: `pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module`
 - [ ] Reviewed HTML reports for completeness
 - [ ] Documented any custom BFF flags required
 - [ ] Added module to CI/CD contract test suite
@@ -982,10 +982,10 @@ describe('Resource Lifecycle', () => {
 A: Use the `--bff-dir` flag with the relative path: `odh-ct-bff-consumer --bff-dir path/to/bff`
 
 **Q: My BFF needs custom mock flags, how do I specify them?**
-A: Set the `BFF_MOCK_FLAGS` environment variable: `BFF_MOCK_FLAGS='--mock-client' npm run test:contract`
+A: Set the `BFF_MOCK_FLAGS` environment variable: `BFF_MOCK_FLAGS='--mock-client' pnpm run test:contract`
 
 **Q: Can I run tests against a manually started BFF?**
-A: Yes, set `CONTRACT_MOCK_BFF_URL`: `CONTRACT_MOCK_BFF_URL=http://localhost:8080 npm run test:contract`
+A: Yes, set `CONTRACT_MOCK_BFF_URL`: `CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract`
 
 **Q: How do I debug failing schema validation?**
 A: Use OpenAPI validation tools to verify your schema, then compare the actual API response against expected schema.

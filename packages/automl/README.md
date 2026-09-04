@@ -76,10 +76,10 @@ The `.env.local` file is gitignored and should never be committed.
 cd frontend
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run start:dev
+pnpm run start:dev
 ```
 
 The standalone frontend will be available at **http://localhost:9000**
@@ -118,7 +118,7 @@ Then access the app at **http://localhost:9000**
 make dev-start-federated
 ```
 
-**Important:** You must also run the main ODH Dashboard separately (from repo root: `npm run dev`). Then access AutoML through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoML option in the side navigation.
+**Important:** You must also run the main ODH Dashboard separately (from repo root: `pnpm run dev`). Then access AutoML through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoML option in the side navigation.
 
 ### Deployment Modes
 

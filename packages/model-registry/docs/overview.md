@@ -29,7 +29,7 @@
 | **Model Catalog** | Curated read-only models from external sources; driven by CatalogSource CRs. |
 | **BFF** | Upstream Go BFF: auth, proxying, asset serving in non-federated modes. |
 | **Deployment mode** | `standalone`, `kubeflow`, or `federated` — auth, CORS, theme, and asset behaviour. |
-| **upstream/** | Vendored subtree; refresh with `npm run update-subtree`, not ad-hoc edits for upstream-bound fixes. |
+| **upstream/** | Vendored subtree; refresh with `pnpm run update-subtree`, not ad-hoc edits for upstream-bound fixes. |
 
 ## Interactions
 
@@ -46,10 +46,10 @@
 
 ## Known Issues / Gotchas
 
-- **Upstream vendoring**: Do not land kubeflow-bound fixes only in `upstream/` — contribute to [kubeflow/model-registry](https://github.com/kubeflow/model-registry), then run `npm run update-subtree`. Local-only patches drift from upstream and complicate sync.
+- **Upstream vendoring**: Do not land kubeflow-bound fixes only in `upstream/` — contribute to [kubeflow/model-registry](https://github.com/kubeflow/model-registry), then run `pnpm run update-subtree`. Local-only patches drift from upstream and complicate sync.
 - **Deprecated main-dashboard pages**: `frontend/src/pages/modelRegistry/` and `modelRegistrySettings/` are deprecated; develop here only.
 - **Themes**: Standalone/kubeflow use MUI (`STYLE_THEME=mui-theme`); federated uses PatternFly. Mixing themes causes visual regressions.
-- **`npm run start:dev:ext`**: Do not use for the main ODH frontend when testing federated integration — it skips the federation proxy setup.
+- **`pnpm run start:dev:ext`**: Do not use for the main ODH frontend when testing federated integration — it skips the federation proxy setup.
 - **Docker**: `Dockerfile.workspace` build context must be the **repo root** (workspace packages).
 - **BFF flags**: `--standalone-mode` / `--federated-platform` are legacy; prefer `--deployment-mode`.
 - **CI e2e**: Full Cypress e2e for model registry is not fully tagged for CI; mock tests run; live cluster e2e is separate. See `// #e2eCiTags` in `packages/model-registry/package.json`.
