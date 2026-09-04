@@ -282,7 +282,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		},
 		maas: &MaaSHandler{
 			logger:     logger,
-			service:    repositories.NewMaaSService(maasClient),
+			service:    repositories.NewMaaSService(maasClient, k8sService),
 			authMethod: cfg.MaaSAuthMethod,
 		},
 	}

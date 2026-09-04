@@ -22,6 +22,14 @@ paths:
           schema:
             type: string
           description: Kubernetes namespace used for authorization
+        - name: secretName
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          description: Optional Kubernetes Secret containing MAAS_BASE_URL and MAAS_API_KEY
       responses:
         '200':
           description: Accessible MaaS models
@@ -37,6 +45,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '502':
           $ref: '#/components/responses/BadGateway'
         '500':

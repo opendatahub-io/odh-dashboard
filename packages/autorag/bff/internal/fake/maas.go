@@ -10,10 +10,10 @@ import (
 type MaaSClient struct{}
 
 var _ interface {
-	ListModels(context.Context, string, map[string]string) (maas.Response, error)
+	ListModels(context.Context, string, map[string]string, ...maas.RequestConfig) (maas.Response, error)
 } = (*MaaSClient)(nil)
 
-func (c *MaaSClient) ListModels(_ context.Context, _ string, _ map[string]string) (maas.Response, error) {
+func (c *MaaSClient) ListModels(_ context.Context, _ string, _ map[string]string, _ ...maas.RequestConfig) (maas.Response, error) {
 	var response maas.Response
 	response.Data.Data = []maas.Model{
 		{ID: "maas-generation", DisplayName: "MaaS generation", Description: "Mock MaaS model"},

@@ -45,6 +45,13 @@ type Client struct {
 	authTokenPrefix string
 }
 
+// RequestConfig contains request-scoped upstream overrides. It is intentionally
+// separate from Client so credentials and endpoints never mutate shared state.
+type RequestConfig struct {
+	BaseURL string
+	APIKey  string
+}
+
 type TransportError struct {
 	StatusCode int
 	Message    string
@@ -61,18 +68,29 @@ func NewClient(baseURL, authMethod, authTokenHeader, authTokenPrefix string, htt
 	return &Client{baseURL: strings.TrimRight(baseURL, "/"), http: httpClient, authMethod: authMethod, authTokenHeader: authTokenHeader, authTokenPrefix: authTokenPrefix}
 }
 
-func (c *Client) ListModels(ctx context.Context, token string, headers map[string]string) (Response, error) {
+func (c *Client) ListModels(ctx context.Context, token string, headers map[string]string, configs ...RequestConfig) (Response, error) {
 	var empty Response
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/models", nil)
+	baseURL := c.baseURL
+	var config RequestConfig
+	if len(configs) > 0 {
+		config = configs[0]
+		if config.BaseURL != "" {
+			baseURL = strings.TrimRight(config.BaseURL, "/")
+		}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
 	if err != nil {
 		return empty, fmt.Errorf("create MaaS request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
-	if token != "" && c.authMethod == "user_token" && c.authTokenHeader != "" {
+	if config.APIKey == "" && token != "" && c.authMethod == "user_token" && c.authTokenHeader != "" {
 		req.Header.Set(c.authTokenHeader, c.authTokenPrefix+token)
 	}
 	for key, value := range headers {
 		req.Header.Set(key, value)
+	}
+	if config.APIKey != "" && c.authTokenHeader != "" {
+		req.Header.Set(c.authTokenHeader, c.authTokenPrefix+config.APIKey)
 	}
 	res, err := c.http.Do(req)
 	if err != nil {

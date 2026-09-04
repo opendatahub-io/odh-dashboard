@@ -20,11 +20,25 @@ type MaaSHandler struct {
 
 func (h *MaaSHandler) ModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); !ok || namespace == "" {
+	namespace, namespaceOK := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !namespaceOK || namespace == "" {
 		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 		return
 	}
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	secretNameValues, secretNameSupplied := r.URL.Query()["secretName"]
+	secretName := ""
+	if secretNameSupplied {
+		if len(secretNameValues) != 1 || secretNameValues[0] == "" {
+			badRequestResponse(h.logger, w, r, "invalid secretName")
+			return
+		}
+		secretName = secretNameValues[0]
+		if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
+			badRequestResponse(h.logger, w, r, "invalid secretName")
+			return
+		}
+	}
 	var token string
 	if identity != nil {
 		token = identity.Token
@@ -38,7 +52,7 @@ func (h *MaaSHandler) ModelsHandler(w http.ResponseWriter, r *http.Request, _ ht
 			headers[constants.KubeflowUserGroupsIdHeader] = groups
 		}
 	}
-	result, err := h.service.ListModels(ctx, token, headers)
+	result, err := h.service.ListModels(ctx, namespace, token, headers, secretName)
 	if err != nil {
 		switch {
 		case errors.Is(err, repositories.ErrMaaSUnauthorized):
@@ -49,6 +63,12 @@ func (h *MaaSHandler) ModelsHandler(w http.ResponseWriter, r *http.Request, _ ht
 			badRequestResponse(h.logger, w, r, "MaaS request was invalid")
 		case errors.Is(err, repositories.ErrMaaSBadResponse):
 			badGatewayResponseWithMessage(h.logger, w, r, err, "invalid response from MaaS BFF")
+		case errors.Is(err, repositories.ErrMaaSSecretNotFound):
+			notFoundResponse(h.logger, w, r)
+		case errors.Is(err, repositories.ErrMaaSSecretForbidden):
+			forbiddenResponse(h.logger, w, r, "access forbidden")
+		case errors.Is(err, repositories.ErrMaaSCredentialsInvalid):
+			badRequestResponse(h.logger, w, r, "invalid MaaS credentials secret")
 		case errors.Is(err, repositories.ErrMaaSUnavailable):
 			serviceUnavailableResponse(h.logger, w, r, err)
 		default:

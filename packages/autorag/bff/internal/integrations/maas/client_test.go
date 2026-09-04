@@ -35,6 +35,22 @@ func TestClientInternalAuthDoesNotSendToken(t *testing.T) {
 	}
 }
 
+func TestClientSecretConfigUsesConfiguredAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer secret-key" {
+			t.Errorf("authorization = %q", r.Header.Get("Authorization"))
+		}
+		_, _ = w.Write([]byte(`{"data":{"data":[]}}`))
+	}))
+	defer server.Close()
+	_, err := NewClient("https://configured.example.com", "user_token", "Authorization", "Bearer ", nil).ListModels(
+		context.Background(), "user-token", nil, RequestConfig{BaseURL: server.URL, APIKey: "secret-key"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestClientErrors(t *testing.T) {
 	for _, test := range []struct{ status, want int }{
 		{http.StatusUnauthorized, http.StatusUnauthorized},
