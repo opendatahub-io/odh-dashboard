@@ -31,15 +31,15 @@ Browser
 
 Registers under **Develop & Train > Feature Store** in the sidebar:
 
-| Page | Path |
-|------|------|
-| Overview | `/develop-train/feature-store/overview` |
-| Entities | `/develop-train/feature-store/entities` |
-| Features | `/develop-train/feature-store/features` |
-| Feature Views | `/develop-train/feature-store/feature-views` |
+| Page             | Path                                            |
+| ---------------- | ----------------------------------------------- |
+| Overview         | `/develop-train/feature-store/overview`         |
+| Entities         | `/develop-train/feature-store/entities`         |
+| Features         | `/develop-train/feature-store/features`         |
+| Feature Views    | `/develop-train/feature-store/feature-views`    |
 | Feature Services | `/develop-train/feature-store/feature-services` |
-| Data Sources | `/develop-train/feature-store/data-sources` |
-| Datasets | `/develop-train/feature-store/datasets` |
+| Data Sources     | `/develop-train/feature-store/data-sources`     |
+| Datasets         | `/develop-train/feature-store/datasets`         |
 
 ## Development
 
@@ -85,25 +85,25 @@ pnpm run type-check    # TypeScript type checking
 
 ## Package Exports
 
-| Export | Path |
-|--------|------|
-| `./extensions` | `extensions.ts` |
-| `./routes` | `src/routes.ts` |
-| `./types/*` | `src/types/` |
-| `./components/*` | `src/components/` |
+| Export                   | Path                      |
+| ------------------------ | ------------------------- |
+| `./extensions`           | `extensions.ts`           |
+| `./routes`               | `src/routes.ts`           |
+| `./types/*`              | `src/types/`              |
+| `./components/*`         | `src/components/`         |
 | `./screens/components/*` | `src/screens/components/` |
-| `./screens/lineage/*` | `src/screens/lineage/` |
+| `./screens/lineage/*`    | `src/screens/lineage/`    |
 | `./icons/header-icons/*` | `src/icons/header-icons/` |
-| `./mocks/*` | `src/__mocks__/` |
+| `./mocks/*`              | `src/__mocks__/`          |
 
 ## Related Code
 
-| Area | Location |
-|------|----------|
-| Detailed architecture docs | [`docs/overview.md`](docs/overview.md) |
-| Backend proxy routes | [`backend/src/routes/api/featurestores/`](../../backend/src/routes/api/featurestores/) |
-| Workbench integration | [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../frontend/src/pages/projects/screens/spawner/featureStore/) |
-| Workbench API | [`frontend/src/api/featureStore/`](../../frontend/src/api/featureStore/) |
+| Area                       | Location                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Detailed architecture docs | [`docs/overview.md`](docs/overview.md)                                                                                         |
+| Backend proxy routes       | [`backend/src/routes/api/featurestores/`](../../backend/src/routes/api/featurestores/)                                         |
+| Workbench integration      | [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../frontend/src/pages/projects/screens/spawner/featureStore/) |
+| Workbench API              | [`frontend/src/api/featureStore/`](../../frontend/src/api/featureStore/)                                                       |
 
 ## Dependencies
 

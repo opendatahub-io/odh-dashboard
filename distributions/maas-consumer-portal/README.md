@@ -58,11 +58,11 @@ BFF targets use `https://` because on-cluster BFFs serve over TLS.
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `distribution.yaml` | Feature flags, bundled packages, extension paths |
-| `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
-| `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
-| `src/PortalContextProvider.tsx` | MaaS BFF context (mod-arch standalone) |
-| `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
-| `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
+| File                                      | Purpose                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| `distribution.yaml`                       | Feature flags, bundled packages, extension paths                          |
+| `src/bootstrap.tsx`                       | App entry — mounts providers via `createDistribution`                     |
+| `src/extensions.ts`                       | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
+| `src/PortalContextProvider.tsx`           | MaaS BFF context (mod-arch standalone)                                    |
+| `config/rspack.dev.js`                    | Dual-mode proxy (cluster discovery or local BFF targets)                  |
+| `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package                                         |

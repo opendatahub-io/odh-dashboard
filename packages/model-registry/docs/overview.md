@@ -20,29 +20,29 @@
 
 ## Key Concepts
 
-| Term | Definition |
-|------|-----------|
-| **RegisteredModel** | Top-level ML model entity (metadata, labels); backed by a Model Registry CRD. |
-| **ModelVersion** | Versioned snapshot of a RegisteredModel (e.g. LIVE/ARCHIVED) with artifact links. |
-| **ModelArtifact** | Storage URI (OCI, S3, etc.) for weights tied to a ModelVersion. |
-| **ModelRegistry** | In-cluster service + controller storing models/versions/artifacts; multiple per cluster possible. |
-| **Model Catalog** | Curated read-only models from external sources; driven by CatalogSource CRs. |
-| **BFF** | Upstream Go BFF: auth, proxying, asset serving in non-federated modes. |
-| **Deployment mode** | `standalone`, `kubeflow`, or `federated` — auth, CORS, theme, and asset behaviour. |
-| **upstream/** | Vendored subtree; refresh with `pnpm run update-subtree`, not ad-hoc edits for upstream-bound fixes. |
+| Term                | Definition                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| **RegisteredModel** | Top-level ML model entity (metadata, labels); backed by a Model Registry CRD.                        |
+| **ModelVersion**    | Versioned snapshot of a RegisteredModel (e.g. LIVE/ARCHIVED) with artifact links.                    |
+| **ModelArtifact**   | Storage URI (OCI, S3, etc.) for weights tied to a ModelVersion.                                      |
+| **ModelRegistry**   | In-cluster service + controller storing models/versions/artifacts; multiple per cluster possible.    |
+| **Model Catalog**   | Curated read-only models from external sources; driven by CatalogSource CRs.                         |
+| **BFF**             | Upstream Go BFF: auth, proxying, asset serving in non-federated modes.                               |
+| **Deployment mode** | `standalone`, `kubeflow`, or `federated` — auth, CORS, theme, and asset behaviour.                   |
+| **upstream/**       | Vendored subtree; refresh with `pnpm run update-subtree`, not ad-hoc edits for upstream-bound fixes. |
 
 ## Interactions
 
-| Dependency | Type | Details |
-|-----------|------|---------|
-| Main ODH Dashboard (frontend) | Host | Loads `modelRegistry` remote; proxies `/model-registry/api` → BFF. |
-| Main ODH Dashboard (backend) | Auth gateway | Forwards access token; BFF reads `x-forwarded-access-token` in federated mode. |
-| `packages/model-serving` | Package | “Deploy model version” navigates to model-serving for inference. |
-| `packages/kserve` | Package | KServe inference linking for deployed versions. |
-| Model Registry k8s Service | Cluster | BFF proxies CRUD for registered models, versions, artifacts. |
-| Kubernetes API | Cluster | Namespaces and RBAC (e.g. SSAR) for registry access. |
-| Model Catalog service | Cluster / dev port-forward | Catalog sources, models, settings endpoints. |
-| `kubeflow/model-registry` | Upstream | Source of `upstream/`; contribute fixes upstream then re-vendor. |
+| Dependency                    | Type                       | Details                                                                        |
+| ----------------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| Main ODH Dashboard (frontend) | Host                       | Loads `modelRegistry` remote; proxies `/model-registry/api` → BFF.             |
+| Main ODH Dashboard (backend)  | Auth gateway               | Forwards access token; BFF reads `x-forwarded-access-token` in federated mode. |
+| `packages/model-serving`      | Package                    | “Deploy model version” navigates to model-serving for inference.               |
+| `packages/kserve`             | Package                    | KServe inference linking for deployed versions.                                |
+| Model Registry k8s Service    | Cluster                    | BFF proxies CRUD for registered models, versions, artifacts.                   |
+| Kubernetes API                | Cluster                    | Namespaces and RBAC (e.g. SSAR) for registry access.                           |
+| Model Catalog service         | Cluster / dev port-forward | Catalog sources, models, settings endpoints.                                   |
+| `kubeflow/model-registry`     | Upstream                   | Source of `upstream/`; contribute fixes upstream then re-vendor.               |
 
 ## Known Issues / Gotchas
 

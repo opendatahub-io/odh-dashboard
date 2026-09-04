@@ -19,12 +19,12 @@ Provides a ready-to-use scaffold for adding a new feature package. Includes pre-
 
 ## Structure
 
-| Path | Description |
-|------|-------------|
-| `src/` | Feature source code |
-| `Dockerfile.workspace` | BFF container definition |
-| `jest.config.ts` | Jest setup (extends shared config) |
-| `tsconfig.json` | TS config (extends shared config) |
+| Path                   | Description                        |
+| ---------------------- | ---------------------------------- |
+| `src/`                 | Feature source code                |
+| `Dockerfile.workspace` | BFF container definition           |
+| `jest.config.ts`       | Jest setup (extends shared config) |
+| `tsconfig.json`        | TS config (extends shared config)  |
 
 ## Development
 

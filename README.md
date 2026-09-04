@@ -127,6 +127,7 @@ odh-dashboard/
 ```
 
 Key technologies:
+
 - **React 18** - Frontend framework
 - **TypeScript** - Type safety
 - **PatternFly v6** - UI components
@@ -178,8 +179,8 @@ To get the current commit hash from the UI, to confirm which code is deployed, t
 
 Read more about the Dashboard in one of our documentation links:
 
-* [Dev setup & Requirements]
-* [Dashboard documentation]
+- [Dev setup & Requirements]
+- [Dashboard documentation]
 
 ## License
 

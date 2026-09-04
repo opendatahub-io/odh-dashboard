@@ -99,14 +99,17 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Build Commands
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
+
   - Command: `make docker-build`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+
   - Command: `make docker-buildx`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+
   - Command: `make docker-build-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
@@ -117,6 +120,7 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+
   - Command: `make docker-push`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 

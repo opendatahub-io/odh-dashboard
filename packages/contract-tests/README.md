@@ -30,6 +30,7 @@ That's it! The framework handles everything automatically.
 ## Quick Start
 
 ### Option 1: All-in-one Script
+
 Run contract tests with one command:
 
 ```bash
@@ -45,6 +46,7 @@ pnpm run test:contract -- --open
 ```
 
 ### Option 2: Manual Setup (For Advanced Development)
+
 For debugging or custom workflows, you can run components separately:
 
 ```bash
@@ -61,6 +63,7 @@ CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract -- --open
 ```
 
 ### Option 3: Turbo Orchestration (CI Optimized)
+
 Use Turbo for intelligent test execution across multiple packages:
 
 ```bash
@@ -108,6 +111,7 @@ your-package/
 ```
 
 **What's automatically provided:**
+
 - ✅ Jest types for testing (`describe`, `it`, `expect`)
 - ✅ Contract-tests types for matchers (`toMatchContract`)
 - ✅ Standard ODH TypeScript configuration
@@ -117,6 +121,7 @@ your-package/
 The contract test runner automatically manages your Mock BFF lifecycle:
 
 ### Local Development (Development Mode)
+
 1. **Runs** your BFF directly using `go run ./cmd` (no build step)
 2. **Starts** your BFF server in mock mode with `--mock-k8s-client --mock-mr-client --port 8108`
 3. **Waits** for BFF to be healthy (checks health endpoint)
@@ -124,6 +129,7 @@ The contract test runner automatically manages your Mock BFF lifecycle:
 5. **Cleans up** BFF process when tests complete
 
 ### CI/CD Pipeline (Production Mode)
+
 1. **Runs** your BFF using `go run ./cmd` (development/production parity)
 2. **Starts** your BFF server in mock mode with `--mock-k8s-client --mock-mr-client --port 8108`
 3. **Waits** for BFF to be healthy (checks health endpoint)
@@ -184,6 +190,7 @@ describe('API Contract Tests', () => {
 ## Schema Validation Approach
 
 ### Using OpenAPI Schemas (Recommended)
+
 ```typescript
 /**
  * @jest-environment node
@@ -214,6 +221,7 @@ describe('Your API Endpoint', () => {
 ```
 
 ### Alternative: Manual JSON Schema
+
 ```typescript
 import { ContractSchemaValidator } from '@odh-dashboard/contract-tests';
 
@@ -231,13 +239,13 @@ const apiResponseSchema = {
         properties: {
           id: { type: 'string' },
           name: { type: 'string' },
-          status: { type: 'string' }
+          status: { type: 'string' },
         },
-        required: ['id', 'name']
-      }
+        required: ['id', 'name'],
+      },
     },
-    total: { type: 'number' }
-  }
+    total: { type: 'number' },
+  },
 };
 
 schemaValidator.loadSchema('ListResponse', apiResponseSchema);
@@ -266,6 +274,7 @@ make run      # Starts the BFF server
 ```
 
 Your BFF must support mock flags for testing:
+
 - `--mock-k8s-client`: Use mock Kubernetes client
 - `--mock-mr-client`: Use mock Model Registry client
 - `--port`: Specify server port
@@ -301,14 +310,14 @@ describe('Advanced Schema Validation', () => {
               properties: {
                 data: {
                   type: 'array',
-                  items: { type: 'string' }
+                  items: { type: 'string' },
                 },
-                total: { type: 'number' }
-              }
-            }
-          }
-        }
-      }
+                total: { type: 'number' },
+              },
+            },
+          },
+        },
+      },
     };
 
     // Convert to testable schema
@@ -333,8 +342,8 @@ describe('Advanced Schema Validation', () => {
 - `extractSchemaFromOpenApiResponse(response)` - Extract schema from OpenAPI response
 - `ContractSchemaValidator` - Manual validation for complex cases
 
-
 **Everything is handled automatically:**
+
 - ✅ Jest configuration and types
 - ✅ Contract-tests matcher types
 - ✅ BFF lifecycle management
@@ -354,6 +363,7 @@ describe('Advanced Schema Validation', () => {
 Contract testing validates API responses against schemas. The framework supports multiple approaches:
 
 ### Primary Approach: OpenAPI Schemas (Recommended)
+
 ```typescript
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
@@ -368,6 +378,7 @@ expect(result).toMatchContract(apiSchema, {
 ```
 
 ### Alternative: Direct JSON Schema
+
 ```typescript
 // For simple cases or when OpenAPI isn't available
 const schema = {
@@ -375,15 +386,16 @@ const schema = {
   properties: {
     data: {
       type: 'array',
-      items: { type: 'string' }
-    }
-  }
+      items: { type: 'string' },
+    },
+  },
 };
 
 expect(result).toMatchContract(schema, { status: 200 });
 ```
 
 ### Advanced: Programmatic Schema Validation
+
 ```typescript
 import { ContractSchemaValidator } from '@odh-dashboard/contract-tests';
 
@@ -394,9 +406,9 @@ schemaValidator.loadSchema('CustomResponse', {
   type: 'object',
   properties: {
     success: { type: 'boolean' },
-    data: { type: 'object' }
+    data: { type: 'object' },
   },
-  required: ['success']
+  required: ['success'],
 });
 
 // Use in tests
@@ -404,7 +416,6 @@ const result = await apiClient.get('/api/v1/custom-endpoint');
 const validation = schemaValidator.validateResponse(result.data, 'CustomResponse');
 expect(validation.valid).toBe(true);
 ```
-
 
 ## Troubleshooting
 
@@ -424,16 +435,19 @@ See the `packages/*/contract-tests/` directories for working examples of how dif
 ## Available Utilities
 
 ### Core Testing Classes
+
 - **`ContractApiClient`** - HTTP client for API testing with built-in logging
 - **`ContractSchemaValidator`** - JSON Schema validation with AJV
 - **`OpenApiValidator`** - OpenAPI/Swagger specification validation
 
 ### BFF Management
+
 - **`verifyBffHealth`** - Check BFF health endpoint
 - **`waitForBffHealth`** - Wait for BFF to be ready
 - **`runContractTests`** - Run contract tests programmatically
 
 ### Schema Management
+
 - **`createTestSchema`** - Convert OpenAPI responses to testable schemas
 - **`extractSchemaFromOpenApiResponse`** - Extract JSON schemas from OpenAPI specs
 - **`convertOpenApiToJsonSchema`** - Convert OpenAPI schemas to JSON Schema format
@@ -441,6 +455,7 @@ See the `packages/*/contract-tests/` directories for working examples of how dif
 - **`createSchemaMatcher`** - Create schema matchers for validation
 
 ### Logging Utilities
+
 - **`logTestSetup`** - Log test setup information
 - **`logApiCall`** - Log API call details
 - **`logApiResponse`** - Log API response details
