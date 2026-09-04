@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -18,15 +19,22 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -40,19 +48,61 @@ const conditionMaasConsumerPortalAvailable = "MaasConsumerPortalAvailable"
 var operatorDeploymentName = getOperatorDeploymentName()
 
 func getOperatorDeploymentName() string {
-	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
-		return name
-	}
-	return "dashboard-operator"
+	return envOrDefault("OPERATOR_DEPLOYMENT_NAME", "dashboard-operator")
 }
 
-func operatorOwnedResourceNames() map[string]bool {
+// operatorServiceAccountName and resolveDistributionConfigMapName resolve the names the operator's
+// Helm chart rendered for its own ServiceAccount and config ConfigMap. Both derive from user-settable
+// chart values (serviceAccount.name, config.name), so the chart plumbs the rendered names in via
+// env — the Go side must not re-derive them by convention, or a non-default install would delete
+// the operator's own resources during managementState: Removed teardown. Defaults match the chart.
+func operatorServiceAccountName() string {
+	// Defaults to the deployment name: the chart's default serviceAccount.name renders to exactly
+	// that, and unit tests that override the deployment name expect the SA to track it.
+	return envOrDefault("OPERATOR_SERVICE_ACCOUNT_NAME", operatorDeploymentName)
+}
+
+// resolveDistributionConfigMapName returns the name of the chart-rendered config ConfigMap
+// (dashboard.configMapName / .Values.config.name, default odh-dashboard-config). This is the
+// ConfigMap the operator reads for distribution identity and which teardown must preserve. Its
+// name is user-settable, so the chart plumbs it in via OPERATOR_CONFIGMAP_NAME.
+func resolveDistributionConfigMapName() string {
+	return envOrDefault("OPERATOR_CONFIGMAP_NAME", distributionConfigMapName)
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+// operatorOwnedResources returns the set of the operator's own resources that teardown must never
+// delete, keyed by "<Kind>/<name>". Teardown selects resources by the part-of=dashboard label the
+// chart's commonLabels stamp on everything it renders — including operator-owned resources — so
+// these must be skipped by name. Keying on kind+name (not name alone) keeps a genuinely
+// module-owned resource that happens to share a name (e.g. a module ConfigMap named
+// odh-dashboard-config) from silently surviving teardown.
+//
+// The webhook serving-cert Secret is intentionally absent: cert-manager issues it from the chart's
+// Certificate (which has no secretTemplate), so it never carries the part-of label and is never
+// selected by teardown's label query — no skip entry is needed.
+func operatorOwnedResources() map[string]bool {
 	base := operatorDeploymentName
 	return map[string]bool{
-		base:                  true,
-		base + "-role":        true,
-		base + "-rolebinding": true,
+		"Deployment/" + base:                              true,
+		"ServiceAccount/" + operatorServiceAccountName():  true,
+		"Service/" + base + "-webhook":                    true, // dashboard.webhookServiceName
+		"ConfigMap/" + resolveDistributionConfigMapName(): true, // dashboard.configMapName
+		"ClusterRole/" + base + "-role":                   true,
+		"ClusterRoleBinding/" + base + "-rolebinding":     true,
 	}
+}
+
+// isOperatorOwned reports whether a resource of the given kind and name is one of the operator's
+// own resources that teardown must preserve.
+func isOperatorOwned(resources map[string]bool, kind, name string) bool {
+	return resources[kind+"/"+name]
 }
 
 var persesdashboardGVK = schema.GroupVersionKind{
@@ -619,8 +669,14 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	if degradedModules > 0 {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("ModulesDegraded"),
-			conditions.WithError(fmt.Errorf("%d module(s) degraded", degradedModules)),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
+			conditions.WithMessage("%d module(s) degraded", degradedModules),
+			conditions.WithSeverity(common.ConditionSeverityError))
+		// Degraded is a negative-polarity condition. The condition manager only
+		// rolls up false/unknown dependents, so explicitly make Ready unhappy when
+		// Degraded=True.
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("ModulesDegraded"),
+			conditions.WithMessage("%d module(s) degraded", degradedModules))
 	}
 }
 
@@ -748,6 +804,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	inNamespace := client.InNamespace(r.ApplicationsNamespace)
 
+	// The operator's own Helm chart stamps platform.opendatahub.io/part-of=dashboard
+	// (commonLabels) onto every resource it renders — including the webhook Service and
+	// the operator ConfigMap, both of which land in the applications namespace. Teardown
+	// must skip these by kind+name so it never deletes operator-owned resources (e.g. deleting
+	// the webhook Service breaks the failurePolicy: Fail ValidatingWebhookConfiguration).
+	operatorResources := operatorOwnedResources()
+
 	deleteTyped := func(list client.ObjectList, kind string, opts ...client.ListOption) error {
 		if err := r.List(ctx, list, opts...); err != nil {
 			return fmt.Errorf("listing %s: %w", kind, err)
@@ -755,6 +818,9 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 		items := extractItems(list)
 		for i := range items {
+			if isOperatorOwned(operatorResources, kind, items[i].GetName()) {
+				continue
+			}
 			logger.Info("Deleting managed resource", "kind", kind, "name", items[i].GetName())
 			if err := r.Delete(ctx, items[i]); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("deleting %s %s: %w", kind, items[i].GetName(), err)
@@ -770,7 +836,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range deployments.Items {
 		dep := &deployments.Items[i]
-		if dep.Name == operatorDeploymentName {
+		if isOperatorOwned(operatorResources, "Deployment", dep.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
@@ -789,15 +855,13 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
-	operatorResources := operatorOwnedResourceNames()
-
 	var serviceAccounts corev1.ServiceAccountList
 	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
 		return fmt.Errorf("listing ServiceAccounts: %w", err)
 	}
 	for i := range serviceAccounts.Items {
 		sa := &serviceAccounts.Items[i]
-		if operatorResources[sa.Name] {
+		if isOperatorOwned(operatorResources, "ServiceAccount", sa.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
@@ -832,7 +896,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoles.Items {
 		cr := &clusterRoles.Items[i]
-		if operatorResources[cr.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRole", cr.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
@@ -847,7 +911,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 	for i := range clusterRoleBindings.Items {
 		crb := &clusterRoleBindings.Items[i]
-		if operatorResources[crb.Name] {
+		if isOperatorOwned(operatorResources, "ClusterRoleBinding", crb.Name) {
 			continue
 		}
 		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
@@ -970,11 +1034,101 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	// resources trigger re-reconciliation. During Removed state the extra
 	// reconcile is harmless — teardown is idempotent and bounded by the
 	// number of owned resources.
+	//
+	// Watches() on ConfigMap tracks the platform config ConfigMaps that feed
+	// reconcile inputs but are not owned by the Dashboard CR (they are managed
+	// by the platform operator). Without this, a platform-driven change such as
+	// a platformVersion bump in odh-dashboard-config would not trigger a
+	// reconcile, leaving status.releases[platform].version stale until an
+	// unrelated event fired (RHOAIENG-81919).
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
+			builder.WithPredicates(r.configMapPredicate()),
+		).
 		Complete(r)
+}
+
+// isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
+// operator namespace whose contents feed reconcile inputs: platform version and
+// distribution identity (the distribution config, odh-dashboard-config by
+// default) and the reconcile interval (dashboard-operator-config). Changes to
+// these must trigger a reconcile so the Dashboard status stays fresh even when
+// nothing else touches the CR (RHOAIENG-81919).
+//
+// The distribution config name is user-settable (chart value config.name, plumbed
+// in via OPERATOR_CONFIGMAP_NAME), so it is resolved through the same helper the
+// readers use rather than compared against the hardcoded default — otherwise a
+// non-default install would watch the wrong ConfigMap and status would go stale.
+//
+// Both the predicate and the map func route through this single helper so their
+// nil handling and scoping cannot drift.
+func (r *DashboardReconciler) isWatchedConfigMap(obj client.Object) bool {
+	if obj == nil || obj.GetNamespace() != r.Namespace {
+		return false
+	}
+
+	name := obj.GetName()
+
+	return name == resolveDistributionConfigMapName() || name == operatorConfigMapName
+}
+
+// mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
+// one of the watched config ConfigMaps in the operator namespace changes.
+func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
+	if !r.isWatchedConfigMap(obj) {
+		return nil
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	}}
+}
+
+// configMapPredicate limits ConfigMap events to the watched config ConfigMaps in
+// the operator namespace. For updates it fires only when Data or a consumed
+// annotation (PlatformType / PlatformVersion — the distribution identity read by
+// readDistributionConfig) actually changed. Only those two annotation keys are
+// compared, not the whole map, so unrelated metadata churn — resourceVersion
+// bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
+// last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
+// reconcile. The annotation comparison is scoped to the distribution config, the
+// only ConfigMap those annotations are consumed from (resolved via the same helper
+// the readers use, so a chart-customized name is honored); dashboard-operator-config
+// contributes reconcile inputs through Data alone.
+func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if !r.isWatchedConfigMap(e.ObjectNew) {
+				return false
+			}
+
+			oldCM, oldOK := e.ObjectOld.(*corev1.ConfigMap)
+			newCM, newOK := e.ObjectNew.(*corev1.ConfigMap)
+			if !oldOK || !newOK {
+				return true
+			}
+
+			// PlatformType / PlatformVersion annotations are read only from the
+			// distribution config (readDistributionConfig). Restrict the annotation
+			// comparison to that ConfigMap — resolved via the same helper the readers
+			// use, so a chart-customized name is honored — so annotation churn on
+			// dashboard-operator-config, which contributes only via Data, does not
+			// enqueue a no-op reconcile.
+			annotationChanged := newCM.Name == resolveDistributionConfigMapName() &&
+				(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
+					oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
+
+			return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
+		},
+	}
 }
