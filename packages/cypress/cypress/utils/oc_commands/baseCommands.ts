@@ -342,6 +342,81 @@ export const deleteNotebook = (
   });
 };
 
+/**
+ * Handle for a port-forward process started by `startPortForward`, used to stop it via `stopPortForward`.
+ */
+export type PortForwardHandle = {
+  pid: string;
+  logFile: string;
+};
+
+/**
+ * Starts a background `oc port-forward` for a service and briefly waits for the tunnel to establish.
+ * Only runs when the dashboard `baseUrl` is localhost (e.g. GitHub PR CI runs, where the test runner
+ * accesses cluster services via localhost rather than in-cluster networking). No-ops otherwise, since
+ * on a real cluster the service is already reachable directly.
+ *
+ * Callers MUST pass the returned handle to `stopPortForward` (e.g. in an `after()` hook) to kill the
+ * detached process and remove its log file.
+ *
+ * @param namespace The namespace containing the service.
+ * @param serviceName The name of the service to port-forward.
+ * @param port The port to forward (used as both the local and remote port).
+ * @param waitTimeMs Time to wait after starting the port-forward for the tunnel to establish (default 3000ms).
+ * @returns A Cypress chainable resolving to a handle for cleanup, or `null` if the port-forward was skipped.
+ */
+export const startPortForward = (
+  namespace: string,
+  serviceName: string,
+  port: number,
+  waitTimeMs = 3000,
+): Cypress.Chainable<PortForwardHandle | null> => {
+  const baseUrl = Cypress.config('baseUrl') || '';
+  if (!baseUrl.includes('localhost')) {
+    cy.log(`Skipping port-forward for ${serviceName} - baseUrl is not localhost`);
+    return cy.wrap<PortForwardHandle | null>(null);
+  }
+
+  const logFile = `/tmp/port-forward-${serviceName}-${port}-${Date.now()}.log`;
+
+  return cy
+    .exec(
+      `nohup oc port-forward -n ${namespace} svc/${serviceName} ${port}:${port} > ${logFile} 2>&1 & echo $!`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result: CommandLineResult): Cypress.Chainable<PortForwardHandle | null> => {
+      const pid = result.stdout.trim();
+      cy.log(`Port-forward PID: ${pid}`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(waitTimeMs);
+      return cy.wrap<PortForwardHandle | null>({ pid, logFile });
+    });
+};
+
+/**
+ * Stops a port-forward process started by `startPortForward` and removes its log file.
+ * No-ops when `handle` is `null` (e.g. the port-forward was skipped because `baseUrl` was not localhost).
+ *
+ * @param handle The handle returned by `startPortForward`.
+ * @returns A Cypress chainable that resolves once cleanup has been attempted.
+ */
+export const stopPortForward = (
+  handle: PortForwardHandle | null,
+): Cypress.Chainable<CommandLineResult | null> => {
+  if (!handle) {
+    return cy.wrap<CommandLineResult | null>(null);
+  }
+
+  const { pid, logFile } = handle;
+
+  return cy
+    .exec(`kill ${pid} 2>/dev/null; rm -f ${logFile}`, { failOnNonZeroExit: false })
+    .then((result: CommandLineResult): Cypress.Chainable<CommandLineResult | null> => {
+      cy.log(`Stopped port-forward (PID ${pid}) and removed ${logFile}`);
+      return cy.wrap<CommandLineResult | null>(result);
+    });
+};
+
 export type PollOptions = {
   maxAttempts?: number;
   pollIntervalMs?: number;

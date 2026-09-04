@@ -20,9 +20,11 @@ const mapTableAsset = (asset: AssetResponse, collection: string): RegistryAsset 
   assetType: 'table',
   location: asset.location || '',
   connectionRef: asset.connection_ref
-    ? asset.connection_ref.type === 'rhai'
-      ? asset.connection_ref.secret_name
-      : asset.connection_ref.id
+    ? typeof asset.connection_ref === 'string'
+      ? asset.connection_ref
+      : asset.connection_ref.type === 'rhai'
+        ? asset.connection_ref.secret_name
+        : asset.connection_ref.id
     : '',
   labels: asset.labels || [],
   collection,

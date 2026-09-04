@@ -23,6 +23,7 @@ import useFetch, {
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+import { isNIMPVC, NIM_PVC_SUBPATH_ANNOTATION } from '../../clusterStorage/clusterStorage';
 
 export enum NIMPVCStorageMode {
   NEW = 'new',
@@ -78,12 +79,6 @@ type NIMPVCExternalData = {
   defaultStorageClassName: string;
   existingPVCs: ExistingPVCOption[];
 };
-
-export const NIM_PVC_ANNOTATION = 'dashboard.opendatahub.io/nim-pvc';
-export const NIM_PVC_SUBPATH_ANNOTATION = 'dashboard.opendatahub.io/nim-subpath';
-
-const isNIMPVC = (pvc: PersistentVolumeClaimKind): boolean =>
-  pvc.metadata.annotations?.[NIM_PVC_ANNOTATION] === 'true';
 
 const toPVCOption = (pvc: PersistentVolumeClaimKind): ExistingPVCOption => ({
   name: pvc.metadata.name,

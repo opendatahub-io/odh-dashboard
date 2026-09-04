@@ -1,11 +1,11 @@
 import React from 'react';
 import AllExternalModelsPage from '~/app/pages/external-models/AllExternalModelsPage';
-import MaaSFederatedProviders from './MaaSFederatedProviders';
+import ExternalModelsAreaProviders from './ExternalModelsAreaProviders';
 
 const ExternalModelsWrapper: React.FC = () => (
-  <MaaSFederatedProviders>
+  <ExternalModelsAreaProviders>
     <AllExternalModelsPage />
-  </MaaSFederatedProviders>
+  </ExternalModelsAreaProviders>
 );
 
 export default ExternalModelsWrapper;

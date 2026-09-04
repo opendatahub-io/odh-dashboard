@@ -73,6 +73,22 @@ describe('NIMSettingsCard', () => {
     expect(screen.queryByTestId('nim-enable-button')).not.toBeInTheDocument();
   });
 
+  it('should show an actionable error when the NIM Account request fails', () => {
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.LOADING,
+      loaded: false,
+      loadError: new Error('Forbidden'),
+    });
+
+    render(<NIMSettingsCard namespace="test-ns" />);
+
+    expect(screen.getByText('Unable to load NVIDIA NIM account')).toBeInTheDocument();
+    expect(screen.getByText(/permission to view NIM accounts/)).toBeInTheDocument();
+    expect(screen.queryByTestId('nim-permissions-loading')).not.toBeInTheDocument();
+  });
+
   it('should show skeleton regardless of account status while RBAC loads', () => {
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: false, allowed: undefined });
     mockUseNIMAccountStatus.mockReturnValue({

@@ -12,7 +12,7 @@ The E2E test pipeline uses a "build-then-serve" model:
 4. **E2E Proxy**: A lightweight reverse proxy on `:4040` sits in front of the stack, injecting auth headers and routing requests to the backend, BFFs, or cluster
 5. **Cypress**: Tests hit `http://localhost:4040` (proxy), which forwards to the local stack
 
-No webpack dev servers are used in CI. BFFs serve both their API routes and static frontend files via `STATIC_ASSETS_DIR`.
+No bundler dev servers are used in CI. BFFs serve both their API routes and static frontend files via `STATIC_ASSETS_DIR`.
 
 ## Architecture
 

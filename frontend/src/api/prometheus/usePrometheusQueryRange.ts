@@ -7,7 +7,7 @@ import baseUsePrometheusQueryRange, {
   type PrometheusPostFn,
   type ResponsePredicate,
 } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export type { ResponsePredicate } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
 export {

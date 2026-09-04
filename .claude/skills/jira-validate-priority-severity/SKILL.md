@@ -275,14 +275,14 @@ Given a task RHOAIENG-55577 ("Cypress flake in globalDistributedWorkloads.cy.ts"
 
 Priority is already set and plausible for a test flake — no operations produced.
 
-Given a task RHOAIENG-55600 ("Update webpack config for module federation") with priority=Undefined:
+Given a task RHOAIENG-55600 ("Update rspack config for module federation") with priority=Undefined:
 
 ```json
 {
   "operations": [
     {
       "issueKey": "RHOAIENG-55600",
-      "summary": "Update webpack config for module federation",
+      "summary": "Update rspack config for module federation",
       "action": "SET_FIELDS",
       "params": { "fields": { "priority": { "name": "Normal" } } },
       "reason": "Build tooling update with no urgency signal — default priority"

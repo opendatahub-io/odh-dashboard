@@ -1,4 +1,4 @@
-import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import type { LLMInferenceServiceKind } from '../../types';
 import { getLLMdDeploymentConditions } from '../status';

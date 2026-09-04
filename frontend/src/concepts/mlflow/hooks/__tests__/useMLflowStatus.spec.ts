@@ -15,14 +15,14 @@ const actualReact = jest.requireActual('react');
 const loadFreshModule = () => {
   jest.resetModules();
   jest.doMock('react', () => actualReact);
-  jest.doMock('#~/utilities/axios', () => ({
+  jest.doMock('@odh-dashboard/ui-core/utilities/axios', () => ({
     get: jest.fn(),
   }));
   jest.doMock('#~/utilities/const', () => ({
     POLL_INTERVAL,
   }));
 
-  const axios = require('#~/utilities/axios');
+  const axios = require('@odh-dashboard/ui-core/utilities/axios');
   const mod = require('#~/concepts/mlflow/hooks/useMLflowStatus');
   const { STATUS_ENDPOINT } = require('#~/concepts/mlflow/const');
 

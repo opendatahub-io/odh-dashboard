@@ -15,9 +15,9 @@ import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
-import { getKueueSchedulingSubStep } from '@odh-dashboard/internal/concepts/kueue/index';
-import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/internal/concepts/kueue/types';
-import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
+import { getKueueSchedulingSubStep } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/k8s-core/kueue/types';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   LLMdDeployment,
   LLMInferenceServiceKind,

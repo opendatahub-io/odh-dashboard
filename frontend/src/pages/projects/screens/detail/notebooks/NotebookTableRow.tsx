@@ -20,6 +20,7 @@ import {
 } from '@odh-dashboard/ui-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
@@ -41,7 +42,6 @@ import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/u
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';

@@ -5,7 +5,7 @@ import useFetch, {
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { SecretKind } from '@odh-dashboard/k8s-core';
-import { SecretModel } from '@odh-dashboard/internal/api/models';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 
 const useNamespaceSecrets = (
   namespace: string,
