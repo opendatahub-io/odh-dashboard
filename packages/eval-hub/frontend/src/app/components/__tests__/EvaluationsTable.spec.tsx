@@ -149,6 +149,13 @@ describe('EvaluationsTable', () => {
     );
   });
 
+  it('should navigate to the Evaluate tab when starting an evaluation run', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith({ search: '?tab=evaluate' });
+  });
+
   it('should disable row checkboxes when evaluation is not completed', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
 

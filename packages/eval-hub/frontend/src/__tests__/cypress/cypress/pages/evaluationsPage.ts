@@ -1,7 +1,11 @@
 class EvaluationsPage {
-  visit(namespace: string) {
-    cy.visit(`/evaluation/${namespace}`);
+  visit(namespace: string, tab?: 'evaluate' | 'runs') {
+    cy.visit(`/evaluation/${namespace}${tab ? `?tab=${tab}` : ''}`);
     this.waitForLoad();
+  }
+
+  visitRuns(namespace: string) {
+    this.visit(namespace, 'runs');
   }
 
   visitInvalidProject(namespace: string) {
@@ -25,6 +29,38 @@ class EvaluationsPage {
 
   findTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  findPageDescription() {
+    return cy.findByTestId('app-page-description');
+  }
+
+  findEvaluateTab() {
+    return cy.findByTestId('evaluate-tab');
+  }
+
+  findRunsTab() {
+    return cy.findByTestId('runs-tab');
+  }
+
+  findEvaluateContent() {
+    return cy.findByTestId('evaluate-tab-content');
+  }
+
+  findRunsContent() {
+    return cy.findByTestId('runs-tab-content');
+  }
+
+  findRunsDescription() {
+    return cy.findByTestId('runs-tab-description');
+  }
+
+  findCreateSuiteCard() {
+    return cy.findByTestId('create-suite-card');
+  }
+
+  findCreateSuiteButton() {
+    return cy.findByTestId('create-suite-button');
   }
 
   findEmptyState() {

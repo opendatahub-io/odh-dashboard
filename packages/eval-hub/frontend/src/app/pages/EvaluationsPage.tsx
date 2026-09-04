@@ -10,9 +10,14 @@ import {
   FlexItem,
   PageSection,
   Spinner,
+  Stack,
+  StackItem,
+  Tab,
+  Tabs,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
@@ -31,12 +36,25 @@ import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import { EvaluationJob } from '~/app/types';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
+import EvaluateTab from './EvaluateTab';
+
+import './EvaluationsTabs.scss';
 
 const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
+
+const EVALUATE_TAB = 'evaluate';
+const RUNS_TAB = 'runs';
+const TAB_QUERY_PARAM = 'tab';
+const EVALUATE_DESCRIPTION =
+  'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.';
+const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get(TAB_QUERY_PARAM);
+  const activeTab = tabParam === RUNS_TAB ? RUNS_TAB : EVALUATE_TAB;
 
   // Pause list polling when the browser tab is backgrounded
   const isPollingEnabled = usePageVisibility();
@@ -70,11 +88,25 @@ const EvaluationsPage: React.FC = () => {
     [namespace],
   );
 
+  const onSelectTab = React.useCallback(
+    (_event: React.MouseEvent, selectedTab: string | number) => {
+      const nextTab = String(selectedTab);
+      if (nextTab === activeTab || ![EVALUATE_TAB, RUNS_TAB].includes(nextTab)) {
+        return;
+      }
+
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set(TAB_QUERY_PARAM, nextTab);
+      setSearchParams(nextSearchParams);
+    },
+    [activeTab, searchParams, setSearchParams],
+  );
+
   return (
     <>
       <ApplicationsPage
         title={<EvalHubHeader title="Evaluations" />}
-        description="Start and manage evaluation runs for models, agents and datasets."
+        description={EVALUATE_DESCRIPTION}
         headerContent={
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <ProjectIconWithSize size={IconSize.LG} />
@@ -161,19 +193,59 @@ const EvaluationsPage: React.FC = () => {
         }
         provideChildrenPadding
       >
-        {evaluations.length === 0 ? (
-          <EvalHubEmptyState />
-        ) : (
-          <EvaluationsTable
-            evaluations={evaluations}
-            loaded={loaded}
-            namespace={namespace}
-            collectionNameMap={collectionNameMap}
-            collectionsLoaded={collectionsLoaded}
-            onRefresh={refreshEvaluations}
-            onShowStatus={onShowStatus}
-          />
-        )}
+        <Tabs
+          activeKey={activeTab}
+          onSelect={onSelectTab}
+          aria-label="Evaluations page tabs"
+          data-testid="evaluations-page-tabs"
+          inset={{ default: 'insetNone' }}
+          mountOnEnter
+        >
+          <Tab
+            eventKey={EVALUATE_TAB}
+            title={<TabTitleText>Evaluate</TabTitleText>}
+            aria-label="Evaluate tab"
+            data-testid="evaluate-tab"
+          >
+            <EvaluateTab />
+          </Tab>
+          <Tab
+            eventKey={RUNS_TAB}
+            title={<TabTitleText>Runs</TabTitleText>}
+            aria-label="Runs tab"
+            data-testid="runs-tab"
+          >
+            <Stack
+              className="evalhub-evaluations-tab-content evalhub-runs-tab"
+              data-testid="runs-tab-content"
+            >
+              <StackItem>
+                <Content
+                  component="p"
+                  className="evalhub-runs-tab__description"
+                  data-testid="runs-tab-description"
+                >
+                  {RUNS_DESCRIPTION}
+                </Content>
+              </StackItem>
+              <StackItem>
+                {evaluations.length === 0 ? (
+                  <EvalHubEmptyState />
+                ) : (
+                  <EvaluationsTable
+                    evaluations={evaluations}
+                    loaded={loaded}
+                    namespace={namespace}
+                    collectionNameMap={collectionNameMap}
+                    collectionsLoaded={collectionsLoaded}
+                    onRefresh={refreshEvaluations}
+                    onShowStatus={onShowStatus}
+                  />
+                )}
+              </StackItem>
+            </Stack>
+          </Tab>
+        </Tabs>
       </ApplicationsPage>
       {selectedJob && selectedJob.namespace === namespace ? (
         <React.Suspense

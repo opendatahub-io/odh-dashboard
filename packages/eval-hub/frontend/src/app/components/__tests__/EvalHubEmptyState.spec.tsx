@@ -1,7 +1,14 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
 const renderWithRouter = () =>
   render(
@@ -11,6 +18,10 @@ const renderWithRouter = () =>
   );
 
 describe('EvalHubEmptyState', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render the empty state heading', () => {
     renderWithRouter();
     expect(screen.getByTestId('eval-hub-empty-state')).toBeInTheDocument();
@@ -30,5 +41,12 @@ describe('EvalHubEmptyState', () => {
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
       'Start evaluation run',
     );
+  });
+
+  it('should navigate to the Evaluate tab when starting an evaluation run', () => {
+    renderWithRouter();
+    fireEvent.click(screen.getByTestId('create-evaluation-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith({ search: '?tab=evaluate' });
   });
 });

@@ -464,7 +464,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 data-testid="create-evaluation-button"
                 onClick={() => {
                   fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
-                  navigate('create');
+                  navigate({ search: '?tab=evaluate' });
                 }}
               >
                 Start evaluation run

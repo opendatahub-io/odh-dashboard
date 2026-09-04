@@ -42,6 +42,54 @@ const initIntercepts = ({
   );
 };
 
+describe('Evaluations Page - Tabs', () => {
+  beforeEach(() => {
+    initIntercepts({
+      jobs: [mockEvaluationJob({ id: 'eval-tabs', name: 'Tabs Eval', state: 'completed' })],
+    });
+  });
+
+  it('should default to the Evaluate tab with the benchmark suite placeholder', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findEvaluateContent().should('exist');
+    evaluationsPage.findCreateSuiteCard().should('exist');
+    evaluationsPage.findCreateSuiteButton().should('be.enabled');
+    evaluationsPage
+      .findPageDescription()
+      .should(
+        'contain.text',
+        'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+      );
+  });
+
+  it('should switch to Runs and render its content description', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findRunsTab().click();
+    evaluationsPage.findRunsTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findRunsContent().should('exist');
+    evaluationsPage.findEvaluationsTable().should('exist');
+    evaluationsPage
+      .findPageDescription()
+      .should(
+        'contain.text',
+        'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
+      );
+    evaluationsPage
+      .findRunsDescription()
+      .should('contain.text', 'Start and manage evaluation runs for models, agents, and datasets.');
+    cy.url().should('include', '?tab=runs');
+  });
+
+  it('should restore the Evaluate tab when navigating back', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findRunsTab().click();
+    cy.go('back');
+    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findCreateSuiteCard().should('exist');
+  });
+});
+
 describe('Evaluations Page - Table', () => {
   const completedJob = mockEvaluationJob({
     id: 'eval-001',
@@ -89,7 +137,7 @@ describe('Evaluations Page - Table', () => {
   });
 
   it('should display the evaluations table with correct rows', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findEvaluationsTable().should('exist');
     evaluationsPage.findEvaluationRow(0).should('exist');
     evaluationsPage.findEvaluationRow(1).should('exist');
@@ -97,7 +145,7 @@ describe('Evaluations Page - Table', () => {
   });
 
   it('should show a link to results on completed evaluations', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     // Table sorts by date desc: row 0 = running (Mar 16), row 1 = completed (Mar 15)
     evaluationsPage.findEvaluationLink(1).should('exist');
     evaluationsPage.findEvaluationLink(1).click();
@@ -105,11 +153,19 @@ describe('Evaluations Page - Table', () => {
   });
 
   it('should display the toolbar with filter and create button', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findEvaluationsTableToolbar().should('exist');
     evaluationsPage.findFilterTypeToggle().should('exist');
     evaluationsPage.findFilterTextField().should('exist');
     evaluationsPage.findCreateEvaluationButton().should('exist');
+  });
+
+  it('should navigate to the Evaluate tab when starting an evaluation run', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.findCreateEvaluationButton().click();
+    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findCreateSuiteCard().should('exist');
+    cy.url().should('include', `/evaluation/${NAMESPACE}?tab=evaluate`);
   });
 });
 
@@ -119,7 +175,7 @@ describe('Evaluations Page - Empty state', () => {
   });
 
   it('should display the empty state when no evaluations exist', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findEmptyState().should('exist');
     evaluationsPage
       .findEmptyStateBody()
@@ -129,10 +185,12 @@ describe('Evaluations Page - Empty state', () => {
       );
   });
 
-  it('should navigate to create when clicking the empty state action', () => {
-    evaluationsPage.visit(NAMESPACE);
+  it('should navigate to the Evaluate tab when clicking the empty state action', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findCreateEvaluationButton().click();
-    cy.url().should('include', `${NAMESPACE}/create`);
+    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findCreateSuiteCard().should('exist');
+    cy.url().should('include', `/evaluation/${NAMESPACE}?tab=evaluate`);
   });
 });
 
@@ -142,7 +200,7 @@ describe('Evaluations Page - Unavailable (unhealthy)', () => {
   });
 
   it('should display the evaluations unavailable state', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findUnavailableEmptyState().should('exist');
     evaluationsPage.findUnavailableEmptyState().should('contain.text', 'Evaluations unavailable');
     evaluationsPage.findEvaluationsTable().should('not.exist');
@@ -234,18 +292,18 @@ describe('Evaluations Page - Status labels', () => {
   });
 
   it('should show "Not started" badge for a pre-start failure with no benchmark started_at', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     // Table sorts by date desc: row 0 = preStart (Mar 14), row 1 = runtime (Mar 13), row 2 = partial (Mar 12)
     evaluationsPage.findStatusLabel(0).should('have.text', 'Not started');
   });
 
   it('should show "Failed" badge for a runtime failure where benchmarks started', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findStatusLabel(1).should('have.text', 'Failed');
   });
 
   it('should show "Failed" badge for a partially_failed job', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findStatusLabel(2).should('have.text', 'Failed');
   });
 });
@@ -283,20 +341,20 @@ describe('Evaluations Page - Status modal', () => {
   });
 
   it('should open the status modal when clicking the status badge', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.clickStatusBadge(0);
     evaluationsPage.findStatusModal().should('exist');
   });
 
   it('should show "Not started" badge in modal for a pre-start failure', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     // row 0 = pre-start (Mar 14)
     evaluationsPage.clickStatusBadge(0);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Not started');
   });
 
   it('should show "Failed" badge in modal for a runtime failure', () => {
-    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.visitRuns(NAMESPACE);
     // row 1 = runtime failure (Mar 13)
     evaluationsPage.clickStatusBadge(1);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');

@@ -1,0 +1,45 @@
+.evalhub-evaluations-tab-content {
+  padding-block-start: var(--pf-t--global--spacer--xl);
+}
+
+.evalhub-evaluate-tab {
+  gap: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-create-suite-card {
+  --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--default);
+}
+
+.evalhub-create-suite-card__body {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+.evalhub-create-suite-card__icon {
+  width: calc(var(--pf-t--global--spacer--xl) + var(--pf-t--global--spacer--sm));
+  height: calc(var(--pf-t--global--spacer--xl) + var(--pf-t--global--spacer--sm));
+  flex-shrink: 0;
+  margin-block-end: var(--pf-t--global--spacer--md);
+  border-radius: 50%;
+  background-color: var(--pf-t--global--color--brand--default);
+  color: var(--pf-t--color--white);
+  font-size: var(--pf-t--global--font--size--lg);
+}
+
+.evalhub-create-suite-card__title {
+  margin-block-end: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-create-suite-card__description {
+  max-width: 28rem;
+  margin: 0;
+}
+
+.evalhub-create-suite-card__description + .pf-v6-c-button {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-runs-tab__description {
+  margin-block: 0 var(--pf-t--global--spacer--xl);
+}
