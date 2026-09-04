@@ -1,5 +1,11 @@
-import { FastifyReply } from 'fastify';
-import { PassThroughData, passThroughText, passThroughResource } from '../../../utils/pass-through';
+import { FastifyError, FastifyReply } from 'fastify';
+import {
+  PassThroughData,
+  passThroughText,
+  passThroughResource,
+  isK8sStatus,
+  toK8sFailureStatus,
+} from '../../../utils/pass-through';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
 import { stripEmptyJsonContentType } from '../../../utils/k8sRequestBody';
@@ -11,6 +17,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.addHook('onRequest', (req, _reply, done) => {
     stripEmptyJsonContentType(req);
     done();
+  });
+
+  fastify.setErrorHandler((error: FastifyError, _req, reply) => {
+    const code =
+      typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 500;
+    fastify.log.error(`Kube pass-through request rejected (${code}): ${error.message}`);
+    reply.code(code).send(toK8sFailureStatus(code, error.message, error.code));
   });
 
   /**
@@ -64,7 +77,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         if (error.code && error.response) {
           const { code, response } = error;
           reply.code(code);
-          reply.send(response);
+          reply.send(isK8sStatus(response) ? response : toK8sFailureStatus(code, response));
         } else {
           throw error;
         }

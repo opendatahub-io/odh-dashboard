@@ -35,14 +35,15 @@ describe('stripEmptyJsonContentType', () => {
     expect(req.headers['content-type']).toBe('application/json');
   });
 
-  it('should strip application/json when content-length is 0 even if chunked is set', () => {
+  it('should keep application/json when transfer-encoding is set even if content-length is 0', () => {
     const req = request('DELETE', {
       'content-type': 'application/json',
       'content-length': '0',
       'transfer-encoding': 'chunked',
     });
     stripEmptyJsonContentType(req);
-    expect(req.headers['content-type']).toBeUndefined();
+    expect(req.headers['content-type']).toBe('application/json');
+    expect(req.headers['transfer-encoding']).toBe('chunked');
   });
 
   it('should not strip PATCH content types', () => {
