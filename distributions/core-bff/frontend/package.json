@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "run-s build:prod",
-    "build:analyze": "cross-env RSDOCTOR=true npm run build:prod",
+    "build:analyze": "cross-env RSDOCTOR=true pnpm run build:prod",
     "build:prod": "rspack --config ./config/rspack.prod.js",
     "build:clean": "rm -rf ./dist",
     "start:dev": "rspack dev --hot --config ./config/rspack.dev.js",
