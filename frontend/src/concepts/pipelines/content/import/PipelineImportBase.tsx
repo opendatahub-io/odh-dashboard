@@ -1,23 +1,12 @@
 import * as React from 'react';
-import {
-  Form,
-  FormGroup,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-  Spinner,
-  Alert,
-} from '@patternfly/react-core';
+import { Form, FormGroup, Stack, StackItem, Spinner, Alert } from '@patternfly/react-core';
+import { ContentModal } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldUpdateFunction } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
-import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
@@ -33,6 +22,7 @@ import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import PipelineMigrationNoteLinks from '#~/concepts/pipelines/content/PipelineMigrationNoteLinks';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import usePipelineNamespaceCR from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
+import { isValidUrl } from '#~/utilities/utils.ts';
 import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
@@ -69,6 +59,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const [error, setError] = React.useState<Error | undefined>();
   const { displayName, name, description, fileContents, pipelineUrl, uploadOption } = data;
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+  const [isUrlValid, setIsUrlValid] = React.useState(true);
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
   const isV1PipelineFile = isYAMLPipelineV1(fileContents);
   const [pipelineNamespaceCR, crLoaded, crLoadError] = usePipelineNamespaceCR(namespace);
@@ -111,7 +102,9 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     importing ||
     hasDuplicateName ||
     !name ||
-    (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
+    (uploadOption === PipelineUploadOption.URL_IMPORT
+      ? !pipelineUrl || !isUrlValid
+      : !fileContents);
 
   const onBeforeClose = React.useCallback(
     (result?: PipelineKF | PipelineVersionKF) => {
@@ -120,6 +113,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       setError(undefined);
       resetData();
       setHasDuplicateName(false);
+      setIsUrlValid(true);
     },
     [onClose, resetData, data.pipeline],
   );
@@ -146,6 +140,11 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   );
 
   const onSubmit = () => {
+    if (uploadOption === PipelineUploadOption.URL_IMPORT && !isValidUrl(pipelineUrl)) {
+      setIsUrlValid(false);
+      return;
+    }
+
     setImporting(true);
     setError(undefined);
 
@@ -170,49 +169,42 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
 
   if (!crLoaded) {
     return (
-      <Modal
-        isOpen
+      <ContentModal
         onClose={() => onBeforeClose()}
         variant="medium"
-        data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
-      >
-        <ModalHeader title={title} />
-        <ModalBody>
-          <Spinner size="lg" />
-        </ModalBody>
-      </Modal>
+        dataTestId={PIPELINE_IMPORT_BASE_TEST_ID}
+        title={title}
+        contents={<Spinner size="lg" />}
+      />
     );
   }
 
   if (crLoadError) {
     return (
-      <Modal
-        isOpen
+      <ContentModal
         onClose={() => onBeforeClose()}
         variant="medium"
-        data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
-      >
-        <ModalHeader title={title} />
-        <ModalBody>
+        dataTestId={PIPELINE_IMPORT_BASE_TEST_ID}
+        title={title}
+        contents={
           <Stack hasGutter>
             <Alert data-testid="error-message-alert" isInline variant="danger" title="Error">
               {crLoadError instanceof Error ? crLoadError.message : crLoadError}
             </Alert>
           </Stack>
-        </ModalBody>
-      </Modal>
+        }
+      />
     );
   }
 
   return (
-    <Modal
-      isOpen
+    <ContentModal
       onClose={() => onBeforeClose()}
       variant="medium"
-      data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
-    >
-      <ModalHeader title={title} />
-      <ModalBody>
+      dataTestId={PIPELINE_IMPORT_BASE_TEST_ID}
+      title={title}
+      error={error}
+      contents={
         <Form>
           <Stack hasGutter>
             <StackItem>
@@ -273,33 +265,42 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                   setError(undefined);
                 }}
                 pipelineUrl={pipelineUrl}
-                setPipelineUrl={(url) => setData('pipelineUrl', url)}
+                setPipelineUrl={(url) => {
+                  setData('pipelineUrl', url);
+                }}
                 uploadOption={uploadOption}
                 setUploadOption={(option) => setData('uploadOption', option)}
+                isUrlValid={isUrlValid}
+                setIsUrlValid={setIsUrlValid}
               />
             </StackItem>
           </Stack>
         </Form>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={() => onBeforeClose()}
-          onSubmit={onSubmit}
-          submitLabel={submitButtonText}
-          isSubmitLoading={importing}
-          isSubmitDisabled={isImportButtonDisabled}
-          error={error}
-          alertTitle={
-            isArgoWorkflow
-              ? PIPELINE_ARGO_ERROR
-              : isV1PipelineFile
-              ? 'Pipeline update and recompile required'
-              : 'Error creating pipeline'
-          }
-          alertLinks={isV1PipelineFile ? <PipelineMigrationNoteLinks /> : undefined}
-        />
-      </ModalFooter>
-    </Modal>
+      }
+      alertTitle={
+        isArgoWorkflow
+          ? PIPELINE_ARGO_ERROR
+          : isV1PipelineFile
+          ? 'Pipeline update and recompile required'
+          : 'Error creating pipeline'
+      }
+      alertLinks={isV1PipelineFile ? <PipelineMigrationNoteLinks /> : undefined}
+      buttonActions={[
+        {
+          label: submitButtonText,
+          onClick: onSubmit,
+          dataTestId: 'modal-submit-button',
+          isDisabled: isImportButtonDisabled,
+          isLoading: importing,
+        },
+        {
+          label: 'Cancel',
+          onClick: () => onBeforeClose(),
+          dataTestId: 'modal-cancel-button',
+          variant: 'link',
+        },
+      ]}
+    />
   );
 };
 
