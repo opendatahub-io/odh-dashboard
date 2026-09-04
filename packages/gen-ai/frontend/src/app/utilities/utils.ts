@@ -57,13 +57,14 @@ export const splitLlamaModelId = (llamaModelId: string): { providerId: string; i
 
 /**
  * Returns true if a provider-qualified LlamaStack model ID belongs to a MaaS provider.
- * MaaS providers are registered in LlamaStack with a "maas-" prefix (e.g. "maas-vllm-inference-1").
- *
- * NOTE: this is brittle. Ideally we should fetch /v1/providers from LLS
- * and cross reference the MaaS URL with the provider URL.
+ * Detects MaaS models by either:
+ * - Legacy: provider ID starts with "maas-" (e.g. "maas-vllm-inference-1/model")
+ * - Passthrough: model ID starts with "maas-" under a shared provider (e.g. "genai-bff-proxy/maas-model")
  */
-export const isMaasLlamaModelId = (llamaModelId: string): boolean =>
-  splitLlamaModelId(llamaModelId).providerId.startsWith('maas-');
+export const isMaasLlamaModelId = (llamaModelId: string): boolean => {
+  const { providerId, id } = splitLlamaModelId(llamaModelId);
+  return providerId.startsWith('maas-') || id.startsWith('maas-');
+};
 
 /**
  * Returns true if a playground LlamaModel corresponds to the given AIModel, accounting for
@@ -75,7 +76,11 @@ export const isPlaygroundModelMatchForAIModel = (
   playgroundModel: LlamaModel,
   aiModel: AIModel,
 ): boolean => {
-  if (playgroundModel.modelId !== aiModel.model_id) {
+  // For passthrough MaaS models, modelId has a "maas-" prefix that the AIModel doesn't.
+  const playgroundModelId = playgroundModel.modelId.startsWith('maas-')
+    ? playgroundModel.modelId.slice(5)
+    : playgroundModel.modelId;
+  if (playgroundModelId !== aiModel.model_id) {
     return false;
   }
   return aiModel.model_source_type === 'maas'
@@ -85,11 +90,17 @@ export const isPlaygroundModelMatchForAIModel = (
 
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
-  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
+
+  // The genai-bff-proxy passthrough provider prefix is an OGX routing detail, not a meaningful
+  // distinction for users. Strip it (and the maas- model prefix) for display.
+  const isPassthrough = providerId === 'genai-bff-proxy';
+  const lookupId = isPassthrough && id.startsWith('maas-') ? id.slice(5) : id;
+
+  const enabledModel = aiModels.find((aiModel) => aiModel.model_id === lookupId);
   if (!enabledModel) {
-    return modelId;
+    return isPassthrough ? lookupId : modelId;
   }
-  if (!providerId) {
+  if (!providerId || isPassthrough) {
     return enabledModel.display_name;
   }
   return `${providerId}/${enabledModel.display_name}`;
@@ -115,7 +126,11 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.model_id === id);
+  // When models are registered under the passthrough provider, MaaS model IDs
+  // are prefixed with "maas-" in OGX but not in the MaaS BFF response.
+  const maasPrefix = 'maas-';
+  const maasModelId = id.startsWith(maasPrefix) ? id.slice(maasPrefix.length) : id;
+  const maasModel = maasModels.find((m) => m.model_id === maasModelId || m.model_id === id);
   if (maasModel) {
     return maasModel.status === 'Running';
   }

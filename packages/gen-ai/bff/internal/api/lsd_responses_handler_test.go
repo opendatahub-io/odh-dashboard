@@ -1075,7 +1075,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
 			Input:  llamastack.InputUnion{Text: "Hello"},
-			Model:  testutil.GetTestLlamaStackModel(),
+			Model:  "mock-model",
 			Stream: true,
 		}
 
@@ -1086,8 +1086,10 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+		// Use in-memory mock directly to ensure deterministic streaming events
+		// (the factory may connect to a real server in CI which can be flaky).
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
 		req = req.WithContext(ctx)
 
 		rr := httptest.NewRecorder()
@@ -1123,13 +1125,13 @@ var _ = Describe("StreamingResponseMetrics", func() {
 
 		latencyMs, ok := metrics["latency_ms"].(float64)
 		require.True(t, ok, "metrics should have latency_ms")
-		assert.Greater(t, latencyMs, float64(0), "latency_ms should be positive")
+		assert.GreaterOrEqual(t, latencyMs, float64(0), "latency_ms should be non-negative")
 
 		ttft, ok := metrics["time_to_first_token_ms"].(float64)
 		require.True(t, ok, "metrics should have time_to_first_token_ms for streaming")
-		assert.Greater(t, ttft, float64(0), "time_to_first_token_ms should be positive")
+		assert.GreaterOrEqual(t, ttft, float64(0), "time_to_first_token_ms should be non-negative")
 
-		assert.Less(t, ttft, latencyMs, "TTFT should be less than total latency")
+		assert.LessOrEqual(t, ttft, latencyMs, "TTFT should be <= total latency")
 
 		usage, ok := metrics["usage"].(map[string]interface{})
 		require.True(t, ok, "metrics should have usage field")

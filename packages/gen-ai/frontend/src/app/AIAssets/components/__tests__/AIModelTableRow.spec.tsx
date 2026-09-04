@@ -421,8 +421,14 @@ describe('AIModelTableRow', () => {
 
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
-      const model = createMockAIModel({ model_id: 'maas-model-id', model_source_type: 'maas' });
-      const playgroundModel = createMockPlaygroundModel('maas-model-id', 'maas-vllm-inference-1');
+      const model = createMockAIModel({
+        model_id: 'publishers/llm/models/gemini',
+        model_source_type: 'maas',
+      });
+      const playgroundModel = createMockPlaygroundModel(
+        'maas-publishers/llm/models/gemini',
+        'maas-vllm-inference-1',
+      );
 
       render(
         <TestWrapper>
@@ -434,7 +440,7 @@ describe('AIModelTableRow', () => {
 
       expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
         'Available Endpoints Playground Launched',
-        { assetType: 'maas_model', assetId: 'maas-model-id' },
+        { assetType: 'maas_model', assetId: 'publishers/llm/models/gemini' },
       );
     });
 

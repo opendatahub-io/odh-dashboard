@@ -314,6 +314,26 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).not.toHaveBeenCalled();
   });
 
+  it('strips maas- prefix from id for passthrough model IDs (genai-bff-proxy/maas-...)', () => {
+    const model = createMaaSModel({
+      model_id: 'publishers/llm/models/gemini-proxy',
+      subscriptions: [{ name: 'gemini-subscription', displayName: 'Gemini Dev' }],
+    });
+
+    const onSubscriptionChange = jest.fn();
+    render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown
+          selectedModel="genai-bff-proxy/maas-publishers/llm/models/gemini-proxy"
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    expect(onSubscriptionChange).toHaveBeenCalledWith('gemini-subscription');
+  });
+
   it('handles subscriptions array containing null entries without throwing', () => {
     const onSubscriptionChange = jest.fn();
     const modelWithNullEntries = {

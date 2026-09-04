@@ -52,7 +52,10 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
       return [];
     }
-    const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
+    const rawId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
+    // Strip "maas-" prefix added by the passthrough models handler so the ID
+    // matches what the MaaS catalog returns (e.g. "publishers/llm/models/gemini-proxy").
+    const maasModelId = rawId.startsWith('maas-') ? rawId.slice(5) : rawId;
     const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
     const subs = matchingModel?.subscriptions;
     // Validate each subscription has the required name field before returning
