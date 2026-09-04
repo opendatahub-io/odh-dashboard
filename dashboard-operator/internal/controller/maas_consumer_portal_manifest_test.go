@@ -93,6 +93,27 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	containerLimits := containerResources["limits"].(map[string]interface{})
 	assert.Equal(t, "100m", containerLimits["cpu"])
 	assert.Equal(t, "256Mi", containerLimits["memory"])
+	assert.Equal(t, map[string]interface{}{
+		"httpGet":             map[string]interface{}{"path": "/healthcheck", "port": int64(8443), "scheme": "HTTPS"},
+		"initialDelaySeconds": int64(1),
+		"timeoutSeconds":      int64(5),
+		"periodSeconds":       int64(2),
+		"failureThreshold":    int64(30),
+	}, container["startupProbe"])
+	assert.Equal(t, map[string]interface{}{
+		"httpGet":          map[string]interface{}{"path": "/healthcheck", "port": int64(8443), "scheme": "HTTPS"},
+		"timeoutSeconds":   int64(10),
+		"periodSeconds":    int64(10),
+		"successThreshold": int64(1),
+		"failureThreshold": int64(3),
+	}, container["livenessProbe"])
+	assert.Equal(t, map[string]interface{}{
+		"httpGet":          map[string]interface{}{"path": "/healthcheck", "port": int64(8443), "scheme": "HTTPS"},
+		"timeoutSeconds":   int64(10),
+		"periodSeconds":    int64(5),
+		"successThreshold": int64(1),
+		"failureThreshold": int64(3),
+	}, container["readinessProbe"])
 
 	volumeMounts := container["volumeMounts"].([]interface{})
 	assert.Equal(t, "/etc/tls/private", namedManifestObject(t, volumeMounts, "portal-tls")["mountPath"])

@@ -59,6 +59,7 @@ func getConsoleLink(t *testing.T, name string) *unstructured.Unstructured {
 func cleanupMaaSConsumerPortalResources(t *testing.T, r *ctrlpkg.DashboardReconciler) {
 	t.Helper()
 	require.NoError(t, r.DeleteMaaSConsumerPortalResources(context.Background()))
+	require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "maas-consumer-portal", Namespace: integrationNamespace}})))
 }
 
 func getPortalResource(t *testing.T, apiVersion, kind, name string) *unstructured.Unstructured {
@@ -264,7 +265,6 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	for _, resource := range []struct{ apiVersion, kind, name string }{
 		{"apps/v1", "Deployment", "maas-consumer-portal"},
 		{"v1", "Service", "maas-consumer-portal"},
-		{"v1", "ServiceAccount", "maas-consumer-portal"},
 		{"networking.k8s.io/v1", "NetworkPolicy", "maas-consumer-portal"},
 		{"v1", "ConfigMap", "maas-consumer-portal-federation-config"},
 		{"gateway.networking.k8s.io/v1", "HTTPRoute", "maas-consumer-portal"},
@@ -274,6 +274,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	} {
 		assert.Nil(t, getPortalResource(t, resource.apiVersion, resource.kind, resource.name), "%s/%s should be removed", resource.kind, resource.name)
 	}
+	assert.NotNil(t, getPortalResource(t, "v1", "ServiceAccount", "maas-consumer-portal"), "ServiceAccount is retained for platforms that protect ServiceAccounts")
 	assert.Empty(t, getDashboard(t).Status.MaaSConsumerPortalURL)
 }
 

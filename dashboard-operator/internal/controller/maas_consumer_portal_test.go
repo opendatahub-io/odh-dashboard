@@ -303,11 +303,12 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		Finalizers:        []string{dashboardFinalizer},
 		DeletionTimestamp: &metav1.Time{Time: time.Now()},
 	}}
+	portalServiceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}}
 	objects := []client.Object{
 		dashboard,
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
-		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
+		portalServiceAccount,
 		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix + "-tls", Namespace: maasConsumerPortalTestNamespace}},
@@ -316,14 +317,28 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		consoleLink,
 	}
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).Build()
+	serviceAccountDeleteAttempted := false
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, options ...client.DeleteOption) error {
+			if _, isServiceAccount := obj.(*corev1.ServiceAccount); isServiceAccount {
+				serviceAccountDeleteAttempted = true
+				return errors.New("protected ServiceAccount must not be deleted")
+			}
+			return delegate.Delete(ctx, obj, options...)
+		},
+	}).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: s, ApplicationsNamespace: maasConsumerPortalTestNamespace}
 	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}})
 	require.NoError(t, err)
 	for _, object := range objects[1:] {
+		if object == portalServiceAccount {
+			continue
+		}
 		err := cli.Get(context.Background(), client.ObjectKeyFromObject(object), object.DeepCopyObject().(client.Object))
 		assert.Error(t, err, "%T should be removed by the Dashboard finalizer", object)
 	}
+	assert.False(t, serviceAccountDeleteAttempted, "portal ServiceAccount must be retained for platforms that protect ServiceAccounts")
+	assert.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(portalServiceAccount), &corev1.ServiceAccount{}))
 }
 
 // maasConsumerPortalTestManager builds a conditions.Manager whose Error-severity dependents

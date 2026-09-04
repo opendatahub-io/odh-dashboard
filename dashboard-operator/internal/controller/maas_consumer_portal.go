@@ -252,7 +252,6 @@ func (r *DashboardReconciler) deleteLabeledMaaSConsumerPortalNamespacedResources
 	for _, list := range []client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.ServiceList{},
-		&corev1.ServiceAccountList{},
 		&networkingv1.NetworkPolicyList{},
 		&corev1.ConfigMapList{},
 	} {

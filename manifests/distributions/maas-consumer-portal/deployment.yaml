@@ -76,14 +76,22 @@ spec:
           ports:
             - containerPort: 8443
               name: portal-ui
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthcheck
               port: 8443
               scheme: HTTPS
-            initialDelaySeconds: 30
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
@@ -91,9 +99,8 @@ spec:
               path: /healthcheck
               port: 8443
               scheme: HTTPS
-            initialDelaySeconds: 15
-            timeoutSeconds: 15
-            periodSeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 5
             successThreshold: 1
             failureThreshold: 3
           resources:
