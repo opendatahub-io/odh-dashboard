@@ -782,6 +782,7 @@ jobs:
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
+    name: e2e-tests (${{ matrix.tag }})
     needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
     if: >-
       !cancelled() && !failure() &&
