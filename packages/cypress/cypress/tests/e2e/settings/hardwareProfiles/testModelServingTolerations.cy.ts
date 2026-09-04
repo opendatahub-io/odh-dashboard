@@ -22,7 +22,10 @@ import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { createCleanProject } from '../../../../utils/projectChecker';
+import {
+  cleanupServingRuntime,
+  createCleanServingRuntime,
+} from '../../../../utils/oc_commands/servingRuntimes';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
@@ -35,6 +38,8 @@ let hardwareProfileResourceName: string;
 let tolerationValue: string;
 let modelFormat: string;
 let servingRuntime: string;
+let dataConnectionName: string;
+let isS390x: boolean;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 const hardwareProfileUuid = generateTestUUID();
@@ -42,40 +47,51 @@ const hardwareProfileUuid = generateTestUUID();
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
-    return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
-      .then((fixtureData: ModelTolerationsTestData) => {
-        testData = fixtureData;
-        projectName = `${testData.modelServingTolerationsTestNamespace}-${projectUuid}`;
-        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        modelName = testData.modelName;
-        modelFilePath = testData.modelFilePath;
-        hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
-        tolerationValue = testData.tolerationValue;
-        modelFormat = testData.modelFormat;
-        servingRuntime = testData.servingRuntime;
+    return loadModelTolerationsFixture(
+      'e2e/hardwareProfiles/testModelServingTolerations.yaml',
+    ).then((fixtureData: ModelTolerationsTestData) => {
+      testData = fixtureData;
+      projectName = `${testData.modelServingTolerationsTestNamespace}-${projectUuid}`;
+      contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+      modelName = testData.modelName;
+      modelFilePath = testData.modelFilePath;
+      hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
+      tolerationValue = testData.tolerationValue;
+      modelFormat = testData.modelFormat;
+      servingRuntime = testData.servingRuntime;
+      dataConnectionName = testData.dataConnectionName;
+      isS390x = !!testData.isS390x;
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty in the loaded fixture');
-        }
-        cy.log(`Loaded project name: ${projectName}`);
-        return createCleanProject(projectName);
-      })
-      .then(() => {
-        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+      if (!projectName) {
+        throw new Error('Project name is undefined or empty in the loaded fixture');
+      }
+      cy.log(`Loaded project name: ${projectName}`);
 
-        // Load Hardware Profile
-        cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
-        // Cleanup Hardware Profile if it already exists
-        createCleanHardwareProfile(testData.resourceYamlPath);
+      // Load Hardware Profile
+      cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
+      // Cleanup Hardware Profile if it already exists
+      createCleanHardwareProfile(testData.resourceYamlPath);
 
-        // Create a Project for pipelines
-        provisionProjectForModelServing(
-          projectName,
-          awsBucket,
-          'resources/yaml/data_connection_model_serving.yaml',
-        );
-        addUserToProject(projectName, contributor, 'edit');
-      });
+      // On s390x create the ServingRuntime in the applications namespace
+      if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
+        cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+        createCleanServingRuntime(testData.servingRuntimeName, testData.servingRuntimeYamlPath);
+      }
+
+      // Provision project with data connection (also handles project create/clean)
+      provisionProjectForModelServing(
+        projectName,
+        awsBucket,
+        'resources/yaml/data_connection_model_serving.yaml',
+      );
+      addUserToProject(projectName, contributor, 'edit');
+      // Grant the RHOAI rhods-users ClusterRole so ldap-user2 can list/get KServe CRDs
+      // (the standard 'edit' role does not cover serving.kserve.io resources)
+      cy.exec(
+        `oc adm policy add-cluster-role-to-user rhods-users ${contributor} -n ${projectName}`,
+        { failOnNonZeroExit: false },
+      );
+    });
   });
 
   //Cleanup: Delete Hardware Profile and the associated Project
@@ -86,6 +102,11 @@ describe('ModelServing - tolerations tests', () => {
 
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     return cleanupHardwareProfiles(testData.hardwareProfileName).then(() => {
+      // On s390x clean up the ServingRuntime
+      if (isS390x && testData.servingRuntimeName) {
+        cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
+        cleanupServingRuntime(testData.servingRuntimeName);
+      }
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
@@ -133,7 +154,14 @@ describe('ModelServing - tolerations tests', () => {
       );
       cy.step('Step 1: Model details');
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
-      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
+      // The connection is auto-selected when only one exists. Wait for the combobox input
+      // to reflect the selection (confirming React state is initialised) before typing the path.
+      modelServingWizard.findExistingConnectionValue().should('have.value', dataConnectionName);
+      modelServingWizard
+        .findLocationPathInput()
+        .should('be.visible')
+        .clear()
+        .type(modelFilePath, { delay: 0 });
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
@@ -147,12 +175,24 @@ describe('ModelServing - tolerations tests', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      inferenceServiceModal.selectPotentiallyDisabledProfile(
-        testData.hardwareProfileDeploymentSize,
-        hardwareProfileResourceName,
-      );
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      if (isS390x) {
+        // On s390x the accessible name of hardware profile options includes Request/Limit text
+        // instead of Default/Max, so we match by partial name regex instead of exact string.
+        inferenceServiceModal.selectPotentiallyDisabledProfile(
+          testData.hardwareProfileDeploymentSize,
+          testData.hardwareProfileName,
+        );
+        // On s390x select the runtime first — format options are runtime-dependent
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
+      } else {
+        inferenceServiceModal.selectPotentiallyDisabledProfile(
+          testData.hardwareProfileDeploymentSize,
+          hardwareProfileResourceName,
+        );
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      }
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');

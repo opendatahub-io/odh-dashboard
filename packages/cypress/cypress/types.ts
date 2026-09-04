@@ -469,9 +469,13 @@ export type ModelTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
   modelName: string;
+  dataConnectionName: string;
   modelFilePath: string;
   modelFormat: string;
   servingRuntime: string;
+  isS390x?: boolean;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
 };
 
 export type NotebookTolerationsTestData = {

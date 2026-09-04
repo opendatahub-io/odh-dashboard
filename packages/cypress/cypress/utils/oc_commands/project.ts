@@ -246,7 +246,16 @@ export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => 
       const maskedStderr = maskSensitiveInfo(result.stderr || '');
       throw new Error(`Failed to get DashboardConfig: ${maskedStderr}`);
     }
-    const config = JSON.parse(result.stdout) as DashboardConfig;
+    const trimmedOutput = result.stdout.trim();
+    if (!trimmedOutput) {
+      throw new Error('Failed to get DashboardConfig: command returned empty output');
+    }
+    let config: DashboardConfig;
+    try {
+      config = JSON.parse(trimmedOutput) as DashboardConfig;
+    } catch (error) {
+      throw new Error(`Failed to parse DashboardConfig JSON: ${trimmedOutput.slice(0, 200)}`);
+    }
 
     if (key) {
       // If a specific key is requested, return that value
@@ -272,13 +281,24 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
       throw new Error(`Failed to get Notebook Controller Config: ${maskedStderr}`);
     }
 
-    const config = JSON.parse(result.stdout) as Record<string, unknown>; // Adjust type as needed
+    const trimmedOutput = result.stdout.trim();
+    if (!trimmedOutput) {
+      throw new Error('Failed to get Notebook Controller Config: command returned empty output');
+    }
+    let config: Record<string, unknown>;
+    try {
+      config = JSON.parse(trimmedOutput) as Record<string, unknown>;
+    } catch (error) {
+      throw new Error(
+        `Failed to parse Notebook Controller Config JSON: ${trimmedOutput.slice(0, 200)}`,
+      );
+    }
 
     if (key) {
       return Cypress.Promise.resolve(getNestedProperty(config, key));
     }
 
-    return Cypress.Promise.resolve(config); // Ensure this returns a promise
+    return Cypress.Promise.resolve(config);
   });
 };
 

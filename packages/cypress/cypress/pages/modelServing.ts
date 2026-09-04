@@ -339,9 +339,12 @@ class InferenceServiceModal extends ServingModal {
         cy.wrap($el).contains(nameToCheck).should('exist');
         cy.log(`Dropdown is disabled with value: ${nameToCheck}`);
       } else {
-        // If enabled, proceed with selection as before using the full display name
         dropdown.click();
-        cy.findByRole('option', { name: profileDisplayName }).click();
+        if (profileName) {
+          cy.findByTestId(profileName).find('[role="option"]').click();
+        } else {
+          cy.findByRole('option', { name: profileDisplayName }).click();
+        }
       }
     });
   }
@@ -996,7 +999,23 @@ class ModelServingWizard extends Wizard {
   }
 
   findModelFormatSelectOption(name: string) {
-    return this.findModelFormatSelect().findSelectOption(name);
+    return this.findModelFormatSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      // PF6 SelectOption renders a <li data-testid="..."><button>...</button></li>.
+      // Click the inner button; force:true bypasses any overlay intercepting the event.
+      return cy.get(`[data-testid="${name}"] button`).should('exist');
+    });
+  }
+
+  findModelFormatSelectOptionByTestId(testId: string) {
+    return this.findModelFormatSelect().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name: new RegExp(`^${testId}`) }).click({ force: true });
+    });
   }
 
   /** Selects the auto-select radio (works for both serving runtimes and model deployment configs). */

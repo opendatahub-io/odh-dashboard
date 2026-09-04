@@ -156,7 +156,7 @@ export const loadDeployOCIModelFixture = (
 export const loadModelTolerationsFixture = (
   fixturePath: string,
 ): Cypress.Chainable<ModelTolerationsTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+  loadYamlFixture(fixturePath).then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
 
     return data;
