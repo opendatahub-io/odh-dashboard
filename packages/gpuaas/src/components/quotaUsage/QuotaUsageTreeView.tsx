@@ -50,14 +50,14 @@ const nodeName = (node: QuotaTreeNode): React.ReactNode => {
           variant="filled"
           isCompact
           icon={<ResourcesEmptyIcon aria-hidden />}
-          data-testid={`quota-usage-tree-node-${node.name}`}
+          data-testid={`gpuaas-quota-usage-tree-node-${node.name}`}
         >
           {QUOTA_UNASSIGNED_LABEL}
         </Label>
       </Tooltip>
     );
   }
-  return <span data-testid={`quota-usage-tree-node-${node.name}`}>{node.name}</span>;
+  return <span data-testid={`gpuaas-quota-usage-tree-node-${node.name}`}>{node.name}</span>;
 };
 
 const mapNodesToTreeData = (
@@ -128,7 +128,7 @@ const QuotaUsageTreeView: React.FC<QuotaUsageTreeViewProps> = ({
 
   return (
     <TreeView
-      className="quota-usage-tree"
+      className="gpuaas-quota-usage-tree"
       key={expandStateKey}
       data={treeData}
       defaultAllExpanded

@@ -86,7 +86,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({ tree, loaded, err
     <Flex
       direction={{ default: 'column' }}
       grow={{ default: 'grow' }}
-      className="quota-usage-section"
+      className="gpuaas-quota-usage-section"
       data-testid="quota-usage-section"
     >
       <Drawer isExpanded isInline>

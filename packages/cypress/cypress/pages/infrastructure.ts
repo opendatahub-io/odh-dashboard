@@ -129,7 +129,7 @@ class InfrastructurePage {
   }
 
   findQuotaUsageTreeNode(name: string) {
-    return this.findQuotaUsageSection().findByTestId(`quota-usage-tree-node-${name}`);
+    return this.findQuotaUsageSection().findByTestId(`gpuaas-quota-usage-tree-node-${name}`);
   }
 
   findQuotaUsageBreadcrumb() {
