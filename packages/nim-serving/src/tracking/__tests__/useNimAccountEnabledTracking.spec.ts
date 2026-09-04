@@ -55,6 +55,23 @@ describe('useNimAccountEnabledTracking', () => {
     });
   });
 
+  it('should reset tracking state when submitted returns to false', () => {
+    const renderResult = testHook(useNimAccountEnabledTracking)(
+      true,
+      NIMAccountStatus.PENDING,
+      NimAccountEnabledMode.ENABLE,
+    );
+
+    renderResult.rerender(true, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
+    expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(1);
+
+    renderResult.rerender(false, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
+    renderResult.rerender(true, NIMAccountStatus.PENDING, NimAccountEnabledMode.ENABLE);
+    renderResult.rerender(true, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
+
+    expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(2);
+  });
+
   it('should track API failures with an allowlisted category', () => {
     const renderResult = testHook(useNimAccountEnabledTracking)(
       false,

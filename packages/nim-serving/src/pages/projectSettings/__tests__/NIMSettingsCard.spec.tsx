@@ -2,8 +2,11 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useNIMSettingsAccessAllowed } from '../useNIMSettingsAccessAllowed';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
+import { deleteNIMResources } from '../../../api/accounts/api';
+import { fireNimAccountRemoved, NimFailureCategory } from '../../../tracking/nimTrackingConstants';
 import NIMSettingsCard from '../NIMSettingsCard';
 
 jest.mock('../useNIMSettingsAccessAllowed');
@@ -24,6 +27,11 @@ jest.mock('../../../api/accounts/api', () => ({
   deleteNIMResources: jest.fn(),
 }));
 
+jest.mock('../../../tracking/nimTrackingConstants', () => ({
+  ...jest.requireActual('../../../tracking/nimTrackingConstants'),
+  fireNimAccountRemoved: jest.fn(),
+}));
+
 jest.mock('../NIMApiKeyModal', () => {
   const Mock = () => <div data-testid="nim-api-key-modal" />;
   Mock.displayName = 'MockNIMApiKeyModal';
@@ -31,13 +39,21 @@ jest.mock('../NIMApiKeyModal', () => {
 });
 
 jest.mock('@odh-dashboard/internal/pages/projects/components/DeleteModal', () => {
-  const Mock = () => <div data-testid="nim-delete-modal" />;
+  const Mock = ({ onDelete }: { onDelete: () => void | Promise<void> }) => (
+    <div data-testid="nim-delete-modal">
+      <button type="button" data-testid="nim-delete-confirm" onClick={() => void onDelete()}>
+        Confirm delete
+      </button>
+    </div>
+  );
   Mock.displayName = 'MockDeleteModal';
   return Mock;
 });
 
 const mockUseNIMSettingsAccessAllowed = jest.mocked(useNIMSettingsAccessAllowed);
 const mockUseNIMAccountStatus = jest.mocked(useNIMAccountStatus);
+const mockDeleteNIMResources = jest.mocked(deleteNIMResources);
+const mockFireNimAccountRemoved = jest.mocked(fireNimAccountRemoved);
 
 const defaultAccountStatus = {
   status: NIMAccountStatus.NOT_FOUND,
@@ -170,5 +186,36 @@ describe('NIMSettingsCard', () => {
     expect(
       await screen.findByText(/don't have permission to remove a personal API key/),
     ).toBeInTheDocument();
+  });
+
+  it('should time out delete polling after ten refresh attempts', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
+    const refresh = jest.fn().mockResolvedValue({ name: 'nim-account' });
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.READY,
+      refresh,
+    });
+    mockDeleteNIMResources.mockResolvedValue(undefined);
+
+    render(<NIMSettingsCard namespace="test-ns" />);
+
+    await user.click(screen.getByTestId('nim-remove-button'));
+    await user.click(screen.getByTestId('nim-delete-confirm'));
+
+    await jest.advanceTimersByTimeAsync(9000);
+    expect(mockFireNimAccountRemoved).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(mockFireNimAccountRemoved).toHaveBeenCalledWith({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: NimFailureCategory.DELETE_TIMEOUT,
+    });
+    expect(refresh).toHaveBeenCalledTimes(10);
+
+    jest.useRealTimers();
   });
 });

@@ -45,7 +45,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const [submitted, setSubmitted] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
   const [submitMode, setSubmitMode] = React.useState(NimAccountEnabledMode.ENABLE);
-  const { resetTrackingState, trackSubmitApiFailure } = useNimAccountEnabledTracking(
+  const { trackSubmitApiFailure } = useNimAccountEnabledTracking(
     submitted,
     accountStatus,
     submitMode,
@@ -55,7 +55,6 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     const trimmedKey = apiKey.trim();
     setIsCreating(true);
     setCreateError(undefined);
-    resetTrackingState();
 
     const accountExists =
       accountStatus !== NIMAccountStatus.NOT_FOUND && accountStatus !== NIMAccountStatus.LOADING;
@@ -78,15 +77,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     } finally {
       setIsCreating(false);
     }
-  }, [
-    apiKey,
-    accountStatus,
-    namespace,
-    startRevalidation,
-    refresh,
-    resetTrackingState,
-    trackSubmitApiFailure,
-  ]);
+  }, [apiKey, accountStatus, namespace, startRevalidation, refresh, trackSubmitApiFailure]);
 
   const handleClose = React.useCallback(() => {
     onClose();

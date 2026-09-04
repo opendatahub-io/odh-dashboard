@@ -12,16 +12,17 @@ export const useNimAccountEnabledTracking = (
   accountStatus: NIMAccountStatus,
   submitMode: NimAccountEnabledMode,
 ): {
-  resetTrackingState: () => void;
   trackSubmitApiFailure: (mode: NimAccountEnabledMode) => void;
 } => {
   const hasTrackedSubmitRef = React.useRef(false);
   const hasSeenValidationPendingRef = React.useRef(false);
 
-  const resetTrackingState = React.useCallback(() => {
-    hasTrackedSubmitRef.current = false;
-    hasSeenValidationPendingRef.current = false;
-  }, []);
+  React.useEffect(() => {
+    if (!submitted) {
+      hasTrackedSubmitRef.current = false;
+      hasSeenValidationPendingRef.current = false;
+    }
+  }, [submitted]);
 
   const trackSubmitApiFailure = React.useCallback((mode: NimAccountEnabledMode) => {
     hasTrackedSubmitRef.current = true;
@@ -68,5 +69,5 @@ export const useNimAccountEnabledTracking = (
     }
   }, [submitted, accountStatus, submitMode]);
 
-  return { resetTrackingState, trackSubmitApiFailure };
+  return { trackSubmitApiFailure };
 };

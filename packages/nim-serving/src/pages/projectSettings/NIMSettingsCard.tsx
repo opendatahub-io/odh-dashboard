@@ -89,6 +89,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     }
     let retries = 10;
     deleteStatusIntervalRef.current = setInterval(async () => {
+      retries -= 1;
       try {
         const result = await refresh();
         if (!result) {
@@ -98,7 +99,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             outcome: TrackingOutcome.submit,
             success: true,
           });
-        } else if (retries === 0) {
+        } else if (retries <= 0) {
           const error = new Error('NIM resources were not deleted in time.');
           stopPollingDeleteStatus(error);
           fireNimAccountRemoved({
@@ -107,7 +108,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             error: NimFailureCategory.DELETE_TIMEOUT,
           });
         }
-        retries -= 1;
       } catch (e) {
         const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
         stopPollingDeleteStatus(error);
