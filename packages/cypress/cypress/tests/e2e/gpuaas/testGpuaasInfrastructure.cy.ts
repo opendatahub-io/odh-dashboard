@@ -42,7 +42,6 @@ describe('GPUaaS Infrastructure Page', () => {
 
       cy.step('Click Quota usage tab and verify section is present');
       infrastructurePage.switchToQuotaUsageTab();
-      infrastructurePage.findQuotaUsageSection().should('be.visible');
       infrastructurePage.shouldHaveQuotaUsageNavSearchOrEmptyState();
     },
   );

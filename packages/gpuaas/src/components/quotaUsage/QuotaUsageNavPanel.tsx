@@ -160,7 +160,7 @@ const QuotaUsageNavPanel: React.FC<QuotaUsageNavPanelProps> = ({
             onClear={() => setSearchValue('')}
             aria-label="Search by name"
             style={fullWidthStyle}
-            data-testid="quota-usage-nav-search"
+            inputProps={{ 'data-testid': 'quota-usage-nav-search' }}
           />
         </ToolbarItem>
         <ToolbarItem alignSelf="center">

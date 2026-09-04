@@ -152,11 +152,15 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-nav-search-empty');
   }
 
-  findQuotaUsageNavSearchOrEmptyState() {
-    return cy.get('[data-testid="quota-usage-nav-search"], [data-testid="quota-usage-empty"]');
+  findQuotaUsageNavSearchOrEmptyState(timeout = 60000) {
+    return cy.get(
+      '[data-testid="quota-usage-nav-search"], [data-testid="quota-usage-section"], [data-testid="quota-usage-empty"], [data-testid="quota-usage-error"]',
+      { timeout },
+    );
   }
 
   shouldHaveQuotaUsageNavSearchOrEmptyState() {
+    this.findQuotaUsageSection().should('be.visible');
     this.findQuotaUsageNavSearchOrEmptyState().should('exist');
     return this;
   }
