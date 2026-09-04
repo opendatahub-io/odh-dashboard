@@ -97,12 +97,12 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
           <FormHelperText>
             <HelperText>
               {!nameValid ? (
-                <HelperTextItem variant="error">
+                <HelperTextItem variant="error" data-testid="feast-project-name-error">
                   Must consist of lowercase alphanumeric characters, &apos;-&apos; or &apos;.&apos;,
                   and must start and end with an alphanumeric character.
                 </HelperTextItem>
               ) : nameIsDuplicate ? (
-                <HelperTextItem variant="error">
+                <HelperTextItem variant="error" data-testid="feast-project-name-error">
                   A feature store with this name already exists.
                 </HelperTextItem>
               ) : (
