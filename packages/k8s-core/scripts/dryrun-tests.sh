@@ -55,14 +55,6 @@ else
   LAYER2_FAILED=true
 fi
 
-log "CREATE TrainJob scale (dry-run=server)"
-if kubectl apply --dry-run=server -f "${FIXTURES_DIR}/trainjob-scale.yaml"; then
-  record_result "create_trainjob_scale" "pass" "server dry-run accepted scaled TrainJob create"
-else
-  record_result "create_trainjob_scale" "fail" "server dry-run rejected scaled TrainJob create"
-  LAYER2_FAILED=true
-fi
-
 log "Applying Workload and TrainJob resources for patch dry-run validation"
 kubectl apply -f "${FIXTURES_DIR}/workload-pause.yaml"
 kubectl apply -f "${FIXTURES_DIR}/trainjob-integration.yaml"
@@ -82,6 +74,18 @@ if kubectl patch trainjob sentinel-trainjob-integration -n kueue-sentinel \
   record_result "patch_trainjob_suspend" "pass" "server dry-run accepted TrainJob suspend patch"
 else
   record_result "patch_trainjob_suspend" "fail" "server dry-run rejected TrainJob suspend patch"
+  LAYER2_FAILED=true
+fi
+
+log "PATCH TrainJob spec.trainer.numNodes (dry-run=server, expect immutability)"
+PATCH_OUTPUT="$(kubectl patch trainjob sentinel-trainjob-integration -n kueue-sentinel \
+  --type=merge -p '{"spec":{"trainer":{"numNodes":3}}}' --dry-run=server 2>&1)" || true
+if [[ "${PATCH_OUTPUT}" == *"field is immutable"* ]]; then
+  record_result "patch_trainjob_numnodes_immutable" "pass" \
+    "server rejected TrainJob scale patch as immutable (matches dashboard scaling.ts)"
+else
+  record_result "patch_trainjob_numnodes_immutable" "fail" \
+    "expected immutability rejection for spec.trainer patch, got: ${PATCH_OUTPUT}"
   LAYER2_FAILED=true
 fi
 

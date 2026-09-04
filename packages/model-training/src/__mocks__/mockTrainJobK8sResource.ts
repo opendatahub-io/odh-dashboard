@@ -60,9 +60,9 @@ export const mockTrainJobK8sResource = ({
   cpuRequest = '1',
   memoryRequest = '2Gi',
   runtimeRef = {
-    apiGroup: 'kubeflow.org',
-    kind: 'PyTorchRuntime',
-    name: 'pytorch-runtime',
+    apiGroup: 'trainer.kubeflow.org',
+    kind: 'ClusterTrainingRuntime',
+    name: 'training-cuda128-torch28-py312',
   },
   conditions = (() => {
     const baseTimestamp = creationTimestamp;

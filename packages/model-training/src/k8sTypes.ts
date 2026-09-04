@@ -253,9 +253,7 @@ export type ClusterTrainingRuntimeKind = K8sResourceCommon & {
   spec: {
     mlPolicy?: {
       numNodes?: number;
-      torch?: {
-        numProcPerNode?: string | number;
-      };
+      torch?: Record<string, never>;
     };
     template?: {
       spec?: {

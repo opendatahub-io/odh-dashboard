@@ -106,18 +106,15 @@ if [[ -n "${WORKLOAD_NAME}" ]]; then
   record_result "workload_resume" "pass" "Workload resume patch accepted"
 fi
 
-log "CREATE scaled TrainJob (spec.trainer is immutable in Trainer v2.3+)"
-if kubectl apply -f "${FIXTURES_DIR}/trainjob-scale.yaml"; then
-  SCALE_NODES="$(kubectl get trainjob sentinel-trainjob-scale -n kueue-sentinel \
-    -o jsonpath='{.spec.trainer.numNodes}' 2>/dev/null || true)"
-  if [[ "${SCALE_NODES}" == "2" ]]; then
-    record_result "trainjob_scale" "pass" "TrainJob created with numNodes=2"
-  else
-    record_result "trainjob_scale" "fail" "TrainJob numNodes mismatch (got ${SCALE_NODES})"
-    LAYER3_FAILED=true
-  fi
+log "PATCH TrainJob spec.trainer.numNodes (expect immutability, matches scaling.ts)"
+PATCH_OUTPUT="$(kubectl patch trainjob sentinel-trainjob-integration -n kueue-sentinel \
+  --type=merge -p '{"spec":{"trainer":{"numNodes":3}}}' 2>&1)" || true
+if [[ "${PATCH_OUTPUT}" == *"field is immutable"* ]]; then
+  record_result "trainjob_scale_immutable" "pass" \
+    "TrainJob scale patch rejected as immutable (matches dashboard scaling.ts)"
 else
-  record_result "trainjob_scale" "fail" "TrainJob scale create rejected"
+  record_result "trainjob_scale_immutable" "fail" \
+    "expected immutability rejection for spec.trainer patch, got: ${PATCH_OUTPUT}"
   LAYER3_FAILED=true
 fi
 
