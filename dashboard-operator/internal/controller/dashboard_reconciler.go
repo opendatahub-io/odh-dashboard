@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -18,15 +19,22 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/deploy"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/annotations"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -661,8 +669,14 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	if degradedModules > 0 {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("ModulesDegraded"),
-			conditions.WithError(fmt.Errorf("%d module(s) degraded", degradedModules)),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
+			conditions.WithMessage("%d module(s) degraded", degradedModules),
+			conditions.WithSeverity(common.ConditionSeverityError))
+		// Degraded is a negative-polarity condition. The condition manager only
+		// rolls up false/unknown dependents, so explicitly make Ready unhappy when
+		// Degraded=True.
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("ModulesDegraded"),
+			conditions.WithMessage("%d module(s) degraded", degradedModules))
 	}
 }
 
@@ -1020,11 +1034,101 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	// resources trigger re-reconciliation. During Removed state the extra
 	// reconcile is harmless — teardown is idempotent and bounded by the
 	// number of owned resources.
+	//
+	// Watches() on ConfigMap tracks the platform config ConfigMaps that feed
+	// reconcile inputs but are not owned by the Dashboard CR (they are managed
+	// by the platform operator). Without this, a platform-driven change such as
+	// a platformVersion bump in odh-dashboard-config would not trigger a
+	// reconcile, leaving status.releases[platform].version stale until an
+	// unrelated event fired (RHOAIENG-81919).
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Dashboard{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
+		Watches(
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToDashboard),
+			builder.WithPredicates(r.configMapPredicate()),
+		).
 		Complete(r)
+}
+
+// isWatchedConfigMap reports whether obj is one of the config ConfigMaps in the
+// operator namespace whose contents feed reconcile inputs: platform version and
+// distribution identity (the distribution config, odh-dashboard-config by
+// default) and the reconcile interval (dashboard-operator-config). Changes to
+// these must trigger a reconcile so the Dashboard status stays fresh even when
+// nothing else touches the CR (RHOAIENG-81919).
+//
+// The distribution config name is user-settable (chart value config.name, plumbed
+// in via OPERATOR_CONFIGMAP_NAME), so it is resolved through the same helper the
+// readers use rather than compared against the hardcoded default — otherwise a
+// non-default install would watch the wrong ConfigMap and status would go stale.
+//
+// Both the predicate and the map func route through this single helper so their
+// nil handling and scoping cannot drift.
+func (r *DashboardReconciler) isWatchedConfigMap(obj client.Object) bool {
+	if obj == nil || obj.GetNamespace() != r.Namespace {
+		return false
+	}
+
+	name := obj.GetName()
+
+	return name == resolveDistributionConfigMapName() || name == operatorConfigMapName
+}
+
+// mapConfigMapToDashboard enqueues a reconcile for the singleton Dashboard when
+// one of the watched config ConfigMaps in the operator namespace changes.
+func (r *DashboardReconciler) mapConfigMapToDashboard(_ context.Context, obj client.Object) []reconcile.Request {
+	if !r.isWatchedConfigMap(obj) {
+		return nil
+	}
+
+	return []reconcile.Request{{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	}}
+}
+
+// configMapPredicate limits ConfigMap events to the watched config ConfigMaps in
+// the operator namespace. For updates it fires only when Data or a consumed
+// annotation (PlatformType / PlatformVersion — the distribution identity read by
+// readDistributionConfig) actually changed. Only those two annotation keys are
+// compared, not the whole map, so unrelated metadata churn — resourceVersion
+// bumps, managed-field rewrites, GitOps/Helm bookkeeping annotations such as
+// last-applied-configuration or meta.helm.sh/* — does not enqueue a no-op
+// reconcile. The annotation comparison is scoped to the distribution config, the
+// only ConfigMap those annotations are consumed from (resolved via the same helper
+// the readers use, so a chart-customized name is honored); dashboard-operator-config
+// contributes reconcile inputs through Data alone.
+func (r *DashboardReconciler) configMapPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return r.isWatchedConfigMap(e.Object) },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if !r.isWatchedConfigMap(e.ObjectNew) {
+				return false
+			}
+
+			oldCM, oldOK := e.ObjectOld.(*corev1.ConfigMap)
+			newCM, newOK := e.ObjectNew.(*corev1.ConfigMap)
+			if !oldOK || !newOK {
+				return true
+			}
+
+			// PlatformType / PlatformVersion annotations are read only from the
+			// distribution config (readDistributionConfig). Restrict the annotation
+			// comparison to that ConfigMap — resolved via the same helper the readers
+			// use, so a chart-customized name is honored — so annotation churn on
+			// dashboard-operator-config, which contributes only via Data, does not
+			// enqueue a no-op reconcile.
+			annotationChanged := newCM.Name == resolveDistributionConfigMapName() &&
+				(oldCM.Annotations[annotations.PlatformType] != newCM.Annotations[annotations.PlatformType] ||
+					oldCM.Annotations[annotations.PlatformVersion] != newCM.Annotations[annotations.PlatformVersion])
+
+			return !maps.Equal(oldCM.Data, newCM.Data) || annotationChanged
+		},
+	}
 }
