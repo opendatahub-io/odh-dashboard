@@ -1,8 +1,8 @@
 const path = require('path');
 const { execSync } = require('child_process');
-const { WORKSPACE_QUERY_SCRIPT } = require('../../scripts/workspace-query-path');
 
 const REPO_ROOT = path.resolve(__dirname, '../..');
+const WORKSPACE_QUERY_SCRIPT = path.join(REPO_ROOT, 'scripts/query-workspace-packages.js');
 
 function resolvePackageLocation(packagePath) {
   if (!packagePath || packagePath === '.') {
