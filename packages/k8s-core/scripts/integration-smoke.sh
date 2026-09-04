@@ -106,19 +106,18 @@ if [[ -n "${WORKLOAD_NAME}" ]]; then
   record_result "workload_resume" "pass" "Workload resume patch accepted"
 fi
 
-log "PATCH TrainJob spec.trainer.numNodes=3 (scale)"
-if kubectl patch trainjob sentinel-trainjob-integration -n kueue-sentinel \
-  --type=merge -p '{"spec":{"trainer":{"numNodes":3}}}'; then
-  UPDATED_NODES="$(kubectl get trainjob sentinel-trainjob-integration -n kueue-sentinel \
+log "CREATE scaled TrainJob (spec.trainer is immutable in Trainer v2.3+)"
+if kubectl apply -f "${FIXTURES_DIR}/trainjob-scale.yaml"; then
+  SCALE_NODES="$(kubectl get trainjob sentinel-trainjob-scale -n kueue-sentinel \
     -o jsonpath='{.spec.trainer.numNodes}' 2>/dev/null || true)"
-  if [[ "${UPDATED_NODES}" == "3" ]]; then
-    record_result "trainjob_scale" "pass" "TrainJob numNodes scaled to 3"
+  if [[ "${SCALE_NODES}" == "2" ]]; then
+    record_result "trainjob_scale" "pass" "TrainJob created with numNodes=2"
   else
-    record_result "trainjob_scale" "fail" "TrainJob numNodes patch did not persist (got ${UPDATED_NODES})"
+    record_result "trainjob_scale" "fail" "TrainJob numNodes mismatch (got ${SCALE_NODES})"
     LAYER3_FAILED=true
   fi
 else
-  record_result "trainjob_scale" "fail" "TrainJob scale patch rejected"
+  record_result "trainjob_scale" "fail" "TrainJob scale create rejected"
   LAYER3_FAILED=true
 fi
 
