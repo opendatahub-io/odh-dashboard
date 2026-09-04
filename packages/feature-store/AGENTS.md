@@ -47,6 +47,7 @@ packages/feature-store/
 ## Extension System
 
 Extensions are defined in `extensions.ts` and register:
+
 - **Area (browse)**: `plugin-feature-store` (reliant on `SupportedArea.FEATURE_STORE`, disabled by `disableFeatureStore` flag)
 - **Area (admin)**: `plugin-feature-store-admin` (reliant on `SupportedArea.FEATURE_STORE_ADMIN`, enabled by `featureStoreAdmin` flag)
 - **Navigation section**: Under `develop-and-train`
@@ -90,9 +91,9 @@ pnpm run type-check       # Type check feature-store only
 
 ## Related Code (Outside This Package)
 
-| Area | Location | Purpose |
-|------|----------|---------|
-| Backend proxy | `backend/src/routes/api/featurestores/` | Discovery + proxy to Feast REST API |
+| Area                  | Location                                                    | Purpose                                          |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
+| Backend proxy         | `backend/src/routes/api/featurestores/`                     | Discovery + proxy to Feast REST API              |
 | Workbench integration | `frontend/src/pages/projects/screens/spawner/featureStore/` | Feature Store selector in workbench spawner form |
-| Workbench API | `frontend/src/api/featureStore/custom.ts` | `getWorkbenchFeatureStores()` endpoint |
-| Area/flag config | `frontend/src/concepts/areas/` | `SupportedArea.FEATURE_STORE` definition |
+| Workbench API         | `frontend/src/api/featureStore/custom.ts`                   | `getWorkbenchFeatureStores()` endpoint           |
+| Area/flag config      | `frontend/src/concepts/areas/`                              | `SupportedArea.FEATURE_STORE` definition         |
