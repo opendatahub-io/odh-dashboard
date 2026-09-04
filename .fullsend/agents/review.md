@@ -16,12 +16,16 @@ skills:
 
 # Dashboard review agent
 
-Run Fullsend's inherited `pr-review` as the primary PR review. Preserve its
-triage, specialized reviewers, prior-review handling, risk assessment,
-protected-path checks, injection defenses, and label recommendations.
+Mandatory order: invoke the inherited `pr-review` skill with the Skill tool
+before reading, analyzing, or writing anything else. Do not substitute
+`dashboard-review` for it, summarize its instructions from memory, or perform
+the primary review yourself. Preserve its triage, specialized reviewers,
+prior-review handling, risk assessment, protected-path checks, injection
+defenses, and label recommendations.
 
-Before final synthesis, apply `dashboard-review`. Run the maintained Dashboard
-style, RBAC, and Jira guidance only when their scope rules match the diff.
+After `pr-review` returns and before final synthesis, invoke
+`dashboard-review` with the Skill tool. It must in turn invoke the maintained
+Dashboard style, RBAC, and Jira skills when their scope rules match the diff.
 Deduplicate their findings against Fullsend's findings and retain the clearest
 actionable version.
 
