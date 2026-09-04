@@ -180,7 +180,7 @@ The operator:
 3. Dynamically generates the `federation-config` ConfigMap, pointing each module entry to the module's standalone Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`).
 4. Triggers rolling restarts of the main dashboard Deployment when the federation config changes (via a content hash annotation), ensuring the Fastify backend picks up updated proxy routes.
 
-The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See [Dashboard Operator Architecture](dashboard-operator.md) for full details.
+The controller is **not** part of the pnpm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See [Dashboard Operator Architecture](dashboard-operator.md) for full details.
 
 ## Client Structure
 

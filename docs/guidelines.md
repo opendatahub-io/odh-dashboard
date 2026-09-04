@@ -92,6 +92,6 @@ custom notes in Known Issues / Gotchas or a separate doc if they should survive 
 | **Standalone mode** | BFF serves both assets and APIs; used for local dev. |
 | **Federated mode** | Package loaded as micro-frontend via Module Federation. |
 | **Kubeflow mode** | Package deployed within Kubeflow Dashboard; uses MUI. |
-| **Turbo** | Monorepo task runner (`npx turbo run <task>`). |
+| **Turbo** | Monorepo task runner (`pnpm exec turbo run <task>`). |
 | **Contract test** | Validates frontend HTTP expectations against the BFF's OpenAPI schema. |
 | **ADR** | Architecture Decision Record — captures an architectural choice and consequences. |

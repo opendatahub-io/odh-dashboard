@@ -198,7 +198,7 @@ pageObject.findStatusText().should('contain', 'Running');
 > **Linting/fixing commands (cypress only):**
 > - From the packages/cypress directory, run:
 >   ```bash
->   npm run lint -- --fix
+>   pnpm run lint -- --fix
 >   ```
 
 **All linting errors must be fixed**:
@@ -388,7 +388,7 @@ describe('[Product Bug: RHOAIENG-33609] Verify Jupyter Notebook Launch', () => {
 5. **Run linting**:
    ```bash
    cd packages/cypress
-   npm run lint -- --fix
+   pnpm run lint -- --fix
    ```
 
 6. **Stage changes and review**:
@@ -507,7 +507,7 @@ During implementation:
 
 After implementation:
 
-- [ ] Run linting: `npm run lint -- --fix` (from the packages/cypress directory)
+- [ ] Run linting: `pnpm run lint -- --fix` (from the packages/cypress directory)
 - [ ] Fix ALL linting errors before claiming test is complete
 - [ ] Verify test independence and cleanup
 - [ ] Test on clean environment

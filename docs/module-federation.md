@@ -270,7 +270,7 @@ Please refer to the [Extensibility Documentation](./extensibility.md).
 In the remote's **frontend** `package.json`:
 
 ```bash
-npm install --save-dev @module-federation/enhanced
+pnpm install --save-dev @module-federation/enhanced
 ```
 
 In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a `devDependency` (resolved via workspace hoisting when the frontend rspack config requires it):
@@ -387,7 +387,7 @@ This ensures rspack can parse TypeScript from `@odh-dashboard/*` packages resolv
 
 When creating a new `@odh-dashboard/*` library package that will be consumed by federated remotes:
 
-1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
+1. Add the package to the monorepo under `packages/`. pnpm workspaces will hoist it into `node_modules/@odh-dashboard/`.
 2. For remotes to use `import: false` against it, the package must be host-provided: either appear in the host's `@odh-dashboard/*` dependency closure, or export `./extensions` (included in the host via the virtual `plugin-extensions` module). Otherwise it is only shared as a singleton with import/fallback if reached from a federated package's dependency tree.
 3. Ensure the consumer's `rspack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 

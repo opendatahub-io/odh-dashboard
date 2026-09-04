@@ -133,7 +133,7 @@ Run: `cd packages/agent-ops/bff && go test ./...`
 ### Contract tests (2026-06-15)
 
 ```bash
-cd packages/agent-ops && npm run test:contract
+cd packages/agent-ops && pnpm run test:contract
 ```
 
 **Result:** 3/3 passed (healthcheck, list runtimes, runtime detail with mock `agentCard`).

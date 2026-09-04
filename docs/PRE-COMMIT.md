@@ -7,7 +7,7 @@
 ```bash
 git clone <repository>
 cd odh-dashboard
-npm install
+pnpm install
 ```
 
 The pre-commit hook will be automatically set up and ready to use! ✨
@@ -53,19 +53,19 @@ git commit -m "My changes"
 # → 💥 Lint checks failed! Here's how to fix the issues:
 # →
 # → 🔧 Auto-fix many issues:
-# →    Frontend: cd frontend && npm run test:fix
-# →    Backend:  cd backend && npm run test:fix
+# →    Frontend: cd frontend && pnpm run test:fix
+# →    Backend:  cd backend && pnpm run test:fix
 # →
 # → 🔍 Manual review of errors:
-# →    Frontend: cd frontend && npm run test:lint
-# →    Backend:  cd backend && npm run test:lint
+# →    Frontend: cd frontend && pnpm run test:lint
+# →    Backend:  cd backend && pnpm run test:lint
 # →
 # → 💡 After fixing, stage your changes and commit again:
 # →    git add .
 # →    git commit -m "Your commit message"
 # →
 # → ⚠️  To bypass this check:
-# →    One-time: npm run commit:skip-lint-hook -- -m "Your message"
+# →    One-time: pnpm run commit:skip-lint-hook -- -m "Your message"
 # →    One-time: SKIP_LINT_HOOK=true git commit -m "Your message"
 # →    One-time: git commit --no-verify -m "Your message"
 # →
@@ -77,14 +77,14 @@ git commit -m "My changes"
 
 ```bash
 # 1. Auto-fix common issues
-cd frontend && npm run test:fix
+cd frontend && pnpm run test:fix
 # or
-cd backend && npm run test:fix
+cd backend && pnpm run test:fix
 
 # 2. Review any remaining issues
-cd frontend && npm run test:lint
+cd frontend && pnpm run test:lint
 # or
-cd backend && npm run test:lint
+cd backend && pnpm run test:lint
 
 # 3. Fix remaining issues manually, then commit
 git add .
@@ -97,7 +97,7 @@ git commit -m "Fix lint issues and add feature"
 
 ```bash
 # Method 1: Using npm script (recommended)
-npm run commit:skip-lint-hook -- -m "Your commit message"
+pnpm run commit:skip-lint-hook -- -m "Your commit message"
 
 # Method 2: Using environment variable
 SKIP_LINT_HOOK=true git commit -m "Your commit message"
@@ -134,7 +134,7 @@ export SKIP_LINT_HOOK=true
 git commit -m "WIP commit"  # Skipped
 
 # Force linting anyway (overrides SKIP_LINT_HOOK)
-npm run commit:force-lint-hook -- -m "Ready for review"  # Runs lint!
+pnpm run commit:force-lint-hook -- -m "Ready for review"  # Runs lint!
 FORCE_LINT_HOOK=true git commit -m "Final commit"        # Runs lint!
 ```
 
@@ -166,17 +166,17 @@ The pre-commit hook is configured in:
 
 - **`.husky/pre-commit`** - The hook script with enhanced error messaging
 - **`package.json`** - `lint-staged` configuration using bash path manipulation
-- **`package-lock.json`** - `lint-staged` dependency
+- **`package.json`** - `lint-staged` dependency
 
 ### lint-staged configuration
 
 ```json
 "lint-staged": {
   "frontend/**/*.{js,ts,jsx,tsx}": [
-    "bash -c 'cd frontend && npx eslint --max-warnings 0 \"${@#frontend/}\"' --"
+    "bash -c 'cd frontend && pnpm exec eslint --max-warnings 0 \"${@#frontend/}\"' --"
   ],
   "backend/**/*.{js,ts,json}": [
-    "bash -c 'cd backend && npx eslint --max-warnings 0 \"${@#backend/}\"' --"
+    "bash -c 'cd backend && pnpm exec eslint --max-warnings 0 \"${@#backend/}\"' --"
   ]
 }
 ```
@@ -217,19 +217,19 @@ This configuration:
 💥 Lint checks failed! Here's how to fix the issues:
 
 🔧 Auto-fix many issues:
-   Frontend: cd frontend && npm run test:fix
-   Backend:  cd backend && npm run test:fix
+   Frontend: cd frontend && pnpm run test:fix
+   Backend:  cd backend && pnpm run test:fix
 
 🔍 Manual review of errors:
-   Frontend: cd frontend && npm run test:lint
-   Backend:  cd backend && npm run test:lint
+   Frontend: cd frontend && pnpm run test:lint
+   Backend:  cd backend && pnpm run test:lint
 
 💡 After fixing, stage your changes and commit again:
    git add .
    git commit -m "Your commit message"
 
 ⚠️  To bypass this check:
-   One-time: npm run commit:skip-lint-hook -- -m "Your message"
+   One-time: pnpm run commit:skip-lint-hook -- -m "Your message"
    One-time: SKIP_LINT_HOOK=true git commit -m "Your message"
    One-time: git commit --no-verify -m "Your message"
 
@@ -257,10 +257,10 @@ ls -la .husky/pre-commit
 
 ```bash
 # Method 1: Run prepare script (recommended for team members)
-npm run prepare
+pnpm run prepare
 
 # Method 2: Install husky manually (if prepare script fails)
-npx husky install
+pnpm exec husky install
 # or for yarn users:
 # yarn husky install
 
@@ -275,33 +275,33 @@ ls -la .husky/pre-commit   # Should show: -rwxr-xr-x
 
 **Common scenarios:**
 
-- **Fresh clone**: Run `npm install` (calls prepare automatically)
-- **CI/CD environment**: Run `npm run prepare` after `npm ci`
+- **Fresh clone**: Run `pnpm install` (calls prepare automatically)
+- **CI/CD environment**: Run `pnpm run prepare` after `pnpm install --frozen-lockfile`
 - **Hook not working**: Check permissions with `chmod +x .husky/pre-commit`
 
 ### lint-staged not found?
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 # This should install lint-staged automatically via postinstall
 ```
 
-### Memory issues with npm run test:fix?
+### Memory issues with pnpm run test:fix?
 
 For large codebases, if auto-fix runs out of memory:
 
 ```bash
 # Fix specific files manually
-cd frontend && npx eslint --fix src/specific-file.ts
-cd backend && npx eslint --fix src/specific-file.ts
+cd frontend && pnpm exec eslint --fix src/specific-file.ts
+cd backend && pnpm exec eslint --fix src/specific-file.ts
 ```
 
 ### Need to bypass the hook?
 
 ```bash
 # Method 1: npm script (recommended)
-npm run commit:skip-lint-hook -- -m "Emergency fix"
+pnpm run commit:skip-lint-hook -- -m "Emergency fix"
 
 # Method 2: Environment variable
 SKIP_LINT_HOOK=true git commit -m "Emergency fix"
@@ -320,7 +320,7 @@ unset SKIP_LINT_HOOK  # Re-enable when done
 
 ```bash
 # Method 1: npm script (recommended)
-npm run commit:force-lint-hook -- -m "Ready for review"
+pnpm run commit:force-lint-hook -- -m "Ready for review"
 
 # Method 2: Environment variable override
 FORCE_LINT_HOOK=true git commit -m "Final commit"
@@ -344,7 +344,7 @@ The configuration uses bash parameter expansion to handle monorepo paths:
 ```bash
 # lint-staged passes: "frontend/src/component.tsx"
 # ${@#frontend/} converts to: "src/component.tsx"
-# Then runs: cd frontend && npx eslint src/component.tsx
+# Then runs: cd frontend && pnpm exec eslint src/component.tsx
 ```
 
 This ensures ESLint runs with the correct configuration and relative paths.
@@ -352,11 +352,11 @@ This ensures ESLint runs with the correct configuration and relative paths.
 ## Best practices
 
 1. **Fix issues immediately**: Don't bypass the hook unless absolutely necessary
-2. **Use auto-fix first**: Run `npm run test:fix` before manual fixes
+2. **Use auto-fix first**: Run `pnpm run test:fix` before manual fixes
 3. **Understand the errors**: Review what each lint rule is trying to prevent
 4. **Keep commits clean**: The hook helps maintain high code quality standards
 5. **Use skip options wisely**: Skip for WIP commits, but always run before pushing
-6. **Prefer npm script**: Use `npm run commit:skip-lint-hook` over `--no-verify` for clarity
+6. **Prefer the repository script**: Use `pnpm run commit:skip-lint-hook` over `--no-verify` for clarity
 7. **Re-enable promptly**: If using session-wide skip, remember to `unset SKIP_LINT_HOOK`
 
 The pre-commit hook is a **quality gate** that helps maintain consistent, high-quality code across the entire team. 🛡️

@@ -49,7 +49,7 @@ Before you begin, ensure you have the following installed:
 2. **Install Dependencies:**
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Export the test variables file path:**
@@ -86,7 +86,7 @@ Before you begin, ensure you have the following installed:
    This command launches the Cypress Test Runner, where you can run your tests interactively.
 
    ```bash
-   npm run cypress:open
+   pnpm run cypress:open
    ```
 
 ## Running Tests
@@ -96,7 +96,7 @@ Before you begin, ensure you have the following installed:
 Use the Cypress Test Runner for an interactive GUI:
 
 ```bash
-npm run cypress:open
+pnpm run cypress:open
 ```
 
 ### Run Tests Headlessly
@@ -104,7 +104,7 @@ npm run cypress:open
 Run tests from the command line:
 
 ```bash
-npm run cypress:run --env grepTags="@<Test-Case-Tag>",skipTags="@<Flaky-Bug>" --browser chrome
+pnpm run cypress:run --env grepTags="@<Test-Case-Tag>",skipTags="@<Flaky-Bug>" --browser chrome
 ```
 
 **Examples:**
@@ -112,19 +112,19 @@ npm run cypress:run --env grepTags="@<Test-Case-Tag>",skipTags="@<Flaky-Bug>" --
 * Run Smoke Tests, skipping tests tagged with `Bug`:
 
   ```bash
-  npm run cypress:run --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
+  pnpm run cypress:run --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
   ```
 
 * Run Smoke Tests, skipping tests tagged with `Bug` or `ModelServing`:
 
   ```bash
-  npm run cypress:run --env grepTags="@Smoke",skipTags="@Bug @Modelserving" --browser chrome
+  pnpm run cypress:run --env grepTags="@Smoke",skipTags="@Bug @Modelserving" --browser chrome
   ```
 
 * Run Individual tests, in this example by test case ID `ODS-1234`:
 
   ```bash
-  npm run cypress:run --env grepTags="@ODS-1234" --browser chrome
+  pnpm run cypress:run --env grepTags="@ODS-1234" --browser chrome
   ```
 
 ### Run Tests by Test Spec
@@ -136,13 +136,13 @@ Run tests by Test Spec from the command line:
 * Run Individual Test Spec:
 
   ```bash
-  npm run cypress:run --spec "cypress/tests/e2e/<test-Name>.cy.ts" --browser chrome
+  pnpm run cypress:run --spec "cypress/tests/e2e/<test-Name>.cy.ts" --browser chrome
   ```
 
 * Run Multiple Test Specs:
 
   ```bash
-  npm run cypress:run --spec "cypress/tests/e2e/<test-Name1>.ts,cypress/tests/e2e/<test-Name2>.cy.ts" --browser chrome
+  pnpm run cypress:run --spec "cypress/tests/e2e/<test-Name1>.ts,cypress/tests/e2e/<test-Name2>.cy.ts" --browser chrome
   ```
 
 ### Running Tests Concurrently
@@ -150,7 +150,7 @@ Run tests by Test Spec from the command line:
 When running tests concurrently against the same cluster (e.g., in multiple terminals/prs), it's important to skip certain tests to prevent conflicts:
 
 ```bash
-npm run cypress:run \
+pnpm run cypress:run \
   --env grepTags="@Smoke" \
   --env skipTags="@Bug @Maintain @NonConcurrent" \
   --browser chrome
@@ -271,7 +271,7 @@ Initially, please refer to the general ODH-Dashboard contribution guidelines, wh
 * **Submitting Changes:** Once your changes are ready, run the linter, commit them and push to your branch:
 
   ```bash
-  npm run test:lint/npm run test:fix
+  pnpm run test:lint/pnpm run test:fix
   git add .
   git commit -m "Add my new test"
   git push origin feature/my-new-feature

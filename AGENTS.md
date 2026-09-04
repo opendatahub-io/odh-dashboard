@@ -59,23 +59,23 @@ odh-dashboard/
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server (main dashboard)
-npm run dev
+pnpm run dev
 
 # Build all packages
-npm run build
+pnpm run build
 
 # Run tests
-npm run test
+pnpm run test
 
 # Lint all packages
-npm run lint
-npm run lint:fix
+pnpm run lint
+pnpm run lint:fix
 
 # Type checking
-npm run type-check
+pnpm run type-check
 ```
 
 ## Documentation

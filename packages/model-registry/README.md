@@ -8,17 +8,17 @@ This guide outlines how to run the upstream Model Registry and integrate it with
     Ensure your ODH backend server is running. Run in the root of the ODH project:
 
     ```bash
-    npm run dev:backend
+    pnpm run dev:backend
     ```
 
 2. **Start the ODH Frontend:**
     The main ODH dashboard frontend application must also be running. Run in the root of the ODH project:
 
     ```bash
-    npm run dev:frontend
+    pnpm run dev:frontend
     ```
 
-    **Important:** Do not use `npm run start:dev:ext` for the ODH frontend when testing this upstream integration.
+    **Important:** Do not use `pnpm run start:dev:ext` for the ODH frontend when testing this upstream integration.
 
 3. **Model Registry UI Requirements:**
     Ensure you have met the [frontend requirements] and [BFF requirements] for the Model Registry UI. You can run Model Registry in either **mocked mode** or **federated mode**. For testing ODH integration, use **federated mode**.
@@ -99,6 +99,6 @@ The workspace-aware Dockerfile ensures these dependencies are available during t
 2. Copying shared packages into the build context
 3. Running `npm ci` in `upstream/frontend` for the upstream webpack toolchain (git-subtree npm island)
 4. Building with `npm run build:prod` in the upstream frontend directory
-4. Building from the workspace context rather than module isolation
+5. Building from the workspace context rather than module isolation
 
 For more information about workspace Dockerfiles, see [docs/workspace-dockerfiles.md](../../docs/workspace-dockerfiles.md).
