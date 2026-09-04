@@ -209,6 +209,42 @@ paths:
       summary: Get Collection by ID
       description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/collections/{id}/clones:
+    summary: Clone a benchmark collection
+    description: >-
+      Creates a tenant-scoped copy of an existing benchmark collection.
+      The request body can optionally override the name, description,
+      category, benchmarks, and pass criteria of the cloned collection.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneCollectionRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: cloneCollection
+      summary: Clone a benchmark collection
+      description: >-
+        Creates a tenant-scoped copy of an existing benchmark collection with optional overrides.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -1413,6 +1449,27 @@ components:
           items:
             $ref: '#/components/schemas/CollectionBenchmark'
           nullable: true
+
+    CloneCollectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'My Custom Suite'
+        description:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
 
     CollectionsData:
       type: object

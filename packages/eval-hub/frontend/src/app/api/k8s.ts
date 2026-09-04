@@ -11,6 +11,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   CollectionBenchmark,
+  CloneCollectionRequest,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
@@ -326,6 +327,29 @@ export const getCollections =
           total_count: data.total_count,
           limit: data.limit,
         };
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const cloneCollection =
+  (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

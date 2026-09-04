@@ -50,6 +50,7 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
@@ -355,6 +356,16 @@ type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
 }
 
+// CloneCollectionRequest is the optional payload for cloning a collection.
+type CloneCollectionRequest struct {
+	Name         string                  `json:"name,omitempty"`
+	Description  string                  `json:"description,omitempty"`
+	Category     string                  `json:"category,omitempty"`
+	Tags         []string                `json:"tags,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
 type CreateEvaluationJobRequest struct {
 	Name         string           `json:"name"`
@@ -596,6 +607,24 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 	resp, err := get[Collection](c, ctx, path, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "GetCollection")
+	}
+	return resp, nil
+}
+
+// CloneCollection creates a tenant-scoped copy of an existing collection.
+// The namespace is sent as the X-Tenant header. The request body optionally overrides
+// name, description, category, benchmarks, and pass criteria.
+func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CloneCollection")
 	}
 	return resp, nil
 }

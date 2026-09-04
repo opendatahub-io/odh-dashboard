@@ -56,4 +56,17 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
   });
+
+  describe('Clone Collection Endpoint', () => {
+    it('should clone a collection by ID', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections/collection-001/clones?namespace=default',
+        { name: 'Cloned Collection' },
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        status: 201,
+      });
+    });
+  });
 });

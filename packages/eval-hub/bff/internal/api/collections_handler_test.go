@@ -75,3 +75,72 @@ func TestGetCollectionHandlerNotFound(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, response.StatusCode)
 }
+
+func TestCloneCollectionHandler(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	body := evalhub.CloneCollectionRequest{
+		Name: "My Cloned Suite",
+	}
+
+	result, response, err := setupApiTestWithEvalHub[CloneCollectionEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/collection-001/clones?namespace=test-ns",
+		body, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "collection-001-clone", result.Data.Resource.ID)
+	assert.Equal(t, "My Cloned Suite", result.Data.Name)
+}
+
+func TestCloneCollectionHandlerEmptyBody(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	body := evalhub.CloneCollectionRequest{}
+
+	result, response, err := setupApiTestWithEvalHub[CloneCollectionEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/collection-001/clones?namespace=test-ns",
+		body, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "collection-001-clone", result.Data.Resource.ID)
+	assert.Equal(t, "Open LLM Leaderboard v2", result.Data.Name)
+}
+
+func TestCloneCollectionHandlerNotFound(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	body := evalhub.CloneCollectionRequest{Name: "Clone"}
+
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/nonexistent/clones?namespace=test-ns",
+		body, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, response.StatusCode)
+}
+
+func TestCloneCollectionHandlerServerError(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+
+	body := evalhub.CloneCollectionRequest{Name: "Clone"}
+
+	_, response, err := setupApiTestWithEvalHub[HTTPError](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/any/clones?namespace=test-ns",
+		body, nil, identity, &erroringEHClient{},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
+}

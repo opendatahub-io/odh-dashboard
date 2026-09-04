@@ -367,6 +367,51 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 	return nil, nil
 }
 
+func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ string, req evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
+	source, err := m.GetCollection(context.Background(), id, "")
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, nil
+	}
+
+	name := req.Name
+	if name == "" {
+		name = source.Name
+	}
+	description := req.Description
+	if description == "" {
+		description = source.Description
+	}
+	category := req.Category
+	if category == "" {
+		category = source.Category
+	}
+	benchmarks := req.Benchmarks
+	if benchmarks == nil {
+		benchmarks = source.Benchmarks
+	}
+	passCriteria := req.PassCriteria
+	if passCriteria == nil {
+		passCriteria = source.PassCriteria
+	}
+
+	return &evalhub.Collection{
+		Resource: evalhub.CollectionResource{
+			ID:        fmt.Sprintf("%s-clone", id),
+			CreatedAt: "2026-09-02T12:00:00Z",
+			UpdatedAt: "2026-09-02T12:00:00Z",
+		},
+		Name:         name,
+		Description:  description,
+		Category:     category,
+		Tags:         source.Tags,
+		PassCriteria: passCriteria,
+		Benchmarks:   benchmarks,
+	}, nil
+}
+
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
 	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
 	for i := range jobs {

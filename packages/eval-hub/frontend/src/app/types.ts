@@ -306,6 +306,15 @@ export type Collection = {
   benchmarks?: CollectionBenchmark[];
 };
 
+export type CloneCollectionRequest = {
+  name: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks?: CollectionBenchmark[];
+};
+
 export type ListCollectionsParams = {
   namespace?: string;
   limit?: number;
