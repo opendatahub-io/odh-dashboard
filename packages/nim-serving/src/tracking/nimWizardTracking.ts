@@ -63,7 +63,7 @@ const getNIMImageProperties = (
     (candidate): candidate is NIMImage & { namespace: string; tags: string[] } =>
       isNIMImage(candidate) &&
       getImageRepository(candidate.namespace, candidate.name) === imageValue.repository &&
-      candidate.tags.some((tag) => normalizeVersion(tag) === imageValue.tag),
+      candidate.tags.some((tag) => normalizeVersion(tag) === normalizeVersion(imageValue.tag)),
   );
 
   if (image) {
