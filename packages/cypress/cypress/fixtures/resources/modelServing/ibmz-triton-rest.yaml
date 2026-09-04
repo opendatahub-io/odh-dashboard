@@ -1,0 +1,68 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ibmz-triton-rest
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/model-type: '["predictive"]'
+    opendatahub.io/modelServingSupport: '["single"]'
+    openshift.io/display-name: IBM Z Triton Inference Server
+    tags: kserve,servingruntime
+  labels:
+    opendatahub.io/dashboard: "true"
+objects:
+  - apiVersion: serving.kserve.io/v1alpha1
+    kind: ServingRuntime
+    metadata:
+      name: ibmz-triton-rest
+      annotations:
+        prometheus.kserve.io/path: /metrics
+        prometheus.kserve.io/port: "8002"
+        openshift.io/display-name: IBM Z Triton Inference Server
+      labels:
+        opendatahub.io/dashboard: "true"
+    spec:
+      displayName: "IBM Z Triton Inference Server"
+      containers:
+        - name: kserve-container
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - /opt/tritonserver/bin/tritonserver --model-repository=/mnt/models
+              --http-port=8000 --grpc-port=8001 --metrics-port=8002
+          image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:1.6.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: "2"
+              memory: 4Gi
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+      protocolVersions:
+        - v2
+        - grpc-v2
+      supportedModelFormats:
+        - name: pytorch
+          version: "1"
+          autoSelect: true
+        - name: onnx-mlir
+          version: "1"
+          autoSelect: true
+        - name: snapml
+          version: "1"
+          autoSelect: true
+        - name: python
+          version: "1"
+          autoSelect: true
