@@ -20,8 +20,8 @@ After the code change is complete, run the appropriate validation steps. See [re
 ### Always run
 
 ```bash
-npm run type-check
-npm run lint
+pnpm run type-check
+pnpm run lint
 ```
 
 Fix any errors before proceeding.
@@ -29,7 +29,7 @@ Fix any errors before proceeding.
 ### If the change touches testable logic
 
 ```bash
-npm run test-unit
+pnpm run test-unit
 ```
 
 If tests fail, fix them. If existing tests need updating due to the change, update them.
@@ -37,7 +37,7 @@ If tests fail, fix them. If existing tests need updating due to the change, upda
 ### If the change touches a Go BFF
 
 ```bash
-npm run test:contract
+pnpm run test:contract
 ```
 
 ## Phase 3: Visual verification (UI changes only)
@@ -56,10 +56,10 @@ Then skip the rest of Phase 3.
 
 ### Step 2: Ensure the dev server is running
 
-Check the terminals for a running `npm run dev` process. If it is not running, start it:
+Check the terminals for a running `pnpm run dev` process. If it is not running, start it:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Wait for both the backend (port `4000`) and the frontend dev server (port `4010`) to be ready.

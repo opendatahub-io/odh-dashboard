@@ -55,7 +55,7 @@ No bundler dev servers are used in CI. BFFs serve both their API routes and stat
 ## How It Works in CI
 
 1. Test workflow builds and caches `**/public-cypress` (keyed by commit SHA)
-2. E2E workflow restores cache → runs `npm run prepare:e2e` (go mod download) → starts `npm run start:e2e` (turbo starts backend + all BFFs + proxy)
+2. E2E workflow restores cache → runs `pnpm run prepare:e2e` (go mod download) → starts `pnpm run start:e2e` (turbo starts backend + all BFFs + proxy)
 3. Backend serves `frontend/public-cypress/` on port 4000, injects `mfRemotesJson` at request time
 4. Backend proxies `/_mf/{name}/*` to each BFF's `module-federation.local.port`
 5. BFFs serve their `public-cypress/` via `STATIC_ASSETS_DIR` flag
@@ -78,23 +78,23 @@ Key points:
 oc login -u admin -p password --server=https://your-cluster
 
 # 2. Build all frontends (skip if already cached)
-npm run cypress:server:build
+pnpm run cypress:server:build
 
 # 3. Prepare BFF dependencies (go mod download)
-npm run prepare:e2e
+pnpm run prepare:e2e
 
 # 4. Start the full local stack + run tests
-npm run test:cypress:e2e
+pnpm run test:cypress:e2e
 ```
 
 `test:cypress:e2e` starts the stack, waits for readiness, runs Cypress, and kills everything when done. It supports passthrough args:
 
 ```bash
 # Filter by tags
-npm run test:cypress:e2e -- --env grepTags="@Pipelines",grepFilterSpecs=true
+pnpm run test:cypress:e2e -- --env grepTags="@Pipelines",grepFilterSpecs=true
 
 # Run specific spec
-npm run test:cypress:e2e -- --spec "**/pipelines/*.cy.ts"
+pnpm run test:cypress:e2e -- --spec "**/pipelines/*.cy.ts"
 ```
 
 Or step-by-step:
@@ -108,11 +108,11 @@ turbo run cypress:server:e2e:wait
 
 # Run Cypress (E2E_PROXY implies baseUrl=http://localhost:4040 and /e2e-login auth)
 cd frontend
-CYPRESS_E2E_PROXY=true npm run cypress:run:chrome -- \
+CYPRESS_E2E_PROXY=true pnpm run cypress:run:chrome -- \
   --env grepTags="@ci-dashboard-regression-tags",grepFilterSpecs=true
 
 # Or interactive mode
-CYPRESS_E2E_PROXY=true npm run cypress:open
+CYPRESS_E2E_PROXY=true pnpm run cypress:open
 ```
 
 ## Adding E2E Support to a New BFF Package
@@ -189,12 +189,12 @@ The following tasks are defined in `turbo.jsonc`:
 ### BFF Health Check Fails
 
 1. Check if BFF port matches `module-federation.local.port` in package.json
-2. Ensure `go mod download` completed (run `npm run prepare:e2e`)
+2. Ensure `go mod download` completed (run `pnpm run prepare:e2e`)
 3. Check BFF logs in the turbo output
 
 ### Module Not Loading
 
-1. Verify `public-cypress/` exists (run `npm run cypress:server:build`)
+1. Verify `public-cypress/` exists (run `pnpm run cypress:server:build`)
 2. Check that `STATIC_ASSETS_DIR` path resolves correctly (relative to `bff/` directory)
 3. Verify backend proxy routes are configured in `module-federation` config
 
@@ -207,6 +207,6 @@ The following tasks are defined in `turbo.jsonc`:
 
 ### Proxy Returns 502 Bad Gateway
 
-1. Verify the backend is running on `:4000` (check `npm run start:e2e` output)
+1. Verify the backend is running on `:4000` (check `pnpm run start:e2e` output)
 2. Check that `BACKEND_PORT` env var matches if you customized it
 3. For cluster-bound routes, verify `ODH_DASHBOARD_URL` in `test-variables.yml` is reachable

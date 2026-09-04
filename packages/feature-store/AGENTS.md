@@ -73,14 +73,14 @@ Curried helpers in `src/api/custom.ts`; see `getEntities` for full `K8sAPIOption
 
 ```bash
 # From repo root
-npm run dev              # Starts backend + frontend (feature-store compiles into host)
-npm run lint             # Lint all packages
-npm run type-check       # Type check all packages
+pnpm run dev              # Starts backend + frontend (feature-store compiles into host)
+pnpm run lint             # Lint all packages
+pnpm run type-check       # Type check all packages
 
 # From this package directory
-npm run lint             # Lint feature-store only
-npm run test-unit        # Run unit tests
-npm run type-check       # Type check feature-store only
+pnpm run lint             # Lint feature-store only
+pnpm run test-unit        # Run unit tests
+pnpm run type-check       # Type check feature-store only
 ```
 
 ## Notes for agents

@@ -30,27 +30,27 @@ Development for only "frontend" can target a backend service running on an OpenS
 ```bash
 cd frontend
 oc login ...
-npm run start:dev:ext
+pnpm run start:dev:ext
 ```
 
 Development for both "frontend" and "backend" can be done while running:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 But the recommended flow for development would be have two sessions, one for the "frontend":
 
 ```bash
 cd frontend
-npm run start:dev
+pnpm run start:dev
 ```
 
 And one for the "backend":
 
 ```bash
 cd backend
-npm run start:dev
+pnpm run start:dev
 ```
 
 Once you have either method running, you can open the dashboard locally at: `http://localhost:4010`. The dev server will reload automatically when you make changes.
@@ -104,7 +104,7 @@ Choose one of the following methods to authenticate:
    ```bash
    make login
    # OR
-   npm run make:login
+   pnpm run make:login
    ```
 
 ##### Important Notes
@@ -122,7 +122,7 @@ See [frontend testing guidelines](docs/testing.md) for more information.
 Jest unit tests cover all utility and hook functions.
 
 ```bash
-npm run test:unit
+pnpm run test:unit
 ```
 
 ### End to end testing
@@ -133,28 +133,28 @@ Cypress tests using a production instance of the dashboard frontend to test the 
 cd ./frontend
 
 # Build and start the server
-npm run cypress:server:build
-npm run cypress:server
+pnpm run cypress:server:build
+pnpm run cypress:server
 
 # Run cypress in a separate terminal
-npm run cypress:run:mock
+pnpm run cypress:run:mock
 ```
 
 ### Linter testing
 
 ```bash
-cd ./frontend && npm run test:lint
+cd ./frontend && pnpm run test:lint
 ```
 
 You can apply lint auto-fixes with
 
 ```bash
-npm run test:fix
+pnpm run test:fix
 ```
 
 ### CI tests
 
-The CI will run the command `npm run test` which will run tests for both backend and frontend.
+The CI will run the command `pnpm run test` which will run tests for both backend and frontend.
 
 ## Environment variables
 
@@ -168,10 +168,10 @@ dotenv files applied to the root of this project...
 
 - `.env`, basic settings, utilized by both "frontend" and "backend"
 - `.env.local`, gitignored settings, utilized by both "frontend" and "backend"
-- `.env.development`, utilized by both "frontend" and "backend". Its use can be seen with the NPM script `$ npm run dev`
-- `.env.development.local`, utilized by both "frontend" and "backend". Its use can be seen with the NPM script `$ npm run dev`
-- `.env.production`, is primarily used by the "frontend", minimally used by the "backend". Its use can be seen with the NPM script `$ npm run start`
-- `.env.production.local`, is primarily used by the "frontend", minimally used by the "backend". Its use can be seen with the NPM script `$ npm run start`
+- `.env.development`, utilized by both "frontend" and "backend". Its use can be seen with the pnpm script `$ pnpm run dev`
+- `.env.development.local`, utilized by both "frontend" and "backend". Its use can be seen with the pnpm script `$ pnpm run dev`
+- `.env.production`, is primarily used by the "frontend", minimally used by the "backend". Its use can be seen with the pnpm script `$ pnpm run start`
+- `.env.production.local`, is primarily used by the "frontend", minimally used by the "backend". Its use can be seen with the pnpm script `$ pnpm run start`
 - `.env.test`, is primarily used by the "frontend", minimally used by the "backend" during testing
 - `.env.test.local`, is primarily used by the "frontend", minimally used by the "backend" during testing
 
@@ -192,7 +192,7 @@ For testing purposes, we recommend deploying a new version of the dashboard in y
 1. Make sure you have the `oc` command line tool installed and configured to access your cluster.
 2. Make sure you have the `Open Data Hub Operator` installed in your cluster.
 3. Remove the `dashboard` component from your `KfDef` CR if already deployed.
-4. You can remove previous dashboard deployments by running `make undeploy` or `npm run make:undeploy`  in the root of this repository.
+4. You can remove previous dashboard deployments by running `make undeploy` or `pnpm run make:undeploy`  in the root of this repository.
 
 ### Customize your env
 
@@ -214,7 +214,7 @@ make build
 or
 
 ```bash
-npm run make:build
+pnpm run make:build
 ```
 
 in the root of this repository.
@@ -233,7 +233,7 @@ make push
 or
 
 ```bash
-npm run make:push
+pnpm run make:push
 ```
 
 in the root of this repository.
@@ -253,7 +253,7 @@ make deploy
 or
 
 ```bash
-npm run make:deploy
+pnpm run make:deploy
 ```
 
 you will deploy all the resources located in the `manifests` folder alongside the image you selected in the previous step.

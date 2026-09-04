@@ -101,8 +101,8 @@ Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Fro
    - **Commands:**
      ```bash
      # In module frontend directory (e.g., packages/gen-ai/frontend)
-     npm run test:cypress-ci  # Starts frontend dev server + runs mocked tests
-     npm run cypress:run:mock # Just runs tests (server must be running)
+     pnpm run test:cypress-ci  # Starts frontend dev server + runs mocked tests
+     pnpm run cypress:run:mock # Just runs tests (server must be running)
      ```
    - **Environment:** `CY_MOCK=1` flag is set, runs on port 8080 (frontend only)
 
@@ -113,8 +113,8 @@ Some modules like `gen-ai`, `model-registry`, etc. have a **BFF (Backend For Fro
    - **Commands:**
      ```bash
      # In module frontend directory
-     npm run cypress:server      # Starts BFF with mocks (cd ../bff && make run PORT=9001)
-     npm run cypress:run:e2e     # Runs E2E tests against BFF
+     pnpm run cypress:server      # Starts BFF with mocks (cd ../bff && make run PORT=9001)
+     pnpm run cypress:run:e2e     # Runs E2E tests against BFF
      ```
    - **Environment:** Runs on port 4010 (with BFF)
 
@@ -148,7 +148,7 @@ packages/gen-ai/
 │       ├── cypress:server:dev     # Runs frontend only: dev server
 │       ├── cypress:run:mock       # Mock tests (CY_MOCK=1, no BFF)
 │       ├── cypress:run:e2e        # E2E tests (with BFF)
-│       └── test:cypress-ci        # CI: "npm run cypress:server:dev" + mock tests
+│       └── test:cypress-ci        # CI: "pnpm run cypress:server:dev" + mock tests
 └── package.json                   # Module root scripts
 ```
 
@@ -156,16 +156,16 @@ packages/gen-ai/
 
 ```bash
 # From module root (e.g., packages/gen-ai)
-npm run test:cypress-ci            # Builds + starts frontend + runs tests
+pnpm run test:cypress-ci            # Builds + starts frontend + runs tests
 
 # From module frontend directory
 cd packages/gen-ai/frontend
-npm run test:cypress-ci            # Same as above
+pnpm run test:cypress-ci            # Same as above
 
 # Development mode (separate terminals)
-npm run cypress:server:dev         # Terminal 1: Start dev server
-npm run cypress:run:mock           # Terminal 2: Run mock tests
-npm run cypress:open               # Terminal 2: Or open Cypress GUI
+pnpm run cypress:server:dev         # Terminal 1: Start dev server
+pnpm run cypress:run:mock           # Terminal 2: Run mock tests
+pnpm run cypress:open               # Terminal 2: Or open Cypress GUI
 ```
 
 **IMPORTANT: Check Module Documentation**
@@ -804,7 +804,7 @@ it('should display error message on API failure', () => {
 > **Linting/fixing commands (must run from packages/cypress directory):**
 > ```bash
 > cd packages/cypress
-> npm run lint -- --fix
+> pnpm run lint -- --fix
 > ```
 
 **All linting errors must be fixed**:
@@ -920,10 +920,10 @@ cy.testA11y();
 
 ```bash
 # Run all mock tests (build + start server + run tests)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
 # Run specific test file
-npm run test:cypress-ci -- --spec "**/featureName.cy.ts"
+pnpm run test:cypress-ci -- --spec "**/featureName.cy.ts"
 ```
 
 **Development workflow** (requires separate terminals):
@@ -932,29 +932,29 @@ npm run test:cypress-ci -- --spec "**/featureName.cy.ts"
 cd frontend
 
 # Terminal 1: Start dev server (auto-rebuilds on changes)
-npm run cypress:server:dev
+pnpm run cypress:server:dev
 
 # Terminal 2: Open Cypress GUI for interactive testing
-npm run cypress:open:mock
+pnpm run cypress:open:mock
 
 # OR run tests headless
-npm run cypress:run:mock
+pnpm run cypress:run:mock
 
 # Run specific test
-npm run cypress:run:mock -- --spec "**/featureName.cy.ts"
+pnpm run cypress:run:mock -- --spec "**/featureName.cy.ts"
 ```
 
 **Production-like testing**:
 
 ```bash
 # Build frontend once
-npm run cypress:server:build
+pnpm run cypress:server:build
 
 # Start HTTP server
-npm run cypress:server
+pnpm run cypress:server
 
 # Run tests (in another terminal)
-npm run cypress:run:mock
+pnpm run cypress:run:mock
 ```
 
 ### Debugging Failed Tests
@@ -985,10 +985,10 @@ npm run cypress:run:mock
 
 ```bash
 # Open Cypress GUI with memory optimization
-npm run cypress:open:mock -- --config numTestsKeptInMemory=0
+pnpm run cypress:open:mock -- --config numTestsKeptInMemory=0
 
 # Run with verbose output
-DEBUG=cypress:* npm run cypress:run:mock
+DEBUG=cypress:* pnpm run cypress:run:mock
 ```
 
 ## Implementation Checklist
@@ -1019,9 +1019,9 @@ DEBUG=cypress:* npm run cypress:run:mock
 
 ### After implementation:
 
-- [ ] Run linting: `cd packages/cypress && npm run lint -- --fix`
+- [ ] Run linting: `cd packages/cypress && pnpm run lint -- --fix`
 - [ ] Fix ALL linting errors
-- [ ] Run test locally: `npm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
+- [ ] Run test locally: `pnpm run test:cypress-ci -- --spec "**/yourTest.cy.ts"`
 - [ ] Verify test passes consistently (run 2-3 times)
 - [ ] Test in Cypress GUI for visual verification
 - [ ] Review test coverage - did you test all scenarios?

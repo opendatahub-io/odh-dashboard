@@ -13,7 +13,7 @@ You can check the [contributing guidelines] for more information on how to contr
 Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
 
 ```bash
-npx mod-arch-installer my-module --flavor default
+pnpm dlx mod-arch-installer my-module --flavor default
 ```
 
 See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.

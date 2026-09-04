@@ -244,13 +244,13 @@ const renderRow = (notebook = mockNotebookK8sResource({})) => {
 
 ```bash
 # Run new Jest unit tests
-npm run test -- NotebookTableRow.spec.tsx
+pnpm run test -- NotebookTableRow.spec.tsx
 
 # Run updated Cypress mock tests (verify remaining tests still pass)
-npm run test:cypress-ci -- --spec "**/workbench.cy.ts"
+pnpm run test:cypress-ci -- --spec "**/workbench.cy.ts"
 
 # Lint everything
-npm run lint:fix
+pnpm run lint:fix
 
 # IMPORTANT: Committing and pushing requires explicit human approval
 # After running the above verification steps:

@@ -40,7 +40,7 @@ A `◎ /goal active` indicator shows how long the goal has been running. You can
 Run `/goal` followed by the condition you want satisfied:
 
 ```text
-/goal all ESLint errors in packages/gen-ai are fixed and npm run lint passes clean
+/goal all ESLint errors in packages/gen-ai are fixed and pnpm run lint passes clean
 ```
 
 Setting a goal starts a turn immediately with the condition itself as the directive. You do not need to send a separate prompt. If a goal is already active, the new one replaces it.
@@ -97,7 +97,7 @@ Bad:  make the tests better
 How Claude should prove it — an explicit command to run.
 
 ```text
-Good: npm run type-check exits 0 and git status is clean
+Good: pnpm run type-check exits 0 and git status is clean
 Bad:  everything compiles
 ```
 
@@ -125,31 +125,31 @@ The condition can be up to 4,000 characters.
 ### Fixing lint across a package
 
 ```text
-/goal all ESLint errors in packages/gen-ai/frontend/src are resolved and npm run lint -- --filter=@odh-dashboard/gen-ai exits 0
+/goal all ESLint errors in packages/gen-ai/frontend/src are resolved and pnpm run lint -- --filter=@odh-dashboard/gen-ai exits 0
 ```
 
 ### Implementing a feature with tests
 
 ```text
-/goal the ConnectionTypeField component renders all field types (text, password, dropdown, file), validation errors display inline, unit tests cover happy path and error states, and npm run test passes with no failures
+/goal the ConnectionTypeField component renders all field types (text, password, dropdown, file), validation errors display inline, unit tests cover happy path and error states, and pnpm run test passes with no failures
 ```
 
 ### Migrating Cypress tests
 
 ```text
-/goal Robot Framework tests for model serving are migrated to Cypress following the patterns in .claude/rules/cypress-e2e.md, the new tests pass when run with npx cypress run, and no existing tests are broken
+/goal Robot Framework tests for model serving are migrated to Cypress following the patterns in .claude/rules/cypress-e2e.md, the new tests pass when run with pnpm exec cypress run, and no existing tests are broken
 ```
 
 ### Multi-file refactor
 
 ```text
-/goal all model-serving API hooks use React Query instead of useFetchState, npm run type-check exits 0, and npm run test -- --filter=@odh-dashboard/model-serving passes
+/goal all model-serving API hooks use React Query instead of useFetchState, pnpm run type-check exits 0, and pnpm run test -- --filter=@odh-dashboard/model-serving passes
 ```
 
 ### Type-check cleanup
 
 ```text
-/goal npm run type-check exits 0 with zero errors across all packages, or stop after 30 turns
+/goal pnpm run type-check exits 0 with zero errors across all packages, or stop after 30 turns
 ```
 
 ## Combining with Auto Mode

@@ -7,8 +7,8 @@ Minimal app shell framework - renders a PatternFly page chrome (masthead, sideba
 From the repo root:
 
 ```bash
-npm install
-npm run dev --prefix distributions/base
+pnpm install
+pnpm --dir distributions/base run dev
 ```
 
 This starts:

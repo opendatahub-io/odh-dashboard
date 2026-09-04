@@ -32,7 +32,7 @@ Upstream-synced trees (`packages/model-registry/upstream/`, `packages/notebooks/
 
 ## Transitive npm CVEs
 
-Prefer Dependabot when possible. For transitive-only pins, use root `overrides` and `npm run sync:overrides` (RHOAIENG-57882) so lockfiles stay aligned.
+Prefer Dependabot when possible. For transitive-only pins, use root `overrides` and `pnpm run sync:overrides` (RHOAIENG-57882) so lockfiles stay aligned.
 
 ## Local fixture tests
 
