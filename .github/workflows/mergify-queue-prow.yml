@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   test-all:
@@ -14,6 +13,8 @@ jobs:
       github.event.pull_request.draft &&
       startsWith(github.head_ref, 'mergify/merge-queue/')
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     timeout-minutes: 5
     steps:
       - name: Comment /test all for Prow
