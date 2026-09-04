@@ -131,7 +131,41 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Delete table').should('exist');
+    cy.contains('Permanently delete "claims-data" structured asset?').should('exist');
+  });
+
+  it('should delete a table and return to the data browse view', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { statusCode: 204 },
+    ).as('deleteTable');
+
+    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-delete').click();
+    cy.findByTestId('delete-asset-confirmation').type('claims-data');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteTable');
+    cy.url().should('include', '/main-view?project=test-project');
+  });
+
+  it('should show a table deletion error', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/analytics/generic-tables/claims-data`,
+      { statusCode: 403, body: 'Forbidden' },
+    ).as('deleteTable');
+
+    cy.visit('/main-view/tables/test-project/analytics/claims-data');
+    cy.wait('@getTable');
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-delete').click();
+    cy.findByTestId('delete-asset-confirmation').type('claims-data');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteTable');
+    cy.findByText('API error 403: Forbidden').should('exist');
   });
 });
 
@@ -186,6 +220,40 @@ describe('Volume Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Delete volume').should('exist');
+    cy.contains('Permanently delete "training-documents" unstructured asset?').should('exist');
+  });
+
+  it('should delete a volume and return to the data browse view', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/default/volumes/training-documents`,
+      { statusCode: 204 },
+    ).as('deleteVolume');
+
+    cy.visit('/main-view/volumes/test-project/default/training-documents');
+    cy.wait('@getVolume');
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-delete').click();
+    cy.findByTestId('delete-asset-confirmation').type('training-documents');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteVolume');
+    cy.url().should('include', '/main-view?project=test-project');
+  });
+
+  it('should show a volume deletion error', () => {
+    cy.intercept(
+      'DELETE',
+      `${REGISTRY_API}/test-project/namespaces/default/volumes/training-documents`,
+      { statusCode: 404, body: 'Not found' },
+    ).as('deleteVolume');
+
+    cy.visit('/main-view/volumes/test-project/default/training-documents');
+    cy.wait('@getVolume');
+    cy.findByTestId('asset-actions-toggle').click();
+    cy.findByTestId('asset-action-delete').click();
+    cy.findByTestId('delete-asset-confirmation').type('training-documents');
+    cy.findByTestId('delete-asset-confirm').click();
+    cy.wait('@deleteVolume');
+    cy.findByText('API error 404: Not found').should('exist');
   });
 });

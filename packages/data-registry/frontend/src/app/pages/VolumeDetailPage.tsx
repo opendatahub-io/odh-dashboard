@@ -26,6 +26,7 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useVolume } from '~/app/hooks/useVolume';
 import { deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
+import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import VolumeDetailView from './VolumeDetailView';
 
@@ -36,6 +37,7 @@ const VolumeDetailPage: React.FC = () => {
     name: string;
   }>();
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const [volume, loaded, loadError] = useVolume(project, collection, name);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
@@ -46,8 +48,9 @@ const VolumeDetailPage: React.FC = () => {
       return;
     }
     await deleteVolume(project, collection, name);
+    notification.success('Volume deleted', `${name} was deleted successfully.`);
     navigate(browseUrl(project));
-  }, [project, collection, name, navigate]);
+  }, [project, collection, name, navigate, notification]);
 
   const displayName = name || 'Loading...';
 

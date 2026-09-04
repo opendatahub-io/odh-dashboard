@@ -1,5 +1,14 @@
 import React from 'react';
-import { Modal, ModalBody, ModalFooter, ModalHeader, Button, Alert } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  FormGroup,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  TextInput,
+} from '@patternfly/react-core';
 
 type DeleteAssetModalProps = {
   assetName: string;
@@ -16,6 +25,8 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string>();
+  const [confirmation, setConfirmation] = React.useState('');
+  const assetTypeLabel = assetType === 'table' ? 'structured' : 'unstructured';
 
   const handleDelete = React.useCallback(async () => {
     setIsDeleting(true);
@@ -32,23 +43,42 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
     <Modal
       isOpen
       onClose={isDeleting ? undefined : onClose}
-      variant="small"
+      variant="medium"
       data-testid="delete-asset-modal"
     >
-      <ModalHeader title={`Delete ${assetType}?`} />
+      <ModalHeader
+        title={`Permanently delete "${assetName}" ${assetTypeLabel} asset?`}
+        titleIconVariant="warning"
+      />
       <ModalBody>
         {error ? <Alert variant="danger" isInline title={error} /> : null}
         <p>
-          Are you sure you want to delete the {assetType} <strong>{assetName}</strong>? This action
-          cannot be undone.
+          <strong>{assetName}</strong> and its data will be lost forever.
         </p>
+        <FormGroup
+          label={
+            <>
+              To confirm deletion, type <strong>{assetName}</strong> below:
+            </>
+          }
+          isRequired
+          fieldId="delete-asset-confirmation"
+        >
+          <TextInput
+            id="delete-asset-confirmation"
+            value={confirmation}
+            onChange={(_event, value) => setConfirmation(value)}
+            isDisabled={isDeleting}
+            data-testid="delete-asset-confirmation"
+          />
+        </FormGroup>
       </ModalBody>
       <ModalFooter>
         <Button
           variant="danger"
           onClick={handleDelete}
           isLoading={isDeleting}
-          isDisabled={isDeleting}
+          isDisabled={isDeleting || confirmation !== assetName}
           data-testid="delete-asset-confirm"
         >
           Delete

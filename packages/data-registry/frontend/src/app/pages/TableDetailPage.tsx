@@ -26,6 +26,7 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { deleteGenericTable } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
+import { useNotification } from '~/app/hooks/useNotification';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import TableDetailView from './TableDetailView';
 
@@ -36,6 +37,7 @@ const TableDetailPage: React.FC = () => {
     name: string;
   }>();
   const navigate = useNavigate();
+  const notification = useNotification();
 
   const [asset, loaded, loadError] = useGenericTable(project, collection, name);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
@@ -46,8 +48,9 @@ const TableDetailPage: React.FC = () => {
       return;
     }
     await deleteGenericTable(project, collection, name);
+    notification.success('Table deleted', `${name} was deleted successfully.`);
     navigate(browseUrl(project));
-  }, [project, collection, name, navigate]);
+  }, [project, collection, name, navigate, notification]);
 
   const displayName = name || 'Loading...';
 
