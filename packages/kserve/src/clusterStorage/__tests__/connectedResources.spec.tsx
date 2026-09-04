@@ -52,7 +52,7 @@ describe('getConnectedKServeResourceLabels', () => {
     const labels = getConnectedKServeResourceLabels(pvc, { inferenceServices, servingRuntimes });
     // Only the inference service whose runtime mounts the PVC, labeled with the inference service
     // display name (not the serving runtime name).
-    expect(labels).toEqual([{ key: 'is-match', title: 'My NIM Model', kind: 'deployed-model' }]);
+    expect(labels).toEqual([{ key: 'is-match', title: 'My NIM Model', kind: 'connected-models' }]);
   });
 
   it('should exclude an inference service whose runtime has no matching serving runtime', () => {
