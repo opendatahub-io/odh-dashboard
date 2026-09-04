@@ -1,5 +1,5 @@
 /**
- * Emit workspace package metadata as JSON (npm query .workspace compatible shape).
+ * Emit workspace package metadata as JSON in the shape expected by workspace callers.
  * Used by webpack, module federation, Cypress discovery, and validation scripts.
  *
  * Reads pnpm-workspace.yaml directly so callers do not require `pnpm install`.
@@ -86,7 +86,7 @@ function listWorkspacePackagesFromManifest(root) {
   return [...packageDirs].toSorted().map((absPath) => {
     const pkg = JSON.parse(fs.readFileSync(path.join(absPath, 'package.json'), 'utf8'));
     const relativePath = path.relative(root, absPath) || '.';
-    // `path` and `location` are repo-relative (npm query `.location`).
+    // `path` and `location` are repo-relative for compatibility with existing callers.
     // Callers that need absolute paths (e.g. rspack chunk grouping) must resolve from repo root.
     return { ...pkg, name: pkg.name, path: relativePath, location: relativePath };
   });

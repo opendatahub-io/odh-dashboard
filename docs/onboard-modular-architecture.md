@@ -4,7 +4,8 @@ This guide outlines the steps to create and onboard a new modular architecture m
 
 ## Prerequisites
 
-- Node.js and pnpm installed.
+- Node.js >= 22.18.0.
+- pnpm 11.22.0 (the version pinned in the repository root).
 - Access to the ODH Dashboard repository.
 
 > **Recommended**: Use the `/module-onboarding` Claude Code skill to automate this entire process, including standalone manifest creation and dashboard-operator registration. After module scaffolding, use `/konflux-onboarding` for CI/CD pipeline setup. These skills are the recommended method for onboarding new modules.
@@ -32,6 +33,8 @@ pnpm dlx mod-arch-installer -n <your-module-name>
 Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
 
 ```bash
+# Return to the repository root before running root workspace scripts
+cd ..
 pnpm run validate:ports
 ```
 

@@ -13,8 +13,10 @@ The AutoRAG UI provides an intuitive interface for generating RAG patterns throu
 ## Quick Start
 
 ```bash
+# Run from the repository root
+pnpm install
 cd packages/autorag/frontend
-pnpm install && pnpm run start:dev
+pnpm run start:dev
 ```
 
 ---
@@ -23,10 +25,10 @@ pnpm install && pnpm run start:dev
 
 ### Development
 
-| Command              | Description                      |
-| -------------------- | -------------------------------- |
-| `pnpm install`       | Install dependencies             |
-| `pnpm run start:dev` | Start dev server with hot reload |
+| Command              | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `pnpm install`       | Install workspace dependencies (run from the repository root) |
+| `pnpm run start:dev` | Start dev server with hot reload                              |
 
 ### Build & Bundle
 

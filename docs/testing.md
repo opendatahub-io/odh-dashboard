@@ -289,7 +289,7 @@ Cypress uses several environment variables to control test behavior and configur
 - **Values**: Port number (e.g., `9002`)
 - **Default**: Used in mocked test scripts
 - **Effect**: Configures the WebSocket server port for real-time communication in mocked tests
-- **Usage**: Set automatically in npm scripts like `cypress:run:mock`
+- **Usage**: Set automatically in package scripts like `cypress:run:mock`
 
 #### CY_COVERAGE
 

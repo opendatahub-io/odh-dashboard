@@ -257,14 +257,14 @@ function main() {
     }  `,
   );
   lines.push(
-    '**Scope:** Dependabot first-party dirs only (upstream / autox-core excluded). Root `/` is a workspace audit and may list packages also covered by nested frontend locks.',
+    '**Scope:** Dependabot first-party dirs only (upstream / autox-core excluded). Root `/` is a pnpm workspace audit and may list packages also covered by intentionally separate upstream npm locks.',
   );
   lines.push('');
   lines.push('## Summary');
   lines.push('');
   lines.push('| | Count |');
   lines.push('|--|--:|');
-  lines.push(`| npm high/critical (prod) | ${prodNpm.length} |`);
+  lines.push(`| pnpm high/critical (prod) | ${prodNpm.length} |`);
   lines.push(`| Go vulnerabilities | ${goFindings.length} |`);
   lines.push(`| Scanner errors | ${errors.length} |`);
   lines.push(`| Actionable (non-major fix) | ${actionable.length} |`);
@@ -273,7 +273,7 @@ function main() {
   lines.push(`| DevDep (informational) | ${devDep.length} |`);
   lines.push('');
   lines.push(
-    '> Classification is advisory from `npm audit` / `govulncheck` metadata — not a guarantee the bump is safe here.',
+    '> Classification is advisory from `pnpm audit` / `govulncheck` metadata — not a guarantee the bump is safe here.',
   );
   lines.push('');
 
@@ -343,7 +343,7 @@ function main() {
     ),
   );
   lines.push(
-    '_Transitive-only fixes:_ consider root `overrides` + `npm run sync:overrides` (RHOAIENG-57882).',
+    '_Transitive-only fixes:_ consider root `overrides` in `pnpm-workspace.yaml` and regenerate `pnpm-lock.yaml` with `pnpm install` (RHOAIENG-57882).',
   );
   lines.push('');
 

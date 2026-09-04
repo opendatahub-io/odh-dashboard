@@ -5,7 +5,7 @@
 This project requires the following tools to be installed on your system:
 
 - [Node.js](https://nodejs.org/) `>=22.18.0`
-- [pnpm](https://pnpm.io/) `11.22.0` (the repository pins this version in `package.json`)
+- [pnpm](https://pnpm.io/) `11.22.0` (pinned in the repository root)
 
 ## Development
 
@@ -15,10 +15,12 @@ This project requires the following tools to be installed on your system:
       git clone https://github.com/opendatahub-io/odh-dashboard
       ```
 
-2. Within the repo context, install project dependencies
+2. Install dependencies from the repository root, then switch to this frontend
 
      ```bash
-     cd packages/autorag/frontend && pnpm install
+     cd odh-dashboard
+     pnpm install
+     cd packages/autorag/frontend
      ```
 
 ### Build project
