@@ -73,6 +73,7 @@ describe('NIMImageFieldComponent', () => {
             replaces: 'modelLocationData-locationType',
             label: 'Model location',
             value: expect.any(Function),
+            isVisible: expect.any(Function),
           },
           {
             key: 'nimImage',
@@ -85,7 +86,7 @@ describe('NIMImageFieldComponent', () => {
 
     const items = sections?.[0].items ?? [];
     expect(items[0].value({} as never)).toBe('NVIDIA NIM');
-    expect(items[1].value({} as never)).toBe('NVIDIA NIM');
+    expect(items[1].isVisible?.({} as never)).toBe(false);
     expect(items[2].value({} as never)).toBe('nvcr.io/nim/meta/llama-3.2-1b-instruct:1.8');
   });
 

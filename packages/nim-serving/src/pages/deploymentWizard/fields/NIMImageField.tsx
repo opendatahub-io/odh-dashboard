@@ -391,7 +391,8 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
           key: 'nimModelLocation',
           replaces: 'modelLocationData-locationType',
           label: 'Model location',
-          value: () => 'NVIDIA NIM',
+          value: () => undefined,
+          isVisible: () => false,
         },
         {
           key: 'nimImage',
