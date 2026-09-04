@@ -11,7 +11,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { WORKSPACE_QUERY_SCRIPT } = require('./workspace-query-path');
+
+const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js');
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';

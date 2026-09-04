@@ -14,6 +14,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js');
+
 const colors = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
@@ -24,7 +26,6 @@ const colors = {
 
 function getWorkspacePackages() {
   try {
-    const { WORKSPACE_QUERY_SCRIPT } = require('./workspace-query-path');
     const stdout = execSync(`node "${WORKSPACE_QUERY_SCRIPT}"`, { encoding: 'utf8' });
     return JSON.parse(stdout);
   } catch (error) {
