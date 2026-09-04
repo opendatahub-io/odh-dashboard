@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { render, act } from '@testing-library/react';
+import React, { act } from 'react';
+import { render } from '@testing-library/react';
 import type { LoadedExtension, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { HookNotify, useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type {
@@ -95,8 +95,8 @@ describe('useClusterStorageConnectedResources', () => {
   });
 
   it('should become loaded and merge labels once every hook notifies', () => {
-    const labelA: ConnectedResourceLabel = { key: 'a', title: 'Model A', kind: 'deployed-model' };
-    const labelB: ConnectedResourceLabel = { key: 'b', title: 'Model B', kind: 'deployed-model' };
+    const labelA: ConnectedResourceLabel = { key: 'a', title: 'Model A', kind: 'connected-models' };
+    const labelB: ConnectedResourceLabel = { key: 'b', title: 'Model B', kind: 'connected-models' };
     const extensions = [makeExtension('a', () => [labelA]), makeExtension('b', () => [labelB])];
     mockUseExtensions.mockReturnValue(unresolved(2));
     mockUseResolvedExtensions.mockReturnValue([extensions, true, []]);
@@ -130,7 +130,7 @@ describe('useClusterStorageConnectedResources', () => {
   });
 
   it('should skip extensions whose hook has unmounted', () => {
-    const label: ConnectedResourceLabel = { key: 'a', title: 'Model A', kind: 'deployed-model' };
+    const label: ConnectedResourceLabel = { key: 'a', title: 'Model A', kind: 'connected-models' };
     const extensions = [makeExtension('a', () => [label])];
     mockUseExtensions.mockReturnValue(unresolved(1));
     mockUseResolvedExtensions.mockReturnValue([extensions, true, []]);

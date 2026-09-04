@@ -18,7 +18,7 @@ const CONNECTED_RESOURCE_LABEL_STYLES: Record<
   ConnectedResourceLabel['kind'],
   Pick<React.ComponentProps<typeof ResourceLabel>, 'resourceType' | 'outlineColor'>
 > = {
-  'deployed-model': { resourceType: ProjectObjectType.deployedModels, outlineColor: 'purple' },
+  'connected-models': { resourceType: ProjectObjectType.connectedModels, outlineColor: 'purple' },
 };
 
 export type ConnectedResourcesProps = EitherNotBoth<

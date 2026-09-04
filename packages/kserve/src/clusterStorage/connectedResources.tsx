@@ -56,5 +56,5 @@ export const getConnectedKServeResourceLabels = (
     .map((inferenceService) => ({
       key: inferenceService.metadata.name,
       title: getDisplayNameFromK8sResource(inferenceService),
-      kind: 'deployed-model',
+      kind: 'connected-models',
     }));

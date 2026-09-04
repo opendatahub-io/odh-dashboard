@@ -30,7 +30,7 @@ export type ClusterStorageConnectedResources<TData = unknown> = {
   data: TData;
 };
 
-export type ConnectedResourceKind = 'deployed-model';
+export type ConnectedResourceKind = 'connected-models';
 
 export type ConnectedResourceLabel = {
   /** Stable identity for React reconciliation (e.g. the resource name). */
