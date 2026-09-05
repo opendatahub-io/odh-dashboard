@@ -19,6 +19,15 @@ describe('getBenchmarkDatasetUrl', () => {
         'https://huggingface.co/datasets/tinyBenchmarks/tinyTruthfulQA',
       );
     });
+
+    it.each([
+      ['inspect/telemath', 'https://huggingface.co/datasets/netop/TeleMath'],
+      ['inspect/teleqna', 'https://huggingface.co/datasets/netop/TeleQnA'],
+      ['inspect/telelogs', 'https://huggingface.co/datasets/netop/TeleLogs'],
+      ['inspect/3gpp-tsg', 'https://huggingface.co/datasets/GSMA/ot-lite'],
+    ])('should return the URL for the Open-Telco benchmark %s', (id, url) => {
+      expect(getBenchmarkDatasetUrl(id)).toBe(url);
+    });
   });
 
   describe('prefix matches', () => {
