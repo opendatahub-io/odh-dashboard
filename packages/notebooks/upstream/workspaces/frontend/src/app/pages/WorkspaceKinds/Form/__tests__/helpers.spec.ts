@@ -1,6 +1,141 @@
-import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  getResources,
+  convertFormDataToUpdate,
+  formatSeconds,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { mockPodConfig } from '~/__mocks__/mockResources';
-import { WorkspaceKindPodConfigValue } from '~/app/types';
+import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
+import {
+  WorkspacekindsWorkspaceKindUpdate,
+  V1Beta1WorkspaceKindAssetMediaType,
+  V1PullPolicy,
+  V1ResourceList,
+} from '~/generated/data-contracts';
+
+const buildMockApiUpdate = (
+  overrides?: Partial<WorkspacekindsWorkspaceKindUpdate>,
+): WorkspacekindsWorkspaceKindUpdate => ({
+  revision: 'rev-1',
+  spawner: {
+    displayName: 'Test WK',
+    description: 'A test workspace kind',
+    deprecated: false,
+    deprecationMessage: '',
+    hidden: false,
+    icon: { url: 'https://example.com/icon.png' },
+    logo: { url: 'https://example.com/logo.png' },
+  },
+  podTemplate: {
+    options: {
+      imageConfig: {
+        spawner: { default: 'img-1' },
+        values: [
+          {
+            id: 'img-1',
+            spawner: {
+              displayName: 'Image One',
+              description: 'First image',
+              hidden: false,
+              labels: [{ key: 'lang', value: 'python' }],
+            },
+            spec: {
+              image: 'registry.io/img:v1',
+              imagePullPolicy: V1PullPolicy.PullIfNotPresent,
+              ports: [{ id: 'http', port: 8888, displayName: 'HTTP' }],
+            },
+          },
+        ],
+      },
+      podConfig: {
+        spawner: { default: 'pod-1' },
+        values: [
+          {
+            id: 'pod-1',
+            spawner: {
+              displayName: 'Pod One',
+              description: 'First pod config',
+              hidden: false,
+              labels: [{ key: 'size', value: 'small' }],
+            },
+            spec: {
+              resources: {
+                requests: { cpu: '1', memory: '2Gi' } as unknown as V1ResourceList,
+                limits: { cpu: '2', memory: '4Gi' } as unknown as V1ResourceList,
+              },
+              nodeSelector: { 'kubernetes.io/os': 'linux' },
+            },
+          },
+        ],
+      },
+    },
+    podMetadata: {
+      labels: { app: 'test' },
+      annotations: { note: 'test-annotation' },
+    },
+    ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
+    serviceAccount: { name: 'default-editor' },
+    volumeMounts: { home: '/home/jovyan' },
+  },
+  ...overrides,
+});
+
+const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): WorkspaceKindFormData => ({
+  properties: {
+    displayName: 'Test WK',
+    description: 'A test workspace kind',
+    deprecated: false,
+    deprecationMessage: '',
+    hidden: false,
+    icon: { url: 'https://example.com/icon.png' },
+    logo: { url: 'https://example.com/logo.png' },
+  },
+  imageConfig: {
+    default: 'img-1',
+    values: [
+      {
+        id: 'img-1',
+        displayName: 'Image One',
+        description: 'First image',
+        hidden: false,
+        labels: [{ key: 'lang', value: 'python' }],
+        image: 'registry.io/img:v1',
+        imagePullPolicy: ImagePullPolicy.IfNotPresent,
+        ports: [{ id: 'http', port: 8888, displayName: 'HTTP', protocol: 'HTTP' as const }],
+        restrictions: { deny: false },
+      },
+    ],
+  },
+  podConfig: {
+    default: 'pod-1',
+    values: [
+      {
+        id: 'pod-1',
+        displayName: 'Pod One',
+        description: 'First pod config',
+        hidden: false,
+        labels: [{ key: 'size', value: 'small' }],
+        resources: {
+          requests: { cpu: '1', memory: '2Gi' },
+          limits: { cpu: '2', memory: '4Gi' },
+        },
+        nodeSelector: { 'kubernetes.io/os': 'linux' },
+        restrictions: { deny: false },
+      },
+    ],
+  },
+  podTemplate: {
+    podMetadata: {
+      labels: { app: 'test' },
+      annotations: { note: 'test-annotation' },
+    },
+    volumeMounts: { home: '/home/jovyan' },
+    activityProbe: {
+      probeIntervalSeconds: 3600,
+      jupyter: { lastActivity: true, portId: 'http' },
+    },
+  },
+  ...overrides,
+});
 
 describe('getResources', () => {
   it('should convert k8s resource object to PodResourceEntry array with correct structure', () => {
@@ -34,13 +169,14 @@ describe('getResources', () => {
     expect(gpu?.id).toMatch(/nvidia\.com\/gpu-/);
   });
 
-  it(' handle empty or missing resources and return default CPU and memory entries', () => {
+  it('should handle empty or missing resources and return default CPU and memory entries', () => {
     const emptyConfig: WorkspaceKindPodConfigValue = {
       id: 'test-config',
       displayName: 'Test Config',
       description: 'Test Description',
       labels: [],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const result = getResources(emptyConfig);
@@ -63,5 +199,311 @@ describe('getResources', () => {
       request: '',
       limit: '',
     });
+  });
+});
+
+describe('convertFormDataToUpdate', () => {
+  it('should preserve spawner properties from form data', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.revision).toBe('rev-1');
+    expect(result.spawner.displayName).toBe('Test WK');
+    expect(result.spawner.description).toBe('A test workspace kind');
+    expect(result.spawner.deprecated).toBe(false);
+    expect(result.spawner.hidden).toBe(false);
+    expect(result.spawner.icon).toEqual({ url: 'https://example.com/icon.png' });
+    expect(result.spawner.logo).toEqual({ url: 'https://example.com/logo.png' });
+  });
+
+  it('should preserve podTemplate metadata from form data', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.podMetadata).toEqual({
+      labels: { app: 'test' },
+      annotations: { note: 'test-annotation' },
+    });
+    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+  });
+
+  it('should map image config values correctly', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+    const img = result.podTemplate.options.imageConfig.values[0];
+
+    expect(img.id).toBe('img-1');
+    expect(img.spawner.displayName).toBe('Image One');
+    expect(img.spawner.description).toBe('First image');
+    expect(img.spec.image).toBe('registry.io/img:v1');
+    expect(img.spec.ports).toEqual([{ id: 'http', port: 8888, displayName: 'HTTP' }]);
+  });
+
+  it('should map pod config values with resources correctly', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+    const pod = result.podTemplate.options.podConfig.values[0];
+
+    expect(pod.id).toBe('pod-1');
+    expect(pod.spawner.displayName).toBe('Pod One');
+    expect(pod.spec.resources).toEqual({
+      requests: { cpu: '1', memory: '2Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    });
+    expect(pod.spec.nodeSelector).toEqual({ 'kubernetes.io/os': 'linux' });
+  });
+
+  it('should preserve non-form fields from original via spreading', () => {
+    const original = buildMockApiUpdate();
+    // Add a non-form field to a pod config spec
+    (
+      original.podTemplate.options.podConfig.values[0].spec as unknown as Record<string, unknown>
+    ).affinity = {
+      nodeAffinity: {
+        requiredDuringSchedulingIgnoredDuringExecution: {
+          nodeSelectorTerms: [{ matchExpressions: [{ key: 'gpu', operator: 'Exists' }] }],
+        },
+      },
+    };
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    // The affinity field should be preserved from the original via ...originalValue?.spec spread
+    expect(
+      (result.podTemplate.options.podConfig.values[0].spec as unknown as Record<string, unknown>)
+        .affinity,
+    ).toBeDefined();
+  });
+
+  it('should preserve non-form podTemplate fields from original via spreading', () => {
+    const original = buildMockApiUpdate();
+    // Add non-form podTemplate fields
+    (original.podTemplate as unknown as Record<string, unknown>).extraEnv = [
+      { name: 'MY_VAR', value: 'test' },
+    ];
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    // extraEnv should be preserved via ...original.podTemplate spread
+    expect((result.podTemplate as unknown as Record<string, unknown>).extraEnv).toEqual([
+      { name: 'MY_VAR', value: 'test' },
+    ]);
+  });
+
+  it('should preserve culling config from form data', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.activityProbe).toEqual({
+      probeIntervalSeconds: 3600,
+      jupyter: { lastActivity: true, portId: 'http' },
+    });
+  });
+
+  it('should convert empty string optional fields to undefined', () => {
+    const formData = buildMockFormData();
+    formData.properties.deprecationMessage = '';
+    formData.properties.icon = { url: '' };
+    formData.properties.logo = { url: '' };
+
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.spawner.deprecationMessage).toBeUndefined();
+    expect(result.spawner.icon).toEqual({ url: undefined });
+    expect(result.spawner.logo).toEqual({ url: undefined });
+  });
+
+  it('should use configMap-based icon when configMap is set', () => {
+    const formData = buildMockFormData({
+      properties: {
+        displayName: 'Test WK',
+        description: 'A test workspace kind',
+        deprecated: false,
+        deprecationMessage: '',
+        hidden: false,
+        icon: {
+          configMap: {
+            name: 'my-icons',
+            namespace: 'default',
+            key: 'icon.svg',
+            mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+          },
+        },
+        logo: { url: 'https://example.com/logo.png' },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.spawner.icon).toEqual({
+      configMap: {
+        name: 'my-icons',
+        namespace: 'default',
+        key: 'icon.svg',
+        mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+      },
+    });
+    expect(result.spawner.logo).toEqual({ url: 'https://example.com/logo.png' });
+  });
+
+  it('should use configMap-based logo when configMap is set', () => {
+    const formData = buildMockFormData({
+      properties: {
+        displayName: 'Test WK',
+        description: 'A test workspace kind',
+        deprecated: false,
+        deprecationMessage: '',
+        hidden: false,
+        icon: { url: 'https://example.com/icon.png' },
+        logo: {
+          configMap: {
+            name: 'my-logos',
+            namespace: 'kubeflow',
+            key: 'logo.svg',
+            mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+          },
+        },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.spawner.icon).toEqual({ url: 'https://example.com/icon.png' });
+    expect(result.spawner.logo).toEqual({
+      configMap: {
+        name: 'my-logos',
+        namespace: 'kubeflow',
+        key: 'logo.svg',
+        mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+      },
+    });
+  });
+
+  it('should preserve the original volumeMounts.home (immutable field)', () => {
+    const formData = buildMockFormData({
+      podTemplate: {
+        podMetadata: { labels: {}, annotations: {} },
+        volumeMounts: { home: '/home/changed-by-user' },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+  });
+
+  it('should format seconds below 60 as raw seconds', () => {
+    expect(formatSeconds(0)).toBe('0s');
+    expect(formatSeconds(1)).toBe('1s');
+    expect(formatSeconds(15)).toBe('15s');
+    expect(formatSeconds(59)).toBe('59s');
+  });
+
+  it('should format exact minutes', () => {
+    expect(formatSeconds(60)).toBe('1 minute');
+    expect(formatSeconds(120)).toBe('2 minutes');
+    expect(formatSeconds(300)).toBe('5 minutes');
+  });
+
+  it('should format exact hours', () => {
+    expect(formatSeconds(3600)).toBe('1 hour');
+    expect(formatSeconds(7200)).toBe('2 hours');
+    expect(formatSeconds(10800)).toBe('3 hours');
+  });
+
+  it('should format exact days', () => {
+    expect(formatSeconds(86400)).toBe('1 day');
+    expect(formatSeconds(172800)).toBe('2 days');
+  });
+
+  it('should round non-round values to nearest 0.25', () => {
+    expect(formatSeconds(5400)).toBe('1.5 hours');
+    expect(formatSeconds(2700)).toBe('45 minutes');
+    expect(formatSeconds(4500)).toBe('1.25 hours');
+    expect(formatSeconds(90)).toBe('1.5 minutes');
+    expect(formatSeconds(129600)).toBe('1.5 days');
+  });
+
+  it('should round ugly decimals cleanly', () => {
+    expect(formatSeconds(3661)).toBe('1 hour');
+    expect(formatSeconds(3700)).toBe('1 hour');
+    expect(formatSeconds(4000)).toBe('1 hour');
+    expect(formatSeconds(86500)).toBe('1 day');
+  });
+
+  it('should use correct singular/plural', () => {
+    expect(formatSeconds(60)).toBe('1 minute');
+    expect(formatSeconds(120)).toBe('2 minutes');
+    expect(formatSeconds(3600)).toBe('1 hour');
+    expect(formatSeconds(7200)).toBe('2 hours');
+    expect(formatSeconds(86400)).toBe('1 day');
+    expect(formatSeconds(172800)).toBe('2 days');
+  });
+  it('should convert activityRules from form data, stripping the id field', () => {
+    const formData = buildMockFormData({
+      activityRules: [
+        {
+          id: 'rule-1',
+          config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
+          match: {
+            matchNamespace: {
+              selector: { matchLabels: { tier: 'development' } },
+            },
+          },
+          effect: { pauseWorkspace: true },
+        },
+        {
+          id: 'rule-2',
+          config: { secondsSinceActive: 86400 },
+          effect: { pauseWorkspace: true },
+        },
+      ],
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toHaveLength(2);
+    expect(result.activityRules![0]).toEqual({
+      config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
+      match: {
+        matchNamespace: {
+          selector: { matchLabels: { tier: 'development' } },
+        },
+      },
+      effect: { pauseWorkspace: true },
+    });
+    expect(result.activityRules![1]).toEqual({
+      config: { secondsSinceActive: 86400 },
+      effect: { pauseWorkspace: true },
+    });
+  });
+
+  it('should output undefined activityRules when form data has no rules', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toBeUndefined();
+  });
+
+  it('should output empty activityRules array when form data has empty array', () => {
+    const formData = buildMockFormData({ activityRules: [] });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toEqual([]);
   });
 });

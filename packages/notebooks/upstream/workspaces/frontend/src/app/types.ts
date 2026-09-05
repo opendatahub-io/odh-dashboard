@@ -1,7 +1,9 @@
 import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
-  AssetsImageRef,
+  V1Beta1WorkspaceKindAsset,
+  V1Beta1ActivityProbe,
+  WorkspacekindsActivityRule,
   WorkspacekindsPodMetadata,
   WorkspacekindsPodVolumeMounts,
   WorkspacekindsWorkspaceKindListItem,
@@ -60,8 +62,8 @@ export interface WorkspaceKindProperties {
   deprecated: boolean;
   deprecationMessage: string;
   hidden: boolean;
-  icon: AssetsImageRef;
-  logo: AssetsImageRef;
+  icon: V1Beta1WorkspaceKindAsset;
+  logo: V1Beta1WorkspaceKindAsset;
 }
 
 export interface WorkspaceKindImageConfigValue extends OptionsImageConfigValue {
@@ -108,21 +110,15 @@ export interface WorkspaceKindPodConfigData {
   default: string;
   values?: WorkspaceKindPodConfigValue[];
 }
-export interface WorkspaceKindPodCulling {
-  enabled: boolean;
-  maxInactiveSeconds: number;
-  activityProbe: {
-    jupyter: {
-      lastActivity: boolean;
-    };
-  };
-}
-
 export interface WorkspaceKindPodTemplateData {
   podMetadata: WorkspacekindsPodMetadata;
   volumeMounts: WorkspacekindsPodVolumeMounts;
-  culling?: WorkspaceKindPodCulling;
+  activityProbe?: V1Beta1ActivityProbe;
   extraVolumeMounts?: WorkspacesPodVolumeMount[];
+}
+
+export interface ActivityRuleEntry extends WorkspacekindsActivityRule {
+  id: string;
 }
 
 export interface WorkspaceKindFormData {
@@ -130,4 +126,5 @@ export interface WorkspaceKindFormData {
   imageConfig: WorkspaceKindImageConfigData;
   podConfig: WorkspaceKindPodConfigData;
   podTemplate: WorkspaceKindPodTemplateData;
+  activityRules?: ActivityRuleEntry[];
 }

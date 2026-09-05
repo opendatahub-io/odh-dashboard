@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -22,10 +22,12 @@ import { ApiErrorEnvelope } from '~/generated/data-contracts';
 interface DeleteModalProps {
   isOpen: boolean;
   resourceName: string;
-  namespace: string;
+  namespace?: string;
   onClose: () => void;
   onDelete: (resourceName: string) => Promise<void>;
   title: string;
+  errorTitle?: string;
+  message?: React.ReactNode;
 }
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -33,6 +35,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   resourceName,
   namespace,
   title,
+  errorTitle = 'Failed to delete workspace',
+  message,
   onClose,
   onDelete,
 }) => {
@@ -40,28 +44,34 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+  const isDeletingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setInputValue('');
       setError(null);
+      isDeletingRef.current = false;
+      setIsDeleting(false);
     }
   }, [isOpen]);
 
   const handleDelete = useCallback(async () => {
-    if (inputValue === resourceName) {
-      setIsDeleting(true);
-      setError(null);
-      try {
-        await onDelete(resourceName);
-        onClose();
-      } catch (err) {
-        setError(extractErrorMessage(err));
-      } finally {
-        setIsDeleting(false);
-      }
-    } else {
-      alert('Resource name does not match.');
+    if (isDeletingRef.current || inputValue !== resourceName) {
+      return;
+    }
+
+    isDeletingRef.current = true;
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      await onDelete(resourceName);
+      onClose();
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      isDeletingRef.current = false;
+      setIsDeleting(false);
     }
   }, [inputValue, onClose, onDelete, resourceName]);
 
@@ -84,16 +94,22 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         <Stack hasGutter={!isMUITheme}>
           {error && (
             <StackItem>
-              <ErrorAlert
-                title="Failed to delete workspace"
-                content={error}
-                testId="delete-modal-error"
-              />
+              <ErrorAlert title={errorTitle} content={error} testId="delete-modal-error" />
             </StackItem>
           )}
           <StackItem>
-            Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
-            <strong>{namespace}</strong>?
+            {message || (
+              <>
+                Are you sure you want to delete <strong>{resourceName}</strong>
+                {namespace && (
+                  <>
+                    {' '}
+                    in namespace <strong>{namespace}</strong>
+                  </>
+                )}
+                ?
+              </>
+            )}
           </StackItem>
           <StackItem>
             <Form
@@ -136,8 +152,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             titleOnLoading="Deleting ..."
             onClick={handleDelete}
             variant="danger"
-            isDisabled={inputValue !== resourceName}
-            aria-disabled={inputValue !== resourceName}
+            isDisabled={inputValue !== resourceName || isDeleting}
+            aria-disabled={inputValue !== resourceName || isDeleting}
             data-testid="delete-button"
           >
             Delete

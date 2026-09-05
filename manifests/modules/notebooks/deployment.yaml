@@ -80,6 +80,13 @@ spec:
         - name: notebooks-ui
           image: notebooks-ui-image
           imagePullPolicy: Always
+          env:
+            - name: AUTH_METHOD
+              value: user_token
+            - name: AUTH_TOKEN_HEADER
+              value: x-forwarded-access-token
+            - name: AUTH_TOKEN_PREFIX
+              value: ""
           livenessProbe:
             httpGet:
               path: /api/v1/healthcheck

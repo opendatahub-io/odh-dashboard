@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -101,13 +100,8 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
 			patch := client.MergeFrom(workspaceKind.DeepCopy())
 
-			By("failing to update the `spec.podTemplate.serviceAccount.name` field")
-			newWorkspaceKind := workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.ServiceAccount.Name = "new-editor"
-			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
-
 			By("failing to update the `spec.podTemplate.volumeMounts.home` field")
-			newWorkspaceKind = workspaceKind.DeepCopy()
+			newWorkspaceKind := workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.PodTemplate.VolumeMounts.Home = "/home/jovyan/new"
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 		})
@@ -121,7 +115,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			By("only allowing one of `spec.spawner.icon.{url,configMap}` to be set")
 			newWorkspaceKind := workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
-				Url: ptr.To("https://example.com/icon.png"),
+				Url: new("https://example.com/icon.png"),
 				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
 					Name:      "my-logos",
 					Key:       "icon.svg",
@@ -131,14 +125,15 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 
-			By("only allowing one of `spec.podTemplate.culling.activityProbe.{exec,jupyter}` to be set")
+			By("only allowing one of `spec.podTemplate.activityProbe.{podExec,jupyter}` to be set")
 			newWorkspaceKind = workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.Culling.ActivityProbe = kubefloworgv1beta1.ActivityProbe{
-				Exec: &kubefloworgv1beta1.ActivityProbeExec{
-					Command: []string{"bash", "-c", "exit 0"},
+			newWorkspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
+				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+					Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 				},
 				Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 					LastActivity: true,
+					PortId:       "jupyterlab",
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
