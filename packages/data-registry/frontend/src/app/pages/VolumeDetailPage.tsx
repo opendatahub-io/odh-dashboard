@@ -25,7 +25,7 @@ import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useVolume } from '~/app/hooks/useVolume';
 import { deleteVolume } from '~/app/api/dataRegistry';
-import { browseUrl } from '~/app/utilities/routes';
+import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import VolumeDetailView from './VolumeDetailView';
 
@@ -60,10 +60,10 @@ const VolumeDetailPage: React.FC = () => {
           </Link>
         )}
       />
-      {collection ? (
+      {collection && project ? (
         <BreadcrumbItem
           render={({ className }) => (
-            <Link className={className} to={browseUrl(project)}>
+            <Link className={className} to={collectionDetailUrl(project, collection)}>
               {collection}
             </Link>
           )}
