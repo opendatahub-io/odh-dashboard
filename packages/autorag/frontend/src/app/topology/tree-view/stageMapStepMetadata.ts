@@ -3,7 +3,10 @@ import type {
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
-import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
+import {
+  findComponentTaskInRunDetails,
+  getComponentStageStatus,
+} from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun } from '~/app/types';
 import {
   isAllowedFlattenKey,
@@ -38,6 +41,8 @@ const STAGE_FIELD_LABELS: Record<string, string> = {
   export_path: 'Export path',
   output_path: 'Output path',
   best_pattern: 'Best pattern',
+  completed_units: 'Completed units',
+  total_units: 'Total units',
 };
 
 /** Fields to show with "—" when pending/failed/unreached and values are not yet on the stage record. */
@@ -204,6 +209,9 @@ function flattenStageRecord(stage: ComponentStageMapStage): Record<string, unkno
 
   for (const [key, value] of Object.entries(stage)) {
     if (NESTED_STAGE_FIELD_KEY_SET.has(key)) {
+      if (key === 'metrics') {
+        continue;
+      }
       if (isPlainObject(value)) {
         for (const [nestedKey, nestedValue] of Object.entries(value)) {
           if (isAllowedFlattenKey(nestedKey) && nestedValue != null) {
@@ -288,9 +296,10 @@ const hasStageExecutionEvidence = (
   stepState?: StepExecutionState,
 ): boolean =>
   stage.timestamp != null ||
-  stage.status === 'started' ||
-  stage.status === 'completed' ||
-  stage.status === 'failed' ||
+  getComponentStageStatus(stage.status) === 'started' ||
+  getComponentStageStatus(stage.status) === 'running' ||
+  getComponentStageStatus(stage.status) === 'completed' ||
+  getComponentStageStatus(stage.status) === 'failed' ||
   stepState === 'failed' ||
   stepState === 'active' ||
   stepState === 'completed';
@@ -317,8 +326,8 @@ const isTerminalStageState = (
   stage: ComponentStageMapStage,
   stepState?: StepExecutionState,
 ): boolean =>
-  stage.status === 'completed' ||
-  stage.status === 'failed' ||
+  getComponentStageStatus(stage.status) === 'completed' ||
+  getComponentStageStatus(stage.status) === 'failed' ||
   stepState === 'completed' ||
   stepState === 'failed';
 
@@ -326,9 +335,10 @@ const shouldUseTaskEndTime = (
   stage: ComponentStageMapStage,
   stepState?: StepExecutionState,
 ): boolean =>
-  stage.status === 'failed' ||
-  stage.status === 'started' ||
-  stage.status === 'completed' ||
+  getComponentStageStatus(stage.status) === 'failed' ||
+  getComponentStageStatus(stage.status) === 'started' ||
+  getComponentStageStatus(stage.status) === 'running' ||
+  getComponentStageStatus(stage.status) === 'completed' ||
   stepState === 'failed' ||
   stepState === 'active' ||
   stepState === 'completed';
@@ -348,9 +358,10 @@ const resolveStageStartTime = (
     return previousStage.timestamp;
   }
   if (
-    stage?.status === 'started' ||
-    stage?.status === 'failed' ||
-    stage?.status === 'completed' ||
+    getComponentStageStatus(stage?.status) === 'started' ||
+    getComponentStageStatus(stage?.status) === 'running' ||
+    getComponentStageStatus(stage?.status) === 'failed' ||
+    getComponentStageStatus(stage?.status) === 'completed' ||
     stepState === 'active' ||
     stepState === 'failed' ||
     stepState === 'completed' ||
@@ -436,7 +447,27 @@ function buildDetailsFromStageRecord(
 ): StepDetail[] {
   const details: StepDetail[] = [{ label: 'Duration', value: duration ?? '—' }];
 
+  if (isPlainObject(stage.status)) {
+    details.push({ label: 'State', value: stage.status.state });
+    if (isPlainObject(stage.status.message) && typeof stage.status.message.text === 'string') {
+      details.push({ label: 'Message', value: stage.status.message.text });
+    }
+    if (typeof stage.status.running_at === 'string') {
+      details.push({ label: 'Running at', value: stage.status.running_at });
+    }
+    if (stage.status.state === 'failed' && isPlainObject(stage.error)) {
+      details.push({ label: 'Error', value: formatStageFieldValue('error', stage.error) });
+    }
+  }
+
   const flattened = flattenStageRecord(stage);
+  if (isPlainObject(stage.metrics)) {
+    for (const [key, value] of Object.entries(stage.metrics)) {
+      if (value != null) {
+        flattened[key] = value;
+      }
+    }
+  }
   const orderedKeys = resolveDetailFieldKeys(flattened, stepState, stageId);
 
   for (const key of orderedKeys) {
@@ -584,4 +615,16 @@ export function getStageDescriptionFromMap(
     return undefined;
   }
   return findStage(component, parsed.stageId)?.description;
+}
+
+export function getComponentDisplayName(
+  parsed: ParsedStageMapNode,
+  componentStageMap: ComponentStageMap,
+): string | undefined {
+  const component = findComponent(componentStageMap, parsed.componentId);
+  if (!component) {
+    return undefined;
+  }
+  const displayName = component.metadata?.display_name;
+  return typeof displayName === 'string' ? displayName : component.description;
 }

@@ -7,7 +7,10 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { isRunInTerminalState, normalizePipelineRunState } from '~/app/utilities/utils';
 import { MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES, MIN_TOP_N } from '~/app/utilities/const';
-import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
+import {
+  findComponentTaskInRunDetails,
+  getComponentStageStatus,
+} from '~/app/hooks/useComponentStatuses';
 import { dedupePreservingOrder } from './stageMapConstants';
 import { translateStatusForNode } from './parseUtils';
 
@@ -27,6 +30,7 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'completed':
       return RunStatus.Succeeded;
     case 'started':
+    case 'running':
       return RunStatus.InProgress;
     case 'failed':
       return RunStatus.Failed;
@@ -115,7 +119,7 @@ export const resolveStageRunStatus = (
   hasExplicitFailureInPipeline = false,
 ): RunStatus | undefined => {
   const terminalRunFailure = getTerminalRunFailureStatus(runState, hasExplicitFailureInPipeline);
-  const inlineStatus = translateStageStatus(stage.status);
+  const inlineStatus = translateStageStatus(getComponentStageStatus(stage.status));
   if (inlineStatus != null) {
     if (terminalRunFailure != null && inlineStatus === RunStatus.InProgress) {
       return terminalRunFailure;
@@ -151,11 +155,12 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 
 /** True when the backend reported this stage failed (not inferred from component-level status). */
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
-  translateStageStatus(stage?.status) === RunStatus.Failed;
+  translateStageStatus(stage ? getComponentStageStatus(stage.status) : undefined) ===
+  RunStatus.Failed;
 
 /** True when the stage map marks a stage skipped (never ran due to upstream barrier). */
 export const isInlineStageSkipped = (stage?: ComponentStageMapStage): boolean =>
-  stage?.status?.trim().toLowerCase() === 'skipped';
+  getComponentStageStatus(stage?.status) === 'skipped';
 
 /** True when a pre-branch stage (before model_selection) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
@@ -173,14 +178,23 @@ export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
 
 const hasAnyInlineStageStatus = (stages: ComponentStageMapStage[]): boolean =>
-  stages.some((stage) => translateStageStatus(stage.status) != null);
+  stages.some((stage) => translateStageStatus(getComponentStageStatus(stage.status)) != null);
+
+const hasCanonicalStageStatus = (stages: ComponentStageMapStage[]): boolean =>
+  stages.some((stage) => stage.status != null && typeof stage.status === 'object');
+
+const isAfterCanonicalFrontier = (
+  stages: ComponentStageMapStage[],
+  stageIndex: number,
+  latestActivityIndex: number,
+): boolean => hasCanonicalStageStatus(stages) && stageIndex > latestActivityIndex;
 
 /** True when model selection published selected models via a status merge. */
 const hasBranchingStatusEvidence = (stage: ComponentStageMapStage): boolean =>
   stage.id === BRANCHING_STAGE_ID &&
   Array.isArray(stage.selected_models) &&
   stage.selected_models.length > 0 &&
-  translateStageStatus(stage.status) != null;
+  translateStageStatus(getComponentStageStatus(stage.status)) != null;
 
 /**
  * Index of the latest stage that published inline progress. Used to backfill earlier
@@ -189,7 +203,7 @@ const hasBranchingStatusEvidence = (stage: ComponentStageMapStage): boolean =>
 export const findLatestInlineActivityIndex = (stages: ComponentStageMapStage[]): number => {
   let latest = -1;
   stages.forEach((stage, index) => {
-    if (translateStageStatus(stage.status) != null) {
+    if (translateStageStatus(getComponentStageStatus(stage.status)) != null) {
       latest = index;
       return;
     }
@@ -284,7 +298,7 @@ export const resolveSequentialStageRunStatuses = (
 
   for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
     const stage = stages[stageIndex];
-    const inlineStatus = translateStageStatus(stage.status);
+    const inlineStatus = translateStageStatus(getComponentStageStatus(stage.status));
 
     if (inlineStatus != null) {
       let resolved = applyEarlierStageBackfill(
@@ -336,6 +350,10 @@ export const resolveSequentialStageRunStatuses = (
         continue;
       }
       if (componentStatus === RunStatus.InProgress) {
+        if (hasCanonicalStageStatus(stages) && stageIndex > latestActivityIndex) {
+          statusById.set(stage.id, RunStatus.Pending);
+          continue;
+        }
         const resolved = applyEarlierStageBackfill(
           stageIndex,
           latestActivityIndex,
@@ -398,6 +416,10 @@ export const resolveSequentialStageRunStatuses = (
         } else {
           statusById.set(stage.id, RunStatus.InProgress);
         }
+        continue;
+      }
+      if (isAfterCanonicalFrontier(stages, stageIndex, latestActivityIndex)) {
+        statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
       const resolved = applyEarlierStageBackfill(
@@ -628,7 +650,9 @@ export const promoteWaitingFrontierToInProgress = (
 /** True when every stage has a recognized inline status (no unresolved gaps). */
 const hasCompleteInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
   component.stages.length > 0 &&
-  component.stages.every((stage) => translateStageStatus(stage.status) != null);
+  component.stages.every(
+    (stage) => translateStageStatus(getComponentStageStatus(stage.status)) != null,
+  );
 
 /** True when any mapped component has explicit task or inline stage failure evidence. */
 export const hasExplicitComponentFailureEvidence = (
