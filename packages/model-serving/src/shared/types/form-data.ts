@@ -189,6 +189,8 @@ export type WizardFormData = {
 
 export type WizardReviewItem = {
   key: string;
+  /** Optional key of an existing review item to replace within the same section. */
+  replaces?: string;
   label: string;
   value: (wizardState: WizardFormData['state']) => React.ReactNode;
   optional?: boolean;
