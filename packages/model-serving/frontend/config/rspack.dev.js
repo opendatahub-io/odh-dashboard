@@ -1,0 +1,162 @@
+/* eslint-disable no-console */
+const { execSync } = require('child_process');
+const path = require('path');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
+const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
+
+setupDotenvFilesForEnv({ env: 'development' });
+const rspackCommon = require('./rspack.common.js');
+
+const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
+const SRC_DIR = process.env._SRC_DIR;
+const COMMON_DIR = process.env._COMMON_DIR;
+const PUBLIC_PATH = process.env._PUBLIC_PATH;
+const DIST_DIR = process.env._DIST_DIR;
+const HOST = process.env._HOST;
+const PORT = process.env._PORT;
+const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
+const PROXY_HOST = process.env._PROXY_HOST;
+const PROXY_PORT = process.env._PROXY_PORT;
+const PACKAGE_SRC_DIR = path.resolve(RELATIVE_DIRNAME, '../src');
+const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
+const AUTH_METHOD = process.env._AUTH_METHOD;
+const BASE_PATH = PUBLIC_PATH;
+
+const assertLoopbackHost = () => {
+  if (AUTH_METHOD === 'user_token' && !['localhost', '127.0.0.1', '::1'].includes(HOST)) {
+    throw new Error('AUTH_METHOD=user_token requires a loopback HOST');
+  }
+};
+
+const getKubeconfigToken = () => {
+  assertLoopbackHost();
+  try {
+    const token = execSync(
+      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      { timeout: 10000 },
+    )
+      .toString()
+      .trim();
+    if (!token) {
+      console.error('Failed to get Kubernetes token: kubectl returned an empty token');
+      return '';
+    }
+    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'", {
+      timeout: 10000,
+    })
+      .toString()
+      .trim();
+    console.info('Logged in as user:', username);
+    return token;
+  } catch (error) {
+    console.error('Failed to get Kubernetes token:', error.message);
+    return '';
+  }
+};
+
+const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
+
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'internal') {
+    return {
+      'kubeflow-userid': 'user@example.com',
+    };
+  }
+  return {};
+};
+
+const onProxyReq = (proxyReq, req) => {
+  if (AUTH_METHOD !== 'user_token') {
+    return;
+  }
+  const incomingAuth = req.headers.authorization;
+  if (incomingAuth) {
+    proxyReq.setHeader('Authorization', incomingAuth);
+    const token = incomingAuth.replace(/^Bearer\s+/i, '');
+    proxyReq.setHeader('x-forwarded-access-token', token);
+  } else if (fallbackToken) {
+    proxyReq.setHeader('Authorization', `Bearer ${fallbackToken}`);
+    proxyReq.setHeader('x-forwarded-access-token', fallbackToken);
+  }
+};
+
+module.exports = merge(
+  {
+    plugins: [
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'development',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
+  },
+  rspackCommon('development'),
+  {
+    mode: 'development',
+    devtool: 'eval-source-map',
+    optimization: {
+      removeEmptyChunks: true,
+    },
+    devServer: {
+      host: HOST,
+      port: PORT,
+      compress: true,
+      historyApiFallback: true,
+      hot: true,
+      open: false,
+      proxy: [
+        {
+          context: ['/api', '/model-serving/api'],
+          target: {
+            host: PROXY_HOST,
+            protocol: PROXY_PROTOCOL,
+            port: PROXY_PORT,
+          },
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          on: { proxyReq: onProxyReq },
+        },
+      ],
+      devMiddleware: {
+        stats: 'errors-only',
+      },
+      client: {
+        overlay: false,
+      },
+      static: {
+        directory: DIST_DIR,
+        publicPath: BASE_PATH,
+      },
+      onListening: (devServer) => {
+        if (devServer) {
+          const devPort = devServer.server.address().port;
+          console.log(
+            `\x1b[32m✓ Model Serving federated dev server: \x1b[4mhttp://localhost:${devPort}\x1b[0m`,
+          );
+          console.log(
+            `\x1b[32m✓ Remote entry: \x1b[4mhttp://localhost:${devPort}/remoteEntry.js\x1b[0m`,
+          );
+        }
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.css$/,
+          include: [
+            SRC_DIR,
+            PACKAGE_SRC_DIR,
+            COMMON_DIR,
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+          ],
+          use: ['style-loader', 'css-loader'],
+        },
+      ],
+    },
+    plugins: [new TsCheckerRspackPlugin(), new ReactRefreshRspackPlugin({ overlay: false })],
+  },
+);
