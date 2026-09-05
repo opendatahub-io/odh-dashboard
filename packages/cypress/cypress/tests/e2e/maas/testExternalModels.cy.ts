@@ -76,7 +76,7 @@ describe('External models read-only list', () => {
   it(
     'lists external model, shows governance warning, and empty state in another project',
     {
-      tags: ['@Dashboard', '@MaaS', '@NonConcurrent', '@FeatureFlagged'],
+      tags: ['@Dashboard', '@MaaS', '@FeatureFlagged'],
     },
     () => {
       cy.step('Log into Deployments > External models as a normal user with the flag enabled');

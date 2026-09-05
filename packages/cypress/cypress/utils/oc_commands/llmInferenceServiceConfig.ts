@@ -1,7 +1,7 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
-import { createCustomResource } from './customResources';
-import { pollUntilSuccess } from './baseCommands';
+import { applyOpenShiftYaml, pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { replacePlaceholdersInYaml } from '../yaml_files';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 if (!applicationNamespace) {
@@ -47,7 +47,10 @@ export const createCleanLLMInferenceServiceConfig = (
   cy.log(`Cleaning up and creating LLMInferenceServiceConfig: ${configName}`);
   cleanupLLMInferenceServiceConfig(configName).then(() => {
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
-    createCustomResource(applicationNamespace, configYamlPath);
+    cy.fixture(configYamlPath, 'utf8').then((yaml: string) => {
+      const replacedYaml = replacePlaceholdersInYaml(yaml, { CONFIG_NAME: configName });
+      applyOpenShiftYaml(replacedYaml, applicationNamespace);
+    });
   });
 };
 

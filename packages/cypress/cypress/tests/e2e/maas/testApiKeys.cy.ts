@@ -24,10 +24,9 @@ import {
   bulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
+import type { ModelAsAServiceTestData } from '../../../types';
 import { ApiKeyStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
-import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { formatApiKeyDisplayDate, formatApiKeyExpirationDate } from '../../../utils/dateUtils';
@@ -37,7 +36,6 @@ let testData: ModelAsAServiceTestData;
 let projectName: string;
 let modelName: string;
 let llmInferenceserviceYamlFixturePath: string;
-let modelURI: string;
 let subscriptionName: string;
 let subscriptionDescription: string;
 let policiesName: string;
@@ -60,8 +58,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
         llmInferenceserviceYamlFixturePath =
-          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml';
-        modelURI = testData.modelLocationURI;
+          'resources/maas/llmInferenceServiceSimulatorPremium.yaml';
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
         policiesName = `${testData.policiesName}-${uuid}`;
@@ -82,16 +79,9 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       .then(() => {
         ensureAdminOcSession();
         cy.log('Create LLMInferenceService with MaaS enabled and create MaaSModelRef');
-        const dataConnectionReplacements: DataConnectionUriReplacements = {
-          NAMESPACE: projectName,
-          MODEL_URI: Buffer.from(modelURI).toString('base64'),
-          CONNECTION_NAME: `${modelName}${testData.connectionNameSuffix}`,
-        };
-        createDataConnectionUri(dataConnectionReplacements);
         createLLMInferenceServiceWithMaaSEnabled(
           projectName,
           modelName,
-          dataConnectionReplacements.CONNECTION_NAME,
           llmInferenceserviceYamlFixturePath,
         );
         checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
@@ -119,7 +109,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
   it(
     'Verify subscriptions tab, API keys, filtering, and revoke all keys for a user',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@MaaSCI'],
     },
     () => {
       cy.step('Log into the application as user');

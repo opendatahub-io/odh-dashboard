@@ -108,7 +108,7 @@ CONTAINER_TOOL=docker
 IMG_UI=quay.io/<personal-registry>/mod-arch-ui:latest
 IMG_UI_STANDALONE=quay.io/<personal-registry>/mod-arch-ui-standalone:latest
 PLATFORM=linux/amd64
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
 ```
 
 ## Build and Push Commands
