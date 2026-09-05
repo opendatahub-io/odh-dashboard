@@ -29,7 +29,7 @@ describe('Verify tool calling configuration in Model Catalog', () => {
 
   it(
     'Tool calling labels, filter, and validated arguments card are displayed',
-    { tags: ['@Dashboard', '@ModelCatalog'] },
+    { tags: ['@Dashboard', '@ModelCatalog', `@SmokeSet1`, '@Smoke'] },
     () => {
       cy.step('Login as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
