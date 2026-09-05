@@ -9,7 +9,6 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "packageManager": "npm@11.8.0",
   "overrides": {
     "js-yaml": "^4.1.1",
     "csstype": "3.2.3",
@@ -19,14 +18,14 @@
   },
   "scripts": {
     "build": "run-s build:prod",
-    "build:analyze": "cross-env RSDOCTOR=true npm run build:prod",
+    "build:analyze": "cross-env RSDOCTOR=true pnpm run build:prod",
     "build:prod": "rspack --config ./config/rspack.prod.js",
     "build:clean": "rm -rf ./dist",
     "start:dev": "rspack dev --hot --config ./config/rspack.dev.js",
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
-    "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
+    "test:cypress-ci": "pnpm exec concurrently -P -k -s first \"pnpm run cypress:server:build && pnpm run cypress:server\" \"pnpm exec wait-on tcp:127.0.0.1:9001 && pnpm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest",
-    "test:unit": "npm run test:jest -- --silent",
+    "test:unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix && prettier --write ./*.js ./*.cjs ./*.md ../*.md",
     "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js",
@@ -34,12 +33,12 @@
     "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js && prettier --check ./*.js ./*.cjs ./*.md ../*.md",
     "test:type-check": "tsc --noEmit",
     "cypress:open": "cypress open --project src/__tests__/cypress",
-    "cypress:open:mock": "CY_MOCK=1 npm run cypress:open -- ",
+    "cypress:open:mock": "CY_MOCK=1 pnpm run cypress:open -- ",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
-    "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
-    "cypress:server:build": "DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=standalone npm run build",
+    "cypress:run:mock": "CY_MOCK=1 pnpm run cypress:run -- ",
+    "cypress:server:build": "DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=standalone pnpm run build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
-    "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
+    "start:default": "STYLE_THEME=patternfly-theme pnpm run start:dev"
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.24.1",

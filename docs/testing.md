@@ -3,7 +3,7 @@
 Running all tests:
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 ## Unit Tests
@@ -13,7 +13,7 @@ Jest is used as the unit test runner. Unit tests should be written for all utili
 Running unit tests:
 
 ```bash
-npm run test:unit
+pnpm run test:unit
 ```
 
 ### Structure
@@ -149,11 +149,11 @@ Prior to running the Cypress e2e tests, run `oc login` to login as a cluster adm
 To run all Cypress e2e tests, a specific test, or open the Cypress GUI:
 
 ```bash
-npm run cypress:run
+pnpm run cypress:run
 
-npm run cypress:run -- --spec "**/testfile.cy.ts"
+pnpm run cypress:run -- --spec "**/testfile.cy.ts"
 
-npm run cypress:open
+pnpm run cypress:open
 ```
 
 Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
@@ -165,9 +165,9 @@ Cypress mocked tests run against a standalone frontend while mocking all network
 Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
 
 ```bash
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
-npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 Cypress tests require a frontend server to be running.
@@ -177,14 +177,14 @@ Using the rspack development server allows for auto rebuilding the dashboard fro
 To have turbo run a cypress server for the frontend folder and all federated modules run the following from the root of the repository:
 
 ```bash
-npm run cypress:server:dev
+pnpm run cypress:server:dev
 ```
 
 To best match production, build the frontend and use a lightweight HTTP server to host the files. This method will require manual rebuilds when changes are made to the dashboard frontend code.
 
 ```bash
-npm run cypress:server:build
-npm run cypress:server
+pnpm run cypress:server:build
+pnpm run cypress:server
 ```
 
 Once you have Cypress server running in a terminal, there are two commands to run the Cypress mock tests in a separate terminal (always use the `:mock` variants).
@@ -192,20 +192,20 @@ Once you have Cypress server running in a terminal, there are two commands to ru
 - `open`: Open the Cypress GUI
   ```bash
   cd frontend
-  npm run cypress:open:mock
+  pnpm run cypress:open:mock
   ```
 - `run`: Run all Cypress tests or a specific test headless
 
   ```bash
-  npm run cypress:run:mock
+  pnpm run cypress:run:mock
 
-  npm run cypress:run:mock -- --spec "**/testfile.cy.ts"
+  pnpm run cypress:run:mock -- --spec "**/testfile.cy.ts"
   ```
 
 Running out of memory using the GUI? Cypress keeps track of a lot of data while testing. If you experience memory issues or crashes, use the following command to adjust the number of tests kept in memory:
 
 ```bash
-npm run cypress:open:mock -- --config numTestsKeptInMemory=0
+pnpm run cypress:open:mock -- --config numTestsKeptInMemory=0
 ```
 
 ### Structure
@@ -234,8 +234,8 @@ Snapshot testing involves running tests against a live cluster, recording networ
 Use one of the following commands to run Cypress in record mode:
 
 ```bash
-npm run cypress:open:record
-npm run cypress:run:record
+pnpm run cypress:open:record
+pnpm run cypress:run:record
 ```
 
 ### Cypress Environment Variables
@@ -259,7 +259,7 @@ Cypress uses several environment variables to control test behavior and configur
   - Changes results directory to `results/mocked/`
   - Disables test retries by default
   - Loads different environment files (`.env.cypress.mock`)
-- **Usage**: `CY_MOCK=1 npm run cypress:run`
+- **Usage**: `CY_MOCK=1 pnpm run cypress:run`
 
 #### CY_RETRY
 
@@ -267,21 +267,21 @@ Cypress uses several environment variables to control test behavior and configur
 - **Values**: Number of retries (e.g., `0`, `1`, `2`)
 - **Default**: `2` retries for e2e tests, `0` for mocked tests
 - **Effect**: Sets the number of additional attempts a test will retry if it fails
-- **Usage**: `CY_RETRY=0 npm run cypress:run` (no retries)
+- **Usage**: `CY_RETRY=0 pnpm run cypress:run` (no retries)
 
 #### CY_RECORD
 
 - **Purpose**: Enables snapshot recording mode
 - **Values**: `1` (enabled) or `0`/unset (disabled)
 - **Effect**: Records network responses for snapshot testing
-- **Usage**: `CY_RECORD=1 npm run cypress:run`
+- **Usage**: `CY_RECORD=1 pnpm run cypress:run`
 
 #### CY_WATCH
 
 - **Purpose**: Controls file watching behavior
 - **Values**: `false` to disable, any other value to enable
 - **Effect**: Enables/disables watching for file changes during test execution
-- **Usage**: `CY_WATCH=false npm run cypress:open`
+- **Usage**: `CY_WATCH=false pnpm run cypress:open`
 
 #### CY_WS_PORT
 
@@ -289,14 +289,14 @@ Cypress uses several environment variables to control test behavior and configur
 - **Values**: Port number (e.g., `9002`)
 - **Default**: Used in mocked test scripts
 - **Effect**: Configures the WebSocket server port for real-time communication in mocked tests
-- **Usage**: Set automatically in npm scripts like `cypress:run:mock`
+- **Usage**: Set automatically in package scripts like `cypress:run:mock`
 
 #### CY_COVERAGE
 
 - **Purpose**: Enables code coverage collection
 - **Values**: `true` (enabled) or `false`/unset (disabled)
 - **Effect**: Enables code coverage reporting during test execution
-- **Usage**: `CY_COVERAGE=true npm run cypress:run`
+- **Usage**: `CY_COVERAGE=true pnpm run cypress:run`
 
 #### CY_RESULTS_DIR
 
@@ -304,14 +304,14 @@ Cypress uses several environment variables to control test behavior and configur
 - **Values**: Directory path (e.g., `results`, `custom-results`)
 - **Default**: `results`
 - **Effect**: Changes where test results (screenshots, videos, reports) are stored
-- **Usage**: `CY_RESULTS_DIR=custom-results npm run cypress:run`
+- **Usage**: `CY_RESULTS_DIR=custom-results pnpm run cypress:run`
 
 #### CY_TEST_TIMEOUT_SECONDS
 
 - **Purpose**: Sets global test timeout
 - **Values**: Number of seconds
 - **Effect**: Configures the global timeout for all tests
-- **Usage**: `CY_TEST_TIMEOUT_SECONDS=300 npm run cypress:run`
+- **Usage**: `CY_TEST_TIMEOUT_SECONDS=300 pnpm run cypress:run`
 
 ### Page Objects
 

@@ -85,7 +85,7 @@ core-bff/
 │   │   ├── rspack.prod.js       # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
-│   ├── package.json             # NPM dependencies and scripts
+│   ├── package.json             # Node.js dependencies and scripts
 │   └── README.md                # Frontend documentation
 ├── docs/                        # Project documentation
 ├── scripts/                     # Utility scripts
@@ -100,8 +100,8 @@ core-bff/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **pnpm**: 11.22.0
 
 ### BFF
 
@@ -156,19 +156,19 @@ make docker-build-federated    # Federated mode
 
 ```bash
 # Frontend tests (lint + type-check + unit + cypress)
-cd frontend && npm run test
+cd frontend && pnpm run test
 
 # BFF tests
 cd bff && make lint && make test
 
 # Contract tests
-npm run test:contract
+pnpm run test:contract
 
 # Cypress E2E tests only
-cd frontend && npm run test:cypress-ci
+cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 ---
@@ -194,19 +194,19 @@ schemas.
 
 ### Code Organization
 
-| Directory                | Purpose                                  |
-| ------------------------ | ---------------------------------------- |
-| `cmd/`                   | Application wiring and entrypoint        |
+| Directory                | Purpose                                        |
+| ------------------------ | ---------------------------------------------- |
+| `cmd/`                   | Application wiring and entrypoint              |
 | `internal/api/`          | HTTP handlers, middleware, platform resolution |
-| `internal/config/`       | Environment-driven configuration         |
-| `internal/constants/`    | Shared constants                         |
-| `internal/helpers/`      | Utility functions (kubeconfig, context)  |
-| `internal/integrations/` | External service clients (k8s, bffclient)|
-| `internal/k8sutil/`      | K8s error detection helpers              |
-| `internal/maputil/`      | Generic map utilities (deep merge, copy) |
-| `internal/models/`       | DTOs, data models, and domain constants  |
-| `internal/ptr/`          | Generic pointer helper (`ptr.To[T]`)     |
-| `internal/repositories/` | Data access layer for K8s resources      |
+| `internal/config/`       | Environment-driven configuration               |
+| `internal/constants/`    | Shared constants                               |
+| `internal/helpers/`      | Utility functions (kubeconfig, context)        |
+| `internal/integrations/` | External service clients (k8s, bffclient)      |
+| `internal/k8sutil/`      | K8s error detection helpers                    |
+| `internal/maputil/`      | Generic map utilities (deep merge, copy)       |
+| `internal/models/`       | DTOs, data models, and domain constants        |
+| `internal/ptr/`          | Generic pointer helper (`ptr.To[T]`)           |
+| `internal/repositories/` | Data access layer for K8s resources            |
 
 ### Development Guidelines
 
@@ -227,30 +227,30 @@ schemas.
 
 ### BFF Configuration Flags
 
-| Flag                    | Env Var                | Description                              | Default       |
-| ----------------------- | ---------------------- | ---------------------------------------- | ------------- |
-| `-port`                 | `PORT`                 | Listen port                              | 4000          |
-| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `federated`              | standalone    |
-| `-platform-type`        | `ODH_PLATFORM_TYPE`    | `OpenShift`, `XKS`, or empty (auto-detect) | (auto-detect) |
-| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors                | false         |
-| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s              | false         |
-| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use mock HTTP client                     | false         |
-| `-mock-bff-clients`     | `MOCK_BFF_CLIENTS`     | Use mock inter-BFF clients               | false         |
-| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets       | ./static      |
-| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG                 | INFO          |
-| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins             | ""            |
-| `-auth-method`          | `AUTH_METHOD`           | `disabled` (mock) or `user_token`        | user_token    |
-| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from         | x-forwarded-access-token |
-| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Prefix to strip from token header value  | (none)        |
-| `-cert-file`            | (CLI only)             | TLS certificate path                     | (none)        |
-| `-key-file`             | (CLI only)             | TLS key path                             | (none)        |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
-| `-namespace`            | `NAMESPACE` / `OC_PROJECT` | Dashboard namespace                  | opendatahub   |
-| `-workbench-namespace`  | `WORKBENCH_NAMESPACE`  | Workbench namespace (defaults to dashboard ns) | (namespace) |
-| `-dashboard-config-name`| `DASHBOARD_CONFIG_NAME`| OdhDashboardConfig CR name               | odh-dashboard-config |
-| `-enabled-apps-cm`      | `ENABLED_APPS_CM`      | ConfigMap tracking enabled applications  | ""            |
-| `-mf-remotes-config`    | `MF_REMOTES_CONFIG`    | Path to module federation remotes config | ""            |
-| `-bundle-paths`         |                        | Comma-separated PEM CA bundle paths      | (system defaults) |
+| Flag                     | Env Var                    | Description                                    | Default                  |
+| ------------------------ | -------------------------- | ---------------------------------------------- | ------------------------ |
+| `-port`                  | `PORT`                     | Listen port                                    | 4000                     |
+| `-deployment-mode`       | `DEPLOYMENT_MODE`          | `standalone` or `federated`                    | standalone               |
+| `-platform-type`         | `ODH_PLATFORM_TYPE`        | `OpenShift`, `XKS`, or empty (auto-detect)     | (auto-detect)            |
+| `-dev-mode`              | `DEV_MODE`                 | Enables relaxed behaviors                      | false                    |
+| `-mock-k8s-client`       | `MOCK_K8S_CLIENT`          | Use in-memory stub for k8s                     | false                    |
+| `-mock-http-client`      | `MOCK_HTTP_CLIENT`         | Use mock HTTP client                           | false                    |
+| `-mock-bff-clients`      | `MOCK_BFF_CLIENTS`         | Use mock inter-BFF clients                     | false                    |
+| `-static-assets-dir`     | `STATIC_ASSETS_DIR`        | Directory to serve frontend assets             | ./static                 |
+| `-log-level`             | `LOG_LEVEL`                | ERROR, WARN, INFO, DEBUG                       | INFO                     |
+| `-allowed-origins`       | `ALLOWED_ORIGINS`          | Comma-separated CORS origins                   | ""                       |
+| `-auth-method`           | `AUTH_METHOD`              | `disabled` (mock) or `user_token`              | user_token               |
+| `-auth-token-header`     | `AUTH_TOKEN_HEADER`        | Header to read bearer token from               | x-forwarded-access-token |
+| `-auth-token-prefix`     | `AUTH_TOKEN_PREFIX`        | Prefix to strip from token header value        | (none)                   |
+| `-cert-file`             | (CLI only)                 | TLS certificate path                           | (none)                   |
+| `-key-file`              | (CLI only)                 | TLS key path                                   | (none)                   |
+| `-insecure-skip-verify`  | `INSECURE_SKIP_VERIFY`     | Skip upstream TLS verify (dev only)            | false                    |
+| `-namespace`             | `NAMESPACE` / `OC_PROJECT` | Dashboard namespace                            | opendatahub              |
+| `-workbench-namespace`   | `WORKBENCH_NAMESPACE`      | Workbench namespace (defaults to dashboard ns) | (namespace)              |
+| `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME`    | OdhDashboardConfig CR name                     | odh-dashboard-config     |
+| `-enabled-apps-cm`       | `ENABLED_APPS_CM`          | ConfigMap tracking enabled applications        | ""                       |
+| `-mf-remotes-config`     | `MF_REMOTES_CONFIG`        | Path to module federation remotes config       | ""                       |
+| `-bundle-paths`          |                            | Comma-separated PEM CA bundle paths            | (system defaults)        |
 
 ---
 
@@ -275,34 +275,34 @@ schemas.
 
 ### Before Submitting
 
-- Run lint: `npm run test:lint`
-- Run tests: `npm run test`
+- Run lint: `pnpm run test:lint`
+- Run tests: `pnpm run test`
 - Ensure Module Federation metadata stays correct in `config/moduleFederation.js`
 
 ### Frontend Scripts
 
 ```bash
-npm run start:dev        # Development server
-npm run build            # Production build
-npm run build:prod       # Explicit production build
-npm run test             # Full test suite
-npm run test:lint        # Lint only
-npm run test:type-check  # TypeScript check only
-npm run test:unit        # Jest unit tests only
-npm run cypress:open:mock  # Open Cypress GUI
-npm run cypress:run:mock   # Run Cypress headless
+pnpm run start:dev        # Development server
+pnpm run build            # Production build
+pnpm run build:prod       # Explicit production build
+pnpm run test             # Full test suite
+pnpm run test:lint        # Lint only
+pnpm run test:type-check  # TypeScript check only
+pnpm run test:unit        # Jest unit tests only
+pnpm run cypress:open:mock  # Open Cypress GUI
+pnpm run cypress:run:mock   # Run Cypress headless
 ```
 
 ### Environment Variables (Frontend)
 
-| Variable          | Description                       | Default              |
-| ----------------- | --------------------------------- | -------------------- |
-| `DEPLOYMENT_MODE` | `standalone` or `federated`       | standalone           |
-| `STYLE_THEME`     | `patternfly-theme`                | patternfly-theme     |
-| `LOGO`            | Light theme logo filename         | logo-light-theme.svg |
-| `LOGO_DARK`       | Dark theme logo filename          | logo-dark-theme.svg  |
-| `FAVICON`         | Favicon filename                  | favicon.ico          |
-| `PRODUCT_NAME`    | Product name in UI                | "Core BFF"           |
+| Variable          | Description                 | Default              |
+| ----------------- | --------------------------- | -------------------- |
+| `DEPLOYMENT_MODE` | `standalone` or `federated` | standalone           |
+| `STYLE_THEME`     | `patternfly-theme`          | patternfly-theme     |
+| `LOGO`            | Light theme logo filename   | logo-light-theme.svg |
+| `LOGO_DARK`       | Dark theme logo filename    | logo-dark-theme.svg  |
+| `FAVICON`         | Favicon filename            | favicon.ico          |
+| `PRODUCT_NAME`    | Product name in UI          | "Core BFF"           |
 
 ---
 
@@ -335,12 +335,12 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ### Environment Variables for Container Builds
 
-| Variable            | Description            | Default                                            |
-| ------------------- | ---------------------- | -------------------------------------------------- |
-| `CONTAINER_TOOL`    | Container build tool   | docker                                             |
-| `IMG_UI_STANDALONE` | Standalone mode image  | quay.io/opendatahub/core-bff/ui-standalone:latest  |
-| `IMG_UI_FEDERATED`  | Federated mode image   | quay.io/opendatahub/core-bff/ui-federated:latest   |
-| `PLATFORM`          | Docker buildx platform | linux/amd64                                        |
+| Variable            | Description            | Default                                           |
+| ------------------- | ---------------------- | ------------------------------------------------- |
+| `CONTAINER_TOOL`    | Container build tool   | docker                                            |
+| `IMG_UI_STANDALONE` | Standalone mode image  | quay.io/opendatahub/core-bff/ui-standalone:latest |
+| `IMG_UI_FEDERATED`  | Federated mode image   | quay.io/opendatahub/core-bff/ui-federated:latest  |
+| `PLATFORM`          | Docker buildx platform | linux/amd64                                       |
 
 ---
 
@@ -353,16 +353,16 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ```bash
 # Run all tests
-npm run test
+pnpm run test
 
 # Unit tests only
-npm run test:unit
+pnpm run test:unit
 
 # Cypress E2E (builds frontend, starts server, runs tests)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
 # Cypress GUI for debugging
-npm run cypress:open:mock
+pnpm run cypress:open:mock
 ```
 
 ### BFF Testing
@@ -383,11 +383,11 @@ tests validate behavior unique to OpenShift or XKS (e.g., feature flag defaults)
 
 ```bash
 # Run both platforms (umbrella script)
-npm run test:contract
+pnpm run test:contract
 
 # Run a single platform
-npm run test:contract:openshift   # foundation + openshift tests
-npm run test:contract:xks         # foundation + xks tests
+pnpm run test:contract:openshift   # foundation + openshift tests
+pnpm run test:contract:xks         # foundation + xks tests
 ```
 
 ---
@@ -398,7 +398,7 @@ npm run test:contract:xks         # foundation + xks tests
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:
-   - Frontend: `npm run test` in `frontend/`
+   - Frontend: `pnpm run test` in `frontend/`
    - BFF: `make lint && make test` in `bff/`
 5. Keep docs updated (`docs/*.md`, `frontend/docs/*.md`) when you change workflows, env vars, or
    deployment steps

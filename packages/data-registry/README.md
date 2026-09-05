@@ -13,7 +13,7 @@ You can check the [contributing guidelines] for more information on how to contr
 Bootstrap a fresh copy of this starter without cloning the repo by using the published CLI:
 
 ```bash
-npx mod-arch-installer my-module --flavor default
+pnpm dlx mod-arch-installer my-module --flavor default
 ```
 
 See [`docs/install.md`](./docs/install.md) for all CLI options and details about the PatternFly-first default flavor.
@@ -101,14 +101,17 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Build Commands
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
+
   - Command: `make docker-build`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+
   - Command: `make docker-buildx`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+
   - Command: `make docker-build-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
@@ -119,6 +122,7 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+
   - Command: `make docker-push`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 

@@ -18,7 +18,7 @@ Note: Upstream Kubeflow is still using protoc-gen-js for MLMD, but there are oth
    mkdir -p ~/tmp/mlmd
    cd ~/tmp/mlmd
    git clone git@github.com:google/ml-metadata.git
-   npm install ts-proto
+   pnpm install ts-proto
    mkdir generated
    protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto -I=./ml-metadata --ts_proto_out=./generated --ts_proto_opt=esModuleInterop=true --ts_proto_opt=env=browser ./ml-metadata/ml_metadata/proto/metadata_store_service.proto
    ```

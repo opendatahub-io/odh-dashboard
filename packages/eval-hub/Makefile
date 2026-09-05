@@ -28,7 +28,7 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF with all mocks enabled (K8s, EvalHub, BFF clients)
@@ -41,7 +41,7 @@ dev-bff-inter-bff: ## Run BFF with Model-Catalog BFF dev URL for inter-BFF testi
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone PORT=9106 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone PORT=9106 PROXY_PORT=4002 STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -56,7 +56,7 @@ dev-start-kubeflow:
 
 .PHONY: dev-frontend-kubeflow
 dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
@@ -81,7 +81,7 @@ dev-start-federated-no-portforward: ## Start frontend and bff without port-forwa
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9106 PROXY_PORT=4002 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9106 PROXY_PORT=4002 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -105,27 +105,27 @@ dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to clus
 
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI} ../..
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI_FEDERATED} ../..
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI} --push ../..
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
-	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI_STANDALONE} --push ../..
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -f packages/eval-hub/Dockerfile.workspace -t ${IMG_UI_FEDERATED} --push ../..
 
 ############ Push ############
 
@@ -154,11 +154,11 @@ kubeflow-deployment:
 ############ Build ############	
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=kubeflow pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:

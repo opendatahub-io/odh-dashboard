@@ -3,6 +3,7 @@ const path = require('path');
 const { rspack } = require('@rspack/core');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
+const { pnpmWebpackResolveAliases } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
@@ -131,10 +132,7 @@ module.exports = (env) => ({
           COMMON_DIR,
           path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
           path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-styles/css/assets/images',
-          ),
+          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
           path.resolve(
             RELATIVE_DIRNAME,
             'node_modules/@patternfly/react-core/dist/styles/assets/images',
@@ -249,6 +247,7 @@ module.exports = (env) => ({
     alias: {
       '~': path.resolve(SRC_DIR),
       '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

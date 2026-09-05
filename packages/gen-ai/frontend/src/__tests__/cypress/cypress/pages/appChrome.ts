@@ -1,3 +1,5 @@
+import { clearGenAiNamespacePersistence } from '~/__tests__/cypress/cypress/support/helpers/namespacePersistence';
+
 const TOGGLEABLE_FLAGS = ['promptManagement', 'guardrails'];
 
 const buildFeatureFlagParams = (featureFlags?: string[]): string => {
@@ -29,7 +31,7 @@ class AppChrome {
   visit(featureFlags?: string[]): void {
     const flagParams = buildFeatureFlagParams(featureFlags);
     Cypress.env('_featureFlagParams', flagParams);
-    cy.visit(appendFeatureFlagParams('/'));
+    cy.visit(appendFeatureFlagParams('/'), { onBeforeLoad: clearGenAiNamespacePersistence });
     this.waitForPageLoad();
   }
 

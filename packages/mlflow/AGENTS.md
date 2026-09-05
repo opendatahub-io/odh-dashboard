@@ -73,7 +73,7 @@ mlflow/
 │   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── docs/                    # Frontend documentation
-│   ├── package.json             # NPM dependencies and scripts
+│   ├── package.json             # Node.js dependencies and scripts
 │   └── README.md                # Frontend documentation
 ├── manifests/                   # Kubernetes manifests
 │   ├── base/                    # Base Kustomize resources
@@ -94,8 +94,8 @@ mlflow/
 
 ### Frontend
 
-- **Node.js**: >= 22.0.0
-- **npm**: >= 10.8.2
+- **Node.js**: >= 22.18.0
+- **pnpm**: 11.22.0
 
 ### BFF
 
@@ -150,16 +150,16 @@ make docker-build-federated    # Federated mode
 
 ```bash
 # Frontend tests (lint + type-check + unit + cypress)
-cd frontend && npm run test
+cd frontend && pnpm run test
 
 # BFF tests
 cd bff && make lint && make test
 
 # Cypress E2E tests only
-cd frontend && npm run test:cypress-ci
+cd frontend && pnpm run test:cypress-ci
 
 # Run specific Cypress test
-cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
+cd frontend && pnpm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 ```
 
 ---
@@ -175,44 +175,44 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                                                            | Description                                                         |
-| ------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| GET    | `/healthcheck`                                                                  | Liveness probe                                                      |
-| GET    | `/api/v1/status`                                                                | MLflow availability status                                          |
-| GET    | `/api/v1/user`                                                                  | Returns authenticated user info                                     |
-| GET    | `/api/v1/namespaces`                                                            | List namespaces (dev/mock mode only)                                |
-| GET    | `/api/v1/experiments?workspace=<ns>`                                            | List MLflow experiments                                             |
-| GET    | `/api/v1/prompts?workspace=<ns>`                                                | List Prompt Registry prompts (project + global scopes)              |
-| POST   | `/api/v1/prompts?workspace=<ns>`                                                | Register a new prompt / prompt version                              |
-| GET    | `/api/v1/prompts/:name?workspace=<ns>`                                          | Load a prompt (optionally by version)                               |
-| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                                          | Delete an entire prompt                                             |
-| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`                                 | List versions of a prompt                                           |
-| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`                        | Delete a specific prompt version                                    |
-| GET    | `/api/v1/mcp-catalog/servers/:id/tools?namespace=<ns>`                          | Proxy MCP catalog tools from model-registry BFF                     |
-| GET    | `/api/v1/mcp-catalog/servers/:id/mcpserver?namespace=<ns>`                      | Proxy MCP catalog→MCPServer CR converter from model-registry BFF    |
-| POST   | `/api/v1/mcp-registry/register?workspace=<ns>`                                  | Composite register: create version, then best-effort metadata/tags  |
-| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Search MCP Registry servers (optional tag filter)                   |
-| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Register a new MCP server                                           |
-| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Get an MCP server by name                                           |
-| PATCH  | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Partially update an MCP server                                      |
-| DELETE | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Delete an MCP server (and its versions/tags/aliases/endpoints)      |
-| POST   | `/api/v1/mcp-registry/servers/:name/tags?workspace=<ns>`                        | Set a tag on an MCP server                                          |
-| DELETE | `/api/v1/mcp-registry/servers/:name/tags/:key?workspace=<ns>`                   | Delete a tag from an MCP server                                     |
-| POST   | `/api/v1/mcp-registry/servers/:name/aliases?workspace=<ns>`                     | Set an alias on an MCP server                                       |
-| GET    | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Resolve an alias to the MCP server version it points at             |
-| DELETE | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Delete an alias from an MCP server                                  |
-| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | List versions of an MCP server                                      |
-| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | Create a new MCP server version from a server.json                  |
-| GET    | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Get a specific version of an MCP server                             |
-| PATCH  | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Partially update a specific MCP server version                      |
-| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Delete a specific MCP server version                                |
-| POST   | `/api/v1/mcp-registry/servers/:name/versions/:version/tags?workspace=<ns>`      | Set a tag on a specific MCP server version                          |
-| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version/tags/:key?workspace=<ns>` | Delete a tag from a specific MCP server version                     |
-| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Search access endpoints for an MCP server                           |
-| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Create an access endpoint for an MCP server                         |
-| GET    | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Get an access endpoint by ID                                        |
-| PATCH  | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Partially update an access endpoint                                 |
-| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Delete an access endpoint from an MCP server                        |
+| Method | Path                                                                            | Description                                                        |
+| ------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| GET    | `/healthcheck`                                                                  | Liveness probe                                                     |
+| GET    | `/api/v1/status`                                                                | MLflow availability status                                         |
+| GET    | `/api/v1/user`                                                                  | Returns authenticated user info                                    |
+| GET    | `/api/v1/namespaces`                                                            | List namespaces (dev/mock mode only)                               |
+| GET    | `/api/v1/experiments?workspace=<ns>`                                            | List MLflow experiments                                            |
+| GET    | `/api/v1/prompts?workspace=<ns>`                                                | List Prompt Registry prompts (project + global scopes)             |
+| POST   | `/api/v1/prompts?workspace=<ns>`                                                | Register a new prompt / prompt version                             |
+| GET    | `/api/v1/prompts/:name?workspace=<ns>`                                          | Load a prompt (optionally by version)                              |
+| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                                          | Delete an entire prompt                                            |
+| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`                                 | List versions of a prompt                                          |
+| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`                        | Delete a specific prompt version                                   |
+| GET    | `/api/v1/mcp-catalog/servers/:id/tools?namespace=<ns>`                          | Proxy MCP catalog tools from model-registry BFF                    |
+| GET    | `/api/v1/mcp-catalog/servers/:id/mcpserver?namespace=<ns>`                      | Proxy MCP catalog→MCPServer CR converter from model-registry BFF   |
+| POST   | `/api/v1/mcp-registry/register?workspace=<ns>`                                  | Composite register: create version, then best-effort metadata/tags |
+| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Search MCP Registry servers (optional tag filter)                  |
+| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                                   | Register a new MCP server                                          |
+| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Get an MCP server by name                                          |
+| PATCH  | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Partially update an MCP server                                     |
+| DELETE | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`                             | Delete an MCP server (and its versions/tags/aliases/endpoints)     |
+| POST   | `/api/v1/mcp-registry/servers/:name/tags?workspace=<ns>`                        | Set a tag on an MCP server                                         |
+| DELETE | `/api/v1/mcp-registry/servers/:name/tags/:key?workspace=<ns>`                   | Delete a tag from an MCP server                                    |
+| POST   | `/api/v1/mcp-registry/servers/:name/aliases?workspace=<ns>`                     | Set an alias on an MCP server                                      |
+| GET    | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Resolve an alias to the MCP server version it points at            |
+| DELETE | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>`              | Delete an alias from an MCP server                                 |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | List versions of an MCP server                                     |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`                    | Create a new MCP server version from a server.json                 |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Get a specific version of an MCP server                            |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Partially update a specific MCP server version                     |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>`           | Delete a specific MCP server version                               |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions/:version/tags?workspace=<ns>`      | Set a tag on a specific MCP server version                         |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version/tags/:key?workspace=<ns>` | Delete a tag from a specific MCP server version                    |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Search access endpoints for an MCP server                          |
+| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>`                   | Create an access endpoint for an MCP server                        |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Get an access endpoint by ID                                       |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Partially update an access endpoint                                |
+| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>`       | Delete an access endpoint from an MCP server                       |
 
 **MCP Registry notes:**
 
@@ -259,26 +259,26 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### BFF Configuration Flags
 
-| Flag                    | Env Var                | Description                         | Default       |
-| ----------------------- | ---------------------- | ----------------------------------- | ------------- |
-| `-port`                 | `PORT`                 | Listen port                         | 4000          |
-| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `federated`         | standalone    |
-| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors           | false         |
-| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s          | false         |
-| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets  | ./static      |
-| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG            | INFO          |
-| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins        | ""            |
-| `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use mock MLflow client              | false         |
-| `-auth-method`          | `AUTH_METHOD`          | `disabled` or `user_token`          | user_token    |
-| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from    | Authorization |
-| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected value prefix               | Bearer        |
-| `-mlflow-url`           | `MLFLOW_URL`           | MLflow tracking server URL          | ""            |
-| `-mock-bff-clients`     | `MOCK_BFF_CLIENTS`     | Mock inter-BFF clients              | false         |
-| `-bff-model-registry-dev-url` | `BFF_MODEL_REGISTRY_DEV_URL` | Model-registry BFF dev override URL | ""     |
-| `-bff-model-registry-service-name` | `BFF_MODEL_REGISTRY_SERVICE_NAME` | Model-registry K8s service name | odh-dashboard-model-registry-ui |
-| `-bff-model-registry-service-port` | `BFF_MODEL_REGISTRY_SERVICE_PORT` | Model-registry BFF port | 8043     |
-| `-bff-model-registry-tls-enabled` | `BFF_MODEL_REGISTRY_TLS_ENABLED` | TLS for model-registry BFF calls | false  |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) | false         |
+| Flag                               | Env Var                           | Description                         | Default                         |
+| ---------------------------------- | --------------------------------- | ----------------------------------- | ------------------------------- |
+| `-port`                            | `PORT`                            | Listen port                         | 4000                            |
+| `-deployment-mode`                 | `DEPLOYMENT_MODE`                 | `standalone` or `federated`         | standalone                      |
+| `-dev-mode`                        | `DEV_MODE`                        | Enables relaxed behaviors           | false                           |
+| `-mock-k8s-client`                 | `MOCK_K8S_CLIENT`                 | Use in-memory stub for k8s          | false                           |
+| `-static-assets-dir`               | `STATIC_ASSETS_DIR`               | Directory to serve frontend assets  | ./static                        |
+| `-log-level`                       | `LOG_LEVEL`                       | ERROR, WARN, INFO, DEBUG            | INFO                            |
+| `-allowed-origins`                 | `ALLOWED_ORIGINS`                 | Comma-separated CORS origins        | ""                              |
+| `-mock-http-client`                | `MOCK_HTTP_CLIENT`                | Use mock MLflow client              | false                           |
+| `-auth-method`                     | `AUTH_METHOD`                     | `disabled` or `user_token`          | user_token                      |
+| `-auth-token-header`               | `AUTH_TOKEN_HEADER`               | Header to read bearer token from    | Authorization                   |
+| `-auth-token-prefix`               | `AUTH_TOKEN_PREFIX`               | Expected value prefix               | Bearer                          |
+| `-mlflow-url`                      | `MLFLOW_URL`                      | MLflow tracking server URL          | ""                              |
+| `-mock-bff-clients`                | `MOCK_BFF_CLIENTS`                | Mock inter-BFF clients              | false                           |
+| `-bff-model-registry-dev-url`      | `BFF_MODEL_REGISTRY_DEV_URL`      | Model-registry BFF dev override URL | ""                              |
+| `-bff-model-registry-service-name` | `BFF_MODEL_REGISTRY_SERVICE_NAME` | Model-registry K8s service name     | odh-dashboard-model-registry-ui |
+| `-bff-model-registry-service-port` | `BFF_MODEL_REGISTRY_SERVICE_PORT` | Model-registry BFF port             | 8043                            |
+| `-bff-model-registry-tls-enabled`  | `BFF_MODEL_REGISTRY_TLS_ENABLED`  | TLS for model-registry BFF calls    | false                           |
+| `-insecure-skip-verify`            | `INSECURE_SKIP_VERIFY`            | Skip upstream TLS verify (dev only) | false                           |
 
 ---
 
@@ -303,22 +303,22 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Before Submitting
 
-- Run lint: `npm run test:lint`
-- Run tests: `npm run test`
+- Run lint: `pnpm run test:lint`
+- Run tests: `pnpm run test`
 - Ensure Module Federation metadata stays correct in `config/moduleFederation.js`
 
 ### Frontend Scripts
 
 ```bash
-npm run start:dev        # Development server
-npm run build            # Production build
-npm run build:prod       # Explicit production build
-npm run test             # Full test suite
-npm run test:lint        # Lint only
-npm run test:type-check  # TypeScript check only
-npm run test:unit        # Jest unit tests only
-npm run cypress:open:mock  # Open Cypress GUI
-npm run cypress:run:mock   # Run Cypress headless
+pnpm run start:dev        # Development server
+pnpm run build            # Production build
+pnpm run build:prod       # Explicit production build
+pnpm run test             # Full test suite
+pnpm run test:lint        # Lint only
+pnpm run test:type-check  # TypeScript check only
+pnpm run test:unit        # Jest unit tests only
+pnpm run cypress:open:mock  # Open Cypress GUI
+pnpm run cypress:run:mock   # Run Cypress headless
 ```
 
 ### Environment Variables (Frontend)
@@ -381,16 +381,16 @@ npm run cypress:run:mock   # Run Cypress headless
 
 ```bash
 # Run all tests
-npm run test
+pnpm run test
 
 # Unit tests only
-npm run test:unit
+pnpm run test:unit
 
 # Cypress E2E (builds frontend, starts server, runs tests)
-npm run test:cypress-ci
+pnpm run test:cypress-ci
 
 # Cypress GUI for debugging
-npm run cypress:open:mock
+pnpm run cypress:open:mock
 ```
 
 ### BFF Testing
@@ -412,7 +412,7 @@ make test   # Run tests
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:
-   - Frontend: `npm run test` in `frontend/`
+   - Frontend: `pnpm run test` in `frontend/`
    - BFF: `make lint && make test` in `bff/`
 5. Keep docs updated (`docs/*.md`, `frontend/docs/*.md`) when you change workflows, env vars, or
    deployment steps

@@ -30,7 +30,8 @@ For general ODH Dashboard contribution guidelines, refer to [ODH CONTRIBUTING.md
 
 ## Prerequisites
 
-- **[Node.js](https://nodejs.org/)**: v22.0.0 or later
+- **[Node.js](https://nodejs.org/)**: v22.18.0 or later
+- **pnpm**: 11.22.0 (the version pinned by the repository)
 - **[Go](https://go.dev/)**: v1.26 or later
 - **[Docker](https://www.docker.com/)**/**[Podman](https://podman.io/)**: For containerized deployment
 
@@ -71,15 +72,16 @@ The `.env.local` file is gitignored and should never be committed.
 
 ### Frontend Development
 
+Install workspace dependencies from the repository root, then start the frontend
+from this package:
+
 ```bash
-# Navigate to the frontend directory
-cd frontend
+# From the repository root
+pnpm install
 
-# Install dependencies
-npm install
-
-# Start development server
-npm run start:dev
+# From packages/automl
+cd packages/automl/frontend
+pnpm run start:dev
 ```
 
 The standalone frontend will be available at **http://localhost:9000**
@@ -118,7 +120,7 @@ Then access the app at **http://localhost:9000**
 make dev-start-federated
 ```
 
-**Important:** You must also run the main ODH Dashboard separately (from repo root: `npm run dev`). Then access AutoML through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoML option in the side navigation.
+**Important:** You must also run the main ODH Dashboard separately (from repo root: `pnpm run dev`). Then access AutoML through the ODH Dashboard UI at **http://localhost:4010** - look for the AutoML option in the side navigation.
 
 ### Deployment Modes
 

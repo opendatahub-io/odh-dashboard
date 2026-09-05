@@ -79,8 +79,7 @@ export enum ChatMessageRole {
 }
 
 export type InputContentPart =
-  | { type: 'input_text'; text: string }
-  | { type: 'input_image'; file_id: string };
+  { type: 'input_text'; text: string } | { type: 'input_image'; file_id: string };
 
 export type ChatContextMessage = {
   role: ChatMessageRole;

@@ -5,6 +5,7 @@ const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { pnpmWebpackResolveAliases } = require('../../../../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
@@ -46,6 +47,12 @@ module.exports = (env) => ({
                 loader: 'ts-loader',
                 options: {
                   transpileOnly: true,
+                  compilerOptions: {
+                    rootDirs: [
+                      path.resolve(RELATIVE_DIRNAME),
+                      path.resolve(RELATIVE_DIRNAME, '../../../../packages'),
+                    ],
+                  },
                 },
               },
         ],
@@ -242,6 +249,7 @@ module.exports = (env) => ({
           process.env.SAMPLE_CATALOG_YAML_PATH,
         ),
       }),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

@@ -22,7 +22,8 @@ This project is a web application built with a modular architecture. It consists
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v20 or later)
+- [Node.js](https://nodejs.org/) (v22.18.0 or later)
+- pnpm 11.22.0 (the version pinned by the repository)
 - [Go](https://golang.org/) (v1.26 or later)
 - [Docker](https://www.docker.com/) (for containerized deployment)
 
@@ -37,7 +38,8 @@ This project is a web application built with a modular architecture. It consists
 ├── frontend/           # React frontend application
 │   ├── src/            # Source code
 │   └── dist/           # Build output (generated)
-└── Dockerfile          # Multi-stage Docker build file
+├── Dockerfile          # Root-context Docker build used by the OpenShift helper
+└── Dockerfile.workspace # Workspace-aware build used by Konflux and local module builds
 ```
 
 ## Development Setup
@@ -58,15 +60,16 @@ Note that `.env.local` is gitignored and should never be committed. Use `.env.lo
 
 ### Frontend
 
+Install the workspace dependencies once from the repository root, then run the
+frontend script from this package:
+
 ```bash
-# Navigate to the frontend directory
-cd frontend
+# From the repository root
+pnpm install --frozen-lockfile
 
-# Install dependencies
-npm ci
-
-# Start development server
-npm run start:dev
+# From packages/gen-ai
+cd packages/gen-ai/frontend
+pnpm run start:dev
 ```
 
 ### Backend (BFF)
@@ -139,12 +142,12 @@ make dev-bff-mock
 
 `MOCK_MLFLOW_CLIENT=true` starts the **full** local MLflow stack: tracking server on `:5001` (seeded with prompts and MCP registry rows) and MLflow BFF on `:4020`. Prompts and MCP registry APIs both work whenever this flag is active.
 
-| Command | Cluster | MLflow |
-|---------|---------|--------|
-| `make dev-start` | Yes | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`) |
-| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes | Full stack (same MLflow behavior as `dev-start-mlflow`) |
-| `make dev-start-mock` | No | Full stack (hardcoded in Makefile) |
-| `make dev-start-mlflow` | Yes | Full stack (hardcoded in Makefile) |
+| Command                                                      | Cluster | MLflow                                                  |
+| ------------------------------------------------------------ | ------- | ------------------------------------------------------- |
+| `make dev-start`                                             | Yes     | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`)  |
+| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes     | Full stack (same MLflow behavior as `dev-start-mlflow`) |
+| `make dev-start-mock`                                        | No      | Full stack (hardcoded in Makefile)                      |
+| `make dev-start-mlflow`                                      | Yes     | Full stack (hardcoded in Makefile)                      |
 
 Add to `packages/gen-ai/.env.local` for MLflow on your usual `dev-start` workflow:
 
@@ -194,7 +197,7 @@ If you want to be able to set breakpoints in vscode, you must first ensure the f
       "host": "localhost",
       "showLog": true,
       "trace": "verbose"
-    },
+    }
   ]
 }
 ```
@@ -272,14 +275,20 @@ lsof -t -i :2345 | xargs kill   # Delve
 
 ## Building and Running with Docker
 
-The project includes a multi-stage Dockerfile that builds both the frontend and backend components and creates a minimal production image.
+The project includes root-context multi-stage Dockerfiles that build both the frontend and backend components and create a minimal production image. Build from the repository root; the workspace-aware Dockerfile is the recommended path for local module and Konflux-style builds.
 
 ### Building the Docker Image
 
 ```bash
-# Build the Docker image
-docker build -t gen-ai .
+# Run from the repository root
+docker build \
+  --file packages/gen-ai/Dockerfile.workspace \
+  --tag gen-ai .
 ```
+
+The OpenShift helper later in this document intentionally selects
+`packages/gen-ai/Dockerfile` instead. Do not run `docker build .` from
+`packages/gen-ai`, because the Dockerfiles need the repository root as their build context.
 
 ### Running the Docker Container
 
@@ -292,23 +301,24 @@ The application will be available at <http://localhost:8080>
 
 ### Docker Build Arguments
 
-The Dockerfile supports the following build arguments:
+`Dockerfile.workspace` supports the following build arguments:
 
-- `UI_SOURCE_CODE`: Path to the frontend source code (default: `./frontend`)
-- `BFF_SOURCE_CODE`: Path to the BFF source code (default: `./bff`)
-- `NODE_BASE_IMAGE`: Base image for Node.js build (default: `node:20`)
-- `GOLANG_BASE_IMAGE`: Base image for Go build (default: `golang:1.26`)
-- `DISTROLESS_BASE_IMAGE`: Base image for the final stage (default: `gcr.io/distroless/static:nonroot`)
-- `TARGETOS`: Target OS for Go build
-- `TARGETARCH`: Target architecture for Go build
+- `MODULE_NAME`: Module name (default: `gen-ai`)
+- `UI_SOURCE_CODE`: Frontend path relative to the repository root (default: `./packages/${MODULE_NAME}/frontend`)
+- `BFF_SOURCE_CODE`: BFF path relative to the repository root (default: `./packages/${MODULE_NAME}/bff`)
+- `NODE_BASE_IMAGE`: Node.js build image (default: `registry.access.redhat.com/ubi9/nodejs-22:latest`)
+- `GOLANG_BASE_IMAGE`: Go build image (default: `registry.access.redhat.com/ubi9/go-toolset:1.26`)
+- `DISTROLESS_BASE_IMAGE`: Final runtime image
+- `TARGETOS` and `TARGETARCH`: Go build target settings
 
-Example with custom build arguments:
+Example with a custom Node.js image:
 
 ```bash
 docker build \
-  --build-arg NODE_BASE_IMAGE=node:20-alpine \
-  --build-arg GOLANG_BASE_IMAGE=golang:1.26-alpine \
-  -t gen-ai:custom .
+  --file packages/gen-ai/Dockerfile.workspace \
+  --build-arg NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest \
+  --tag gen-ai:custom \
+  .
 ```
 
 ## Configuration

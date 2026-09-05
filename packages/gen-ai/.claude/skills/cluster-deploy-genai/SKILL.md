@@ -87,8 +87,8 @@ go version
 # Node >= 22
 node --version
 
-# npm deps installed (check for node_modules at repo root)
-ls node_modules/.package-lock.json
+# pnpm deps installed (check for the pnpm virtual store at repo root)
+test -d node_modules/.pnpm
 ```
 
 ### Gather parameters
@@ -164,7 +164,7 @@ If the required artifact is missing, tell the user both need to be built (first-
 ### Step 1: Build the frontend (skip if "BFF only")
 
 ```bash
-cd packages/gen-ai/frontend && npm run build:prod
+cd packages/gen-ai/frontend && pnpm run build:prod
 ```
 
 Output goes to `packages/gen-ai/frontend/dist/`.

@@ -18,7 +18,6 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
-    "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./shared": "./src/shared/index.ts",
     "./shared/types": "./src/shared/types.ts",
     "./shared/components": "./src/shared/components/index.ts",
@@ -81,25 +80,27 @@
     "./__mocks__/mockPrometheusBias": "./src/__mocks__/mockPrometheusBias.ts",
     "./__mocks__/mockPrometheusServing": "./src/__mocks__/mockPrometheusServing.ts",
     "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts",
+    "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./__mocks__/mockValidatedConfigurations": "./__mocks__/mockValidatedConfigurations.ts",
     "./__mocks__/mockPrometheusQueryResponse": "./__mocks__/mockPrometheusQueryResponse.ts"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/hardware-profiles": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "axios": "^1.17.0",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/trustyai": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/hardware-profiles": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/trustyai": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "lodash-es": "^4.18.1",
     "yaml": "^2.9.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "axios": "^1.17.0"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk": "^5",

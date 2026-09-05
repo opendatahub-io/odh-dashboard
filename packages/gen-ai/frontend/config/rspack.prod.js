@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+const path = require('path');
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
@@ -13,12 +15,16 @@ const getRsdoctorPlugin = () => {
 };
 
 setupDotenvFilesForEnv({ env: 'production' });
-const common = require('./rspack.common.js');
+const rspackCommon = require('./rspack.common.js');
+const { patternFlyCssIncludes } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
-const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
+const SRC_DIR = process.env._SRC_DIR;
+const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
 const OUTPUT_ONLY = process.env._OUTPUT_ONLY;
+const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(`Cleaning OUTPUT DIR...\n  ${DIST_DIR}\n`);
@@ -34,7 +40,7 @@ module.exports = merge(
       }),
     ],
   },
-  common('production'),
+  rspackCommon('production'),
   {
     mode: 'production',
     devtool: 'source-map',
@@ -61,6 +67,7 @@ module.exports = merge(
       rules: [
         {
           test: /\.css$/,
+          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
           use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
         },
       ],

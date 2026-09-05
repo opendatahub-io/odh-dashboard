@@ -18,40 +18,73 @@ B=$("$SCRIPTS/encode-audit-path.sh" 'a.b')
 [[ "$A" == 'a__b' ]] || fail "expected a__b got $A"
 pass "encode-audit-path distinct"
 
-# --- npm error JSON is not clean ---
-echo '{"error":{"code":"ENOAUDIT","summary":"registry down"}}' > "$TMP/npm-err.json"
-OUT=$("$SCRIPTS/summarize-npm-audit.sh" . prod "$TMP/npm-err.json")
-echo "$OUT" | jq -e '.status == "error"' >/dev/null || fail "npm error JSON should be status=error"
-echo "$OUT" | jq -e '.findings | length == 0' >/dev/null || fail "npm error should have no findings"
-pass "npm error JSON → error"
+# --- pnpm error JSON is not clean ---
+echo '{"error":{"code":"ENOAUDIT","message":"registry down"}}' > "$TMP/pnpm-err.json"
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-err.json")
+echo "$OUT" | jq -e '.status == "error"' >/dev/null || fail "pnpm error JSON should be status=error"
+echo "$OUT" | jq -e '.findings | length == 0' >/dev/null || fail "pnpm error should have no findings"
+pass "pnpm error JSON → error"
 
-# --- npm clean report ---
-echo '{"auditReportVersion":2,"vulnerabilities":{}}' > "$TMP/npm-ok.json"
-OUT=$("$SCRIPTS/summarize-npm-audit.sh" . prod "$TMP/npm-ok.json")
-echo "$OUT" | jq -e '.status == "ok"' >/dev/null || fail "empty vulns should be ok"
-pass "npm empty vulns → ok"
+# --- pnpm clean report ---
+echo '{"advisories":{}}' > "$TMP/pnpm-ok.json"
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-ok.json")
+echo "$OUT" | jq -e '.status == "ok"' >/dev/null || fail "empty advisories should be ok"
+pass "pnpm empty advisories → ok"
 
-# --- npm major bucket ---
-cat > "$TMP/npm-major.json" <<'EOF'
+# --- pnpm actionable finding ---
+cat > "$TMP/pnpm-high.json" <<'EOF'
 {
-  "auditReportVersion": 2,
-  "vulnerabilities": {
-    "foo": {
-      "name": "foo",
+  "advisories": {
+    "1096727": {
+      "findings": [
+        {
+          "version": "2.88.2",
+          "paths": [".>foo"],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1096727,
+      "title": "Example advisory",
+      "module_name": "foo",
+      "vulnerable_versions": "<=2.88.2",
+      "patched_versions": ">=2.88.3",
       "severity": "high",
-      "isDirect": true,
-      "via": [{"url": "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz", "title": "x"}],
-      "fixAvailable": {"name": "foo", "version": "2.0.0", "isSemVerMajor": true},
-      "effects": [],
-      "range": "<2.0.0",
-      "nodes": []
+      "github_advisory_id": "GHSA-xxxx-yyyy-zzzz",
+      "url": "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz"
     }
   }
 }
 EOF
-OUT=$("$SCRIPTS/summarize-npm-audit.sh" packages/x/frontend prod "$TMP/npm-major.json")
-echo "$OUT" | jq -e '.findings[0].bucket == "major"' >/dev/null || fail "expected major bucket"
-pass "npm major bucket"
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" packages/x/frontend prod "$TMP/pnpm-high.json")
+echo "$OUT" | jq -e '.findings[0].bucket == "actionable"' >/dev/null || fail "expected actionable bucket"
+echo "$OUT" | jq -e '.findings[0].isDirect == true' >/dev/null || fail "expected direct dependency"
+pass "pnpm actionable finding"
+
+# --- pnpm workspace direct dependency paths ---
+cat > "$TMP/pnpm-workspace-paths.json" <<'EOF'
+{
+  "advisories": {
+    "1": {
+      "findings": [{"paths": ["backend>fastify"], "dev": false}],
+      "module_name": "fastify", "severity": "high", "patched_versions": ">=1.0.0"
+    },
+    "2": {
+      "findings": [{"paths": ["packages/foo>axios"], "dev": false}],
+      "module_name": "axios", "severity": "high", "patched_versions": ">=1.0.0"
+    },
+    "3": {
+      "findings": [{"paths": ["backend>transitive>dep"], "dev": false}],
+      "module_name": "dep", "severity": "high", "patched_versions": ">=1.0.0"
+    }
+  }
+}
+EOF
+OUT=$("$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-workspace-paths.json")
+echo "$OUT" | jq -e '[.findings[] | select(.name == "fastify" or .name == "axios") | .isDirect] | all' >/dev/null || fail "workspace direct paths should be direct"
+echo "$OUT" | jq -e '[.findings[] | select(.name == "dep")][0].isDirect == false' >/dev/null || fail "transitive path should not be direct"
+pass "pnpm workspace direct dependency paths"
 
 # --- govulncheck keeps findings when error overlay set ---
 printf '%s\n' \
@@ -105,18 +138,18 @@ jq -e '.clean == false' "$TMP/out1/meta.json" >/dev/null || fail "missing go sum
 jq -e '.counts.errors >= 1' "$TMP/out1/meta.json" >/dev/null || fail "expected reconcile errors"
 pass "missing expected dir → not clean"
 
-# --- render: npm error payload via summarizer then render ---
+# --- render: pnpm error payload via summarizer then render ---
 mkdir -p "$TMP/arts2"
-"$SCRIPTS/summarize-npm-audit.sh" . prod "$TMP/npm-err.json" > "$TMP/arts2/summary-prod-root.json"
-"$SCRIPTS/summarize-npm-audit.sh" . devdep "$TMP/npm-ok.json" > "$TMP/arts2/summary-devdep-root.json"
+"$SCRIPTS/summarize-pnpm-audit.sh" . prod "$TMP/pnpm-err.json" > "$TMP/arts2/summary-prod-root.json"
+"$SCRIPTS/summarize-pnpm-audit.sh" . devdep "$TMP/pnpm-ok.json" > "$TMP/arts2/summary-devdep-root.json"
 node "$SCRIPTS/render-security-audit-report.js" \
   --artifacts-dir "$TMP/arts2" \
   --expected-npm '["."]' \
   --expected-go '[]' \
   --out-dir "$TMP/out2" \
   --run-url https://example.test/run/2
-jq -e '.clean == false' "$TMP/out2/meta.json" >/dev/null || fail "npm scanner error must not be clean"
-pass "npm scanner error → not clean"
+jq -e '.clean == false' "$TMP/out2/meta.json" >/dev/null || fail "pnpm scanner error must not be clean"
+pass "pnpm scanner error → not clean"
 
 # --- matchDependabotPr word boundary + safe advisory URLs ---
 node -e '

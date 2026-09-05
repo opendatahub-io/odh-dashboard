@@ -1,6 +1,9 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
+const { pnpmJestModuleNameMapper } = require('../../scripts/jest/pnpmModuleNameMapper');
+const { pnpmTransformIgnorePatterns } = require('../../scripts/jest/pnpmTransformIgnorePatterns');
+
 export default {
   testMatch: ['**/?(*.)+(spec|test).?([mc])[cjt]s?(x)'],
 
@@ -18,6 +21,7 @@ export default {
 
   // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
+    ...pnpmJestModuleNameMapper(),
     '\\.(css|less|sass|scss)$': require.resolve('./config/transform.style.js'),
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       require.resolve('./config/transform.file.js'),
@@ -28,9 +32,7 @@ export default {
   testEnvironment: 'jest-environment-jsdom',
 
   // include projects from node_modules as required
-  transformIgnorePatterns: [
-    'node_modules/(?!yaml|@openshift|lodash-es|uuid|@patternfly|d3|delaunator|robust-predicates|internmap|monaco-editor)',
-  ],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
 
   setupFilesAfterEnv: [require.resolve('./config/jest.setup.ts')],
 

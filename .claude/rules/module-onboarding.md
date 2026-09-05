@@ -13,7 +13,7 @@ paths:
 > - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, rspack setup
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, feature gating
 
-The quickstart in `docs/onboard-modular-architecture.md` uses `npx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
+The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
 
 ## Template
 
@@ -73,13 +73,7 @@ For federated modules (with their own dev server and/or BFF), add `module-federa
 }
 ```
 
-Add `install:module` script if the package has its own `node_modules`:
-
-```json
-"scripts": {
-  "install:module": "npm install --prefix frontend"
-}
-```
+Do not add a package-local install script. First-party frontends are members of the root pnpm workspace; run `pnpm install` from the repository root so the shared lockfile remains authoritative. Upstream subtree frontends are the exception and retain their own npm lockfiles.
 
 ### 3. Configure the port
 
@@ -88,7 +82,7 @@ Each package needs a unique port. See [docs/onboard-modular-architecture.md § C
 To see current port assignments and detect conflicts, run:
 
 ```bash
-npm run validate:ports
+pnpm run validate:ports
 ```
 
 The source of truth for each package is:
@@ -229,11 +223,11 @@ Follow patterns from existing BFFs (gen-ai, maas, automl). See the [bff-go rule]
 - OpenAPI spec in `bff/openapi/src/<name>.yaml`
 - Mock flags for testing (`--mock-k8s-client`, etc.)
 
-### 9. Run `npm install` and verify
+### 9. Run `pnpm install` and verify
 
 ```bash
-npm install          # picks up new workspace package
-npm run dev          # start host (backend + frontend)
+pnpm install          # picks up new workspace package
+pnpm run dev          # start host (backend + frontend)
 # In another terminal:
 cd packages/<name> && make dev-start-federated
 ```
@@ -263,4 +257,4 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
 - [ ] Contract tests (if BFF)
 - [ ] `Dockerfile.workspace` for container builds
-- [ ] `npm install` from repo root succeeds
+- [ ] `pnpm install` from repo root succeeds

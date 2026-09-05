@@ -68,17 +68,17 @@
     "@HardwareProfilesCI"
   ],
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "lodash-es": "^4.17.21",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk-utils": "^5",

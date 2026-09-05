@@ -24,8 +24,8 @@ ARG PLATFORM_MODE
 WORKDIR /usr/src/workspace
 
 ### Workspace setup
-# Copy root workspace manifest first (allows npm to compute workspace graph)
-COPY --chown=default:root package.json package-lock.json* ./
+# Copy root workspace manifest and lockfile for pnpm workspace resolution
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy the frontend workspace manifest so its dependencies can be resolved if referenced
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
@@ -39,6 +39,8 @@ COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profil
 COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
+# Copy build scripts required by webpack/jest configs
+COPY --chown=default:root scripts/ ./scripts/
 
 # Copy the specific module source code
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
@@ -46,19 +48,18 @@ COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 # Change file ownership to the assemble user
 USER default
 
-# Install workspace dependencies first (this creates node_modules at workspace level)
-RUN npm cache clean --force
-# Install all workspace dependencies (includes root + any copied workspaces)
-RUN npm ci --ignore-scripts
+# Install pnpm and workspace dependencies (@odh-dashboard/* packages)
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile
 
-# Set up the specific module
+# Upstream frontend is a git-subtree npm island (not a pnpm workspace member).
+# Install its webpack toolchain from package-lock.json, then build with npm.
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-
-# Install module dependencies
-RUN npm ci --ignore-scripts
-
-# Build the module
 ARG URL_PREFIX=/notebooks
+# pnpm hoists a newer esbuild binary to the workspace root; defer lifecycle scripts so
+# npm ci installs lockfile-pinned optional @esbuild/* packages before install.js runs.
+RUN npm ci --ignore-scripts \
+    && node ./node_modules/esbuild/install.js
 RUN npm run build:prod
 
 # BFF build stage

@@ -47,6 +47,7 @@ packages/feature-store/
 ## Extension System
 
 Extensions are defined in `extensions.ts` and register:
+
 - **Area (browse)**: `plugin-feature-store` (reliant on `SupportedArea.FEATURE_STORE`, disabled by `disableFeatureStore` flag)
 - **Area (admin)**: `plugin-feature-store-admin` (reliant on `SupportedArea.FEATURE_STORE_ADMIN`, enabled by `featureStoreAdmin` flag)
 - **Navigation section**: Under `develop-and-train`
@@ -73,14 +74,14 @@ Curried helpers in `src/api/custom.ts`; see `getEntities` for full `K8sAPIOption
 
 ```bash
 # From repo root
-npm run dev              # Starts backend + frontend (feature-store compiles into host)
-npm run lint             # Lint all packages
-npm run type-check       # Type check all packages
+pnpm run dev              # Starts backend + frontend (feature-store compiles into host)
+pnpm run lint             # Lint all packages
+pnpm run type-check       # Type check all packages
 
 # From this package directory
-npm run lint             # Lint feature-store only
-npm run test-unit        # Run unit tests
-npm run type-check       # Type check feature-store only
+pnpm run lint             # Lint feature-store only
+pnpm run test-unit        # Run unit tests
+pnpm run type-check       # Type check feature-store only
 ```
 
 ## Notes for agents
@@ -90,9 +91,9 @@ npm run type-check       # Type check feature-store only
 
 ## Related Code (Outside This Package)
 
-| Area | Location | Purpose |
-|------|----------|---------|
-| Backend proxy | `backend/src/routes/api/featurestores/` | Discovery + proxy to Feast REST API |
+| Area                  | Location                                                    | Purpose                                          |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
+| Backend proxy         | `backend/src/routes/api/featurestores/`                     | Discovery + proxy to Feast REST API              |
 | Workbench integration | `frontend/src/pages/projects/screens/spawner/featureStore/` | Feature Store selector in workbench spawner form |
-| Workbench API | `frontend/src/api/featureStore/custom.ts` | `getWorkbenchFeatureStores()` endpoint |
-| Area/flag config | `frontend/src/concepts/areas/` | `SupportedArea.FEATURE_STORE` definition |
+| Workbench API         | `frontend/src/api/featureStore/custom.ts`                   | `getWorkbenchFeatureStores()` endpoint           |
+| Area/flag config      | `frontend/src/concepts/areas/`                              | `SupportedArea.FEATURE_STORE` definition         |

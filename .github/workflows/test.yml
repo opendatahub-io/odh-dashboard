@@ -10,26 +10,32 @@ concurrency:
 env:
   NODE_VERSION: 22
   DO_NOT_TRACK: 1
+  # Workspace-scoped turbo cache paths only. Avoid **/.turbo — with pnpm that glob
+  # can traverse node_modules/.pnpm and hang Post Cache turbo uploads.
+  TURBO_CACHE_PATHS: |
+    .turbo
+    backend/.turbo
+    frontend/.turbo
+    frontend/src/.turbo
+    packages/*/.turbo
+    packages/*/*/.turbo
+    packages/*/*/*/.turbo
+    packages/*/*/*/*/.turbo
+    distributions/*/.turbo
+    distributions/*/*/.turbo
 jobs:
   Setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Validate all package-lock.json files
-        run: ./scripts/check-package-lock.sh --all
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-          force-install: 'true'
 
       - name: Validate module federation ports
-        run: npm run validate:ports
+        run: pnpm run validate:ports
 
       - name: Check for uncommitted changes
         run: git diff --exit-code
@@ -37,58 +43,49 @@ jobs:
   Quality-Gate:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: true
       matrix:
         check: [lint, type-check]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: ${{ env.TURBO_CACHE_PATHS }}
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ matrix.check }}-
       - name: Run ${{ matrix.check }}
         run: |
           if [ "${{ matrix.check }}" = "lint" ]; then
-            NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint
           else
-            npm run type-check
+            pnpm run type-check
           fi
 
   Unit-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            **/.turbo
+          path: ${{ env.TURBO_CACHE_PATHS }}
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
@@ -116,7 +113,7 @@ jobs:
             core.info(`Quality gates: ${status.join(', ')}`);
       - name: Unit tests with coverage
         run: |
-          npm run test-unit-coverage
+          pnpm run test-unit-coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -127,16 +124,13 @@ jobs:
   Get-Test-Groups:
     needs: Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
@@ -157,13 +151,14 @@ jobs:
   Contract-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Setup Go
@@ -176,7 +171,12 @@ jobs:
             packages/mlflow/bff/go.sum
             distributions/core-bff/bff/go.sum
       - name: Install uv
+        timeout-minutes: 5
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          # Contract tests only need the uv binary on PATH; disable dependency cache
+          # scanning (default **/*requirements*.txt glob traverses pnpm node_modules).
+          enable-cache: false
       - name: Module caches
         uses: ./.github/actions/module-caches
         with:
@@ -207,7 +207,7 @@ jobs:
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
           export CI="true"
-          npm run test:contract
+          pnpm run test:contract
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           CI: true
@@ -232,6 +232,7 @@ jobs:
   Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -250,6 +251,7 @@ jobs:
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: read
     strategy:
@@ -260,15 +262,12 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Build and upload ${{ matrix.package.name }}
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -280,6 +279,7 @@ jobs:
   Cypress-Mock-Tests:
     needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       actions: read
       contents: read
@@ -291,15 +291,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Restore Cypress builds
         uses: ./.github/actions/cypress-build-restore
         with:
@@ -332,7 +327,8 @@ jobs:
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
+          export CYPRESS_SPEC="../packages/${CYPRESS_SPEC}"
+          pnpm run test:cypress-ci:coverage:nobuild
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() }}
@@ -354,19 +350,17 @@ jobs:
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Setup pnpm
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: all-artifacts
-      - name: Install dependencies
-        run: npm install nyc --no-save
-
       - name: Prepare unit coverage
         run: |
           mkdir -p ./unit-coverage
@@ -393,7 +387,7 @@ jobs:
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
-          npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
+          pnpm exec nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
@@ -410,13 +404,13 @@ jobs:
           mkdir -p ./coverage
           cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
           cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
-          npx nyc merge ./coverage ./coverage/merged-coverage.json
+          pnpm exec nyc merge ./coverage ./coverage/merged-coverage.json
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
           mkdir -p ./coverage/report
-          npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
+          pnpm exec nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
       - name: Upload combined results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -426,6 +420,7 @@ jobs:
   Tests:
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - Quality-Gate
       - Unit-Tests

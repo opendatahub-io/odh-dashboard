@@ -14,17 +14,18 @@ ARG BUILD_MODE
 
 WORKDIR /usr/src/app
 
+RUN npm install -g pnpm@11.22.0
+
 ## Copying in source code
 COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
 
 # Change file ownership to the assemble user
 USER default
 
-RUN npm cache clean --force
-
-RUN npm ci --ignore-scripts
+RUN pnpm install --frozen-lockfile
 
 ENV TURBO_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=8192
 RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
       echo "Setting up RHOAI vars.."; \
       echo '#!/bin/sh' > /tmp/env.sh; \
@@ -39,7 +40,7 @@ RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
       echo "Sticking to ODH vars.."; \
       echo '#!/bin/sh' > /tmp/env.sh; \
     fi
-RUN . /tmp/env.sh && npm run build
+RUN . /tmp/env.sh && pnpm run build
 
 
 FROM ${MINIMAL_IMAGE} AS runtime

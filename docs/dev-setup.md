@@ -4,9 +4,8 @@
 
 ODH requires the following to run:
 
-- [NodeJS and NPM](https://nodejs.org/)
-  - Node recommended version -> `22.5.1`
-  - NPM recommended version -> `10.8.2`
+- [Node.js](https://nodejs.org/) `>=22.18.0`
+- [pnpm](https://pnpm.io/) `11.22.0` (the repository pins this version in `package.json`)
 - [OpenShift CLI](https://docs.redhat.com/en/documentation/openshift_container_platform/4.16/html/cli_tools/openshift-cli-oc)
 - [kustomize](https://github.com/kubernetes-sigs/kustomize) (if you need to do deployment)
 
@@ -23,16 +22,22 @@ ODH requires the following to run:
    git clone https://github.com/opendatahub-io/odh-dashboard
    ```
 
-2. Within the repo context, we use `npm` to install project dependencies
+2. Install the pinned pnpm version and project dependencies
 
    ```bash
-   cd odh-dashboard && npm install
+   cd odh-dashboard
+   npm install --global pnpm@11.22.0
+   pnpm --version  # should print 11.22.0
+   pnpm install
    ```
+
+   The repository uses one pnpm workspace and one root `pnpm-lock.yaml`. Run the install
+   from the repository root; do not create package-local `package-lock.json` files.
 
 ### Build project
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Serve development content
@@ -44,10 +49,10 @@ This is the default context for running a local UI. Make sure you build the proj
 > Note: The CLI logged-in user will need to be a `cluster-admin` level user on the cluster to mimic the Dashboard Service Account level of permissions. You could also bind the [cluster role](../manifests/core-bases/base/sa-rbac/cluster-role.yaml) to your user as we do with the service account [binding](../manifests/core-bases/base/sa-rbac/cluster-role-binding.yaml).
 
 ```bash
-npm run start
+pnpm run start
 ```
 
-> If you'd like to run "backend" and "frontend" separately for development, cd into each directory in two different terminals and run `npm run start:dev` from each.
+> If you'd like to run "backend" and "frontend" separately for development, cd into each directory in two different terminals and run `pnpm run start:dev` from each.
 
 For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md).
 
@@ -56,7 +61,7 @@ For in-depth local run guidance review the [contribution guidelines](../CONTRIBU
 Run the tests.
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 For in-depth testing guidance review the [testing guidelines](./testing.md)

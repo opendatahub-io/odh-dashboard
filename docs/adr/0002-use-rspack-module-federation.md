@@ -110,4 +110,4 @@ All remotes must share:
 - [docs/module-federation.md](../module-federation.md)
 - [Module Federation](https://rspack.rs/guide/features/module-federation)
 - [Module Federation](https://module-federation.io/)
-- [ADR 0001: Use Monorepo](0001-use-monorepo-with-npm-workspaces.md)
+- [ADR 0001: Original npm workspace decision](0001-use-monorepo-with-npm-workspaces.md)

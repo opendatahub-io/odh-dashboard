@@ -17,27 +17,14 @@
   "engines": {
     "node": ">=22.18.0"
   },
-  "packageManager": "npm@11.8.0",
-  "workspaces": [
-    "backend",
-    "frontend",
-    "frontend/src",
-    "packages/*",
-    "distributions/base",
-    "distributions/core-bff",
-    "distributions/rhaii",
-    "distributions/maas-consumer-portal",
-    "packages/model-serving/cypress",
-    "packages/kserve/cypress",
-    "packages/llmd-serving/cypress"
-  ],
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "run-p -l build:*",
-    "build:backend": "npm run build --prefix backend",
-    "build:frontend": "npm run build --prefix frontend",
+    "build:backend": "pnpm --filter odh-dashboard-backend build",
+    "build:frontend": "pnpm --filter odh-dashboard-frontend build",
     "dev": "run-p -l dev:*",
-    "dev:backend": "cd ./backend && npm run start:dev",
-    "dev:frontend": "cd ./frontend && npm run start:dev",
+    "dev:backend": "pnpm --filter odh-dashboard-backend start:dev",
+    "dev:frontend": "pnpm --filter odh-dashboard-frontend start:dev",
     "format": "prettier --write \"backend/**/*.ts\" \"frontend/**/*.ts\" \"frontend/**/*.tsx\"",
     "make": "make",
     "make:build": "make build",
@@ -46,22 +33,22 @@
     "make:undeploy": "make undeploy",
     "make:push": "make push",
     "start": "run-p start:*",
-    "start:backend": "cd ./backend && npm start",
+    "start:backend": "pnpm --filter odh-dashboard-backend start",
     "start:frontend": "echo \"...available at ./frontend/public\"",
     "test": "run-s test:backend test:frontend",
-    "test:backend": "cd ./backend && npm run test",
-    "test:frontend": "cd ./frontend && npm run test",
-    "test:frontend:coverage": "cd ./frontend && npm run test:coverage",
-    "test:frontend:unit-coverage": "cd ./frontend && npm run test:unit-coverage",
-    "test:backend:unit-coverage": "cd ./backend && npm run test:unit-coverage",
-    "test:cypress-ci": "cd ./frontend && npm run test:cypress-ci -- ",
+    "test:backend": "pnpm --filter odh-dashboard-backend test",
+    "test:frontend": "pnpm --filter odh-dashboard-frontend test",
+    "test:frontend:coverage": "pnpm --filter odh-dashboard-frontend test:coverage",
+    "test:frontend:unit-coverage": "pnpm --filter odh-dashboard-frontend test:unit-coverage",
+    "test:backend:unit-coverage": "pnpm --filter odh-dashboard-backend test:unit-coverage",
+    "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci -- ",
     "test:unit": "turbo run test:unit",
     "lint:frontend:backend": "run-p test:lint:*",
-    "test:lint:backend": "cd ./backend && npm run test:lint",
-    "test:lint:frontend": "cd ./frontend && npm run test:lint",
+    "test:lint:backend": "pnpm --filter odh-dashboard-backend test:lint",
+    "test:lint:frontend": "pnpm --filter odh-dashboard-frontend test:lint",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
-    "test:fix-backend": "cd ./backend && npm run test:fix",
-    "test:fix-frontend": "cd ./frontend && npm run test:fix",
+    "test:fix-backend": "pnpm --filter odh-dashboard-backend test:fix",
+    "test:fix-frontend": "pnpm --filter odh-dashboard-frontend test:fix",
     "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit",
     "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
     "prepare": "husky",
@@ -77,11 +64,10 @@
     "cypress:server:dev": "turbo run cypress:server:dev",
     "cypress:server:build": "turbo run cypress:server:build",
     "cypress:server:build:coverage": "turbo run cypress:server:build:coverage",
-    "install:all": "npm install && npm run install:modules",
-    "install:modules": "turbo run install:module --ui=stream",
+    "install:all": "pnpm install",
     "prepare:e2e": "turbo run prepare:e2e",
     "cypress:server:e2e:wait": "turbo run cypress:server:e2e:wait",
-    "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"npm run cypress:server:e2e\" \"npm run cypress:server:e2e:wait && CYPRESS_E2E_PROXY=true npm run cypress:run:chrome --prefix frontend -- {@}\" --",
+    "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"pnpm cypress:server:e2e\" \"pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome -- {@}\" --",
     "start:dev": "turbo run start:dev",
     "start:dev:ext": "turbo run start:dev:ext"
   },
@@ -95,7 +81,7 @@
   },
   "devDependencies": {
     "@module-federation/enhanced": "^0.24.1",
-    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.1.10",
     "@rspack/dev-server": "^2.1.0",
@@ -109,6 +95,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "npm-run-all": "^4.1.5",
+    "nyc": "^15.1.0",
     "rimraf": "^6.1.2",
     "turbo": "^2.9.16",
     "typescript": "^5.9.3",
@@ -117,54 +104,7 @@
   },
   "lint-staged": {
     "{,+([^.])*/**/}*.{js,ts,jsx,tsx,md}": [
-      "npx eslint --max-warnings 0"
+      "pnpm exec eslint --max-warnings 0"
     ]
-  },
-  "overrides": {
-    "@openshift/dynamic-plugin-sdk-utils": {
-      "react-redux": "^8.1.3",
-      "react-router": "^7.18.2",
-      "react-router-dom": "^7.18.2",
-      "react": "^18.3.1",
-      "react-dom": "^18.3.1",
-      "@patternfly/react-core": "~6.5.1",
-      "@patternfly/react-icons": "~6.5.1",
-      "@patternfly/react-styles": "~6.5.1",
-      "@patternfly/react-table": "~6.5.1",
-      "@patternfly/react-virtualized-extension": "6.2.0"
-    },
-    "@patternfly/react-topology": {
-      "react": "^18.3.1"
-    },
-    "@types/react": "^18.3.31",
-    "csstype": "^3.2.3",
-    "react-router": "^7.18.2",
-    "react-router-dom": "^7.18.2",
-    "ws": "^8.21.0",
-    "@types/ws": "^8.18.1",
-    "dompurify": "^3.4.8",
-    "@types/tar": "^6.1.13",
-    "jsonpath-plus": "^10.4.0",
-    "tough-cookie": "^4.1.4",
-    "redux": "^4.2.1",
-    "form-data": "^4.0.5",
-    "axios": "^1.17.0",
-    "shell-quote": ">=1.8.4",
-    "webpack": "5.104.1",
-    "@rspack/core": "2.1.10",
-    "@rspack/cli": "2.1.10",
-    "serialize-javascript": ">=7.0.5",
-    "fast-uri": ">=3.1.7 <4.0.0",
-    "koa": ">=3.1.2",
-    "adm-zip": ">=0.6.0",
-    "postcss": ">=8.5.23 <9.0.0",
-    "js-yaml@^3": "3.15.2",
-    "js-yaml@^4": "4.3.2",
-    "@cypress/code-coverage": {
-      "js-yaml": ">=4.3.2 <5.0.0"
-    },
-    "xmlbuilder2": {
-      "js-yaml": "3.15.2"
-    }
   }
 }

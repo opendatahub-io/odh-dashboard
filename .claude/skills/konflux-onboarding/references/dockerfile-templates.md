@@ -39,7 +39,7 @@ ARG MODULE_NAME
 WORKDIR /usr/src/workspace
 
 # Workspace setup — copy root manifests + shared packages
-COPY --chown=default:root package.json package-lock.json* ./
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
@@ -48,12 +48,13 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
-RUN npm cache clean --force
-RUN npm ci --ignore-scripts
+# npm only bootstraps the repository-pinned pnpm binary.
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --ignore-scripts
-RUN npm run build:prod
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm run build:prod
 
 # BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
@@ -105,7 +106,7 @@ ARG UI_SOURCE_CODE
 ARG MODULE_NAME
 WORKDIR /usr/src/workspace
 
-COPY --chown=default:root package.json package-lock.json* ./
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root frontend/package.json ./frontend/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
@@ -114,12 +115,13 @@ COPY --chown=default:root frontend/src/ ./frontend/src/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 USER default
-RUN npm cache clean --force
-RUN npm ci --ignore-scripts
+# npm only bootstraps the repository-pinned pnpm binary.
+RUN npm install -g pnpm@11.22.0
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
-RUN npm ci --ignore-scripts
-RUN npm run build:prod
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm run build:prod
 
 # BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder

@@ -76,15 +76,11 @@ runs:
         if [ -n "$INPUT_PACKAGES" ]; then
           PACKAGES="$INPUT_PACKAGES"
         else
-          PACKAGES="[]"
-          for pattern in $(jq -r '.workspaces[]' package.json); do
-            for pkg_dir in $pattern; do
-              if [ -f "$pkg_dir/package.json" ] && jq -e '.scripts."cypress:server:build:coverage"' "$pkg_dir/package.json" > /dev/null 2>&1; then
-                name=$(jq -r '.name' "$pkg_dir/package.json")
-                PACKAGES=$(echo "$PACKAGES" | jq -c --arg w "$pkg_dir" --arg n "$name" '. + [{workspace: $w, name: $n}]')
-              fi
-            done
-          done
+          PACKAGES=$(node scripts/query-workspace-packages.js | jq -c '
+            [.[]
+             | select(.path != "." and (.scripts["cypress:server:build:coverage"] != null))
+             | {workspace: .path, name: .name}]
+          ')
         fi
 
         COUNT=$(echo "$PACKAGES" | jq 'length')
@@ -109,14 +105,36 @@ runs:
         ARTIFACT_NAME="cypress-build-$(echo "$PKG_WORKSPACE" | tr '/' '-')"
         echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
         echo "🔨 Building $PKG_NAME for Cypress (artifact: $ARTIFACT_NAME)..."
-        npm run cypress:server:build:coverage -w "$PKG_NAME"
+        pnpm --filter "$PKG_NAME" run cypress:server:build:coverage
+
+        # Avoid workspace-wide **/public-cypress globs — they traverse pnpm node_modules and hang uploads.
+        ARTIFACT_PATH=$(find "$PKG_WORKSPACE" \( -path '*/node_modules/*' -o -path '*/.pnpm/*' \) -prune -o -type d -name 'public-cypress' -print -quit)
+        if [ -z "$ARTIFACT_PATH" ]; then
+          echo "::error::No public-cypress directory found under $PKG_WORKSPACE"
+          exit 1
+        fi
+
+        # Stage under the workspace-relative path (e.g. frontend/public-cypress) so upload-artifact
+        # preserves the same layout restore expects — direct uploads would flatten to public-cypress/.
+        REL_PATH="${ARTIFACT_PATH#${PKG_WORKSPACE}/}"
+        if [ "$REL_PATH" = "$ARTIFACT_PATH" ]; then
+          echo "::error::public-cypress is not under $PKG_WORKSPACE: $ARTIFACT_PATH"
+          exit 1
+        fi
+        STAGE="${RUNNER_TEMP}/cypress-upload-${ARTIFACT_NAME}"
+        rm -rf "$STAGE"
+        mkdir -p "$STAGE/$(dirname "$REL_PATH")"
+        cp -a "$ARTIFACT_PATH" "$STAGE/$REL_PATH"
+
+        echo "artifact-path=${STAGE}/**/public-cypress" >> $GITHUB_OUTPUT
+        echo "📦 Build output: $ARTIFACT_PATH (staged as $REL_PATH)"
 
     - name: Upload build artifact
       if: inputs.mode == 'build'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: ${{ steps.build-package.outputs.artifact-name }}
-        path: ${{ inputs.package-workspace }}/**/public-cypress
+        path: ${{ steps.build-package.outputs.artifact-path }}
         retention-days: 1
 
     # =========================================================================
@@ -220,11 +238,24 @@ runs:
           workspace=$(echo "$pkg_json" | jq -r '.workspace')
           name=$(echo "$pkg_json" | jq -r '.name')
 
-          if ! find "$workspace" -type d -name "public-cypress" -print -quit | grep -q .; then
+          BUILD_PATH=$(find "$workspace" \( -path '*/node_modules/*' -o -path '*/.pnpm/*' \) -prune -o -type d -name 'public-cypress' -print -quit)
+          if [ -z "$BUILD_PATH" ]; then
             echo "❌ Missing build for $name in $workspace/**/public-cypress"
             MISSING="$MISSING $name"
+            continue
+          fi
+
+          WAIT_TARGET=""
+          if [ "$workspace" = "frontend" ]; then
+            WAIT_TARGET="$BUILD_PATH/index.html"
           else
-            BUILD_PATH=$(find "$workspace" -type d -name "public-cypress" -print -quit)
+            WAIT_TARGET="$BUILD_PATH/remoteEntry.js"
+          fi
+
+          if [ ! -f "$WAIT_TARGET" ]; then
+            echo "❌ Missing Cypress wait target for $name at $WAIT_TARGET"
+            MISSING="$MISSING $name"
+          else
             echo "✅ Found build for $name at $BUILD_PATH"
           fi
         done < <(echo "$PACKAGES_JSON" | jq -c '.[]')

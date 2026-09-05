@@ -2,9 +2,13 @@ const path = require('path');
 const { rspack } = require('@rspack/core');
 const Dotenv = require('dotenv-webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
+const {
+  micromarkAlias,
+  pnpmWebpackResolveAliases,
+} = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
-const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
 const { name } = require('../package.json');
 
@@ -163,6 +167,8 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
+      ...micromarkAlias(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,
