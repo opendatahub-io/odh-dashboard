@@ -452,6 +452,7 @@ export type NotebookContainer = {
   resources?: ContainerResources;
   livenessProbe?: Record<string, unknown>;
   readinessProbe?: Record<string, unknown>;
+  startupProbe?: Record<string, unknown>;
   volumeMounts?: VolumeMount[];
 };
 
