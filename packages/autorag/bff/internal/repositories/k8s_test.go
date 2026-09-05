@@ -276,6 +276,44 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("maas type includes connection-type=maas without credential keys", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("annotated-maas", "maas", map[string]string{"other": "x"}),
+					plainSecret("db-creds"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "maas")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "annotated-maas" || result[0].Type != "maas" {
+			t.Errorf("expected annotated MaaS secret, got %v", result)
+		}
+	})
+
+	t.Run("maas type excludes other connection-type even with MaaS keys", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("s3-labeled", "s3", map[string]string{
+						"MAAS_API_KEY": "k", "MAAS_BASE_URL": "https://maas.example.com",
+					}),
+					maasSecret("maas-conn"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "maas")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "maas-conn" {
+			t.Errorf("expected only key-classified maas-conn, got %v", result)
+		}
+	})
+
 	t.Run("maas type includes lowercase MaaS and OGX keys and empty API keys", func(t *testing.T) {
 		k8sLower := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {

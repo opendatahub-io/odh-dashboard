@@ -35,7 +35,7 @@ func NewK8sRepository() *K8sRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "maas": filter for secrets matching MaaS (Models as a Service) requirements
+//   - "maas": secrets with connection-type=maas, or (if unannotated) MaaS/legacy OGX credential keys
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -147,11 +147,20 @@ func isMaasCompatibleSecret(secret kubernetes.SecretInfo) bool {
 func filterMaasSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretInfo {
 	filtered := make([]kubernetes.SecretInfo, 0)
 	for _, secret := range secrets {
-		if isMaasCompatibleSecret(secret) {
+		if matchesMaasTypeFilter(secret) {
 			filtered = append(filtered, secret)
 		}
 	}
 	return filtered
+}
+
+// matchesMaasTypeFilter follows OpenAPI type-filter precedence:
+// annotated connection-type wins; otherwise require a MaaS/legacy OGX credential pair.
+func matchesMaasTypeFilter(secret kubernetes.SecretInfo) bool {
+	if secret.Type != "" {
+		return strings.EqualFold(secret.Type, "maas")
+	}
+	return isMaasCompatibleSecret(secret)
 }
 
 // detectType determines the type for a secret, checking annotation first,
