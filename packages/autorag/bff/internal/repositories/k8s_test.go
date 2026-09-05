@@ -114,6 +114,24 @@ func maasSecret(name string) kubernetes.SecretInfo {
 	}
 }
 
+func milvusSecret(name string) kubernetes.SecretInfo {
+	return kubernetes.SecretInfo{
+		UUID: "uid-" + name, Name: name,
+		Data: map[string]string{
+			"MILVUS_URI": "http://milvus:19530",
+		},
+	}
+}
+
+func pgvectorSecret(name string) kubernetes.SecretInfo {
+	return kubernetes.SecretInfo{
+		UUID: "uid-" + name, Name: name,
+		Data: map[string]string{
+			"PGVECTOR_HOST": "pgvector",
+		},
+	}
+}
+
 func plainSecret(name string) kubernetes.SecretInfo {
 	return kubernetes.SecretInfo{
 		UUID: "uid-" + name, Name: name,
@@ -273,6 +291,70 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 		if !names["maas-conn"] || !names["ogx-conn"] {
 			t.Errorf("names = %v, want maas-conn and ogx-conn", names)
+		}
+	})
+
+	t.Run("vector-db type filters to milvus and pgvector secrets", func(t *testing.T) {
+		k8sVec := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					s3Secret("aws-conn"),
+					maasSecret("maas-conn"),
+					milvusSecret("milvus-conn"),
+					pgvectorSecret("pg-conn"),
+					plainSecret("db-creds"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sVec, context.Background(), "ns", "vector-db")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 vector-db secrets, got %d", len(result))
+		}
+		names := map[string]string{}
+		for _, s := range result {
+			names[s.Name] = s.Type
+		}
+		if names["milvus-conn"] != "milvus" || names["pg-conn"] != "pgvector" {
+			t.Errorf("types = %v", names)
+		}
+	})
+
+	t.Run("vector-db type includes connection-type=milvus without keys", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("annotated-milvus", "milvus", map[string]string{"other": "x"}),
+					plainSecret("db-creds"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "vector-db")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "annotated-milvus" || result[0].Type != "milvus" {
+			t.Errorf("expected annotated milvus secret, got %v", result)
+		}
+	})
+
+	t.Run("vector-db type excludes other connection-type even with MILVUS_URI", func(t *testing.T) {
+		k8sAnnotated := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					annotatedSecret("s3-labeled", "s3", map[string]string{"MILVUS_URI": "http://milvus:19530"}),
+					milvusSecret("milvus-conn"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sAnnotated, context.Background(), "ns", "vector-db")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "milvus-conn" {
+			t.Errorf("expected only key-classified milvus-conn, got %v", result)
 		}
 	})
 

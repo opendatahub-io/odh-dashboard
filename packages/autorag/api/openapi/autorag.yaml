@@ -96,6 +96,7 @@ paths:
             Secret type filter:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT). Key matching is case-sensitive.
             - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has MAAS_API_KEY and MAAS_BASE_URL, or the legacy aliases OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL. The API-key key may be present but empty.
+            - 'vector-db': Filters for vector database secrets used by documents-rag-optimization-pipeline. Annotation types milvus, pgvector, or vector-db match. Unannotated secrets match if they have MILVUS_URI (Milvus) or PGVECTOR_HOST (PGVector). Key matching is case-insensitive.
             - Omit for all secrets
 
             Type Classification Precedence:
@@ -111,6 +112,7 @@ paths:
             enum:
               - storage
               - maas
+              - vector-db
           example: storage
       responses:
         "200":
@@ -148,6 +150,7 @@ paths:
         When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
         - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
         - 'maas': Returns only secrets classified as MaaS type (via key-based classification or connection-type annotation)
+        - 'vector-db': Returns Milvus/PGVector secrets (via MILVUS_URI or PGVECTOR_HOST, or connection-type milvus/pgvector/vector-db)
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
@@ -1103,6 +1106,24 @@ components:
                   example: ["MAAS_API_KEY", "MAAS_BASE_URL"]
                 commonOptionalKeys:
                   example: []
+        milvus:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["MILVUS_URI"]
+                commonOptionalKeys:
+                  example: ["MILVUS_TOKEN", "MILVUS_SERVER_CERT"]
+        pgvector:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["PGVECTOR_HOST"]
+                commonOptionalKeys:
+                  example: ["PGVECTOR_PORT", "PGVECTOR_DB", "PGVECTOR_USER", "PGVECTOR_PASSWORD"]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
@@ -1128,6 +1149,7 @@ components:
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
                - 'maas': Models as a Service secret (has all required MaaS classification keys)
+               - 'milvus' / 'pgvector': Vector database secrets (MILVUS_URI or PGVECTOR_HOST)
 
             When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
             for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
@@ -1369,6 +1391,9 @@ components:
         - input_data_bucket_name
         - input_data_key
         - maas_secret_name
+        - vector_db_secret_name
+        - embedding_models
+        - generation_models
       properties:
         display_name:
           type: string
@@ -1400,6 +1425,12 @@ components:
         maas_secret_name:
           type: string
           description: Name of the K8s secret for Models as a Service access
+        vector_db_secret_name:
+          type: string
+          description: >-
+            Name of the K8s secret for the vector database. Milvus is selected when
+            the secret has MILVUS_URI; PGVector when it has PGVECTOR_HOST.
+          example: milvus-connection
         preset:
           type: string
           enum:
@@ -1409,14 +1440,16 @@ components:
           default: speed
         embedding_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of embedding model identifiers
+          description: Embedding model identifiers. Required because MaaS does not expose model-type metadata.
         generation_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of generation model identifiers
+          description: Generation model identifiers. Required because MaaS does not expose model-type metadata.
         optimization_metric:
           type: string
           enum:
@@ -1425,10 +1458,6 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to overall_score)
-        vector_io_provider_id:
-          type: string
-          description: Pipeline vector store provider ID from the selected Models as a Service provider (e.g. milvus)
-          example: milvus
         optimization_max_rag_patterns:
           type: integer
           minimum: 4

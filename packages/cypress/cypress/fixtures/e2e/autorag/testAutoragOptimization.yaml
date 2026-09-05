@@ -2,6 +2,7 @@ projectNamePrefix: 'cy-e2e-autorag-opt'
 dspaSecretName: dashboard-dspa-secret
 s3SecretName: ods-ci-ds-pipelines
 maasSecretName: cy-maas-secret
+vectorDbSecretName: cy-vector-db-secret
 runName: autorag-optimization-run
 runDescription: 'E2E full optimization run'
 documentFile: autorag-test-document.txt

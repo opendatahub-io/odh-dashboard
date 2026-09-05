@@ -142,11 +142,13 @@ const SYSTEM_FOLDER_DISABLED_REASON = 'This is a system folder and cannot be sel
 type AutoragConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
+  initialVectorDbSecret?: SecretSelection;
 };
 
 function AutoragConfigure({
   initialValues,
   initialInputDataSecret,
+  initialVectorDbSecret,
 }: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -814,10 +816,10 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
-                        label="Vector I/O provider"
-                        description="Specify the location for storing the vector index used to retrieve your documents."
+                        label="Vector database connection"
+                        description="Select the Kubernetes secret for Milvus or PGVector. The pipeline reads MILVUS_* or PGVECTOR_* keys from that secret."
                       >
-                        <AutoragVectorStoreSelector />
+                        <AutoragVectorStoreSelector initialSecret={initialVectorDbSecret} />
                       </ConfigureFormGroup>
                     </FlexItem>
 

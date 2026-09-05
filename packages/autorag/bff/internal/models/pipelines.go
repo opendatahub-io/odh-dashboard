@@ -58,11 +58,11 @@ type CreateAutoRAGRunRequest struct {
 	InputDataBucketName        string   `json:"input_data_bucket_name"`
 	InputDataKey               string   `json:"input_data_key"`
 	MaaSSecretName             string   `json:"maas_secret_name"`
+	VectorDBSecretName         string   `json:"vector_db_secret_name"`
 	Preset                     *string  `json:"preset,omitempty"`
 	EmbeddingsModels           []string `json:"embedding_models,omitempty"`
 	GenerationModels           []string `json:"generation_models,omitempty"`
 	OptimizationMetric         string   `json:"optimization_metric,omitempty"`
-	VectorIOProviderID         string   `json:"vector_io_provider_id,omitempty"`
 	OptimizationMaxRagPatterns *int     `json:"optimization_max_rag_patterns,omitempty"`
 }
 

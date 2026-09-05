@@ -69,6 +69,16 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     enabled: !!namespace,
   });
 
+  const {
+    data: vectorDbSecrets,
+    isPending: vectorDbSecretsPending,
+    isError: vectorDbSecretsError,
+  } = useQuery({
+    queryKey: ['secrets', namespace, 'vector-db'],
+    queryFn: () => getSecrets('')(namespace ?? '', 'vector-db')({}),
+    enabled: !!namespace,
+  });
+
   const params = pipelineRun?.runtime_config?.parameters;
 
   const parsedParams = React.useMemo(() => {
@@ -83,10 +93,14 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     parseError: false,
     storageMissing: false,
     maasMissing: false,
+    vectorDbMissing: false,
   });
 
   React.useEffect(() => {
-    if ((storageSecretsError || maasSecretsError) && !shownWarnings.current.secretsLoadError) {
+    if (
+      (storageSecretsError || maasSecretsError || vectorDbSecretsError) &&
+      !shownWarnings.current.secretsLoadError
+    ) {
       shownWarnings.current.secretsLoadError = true;
       notification.warning(
         'Unable to load connection secrets',
@@ -95,7 +109,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
     // notify once when the error state is reached
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageSecretsError, maasSecretsError]);
+  }, [storageSecretsError, maasSecretsError, vectorDbSecretsError]);
 
   React.useEffect(() => {
     if (parsedParams && !parsedParams.success && !shownWarnings.current.parseError) {
@@ -149,6 +163,25 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.maas_secret_name, maasSecrets]);
 
+  React.useEffect(() => {
+    const name = params?.vector_db_secret_name;
+    if (
+      name &&
+      typeof name === 'string' &&
+      vectorDbSecrets &&
+      !vectorDbSecrets.find((s) => s.name === name) &&
+      !shownWarnings.current.vectorDbMissing
+    ) {
+      shownWarnings.current.vectorDbMissing = true;
+      notification.warning(
+        'Connection secret not found',
+        `The previously used vector database connection "${name}" could not be found. Please select a new connection.`,
+      );
+    }
+    // notify once when secrets are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.vector_db_secret_name, vectorDbSecrets]);
+
   const invalidPipelineRunId =
     pipelineRunError &&
     pipelineRunLoadError instanceof Error &&
@@ -183,7 +216,13 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending || maasSecretsPending) {
+  if (
+    !namespacesLoaded ||
+    pipelineRunPending ||
+    storageSecretsPending ||
+    maasSecretsPending ||
+    vectorDbSecretsPending
+  ) {
     return (
       <Bullseye>
         <Spinner />
@@ -193,6 +232,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
 
   const secretName = params?.input_data_secret_name;
   const maasSecretName = params?.maas_secret_name;
+  const vectorDbSecretName = params?.vector_db_secret_name;
 
   // Resolve the matching S3 secret from the fetched list
   let initialInputDataSecret: SecretSelection | undefined;
@@ -216,6 +256,14 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
   }
 
+  let initialVectorDbSecret: SecretSelection | undefined;
+  if (vectorDbSecretName && typeof vectorDbSecretName === 'string' && vectorDbSecrets) {
+    const match = vectorDbSecrets.find((s) => s.name === vectorDbSecretName);
+    if (match) {
+      initialVectorDbSecret = match;
+    }
+  }
+
   /* eslint-disable camelcase */
   const initialValues: Partial<ConfigureSchema> = {
     ...(parsedParams?.success ? parsedParams.data : {}),
@@ -228,6 +276,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       initialValues={initialValues}
       initialInputDataSecret={initialInputDataSecret}
       initialMaasSecret={initialMaasSecret}
+      initialVectorDbSecret={initialVectorDbSecret}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />

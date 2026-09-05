@@ -13,7 +13,7 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `maas` for MaaS (Models as a Service) secrets, or omit for all secrets |
+| `type` | string | No | Secret type filter: `storage`, `maas`, `vector-db`, or omit for all secrets |
 
 ## Functionality
 
@@ -22,7 +22,8 @@ The endpoint:
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-   - **`type=maas`**: Filters for MaaS (Models as a Service) secrets containing required MaaS keys
+   - **`type=maas`**: Filters for MaaS (Models as a Service) secrets
+   - **`type=vector-db`**: Filters for Milvus/PGVector secrets (`MILVUS_URI` or `PGVECTOR_HOST`, or connection-type `milvus` / `pgvector` / `vector-db`)
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
      1. **First priority**: The `opendatahub.io/connection-type` annotation if present and non-empty
@@ -220,7 +221,7 @@ Key matching is case-sensitive via the `IsAllowedSecretKey()` function. Keys mus
 
 ### Filtering Logic
 
-The endpoint supports three filtering modes based on the `type` parameter:
+The endpoint supports four filtering modes based on the `type` parameter:
 
 1. **No type (all secrets)**: Returns all secrets in the namespace without filtering
 
@@ -237,6 +238,10 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - **Annotation first**: a secret with `opendatahub.io/connection-type: maas` is included even if it does not have MaaS credential keys
    - **Key-based fallback** (no connection-type annotation): the secret must have `MAAS_API_KEY` and `MAAS_BASE_URL`, or the legacy aliases `OGX_CLIENT_API_KEY` and `OGX_CLIENT_BASE_URL`. Key matching is case-insensitive. The API-key value may be empty (no-auth)
    - A secret annotated as a different type is excluded even if it has MaaS keys
+
+4. **`type=vector-db`**: Filters for vector database secrets used by the optimization pipeline
+   - **Annotation first**: `opendatahub.io/connection-type` of `milvus`, `pgvector`, or `vector-db`
+   - **Key-based fallback**: `MILVUS_URI` (classified as milvus) or `PGVECTOR_HOST` (classified as pgvector). Key matching is case-insensitive
 
 Invalid type values result in a 400 Bad Request error.
 
@@ -422,6 +427,7 @@ The implementation includes comprehensive tests covering:
 - **Type filtering**:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
   - `type=maas`: Successful retrieval with MaaS (Models as a Service) secret filtering, annotation precedence, and case-insensitive key matching
+  - `type=vector-db`: Successful retrieval with Milvus/PGVector secret filtering
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Secret data field**:

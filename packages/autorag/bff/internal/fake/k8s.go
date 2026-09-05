@@ -96,6 +96,29 @@ var fakeSecrets = map[string][]v1.Secret{
 				"MAAS_BASE_URL": []byte("https://maas.example.com"),
 			},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vector-db",
+				Namespace: "my-project",
+				UID:       "5a5bed88-d731-5bc1-9de5-4gae5e7358d9",
+				Annotations: map[string]string{
+					"openshift.io/display-name": "vector-db",
+				},
+				Labels: map[string]string{
+					"opendatahub.io/managed":         "true",
+					"opendatahub.io/dashboard":       "true",
+					"opendatahub.io/secret-type":     "pgvector",
+					"opendatahub.io/connection-type": "pgvector",
+				},
+			},
+			Data: map[string][]byte{
+				"PGVECTOR_HOST":     []byte("pgvector.my-project.svc.cluster.local"),
+				"PGVECTOR_PORT":     []byte("5432"),
+				"PGVECTOR_DB":       []byte("testdb"),
+				"PGVECTOR_USER":     []byte("testuser"),
+				"PGVECTOR_PASSWORD": []byte("testpassword"),
+			},
+		},
 	},
 }
 

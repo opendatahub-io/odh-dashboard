@@ -197,6 +197,17 @@ func TestGetSecretsHandler(t *testing.T) {
 			wantBodySubstr: `"name": "maas-creds"`,
 		},
 		{
+			name:      "success with vector-db type filter",
+			namespace: "test-ns",
+			queryType: "vector-db",
+			repoSecrets: []models.SecretListItem{
+				{UUID: "uid-4", Name: "milvus-creds", Type: "milvus", Data: map[string]string{"uri": "http://milvus"}},
+			},
+			repoErr:        nil,
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"name": "milvus-creds"`,
+		},
+		{
 			name:           "missing namespace returns 400",
 			namespace:      "", // no namespace in context
 			queryType:      "",
@@ -279,7 +290,7 @@ func TestGetSecretsHandler(t *testing.T) {
 			}
 
 			// Only set up repo expectation if we expect the handler to reach the repo call
-			if tt.namespace != "" && (tt.queryType == "" || tt.queryType == "storage" || tt.queryType == "maas") {
+			if tt.namespace != "" && (tt.queryType == "" || tt.queryType == "storage" || tt.queryType == "maas" || tt.queryType == "vector-db") {
 				repo.On("GetFilteredSecrets", svc, mock.Anything, tt.namespace, tt.queryType).
 					Return(tt.repoSecrets, tt.repoErr)
 			}

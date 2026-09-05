@@ -39,7 +39,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'maas') =>
+  (namespace: string, type?: 'storage' | 'maas' | 'vector-db') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {

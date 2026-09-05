@@ -759,7 +759,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
             maas_secret_name: 'my-maas-conn',
-            vector_io_provider_id: 'milvus',
+            vector_db_secret_name: 'my-vector-db',
             embedding_models: ['model-a'],
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
@@ -784,7 +784,7 @@ describe('AutoragReconfigureLoader', () => {
 
       expect(capturedProps.initialValues).toMatchObject({
         maas_secret_name: 'my-maas-conn',
-        vector_io_provider_id: 'milvus',
+        vector_db_secret_name: 'my-vector-db',
         embedding_models: ['model-a'],
         display_name: 'Legacy Run - 1',
       });

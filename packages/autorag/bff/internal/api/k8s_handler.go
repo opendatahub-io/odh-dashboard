@@ -89,7 +89,7 @@ func (h *K8sHandler) GetNamespacesHandler(w http.ResponseWriter, r *http.Request
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
 //   - namespace (required): The namespace name to query secrets from
-//   - type (optional): Filter type - "storage" for AWS secrets, "maas" for MaaS secrets, or empty for all secrets
+//   - type (optional): Filter type - "storage", "maas", "vector-db", or empty for all secrets
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -102,8 +102,8 @@ func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	secretType := r.URL.Query().Get("type")
-	if secretType != "" && secretType != "storage" && secretType != "maas" {
-		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'maas', or omitted")
+	if secretType != "" && secretType != "storage" && secretType != "maas" && secretType != "vector-db" {
+		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage', 'maas', 'vector-db', or omitted")
 		return
 	}
 

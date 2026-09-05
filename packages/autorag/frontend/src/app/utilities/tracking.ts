@@ -145,7 +145,7 @@ export const fireAutoragModelsSelected = (properties: ModelsSelectedProperties):
   fireFormTrackingEvent(AUTORAG_EVENTS.MODELS_SELECTED, properties);
 };
 
-/** Categorized vector I/O provider type, derived from the `SUPPORTED_VECTOR_STORE_PROVIDER_TYPES` allowlist. */
+/** Categorized vector database backend, derived from the secret type (milvus or pgvector). */
 export type VectorStoreProviderType = 'milvus' | 'pgvector';
 
 /**
@@ -169,6 +169,23 @@ export const toVectorStoreProviderType = (
   }
 };
 
+/** Maps a vector-db secret `type` (annotation or key classification) to analytics. */
+export const toVectorStoreProviderTypeFromSecret = (
+  secretType?: string,
+): VectorStoreProviderType | undefined => {
+  if (!secretType) {
+    return undefined;
+  }
+  switch (secretType.toLowerCase()) {
+    case 'milvus':
+      return 'milvus';
+    case 'pgvector':
+      return 'pgvector';
+    default:
+      return undefined;
+  }
+};
+
 export type VectorStoreConfiguredProperties = {
   providerType: VectorStoreProviderType;
   countOfCompatibleProviders: number;
@@ -181,7 +198,7 @@ export type VectorStoreConfiguredProperties = {
  * configure flow. Fires on every selection change (consistent with Knowledge/Evaluation Source,
  * which re-fire on every upload/replace), from the Select's `onSelect` handler only — never from
  * the effect that clears a stale selection when the provider list refreshes, and never from the
- * initial/reconfigure pre-fill of `vector_io_provider_id`. This is a pure local field selection
+ * initial/reconfigure pre-fill of `vector_db_secret_name`. This is a pure local field selection
  * with no direct backend call, so `outcome` is always `submit` and `success` is always `true`.
  */
 export const fireAutoragVectorStoreConfigured = (

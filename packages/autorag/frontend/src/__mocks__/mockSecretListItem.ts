@@ -51,3 +51,16 @@ export const mockMaasSecret = (overrides: MockSecretListItemOptions = {}): Secre
     },
     ...overrides,
   });
+
+export const mockVectorDbSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+  mockSecretListItem({
+    type: 'pgvector',
+    data: {
+      PGVECTOR_HOST: '[REDACTED]',
+      PGVECTOR_PORT: '[REDACTED]',
+      PGVECTOR_DB: '[REDACTED]',
+      PGVECTOR_USER: '[REDACTED]',
+      PGVECTOR_PASSWORD: '[REDACTED]',
+    },
+    ...overrides,
+  });

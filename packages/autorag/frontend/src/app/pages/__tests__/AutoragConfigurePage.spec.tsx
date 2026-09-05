@@ -163,17 +163,17 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 
   const MockVectorStoreSelector = () => {
     const { setValue, watch } = useFormContext();
-    const currentValue = watch('vector_io_provider_id');
+    const currentValue = watch('vector_db_secret_name');
     ReactMock.useEffect(() => {
       // Only set a default when the field is empty (new configure flow).
       if (!currentValue) {
-        setValue('vector_io_provider_id', 'milvus', { shouldValidate: true });
+        setValue('vector_db_secret_name', 'vector-db-secret', { shouldValidate: true });
       }
     }, [setValue, currentValue]);
     return ReactMock.createElement(
       'div',
       { 'data-testid': 'vector-store-select-toggle' },
-      currentValue || 'milvus (remote Milvus)',
+      currentValue || 'vector-db-secret',
     );
   };
   return { __esModule: true, default: MockVectorStoreSelector };
@@ -1087,7 +1087,7 @@ describe('AutoragConfigurePage', () => {
     const noChangeReconfigureInitialValues = {
       display_name: 'Original Run - 1',
       maas_secret_name: 'Test MaaS Secret',
-      vector_io_provider_id: 'chromadb',
+      vector_db_secret_name: 'vector-db-secret',
       input_data_secret_name: 'Test AWS Secret',
       input_data_bucket_name: 'test-bucket',
       input_data_key: 'my-data/input.pdf',
@@ -1942,7 +1942,7 @@ describe('AutoragConfigurePage', () => {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
         maas_secret_name: 'Test MaaS Secret',
-        vector_io_provider_id: 'chromadb',
+        vector_db_secret_name: 'vector-db-secret',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
         input_data_key: 'my-data/input.pdf',
@@ -2020,7 +2020,7 @@ describe('AutoragConfigurePage', () => {
         expect(screen.getByText('input.pdf')).toBeInTheDocument();
       });
 
-      it('should show the pre-filled Vector I/O provider in the configure step', async () => {
+      it('should show the pre-filled vector database secret in the configure step', async () => {
         renderWithProviders(
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
@@ -2032,7 +2032,9 @@ describe('AutoragConfigurePage', () => {
 
         await navigateToConfigure();
 
-        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
+        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
+          'vector-db-secret',
+        );
       });
 
       it('should show the pre-filled evaluation dataset in the configure step', async () => {

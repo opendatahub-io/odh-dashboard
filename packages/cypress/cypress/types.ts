@@ -969,6 +969,7 @@ export type AutoragTestData = {
   dspaSecretName: string;
   s3SecretName: string;
   maasSecretName: string;
+  vectorDbSecretName: string;
   runName: string;
   runDescription: string;
   documentFile: string;

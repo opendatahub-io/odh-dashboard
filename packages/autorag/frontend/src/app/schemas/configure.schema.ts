@@ -13,21 +13,6 @@ import {
   DEFAULT_OPTIMIZATION_METRIC,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
-// TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-// import type { MaasVectorStoreProvider } from '~/app/types';
-
-// The allowlist of supported vector store provider types.
-// The BFF returns all vector_io providers; only providers with these types are shown in the UI.
-// The selected value is the provider_id.
-export const SUPPORTED_VECTOR_STORE_PROVIDER_TYPES = ['remote::milvus', 'remote::pgvector'];
-
-// Default in-memory vector store provider — disabled until 3.5 or later.
-// When re-enabled, this should be injected at the beginning of the provider list
-// and the schema field should become optional with this as the default.
-// export const DEFAULT_IN_MEMORY_PROVIDER: MaasVectorStoreProvider = {
-//   provider_id: 'MILVUS_IN_MEMORY_DEFAULT',
-//   provider_type: 'IN_MEMORY',
-// };
 
 export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
@@ -73,7 +58,7 @@ function createConfigureSchema() {
 
       preset: z.enum(PRESETS).default(PRESET_FASTER),
       maas_secret_name: z.string().min(1).default(''),
-      vector_io_provider_id: z.string().min(1).default(''),
+      vector_db_secret_name: z.string().min(1).default(''),
 
       generation_models: z.array(z.string()).min(1).default([]),
       embedding_models: z.array(z.string()).min(1).default([]),
@@ -103,14 +88,6 @@ function createConfigureSchema() {
         }
         delete data.detected_language;
         delete data.detected_language_confidence;
-        // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-        // Delete vector database ID if it's empty or set to the default in-memory provider.
-        // if (
-        //   data.vector_io_provider_id === '' ||
-        //   data.vector_io_provider_id === DEFAULT_IN_MEMORY_PROVIDER.provider_id
-        // ) {
-        //   delete data.vector_io_provider_id;
-        // }
         return data;
       },
     ],

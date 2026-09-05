@@ -17,6 +17,7 @@ import {
   isOgxOperatorManaged,
   provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
+  provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
 import {
@@ -72,6 +73,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
               connection.url,
               connection.apiKey,
             );
+            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
           } else {
             if (!isManaged) {
               throw new Error(
@@ -86,7 +88,11 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
             cy.step('Provision AutoRAG infrastructure (vector store, OGX)');
-            provisionAutoragInfrastructure(projectName, testData.maasSecretName);
+            provisionAutoragInfrastructure(
+              projectName,
+              testData.maasSecretName,
+              testData.vectorDbSecretName,
+            );
           }
         }),
       ),
@@ -98,7 +104,11 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     }
 
     if (selfProvisioned) {
-      cleanupAutoragInfrastructure(projectName, testData.maasSecretName);
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+      );
     }
 
     removeOgxAccess(projectName);

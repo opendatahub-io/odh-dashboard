@@ -763,7 +763,7 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
-      expect(screen.getByText('Vector I/O provider')).toBeInTheDocument();
+      expect(screen.getByText('Vector database connection')).toBeInTheDocument();
       expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();

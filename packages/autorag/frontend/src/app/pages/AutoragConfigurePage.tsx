@@ -69,6 +69,8 @@ type AutoragConfigurePageProps = {
   initialInputDataSecret?: SecretSelection;
   /** Pre-resolved MaaS connection secret for reconfigure flows. */
   initialMaasSecret?: SecretSelection;
+  /** Pre-resolved vector database secret for reconfigure flows. */
+  initialVectorDbSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title and breadcrumb). */
@@ -79,6 +81,7 @@ function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
   initialMaasSecret,
+  initialVectorDbSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -563,6 +566,7 @@ function AutoragConfigurePage({
                   <AutoragConfigure
                     initialValues={initialValues}
                     initialInputDataSecret={initialInputDataSecret}
+                    initialVectorDbSecret={initialVectorDbSecret}
                   />
                 )}
               </PageSection>

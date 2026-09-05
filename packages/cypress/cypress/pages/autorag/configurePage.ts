@@ -90,17 +90,9 @@ class AutoragConfigurePage {
     return cy.findByTestId(`model-row-${modelId}`);
   }
 
-  // Step 2 - Vector store
+  // Step 2 - Vector database secret
   findVectorStoreSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('vector-store-select-toggle', options);
-  }
-
-  findVectorStoreOption(providerId: string) {
-    return cy.findByTestId(`vector-store-option-${providerId}`);
-  }
-
-  findFirstVectorStoreOption() {
-    return cy.findByTestId('vector-store-select-list').find('li').first();
   }
 
   // Step 2 - Optimization

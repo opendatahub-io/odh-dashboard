@@ -2,6 +2,7 @@ projectNamePrefix: 'cy-e2e-autorag-mgmt'
 dspaSecretName: dashboard-dspa-secret
 s3SecretName: ods-ci-ds-pipelines
 maasSecretName: cy-maas-secret
+vectorDbSecretName: cy-vector-db-secret
 runName: autorag-management-run
 runDescription: 'E2E test for autorag experiments list and run management'
 documentFile: autorag-test-document.txt

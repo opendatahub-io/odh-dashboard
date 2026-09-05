@@ -68,7 +68,7 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },
-  { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
+  { key: 'vector_db_secret_name', label: 'Vector database secret' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'detected_language', label: 'Detected languages' },
   { key: 'optimization_metric', label: 'Optimization metric' },

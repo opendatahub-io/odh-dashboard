@@ -91,7 +91,7 @@ const MaasConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) 
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
         title="Add MaaS connection"
-        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns. Vector I/O providers in the MaaS server can be used to create a collection for retrieval."
+        description="Provide credentials for accessing an external Models as a Service (MaaS) server. The generation and embedding models registered in the MaaS server will be considered when generating RAG patterns."
       />
       <ModalBody>
         <Form>

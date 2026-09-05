@@ -17,6 +17,7 @@ import {
   isOgxOperatorManaged,
   provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
+  provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
@@ -66,6 +67,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
               connection.url,
               connection.apiKey,
             );
+            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
           } else {
             if (!isManaged) {
               throw new Error(
@@ -80,7 +82,11 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
             cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
-            provisionAutoragInfrastructure(projectName, testData.maasSecretName);
+            provisionAutoragInfrastructure(
+              projectName,
+              testData.maasSecretName,
+              testData.vectorDbSecretName,
+            );
           }
         }),
       ),
@@ -91,7 +97,11 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       setAutoragEnabled(false);
     }
     if (selfProvisioned) {
-      cleanupAutoragInfrastructure(projectName, testData.maasSecretName);
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+      );
     }
     removeOgxAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);

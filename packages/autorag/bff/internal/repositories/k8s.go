@@ -36,6 +36,7 @@ func NewK8sRepository() *K8sRepository {
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "maas": secrets with connection-type=maas, or (if unannotated) MaaS/legacy OGX credential keys
+//   - "vector-db": connection-type milvus/pgvector/vector-db, or (if unannotated) MILVUS_URI or PGVECTOR_HOST
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -55,6 +56,8 @@ func (r *K8sRepository) GetFilteredSecrets(
 		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	case "maas":
 		filtered = filterMaasSecrets(secretInfos)
+	case "vector-db":
+		filtered = filterVectorDbSecrets(secretInfos)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -154,6 +157,16 @@ func filterMaasSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretInfo 
 	return filtered
 }
 
+func filterVectorDbSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0)
+	for _, secret := range secrets {
+		if matchesVectorDbTypeFilter(secret) {
+			filtered = append(filtered, secret)
+		}
+	}
+	return filtered
+}
+
 // matchesMaasTypeFilter follows OpenAPI type-filter precedence:
 // annotated connection-type wins; otherwise require a MaaS/legacy OGX credential pair.
 func matchesMaasTypeFilter(secret kubernetes.SecretInfo) bool {
@@ -163,9 +176,26 @@ func matchesMaasTypeFilter(secret kubernetes.SecretInfo) bool {
 	return isMaasCompatibleSecret(secret)
 }
 
+func matchesVectorDbTypeFilter(secret kubernetes.SecretInfo) bool {
+	if secret.Type != "" {
+		t := strings.ToLower(secret.Type)
+		return t == "milvus" || t == "pgvector" || t == "vector-db"
+	}
+	return detectVectorDbKeyType(secret) != ""
+}
+
+func detectVectorDbKeyType(secret kubernetes.SecretInfo) string {
+	if secretInfoHasAnyKeyCI(secret.Data, "milvus_uri") {
+		return "milvus"
+	}
+	if secretInfoHasAnyKeyCI(secret.Data, "pgvector_host") {
+		return "pgvector"
+	}
+	return ""
+}
+
 // detectType determines the type for a secret, checking annotation first,
-// then falling back to key-based detection with MaaS (including legacy OGX keys)
-// prioritized over storage.
+// then falling back to key-based detection with MaaS, then vector DB, then storage.
 func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	if secret.Type != "" {
 		return secret.Type
@@ -173,11 +203,19 @@ func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	switch secretType {
 	case "maas":
 		return "maas"
+	case "vector-db":
+		if t := detectVectorDbKeyType(secret); t != "" {
+			return t
+		}
+		return "vector-db"
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
 		if isMaasCompatibleSecret(secret) {
 			return "maas"
+		}
+		if t := detectVectorDbKeyType(secret); t != "" {
+			return t
 		}
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	}

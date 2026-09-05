@@ -20,6 +20,9 @@ describe('AutoRAG API Contract Tests', () => {
   const NS_NO_DSPA = 'no-dspa';
   const SECRET = 'data-connection';
   const MAAS_SECRET = 'maas';
+  const VECTOR_DB_SECRET = 'vector-db';
+  const EMBEDDING_MODELS = ['vllm-embedding/ibm-granite/granite-embedding-english-r2'];
+  const GENERATION_MODELS = ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'];
   const BUCKET = 's3-bucket';
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
@@ -119,8 +122,8 @@ describe('AutoRAG API Contract Tests', () => {
       });
     });
 
-    it('should retrieve maas secrets when type=maas', async () => {
-      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=maas`);
+    it('should retrieve vector-db secrets when type=vector-db', async () => {
+      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
@@ -666,6 +669,9 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: VECTOR_DB_SECRET,
+          embedding_models: EMBEDDING_MODELS,
+          generation_models: GENERATION_MODELS,
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
@@ -685,10 +691,10 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: VECTOR_DB_SECRET,
+          embedding_models: EMBEDDING_MODELS,
+          generation_models: GENERATION_MODELS,
           optimization_metric: 'answer_correctness',
-          embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
-          generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
-          vector_io_provider_id: 'milvus',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
@@ -715,6 +721,9 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: VECTOR_DB_SECRET,
+          embedding_models: EMBEDDING_MODELS,
+          generation_models: GENERATION_MODELS,
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
@@ -736,6 +745,9 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: VECTOR_DB_SECRET,
+          embedding_models: EMBEDDING_MODELS,
+          generation_models: GENERATION_MODELS,
         });
         expect(result.success).toBe(true);
         if (result.success) {
@@ -789,6 +801,9 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: MAAS_SECRET,
+          vector_db_secret_name: VECTOR_DB_SECRET,
+          embedding_models: EMBEDDING_MODELS,
+          generation_models: GENERATION_MODELS,
         });
         expect(createResult.success).toBe(true);
         if (createResult.success) {

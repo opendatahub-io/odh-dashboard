@@ -14,7 +14,7 @@ const RESOURCES_PATH = 'resources/autorag';
  * Handles: login, wait for DSPA, navigate to experiments, create run,
  * fill name/description, select MaaS secret, select S3 connection,
  * upload document, browse and select it, upload evaluation dataset,
- * and select first available vector store.
+ * and select the vector database secret.
  *
  * After this, optionally configure metric/patterns, then call `submitAutoragRun()`.
  */
@@ -113,16 +113,11 @@ export const configureAutoragRun = (
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
 
-  cy.step('Select first available vector store');
-  // Toggle is a skeleton until GET /maas/vector-stores finishes (port-forward to OGX/MaaS).
-  autoragConfigurePage
-    .findVectorStoreSelector({ timeout: 120000 })
-    .should('not.be.disabled')
-    .click();
-  autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
-  autoragConfigurePage
-    .findVectorStoreSelector()
-    .should('not.contain.text', 'Select vector I/O provider');
+  cy.step('Select vector database secret');
+  autoragConfigurePage.findVectorStoreSelector({ timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.findVectorStoreSelector().click();
+  autoragConfigurePage.findVectorStoreSelector().find('input').type(testData.vectorDbSecretName);
+  autoragConfigurePage.findSelectOption(new RegExp(testData.vectorDbSecretName, 'i')).click();
 };
 
 /**
