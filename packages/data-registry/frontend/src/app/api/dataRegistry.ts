@@ -167,3 +167,18 @@ export const createLabel = async (
 export const deleteLabel = async (project: string, label: string): Promise<void> => {
   await fetchRequest(registryUrl(`/${project}/labels/${encodeURIComponent(label)}`), 'DELETE');
 };
+
+// Error type guards
+
+export const is503Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 503;
+
+export const is403Error = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 403;
+
+export const isConnectionError = (error: unknown): boolean =>
+  !(error instanceof ApiError) &&
+  error instanceof Error &&
+  (error.message.includes('NetworkError') ||
+    error.message.includes('Failed to fetch') ||
+    error.message.toLowerCase().includes('network'));
