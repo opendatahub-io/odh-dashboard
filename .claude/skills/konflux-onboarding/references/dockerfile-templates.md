@@ -202,7 +202,7 @@ COPY <name>/internal/ internal/
 # FIPS-compliant build: CGO_ENABLED=1 + strictfipsruntime
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/<binary-name> ./cmd/<entry-dir>
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>
+FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:7fbeae18dc9476399f565e68255f602a3374ea8614ba3d14843565131a13ff93
 
 LABEL com.redhat.component="odh-<name>-container" \
       name="managed-open-data-hub/odh-<name>-rhel9" \
