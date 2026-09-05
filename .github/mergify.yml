@@ -1,0 +1,50 @@
+# Enqueue is label-only (pull_request_rules below). Reject @Mergifyio queue /
+# requeue and the status-comment checkbox so write access cannot bypass labels.
+commands_restrictions:
+  queue:
+    conditions:
+      - number < 0
+  requeue:
+    conditions:
+      - number < 0
+
+merge_queue:
+  max_parallel_checks: 2
+  mode: serial
+  status_comments: outcomes
+  queue_controls_comment: false
+
+queue_rules:
+  - name: default
+    max_checks_retries: 0
+    merge_method: squash
+    batch_size: 1
+    branch_protection_injection_mode: none
+    queue_conditions:
+      - base = main
+      - -draft
+      - label = mergify-lgtm
+      - label != lgtm
+      - label != do-not-merge/hold
+      - label != do-not-merge/work-in-progress
+      - label != do-not-merge/invalid-owners-file
+      - label != needs-rebase
+    merge_conditions:
+      - check-success = Tests
+      - check-success = ci/prow/images
+      - -check-failure ~= ^ci/prow
+
+pull_request_rules:
+  - name: Queue on mergify-lgtm
+    conditions:
+      - base = main
+      - -draft
+      - label = mergify-lgtm
+      - label != lgtm
+      - label != do-not-merge/hold
+      - label != do-not-merge/work-in-progress
+      - label != do-not-merge/invalid-owners-file
+      - label != needs-rebase
+    actions:
+      queue:
+        name: default
