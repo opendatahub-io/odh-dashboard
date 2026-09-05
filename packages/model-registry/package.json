@@ -50,7 +50,8 @@
     }
   },
   "e2eCiTags": [
-    "@ModelRegistryCI"
+    "@ModelRegistryCI",
+    "@ModelCatalogCI"
   ],
   "exports": {
     "./extensions": "./extensions.ts",
