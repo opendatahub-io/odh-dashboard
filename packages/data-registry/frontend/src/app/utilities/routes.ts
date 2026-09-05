@@ -6,8 +6,10 @@ export const browseUrl = (project?: string): string => {
   return `${base}?project=${encodeURIComponent(project)}`;
 };
 
-export const tableDetailUrl = (project: string, collection: string, name: string): string =>
-  `tables/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
-
-export const volumeDetailUrl = (project: string, collection: string, name: string): string =>
-  `volumes/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
+export const assetDetailUrl = (
+  project: string,
+  collection: string,
+  name: string,
+  assetType: 'table' | 'volume' = 'table',
+): string =>
+  `assets/${assetType}/${encodeURIComponent(project)}/${encodeURIComponent(collection)}/${encodeURIComponent(name)}`;
