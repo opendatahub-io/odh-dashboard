@@ -32,11 +32,19 @@ const liftErrorCode = (code: number) => {
 };
 
 const closeWebSocket = (socket: WebSocket, code: number, reason: string | Buffer) => {
+  if (socket.readyState === WebSocket.CONNECTING) {
+    socket.terminate();
+    return;
+  }
   if (socket.readyState === WebSocket.OPEN) {
     const reasonStr = typeof reason === 'string' ? reason : String(reason);
     socket.close(liftErrorCode(code), reasonStr || 'error');
   }
 };
+
+/** Fastify 4 websocket handler received `{ socket }`; v10+ passes the WebSocket itself. */
+export const getWebsocketSource = (connection: WebSocket | { socket: WebSocket }): WebSocket =>
+  'socket' in connection && connection.socket ? connection.socket : (connection as WebSocket);
 
 const waitConnection = (socket: WebSocket, write: () => void) => {
   if (socket.readyState === WebSocket.CONNECTING) {
@@ -83,7 +91,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = connection.socket;
+        const source = getWebsocketSource(connection);
         const kubeUri = req.params['*'];
         const connectionId = `${req.id}-${kubeUri}`;
 
@@ -193,6 +201,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             `Unexpected response from K8s API: ${kubeUri}`,
           );
 
+          clearTimeout(connectionTimeout);
           close(1011, `unexpected response: ${statusCode} ${statusMessage}`);
         };
 
