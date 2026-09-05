@@ -1,0 +1,524 @@
+name: Model Registry Upstream Sync
+
+# Automates kubeflow/model-registry subtree sync into packages/model-registry.
+# Mon + Wed: opens a PR when upstream has new commits. Clean syncs run lint /
+# type-check / unit tests first; conflicts open a PR with markers for manual fix.
+#
+# Credential boundary: sync/validate runs without write credentials in .git.
+# A separate publish job applies patches and pushes with write permissions.
+
+on:
+  schedule:
+    # Monday and Wednesday 08:00 UTC
+    - cron: '0 8 * * 1,3'
+  workflow_dispatch:
+
+# Deny by default; each job declares least privilege.
+permissions: {}
+
+concurrency:
+  group: model-registry-upstream-sync
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 22
+  PACKAGE_NAME: '@odh-dashboard/model-registry'
+  PACKAGE_DIR: packages/model-registry
+  FRONTEND_DIR: packages/model-registry/upstream/frontend
+  SYNC_BRANCH: automated/model-registry-upstream-sync
+  UPSTREAM_OWNER: kubeflow
+  UPSTREAM_REPO: model-registry
+  # Assigned when an automated sync PR is created or updated.
+  SYNC_PR_ASSIGNEES: ppadti,manaswinidas,Philip-Carneiro
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Read-only: never persist GITHUB_TOKEN into .git while running upstream scripts.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      status: ${{ steps.final.outputs.status }}
+      new_commit: ${{ steps.outcome.outputs.new_commit }}
+      current_commit: ${{ steps.current.outputs.commit }}
+      upstream_tip: ${{ steps.upstream.outputs.tip }}
+      existing_pr: ${{ steps.existing_pr.outputs.url }}
+      short_sha: ${{ steps.prs.outputs.short_sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          # Do not write GITHUB_TOKEN into .git/config before npm/upstream scripts run.
+          persist-credentials: false
+
+      - name: Configure git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Module caches (root)
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Read current subtree commit
+        id: current
+        run: |
+          COMMIT=$(jq -r '.subtree.commit' "${{ env.PACKAGE_DIR }}/package.json")
+          REPO=$(jq -r '.subtree.repo' "${{ env.PACKAGE_DIR }}/package.json")
+          BRANCH=$(jq -r '.subtree.branch' "${{ env.PACKAGE_DIR }}/package.json")
+
+          if [[ "$COMMIT" == "null" || -z "$COMMIT" ]]; then
+            echo "::error::Missing subtree.commit in ${{ env.PACKAGE_DIR }}/package.json"
+            exit 1
+          fi
+          if [[ "$REPO" == "null" || -z "$REPO" ]]; then
+            echo "::error::Missing subtree.repo in ${{ env.PACKAGE_DIR }}/package.json"
+            exit 1
+          fi
+          if [[ "$BRANCH" == "null" || -z "$BRANCH" ]]; then
+            echo "::error::Missing subtree.branch in ${{ env.PACKAGE_DIR }}/package.json"
+            exit 1
+          fi
+
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Current subtree commit: $COMMIT ($REPO @$BRANCH)"
+
+      - name: Fetch upstream tip
+        id: upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TIP=$(gh api "repos/${{ env.UPSTREAM_OWNER }}/${{ env.UPSTREAM_REPO }}/commits/${{ steps.current.outputs.branch }}" --jq '.sha')
+          echo "tip=$TIP" >> "$GITHUB_OUTPUT"
+          echo "Upstream tip: $TIP"
+          if [[ "$TIP" == "${{ steps.current.outputs.commit }}" ]]; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            echo "Already up to date with upstream ${{ steps.current.outputs.branch }}."
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream has new commits since ${{ steps.current.outputs.commit }}."
+          fi
+
+      - name: Check for existing open sync PR
+        id: existing_pr
+        if: steps.upstream.outputs.up_to_date == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --head "${{ env.SYNC_BRANCH }}" --state open --json url --jq '.[0].url // empty')
+          echo "url=$PR_URL" >> "$GITHUB_OUTPUT"
+          if [[ -n "$PR_URL" ]]; then
+            echo "Open sync PR exists: $PR_URL (will update branch if sync succeeds)"
+          fi
+
+      - name: Skip when already up to date
+        if: steps.upstream.outputs.up_to_date == 'true'
+        run: |
+          echo "No merged upstream changes to sync. Exiting."
+          echo "## Model Registry upstream sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "Already up to date at \`${{ steps.current.outputs.commit }}\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create sync branch
+        if: steps.upstream.outputs.up_to_date == 'false'
+        run: |
+          git checkout -B "${{ env.SYNC_BRANCH }}" origin/main
+
+      - name: Run subtree sync
+        id: sync
+        if: steps.upstream.outputs.up_to_date == 'false'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run update-subtree -w "${{ env.PACKAGE_NAME }}" 2>&1 | tee sync-output.txt
+
+      - name: Detect sync outcome
+        id: outcome
+        if: steps.upstream.outputs.up_to_date == 'false'
+        run: |
+          NEW_COMMIT=$(jq -r '.subtree.commit' "${{ env.PACKAGE_DIR }}/package.json")
+          echo "new_commit=$NEW_COMMIT" >> "$GITHUB_OUTPUT"
+
+          if grep -q 'Conflict detected' sync-output.txt 2>/dev/null || \
+             [[ -n "$(git diff --name-only --diff-filter=U)" ]]; then
+            echo "status=conflict" >> "$GITHUB_OUTPUT"
+            echo "Sync hit conflicts."
+            exit 0
+          fi
+
+          if [[ "${{ steps.sync.outcome }}" != 'success' ]]; then
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "Sync command failed without a clean conflict marker."
+            exit 0
+          fi
+
+          if [[ "$NEW_COMMIT" == "${{ steps.current.outputs.commit }}" ]]; then
+            echo "status=noop" >> "$GITHUB_OUTPUT"
+            echo "Sync reported success but commit did not advance (tracking-only / no file changes)."
+            exit 0
+          fi
+
+          if git diff --quiet origin/main...HEAD && git diff --cached --quiet; then
+            if [[ "$(git rev-list --count origin/main..HEAD)" -eq 0 ]]; then
+              echo "status=noop" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "status=synced" >> "$GITHUB_OUTPUT"
+          echo "Synced to $NEW_COMMIT"
+
+      - name: Exit when nothing to PR
+        if: >
+          steps.upstream.outputs.up_to_date == 'true' ||
+          steps.outcome.outputs.status == 'noop'
+        run: |
+          echo "Nothing to open a PR for."
+          if [[ "${{ steps.outcome.outputs.status }}" == 'noop' ]]; then
+            echo "## Model Registry upstream sync" >> "$GITHUB_STEP_SUMMARY"
+            echo "Upstream tip advanced for non-subtree paths only, or no actionable commits." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Commit conflict state for PR
+        if: steps.outcome.outputs.status == 'conflict'
+        run: |
+          mkdir -p sync-artifacts
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "WIP: model-registry upstream sync conflict (resolve before merge)
+
+Automated sync stopped with conflicts. Resolve markers, then continue with:
+npm run update-subtree -w packages/model-registry -- --continue"
+          elif [[ "$(git rev-list --count origin/main..HEAD)" -eq 0 ]]; then
+            echo "::error::Conflict detected but nothing to commit for PR"
+            exit 1
+          fi
+          echo "${{ steps.upstream.outputs.tip }}" > sync-artifacts/new-commit.txt
+          echo "${{ steps.upstream.outputs.tip }}" | cut -c1-7 > sync-artifacts/short-sha.txt
+
+      - name: Record sync commit range
+        id: sync_range
+        if: steps.outcome.outputs.status == 'synced'
+        run: |
+          BASE_SHA=$(git rev-parse origin/main)
+          SYNC_SHA=$(git rev-parse HEAD)
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "sync_sha=$SYNC_SHA" >> "$GITHUB_OUTPUT"
+          echo "Sync range: $BASE_SHA..$SYNC_SHA"
+
+      - name: Record sync commit range (conflict)
+        id: sync_range_conflict
+        if: steps.outcome.outputs.status == 'conflict'
+        run: |
+          BASE_SHA=$(git rev-parse origin/main)
+          SYNC_SHA=$(git rev-parse HEAD)
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "sync_sha=$SYNC_SHA" >> "$GITHUB_OUTPUT"
+          echo "Sync range (conflict): $BASE_SHA..$SYNC_SHA"
+
+      - name: Install model-registry frontend dependencies
+        if: steps.outcome.outputs.status == 'synced'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm install
+
+      - name: Lint
+        if: steps.outcome.outputs.status == 'synced'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run test:lint
+
+      - name: Type check
+        if: steps.outcome.outputs.status == 'synced'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run test:type-check
+
+      - name: Unit tests
+        if: steps.outcome.outputs.status == 'synced'
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run test:unit
+
+      - name: Collect upstream PR links
+        id: prs
+        if: >
+          steps.outcome.outputs.status == 'synced' ||
+          steps.outcome.outputs.status == 'conflict'
+        run: |
+          # || true: empty grep must not fail the step under pipefail
+          LINKS=$(git log origin/main..HEAD --format='%s' | \
+            grep 'Update @odh-dashboard/model-registry:' | \
+            grep -oE '#[0-9]+' | sort -u | \
+            sed "s|#|https://github.com/${{ env.UPSTREAM_OWNER }}/${{ env.UPSTREAM_REPO }}/pull/|" || true)
+
+          mkdir -p sync-artifacts
+          {
+            if [[ -z "$LINKS" ]]; then
+              echo "* (no upstream PR numbers found in sync commit subjects)"
+            else
+              echo "$LINKS" | sed 's/^/* /'
+            fi
+          } > sync-artifacts/pr-links.md
+
+          if [[ "${{ steps.outcome.outputs.status }}" == 'synced' ]]; then
+            SHORT_SHA=$(echo "${{ steps.outcome.outputs.new_commit }}" | cut -c1-7)
+            echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+            echo "$SHORT_SHA" > sync-artifacts/short-sha.txt
+            echo "${{ steps.outcome.outputs.new_commit }}" > sync-artifacts/new-commit.txt
+          fi
+          echo "${{ steps.outcome.outputs.status }}" > sync-artifacts/sync-mode.txt
+
+      - name: Package sync patches for publish job
+        if: >
+          steps.outcome.outputs.status == 'synced' ||
+          steps.outcome.outputs.status == 'conflict'
+        run: |
+          BASE_SHA="${{ coalesce(steps.sync_range.outputs.base_sha, steps.sync_range_conflict.outputs.base_sha) }}"
+          SYNC_SHA="${{ coalesce(steps.sync_range.outputs.sync_sha, steps.sync_range_conflict.outputs.sync_sha) }}"
+          unexpected_paths=$(git diff --name-only "$BASE_SHA..$SYNC_SHA" |
+            grep -Ev '^packages/model-registry/(package\.json|upstream/)' || true)
+          if [[ -n "$unexpected_paths" ]]; then
+            echo "::error::Sync changed files outside the approved subtree:"
+            echo "$unexpected_paths"
+            exit 1
+          fi
+          rm -rf sync-artifacts/patches
+          mkdir -p sync-artifacts/patches
+          git format-patch -o sync-artifacts/patches "$BASE_SHA..$SYNC_SHA"
+          ls -la sync-artifacts/patches
+
+      - name: Upload sync artifacts
+        if: >
+          always() &&
+          steps.upstream.outputs.up_to_date == 'false' &&
+          (steps.outcome.outputs.status == 'synced' ||
+           steps.outcome.outputs.status == 'conflict' ||
+           steps.outcome.outputs.status == 'failed')
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: model-registry-sync-artifacts
+          path: |
+            sync-artifacts/
+            sync-output.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Set final status output
+        id: final
+        if: always()
+        run: |
+          if [[ "${{ steps.upstream.outputs.up_to_date }}" == 'true' ]]; then
+            echo "status=up_to_date" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ steps.outcome.outputs.status }}" ]]; then
+            echo "status=${{ steps.outcome.outputs.status }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail job on sync failure
+        if: steps.outcome.outputs.status == 'failed'
+        run: |
+          echo "::error::Sync finished with status ${{ steps.outcome.outputs.status }}"
+          exit 1
+
+  notify-failure:
+    needs: sync
+    if: always() && needs.sync.outputs.status == 'failed'
+    runs-on: ubuntu-latest
+    permissions:
+      # Open/update a tracking issue when sync cannot produce a PR.
+      issues: write
+      contents: read
+    steps:
+      - name: Download sync artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: model-registry-sync-artifacts
+        continue-on-error: true
+
+      - name: Open or update issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          STATUS="${{ needs.sync.outputs.status }}"
+          TITLE="Model registry upstream sync ${STATUS} ($(date -u +%Y-%m-%d))"
+          LOG_TAIL=""
+          if [[ -f sync-output.txt ]]; then
+            LOG_TAIL=$(tail -n 80 sync-output.txt)
+          fi
+          BODY=$(cat <<EOF
+          Automated model-registry upstream sync could not finish cleanly (\`${STATUS}\`).
+
+          - Current tracked commit: \`${{ needs.sync.outputs.current_commit }}\`
+          - Upstream tip: \`${{ needs.sync.outputs.upstream_tip }}\`
+          - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Resolve manually with \`/upstream-sync model-registry\` (or \`npm run update-subtree -w packages/model-registry\`), then open a PR.
+
+          <details><summary>Sync log (tail)</summary>
+
+          \`\`\`
+          ${LOG_TAIL}
+          \`\`\`
+
+          </details>
+          EOF
+          )
+          EXISTING=$(gh issue list --state open --search "Model registry upstream sync in:title" --json number,title --jq '.[0].number // empty')
+          if [[ -n "$EXISTING" ]]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            gh issue create --title "$TITLE" --body "$BODY" --label "dashboard-area-model-registry" || \
+              gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+  publish:
+    needs: sync
+    if: >
+      needs.sync.result == 'success' &&
+      (needs.sync.outputs.status == 'synced' || needs.sync.outputs.status == 'conflict')
+    runs-on: ubuntu-latest
+    permissions:
+      # Authenticated only in this job, after validation has already passed.
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Download sync artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: model-registry-sync-artifacts
+
+      - name: Apply validated sync patches
+        run: |
+          git checkout -B "${{ env.SYNC_BRANCH }}" origin/main
+          if [[ ! -d sync-artifacts/patches ]] || [[ -z "$(ls -A sync-artifacts/patches 2>/dev/null)" ]]; then
+            echo "::error::No sync patches found in artifact"
+            exit 1
+          fi
+          git am sync-artifacts/patches/*.patch
+
+      - name: Push branch and create or update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git ls-remote --exit-code --heads origin "${{ env.SYNC_BRANCH }}" >/dev/null 2>&1; then
+            git push -u origin "${{ env.SYNC_BRANCH }}" --force-with-lease
+          else
+            git push -u origin "${{ env.SYNC_BRANCH }}"
+          fi
+
+          SHORT_SHA="${{ needs.sync.outputs.short_sha }}"
+          NEW_COMMIT="${{ needs.sync.outputs.new_commit }}"
+          if [[ -f sync-artifacts/short-sha.txt ]]; then
+            SHORT_SHA=$(cat sync-artifacts/short-sha.txt)
+          fi
+          if [[ -f sync-artifacts/new-commit.txt ]]; then
+            NEW_COMMIT=$(cat sync-artifacts/new-commit.txt)
+          fi
+          PR_LINKS="* (no upstream PR numbers found in sync commit subjects)"
+          if [[ -f sync-artifacts/pr-links.md ]]; then
+            PR_LINKS=$(cat sync-artifacts/pr-links.md)
+          fi
+
+          SYNC_MODE="synced"
+          if [[ -f sync-artifacts/sync-mode.txt ]]; then
+            SYNC_MODE=$(cat sync-artifacts/sync-mode.txt)
+          fi
+
+          if [[ "$SYNC_MODE" == 'conflict' ]]; then
+            TITLE="Sync from ${{ env.UPSTREAM_OWNER }}/${{ env.UPSTREAM_REPO }} ${SHORT_SHA} (conflicts — resolve manually)"
+          else
+            TITLE="Sync from ${{ env.UPSTREAM_OWNER }}/${{ env.UPSTREAM_REPO }} ${SHORT_SHA}"
+          fi
+
+          if [[ "$SYNC_MODE" == 'conflict' ]]; then
+            TESTED_SECTION="## How Has This Been Tested?
+
+          **Not run automatically** — subtree sync stopped with conflicts. After resolving markers, run in \`packages/model-registry/upstream/frontend\`:
+          * \`npm run test:lint\`
+          * \`npm run test:type-check\`
+          * \`npm run test:unit\`
+
+          Continue the subtree sync with \`npm run update-subtree -w packages/model-registry -- --continue\` as needed."
+          else
+            TESTED_SECTION="## How Has This Been Tested?
+
+          CI ran the following in \`packages/model-registry/upstream/frontend\` before opening this PR:
+          * \`npm run test:lint\`
+          * \`npm run test:type-check\`
+          * \`npm run test:unit\`"
+          fi
+
+          BODY=$(cat <<EOF
+          ## Description
+
+          Automated sync to pull in changes from:
+          ${PR_LINKS}
+
+          Tracked upstream commit: \`${NEW_COMMIT}\`
+
+          ${TESTED_SECTION}
+
+          ## Test Impact
+
+          Upstream changes include their own tests.
+
+          ## Request review criteria:
+
+          Self checklist (all need to be checked):
+          - [ ] The developer has manually tested the changes and verified that the changes work
+          - [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
+          - [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
+          - [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
+
+          After the PR is posted & before it merges:
+          - [ ] The developer has tested their solution on a cluster by using the image produced by the PR to \`main\`
+
+          ---
+          *Opened by [\`model-registry-upstream-sync\`](${{ github.server_url }}/${{ github.repository }}/actions/workflows/model-registry-upstream-sync.yml) (run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})).*
+          EOF
+          )
+
+          IFS=',' read -ra ASSIGNEES <<< "${{ env.SYNC_PR_ASSIGNEES }}"
+          ASSIGNEE_ARGS=()
+          for user in "${ASSIGNEES[@]}"; do
+            ASSIGNEE_ARGS+=(--add-assignee "$user")
+          done
+
+          EXISTING="${{ needs.sync.outputs.existing_pr }}"
+          if [[ -n "$EXISTING" ]]; then
+            PR_NUMBER="${EXISTING##*/}"
+            gh pr edit "$PR_NUMBER" --title "$TITLE" --body "$BODY" "${ASSIGNEE_ARGS[@]}"
+            PR_URL="$EXISTING"
+            echo "Updated existing PR: $PR_URL"
+          else
+            PR_URL=$(gh pr create --base main --head "${{ env.SYNC_BRANCH }}" --title "$TITLE" --body "$BODY" "${ASSIGNEE_ARGS[@]}")
+            echo "Created PR: $PR_URL"
+          fi
+
+          echo "## Model Registry upstream sync" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$SYNC_MODE" == 'conflict' ]]; then
+            echo "Opened PR with conflicts at upstream \`${NEW_COMMIT}\` — resolve manually." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Synced to \`${NEW_COMMIT}\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "PR: ${PR_URL}" >> "$GITHUB_STEP_SUMMARY"

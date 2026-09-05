@@ -244,6 +244,38 @@ Both sync methods stop when a patch cannot be applied cleanly. The script report
 4. Run tests
 5. Open a PR
 
+## Automated sync (model-registry)
+
+GitHub Actions workflow [`.github/workflows/model-registry-upstream-sync.yml`](../.github/workflows/model-registry-upstream-sync.yml) runs on a schedule:
+
+| Trigger | When |
+|---------|------|
+| Cron | Monday and Wednesday at 08:00 UTC |
+| Manual | Actions → **Model Registry Upstream Sync** → Run workflow |
+
+Behavior:
+
+1. Compare `packages/model-registry/package.json` `subtree.commit` to `kubeflow/model-registry` `main` tip.
+2. If already up to date, exit without a PR.
+3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
+4. On conflict, commit the partial sync (including conflict markers) and open a PR for manual resolution — **no separate issue**.
+5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
+6. A **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, creates or updates a PR against `main`, and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
+
+### Failure and conflict handling
+
+| Outcome | What happens |
+|---------|----------------|
+| **Clean sync** | Frontend lint/type-check/unit run in CI; PR opened with test results in the body. |
+| **Conflict** | Partial sync is committed (markers included); PR opened with `(conflicts — resolve manually)` in the title. Assignees are notified; resolve in the PR, run `--continue` and tests, then merge. |
+| **Hard failure** (not a conflict) | No PR. A **notify-failure** job opens or comments on a single tracking GitHub issue. |
+
+Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
+
+**Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `npm run update-subtree -w packages/model-registry -- --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
+
+Manual sync with `/upstream-sync` remains available for ad-hoc syncs.
+
 ## Claude Code Skills
 
 Three Claude Code skills automate the sync workflows. All are available via slash commands.
