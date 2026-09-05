@@ -41,7 +41,12 @@ import { Collection } from '~/app/types';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCreateRoute,
+  evaluationStartRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
@@ -338,6 +343,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                             onClick={() => handleRunCollection(collection)}
                           >
                             Select benchmark suite
+                          </Button>{' '}
+                          <Button
+                            variant="link"
+                            isInline
+                            data-testid="customize-benchmark-suite-button"
+                            component={(props) => (
+                              <Link
+                                {...props}
+                                to={evaluationCopySuiteRoute(namespace, collection.resource.id)}
+                              />
+                            )}
+                          >
+                            Customize
                           </Button>
                         </CardFooter>
                       </Card>

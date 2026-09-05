@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -97,6 +98,66 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	envelope := CollectionsEnvelope{Data: result}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := ps.ByName("id")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	var input evalhub.CloneCollectionRequest
+	if r.Body != http.NoBody {
+		var request *evalhub.CloneCollectionRequest
+		if err := app.ReadJSON(w, r, &request); err != nil {
+			if !errors.Is(err, errEmptyBody) {
+				app.badRequestResponse(w, r, err)
+				return
+			}
+		} else if request == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("body must not be null"))
+			return
+		} else {
+			input = *request
+		}
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+	}
+
+	collection, err := client.CloneCollection(ctx, id, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to clone collection")
+		return
+	}
+	if collection == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned cloned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

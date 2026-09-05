@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-arch-core';
 import {
+  cloneCollection,
   getCollection,
   getCollections,
   getEvalHubCRStatus,
@@ -189,6 +190,7 @@ describe('getCollection', () => {
       resource: { id: 'col-1' },
       name: 'Open LLM Leaderboard v2',
       category: 'General',
+      benchmarks: [{ id: 'benchmark-1' }],
     };
     mockRestGET.mockResolvedValue({ data: collection });
     mockIsModArchResponse.mockReturnValue(true);
@@ -243,6 +245,50 @@ describe('getCollection', () => {
     await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
       'Invalid collection: benchmarks is not an array',
     );
+  });
+
+  it.each([
+    ['null', null],
+    ['missing id', {}],
+    ['non-string id', { id: 42 }],
+    ['empty id', { id: '' }],
+    ['whitespace-only id', { id: '   ' }],
+    ['non-numeric weight', { id: 'benchmark-invalid-weight', weight: '1' }],
+    ['negative weight', { id: 'benchmark-negative-weight', weight: -1 }],
+    ['NaN weight', { id: 'benchmark-nan-weight', weight: Number.NaN }],
+    ['infinite weight', { id: 'benchmark-infinite-weight', weight: Number.POSITIVE_INFINITY }],
+  ])('should throw when benchmarks contains a %s entry', async (_description, benchmark) => {
+    mockRestGET.mockResolvedValue({
+      data: {
+        name: 'Test',
+        resource: { id: 'col-1' },
+        benchmarks: [{ id: 'valid-benchmark' }, benchmark],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollection('', 'test-ns', 'col-1')({})).rejects.toThrow(
+      'Invalid collection: benchmarks contains an invalid entry',
+    );
+  });
+
+  it.each([
+    ['no weight', { id: 'benchmark-no-weight' }],
+    ['zero weight', { id: 'benchmark-zero-weight', weight: 0 }],
+    ['positive weight', { id: 'benchmark-positive-weight', weight: 0.5 }],
+  ])('should accept a collection benchmark with %s', async (_description, benchmark) => {
+    mockRestGET.mockResolvedValue({
+      data: {
+        name: 'Test',
+        resource: { id: 'col-1' },
+        benchmarks: [benchmark],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollection('', 'test-ns', 'col-1')({});
+
+    expect(result.benchmarks).toEqual([benchmark]);
   });
 
   it('should reject with an error when collectionId is empty', async () => {
@@ -303,6 +349,28 @@ describe('getCollection', () => {
       expect.any(Object),
       expect.any(Object),
     );
+  });
+});
+
+describe('cloneCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should reject cloned collections with invalid benchmark entries', async () => {
+    mockRestCREATE.mockResolvedValue({
+      data: {
+        name: 'Cloned suite',
+        resource: { id: 'cloned-col-1' },
+        benchmarks: [null],
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(
+      cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
+    ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
   });
 });
 

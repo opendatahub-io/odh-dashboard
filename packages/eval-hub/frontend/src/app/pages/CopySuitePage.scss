@@ -1,0 +1,17 @@
+.evalhub-copy-suite-page__benchmarks-card {
+  margin-block-start: var(--pf-t--global--spacer--lg);
+}
+
+.evalhub-copy-suite-page__benchmarks-description {
+  color: var(--pf-t--global--text--color--subtle);
+  margin-block-end: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-copy-suite-page__footer {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  padding-block: var(--pf-t--global--spacer--md);
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  z-index: var(--pf-t--global--z-index--sm);
+}

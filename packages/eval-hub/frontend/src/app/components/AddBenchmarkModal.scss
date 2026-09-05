@@ -1,0 +1,26 @@
+.evalhub-add-benchmark-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.evalhub-add-benchmark-modal__controls {
+  flex-shrink: 0;
+
+  .pf-v6-c-toolbar {
+    padding-inline: 0;
+  }
+}
+
+.evalhub-add-benchmark-modal__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.evalhub-add-benchmark-modal__benchmark-details {
+  display: block;
+  color: var(--pf-t--global--text--color--subtle);
+}

@@ -11,6 +11,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   CollectionBenchmark,
+  CloneCollectionRequest,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
@@ -30,6 +31,15 @@ import {
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
+const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
+  b != null &&
+  typeof b === 'object' &&
+  'id' in b &&
+  typeof b.id === 'string' &&
+  b.id.trim().length > 0 &&
+  (!('weight' in b) ||
+    (typeof b.weight === 'number' && Number.isFinite(b.weight) && b.weight >= 0));
+
 const validateCollection = (data: unknown): void => {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid collection: expected an object');
@@ -43,8 +53,13 @@ const validateCollection = (data: unknown): void => {
   if (!('id' in data.resource) || typeof data.resource.id !== 'string') {
     throw new Error('Invalid collection: missing resource.id');
   }
-  if ('benchmarks' in data && data.benchmarks != null && !Array.isArray(data.benchmarks)) {
-    throw new Error('Invalid collection: benchmarks is not an array');
+  if ('benchmarks' in data && data.benchmarks != null) {
+    if (!Array.isArray(data.benchmarks)) {
+      throw new Error('Invalid collection: benchmarks is not an array');
+    }
+    if (data.benchmarks.some((benchmark) => !isValidCollectionBenchmark(benchmark))) {
+      throw new Error('Invalid collection: benchmarks contains an invalid entry');
+    }
   }
 };
 
@@ -95,9 +110,6 @@ const isValidCollectionItem = (c: unknown): c is Collection =>
   typeof c.resource.id === 'string' &&
   'name' in c &&
   typeof c.name === 'string';
-
-const isValidCollectionBenchmark = (b: unknown): b is CollectionBenchmark =>
-  b != null && typeof b === 'object' && 'id' in b && typeof b.id === 'string';
 
 const sanitizeProviders = (items: unknown[]): Provider[] =>
   items.filter(isValidProviderItem).map((p) => ({
@@ -326,6 +338,29 @@ export const getCollections =
           total_count: data.total_count,
           limit: data.limit,
         };
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const cloneCollection =
+  (hostPath: string, namespace: string, collectionId: string, request: CloneCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}/clones`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

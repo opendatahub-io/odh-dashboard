@@ -418,3 +418,20 @@ func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
 }
+
+func TestEvalHubClient_CloneCollection_RejectsOversizedResponse(t *testing.T) {
+	oversizedBody := strings.Repeat("x", maxGetResponseSize+1)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(oversizedBody))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.CloneCollection(context.Background(), "collection-1", "my-ns", CloneCollectionRequest{})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}

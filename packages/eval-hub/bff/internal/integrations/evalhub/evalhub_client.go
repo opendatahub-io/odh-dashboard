@@ -50,6 +50,7 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
@@ -355,6 +356,16 @@ type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
 }
 
+// CloneCollectionRequest is the optional payload for cloning a collection.
+type CloneCollectionRequest struct {
+	Name         string                  `json:"name,omitempty"`
+	Description  string                  `json:"description,omitempty"`
+	Category     string                  `json:"category,omitempty"`
+	Tags         []string                `json:"tags,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
 type CreateEvaluationJobRequest struct {
 	Name         string           `json:"name"`
@@ -600,6 +611,24 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 	return resp, nil
 }
 
+// CloneCollection creates a tenant-scoped copy of an existing collection.
+// The namespace is sent as the X-Tenant header. The request body optionally overrides
+// name, description, category, benchmarks, and pass criteria.
+func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CloneCollection")
+	}
+	return resp, nil
+}
+
 // ListProviders retrieves all evaluation providers with their benchmark catalogues from EvalHub.
 // limit controls page size (1-100); offset controls pagination start index.
 // Passing 0 for both uses the upstream defaults (limit=50, offset=0).
@@ -757,9 +786,12 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(respBody) > maxGetResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

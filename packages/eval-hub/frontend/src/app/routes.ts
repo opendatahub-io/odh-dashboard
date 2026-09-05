@@ -20,6 +20,9 @@ export const evaluationBenchmarksRoute = (namespace?: string): string =>
 export const evaluationStartRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/start`;
 
+export const evaluationCopySuiteRoute = (namespace?: string, collectionId?: string): string =>
+  `${evaluationCollectionsRoute(namespace)}/${collectionId ?? ':collectionId'}/copy`;
+
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;
 
