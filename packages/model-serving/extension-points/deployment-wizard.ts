@@ -319,6 +319,7 @@ export type WizardTrackingPropertiesExtension<D extends Deployment = Deployment>
     getProperties: CodeRef<
       (
         wizardState: WizardFormData['state'],
+        externalData?: ExternalDataMap,
       ) => Record<string, string | number | boolean | undefined>
     >;
   }
