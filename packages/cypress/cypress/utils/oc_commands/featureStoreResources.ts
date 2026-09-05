@@ -396,6 +396,38 @@ export const createFeatureStoreCR = (namespace: string, feastInstanceName: strin
 };
 
 /**
+ * Polls until a FeatureStore CR reaches the Ready phase.
+ */
+export const waitForFeatureStoreReady = (
+  namespace: string,
+  storeName: string,
+  options?: { maxAttempts?: number; pollIntervalMs?: number },
+): Cypress.Chainable => {
+  const { maxAttempts = 60, pollIntervalMs = 5000 } = options ?? {};
+  return pollUntilSuccess(
+    `oc get featurestores.feast.dev ${storeName} -n ${namespace} -o jsonpath='{.status.phase}' | grep -q '^Ready$'`,
+    `FeatureStore/${storeName} to be Ready`,
+    { maxAttempts, pollIntervalMs },
+  );
+};
+
+/**
+ * Polls until a FeatureStore CR is deleted from the cluster.
+ */
+export const waitForFeatureStoreDeleted = (
+  namespace: string,
+  storeName: string,
+  options?: { maxAttempts?: number; pollIntervalMs?: number },
+): Cypress.Chainable => {
+  const { maxAttempts = 30, pollIntervalMs = 3000 } = options ?? {};
+  return pollUntilSuccess(
+    `oc get featurestores.feast.dev ${storeName} -n ${namespace} 2>&1 | grep -q 'NotFound'`,
+    `FeatureStore/${storeName} to be deleted`,
+    { maxAttempts, pollIntervalMs },
+  );
+};
+
+/**
  * Creates a route for the Feature Store service and returns the URL.
  * This function finds a service containing 'registry-rest' and creates a passthrough route.
  *
