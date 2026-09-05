@@ -180,6 +180,11 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 });
 
 jest.mock('~/app/hooks/queries', () => ({
+  useMaaSModelsQuery: jest.fn(() => ({
+    data: { models: [] },
+    isLoading: false,
+    error: null,
+  })),
   useOgxModelsQuery: jest.fn(() => ({
     data: {
       models: [

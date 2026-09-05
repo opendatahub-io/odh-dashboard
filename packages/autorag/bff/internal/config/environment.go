@@ -103,6 +103,7 @@ type EnvConfig struct {
 	Port                     int
 	MockK8sClient            bool
 	MockOGXClient            bool
+	MockMaaSClient           bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
 	DevMode                  bool
@@ -152,6 +153,14 @@ type EnvConfig struct {
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
+	// MaaS BFF inter-communication configuration. Defaults match the shared dashboard service.
+	MaaSServiceName     string
+	MaaSServicePort     int
+	MaaSTLSEnabled      bool
+	MaaSDevURL          string
+	MaaSAuthMethod      string
+	MaaSAuthTokenHeader string
+	MaaSAuthTokenPrefix string
 
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility

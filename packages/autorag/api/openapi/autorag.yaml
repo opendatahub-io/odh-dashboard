@@ -10,6 +10,48 @@ servers:
   - url: "https://localhost:8080"
   - url: "http://localhost:8080"
 paths:
+  /api/v1/maas/models:
+    get:
+      summary: List accessible MaaS models
+      description: Returns all MaaS models accessible to the authenticated user. Models are not filtered by capability because MaaS does not yet expose a reliable capability property.
+      operationId: listAutoRAGMaaSModels
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Kubernetes namespace used for authorization
+        - name: secretName
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          description: Optional Kubernetes Secret containing MAAS_BASE_URL and MAAS_API_KEY
+      responses:
+        '200':
+          description: Accessible MaaS models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /healthcheck:
     summary: Path targeted for healthcheck purposes.
     description: >-
@@ -994,6 +1036,39 @@ components:
           type: boolean
           example: true
 
+    MaaSModel:
+      type: object
+      description: Stable AutoRAG representation of a MaaS model.
+      required:
+        - id
+        - display_name
+        - description
+      properties:
+        id:
+          type: string
+          description: Model identifier used when submitting a run
+        display_name:
+          type: string
+          description: Human-readable model name, when provided by MaaS
+        description:
+          type: string
+          description: Model description, when provided by MaaS
+
+    MaaSModelsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - models
+          properties:
+            models:
+              type: array
+              items:
+                $ref: '#/components/schemas/MaaSModel'
+
     # OGX Model Schemas
     OGXModel:
       type: object
@@ -1364,7 +1439,6 @@ components:
         - input_data_secret_name
         - input_data_bucket_name
         - input_data_key
-        - ogx_secret_name
       properties:
         display_name:
           type: string
@@ -1395,7 +1469,7 @@ components:
           description: Object key within the input data bucket
         ogx_secret_name:
           type: string
-          description: Name of the K8s secret for Open GenAI Stack access
+          description: Legacy name of the K8s secret for Open GenAI Stack access
         preset:
           type: string
           enum:

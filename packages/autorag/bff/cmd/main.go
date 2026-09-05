@@ -26,6 +26,7 @@ func main() {
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockOGXClient, "mock-ogx-client", getEnvAsBool("MOCK_OGX_CLIENT", false), "Use mock Open GenAI Stack client")
+	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
 
@@ -55,6 +56,13 @@ func main() {
 
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
+	flag.StringVar(&cfg.MaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
+	flag.IntVar(&cfg.MaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "Port for MaaS BFF service")
+	flag.BoolVar(&cfg.MaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", false), "Enable TLS for MaaS BFF communication")
+	flag.StringVar(&cfg.MaaSDevURL, "bff-maas-dev-url", getEnvAsString("BFF_MAAS_DEV_URL", ""), "Developer override URL for MaaS BFF")
+	flag.StringVar(&cfg.MaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: user_token or internal")
+	flag.StringVar(&cfg.MaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
+	flag.StringVar(&cfg.MaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for MaaS auth token header")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -86,7 +94,7 @@ func main() {
 
 	// Prevent mock clients from being enabled in production — MockS3Client in particular
 	// bypasses SSRF protections (the mock skips endpoint validation entirely).
-	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) {
+	if !cfg.DevMode && (cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient || cfg.MockMaaSClient) {
 		logger.Error("mock clients can only be enabled in development mode (set -dev-mode flag)")
 		os.Exit(1)
 	}
@@ -100,7 +108,7 @@ func main() {
 
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
-		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient) &&
+		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockOGXClient || cfg.MockMaaSClient) &&
 		cfg.AuthMethod == config.AuthMethodUser {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}

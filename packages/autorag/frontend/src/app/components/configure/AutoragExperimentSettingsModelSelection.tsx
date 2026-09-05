@@ -19,15 +19,14 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, ThProps, Thead, Tr } from '@patternfly/react-table';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
-import { useController, useFormContext, useWatch } from 'react-hook-form';
+import { useController, useFormContext } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { OgxModelType } from '~/app/types';
 
 type ModelTab = {
-  modelType: OgxModelType;
+  modelType: 'llm' | 'embedding';
   label: string;
   popoverHeader: string;
   description: string;
@@ -37,8 +36,8 @@ type ModelTab = {
 const MODEL_TABS: ModelTab[] = [
   {
     modelType: 'llm',
-    label: 'Foundation models',
-    popoverHeader: 'Foundation models',
+    label: 'Generation/chat models',
+    popoverHeader: 'Generation/chat models',
     description: 'Generates responses using retrieved context.',
     testId: 'foundation-models-tab',
   },
@@ -81,7 +80,7 @@ const ModelsToTestHelpContent: React.FC = () => (
 const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
+  const [activeModelType, setActiveModelType] = React.useState<ModelTab['modelType']>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
@@ -89,23 +88,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const form = useFormContext<ConfigureSchema>();
 
-  const ogxSecretName = useWatch({
-    control: form.control,
-    name: 'ogx_secret_name',
-  });
-
-  const { data: llmModelsData, isLoading: isLlmLoading } = useOgxModelsQuery(
-    namespace,
-    ogxSecretName,
-    'llm',
-  );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useOgxModelsQuery(
-    namespace,
-    ogxSecretName,
-    'embedding',
-  );
-
-  const isLoading = isLlmLoading || isEmbeddingLoading;
+  const { data: modelsData, isLoading, isError } = useMaaSModelsQuery(namespace);
 
   const { field: generationModelField } = useController({
     control: form.control,
@@ -117,9 +100,10 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     name: 'embedding_models',
   });
 
+  const availableModels = modelsData?.models ?? [];
   const tabData = {
-    llm: { field: generationModelField, models: llmModelsData?.models ?? [] },
-    embedding: { field: embeddingModelField, models: embeddingModelsData?.models ?? [] },
+    llm: { field: generationModelField, models: availableModels },
+    embedding: { field: embeddingModelField, models: availableModels },
   };
 
   const activeModels = tabData[activeModelType].models;
@@ -185,6 +169,8 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
       <div data-testid="model-selection-section">
         {isLoading ? (
           <Spinner size="md" aria-label="Loading models" />
+        ) : isError ? (
+          <p>Unable to load models.</p>
         ) : (
           <Tabs
             activeKey={activeModelType}
@@ -198,21 +184,21 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
             aria-label="Model selection tabs"
           >
             {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
-              const { field, models } = tabData[modelType];
+              const { field, models: tabModels } = tabData[modelType];
               const selectedModels = field.value;
               const selectedCount = selectedModels.filter((id) =>
-                models.some((model) => model.id === id),
+                tabModels.some((model) => model.id === id),
               ).length;
               const allSelected =
-                models.length > 0 &&
-                models.every((model) =>
+                tabModels.length > 0 &&
+                tabModels.every((model) =>
                   selectedModels.some((selectedModel) => selectedModel === model.id),
                 );
 
               const handleSelectAll = (isSelecting: boolean) => {
                 field.onChange(
                   isSelecting
-                    ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
+                    ? tabModels.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
                     : [],
                 );
               };
@@ -256,12 +242,12 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
                   data-testid={testId}
                 >
                   <TabContentBody className="pf-v6-u-pt-md">
-                    {models.length === 0 ? (
+                    {tabModels.length === 0 ? (
                       <p>No models available.</p>
                     ) : (
                       <>
                         <Pagination
-                          itemCount={models.length}
+                          itemCount={tabModels.length}
                           perPage={perPage}
                           page={page}
                           onSetPage={(_e, newPage) => setPage(newPage)}

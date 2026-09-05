@@ -27,6 +27,13 @@ var fakeNamespaces = []v1.Namespace{
 var fakeSecrets = map[string][]v1.Secret{
 	"my-project": {
 		{
+			ObjectMeta: metav1.ObjectMeta{Name: "maas-credentials", Namespace: "my-project"},
+			Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.example.com/api/v1"),
+				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
+			},
+		},
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "data-connection",
 				Namespace: "my-project",

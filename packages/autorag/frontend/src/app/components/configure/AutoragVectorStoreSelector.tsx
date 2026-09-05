@@ -64,7 +64,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
     isError,
   } = useOgxVectorStoreProvidersQuery(
     namespace,
-    ogxSecretName,
+    ogxSecretName ?? '',
     SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
