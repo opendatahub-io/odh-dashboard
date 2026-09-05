@@ -10,18 +10,26 @@ import {
   ScaleDetailsLevel,
   useAnchor,
   AnchorEnd,
+  SELECTION_EVENT,
 } from '@patternfly/react-topology';
 import { CubeIcon } from '@patternfly/react-icons';
 import { chart_color_black_500 as chartColorBlack } from '@patternfly/react-tokens';
 import { useEdgeHighlighting } from '@odh-dashboard/internal/components/lineage/edge/edgeStateUtils';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import LineageTaskPill from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
+import LineageTaskPill, {
+  TaskPillDimensions,
+} from '@odh-dashboard/internal/components/lineage/node/LineageTaskPill';
 import {
   LineageSourceAnchor,
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
+import {
+  getEntityTypeIcon,
+  getEntityTypeBackgroundColor,
+  getEntityTypeAccentColor,
+  LineageEntityType,
+} from '../../../utils/featureStoreObjects.tsx';
 import {
   FEATURE_STORE_EVENTS,
   LineageNodeSelectedProperties,
@@ -32,9 +40,21 @@ type LineageNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
+type LineageNodeData = {
+  entityType?: LineageEntityType;
+  features?: { name: string }[];
+  truncateLength?: number;
+  keyboardTabOrder?: number;
+  pillDimensions?: TaskPillDimensions;
+};
+
+const isLineageNodeData = (value: unknown): value is LineageNodeData =>
+  typeof value === 'object' && value !== null;
+
 const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = observer(
   ({ element, onSelect, selected }) => {
-    const data = element.getData();
+    const nodeData = element.getData();
+    const data = isLineageNodeData(nodeData) ? nodeData : undefined;
     const [hover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
     const { setClickPosition } = useLineageClick();
@@ -55,21 +75,29 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       AnchorEnd.target,
     );
 
-    const entityIcon = data?.entityType ? (
-      getEntityTypeIcon(data.entityType, selected)
+    const entityType = data?.entityType;
+    const hasTypeColors = !selected && !!entityType;
+    const entityIcon = entityType ? (
+      <g aria-hidden="true">{getEntityTypeIcon(entityType, selected, hasTypeColors)}</g>
     ) : (
-      <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.value }} />
+      <g aria-hidden="true">
+        <CubeIcon style={{ color: selected ? '#ffffff' : chartColorBlack.var }} />
+      </g>
     );
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
+    const pillBackgroundColor = hasTypeColors
+      ? getEntityTypeBackgroundColor(entityType)
+      : undefined;
+    const pillAccentColor = hasTypeColors ? getEntityTypeAccentColor(entityType) : undefined;
 
     // Create badge for feature views showing feature count
     const badge = (() => {
       const featureCount = data?.features?.length ?? 0;
       if (
-        data?.entityType &&
+        entityType &&
         ['batch_feature_view', 'on_demand_feature_view', 'stream_feature_view'].includes(
-          data.entityType,
+          entityType,
         ) &&
         featureCount > 0
       ) {
@@ -78,36 +106,79 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       return undefined;
     })();
 
-    const handleNodeClick = React.useCallback(
-      (e: React.MouseEvent) => {
-        let pillElement: Element | null = e.target instanceof Element ? e.target : null;
+    const [isFocused, setIsFocused] = React.useState(false);
 
-        while (pillElement && pillElement !== e.currentTarget) {
-          if (pillElement.tagName === 'rect') {
-            const className = pillElement.getAttribute('class') || '';
-            if (
-              className.includes('pill') ||
-              className.includes('background') ||
-              className.includes('Background')
-            ) {
-              break;
-            }
-          }
-          pillElement = pillElement.parentElement;
+    const resolvePillElement = React.useCallback((container: Element): Element | null => {
+      const pillRect = container.querySelector('[data-testid="lineage-pill-background"]');
+      if (pillRect?.tagName === 'rect') {
+        return pillRect;
+      }
+
+      const rects = Array.from(container.querySelectorAll('rect'));
+      for (const rect of rects) {
+        if (rect.getAttribute('data-focus-ring') === 'true') {
+          continue;
         }
-        if (!pillElement || pillElement.tagName !== 'rect') {
-          const { currentTarget } = e;
-          if (currentTarget instanceof Element) {
-            const anyRect = currentTarget.querySelector('rect');
-            if (anyRect) {
-              pillElement = anyRect;
+        const className = rect.getAttribute('class') || '';
+        if (
+          className.includes('pill') ||
+          className.includes('background') ||
+          className.includes('Background')
+        ) {
+          return rect;
+        }
+      }
+      return null;
+    }, []);
+
+    const selectNode = React.useCallback(() => {
+      const id = element.getId();
+      const controller = element.getController();
+      controller.setState({ selectedIds: [id] });
+      controller.fireEvent(SELECTION_EVENT, [id]);
+      element.raise();
+    }, [element]);
+
+    const activateNode = React.useCallback(
+      (e: React.MouseEvent | React.KeyboardEvent, clientPosition?: { x: number; y: number }) => {
+        const container = e.currentTarget;
+        let pillElement: Element | null = null;
+
+        if (e.target instanceof Element && e.target !== container) {
+          pillElement = e.target;
+          while (pillElement && pillElement !== container) {
+            if (pillElement.tagName === 'rect') {
+              if (pillElement.getAttribute('data-focus-ring') === 'true') {
+                pillElement = pillElement.parentElement;
+                continue;
+              }
+              const className = pillElement.getAttribute('class') || '';
+              if (
+                className.includes('pill') ||
+                className.includes('background') ||
+                className.includes('Background')
+              ) {
+                break;
+              }
             }
+            pillElement = pillElement.parentElement;
           }
+        }
+
+        if (!pillElement || pillElement.tagName !== 'rect') {
+          pillElement = resolvePillElement(container);
+        }
+
+        let { x, y } = clientPosition ?? {};
+        if (x === undefined || y === undefined) {
+          const rect = container.getBoundingClientRect();
+          x = rect.left + rect.width / 2;
+          y = rect.top + rect.height / 2;
         }
 
         setClickPosition({
-          x: e.clientX,
-          y: e.clientY,
+          x,
+          y,
           pillElement: pillElement?.tagName === 'rect' ? pillElement : null,
         });
 
@@ -115,12 +186,27 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           nodeType: data?.entityType || 'unknown',
           pageType: lineagePageType,
         } satisfies LineageNodeSelectedProperties);
+      },
+      [setClickPosition, data?.entityType, lineagePageType, resolvePillElement],
+    );
 
-        if (onSelect) {
-          onSelect(e);
+    const handleNodeClick = React.useCallback(
+      (e: React.MouseEvent) => {
+        activateNode(e, { x: e.clientX, y: e.clientY });
+        onSelect?.(e);
+      },
+      [activateNode, onSelect],
+    );
+
+    const handleNodeKeyDown = React.useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateNode(e);
+          selectNode();
         }
       },
-      [setClickPosition, onSelect, data?.entityType, lineagePageType],
+      [activateNode, selectNode],
     );
 
     // Get node bounds for positioning
@@ -140,17 +226,46 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
             return 60;
           })();
 
+    const accessibleName = badge ? `${element.getLabel()}, ${badge}` : element.getLabel();
+    const nodeHeight = bounds.height > 0 ? bounds.height : 32;
+    const pillDimensions = data?.pillDimensions;
+    const focusPadding = 4;
+    const focusRing =
+      pillDimensions && pillDimensions.pillWidth > 0
+        ? {
+            x: pillDimensions.offsetX - focusPadding,
+            y: -focusPadding,
+            width: pillDimensions.pillWidth + focusPadding * 2,
+            height: pillDimensions.height + focusPadding * 2,
+            rx: (pillDimensions.height + focusPadding * 2) / 2,
+          }
+        : {
+            x: -focusPadding,
+            y: -focusPadding,
+            width: nodeWidth + focusPadding * 2,
+            height: nodeHeight + focusPadding * 2,
+            rx: (nodeHeight + focusPadding * 2) / 2,
+          };
+
     return (
       <g
         ref={hoverRef}
         className={nodeClassName}
+        role="button"
+        tabIndex={data?.keyboardTabOrder ?? 0}
+        aria-label={accessibleName}
+        aria-pressed={selected}
+        data-testid={`feature-store-lineage-node-${element.getId()}`}
         style={{
           filter: isConnectedToSelection
             ? 'drop-shadow(0 0 6px rgba(0, 123, 255, 0.6))'
             : undefined,
           cursor: 'pointer',
         }}
-        onClick={handleNodeClick} // Use our custom click handler
+        onClick={handleNodeClick}
+        onKeyDown={handleNodeKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       >
         <LineageTaskPill
           element={element}
@@ -165,10 +280,27 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           badge={badge}
           hover={hover}
           width={nodeWidth}
+          pillBackgroundColor={pillBackgroundColor}
+          pillAccentColor={pillAccentColor}
           x={0} // Position relative to the group
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover
         />
+        {isFocused && (
+          <rect
+            data-focus-ring="true"
+            x={focusRing.x}
+            y={focusRing.y}
+            width={focusRing.width}
+            height={focusRing.height}
+            fill="none"
+            stroke="var(--pf-t--global--color--brand--default)"
+            strokeWidth={2}
+            rx={focusRing.rx}
+            pointerEvents="none"
+            aria-hidden="true"
+          />
+        )}
       </g>
     );
   },

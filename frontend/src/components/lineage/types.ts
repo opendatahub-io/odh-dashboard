@@ -36,6 +36,7 @@ export interface LineageNode {
   truncateLength?: number;
   layer?: number; // Optional layer for positioning (0=leftmost, higher=rightward)
   highlighted?: boolean;
+  keyboardTabOrder?: number;
 }
 
 export interface LineageData {
@@ -70,11 +71,22 @@ export interface LineageProps {
   componentFactory: ComponentFactory;
   popoverComponent?: PopoverComponent;
   toolbarComponent?: React.ComponentType;
+  legendComponent?: React.ComponentType;
   autoResetOnDataChange?: boolean;
 }
 
 export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {
-  const { id, label, entityType, features, description, truncateLength, layer, highlighted } = node;
+  const {
+    id,
+    label,
+    entityType,
+    features,
+    description,
+    truncateLength,
+    layer,
+    highlighted,
+    keyboardTabOrder,
+  } = node;
 
   return {
     id,
@@ -88,6 +100,7 @@ export const convertToLineageNodeModel = (node: LineageNode): NodeModel => {
       truncateLength,
       layer,
       highlighted,
+      keyboardTabOrder,
     },
   };
 };

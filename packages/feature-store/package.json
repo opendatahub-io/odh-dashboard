@@ -51,6 +51,9 @@
     ],
     "./k8sTypes": [
       "./src/k8sTypes.ts"
+    ],
+    "./utils/featureStoreObjects": [
+      "./src/utils/featureStoreObjects.tsx"
     ]
   },
   "dependencies": {

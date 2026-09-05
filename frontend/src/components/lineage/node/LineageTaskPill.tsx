@@ -29,6 +29,14 @@ import { DagreLayoutOptions, TOP_TO_BOTTOM } from '@patternfly/react-topology/di
 
 const STATUS_ICON_SIZE = 16;
 
+const getPillAccentPath = (offsetX: number, height: number, accentWidth: number): string => {
+  const radius = height / 2;
+  const rightX = offsetX + accentWidth;
+  return `M ${offsetX + radius} 0 H ${rightX} V ${height} H ${
+    offsetX + radius
+  } A ${radius} ${radius} 0 0 1 ${offsetX + radius} 0 Z`;
+};
+
 /**
  * Calculates pill dimensions based on text size and other parameters
  */
@@ -110,6 +118,31 @@ const calculatePillDimensions = (
   };
 };
 
+const adjustDimensionsForAccentStrip = (
+  dimensions: TaskPillDimensions,
+  accentStripWidth: number,
+  paddingX: number,
+  verticalLayout: boolean,
+  width: number,
+): TaskPillDimensions => {
+  const minTextStartX = accentStripWidth + paddingX;
+  if (dimensions.textStartX >= minTextStartX) {
+    return dimensions;
+  }
+
+  const textOffsetDelta = minTextStartX - dimensions.textStartX;
+  const pillWidth = dimensions.pillWidth + textOffsetDelta;
+  return {
+    ...dimensions,
+    textStartX: minTextStartX,
+    badgeStartX: dimensions.badgeStartX + textOffsetDelta,
+    actionStartX: dimensions.actionStartX + textOffsetDelta,
+    contextStartX: dimensions.contextStartX + textOffsetDelta,
+    pillWidth,
+    offsetX: verticalLayout ? (width - pillWidth) / 2 : dimensions.offsetX,
+  };
+};
+
 /**
  * Stores pill dimensions in element data for anchor positioning
  * Optimized to avoid unnecessary object creation and updates
@@ -169,6 +202,8 @@ export interface LineageTaskPillProps {
   hideContextMenuKebab?: boolean;
   shadowCount?: number;
   shadowOffset?: number;
+  pillBackgroundColor?: string;
+  pillAccentColor?: string;
   x?: number;
   y?: number;
 }
@@ -221,6 +256,8 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
     hideContextMenuKebab,
     shadowCount = 0,
     shadowOffset = 8,
+    pillBackgroundColor,
+    pillAccentColor,
     x = 0,
     y = 0,
   }) => {
@@ -246,7 +283,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
 
     // Memoize dimension calculation to avoid recalculation when inputs haven't changed
     const dimensions = useMemo(() => {
-      return calculatePillDimensions(
+      const baseDimensions = calculatePillDimensions(
         textSize,
         textHeight,
         textWidth,
@@ -267,6 +304,19 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         taskIcon,
         taskIconPadding,
         statusIconSize,
+      );
+
+      if (!pillAccentColor) {
+        return baseDimensions;
+      }
+
+      const accentStripWidth = baseDimensions.statusStartX + statusIconSize + paddingX;
+      return adjustDimensionsForAccentStrip(
+        baseDimensions,
+        accentStripWidth,
+        paddingX,
+        verticalLayout,
+        width,
       );
     }, [
       textSize,
@@ -289,6 +339,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       taskIcon,
       taskIconPadding,
       statusIconSize,
+      pillAccentColor,
     ]);
 
     // Store dimensions immediately after calculation (synchronous)
@@ -363,6 +414,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             cx={statusBackgroundRadius}
             cy={statusBackgroundRadius}
             r={statusBackgroundRadius}
+            fill={pillAccentColor}
           />
           {hiddenDetailsShownStatuses.includes(status) ? (
             <g transform="translate(4, 4)">
@@ -439,8 +491,22 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
           height={dimensions.height}
           rx={dimensions.height / 2}
           className={css(styles.topologyPipelinesPillBackground)}
+          fill={pillBackgroundColor}
           filter={filter}
+          {...(pillBackgroundColor ? { 'data-testid': 'lineage-pill-background' } : {})}
         />
+        {pillAccentColor && (
+          <path
+            d={getPillAccentPath(
+              dimensions.offsetX,
+              dimensions.height,
+              dimensions.statusStartX + statusIconSize + paddingX,
+            )}
+            fill={pillAccentColor}
+            filter={filter}
+            data-testid="lineage-pill-accent"
+          />
+        )}
         <g transform={`translate(${dimensions.textStartX}, ${paddingY + textHeight / 2 + 1})`}>
           {element.getLabel() !== label && !disableTooltip ? (
             <Tooltip triggerRef={nameLabelTriggerRef} content={element.getLabel()}>
