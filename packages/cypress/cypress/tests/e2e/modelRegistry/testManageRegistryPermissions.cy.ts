@@ -8,10 +8,10 @@ import { isBYOIDCCluster, skipSuiteIfBYOIDC } from '../../../utils/skipUtils';
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
-  createAndVerifyDatabase,
-  createModelRegistryViaYAML,
+  createAndVerifyPostgresDatabase,
+  createPostgresModelRegistryViaYAML,
   deleteModelRegistry,
-  deleteModelRegistryDatabase,
+  deletePostgresDatabase,
   ensureOperatorMemoryLimit,
   getModelRegistryNamespace,
 } from '../../../utils/oc_commands/modelRegistry';
@@ -48,13 +48,13 @@ describe('Verify model registry permissions can be managed', () => {
         cy.step('Ensure operator has optimal memory for testing');
         ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
-        // Create and verify SQL database
-        cy.step('Create and verify SQL database for model registry');
-        createAndVerifyDatabase(databaseName).should('be.true');
+        // Create and verify PostgreSQL database
+        cy.step('Create and verify PostgreSQL database for model registry');
+        createAndVerifyPostgresDatabase(databaseName).should('be.true');
 
         // creates a model registry
-        cy.step('Create a model registry using YAML');
-        createModelRegistryViaYAML(registryName, databaseName);
+        cy.step('Create a PostgreSQL-backed model registry using YAML');
+        createPostgresModelRegistryViaYAML(registryName, databaseName);
 
         cy.step('Verify model registry is created');
         checkModelRegistry(registryName).should('be.true');
@@ -340,7 +340,7 @@ describe('Verify model registry permissions can be managed', () => {
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
 
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
+    cy.step('Delete the PostgreSQL database');
+    deletePostgresDatabase(databaseName).should('be.true');
   });
 });

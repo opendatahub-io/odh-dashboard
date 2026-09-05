@@ -15,11 +15,11 @@ import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   checkModelTransferJobPodStarted,
-  cleanupRegisteredModelsFromDatabase,
-  createAndVerifyDatabase,
-  createModelRegistryViaYAML,
+  cleanupRegisteredModelsFromPostgresDatabase,
+  createAndVerifyPostgresDatabase,
+  createPostgresModelRegistryViaYAML,
   deleteModelRegistry,
-  deleteModelRegistryDatabase,
+  deletePostgresDatabase,
   ensureOperatorMemoryLimit,
   grantProjectAccessToModelRegistry,
 } from '../../../utils/oc_commands/modelRegistry';
@@ -60,13 +60,13 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Ensure operator has optimal memory for testing');
       ensureOperatorMemoryLimit(deploymentName).should('be.true');
 
-      // create and verify SQL database for the model registry
-      cy.step('Create and verify SQL database for model registry');
-      createAndVerifyDatabase(databaseName).should('be.true');
+      // create and verify PostgreSQL database for the model registry
+      cy.step('Create and verify PostgreSQL database for model registry');
+      createAndVerifyPostgresDatabase(databaseName).should('be.true');
 
       // creates a model registry
-      cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName, databaseName);
+      cy.step('Create a PostgreSQL-backed model registry using YAML');
+      createPostgresModelRegistryViaYAML(registryName, databaseName);
 
       cy.step('Verify model registry is created');
       checkModelRegistry(registryName).should('be.true');
@@ -98,7 +98,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Clean up test models from any previous retry attempts');
-      cleanupRegisteredModelsFromDatabase(
+      cleanupRegisteredModelsFromPostgresDatabase(
         [objectStorageModelName, testData.uriModelName],
         databaseName,
       );
@@ -475,7 +475,7 @@ describe('Verify models can be registered in a model registry', () => {
     cy.visit('/');
 
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase(
+    cleanupRegisteredModelsFromPostgresDatabase(
       [objectStorageModelName, testData.uriModelName, ociModelName, ociUriModelName],
       databaseName,
     );
@@ -486,8 +486,8 @@ describe('Verify models can be registered in a model registry', () => {
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
 
-    cy.step('Delete the SQL database');
-    deleteModelRegistryDatabase(databaseName).should('be.true');
+    cy.step('Delete the PostgreSQL database');
+    deletePostgresDatabase(databaseName).should('be.true');
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
