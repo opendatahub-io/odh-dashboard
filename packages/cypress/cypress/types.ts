@@ -785,8 +785,13 @@ export type EvalHubTestData = {
   servingRuntimeYamlPath: string;
   /** Fixture path for the HardwareProfile CR. */
   hardwareProfileResourceYamlPath: string;
-  /** `metadata.name` of the HardwareProfile (used for cleanup). */
-  hardwareProfileName: string;
+};
+
+export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+  /** Resource ID of the benchmark suite / collection to select (matches `collection.resource.id`). */
+  collectionId: string;
+  /** Display name of the collection shown in the start-evaluation form after selection. */
+  collectionName: string;
 };
 
 export type ModelCatalogSourceTestData = {

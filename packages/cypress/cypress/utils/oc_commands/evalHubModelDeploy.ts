@@ -1,6 +1,9 @@
 import { pollUntilSuccess } from './baseCommands';
+import {
+  createEvalHubHardwareProfile,
+  getEvalHubApplicationsNamespace,
+} from './evalHubHardwareProfile';
 import { checkInferenceServiceState } from './modelServing';
-import { createCleanHardwareProfile } from './hardwareProfiles';
 import type { EvalHubTestData } from '../../types';
 
 /**
@@ -31,15 +34,20 @@ rules:
   );
 }
 
-export function getVllmEndpointUrl(td: EvalHubTestData, ns: string): string {
+export function getVllmEndpointUrl(
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
+  ns: string,
+): string {
   return `http://${td.inferenceServiceName}-predictor.${ns}.svc.cluster.local:8080`;
 }
 
 export function setupTenantAndDeployModel(
   ns: string,
-  td: EvalHubTestData,
+  td: Omit<EvalHubTestData, 'benchmarkCardTitle'>,
   hwProfileName: string,
 ): void {
+  const appsNs = getEvalHubApplicationsNamespace();
+
   cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
   cy.exec(
     `oc label namespace ${ns} opendatahub.io/generated-namespace=true evalhub.trustyai.opendatahub.io/tenant= --overwrite`,
@@ -47,7 +55,7 @@ export function setupTenantAndDeployModel(
 
   cy.step('Wait for operator to reconcile tenant resources');
   pollUntilSuccess(
-    `oc -n ${ns} get sa evalhub-redhat-ods-applications-job -o name`,
+    `oc -n ${ns} get sa evalhub-${appsNs}-job -o name`,
     'operator-provisioned ServiceAccount',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
@@ -57,7 +65,7 @@ export function setupTenantAndDeployModel(
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
   pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-redhat-ods-applications-job-access-role -o name`,
+    `oc -n ${ns} get role evalhub-${appsNs}-job-access-role -o name`,
     'operator-provisioned status-events Role',
     { maxAttempts: 30, pollIntervalMs: 2000 },
   );
@@ -70,7 +78,7 @@ export function setupTenantAndDeployModel(
     hardwareProfileResourceYamlPath,
   } = td;
 
-  createCleanHardwareProfile(hardwareProfileResourceYamlPath);
+  createEvalHubHardwareProfile(hardwareProfileResourceYamlPath, hwProfileName);
 
   cy.fixture(servingRuntimeYamlPath, 'utf8').then((srYaml: string) => {
     const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;
