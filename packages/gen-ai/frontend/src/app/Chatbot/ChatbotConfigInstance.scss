@@ -1,0 +1,17 @@
+// RHOAIENG-58995: same layout as patternfly/chatbot#868 (`hasOuterScrollbar`),
+// applied locally so we can keep `@patternfly/chatbot` on 6.5 (PF 6.5) instead
+// of bumping to 6.8, which requires PatternFly 6.6 and breaks Playground Cypress.
+@media screen and (min-width: 64rem) {
+  .pf-chatbot--embedded .pf-chatbot__messagebox.chatbot-messagebox-outer-scroll {
+    width: 100%;
+    max-width: unset;
+    align-items: center;
+  }
+
+  .pf-chatbot--embedded
+    .pf-chatbot__messagebox.chatbot-messagebox-outer-scroll
+    > *:not(.pf-chatbot__messagebox-announcement) {
+    max-width: 60rem;
+    width: 100%;
+  }
+}
