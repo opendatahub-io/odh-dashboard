@@ -7,10 +7,15 @@ import * as connectionsHook from '~/app/hooks/useConnections';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
+jest.mock('mod-arch-core', () => ({
+  ...jest.requireActual('mod-arch-core'),
+  useSettings: jest.fn(),
+}));
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseSettings = jest.mocked(require('mod-arch-core').useSettings);
 
 const mockConnections = [
   { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
@@ -30,6 +35,12 @@ describe('RegisterDataModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: 'test-user' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
   });
 
   it('should render modal with all form fields', () => {
@@ -116,6 +127,12 @@ describe('RegisterDataModal', () => {
     expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
+  it('should render owner field', () => {
+    render(<RegisterDataModal {...defaultProps} />);
+
+    expect(screen.getByText('Owner')).toBeTruthy();
+  });
+
   it('should submit as volume when asset type is unstructured', async () => {
     const user = userEvent.setup();
     mockCreateVolume.mockResolvedValue({
@@ -140,6 +157,7 @@ describe('RegisterDataModal', () => {
         name: 'test-volume',
         // eslint-disable-next-line camelcase
         content_type: 'other',
+        owner: 'test-user',
       });
     });
 
@@ -182,6 +200,7 @@ describe('RegisterDataModal', () => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
         format: 'iceberg',
+        owner: 'test-user',
       });
     });
 
@@ -276,6 +295,7 @@ describe('RegisterDataModal', () => {
         content_type: 'other',
         // eslint-disable-next-line camelcase
         connection_ref: 'my-s3-connection',
+        owner: 'test-user',
       });
     });
   });
@@ -319,6 +339,7 @@ describe('RegisterDataModal', () => {
         format: 'iceberg',
         // eslint-disable-next-line camelcase
         connection_ref: 'my-s3-connection',
+        owner: 'test-user',
       });
     });
   });
@@ -347,7 +368,33 @@ describe('RegisterDataModal', () => {
         name: 'minimal',
         // eslint-disable-next-line camelcase
         content_type: 'other',
+        owner: 'test-user',
       });
     });
+  });
+
+  it('should show validation error when submitting without owner', async () => {
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: '' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
+
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-asset');
+
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Owner is required')).toBeTruthy();
+    });
+
+    expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 });

@@ -14,6 +14,8 @@ import {
   TextArea,
   Alert,
 } from '@patternfly/react-core';
+import { TypeaheadSelect } from '@patternfly/react-templates';
+import { useSettings } from 'mod-arch-core';
 import { createCollection } from '~/app/api/dataRegistry';
 
 type CreateCollectionModalProps = {
@@ -25,16 +27,27 @@ type CreateCollectionModalProps = {
 
 const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 
+const UNASSIGNED = 'Unassigned';
+
 const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   isOpen,
   onClose,
   project,
   onCreated,
 }) => {
+  const { userSettings } = useSettings();
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [owner, setOwner] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    if (userId && !owner) {
+      setOwner(userId);
+    }
+  }, [userId, owner]);
 
   const nameValidationError = React.useMemo(() => {
     const trimmed = name.trim();
@@ -51,7 +64,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   }, [name]);
 
   const handleSubmit = React.useCallback(async () => {
-    if (!name.trim()) {
+    if (!name.trim() || !owner.trim()) {
       return;
     }
     setIsSubmitting(true);
@@ -59,10 +72,12 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     try {
       await createCollection(project, {
         namespace: [name.trim()],
+        owner: owner.trim(),
         properties: description ? { description } : undefined,
       });
       setName('');
       setDescription('');
+      setOwner(userId);
       onCreated();
       onClose();
     } catch (err) {
@@ -70,14 +85,15 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, description, project, onCreated, onClose]);
+  }, [name, description, owner, project, userId, onCreated, onClose]);
 
   const handleClose = React.useCallback(() => {
     setName('');
     setDescription('');
+    setOwner(userId);
     setError('');
     onClose();
-  }, [onClose]);
+  }, [userId, onClose]);
 
   return (
     <Modal
@@ -119,13 +135,33 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               data-testid="collection-description-input"
             />
           </FormGroup>
+          <FormGroup label="Owner" isRequired fieldId="collection-owner">
+            <TypeaheadSelect
+              key={userId}
+              id="collection-owner"
+              placeholder="Select or type owner"
+              initialOptions={[
+                ...(userId ? [{ content: userId, value: userId, selected: owner === userId }] : []),
+                { content: UNASSIGNED, value: UNASSIGNED, selected: owner === UNASSIGNED },
+                ...(owner && owner !== userId && owner !== UNASSIGNED
+                  ? [{ content: owner, value: owner, selected: true }]
+                  : []),
+              ]}
+              onSelect={(_event, value) => setOwner(String(value))}
+              onClearSelection={() => setOwner('')}
+              isCreatable
+              createOptionMessage={(newValue) => `Use "${newValue}"`}
+              toggleWidth="100%"
+              data-testid="collection-owner-input"
+            />
+          </FormGroup>
         </Form>
       </ModalBody>
       <ModalFooter>
         <Button
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={!name.trim() || !!nameValidationError || isSubmitting}
+          isDisabled={!name.trim() || !owner.trim() || !!nameValidationError || isSubmitting}
           isLoading={isSubmitting}
           data-testid="create-collection-submit"
         >

@@ -22,6 +22,7 @@ import {
 import { PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import OwnerField from './OwnerField';
 
 const UNSTRUCTURED_FORMATS = [
   { key: 'documents', label: 'Documents', description: 'Text, PDFs, and office files' },
@@ -144,6 +145,8 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
           </FormGroup>
         )}
       />
+
+      <OwnerField />
 
       <Controller
         name="assetType"

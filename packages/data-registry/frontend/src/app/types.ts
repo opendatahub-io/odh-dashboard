@@ -106,6 +106,7 @@ export type NamespaceResponse = {
 
 export type CreateNamespaceRequest = {
   namespace: string[];
+  owner?: string;
   properties?: Record<string, string>;
 };
 
@@ -115,6 +116,7 @@ export type CreateVolumeRequest = {
   content_type?: string;
   connection_ref?: string;
   description?: string;
+  owner?: string;
   labels?: string[];
   properties?: Record<string, string>;
 };
