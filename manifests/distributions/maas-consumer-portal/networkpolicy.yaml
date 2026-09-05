@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: maas-consumer-portal
+spec:
+  podSelector:
+    matchLabels:
+      deployment: maas-consumer-portal
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+    # Core-BFF uses the projected user token for Kubernetes API calls. The API
+    # endpoint address is platform-managed and has no stable label selector;
+    # this is restricted to its HTTPS control-plane port.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 6443
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: maas-ui
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dashboard-namespace
+      ports:
+        - protocol: TCP
+          port: 8243
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: gen-ai-ui
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dashboard-namespace
+      ports:
+        - protocol: TCP
+          port: 8143

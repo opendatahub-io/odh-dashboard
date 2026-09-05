@@ -89,6 +89,24 @@ func proxyPathsFor(mod ModuleDefinition) []proxyRoute {
 	}}
 }
 
+// moduleFederationEntry builds the common remote-module entry used by each
+// federation ConfigMap. The module registry is the source of service, TLS, and
+// proxy-route configuration for every consumer.
+func (r *DashboardReconciler) moduleFederationEntry(name string, mod ModuleDefinition) federationEntry {
+	return federationEntry{
+		Name:        name,
+		RemoteEntry: "/remoteEntry.js",
+		Authorize:   true,
+		TLS:         mod.TLS,
+		Proxy:       proxyPathsFor(mod),
+		Service: &serviceRef{
+			Name:      standaloneServiceName(r.Platform, mod.ManifestSlug),
+			Namespace: r.ApplicationsNamespace,
+			Port:      mod.Port,
+		},
+	}
+}
+
 // coreBffPort is the port core-bff listens on within the main dashboard pod/service.
 const coreBffPort = 8943
 
@@ -407,21 +425,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			continue
 		}
 
-		svcName := standaloneServiceName(r.Platform, mod.ManifestSlug)
-
-		entry := federationEntry{
-			Name:        name,
-			RemoteEntry: "/remoteEntry.js",
-			Authorize:   true,
-			TLS:         mod.TLS,
-			Proxy:       proxyPathsFor(mod),
-			Service: &serviceRef{
-				Name:      svcName,
-				Namespace: r.ApplicationsNamespace,
-				Port:      mod.Port,
-			},
-		}
-		entries = append(entries, entry)
+		entries = append(entries, r.moduleFederationEntry(name, mod))
 	}
 
 	// Add coreBff entry — core-bff is always present when the dashboard is deployed
@@ -607,6 +611,30 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	}
 
 	return fedCM.Data[federationConfigKey], nil
+}
+
+// reconcileModuleDemand deploys and removes shared BFFs based on both operand
+// lifecycles. Shared modules retain the dashboard ownership label because they
+// are common dependencies rather than resources owned by a single operand.
+func (r *DashboardReconciler) reconcileModuleDemand(ctx context.Context, dashboard *v1alpha1.Dashboard) (map[string]v1alpha1.ModuleStatus, error) {
+	statuses := resolveModuleStatuses(&dashboard.Spec)
+	// The MaaS Consumer Portal is a RHOAI-only operand. Do not let an unsupported
+	// MaaS Consumer Portal request create MaaS/GenAI demand when the core dashboard is removed.
+	if !maasConsumerPortalSupportedPlatform(r.Platform) && dashboard.Spec.ManagementState == "Removed" && dashboard.Spec.MaaSConsumerPortal != nil && dashboard.Spec.MaaSConsumerPortal.ManagementState == "Managed" {
+		for _, name := range maasConsumerPortalRequiredModuleNames() {
+			if statuses[name].Reason != "ExplicitOverride" {
+				statuses[name] = v1alpha1.ModuleStatus{Phase: v1alpha1.ModulePhaseNotDeployed, Reason: "UnsupportedPlatform", Message: "MaaS Consumer Portal is supported only on RHOAI", LastTransitionTime: metav1.Now()}
+			}
+		}
+	}
+	if err := r.deployModuleManifests(ctx, dashboard, statuses); err != nil {
+		return nil, err
+	}
+	if err := r.deleteModuleResources(ctx, statuses); err != nil {
+		return nil, err
+	}
+	r.overlayStandaloneReadiness(ctx, statuses)
+	return statuses, nil
 }
 
 // --- Helper: ConfigMap to Unstructured ---

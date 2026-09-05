@@ -84,16 +84,14 @@ func TestComputeKustomizeVariables(t *testing.T) {
 	}
 }
 
-func TestMaasConsumerPortalConsoleLinkManifestInfo(t *testing.T) {
-	// The portal is an RHOAI feature that always uses the /rhoai source,
-	// regardless of platform (it deploys on both self-managed and managed).
-	info := maasConsumerPortalConsoleLinkManifestInfo("/base")
+func TestMaaSConsumerPortalManifestInfo(t *testing.T) {
+	info := maasConsumerPortalManifestInfo("/base")
 	assert.Equal(t, "/base", info.Path)
-	assert.Equal(t, "maas-consumer-portal-consolelink", info.ContextDir)
-	assert.Equal(t, "/rhoai", info.SourcePath)
+	assert.Equal(t, "distributions", info.ContextDir)
+	assert.Equal(t, "maas-consumer-portal", info.SourcePath)
 }
 
-func TestMaasConsumerPortalURL(t *testing.T) {
+func TestMaaSConsumerPortalURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		domain  string
@@ -123,10 +121,10 @@ func TestMaasConsumerPortalURL(t *testing.T) {
 	}
 }
 
-// TestMaasConsumerPortalParamInjection verifies that injecting maas-consumer-portal-url
+// TestMaaSConsumerPortalParamInjection verifies that injecting maas-consumer-portal-url
 // and section-title into the portal manifest's params.env and rendering the
 // kustomization substitutes the ConsoleLink href and applicationMenu.section.
-func TestMaasConsumerPortalParamInjection(t *testing.T) {
+func TestMaaSConsumerPortalParamInjection(t *testing.T) {
 	dir := t.TempDir()
 
 	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
@@ -177,7 +175,7 @@ spec:
 	// Commit-equivalent empty placeholders.
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte("maas-consumer-portal-url=\nsection-title=\n"), 0644))
 
-	// Inject the operator-derived values, mirroring deployMaasConsumerPortalConsoleLink.
+	// Inject the operator-derived values, mirroring MaaS Consumer Portal manifest rendering.
 	params := readExistingParams(filepath.Join(dir, "params.env"))
 	params["maas-consumer-portal-url"] = "https://maas-consumer-portal.rh-ai.apps.example.com/"
 	params["section-title"] = "OpenShift Self Managed Services"

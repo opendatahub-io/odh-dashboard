@@ -382,6 +382,38 @@ func TestValidateProxyEntries(t *testing.T) {
 			errSubstr: "non-rooted proxy path",
 		},
 		{
+			name: "root proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "rootPath", service: moduleProxyServiceEntry{Path: "/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "uses root path / which conflicts with the SPA catch-all",
+		},
+		{
+			name: "trailing slash in proxy path rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "trailingSlash", service: moduleProxyServiceEntry{Path: "/gen-ai/api/", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "has trailing slash in proxy path /gen-ai/api/ (will be appended automatically)",
+		},
+		{
+			name: "ServeMux single-segment wildcard rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "wildcard", service: moduleProxyServiceEntry{Path: "/module/{id}", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "http.ServeMux wildcard syntax",
+		},
+		{
+			name: "ServeMux multi-segment wildcard rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "wildcard", service: moduleProxyServiceEntry{Path: "/module/{path...}", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			},
+			wantErr:   true,
+			errSubstr: "http.ServeMux wildcard syntax",
+		},
+		{
 			name: "module path /core-bff/api collides with reserved prefix",
 			entries: []normalizedProxyEntry{
 				{entryName: "selfCollide", service: moduleProxyServiceEntry{Path: "/core-bff/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
@@ -436,7 +468,23 @@ func TestValidateProxyEntries(t *testing.T) {
 				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 0}}},
 			},
 			wantErr:   true,
-			errSubstr: "zero service port",
+			errSubstr: "invalid service port 0 (must be 1-65535)",
+		},
+		{
+			name: "negative service port rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: -1}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service port -1 (must be 1-65535)",
+		},
+		{
+			name: "service port above TCP range rejected",
+			entries: []normalizedProxyEntry{
+				{entryName: "badPort", service: moduleProxyServiceEntry{Path: "/ok/api", Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 65536}}},
+			},
+			wantErr:   true,
+			errSubstr: "invalid service port 65536 (must be 1-65535)",
 		},
 		{
 			name: "invalid RFC 1123 service name rejected",
@@ -514,6 +562,39 @@ func TestValidateProxyEntries(t *testing.T) {
 	}
 }
 
+func TestInitModuleProxies_RejectsServeMuxWildcardPathsBeforeRegistration(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "single segment wildcard", path: "/module/{id}"},
+		{name: "multi-segment wildcard", path: "/module/{path...}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configFile := writeTempConfig(t, []moduleFederationEntry{{
+				Name: "wildcard",
+				ProxyService: []moduleProxyServiceEntry{{
+					Path: tt.path, TLS: false,
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+				}},
+			}})
+			app := newTestApp(func(a *App) {
+				a.config.MFRemotesConfig = configFile
+				a.config.DevMode = true
+			})
+
+			err := app.initModuleProxies()
+			require.ErrorContains(t, err, "http.ServeMux wildcard syntax")
+			assert.Empty(t, app.moduleProxies)
+			assert.NotPanics(t, func() {
+				app.registerModuleProxies(http.NewServeMux())
+			})
+		})
+	}
+}
+
 func TestReservedPathCollisionBothDirections(t *testing.T) {
 	tests := []struct {
 		name string
@@ -521,6 +602,7 @@ func TestReservedPathCollisionBothDirections(t *testing.T) {
 	}{
 		{name: "module is prefix of reserved", path: "/api"},
 		{name: "reserved is prefix of module", path: "/api/k8s/custom"},
+		{name: "matches healthcheck route exactly", path: HealthCheckPath},
 	}
 
 	for _, tt := range tests {
@@ -531,6 +613,26 @@ func TestReservedPathCollisionBothDirections(t *testing.T) {
 			err := validateProxyEntries(entries)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "collides with reserved BFF route")
+		})
+	}
+}
+
+func TestReservedPathCollisionUsesPathSegmentBoundaries(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "healthcheck lookalike", path: "/healthcheck-module"},
+		{name: "OpenAPI descendant", path: "/openapi/docs"},
+		{name: "Swagger UI lookalike", path: "/swagger-ui-module"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entries := []normalizedProxyEntry{
+				{entryName: "nonCollision", service: moduleProxyServiceEntry{Path: tt.path, Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
+			}
+			require.NoError(t, validateProxyEntries(entries))
 		})
 	}
 }
@@ -747,7 +849,7 @@ func TestInitModuleProxies_InvalidServiceFields(t *testing.T) {
 					},
 				},
 			},
-			errSubstr: "zero service port",
+			errSubstr: "invalid service port 0 (must be 1-65535)",
 		},
 	}
 

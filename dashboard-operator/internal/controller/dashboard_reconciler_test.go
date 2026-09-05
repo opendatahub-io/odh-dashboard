@@ -332,6 +332,49 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
+func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
+	scheme := testScheme(t)
+	manifests := t.TempDir()
+	maasModulePath := filepath.Join(manifests, "modules", "maas")
+	require.NoError(t, os.MkdirAll(maasModulePath, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(maasModulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+	}
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(dashboard).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+	require.Error(t, err)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+	condition := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionFalse, condition.Status)
+	assert.Equal(t, "ModuleDeployFailed", condition.Reason)
+}
+
 func TestReconcile_Deletion(t *testing.T) {
 	s := testScheme(t)
 
