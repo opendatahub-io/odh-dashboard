@@ -46,7 +46,7 @@
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on -i 1000 http-get://localhost:9001 && npm run cypress:run:mock -- {@}\" -- "
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.24.1",
+    "@module-federation/enhanced": "^2.9.0",
     "@rsdoctor/rspack-plugin": "^1.6.1",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.1.10",
