@@ -8,7 +8,6 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
   isOgxOperatorManaged,
@@ -29,7 +28,6 @@ const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 describe('AutoRAG Experiments List and Run Management E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
-  let autoragWasEnabled = false;
   let selfProvisioned = false;
 
   retryableBefore(() =>
@@ -39,12 +37,6 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
           if (isExternalOgx()) {
@@ -75,9 +67,6 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
-    }
     if (selfProvisioned) {
       cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
     }

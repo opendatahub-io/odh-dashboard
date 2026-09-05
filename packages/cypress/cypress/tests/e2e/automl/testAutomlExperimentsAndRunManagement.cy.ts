@@ -10,7 +10,6 @@ import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage } from '../../../pages/automl/configurePage';
 import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
 import { automlResultsPage } from '../../../pages/automl/resultsPage';
-import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
 import {
   configureAutomlRun,
   submitAutomlRun,
@@ -22,8 +21,6 @@ const uuid = generateTestUUID();
 describe('AutoML Experiments List and Run Management E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
-  let automlWasEnabled = false;
-
   retryableBefore(() =>
     cy
       .fixture('e2e/automl/testAutomlExperimentsAndRunManagement.yaml', 'utf8')
@@ -31,21 +28,12 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() =>
-        isAutomlEnabled().then((wasEnabled) => {
-          automlWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutomlEnabled(true))
       .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
       }),
   );
 
   after(() => {
-    if (!automlWasEnabled) {
-      setAutomlEnabled(false);
-    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
@@ -55,7 +43,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Login and wait for pipeline server');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(automlExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
       waitForDspaReady(projectName);
       waitForManagedPipelines(projectName);
 

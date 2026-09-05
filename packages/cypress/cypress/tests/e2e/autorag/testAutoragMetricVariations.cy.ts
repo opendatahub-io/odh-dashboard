@@ -7,7 +7,6 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
-import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
   isOgxOperatorManaged,
@@ -30,7 +29,6 @@ const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
-  let autoragWasEnabled = false;
   let selfProvisioned = false;
 
   retryableBefore(() =>
@@ -40,12 +38,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
-      .then(() =>
-        isAutoragEnabled().then((wasEnabled) => {
-          autoragWasEnabled = wasEnabled;
-        }),
-      )
-      .then(() => setAutoragEnabled(true))
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
           if (isExternalOgx()) {
@@ -76,9 +68,6 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   );
 
   after(() => {
-    if (!autoragWasEnabled) {
-      setAutoragEnabled(false);
-    }
     if (selfProvisioned) {
       cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
     }
