@@ -1,3 +1,5 @@
+//go:build !mockk8s
+
 /*
 Copyright 2024.
 
@@ -14,29 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package main
 
-type EnvConfig struct {
-	Port int
+import (
+	"errors"
+	"log/slog"
 
-	ClientQPS   float64
-	ClientBurst int
+	"k8s.io/client-go/rest"
+)
 
-	// MockK8sClient starts an in-process envtest API server instead of using the cluster kubeconfig.
-	MockK8sClient bool
-
-	DisableAuth bool
-
-	UserIdHeader string
-	UserIdPrefix string
-	GroupsHeader string
-
-	ProxyUrlPrefix string
-
-	SwaggerEnabled  bool
-	SwaggerHost     string
-	SwaggerBasePath string
-	SwaggerScheme   string
-	// StaticAssetsDir is the directory containing frontend static assets
-	StaticAssetsDir string
+func startMockK8s(_ *slog.Logger) (*rest.Config, func() error, error) {
+	return nil, nil, errors.New("mock Kubernetes support is not compiled into this binary; rebuild with -tags mockk8s")
 }
