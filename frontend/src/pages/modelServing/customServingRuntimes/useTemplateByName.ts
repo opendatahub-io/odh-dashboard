@@ -6,16 +6,28 @@ import { useDashboardNamespace } from '#~/redux/selectors';
 
 export const useTemplateByName = (
   templateName?: string,
+  projectNamespace?: string,
 ): [TemplateKind | undefined, boolean, Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [templates, loaded, error] = useTemplates(dashboardNamespace);
+  const [globalTemplates, globalLoaded, globalError] = useTemplates(dashboardNamespace);
+
+  const shouldCheckProject = !!projectNamespace && projectNamespace !== dashboardNamespace;
+  const [projectTemplates, projectLoaded, projectError] = useTemplates(
+    shouldCheckProject ? projectNamespace : undefined,
+  );
+
+  const loaded = globalLoaded && (!shouldCheckProject || projectLoaded);
+  const error = globalError ?? (shouldCheckProject ? projectError : undefined);
 
   const template = React.useMemo(() => {
     if (!templateName || !loaded || error) {
       return undefined;
     }
-    return findTemplateByName(templates, templateName);
-  }, [templates, templateName, loaded, error]);
+    return (
+      findTemplateByName(globalTemplates, templateName) ??
+      (shouldCheckProject ? findTemplateByName(projectTemplates, templateName) : undefined)
+    );
+  }, [globalTemplates, projectTemplates, templateName, loaded, error, shouldCheckProject]);
 
   return [template, loaded, error];
 };
