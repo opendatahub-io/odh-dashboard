@@ -59,7 +59,7 @@ describe('Workbench Kueue Lifecycle Tests', () => {
   });
 
   it(
-    'Verify workbench Kueue lifecycle: Queued → Ready after quota update',
+    'Verify workbench Kueue lifecycle: Inadmissible → Ready after quota update',
     { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
     () => {
       cy.step('Log into the application');
@@ -91,21 +91,16 @@ describe('Workbench Kueue Lifecycle Tests', () => {
       cy.step('Wait for notebook table to appear');
       workbenchPage.findNotebookTable(30000).should('exist');
 
-      cy.step('Verify workbench shows Queued status');
+      cy.step('Verify workbench shows Inadmissible status');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.expectStatusLabelToBe('Queued', 120000);
+      notebookRow.expectStatusLabelToBe('Inadmissible', 120000);
 
-      cy.step('Verify status subtitle shows waiting for quota message');
+      cy.step('Verify status subtitle shows exceeded quota message');
       notebookRow
         .findNotebookStatusSubtitle()
-        .should('contain.text', fixtureData.waitingForQuotaMessage);
+        .should('contain.text', fixtureData.exceededQuotaMessage);
 
-      cy.step('Verify queue position is displayed');
-      notebookRow
-        .findNotebookStatusSubtitle()
-        .should('contain.text', fixtureData.queuePositionMarker);
-
-      cy.step('Click on the Queued status label to open the status modal');
+      cy.step('Click on the Inadmissible status label to open the status modal');
       notebookRow.findHaveNotebookStatusText().click();
 
       cy.step('Verify status modal is visible');
