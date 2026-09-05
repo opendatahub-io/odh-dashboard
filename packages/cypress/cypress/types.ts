@@ -732,6 +732,8 @@ export type CustomEndpointTestData = {
     template: string;
     commitMessage: string;
     testMessageWithPrompt: string;
+    variableName: string;
+    variableValue: string;
   };
   prompt2: {
     name: string;
