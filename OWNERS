@@ -194,7 +194,7 @@ filters:
       - automl-reviewers
     labels:
       - 'area/automl'
-  
+
   # Eval Hub
   'packages/eval-hub/.*':
     approvers:
@@ -221,6 +221,15 @@ filters:
       - data-registry-reviewers
     labels:
       - 'area/data-registry'
+
+  # Data Connect Hub
+  'packages/data-connect-hub/.*':
+    approvers:
+      - data-connect-hub-approvers
+    reviewers:
+      - data-connect-hub-reviewers
+    labels:
+      - 'area/data-connect-hub'
 
   # MLflow
   'packages/mlflow.*/.*':

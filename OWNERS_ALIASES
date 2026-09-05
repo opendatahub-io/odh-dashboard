@@ -295,6 +295,18 @@ aliases:
     - MStokluska
     - Slowlybomb
 
+  # Data Connect Hub
+  data-connect-hub-approvers:
+    - chrjones-rh
+    - tamdavid-git
+    - GAUNSD
+    - MatthewAThompson
+  data-connect-hub-reviewers:
+    - chrjones-rh
+    - tamdavid-git
+    - GAUNSD
+    - MatthewAThompson
+
   # MLflow
   mlflow-approvers:
     - caponetto

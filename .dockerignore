@@ -3,6 +3,8 @@ frontend/public
 backend/node_modules
 backend/dist
 node_modules/
+packages/*/frontend/node_modules
+packages/*/bff/vendor
 
 .github/
 .vscode/
