@@ -234,10 +234,9 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - Key matching is case-sensitive; keys must be uppercase
 
 3. **`type=maas`**: Filters for MaaS (Models as a Service) secrets
-   - A secret matches if it contains ALL required MaaS keys
-   - Currently configured MaaS type:
-     - **Models as a Service**: Requires `MAAS_API_KEY`, `MAAS_BASE_URL`
-   - Key matching is case-sensitive; keys must be uppercase
+   - **Annotation first**: a secret with `opendatahub.io/connection-type: maas` is included even if it does not have MaaS credential keys
+   - **Key-based fallback** (no connection-type annotation): the secret must have `MAAS_API_KEY` and `MAAS_BASE_URL`, or the legacy aliases `OGX_CLIENT_API_KEY` and `OGX_CLIENT_BASE_URL`. Key matching is case-insensitive. The API-key value may be empty (no-auth)
+   - A secret annotated as a different type is excluded even if it has MaaS keys
 
 Invalid type values result in a 400 Bad Request error.
 
@@ -260,7 +259,7 @@ A secret missing any of these required keys would NOT match and would be exclude
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=maas` results. Key matching is case-sensitive — keys must be uppercase (e.g., `MAAS_API_KEY`).
+A secret missing any of these required keys is excluded from `type=maas` **unless** it has `opendatahub.io/connection-type: maas`. Key matching for the credential-key fallback is case-insensitive. Legacy `OGX_CLIENT_*` keys are accepted when no connection-type annotation is set.
 
 ### Secret Data Field
 
@@ -422,7 +421,7 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
-  - `type=maas`: Successful retrieval with MaaS (Models as a Service) secret filtering, case-sensitive key matching
+  - `type=maas`: Successful retrieval with MaaS (Models as a Service) secret filtering, annotation precedence, and case-insensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Secret data field**:
