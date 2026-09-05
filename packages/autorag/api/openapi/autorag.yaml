@@ -93,15 +93,16 @@ paths:
           in: query
           required: false
           description: >-
-            Secret type filter (key matching is case-sensitive, keys must be uppercase):
-            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-            - 'ogx': Filters for Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
+            Secret type filter:
+            - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT). Key matching is case-sensitive.
+            - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has any supported base-URL alias (MAAS_BASE_URL or OGX_CLIENT_BASE_URL) together with any supported API-key alias (MAAS_API_KEY or OGX_CLIENT_API_KEY), including mixed pairs. The API-key key may be present but empty.
+            - 'vector-db': Filters for vector database secrets used by documents-rag-optimization-pipeline. Annotation types milvus, pgvector, or vector-db match. Unannotated secrets match if they have MILVUS_URI (Milvus) or PGVECTOR_HOST (PGVector). Key matching is case-insensitive.
             - Omit for all secrets
 
             Type Classification Precedence:
             When determining if a secret matches the requested type filter, the following precedence is applied:
             1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation, that annotated type takes precedence for inclusion in ?type= filter results
-            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, OGX keys like OGX_CLIENT_API_KEY for ?type=ogx)
+            2. Key-based classification (fallback): If no connection-type annotation is present, the type is determined by key-based classification rules (e.g., storage keys like AWS_ACCESS_KEY_ID for ?type=storage, MaaS keys like MAAS_API_KEY for ?type=maas)
 
             Note: Classification keys are used to identify the secret type. Additional optional keys (like AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets)
             may be present but are not required for type classification. The data field in the response lists all keys
@@ -110,7 +111,8 @@ paths:
             type: string
             enum:
               - storage
-              - ogx
+              - maas
+              - vector-db
           example: storage
       responses:
         "200":
@@ -129,14 +131,17 @@ paths:
       summary: Get filtered secrets
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
-        Key matching is case-sensitive; keys must be uppercase.
+        Storage classification-key matching is case-sensitive.
+        MaaS classification-key matching is case-insensitive and accepts any mix of MAAS_API_KEY / MAAS_BASE_URL
+        and the legacy OGX_CLIENT_API_KEY / OGX_CLIENT_BASE_URL aliases.
+        Vector database classification-key matching is case-insensitive (MILVUS_URI or PGVECTOR_HOST).
 
         Secret Type Classification Precedence:
         The type of each secret is determined using the following precedence:
         1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
         2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
            - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'ogx': Open GenAI Stack secrets (classification keys: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL)
+           - 'maas': Models as a Service secrets (MAAS_API_KEY and MAAS_BASE_URL, or legacy OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL)
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).
@@ -145,14 +150,15 @@ paths:
         Type filtering with ?type= parameter:
         When filtering by type, the annotated type (if present) takes precedence over key-based classification for determining inclusion in results.
         - 'storage': Returns only secrets classified as storage types (currently: s3 via key-based classification, or any secret with connection-type annotation matching 'storage')
-        - 'ogx': Returns only secrets classified as OGX type (via key-based classification or connection-type annotation)
+        - 'maas': Returns only secrets classified as MaaS type (via key-based classification or connection-type annotation)
+        - 'vector-db': Returns Milvus/PGVector secrets (via MILVUS_URI or PGVECTOR_HOST, or connection-type milvus/pgvector/vector-db)
         - No type: Returns all secrets with their detected type classification
   /api/v1/secret/{name}:
     summary: Path used to retrieve credential data from a named secret.
     description: >-
       The REST endpoint/path used to retrieve credential data from a single Kubernetes secret.
       Only allowed credential keys are returned; other keys in the secret are omitted.
-      Currently returns OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
+      Currently returns MAAS_BASE_URL and MAAS_API_KEY.
       Values are base64-encoded in the response for transport safety.
       The response includes Cache-Control: no-store to prevent credential caching.
     get:
@@ -167,7 +173,7 @@ paths:
             type: string
             maxLength: 253
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-          example: my-ogx-secret
+          example: my-maas-secret
         - name: namespace
           in: query
           required: true
@@ -194,7 +200,7 @@ paths:
       summary: Get credential data from a named secret
       description: >-
         Retrieves allowed credential keys from a single Kubernetes secret by name.
-        Only permitted keys (currently OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+        Only permitted keys (currently MAAS_BASE_URL and MAAS_API_KEY)
         are returned; all other keys are omitted. Values are base64-encoded.
         The caller must decode values with base64 decoding before use.
 
@@ -496,16 +502,16 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
 
   # =============================================================================
-  # OGX ENDPOINTS
+  # MaaS ENDPOINTS
   # =============================================================================
 
-  /api/v1/ogx/models:
-    summary: List available OGX models
+  /api/v1/maas/models:
+    summary: List available MaaS models
     description: >-
-      Lists all available models from Open GenAI Stack Distribution (OGX).
+      Lists all available models from Models as a Service Distribution (MaaS).
       Returns a flat list of models with their identifiers, types, provider information, and resource paths.
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
+      containing MAAS_BASE_URL and MAAS_API_KEY credentials.
     get:
       tags:
         - Models
@@ -514,23 +520,23 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
+          description: Kubernetes namespace containing the Models as a Service credentials secret
           required: true
           schema:
             type: string
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+          description: Name of the Kubernetes secret containing Models as a Service credentials (MAAS_BASE_URL and MAAS_API_KEY)
           required: true
           schema:
             type: string
             maxLength: 253
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-            example: 'my-ogx-secret'
+            example: 'my-maas-secret'
       responses:
         "200":
-          $ref: "#/components/responses/OGXModelsResponse"
+          $ref: "#/components/responses/MaaSModelsResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -543,18 +549,18 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "502":
           $ref: "#/components/responses/BadGateway"
-      operationId: getOGXModels
-      summary: Get OGX Models
-      description: Returns available models from Open GenAI Stack Distribution using credentials from a Kubernetes secret
+      operationId: getMaaSModels
+      summary: Get MaaS Models
+      description: Returns available models from Models as a Service Distribution using credentials from a Kubernetes secret
 
-  /api/v1/ogx/vector-stores:
-    summary: List available OGX vector store providers
+  /api/v1/maas/vector-stores:
+    summary: List available MaaS vector store providers
     description: >-
-      Lists available vector store providers from Open GenAI Stack Distribution (OGX).
+      Lists available vector store providers from Models as a Service Distribution (MaaS).
       Calls the native /v1/providers endpoint and filters for vector_io API type.
       Returns provider identifiers and types (e.g., remote::milvus).
       Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY credentials.
+      containing MAAS_BASE_URL and MAAS_API_KEY credentials.
     get:
       tags:
         - VectorStores
@@ -563,21 +569,23 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace containing the Open GenAI Stack credentials secret
+          description: Kubernetes namespace containing the Models as a Service credentials secret
           required: true
           schema:
             type: string
             example: 'default'
         - name: secretName
           in: query
-          description: Name of the Kubernetes secret containing Open GenAI Stack credentials (OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY)
+          description: Name of the Kubernetes secret containing Models as a Service credentials (MAAS_BASE_URL and MAAS_API_KEY)
           required: true
           schema:
             type: string
-            example: 'my-ogx-secret'
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+            example: 'my-maas-secret'
       responses:
         "200":
-          $ref: "#/components/responses/OGXVectorStoresResponse"
+          $ref: "#/components/responses/MaaSVectorStoresResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -590,9 +598,9 @@ paths:
           $ref: "#/components/responses/InternalServerError"
         "502":
           $ref: "#/components/responses/BadGateway"
-      operationId: getOGXVectorStoreProviders
-      summary: Get OGX Vector Store Providers
-      description: Returns available vector store providers from Open GenAI Stack Distribution using credentials from a Kubernetes secret
+      operationId: getMaaSVectorStoreProviders
+      summary: Get MaaS Vector Store Providers
+      description: Returns available vector store providers from Models as a Service Distribution using credentials from a Kubernetes secret
 
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
@@ -994,10 +1002,10 @@ components:
           type: boolean
           example: true
 
-    # OGX Model Schemas
-    OGXModel:
+    # MaaS Model Schemas
+    MaaSModel:
       type: object
-      description: Model from Open GenAI Stack Distribution
+      description: Model from Models as a Service Distribution
       required:
         - id
         - type
@@ -1020,9 +1028,9 @@ components:
           type: string
           description: Full provider resource path
           example: "ollama://models/llama3.2:3b"
-    OGXModelsData:
+    MaaSModelsData:
       type: object
-      description: List of all available models from Open GenAI Stack Distribution
+      description: List of all available models from Models as a Service Distribution
       required:
         - models
       properties:
@@ -1030,11 +1038,11 @@ components:
           type: array
           description: Complete list of all available models
           items:
-            $ref: '#/components/schemas/OGXModel'
+            $ref: '#/components/schemas/MaaSModel'
 
-    OGXVectorStoreProvider:
+    MaaSVectorStoreProvider:
       type: object
-      description: Vector store provider from Open GenAI Stack Distribution
+      description: Vector store provider from Models as a Service Distribution
       required:
         - provider_id
         - provider_type
@@ -1047,9 +1055,9 @@ components:
           type: string
           description: Provider implementation type
           example: "remote::milvus"
-    OGXVectorStoreProvidersData:
+    MaaSVectorStoreProvidersData:
       type: object
-      description: List of vector store providers from Open GenAI Stack Distribution
+      description: List of vector store providers from Models as a Service Distribution
       required:
         - vector_store_providers
       properties:
@@ -1057,7 +1065,7 @@ components:
           type: array
           description: List of vector_io providers
           items:
-            $ref: '#/components/schemas/OGXVectorStoreProvider'
+            $ref: '#/components/schemas/MaaSVectorStoreProvider'
 
     SecretTypeSchema:
       description: >-
@@ -1070,7 +1078,10 @@ components:
           type: array
           items:
             type: string
-          description: Keys required for BFF to classify a secret as this type (case-sensitive, uppercase)
+          description: >-
+            Keys required for BFF to classify a secret as this type.
+            Storage (s3) matching is case-sensitive and uppercase.
+            MaaS and vector-database (milvus, pgvector) matching is case-insensitive.
         commonOptionalKeys:
           type: array
           items:
@@ -1090,15 +1101,33 @@ components:
                   example: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT"]
                 commonOptionalKeys:
                   example: ["AWS_S3_BUCKET", "AWS_DEFAULT_REGION"]
-        ogx:
+        maas:
           allOf:
             - $ref: '#/components/schemas/SecretTypeSchema'
             - type: object
               properties:
                 classificationKeys:
-                  example: ["OGX_CLIENT_API_KEY", "OGX_CLIENT_BASE_URL"]
+                  example: ["MAAS_API_KEY", "MAAS_BASE_URL"]
                 commonOptionalKeys:
                   example: []
+        milvus:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["MILVUS_URI"]
+                commonOptionalKeys:
+                  example: ["MILVUS_TOKEN", "MILVUS_SERVER_CERT"]
+        pgvector:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
+                classificationKeys:
+                  example: ["PGVECTOR_HOST"]
+                commonOptionalKeys:
+                  example: ["PGVECTOR_PORT", "PGVECTOR_DB", "PGVECTOR_USER", "PGVECTOR_PASSWORD"]
 
     SecretListItem:
       description: A Kubernetes secret with its UUID, name, type classification, and available keys
@@ -1123,7 +1152,8 @@ components:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
-               - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
+               - 'maas': Models as a Service secret (has all required MaaS classification keys)
+               - 'milvus' / 'pgvector': Vector database secrets (MILVUS_URI or PGVECTOR_HOST)
 
             When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
             for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
@@ -1364,7 +1394,10 @@ components:
         - input_data_secret_name
         - input_data_bucket_name
         - input_data_key
-        - ogx_secret_name
+        - maas_secret_name
+        - vector_db_secret_name
+        - embedding_models
+        - generation_models
       properties:
         display_name:
           type: string
@@ -1393,9 +1426,15 @@ components:
         input_data_key:
           type: string
           description: Object key within the input data bucket
-        ogx_secret_name:
+        maas_secret_name:
           type: string
-          description: Name of the K8s secret for Open GenAI Stack access
+          description: Name of the K8s secret for Models as a Service access
+        vector_db_secret_name:
+          type: string
+          description: >-
+            Name of the K8s secret for the vector database. Milvus is selected when
+            the secret has MILVUS_URI; PGVector when it has PGVECTOR_HOST.
+          example: milvus-connection
         preset:
           type: string
           enum:
@@ -1405,14 +1444,20 @@ components:
           default: speed
         embedding_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of embedding model identifiers
+            minLength: 1
+            pattern: '\S'
+          description: Embedding model identifiers. Required because MaaS does not expose model-type metadata. Each item must contain a non-whitespace identifier.
         generation_models:
           type: array
+          minItems: 1
           items:
             type: string
-          description: Optional list of generation model identifiers
+            minLength: 1
+            pattern: '\S'
+          description: Generation model identifiers. Required because MaaS does not expose model-type metadata. Each item must contain a non-whitespace identifier.
         optimization_metric:
           type: string
           enum:
@@ -1421,10 +1466,6 @@ components:
             - answer_correctness
             - context_correctness
           description: Metric to optimize (defaults to overall_score)
-        vector_io_provider_id:
-          type: string
-          description: Pipeline vector store provider ID from the selected Open GenAI Stack provider (e.g. milvus)
-          example: milvus
         optimization_max_rag_patterns:
           type: integer
           minimum: 4
@@ -1458,7 +1499,7 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, ogx_secret_name, chunking fields).
+            (for example embedding_model_id, input_data_*, maas_secret_name, chunking fields).
           additionalProperties: true
           minProperties: 1
           example:
@@ -1466,7 +1507,7 @@ components:
             input_data_secret_name: "aws-connection-my-bucket"
             input_data_bucket_name: "my-bucket"
             input_data_key: "docs/"
-            ogx_secret_name: "ogx-connection"
+            maas_secret_name: "maas-connection"
             vector_io_provider_id: "milvus"
             chunk_size: 512
             chunk_overlap: 50
@@ -1864,9 +1905,9 @@ components:
                 $ref: "#/components/schemas/Config"
       description: A response containing a list of Config entities.
 
-    # OGX Responses
-    OGXModelsResponse:
-      description: List of available OGX models
+    # MaaS Responses
+    MaaSModelsResponse:
+      description: List of available MaaS models
       content:
         application/json:
           schema:
@@ -1876,7 +1917,7 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/OGXModelsData'
+                $ref: '#/components/schemas/MaaSModelsData'
           example:
             metadata: {}
             data:
@@ -1898,8 +1939,8 @@ components:
                   provider: "ollama"
                   resource_path: "ollama://models/nomic-embed-text"
 
-    OGXVectorStoresResponse:
-      description: List of available OGX vector store providers
+    MaaSVectorStoresResponse:
+      description: List of available MaaS vector store providers
       content:
         application/json:
           schema:
@@ -1909,7 +1950,7 @@ components:
                 type: object
                 description: Metadata about the response
               data:
-                $ref: '#/components/schemas/OGXVectorStoreProvidersData'
+                $ref: '#/components/schemas/MaaSVectorStoreProvidersData'
           example:
             metadata: {}
             data:
@@ -1948,19 +1989,19 @@ components:
                     type: s3
                     data: {"AWS_ACCESS_KEY_ID": "[REDACTED]", "AWS_DEFAULT_REGION": "[REDACTED]", "AWS_S3_ENDPOINT": "[REDACTED]", "AWS_SECRET_ACCESS_KEY": "[REDACTED]"}
             llsSecrets:
-              summary: Example response with OGX (Open GenAI Stack) secrets
+              summary: Example response with MaaS (Models as a Service) secrets
               value:
                 data:
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: ogx-secret-1
-                    type: ogx
-                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
-                    displayName: Development OGX
-                    description: Open GenAI Stack connection for development and testing
+                    name: maas-secret-1
+                    type: maas
+                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
+                    displayName: Development MaaS
+                    description: Models as a Service connection for development and testing
                   - uuid: d2e3f4a5-b6c7-8901-defa-bc2345678901
-                    name: ogx-secret-2
-                    type: ogx
-                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
+                    name: maas-secret-2
+                    type: maas
+                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
             allSecrets:
               summary: Example response with all secrets (no type filter)
               value:
@@ -1972,10 +2013,10 @@ components:
                     displayName: Production S3 Bucket
                     description: Main S3 bucket for production data storage and backups
                   - uuid: c1d2e3f4-a5b6-7890-cdef-ab1234567890
-                    name: ogx-secret
-                    type: ogx
-                    data: {"OGX_CLIENT_API_KEY": "[REDACTED]", "OGX_CLIENT_BASE_URL": "[REDACTED]"}
-                    displayName: Development OGX
+                    name: maas-secret
+                    type: maas
+                    data: {"MAAS_API_KEY": "[REDACTED]", "MAAS_BASE_URL": "[REDACTED]"}
+                    displayName: Development MaaS
                   - uuid: b2c3d4e5-f6a7-8901-bcde-f01234567891
                     name: other-secret
                     data: {"password": "[REDACTED]", "username": "[REDACTED]"}
@@ -2005,8 +2046,8 @@ components:
                   The caller must decode values before use.
           example:
             data:
-              OGX_CLIENT_BASE_URL: "aHR0cHM6Ly9vZ3guZXhhbXBsZS5jb20="
-              OGX_CLIENT_API_KEY: "UkVQTEFDRS1XSVRILUFQSS1LRVk="
+              MAAS_BASE_URL: "aHR0cHM6Ly9tYWFzLmV4YW1wbGUuY29t"
+              MAAS_API_KEY: "UkVQTEFDRS1XSVRILUFQSS1LRVk="
       description: A response containing a single secret's base64-encoded key-value data
 
     PipelineRunsResponse:
@@ -2077,7 +2118,7 @@ components:
                   input_data_secret_name: "minio-secret"
                   input_data_bucket_name: "autorag"
                   input_data_key: "documents/"
-                  ogx_secret_name: "ogx-secret"
+                  maas_secret_name: "maas-secret"
 
     PipelineRunResponse:
       description: Successful response containing a single pipeline run
@@ -2308,8 +2349,8 @@ tags:
   - name: S3Operation
     description: Operation performed on S3 storage
   - name: Models
-    description: AI model discovery and management from Open GenAI Stack Distribution
+    description: AI model discovery and management from Models as a Service Distribution
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
   - name: VectorStores
-    description: Vector store provider discovery from Open GenAI Stack Distribution
+    description: Vector store provider discovery from Models as a Service Distribution

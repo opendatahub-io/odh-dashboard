@@ -7,8 +7,8 @@ import {
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
-  OgxModelsResponse,
-  OgxVectorStoreProvidersResponse,
+  MaasModelsResponse,
+  MaasVectorStoreProvidersResponse,
   NamespaceKind,
   SecretListItem,
 } from '~/app/types';
@@ -39,7 +39,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'ogx') =>
+  (namespace: string, type?: 'storage' | 'maas' | 'vector-db') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
@@ -73,37 +73,37 @@ export const getSecretByName =
       throw new Error('Invalid response format');
     });
 
-export const getOgxModels =
+export const getMaasModels =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<OgxModelsResponse> =>
+  (opts: APIOptions): Promise<MaasModelsResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/models`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`,
         { namespace, secretName },
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<OgxModelsResponse>(response)) {
+      if (isModArchResponse<MaasModelsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
     });
 
-export const getOgxVectorStores =
+export const getMaasVectorStores =
   (hostPath: string) =>
   (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<OgxVectorStoreProvidersResponse> =>
+  (opts: APIOptions): Promise<MaasVectorStoreProvidersResponse> =>
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/ogx/vector-stores`,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/vector-stores`,
         { namespace, secretName },
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<OgxVectorStoreProvidersResponse>(response)) {
+      if (isModArchResponse<MaasVectorStoreProvidersResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

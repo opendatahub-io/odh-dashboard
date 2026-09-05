@@ -1,12 +1,12 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
+import { getMaasModels, getMaasVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  OgxModelsResponse,
-  OgxModelType,
-  OgxFilteredVectorStoreProvidersResponse,
+  MaasModelsResponse,
+  MaasModelType,
+  MaasFilteredVectorStoreProvidersResponse,
   ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
@@ -16,17 +16,17 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
-export function useOgxModelsQuery(
+export function useMaasModelsQuery(
   namespace: string,
   secretName: string,
-  modelType?: OgxModelType,
-): UseQueryResult<OgxModelsResponse, Error> {
+  modelType?: MaasModelType,
+): UseQueryResult<MaasModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     queryKey: ['autorag', 'models', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getOgxModels('')(namespace, secretName)({});
+        const response = await getMaasModels('')(namespace, secretName)({});
         const validated = z
           .object({
             models: z.array(
@@ -48,7 +48,7 @@ export function useOgxModelsQuery(
         };
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid Open GenAI Stack models response');
+          throw new Error('Invalid MaaS models response');
         }
         throw error;
       }
@@ -222,11 +222,11 @@ export function useS3ListFilesQuery(
   });
 }
 
-export function useOgxVectorStoreProvidersQuery(
+export function useMaasVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
   providerTypes?: string[],
-): UseQueryResult<OgxFilteredVectorStoreProvidersResponse, Error> {
+): UseQueryResult<MaasFilteredVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
@@ -234,7 +234,7 @@ export function useOgxVectorStoreProvidersQuery(
     queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getOgxVectorStores('')(namespace, secretName)({});
+        const response = await getMaasVectorStores('')(namespace, secretName)({});
         z.object({
           // eslint-disable-next-line camelcase
           vector_store_providers: z.array(
@@ -249,7 +249,7 @@ export function useOgxVectorStoreProvidersQuery(
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid Open GenAI Stack vector store providers response');
+          throw new Error('Invalid MaaS vector store providers response');
         }
         throw error;
       }
@@ -330,7 +330,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx',
+  type?: 'storage' | 'maas',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

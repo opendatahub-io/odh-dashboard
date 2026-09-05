@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { OgxVectorStoreProvider, OgxVectorStoreProvidersResponse } from '~/app/types';
+import { MaasVectorStoreProvider, MaasVectorStoreProvidersResponse } from '~/app/types';
 
 type MockVectorStoreProviderOptions = {
   provider_id?: string;
@@ -9,14 +9,14 @@ type MockVectorStoreProviderOptions = {
 export const mockVectorStoreProvider = ({
   provider_id = 'milvus',
   provider_type = 'remote::milvus',
-}: MockVectorStoreProviderOptions = {}): OgxVectorStoreProvider => ({
+}: MockVectorStoreProviderOptions = {}): MaasVectorStoreProvider => ({
   provider_id,
   provider_type,
 });
 
 export const mockMilvusVectorStoreProvider = (
   overrides: MockVectorStoreProviderOptions = {},
-): OgxVectorStoreProvider =>
+): MaasVectorStoreProvider =>
   mockVectorStoreProvider({
     provider_id: 'milvus',
     provider_type: 'remote::milvus',
@@ -25,7 +25,7 @@ export const mockMilvusVectorStoreProvider = (
 
 export const mockPgvectorVectorStoreProvider = (
   overrides: MockVectorStoreProviderOptions = {},
-): OgxVectorStoreProvider =>
+): MaasVectorStoreProvider =>
   mockVectorStoreProvider({
     provider_id: 'pgvector',
     provider_type: 'remote::pgvector',
@@ -33,8 +33,8 @@ export const mockPgvectorVectorStoreProvider = (
   });
 
 export const mockVectorStoreProvidersResponse = (
-  providers?: OgxVectorStoreProvider[],
-): OgxVectorStoreProvidersResponse & { totalProviderCount: number } => {
+  providers?: MaasVectorStoreProvider[],
+): MaasVectorStoreProvidersResponse & { totalProviderCount: number } => {
   const list = providers ?? [mockMilvusVectorStoreProvider(), mockPgvectorVectorStoreProvider()];
   return {
     vector_store_providers: list,

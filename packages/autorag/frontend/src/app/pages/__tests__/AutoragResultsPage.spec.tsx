@@ -386,7 +386,7 @@ describe('AutoragResultsPage', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
-        ogx_secret_name: 'ogx-secret',
+        maas_secret_name: 'maas-secret',
         generation_models: ['llama-3'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
@@ -426,7 +426,7 @@ describe('AutoragResultsPage', () => {
           test_data_secret_name: 'test-secret',
           test_data_bucket_name: 'test-bucket',
           test_data_key: 'test.csv',
-          ogx_secret_name: 'ogx-secret',
+          maas_secret_name: 'maas-secret',
           generation_models: ['llama-3'],
           embedding_models: ['text-embedding-3'],
           optimization_metric: 'faithfulness',
@@ -547,9 +547,9 @@ describe('AutoragResultsPage', () => {
       });
     });
 
-    it('should pass ogxCredentials through context when secret data is available', () => {
+    it('should pass maasCredentials through context when secret data is available', () => {
       const mockPipelineRun = createMockPipelineRun(undefined, {
-        ogx_secret_name: 'my-ogx-secret',
+        maas_secret_name: 'my-maas-secret',
       });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -562,8 +562,8 @@ describe('AutoragResultsPage', () => {
 
       mockUseSecretCredentialsQuery.mockReturnValue({
         data: {
-          OGX_CLIENT_BASE_URL: btoa('https://ogx.example.com'),
-          OGX_CLIENT_API_KEY: btoa('sk-test-key'),
+          MAAS_BASE_URL: btoa('https://maas.example.com'),
+          MAAS_API_KEY: btoa('sk-test-key'),
         },
         isLoading: false,
         error: undefined,
@@ -571,18 +571,50 @@ describe('AutoragResultsPage', () => {
 
       renderPage();
 
-      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', 'my-ogx-secret');
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', 'my-maas-secret');
       expect(capturedContext).toMatchObject({
-        ogxCredentials: {
-          baseUrl: btoa('https://ogx.example.com'),
+        maasCredentials: {
+          baseUrl: btoa('https://maas.example.com'),
           apiKey: btoa('sk-test-key'),
         },
       });
     });
 
-    it('should not pass ogxCredentials when secret data is missing required keys', () => {
+    it('should pass maasCredentials when API key is empty (no-auth MaaS)', () => {
       const mockPipelineRun = createMockPipelineRun(undefined, {
-        ogx_secret_name: 'my-ogx-secret',
+        maas_secret_name: 'my-maas-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: {
+          MAAS_BASE_URL: btoa('https://maas.example.com'),
+          MAAS_API_KEY: '',
+        },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        maasCredentials: {
+          baseUrl: btoa('https://maas.example.com'),
+          apiKey: '',
+        },
+      });
+    });
+
+    it('should not pass maasCredentials when secret data is missing required keys', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        maas_secret_name: 'my-maas-secret',
       });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -602,11 +634,11 @@ describe('AutoragResultsPage', () => {
       renderPage();
 
       expect(capturedContext).toMatchObject({
-        ogxCredentials: undefined,
+        maasCredentials: undefined,
       });
     });
 
-    it('should not fetch credentials when ogx_secret_name is absent', () => {
+    it('should not fetch credentials when maas_secret_name is absent', () => {
       const mockPipelineRun = createMockPipelineRun();
 
       mockUsePipelineRunQuery.mockReturnValue({

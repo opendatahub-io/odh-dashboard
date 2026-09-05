@@ -78,22 +78,45 @@ var fakeSecrets = map[string][]v1.Secret{
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ogx",
+				Name:      "maas",
 				Namespace: "my-project",
 				UID:       "494aed77-c620-4ab0-8cd4-3fad4d6247c8",
 				Annotations: map[string]string{
-					"openshift.io/display-name": "ogx",
+					"openshift.io/display-name": "maas",
 				},
 				Labels: map[string]string{
 					"opendatahub.io/managed":         "true",
 					"opendatahub.io/dashboard":       "true",
-					"opendatahub.io/secret-type":     "ogx",
-					"opendatahub.io/connection-type": "ogx",
+					"opendatahub.io/secret-type":     "maas",
+					"opendatahub.io/connection-type": "maas",
 				},
 			},
 			Data: map[string][]byte{
-				"OGX_CLIENT_API_KEY":  []byte("fake-ogx-api-key"),
-				"OGX_CLIENT_BASE_URL": []byte("https://ogx.example.com"),
+				"MAAS_API_KEY":  []byte("fake-maas-api-key"),
+				"MAAS_BASE_URL": []byte("https://maas.example.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "vector-db",
+				Namespace: "my-project",
+				UID:       "5a5bed88-d731-5bc1-9de5-4gae5e7358d9",
+				Annotations: map[string]string{
+					"openshift.io/display-name": "vector-db",
+				},
+				Labels: map[string]string{
+					"opendatahub.io/managed":         "true",
+					"opendatahub.io/dashboard":       "true",
+					"opendatahub.io/secret-type":     "pgvector",
+					"opendatahub.io/connection-type": "pgvector",
+				},
+			},
+			Data: map[string][]byte{
+				"PGVECTOR_HOST":     []byte("pgvector.my-project.svc.cluster.local"),
+				"PGVECTOR_PORT":     []byte("5432"),
+				"PGVECTOR_DB":       []byte("testdb"),
+				"PGVECTOR_USER":     []byte("testuser"),
+				"PGVECTOR_PASSWORD": []byte("testpassword"),
 			},
 		},
 	},

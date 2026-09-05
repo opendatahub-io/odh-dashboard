@@ -42,12 +42,25 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
     ...overrides,
   });
 
-export const mockOGXSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+export const mockMaasSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
-    type: 'ogx',
+    type: 'maas',
     data: {
-      OGX_CLIENT_API_KEY: '[REDACTED]',
-      OGX_CLIENT_BASE_URL: '[REDACTED]',
+      MAAS_API_KEY: '[REDACTED]',
+      MAAS_BASE_URL: '[REDACTED]',
+    },
+    ...overrides,
+  });
+
+export const mockVectorDbSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+  mockSecretListItem({
+    type: 'pgvector',
+    data: {
+      PGVECTOR_HOST: '[REDACTED]',
+      PGVECTOR_PORT: '[REDACTED]',
+      PGVECTOR_DB: '[REDACTED]',
+      PGVECTOR_USER: '[REDACTED]',
+      PGVECTOR_PASSWORD: '[REDACTED]',
     },
     ...overrides,
   });

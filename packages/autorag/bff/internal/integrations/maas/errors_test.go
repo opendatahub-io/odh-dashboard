@@ -1,4 +1,4 @@
-package ogx
+package maas
 
 import (
 	"errors"
@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOGXError_Error(t *testing.T) {
-	err := &OGXError{Code: ErrCodeNotFound, Message: "widget not found"}
-	assert.Equal(t, "Open GenAI Stack error [NOT_FOUND]: widget not found", err.Error())
+func TestMaaSError_Error(t *testing.T) {
+	err := &MaaSError{Code: ErrCodeNotFound, Message: "widget not found"}
+	assert.Equal(t, "Models as a Service error [NOT_FOUND]: widget not found", err.Error())
 }
 
-func TestNewOGXError_Constructors(t *testing.T) {
+func TestNewMaaSError_Constructors(t *testing.T) {
 	tests := []struct {
 		name           string
-		build          func(message string) *OGXError
+		build          func(message string) *MaaSError
 		wantCode       string
 		wantStatusCode int
 	}{

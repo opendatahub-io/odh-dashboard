@@ -2,7 +2,7 @@ import * as secretsApi from '@odh-dashboard/k8s-core/api/secrets';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React, { act } from 'react';
-import OgxConnectionModal from '~/app/components/common/OgxConnectionModal';
+import MaasConnectionModal from '~/app/components/common/MaasConnectionModal';
 
 const TEST_NAMESPACE = 'my-namespace';
 
@@ -12,7 +12,7 @@ jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
 
 const createSecretMock = jest.mocked(secretsApi.createSecret);
 
-describe('OgxConnectionModal', () => {
+describe('MaasConnectionModal', () => {
   const onCloseMock = jest.fn();
   const onSubmitMock = jest.fn();
 
@@ -23,24 +23,22 @@ describe('OgxConnectionModal', () => {
 
   it('should render the modal with all fields', () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Add Open GenAI Stack connection' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('ogx-connection-name')).toBeInTheDocument();
-    expect(screen.getByTestId('ogx-connection-base-url')).toBeInTheDocument();
-    expect(screen.getByTestId('ogx-connection-api-key')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add MaaS connection' })).toBeInTheDocument();
+    expect(screen.getByTestId('maas-connection-name')).toBeInTheDocument();
+    expect(screen.getByTestId('maas-connection-base-url')).toBeInTheDocument();
+    expect(screen.getByTestId('maas-connection-api-key')).toBeInTheDocument();
   });
 
   it('should render the description text', () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -48,13 +46,15 @@ describe('OgxConnectionModal', () => {
     );
 
     expect(
-      screen.getByText(/Provide credentials for accessing an external Open GenAI Stack server/i),
+      screen.getByText(
+        /Provide credentials for accessing an external Models as a Service \(MaaS\) server/i,
+      ),
     ).toBeInTheDocument();
   });
 
   it('should have Add connection button disabled initially', () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -66,7 +66,7 @@ describe('OgxConnectionModal', () => {
 
   it('should enable Add connection button when name and base URL are filled', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -77,10 +77,10 @@ describe('OgxConnectionModal', () => {
     expect(addButton).toBeDisabled();
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -90,7 +90,7 @@ describe('OgxConnectionModal', () => {
 
   it('should not require API key to enable submit', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -98,10 +98,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -116,8 +116,8 @@ describe('OgxConnectionModal', () => {
     expect(createSecretMock).toHaveBeenCalledWith(
       expect.objectContaining({
         stringData: expect.objectContaining({
-          OGX_CLIENT_BASE_URL: 'http://localhost:8080',
-          OGX_CLIENT_API_KEY: '',
+          MAAS_BASE_URL: 'http://localhost:8080',
+          MAAS_API_KEY: '',
         }),
       }),
     );
@@ -125,7 +125,7 @@ describe('OgxConnectionModal', () => {
 
   it('should create secret with correct data when all fields are filled', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -133,13 +133,13 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-api-key'), {
+      fireEvent.change(screen.getByTestId('maas-connection-api-key'), {
         target: { value: 'my-api-key' },
       });
     });
@@ -160,8 +160,8 @@ describe('OgxConnectionModal', () => {
           }),
         }),
         stringData: {
-          OGX_CLIENT_BASE_URL: 'http://localhost:8080',
-          OGX_CLIENT_API_KEY: 'my-api-key',
+          MAAS_BASE_URL: 'http://localhost:8080',
+          MAAS_API_KEY: 'my-api-key',
         },
       }),
     );
@@ -171,7 +171,7 @@ describe('OgxConnectionModal', () => {
 
   it('should call onClose when cancel is clicked', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -189,7 +189,7 @@ describe('OgxConnectionModal', () => {
     createSecretMock.mockRejectedValueOnce(new Error('API error'));
 
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -197,10 +197,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -220,7 +220,7 @@ describe('OgxConnectionModal', () => {
 
   it('should keep button disabled when only name is filled', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -228,7 +228,7 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
     });
@@ -238,7 +238,7 @@ describe('OgxConnectionModal', () => {
 
   it('should keep button disabled when only base URL is filled', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -246,7 +246,7 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -256,7 +256,7 @@ describe('OgxConnectionModal', () => {
 
   it('should keep button disabled when base URL is invalid', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -264,10 +264,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'not-a-url' },
       });
     });
@@ -277,14 +277,14 @@ describe('OgxConnectionModal', () => {
 
   it('should show validation error after blurring base URL with invalid value', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
       />,
     );
 
-    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+    const baseUrlInput = screen.getByTestId('maas-connection-base-url');
 
     await act(async () => {
       fireEvent.change(baseUrlInput, { target: { value: 'not-a-url' } });
@@ -296,7 +296,7 @@ describe('OgxConnectionModal', () => {
 
   it('should keep button disabled when name contains only spaces', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -304,10 +304,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: '   ' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -317,7 +317,7 @@ describe('OgxConnectionModal', () => {
 
   it('should show auto-generated resource name when connection name is entered', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -325,7 +325,7 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
     });
@@ -335,7 +335,7 @@ describe('OgxConnectionModal', () => {
 
   it('should use manually edited resource name in the created secret', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -343,24 +343,24 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
     });
 
     // Click "Edit resource name" and override the auto-generated value
     await act(async () => {
-      screen.getByTestId('ogx-connection-editResourceLink').click();
+      screen.getByTestId('maas-connection-editResourceLink').click();
     });
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-resourceName'), {
+      fireEvent.change(screen.getByTestId('maas-connection-resourceName'), {
         target: { value: 'custom-resource-name' },
       });
     });
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -385,14 +385,14 @@ describe('OgxConnectionModal', () => {
 
   it('should trim base URL on blur', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
       />,
     );
 
-    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+    const baseUrlInput = screen.getByTestId('maas-connection-base-url');
 
     await act(async () => {
       fireEvent.change(baseUrlInput, { target: { value: '  http://localhost:8080  ' } });
@@ -412,7 +412,7 @@ describe('OgxConnectionModal', () => {
     ['//example.com', false],
   ])('should treat URL "%s" as %s', async (url, valid) => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -420,10 +420,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'Test' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: url },
       });
     });
@@ -440,7 +440,7 @@ describe('OgxConnectionModal', () => {
     onSubmitMock.mockRejectedValueOnce(new Error('Refresh failed'));
 
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
@@ -448,10 +448,10 @@ describe('OgxConnectionModal', () => {
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByTestId('ogx-connection-name'), {
+      fireEvent.change(screen.getByTestId('maas-connection-name'), {
         target: { value: 'My Connection' },
       });
-      fireEvent.change(screen.getByTestId('ogx-connection-base-url'), {
+      fireEvent.change(screen.getByTestId('maas-connection-base-url'), {
         target: { value: 'http://localhost:8080' },
       });
     });
@@ -471,14 +471,14 @@ describe('OgxConnectionModal', () => {
 
   it('should toggle API key visibility when eyeball button is clicked', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
       />,
     );
 
-    const apiKeyInput = screen.getByTestId('ogx-connection-api-key');
+    const apiKeyInput = screen.getByTestId('maas-connection-api-key');
     expect(apiKeyInput).toHaveAttribute('type', 'password');
 
     await act(async () => {
@@ -496,14 +496,14 @@ describe('OgxConnectionModal', () => {
 
   it('should clear validation error when base URL is corrected', async () => {
     render(
-      <OgxConnectionModal
+      <MaasConnectionModal
         namespace={TEST_NAMESPACE}
         onClose={onCloseMock}
         onSubmit={onSubmitMock}
       />,
     );
 
-    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+    const baseUrlInput = screen.getByTestId('maas-connection-base-url');
 
     await act(async () => {
       fireEvent.change(baseUrlInput, { target: { value: 'not-a-url' } });
@@ -519,8 +519,6 @@ describe('OgxConnectionModal', () => {
     expect(
       screen.queryByText('Enter a valid URL (e.g. https://example.com).'),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText('The base URL of the Open GenAI Stack connection.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('The base URL of the MaaS connection.')).toBeInTheDocument();
   });
 });
