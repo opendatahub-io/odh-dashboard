@@ -446,7 +446,10 @@ Returns `200 OK` with the created pipeline run:
         "input_data_secret_name": "minio-secret",
         "input_data_bucket_name": "autorag",
         "input_data_key": "documents/",
-        "maas_secret_name": "llama-secret"
+        "maas_secret_name": "maas-secret",
+        "vector_db_secret_name": "vector-db-secret",
+        "embedding_models": ["granite-embedding"],
+        "generation_models": ["granite-8b"]
       }
     },
     "state": "PENDING",

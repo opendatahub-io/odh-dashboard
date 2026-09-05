@@ -34,6 +34,7 @@ jest.mock('~/app/hooks/queries', () => ({
 
 const mockGetStorageSecrets = jest.fn();
 const mockGetLlsSecrets = jest.fn();
+const mockGetVectorDbSecrets = jest.fn();
 jest.mock('~/app/api/k8s', () => ({
   getSecrets: () => (namespace: string, type: string) => {
     if (namespace !== 'test-ns') {
@@ -44,6 +45,9 @@ jest.mock('~/app/api/k8s', () => ({
     }
     if (type === 'maas') {
       return mockGetLlsSecrets;
+    }
+    if (type === 'vector-db') {
+      return mockGetVectorDbSecrets;
     }
     return jest.fn().mockResolvedValue([]);
   },
@@ -100,6 +104,7 @@ let capturedProps: {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: unknown;
   initialMaasSecret?: unknown;
+  initialVectorDbSecret?: unknown;
   sourceRunId?: string;
   sourceRunName?: string;
 } = {};
@@ -171,6 +176,7 @@ describe('AutoragReconfigureLoader', () => {
 
     mockGetStorageSecrets.mockResolvedValue([]);
     mockGetLlsSecrets.mockResolvedValue([]);
+    mockGetVectorDbSecrets.mockResolvedValue([]);
   });
 
   describe('loading state', () => {
@@ -201,6 +207,8 @@ describe('AutoragReconfigureLoader', () => {
       mockGetStorageSecrets.mockReturnValue(new Promise(() => {}));
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       mockGetLlsSecrets.mockReturnValue(new Promise(() => {}));
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      mockGetVectorDbSecrets.mockReturnValue(new Promise(() => {}));
 
       renderPage();
 
@@ -747,6 +755,9 @@ describe('AutoragReconfigureLoader', () => {
         },
       ];
       mockGetLlsSecrets.mockResolvedValue(mockMaasSecrets);
+      mockGetVectorDbSecrets.mockResolvedValue([
+        { uuid: 'vdb-uuid-1', name: 'my-vector-db', type: 'pgvector', data: {} },
+      ]);
 
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun(
@@ -782,11 +793,59 @@ describe('AutoragReconfigureLoader', () => {
         });
       });
 
+      await waitFor(() => {
+        expect(capturedProps.initialVectorDbSecret).toMatchObject({
+          uuid: 'vdb-uuid-1',
+          name: 'my-vector-db',
+          type: 'pgvector',
+        });
+      });
+
       expect(capturedProps.initialValues).toMatchObject({
         maas_secret_name: 'my-maas-conn',
         vector_db_secret_name: 'my-vector-db',
         embedding_models: ['model-a'],
         display_name: 'Legacy Run - 1',
+      });
+    });
+
+    it('should warn and not set initialVectorDbSecret when the vector database secret is missing', async () => {
+      mockGetVectorDbSecrets.mockResolvedValue([
+        { uuid: 'other-uuid', name: 'other-vector-db', type: 'pgvector', data: {} },
+      ]);
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Legacy Run' },
+          {
+            input_data_secret_name: 's3-secret',
+            input_data_bucket_name: 'bucket',
+            input_data_key: 'file.pdf',
+            test_data_secret_name: 's3-secret',
+            test_data_bucket_name: 'bucket',
+            test_data_key: 'eval.json',
+            maas_secret_name: 'my-maas-conn',
+            vector_db_secret_name: 'missing-vector-db',
+            embedding_models: ['model-a'],
+            optimization_metric: 'faithfulness',
+            optimization_max_rag_patterns: 8,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      expect(capturedProps.initialVectorDbSecret).toBeUndefined();
+      await waitFor(() => {
+        expect(mockNotification.warning).toHaveBeenCalledWith(
+          'Connection secret not found',
+          expect.stringContaining('missing-vector-db'),
+        );
       });
     });
   });

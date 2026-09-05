@@ -60,8 +60,8 @@ function createConfigureSchema() {
       maas_secret_name: z.string().min(1).default(''),
       vector_db_secret_name: z.string().min(1).default(''),
 
-      generation_models: z.array(z.string()).min(1).default([]),
-      embedding_models: z.array(z.string()).min(1).default([]),
+      generation_models: z.array(z.string().trim().min(1)).min(1).default([]),
+      embedding_models: z.array(z.string().trim().min(1)).min(1).default([]),
 
       optimization_metric: RAG_OPTIMIZATION_METRICS.default(DEFAULT_OPTIMIZATION_METRIC),
       optimization_max_rag_patterns: z

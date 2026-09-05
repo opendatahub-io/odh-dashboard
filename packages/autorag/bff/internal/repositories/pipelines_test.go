@@ -211,6 +211,30 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 			t.Errorf("250 chars should be valid: %v", err)
 		}
 	})
+
+	t.Run("blank embedding_models identifiers", func(t *testing.T) {
+		req := validRequest()
+		req.EmbeddingsModels = []string{""}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "embedding_models") {
+			t.Errorf("error should mention embedding_models: %v", err)
+		}
+	})
+
+	t.Run("whitespace generation_models identifiers", func(t *testing.T) {
+		req := validRequest()
+		req.GenerationModels = []string{" "}
+		err := ValidateCreateAutoRAGRunRequest(req)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "generation_models") {
+			t.Errorf("error should mention generation_models: %v", err)
+		}
+	})
 }
 
 func TestBuildPipelineRunInput(t *testing.T) {

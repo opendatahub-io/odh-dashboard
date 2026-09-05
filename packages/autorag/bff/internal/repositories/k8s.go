@@ -137,14 +137,12 @@ func secretInfoHasAnyKeyCI(data map[string]string, names ...string) bool {
 	return false
 }
 
-// isMaasCompatibleSecret reports whether a secret has a MaaS or legacy OGX
-// base-URL key and the matching API-key key (the API-key value may be empty).
+// isMaasCompatibleSecret reports whether a secret has any supported base-URL
+// alias together with any supported API-key alias (including mixed MaaS/OGX
+// pairs). The API-key value may be empty.
 func isMaasCompatibleSecret(secret kubernetes.SecretInfo) bool {
-	hasMaasPair := secretInfoHasAnyKeyCI(secret.Data, "maas_base_url") &&
-		secretInfoHasAnyKeyCI(secret.Data, "maas_api_key")
-	hasOgxPair := secretInfoHasAnyKeyCI(secret.Data, "ogx_client_base_url") &&
-		secretInfoHasAnyKeyCI(secret.Data, "ogx_client_api_key")
-	return hasMaasPair || hasOgxPair
+	return secretInfoHasAnyKeyCI(secret.Data, maasCredentialBaseURLKeys...) &&
+		secretInfoHasAnyKeyCI(secret.Data, maasCredentialAPIKeyKeys...)
 }
 
 func filterMaasSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretInfo {

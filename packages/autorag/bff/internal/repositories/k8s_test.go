@@ -441,6 +441,47 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("maas type includes mixed MaaS and OGX credential aliases", func(t *testing.T) {
+		k8sMixed := &mockK8sService{
+			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
+				return []kubernetes.SecretInfo{
+					{
+						UUID: "uid-maas-url-ogx-key", Name: "maas-url-ogx-key",
+						Data: map[string]string{
+							"MAAS_BASE_URL":      "https://maas.example.com",
+							"OGX_CLIENT_API_KEY": "k",
+						},
+					},
+					{
+						UUID: "uid-ogx-url-maas-key", Name: "ogx-url-maas-key",
+						Data: map[string]string{
+							"OGX_CLIENT_BASE_URL": "https://ogx.example.com",
+							"MAAS_API_KEY":        "k",
+						},
+					},
+					plainSecret("db-creds"),
+				}, nil
+			},
+		}
+		result, err := repo.GetFilteredSecrets(k8sMixed, context.Background(), "ns", "maas")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 mixed-alias maas secrets, got %d", len(result))
+		}
+		names := map[string]bool{}
+		for _, s := range result {
+			names[s.Name] = true
+			if s.Type != "maas" {
+				t.Errorf("%s Type = %q, want maas", s.Name, s.Type)
+			}
+		}
+		if !names["maas-url-ogx-key"] || !names["ogx-url-maas-key"] {
+			t.Errorf("names = %v", names)
+		}
+	})
+
 	t.Run("invalid type returns error", func(t *testing.T) {
 		_, err := repo.GetFilteredSecrets(k8s, context.Background(), "ns", "invalid")
 		if err == nil {

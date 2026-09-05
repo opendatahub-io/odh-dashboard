@@ -1942,7 +1942,7 @@ describe('AutoragConfigurePage', () => {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
         maas_secret_name: 'Test MaaS Secret',
-        vector_db_secret_name: 'vector-db-secret',
+        vector_db_secret_name: 'prefilled-vector-db-secret',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
         input_data_key: 'my-data/input.pdf',
@@ -2033,7 +2033,7 @@ describe('AutoragConfigurePage', () => {
         await navigateToConfigure();
 
         expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent(
-          'vector-db-secret',
+          'prefilled-vector-db-secret',
         );
       });
 

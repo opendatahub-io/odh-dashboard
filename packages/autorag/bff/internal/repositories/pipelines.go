@@ -345,6 +345,12 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
+	if containsBlankIdentifier(req.EmbeddingsModels) {
+		return NewValidationError("embedding_models must not contain empty identifiers")
+	}
+	if containsBlankIdentifier(req.GenerationModels) {
+		return NewValidationError("generation_models must not contain empty identifiers")
+	}
 
 	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
 		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
@@ -454,4 +460,13 @@ func BuildIndexingPipelineRunInput(req models.CreateIndexingPipelineRunRequest, 
 			Parameters: params,
 		},
 	}
+}
+
+func containsBlankIdentifier(values []string) bool {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			return true
+		}
+	}
+	return false
 }

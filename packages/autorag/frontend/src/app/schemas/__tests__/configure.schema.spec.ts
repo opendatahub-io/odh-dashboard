@@ -326,6 +326,31 @@ describe('Configure Schema', () => {
       }
     });
 
+    it('should reject blank embedding_models entries', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+        generation_models: ['gpt-4'],
+        embedding_models: [' '],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('embedding_models.0');
+      }
+    });
+
     it('should reject empty vector_db_secret_name', () => {
       const data = {
         display_name: 'Test Run',
