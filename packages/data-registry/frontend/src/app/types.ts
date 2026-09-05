@@ -64,7 +64,7 @@ export type AssetResponse = {
   connection_ref?: ConnectionRef | string | null;
   owner?: string;
   description?: string;
-  labels?: string[];
+  labels?: string[] | null;
   properties?: Record<string, string>;
   registered_by?: string;
   updated_by?: string;
@@ -86,7 +86,7 @@ export type VolumeInfo = {
   owner?: string;
   'created-at'?: string;
   'updated-at'?: string;
-  labels?: string[];
+  labels?: string[] | null;
   properties?: Record<string, string>;
   config?: Record<string, string>;
 };

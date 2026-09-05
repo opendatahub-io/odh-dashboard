@@ -22,6 +22,7 @@ import {
 import { PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
 const UNSTRUCTURED_FORMATS = [
   { key: 'documents', label: 'Documents', description: 'Text, PDFs, and office files' },
@@ -46,22 +47,27 @@ const DEFAULT_FORMATS: Record<string, string> = {
   structured: 'iceberg',
 };
 
-type AssetDetailsSectionProps = {
-  collections: string[];
-  onManageCollections: () => void;
-};
+type AssetDetailsSectionProps =
+  | {
+      isEditMode?: false;
+      collections: string[];
+      onManageCollections: () => void;
+    }
+  | {
+      isEditMode: true;
+      collections?: never;
+      onManageCollections?: never;
+    };
 
-const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
-  collections,
-  onManageCollections,
-}) => {
+const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = (props) => {
+  const { isEditMode } = props;
   const {
     control,
     formState: { errors },
     setValue,
     getValues,
     watch,
-  } = useFormContext<RegisterDataFormData>();
+  } = useFormContext<RegisterDataFormData | EditAssetFormData>();
 
   const assetType = watch('assetType');
   const labels = watch('labels');
@@ -95,33 +101,46 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
   );
 
   return (
-    <FormSection title="Data asset details" titleElement="h2">
-      <Content component="p">
-        Provide general identification and classification details for this data asset.
-      </Content>
+    <FormSection title={isEditMode ? 'Asset details' : 'Data asset details'} titleElement="h2">
+      {isEditMode ? null : (
+        <Content component="p">
+          Provide general identification and classification details for this data asset.
+        </Content>
+      )}
 
-      <Controller
-        name="name"
-        control={control}
-        render={({ field }) => (
-          <FormGroup label="Asset name" isRequired fieldId="data-name">
-            <TextInput
-              id="data-name"
-              {...field}
-              isRequired
-              validated={errors.name ? 'error' : 'default'}
-              data-testid="data-name-input"
-            />
-            {errors.name ? (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error">{errors.name.message}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            ) : null}
-          </FormGroup>
-        )}
-      />
+      {isEditMode ? (
+        <FormGroup label="Name" fieldId="data-name">
+          <TextInput
+            id="data-name"
+            value={getValues('name')}
+            readOnlyVariant="default"
+            data-testid="data-name-input"
+          />
+        </FormGroup>
+      ) : (
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <FormGroup label="Asset name" isRequired fieldId="data-name">
+              <TextInput
+                id="data-name"
+                {...field}
+                isRequired
+                validated={errors.name ? 'error' : 'default'}
+                data-testid="data-name-input"
+              />
+              {errors.name ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="error">{errors.name.message}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </FormGroup>
+          )}
+        />
+      )}
 
       <Controller
         name="description"
@@ -145,65 +164,76 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         )}
       />
 
-      <Controller
-        name="assetType"
-        control={control}
-        render={({ field }) => (
-          <FormGroup
-            label="Asset type"
-            isRequired
-            fieldId="asset-type"
-            labelHelp={
-              <Popover bodyContent="Unstructured assets are file-based volumes. Structured assets represent tabular data with defined columns and types.">
-                <Icon aria-label="Asset type info" role="button">
-                  <OutlinedQuestionCircleIcon />
-                </Icon>
-              </Popover>
-            }
-          >
-            <Select
-              isOpen={isAssetTypeOpen}
-              selected={field.value}
-              onSelect={(_event, value) => {
-                const newType = String(value);
-                field.onChange(newType);
-                setValue('format', DEFAULT_FORMATS[newType]);
-                setValue('schemaFields', []);
-                setIsAssetTypeOpen(false);
-              }}
-              onOpenChange={setIsAssetTypeOpen}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsAssetTypeOpen((prev) => !prev)}
-                  isExpanded={isAssetTypeOpen}
-                  isFullWidth
-                  data-testid="asset-type-toggle"
-                >
-                  {field.value === 'structured' ? 'Structured' : 'Unstructured'}
-                </MenuToggle>
-              )}
+      {isEditMode ? (
+        <FormGroup label="Asset type" fieldId="asset-type">
+          <TextInput
+            id="asset-type"
+            value={assetType === 'structured' ? 'Structured' : 'Unstructured'}
+            readOnlyVariant="default"
+            data-testid="asset-type-toggle"
+          />
+        </FormGroup>
+      ) : (
+        <Controller
+          name="assetType"
+          control={control}
+          render={({ field }) => (
+            <FormGroup
+              label="Asset type"
+              isRequired
+              fieldId="asset-type"
+              labelHelp={
+                <Popover bodyContent="Unstructured assets are file-based volumes. Structured assets represent tabular data with defined columns and types.">
+                  <Icon aria-label="Asset type info" role="button">
+                    <OutlinedQuestionCircleIcon />
+                  </Icon>
+                </Popover>
+              }
             >
-              <SelectList>
-                <SelectOption
-                  value="unstructured"
-                  description="File-based volumes (documents, images, audio, video)"
-                  data-testid="asset-type-unstructured"
-                >
-                  Unstructured
-                </SelectOption>
-                <SelectOption
-                  value="structured"
-                  description="Tabular data with defined columns and types"
-                  data-testid="asset-type-structured"
-                >
-                  Structured
-                </SelectOption>
-              </SelectList>
-            </Select>
-          </FormGroup>
-        )}
-      />
+              <Select
+                isOpen={isAssetTypeOpen}
+                selected={field.value}
+                onSelect={(_event, value) => {
+                  const newType = String(value);
+                  field.onChange(newType);
+                  setValue('format', DEFAULT_FORMATS[newType]);
+                  setValue('schemaFields', []);
+                  setIsAssetTypeOpen(false);
+                }}
+                onOpenChange={setIsAssetTypeOpen}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsAssetTypeOpen((prev) => !prev)}
+                    isExpanded={isAssetTypeOpen}
+                    isFullWidth
+                    data-testid="asset-type-toggle"
+                  >
+                    {field.value === 'structured' ? 'Structured' : 'Unstructured'}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  <SelectOption
+                    value="unstructured"
+                    description="File-based volumes (documents, images, audio, video)"
+                    data-testid="asset-type-unstructured"
+                  >
+                    Unstructured
+                  </SelectOption>
+                  <SelectOption
+                    value="structured"
+                    description="Tabular data with defined columns and types"
+                    data-testid="asset-type-structured"
+                  >
+                    Structured
+                  </SelectOption>
+                </SelectList>
+              </Select>
+            </FormGroup>
+          )}
+        />
+      )}
 
       <Controller
         name="format"
@@ -258,67 +288,86 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         )}
       />
 
-      <Controller
-        name="collection"
-        control={control}
-        render={({ field }) => (
-          <FormGroup label="Collection" isRequired fieldId="data-collection">
-            <Content component="p">
-              Assign this asset to collections to help group your data. To manage collections for
-              the entire project, go to{' '}
-              <Button variant="link" isInline onClick={onManageCollections}>
-                Manage collections
-              </Button>
-              .
-            </Content>
-            <Select
-              isOpen={isCollectionOpen}
-              selected={field.value}
-              onSelect={(_event, value) => {
-                if (value === '__create_new__') {
+      {isEditMode ? (
+        <FormGroup label="Collection" fieldId="data-collection">
+          <Content component="p">
+            Assign this asset to collections to help group your data. To manage collections for the
+            entire project, go to{' '}
+            <Button variant="link" isInline isDisabled>
+              Manage collections
+            </Button>
+            .
+          </Content>
+          <TextInput
+            id="data-collection"
+            value={getValues('collection')}
+            readOnlyVariant="default"
+            data-testid="data-collection-toggle"
+          />
+        </FormGroup>
+      ) : (
+        <Controller
+          name="collection"
+          control={control}
+          render={({ field }) => (
+            <FormGroup label="Collection" fieldId="data-collection">
+              <Content component="p">
+                Assign this asset to collections to help group your data. To manage collections for
+                the entire project, go to{' '}
+                <Button variant="link" isInline onClick={props.onManageCollections}>
+                  Manage collections
+                </Button>
+                .
+              </Content>
+              <Select
+                isOpen={isCollectionOpen}
+                selected={field.value}
+                onSelect={(_event, value) => {
+                  if (value === '__create_new__') {
+                    setIsCollectionOpen(false);
+                    props.onManageCollections();
+                    return;
+                  }
+                  field.onChange(String(value));
                   setIsCollectionOpen(false);
-                  onManageCollections();
-                  return;
-                }
-                field.onChange(String(value));
-                setIsCollectionOpen(false);
-              }}
-              onOpenChange={setIsCollectionOpen}
-              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsCollectionOpen((prev) => !prev)}
-                  isExpanded={isCollectionOpen}
-                  isFullWidth
-                  data-testid="data-collection-toggle"
-                >
-                  {field.value || 'Select collection'}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                {collections.map((coll) => (
-                  <SelectOption key={coll} value={coll}>
-                    {coll}
+                }}
+                onOpenChange={setIsCollectionOpen}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsCollectionOpen((prev) => !prev)}
+                    isExpanded={isCollectionOpen}
+                    isFullWidth
+                    data-testid="data-collection-toggle"
+                  >
+                    {field.value || 'Select collection'}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  {props.collections.map((coll) => (
+                    <SelectOption key={coll} value={coll}>
+                      {coll}
+                    </SelectOption>
+                  ))}
+                  <SelectOption key="__create_new__" value="__create_new__">
+                    <Button variant="link" isInline icon={<PlusCircleIcon />}>
+                      Create new collection
+                    </Button>
                   </SelectOption>
-                ))}
-                <SelectOption key="__create_new__" value="__create_new__">
-                  <Button variant="link" isInline icon={<PlusCircleIcon />}>
-                    Create new collection
-                  </Button>
-                </SelectOption>
-              </SelectList>
-            </Select>
-            {errors.collection ? (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error">{errors.collection.message}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            ) : null}
-          </FormGroup>
-        )}
-      />
+                </SelectList>
+              </Select>
+              {errors.collection ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="error">{errors.collection.message}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </FormGroup>
+          )}
+        />
+      )}
 
       <FormGroup label="Labels" fieldId="data-labels">
         <Content component="p">
@@ -332,7 +381,13 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = ({
         {labels.length > 0 ? (
           <LabelGroup numLabels={5}>
             {labels.map((label) => (
-              <Label key={label} onClose={() => handleRemoveLabel(label)}>
+              <Label
+                key={label}
+                variant={isEditMode ? 'outline' : undefined}
+                onClose={() => handleRemoveLabel(label)}
+                closeBtnProps={{ 'data-testid': `data-label-remove-${label}` }}
+                data-testid={`data-label-${label}`}
+              >
                 {label}
               </Label>
             ))}
