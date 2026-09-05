@@ -1,5 +1,10 @@
-import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/k8s-core';
-import { resolveHardwareModels, resolvePerModelGpuCounts } from '../hardwareModels';
+import { ClusterQueueKind, ResourceFlavorKind, type WorkloadKind } from '@odh-dashboard/k8s-core';
+import {
+  buildResourceFlavorByName,
+  resolveHardwareModels,
+  resolvePerModelGpuCounts,
+  resolveWorkloadHardwareProfile,
+} from '../hardwareModels';
 
 const makeGpuCQ = (
   name: string,
@@ -212,5 +217,86 @@ describe('resolvePerModelGpuCounts', () => {
     expect(result.get('cq-2')).toEqual([
       { model: 'NVIDIA H100', nominal: 4, used: 4, borrowed: 2 },
     ]);
+  });
+});
+
+describe('resolveWorkloadHardwareProfile', () => {
+  it('maps admitted resource flavor assignments to GPU product labels', () => {
+    const resourceFlavor = makeRF('gpu-l40s', 'NVIDIA-L40S');
+    const workload: WorkloadKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'Workload',
+      metadata: { name: 'wl-test', namespace: 'test-ns' },
+      spec: { podSets: [] },
+      status: {
+        admission: {
+          clusterQueue: 'gpu-cq',
+          podSetAssignments: [{ name: 'main', flavors: { 'nvidia.com/gpu': 'gpu-l40s' } }],
+        },
+      },
+    };
+
+    expect(
+      resolveWorkloadHardwareProfile(workload, buildResourceFlavorByName([resourceFlavor])),
+    ).toBe('NVIDIA-L40S');
+  });
+
+  it('returns undefined when no flavor matches', () => {
+    const workload: WorkloadKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'Workload',
+      metadata: { name: 'wl-test', namespace: 'test-ns' },
+      spec: { podSets: [] },
+      status: {
+        admission: {
+          clusterQueue: 'gpu-cq',
+          podSetAssignments: [{ name: 'main', flavors: { 'nvidia.com/gpu': 'missing-flavor' } }],
+        },
+      },
+    };
+
+    expect(
+      resolveWorkloadHardwareProfile(workload, buildResourceFlavorByName([makeRF('gpu-l40s')])),
+    ).toBeUndefined();
+  });
+
+  it('deduplicates, sorts, and joins multiple GPU product labels', () => {
+    const l40sFlavor: ResourceFlavorKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'ResourceFlavor',
+      metadata: { name: 'gpu-l40s' },
+      spec: { nodeLabels: { 'nvidia.com/gpu.product': 'NVIDIA-L40S' } },
+    };
+    const h100Flavor: ResourceFlavorKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'ResourceFlavor',
+      metadata: { name: 'gpu-h100' },
+      spec: { nodeLabels: { 'nvidia.com/gpu.product': 'NVIDIA-H100' } },
+    };
+    const workload: WorkloadKind = {
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
+      kind: 'Workload',
+      metadata: { name: 'wl-multi', namespace: 'test-ns' },
+      spec: { podSets: [] },
+      status: {
+        admission: {
+          clusterQueue: 'gpu-cq',
+          podSetAssignments: [
+            {
+              name: 'main',
+              flavors: {
+                'nvidia.com/gpu': 'gpu-l40s',
+                'amd.com/gpu': 'gpu-h100',
+                'intel.com/gpu': 'gpu-l40s',
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    expect(
+      resolveWorkloadHardwareProfile(workload, buildResourceFlavorByName([l40sFlavor, h100Flavor])),
+    ).toBe('NVIDIA-H100, NVIDIA-L40S');
   });
 });
