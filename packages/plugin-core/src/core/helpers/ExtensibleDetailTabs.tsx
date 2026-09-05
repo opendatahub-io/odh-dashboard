@@ -14,6 +14,103 @@ import type { DetailTabProperties } from '../../extension-points/detail-tabs';
 import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-points/utils';
 
 const DEFAULT_GROUP = '5_default';
+const EMPTY_COMPONENT_PROPS: Record<string, unknown> = {};
+
+/**
+ * Evaluates `shouldShow` predicates for extension tabs inside an effect rather
+ * than during render, preventing side-effects (e.g. fetch requests) from firing
+ * in useMemo. A ref-based cache deduplicates calls across React 18 StrictMode
+ * double-mounts. Sync predicates are applied synchronously within the effect;
+ * async predicates default to hidden until their Promise resolves.
+ */
+const useShouldShowResults = <TExtension extends Extension<string, DetailTabProperties>>(
+  extensions: LoadedExtension<TExtension>[],
+  componentProps: Record<string, unknown>,
+): Record<string, boolean> => {
+  const [results, setResults] = React.useState<Record<string, boolean>>({});
+  const cacheRef = React.useRef(
+    new Map<string, { promise: Promise<boolean>; props: Record<string, unknown> }>(),
+  );
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const syncBatch: Record<string, boolean> = {};
+    const pendingUids = new Set<string>();
+    const activeUids = new Set<string>();
+
+    extensions.forEach((ext) => {
+      const { shouldShow } = ext.properties;
+      if (!shouldShow) {
+        return;
+      }
+      activeUids.add(ext.uid);
+
+      const cached = cacheRef.current.get(ext.uid);
+      let promise: Promise<boolean> | undefined;
+
+      if (cached && cached.props === componentProps) {
+        promise = cached.promise;
+      } else {
+        const result = shouldShow(componentProps);
+        if (typeof result === 'boolean') {
+          syncBatch[ext.uid] = result;
+          cacheRef.current.delete(ext.uid);
+          return;
+        }
+        promise = result;
+        cacheRef.current.set(ext.uid, { promise, props: componentProps });
+      }
+
+      pendingUids.add(ext.uid);
+      promise.then(
+        (visible) => {
+          if (!controller.signal.aborted) {
+            setResults((prev) =>
+              prev[ext.uid] === visible ? prev : { ...prev, [ext.uid]: visible },
+            );
+          }
+        },
+        () => {
+          if (!controller.signal.aborted) {
+            setResults((prev) => (prev[ext.uid] === false ? prev : { ...prev, [ext.uid]: false }));
+          }
+        },
+      );
+    });
+
+    for (const uid of cacheRef.current.keys()) {
+      if (!activeUids.has(uid)) {
+        cacheRef.current.delete(uid);
+      }
+    }
+
+    setResults((prev) => {
+      let next: Record<string, boolean> | undefined;
+
+      for (const uid of Object.keys(prev)) {
+        if (!activeUids.has(uid) || pendingUids.has(uid)) {
+          next ??= { ...prev };
+          delete next[uid];
+        }
+      }
+
+      for (const uid of Object.keys(syncBatch)) {
+        if ((next ?? prev)[uid] !== syncBatch[uid]) {
+          next ??= { ...prev };
+          next[uid] = syncBatch[uid];
+        }
+      }
+
+      return next ?? prev;
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [extensions, componentProps]);
+
+  return results;
+};
 
 type StaticTab = {
   id: string;
@@ -99,15 +196,34 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   unmountOnExit = false,
   tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
+  const eligibleExtensions = React.useMemo(
+    () =>
+      (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
+        .filter((ext) => (group ? ext.properties.group === group : true))
+        .filter((ext) => isValidExtensionId(ext.properties.id)),
+    [extensionTabs, filterExtension, group],
+  );
+
+  const shouldShowResults = useShouldShowResults(
+    eligibleExtensions,
+    componentProps ?? EMPTY_COMPONENT_PROPS,
+  );
+
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
-        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
-          .filter((ext) => (group ? ext.properties.group === group : true))
-          .filter((ext) => isValidExtensionId(ext.properties.id)),
+        eligibleExtensions.filter((ext) => {
+          if (!ext.properties.shouldShow) {
+            return true;
+          }
+          if (!(ext.uid in shouldShowResults)) {
+            return ext.properties.id === activeKey;
+          }
+          return shouldShowResults[ext.uid];
+        }),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension, group],
+    [eligibleExtensions, shouldShowResults, activeKey],
   );
 
   const allTabs = React.useMemo(
@@ -123,6 +239,15 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
     ],
     [staticTabs, filteredExtensions],
   );
+
+  const effectiveActiveKey =
+    allTabs.length > 0 && !allTabs.some((tab) => tab.id === activeKey) ? allTabs[0].id : activeKey;
+
+  React.useEffect(() => {
+    if (effectiveActiveKey !== activeKey) {
+      onSelect(effectiveActiveKey);
+    }
+  }, [effectiveActiveKey, activeKey, onSelect]);
 
   if (allTabs.length === 0) {
     return null;
@@ -143,7 +268,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
 
   return (
     <Tabs
-      activeKey={activeKey}
+      activeKey={effectiveActiveKey}
       aria-label={ariaLabel}
       role="region"
       data-testid={testId}
