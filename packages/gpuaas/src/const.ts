@@ -18,8 +18,23 @@ export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/quer
 
 export const INFRASTRUCTURE_TABS = [
   { id: 'utilization', title: 'Utilization' },
-  { id: 'cluster-queue-utilization', title: 'Compute profile utilization' },
+  { id: 'quota-usage', title: 'Quota usage' },
 ] as const;
+
+export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+export const QUOTA_USAGE_DESCRIPTION =
+  'View quota usage across cluster queues, which are entry points for workloads to access defined pools of hardware resources. Cluster queues organized into cohorts can borrow accelerators from the defined pool.';
+
+export const QUOTA_USAGE_EMPTY_TITLE = 'No accelerator cluster queues found';
+export const QUOTA_USAGE_EMPTY_BODY =
+  'No cluster queues with accelerator resources were detected. Configure cluster queues with GPU resource quotas to see utilization here.';
+export const QUOTA_USAGE_ERROR_TITLE = 'Error loading cluster queue data';
+
+export const QUOTA_UNASSIGNED_NODE_ID = 'quota-unassigned';
+export const QUOTA_UNASSIGNED_LABEL = 'Unassigned';
+export const QUOTA_UNASSIGNED_TOOLTIP = 'Cluster queues not assigned to a cohort.';
+export const QUOTA_USAGE_TREE_DRAWER_PANEL_ID = 'quota-usage-tree-drawer-panel';
 
 export const INFRASTRUCTURE_SECTIONS = [
   {
@@ -28,6 +43,8 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Summary',
     description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
     id: 'hardware-usage',
@@ -35,6 +52,8 @@ export const INFRASTRUCTURE_SECTIONS = [
     title: 'Hardware usage',
     description: 'Accelerator counts by hardware type.',
     isPlain: false,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
     id: 'borrowing',
@@ -43,13 +62,17 @@ export const INFRASTRUCTURE_SECTIONS = [
     description:
       '7-day borrowing trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues.',
     isPlain: false,
+    refreshBadgeTestId: undefined,
+    showKueueHelpLink: false,
   },
   {
-    id: 'cluster-queue-utilization',
-    tab: 'cluster-queue-utilization',
-    title: 'Compute profile utilization',
-    description: 'Compute profile accelerator utilization grouped by Kueue cohort.',
+    id: 'quota-usage',
+    tab: 'quota-usage',
+    title: 'Quota usage',
+    description: QUOTA_USAGE_DESCRIPTION,
     isPlain: true,
+    refreshBadgeTestId: 'quota-usage-refresh-badge',
+    showKueueHelpLink: true,
   },
 ] as const;
 

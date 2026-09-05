@@ -1,5 +1,33 @@
 import { ClusterQueueKind, CohortKind, ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 
+export const QUOTA_NODE_TYPE = {
+  unassigned: 'unassigned',
+  cohort: 'cohort',
+  clusterQueue: 'clusterQueue',
+} as const;
+
+export type QuotaNodeType = (typeof QUOTA_NODE_TYPE)[keyof typeof QUOTA_NODE_TYPE];
+
+export type QuotaTreeNode = {
+  id: string;
+  name: string;
+  type: QuotaNodeType;
+  children: QuotaTreeNode[];
+  clusterQueue?: ClusterQueueKind;
+  cohortName?: string;
+  selectable: boolean;
+};
+
+export type QuotaSelection =
+  | { type: 'unassigned'; path: string[] }
+  | { type: 'cohort'; cohortName: string; path: string[] }
+  | {
+      type: 'clusterQueue';
+      clusterQueueName: string;
+      path: string[];
+      clusterQueue: ClusterQueueKind;
+    };
+
 export type CohortState = 'explicit' | 'implicit' | 'standalone';
 
 export type ResourceQuota = {
