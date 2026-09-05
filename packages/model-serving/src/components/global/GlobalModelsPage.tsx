@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';

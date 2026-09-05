@@ -18,6 +18,8 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@module-federation/runtime": "^0.24.1",
+    "@odh-dashboard/analytics": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
@@ -39,6 +41,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@module-federation/enhanced": "^0.24.1",
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
