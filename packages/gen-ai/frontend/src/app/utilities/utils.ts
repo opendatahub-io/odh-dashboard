@@ -98,7 +98,7 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-  maasModels: AAModelResponse[],
+  maasModels: AIModel[],
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -254,47 +254,28 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
   SOURCE_LABEL_COLORS[sourceLabel] ?? 'grey';
 
 /**
- * Converts a MaaS model (from /aaa/models?sources=maas) to AIModel format by parsing endpoints
- * @param aaModel - The AAModel to convert (already in correct format from BFF)
- * @returns The AIModel with parsed endpoints
+ * Converts a MaaS model to AIModel format
+ * @param model - The model response (from BFF /v1/models) to convert to AIModel with parsed endpoints
+ * @returns The converted AIModel with internalEndpoint and externalEndpoint populated
  */
-export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
-  // Defensive guard against BFF omitting endpoints field despite type contract
-  // Filter out non-string entries, blank strings, and prefix-only entries (e.g., "external:   ")
-  const endpoints = Array.isArray(aaModel.endpoints)
-    ? aaModel.endpoints
-        .filter((e): e is string => typeof e === 'string' && e.trim() !== '')
-        .map((e) => e.trim())
-        .filter((e) => {
-          // Reject entries that are only "prefix:" with no actual URL
-          if (e.startsWith('external:') || e.startsWith('internal:')) {
-            const url = e.replace(/^(external|internal):/, '').trim();
-            return url !== '';
-          }
-          return true;
-        })
-    : [];
+export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
+  let internalEndpoint: string | undefined;
+  let externalEndpoint: string | undefined;
 
-  // Parse endpoints - AAModel already has the correct structure from BFF transformation
-  const bareUrl = endpoints.find(
-    (ep) => !ep.startsWith('external:') && !ep.startsWith('internal:'),
-  );
-  const externalEndpoint = parseEndpointByPrefix(endpoints, 'external');
-  // Bare URLs default to internal endpoint for backward compatibility with legacy MaaS models
-  // that may still arrive without prefixes, though the BFF (line 211) now always adds external: prefix
-  const internalEndpoint = parseEndpointByPrefix(endpoints, 'internal') || bareUrl;
+  for (const endpoint of Array.isArray(model.endpoints) ? model.endpoints : []) {
+    if (typeof endpoint !== 'string') {
+      continue;
+    }
+    if (endpoint.startsWith('external:')) {
+      externalEndpoint = endpoint.replace(/^external:\s*/, '');
+    } else if (endpoint.startsWith('internal:')) {
+      internalEndpoint = endpoint.replace(/^internal:\s*/, '');
+    } else {
+      internalEndpoint = endpoint;
+    }
+  }
 
-  // Destructure endpoints out to avoid exposing raw array - only return sanitized fields
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { endpoints: rawEndpoints, ...rest } = aaModel;
-  return {
-    ...rest,
-    display_name: rest.display_name || rest.model_id,
-    model_name: rest.model_name || rest.display_name || rest.model_id,
-    endpoints, // sanitized array satisfies AIModel type contract
-    externalEndpoint,
-    internalEndpoint,
-  };
+  return { ...model, internalEndpoint, externalEndpoint };
 };
 
 /**

@@ -22,22 +22,16 @@ import (
 // endpoint and credentials, and proxies the request directly to the upstream model.
 // Returns the upstream response unchanged (transparent proxy).
 //
-// Auth is required: the user's JWT arrives via the x-forwarded-access-token
-// header (forwarded by OGX).
+// Auth is required: OGX forwards the user's JWT via Authorization: Bearer
+// (from passthrough_api_key in X-OGX-Provider-Data). AttachNamespaceFromPath
+// and RequireAccessToService middleware run before this handler.
 func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
-	namespace := ps.ByName("namespace")
-	if namespace == "" {
-		app.badRequestResponse(w, r, errors.New("missing namespace in path"))
-		return
-	}
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
-	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
-	r = r.WithContext(ctx)
-
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil || identity.Token == "" {
+	// Defense-in-depth: middleware enforces auth, but verify identity is present.
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); !ok || identity == nil || identity.Token == "" {
 		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))
 		return
 	}
@@ -67,8 +61,11 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
+	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
+
 	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace)
+	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)
 	if resolveErr != nil {
 		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
 		if isInfraError(resolveErr) {
@@ -189,7 +186,7 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 //  1. Custom endpoint (provider-qualified with known provider) → ConfigMap + Secret
 //  2. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
 //  3. Namespace (bare name) → InferenceService/LLMInferenceService URL + user JWT
-func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace string) (baseURL, apiKey string, err error) {
+func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, maasSubscription string) (baseURL, apiKey string, err error) {
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		return "", "", fmt.Errorf("missing RequestIdentity in context")
@@ -216,19 +213,19 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 		if urlErr != nil {
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
-		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, "")
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, maasSubscription)
 		if token == "" {
 			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
 		}
 		return inferenceURL, token, nil
 	}
 
-	// Try custom endpoint for provider-qualified IDs (contains "/")
-	if strings.Contains(modelID, "/") {
-		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
-		if extURL != "" {
-			return extURL, extKey, nil
-		}
+	// Try custom endpoint — model IDs may be simple names (e.g. "gpt-4o") or
+	// provider-qualified (e.g. "endpoint-1/gpt-4o"). OGX strips the provider prefix
+	// before forwarding to the passthrough handler.
+	extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+	if extURL != "" {
+		return extURL, extKey, nil
 	}
 
 	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
