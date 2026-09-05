@@ -40,6 +40,7 @@ type AutomlPipelineVisualizationProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
+  showStageMapUnavailableNotice?: boolean;
 };
 
 const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = ({
@@ -49,6 +50,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   treeLoadingMode,
   componentStageMap,
   pipelineRun,
+  showStageMapUnavailableNotice,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
     if (treeLoadingMode === 'preparing' || !runState) {
@@ -189,6 +191,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
+                  showStageMapUnavailableNotice={showStageMapUnavailableNotice}
                   onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>
