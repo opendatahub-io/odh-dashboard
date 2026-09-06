@@ -10,7 +10,11 @@ import {
   createMaaSAuthPolicy,
   createMaaSSubscription,
 } from '../../../utils/oc_commands/maas';
-import { addUserToProject,   verifyOpenShiftProjectExists, deleteOpenShiftProject} from '../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  verifyOpenShiftProjectExists,
+  deleteOpenShiftProject,
+} from '../../../utils/oc_commands/project';
 import { LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -76,9 +80,11 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         cleanupApiKeys(apiKeyName);
         cleanupApiKeys(secondApiKeyName);
         createCleanProject(projectName);
-      })      
+      })
       .then(() => {
-        cy.log(`Wait for ${projectName}, then grant ${LDAP_CONTRIBUTOR_USER.USERNAME} namespace admin.`);
+        cy.log(
+          `Wait for ${projectName}, then grant ${LDAP_CONTRIBUTOR_USER.USERNAME} namespace admin.`,
+        );
         return verifyOpenShiftProjectExists(projectName).then((exists) => {
           if (!exists) {
             throw new Error(
