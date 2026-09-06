@@ -19,6 +19,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -142,6 +143,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
+      assertE2eLoggedInAs(LDAP_ADMIN_USER);
 
       cy.step('Create new Authorization Policy ');
       authPoliciesPage.visit();
@@ -250,6 +252,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
+      assertE2eLoggedInAs(LDAP_ADMIN_USER);
 
       cy.step('Create a new MaaS subscription with Authorization Policy ');
       subscriptionsPage.visit();

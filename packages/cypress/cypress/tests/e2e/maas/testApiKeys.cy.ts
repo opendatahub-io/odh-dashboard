@@ -10,8 +10,9 @@ import {
   createMaaSAuthPolicy,
   createMaaSSubscription,
 } from '../../../utils/oc_commands/maas';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { addUserToProject,   verifyOpenShiftProjectExists, deleteOpenShiftProject} from '../../../utils/oc_commands/project';
 import { LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
+import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -75,6 +76,17 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         cleanupApiKeys(apiKeyName);
         cleanupApiKeys(secondApiKeyName);
         createCleanProject(projectName);
+      })      
+      .then(() => {
+        cy.log(`Wait for ${projectName}, then grant ${LDAP_CONTRIBUTOR_USER.USERNAME} namespace admin.`);
+        return verifyOpenShiftProjectExists(projectName).then((exists) => {
+          if (!exists) {
+            throw new Error(
+              `Project ${projectName} not found via oc before RBAC; cannot add ${LDAP_CONTRIBUTOR_USER.USERNAME}`,
+            );
+          }
+          return addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'admin');
+        });
       })
       .then(() => {
         ensureAdminOcSession();
@@ -114,11 +126,12 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
     () => {
       cy.step('Log into the application as user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+      assertE2eLoggedInAs(LDAP_CONTRIBUTOR_USER);
 
       cy.step(
         'Verify the admin-created subscription is visible on the Subscriptions tab for the user',
       );
-      apiKeysPage.visitKeysAndSubsWithoutLogin();
+      apiKeysPage.visit();
       apiKeysPage.findSubscriptionsTab().click();
       subscriptionsTab.findSortBySubscriptionButton().click();
       subscriptionsTab.findSearchInput().type(subscriptionName);
@@ -227,7 +240,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .and('contain.text', subscriptionName);
 
       cy.step('Create a second API key with expiration validation and revoke all keys');
-      apiKeysPage.visitKeysAndSubsWithoutLogin();
+      apiKeysPage.visit();
       apiKeysPage.findCreateApiKeyButton().click();
       createApiKeyModal.findNameInput().type(secondApiKeyName);
       createApiKeyModal

@@ -16,6 +16,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -173,6 +174,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/?devFeatureFlags=vLLMDeploymentOnMaaS=true', LDAP_ADMIN_USER);
+      assertE2eLoggedInAs(LDAP_ADMIN_USER);
 
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
