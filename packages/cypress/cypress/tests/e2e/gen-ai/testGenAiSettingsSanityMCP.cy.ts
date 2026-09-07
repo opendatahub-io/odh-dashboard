@@ -200,47 +200,18 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
       cy.step('Open settings panel and navigate to MCP tab');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findMCPTab().should('be.visible').click();
+      genAiPlayground.openMCPTab();
 
       cy.step('Verify Manual Connection section is visible');
       genAiPlayground.findMCPManualSection().should('be.visible');
       genAiPlayground.findMCPManualToggle().should('contain.text', 'Manual Connection');
 
-      cy.step('Verify MCP server row is visible (by URL — resilient to display name changes)');
-      // Log BFF response to aid debugging if the assertion ever fails
-      cy.request(`/gen-ai/api/v1/aaa/mcps?namespace=${projectName}`).then((resp) => {
-        cy.log(`[DEBUG] /aaa/mcps response: ${JSON.stringify(resp.body)}`);
-      });
-      // Use the actual server URL as the lookup key — the BFF may surface the same server
-      // via the MLflow registry under a different display name (e.g. "io.kubernetes/mcp-server"
-      // vs the configmap key "kubernetes-mcp-server"), so text-based lookup is fragile here.
-      cy.step(`Select the "${testData.mcp.serverName}" MCP server`);
+      cy.step(`Select and connect the MCP server`);
       genAiPlayground.findMCPServerRow(mcpServerUrl).should('be.visible');
-      genAiPlayground.selectMCPServer(mcpServerUrl);
+      genAiPlayground.connectMCPServer(mcpServerUrl);
 
-      cy.step('Wait for auto-connect and verify success modal');
-      genAiPlayground.findMCPSuccessModal({ timeout: 30000 }).should('be.visible');
-
-      cy.step('Close success modal');
-      genAiPlayground.closeMCPSuccessModal();
-
-      cy.step(`Send MCP question: "${testData.mcp.testQuestion}"`);
-      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-      genAiPlayground.sendMessage(testData.mcp.testQuestion);
-
-      cy.step('Verify user message appears in chat');
-      genAiPlayground
-        .findAllUserMessages()
-        .last()
-        .should('exist')
-        .and('contain', testData.mcp.testQuestion);
-
-      cy.step('Wait for streaming response to complete');
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
-
-      cy.step('Verify assistant response is received');
-      genAiPlayground.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
+      cy.step(`Send MCP question and verify response`);
+      genAiPlayground.sendAndVerifyMCPResponse(testData.mcp.testQuestion);
     },
   );
 
@@ -251,7 +222,6 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
     },
     () => {
       const registryServerName = 'io.kubernetes/mcp-server-e2e';
-      // Track so after() always cleans up, even if this test fails mid-way
       registeredRegistryServerName = registryServerName;
 
       cy.step('Register the MCP server in the MLflow MCP Registry');
@@ -262,37 +232,39 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
         testData.mcp.serverDescription,
       );
 
+      // Fail fast if the BFF cannot reach the MLflow registry — the Registered section
+      // will never render and we'd just time out on the DOM assertion.
+      cy.step('Verify MLflow registry is accessible via BFF');
+      cy.request(`/gen-ai/api/v1/aaa/mcps?namespace=${projectName}`).then((resp) => {
+        cy.log(`[DEBUG] /aaa/mcps response: ${JSON.stringify(resp.body?.data)}`);
+        const data = resp.body?.data;
+        if (!data?.registry_available) {
+          throw new Error(
+            `MLflow registry is unreachable from the BFF ` +
+              `(registry_available=${data?.registry_available}, ` +
+              `error: "${data?.registry_error ?? 'unknown'}"). ` +
+              `Check the mlflow-ui service connectivity.`,
+          );
+        }
+      });
+
       cy.step('Navigate to playground with mcpRegistry flag enabled');
       genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);
 
       cy.step('Open settings panel and navigate to MCP tab');
-      genAiPlayground.ensureSettingsPanelOpen();
-      genAiPlayground.findMCPTab().should('be.visible').click();
+      genAiPlayground.openMCPTab();
 
       cy.step('Verify Registered section is visible');
       genAiPlayground.findMCPRegisteredSection().should('be.visible');
       genAiPlayground.findMCPRegisteredToggle().should('contain.text', 'Registered');
       genAiPlayground.findMCPRegisteredCountBadge().should('be.visible');
 
-      cy.step('Select the registry MCP server');
+      cy.step('Select and connect the registry MCP server');
       const shortName = registryServerName.split('/').pop() ?? registryServerName;
-      genAiPlayground.selectMCPServer(shortName);
+      genAiPlayground.connectMCPServer(shortName);
 
-      cy.step('Wait for auto-connect and verify success modal');
-      genAiPlayground.findMCPSuccessModal({ timeout: 30000 }).should('be.visible');
-
-      cy.step('Close success modal');
-      genAiPlayground.closeMCPSuccessModal();
-
-      cy.step(`Send MCP question: "${testData.mcp.testQuestion}"`);
-      genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
-      genAiPlayground.sendMessage(testData.mcp.testQuestion);
-
-      cy.step('Wait for streaming response to complete');
-      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
-
-      cy.step('Verify assistant response is received');
-      genAiPlayground.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
+      cy.step('Send MCP question and verify response');
+      genAiPlayground.sendAndVerifyMCPResponse(testData.mcp.testQuestion);
     },
   );
 });

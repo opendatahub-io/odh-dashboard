@@ -437,7 +437,14 @@ const execMlflowBffCurl = (
 
   return cy.exec(cmd, { timeout: 30000, failOnNonZeroExit: false }).then((result) => {
     const lines = result.stdout.trim().split('\n');
-    const status = parseInt(lines[lines.length - 1], 10);
+    const rawStatus = lines[lines.length - 1];
+    const status = parseInt(rawStatus, 10);
+    if (Number.isNaN(status)) {
+      throw new Error(
+        `MLflow BFF curl produced no HTTP status code — oc exec may have failed.\n` +
+          `stdout: ${result.stdout || '(empty)'}\nstderr: ${result.stderr || '(empty)'}`,
+      );
+    }
     const responseBody = lines.slice(0, -1).join('\n');
     return { status, body: responseBody };
   });
@@ -507,7 +514,7 @@ export const registerMCPServerInRegistry = (
         })
         .then((resp) => {
           if (resp.status !== 200 && resp.status !== 409) {
-            cy.log(`Warning: Failed to activate version: ${resp.status} (may already be active)`);
+            throw new Error(`Failed to activate MCP registry version: HTTP ${resp.status} ${resp.body}`);
           }
 
           // Step 4: Create an access endpoint
@@ -524,7 +531,7 @@ export const registerMCPServerInRegistry = (
         })
         .then((resp) => {
           if (resp.status !== 201 && resp.status !== 409) {
-            cy.log(`Warning: Failed to create endpoint: ${resp.status} (may already exist)`);
+            throw new Error(`Failed to create MCP registry endpoint: HTTP ${resp.status} ${resp.body}`);
           }
           cy.log(`MCP server "${serverName}" registered in MLflow registry`);
         }) as unknown as Cypress.Chainable<void>,
@@ -603,7 +610,7 @@ export const removeMCPServerFromRegistry = (
     })
     .then((resp) => {
       if (resp.status !== 204 && resp.status !== 404) {
-        cy.log(`Warning: Failed to delete registry server: ${resp.status} ${resp.body}`);
+        throw new Error(`Failed to delete MCP registry server: HTTP ${resp.status} ${resp.body}`);
       }
       cy.log(`MCP registry server "${serverName}" removed`);
     }) as unknown as Cypress.Chainable<void>;

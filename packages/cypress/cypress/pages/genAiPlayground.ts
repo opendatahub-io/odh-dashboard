@@ -596,6 +596,30 @@ class GenAiPlayground {
   findMCPManualEmptyState() {
     return cy.findByTestId('mcp-manual-empty-state');
   }
+
+  /** Open the settings panel (if not already open) and click the MCP tab. */
+  openMCPTab() {
+    this.ensureSettingsPanelOpen();
+    this.findMCPTab().should('be.visible').click();
+  }
+
+  /**
+   * Select an MCP server, wait for auto-connect, and close the success modal.
+   * @param serverNameOrUrl — display name or full URL passed to `selectMCPServer`.
+   */
+  connectMCPServer(serverNameOrUrl: string) {
+    this.selectMCPServer(serverNameOrUrl);
+    this.findMCPSuccessModal({ timeout: 30000 }).should('be.visible');
+    this.closeMCPSuccessModal();
+  }
+
+  /** Send a message, wait for streaming to finish, and assert a response exists. */
+  sendAndVerifyMCPResponse(question: string) {
+    this.findMessageInput().should('be.enabled').and('be.visible');
+    this.sendMessage(question);
+    this.waitForStreamingComplete({ timeout: 120000 });
+    this.findAssistantMessage({ timeout: 30000 }).should('exist').and('not.be.empty');
+  }
 }
 
 export const genAiPlayground = new GenAiPlayground();

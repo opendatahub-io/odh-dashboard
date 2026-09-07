@@ -3,8 +3,15 @@ import { mcpTab } from './playgroundPage/mcpTab';
 class PlaygroundPage {
   mcpTab = mcpTab;
 
-  visit(namespace?: string): void {
-    cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');
+  visit(namespace?: string, options?: { devFeatureFlags?: Record<string, boolean> }): void {
+    const base = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
+    const url =
+      options?.devFeatureFlags && Object.keys(options.devFeatureFlags).length > 0
+        ? `${base}?devFeatureFlags=${Object.entries(options.devFeatureFlags)
+            .map(([k, v]) => `${k}=${String(v)}`)
+            .join(',')}`
+        : base;
+    cy.visit(url);
     this.waitForPageLoad();
   }
 
