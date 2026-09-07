@@ -677,8 +677,10 @@ func TestInitModuleProxies_EmptyConfig(t *testing.T) {
 
 func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 	var receivedAuthHeader string
+	var receivedTokenHeader string
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedAuthHeader = r.Header.Get("Authorization")
+		receivedTokenHeader = r.Header.Get("x-forwarded-access-token")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -715,6 +717,7 @@ func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 
 	appDirect := newTestApp(func(a *App) {
 		a.config.DevMode = true
+		a.config.AuthTokenHeader = "x-forwarded-access-token"
 	})
 	proxyHandler := createTestProxy(t, appDirect, backend.URL, "/auth-mod/api", "/api", true, false, nil)
 	rr := httptest.NewRecorder()
@@ -726,7 +729,11 @@ func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 	})
 	proxyHandler.ServeHTTP(rr, req2)
 	assert.Equal(t, http.StatusOK, rr.Code)
+	// K8s-style Authorization header is forwarded (Bearer <token>) ...
 	assert.Contains(t, receivedAuthHeader, "Bearer test-token-123")
+	// ... and the ingress auth header is re-injected with the raw token so
+	// mod-arch BFFs (which read x-forwarded-access-token) authenticate too.
+	assert.Equal(t, "test-token-123", receivedTokenHeader)
 }
 
 func TestInitModuleProxies_AuthorizeFalse(t *testing.T) {

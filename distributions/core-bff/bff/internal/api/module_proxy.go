@@ -271,6 +271,8 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		cfg.SSRFAllowedHosts = []string{targetURL.Hostname()}
 	}
 
+	customHeaders := entry.service.Headers
+
 	if entry.service.Authorize {
 		cfg.AuthHeaderFn = func(r *http.Request) string {
 			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -279,12 +281,31 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 			}
 			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
 		}
-	}
 
-	if len(entry.service.Headers) > 0 {
-		headers := entry.service.Headers
+		// Re-inject the validated user token in the ingress auth header
+		// (default: x-forwarded-access-token). mod-arch BFFs (maas, gen-ai, ...)
+		// read the token from this header, not the Kubernetes-style Authorization
+		// header that AuthHeaderFn sets. The inbound value is stripped by
+		// SensitiveIngressHeaders (StripHeaders) so a client cannot spoof it;
+		// SetOutboundHeadersFn runs after stripping (see proxy.rewriteFunc), so
+		// the value set here is the trusted, server-resolved token. Both headers
+		// are forwarded so upstreams reading either convention authenticate.
+		authTokenHeader := app.config.AuthTokenHeader
+		cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
+			if authTokenHeader != "" {
+				if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+					if token := identity.ResolveToken(app.devFallbackToken); token != "" {
+						outH.Set(authTokenHeader, token)
+					}
+				}
+			}
+			for k, v := range customHeaders {
+				outH.Set(k, v)
+			}
+		}
+	} else if len(customHeaders) > 0 {
 		cfg.SetOutboundHeadersFn = func(_ *http.Request, outH http.Header) {
-			for k, v := range headers {
+			for k, v := range customHeaders {
 				outH.Set(k, v)
 			}
 		}
