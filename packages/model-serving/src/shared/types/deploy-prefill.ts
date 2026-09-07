@@ -33,3 +33,10 @@ export type ModelDeployPrefillInfo = {
 export type RegisteredModelRef = {
   id: string;
 };
+
+/** Props a page consumer passes to a deploy `core.action` via `componentProps`. */
+export type DeployPrefillActionProps = {
+  deployPrefill: DeployPrefillData;
+  deployPrefillLoaded: boolean;
+  deployPrefillError?: Error;
+};

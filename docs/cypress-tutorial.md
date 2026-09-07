@@ -527,7 +527,7 @@ The `packages/cypress/cypress/support/e2e.ts` file is automatically loaded befor
   - `beforeEach()`: Applies filtering, sets up mocks (`CY_MOCK=1`), configures module federation, logs test info
   - `afterEach()`: Handles skipped suites, tracks execution
   - `after()`: Runs soft assertions
-- **Error Handling**: Ignores `ChunkLoadError` and webpack-dev-server fallback errors
+- **Error Handling**: Ignores `ChunkLoadError` and dev-server fallback errors
 - **Command Logging**: Logs `cy.step()`, `cy.exec()`, and `cy.log()` to terminal
 
 #### Skipped Tests in JUnit Results
@@ -644,7 +644,7 @@ npm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
 npm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
 ```
 
-**If using localhost with webpack** (dev workflow), start the dev server first:
+**If using localhost with rspack** (dev workflow), start the dev server first:
 
 ```bash
 npm run start:dev:ext  # Proxies to your logged-in cluster

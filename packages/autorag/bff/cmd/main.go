@@ -31,7 +31,7 @@ func main() {
 
 	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
 	flag.StringVar(&cfg.IndexingPipelineNamePrefix, "indexing-pipeline-name-prefix", getEnvAsString("INDEXING_PIPELINE_NAME_PREFIX", "documents-indexing-pipeline"), "Display name for identifying the documents indexing managed pipeline during discovery (default: documents-indexing-pipeline)")
-	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Preferred pipeline version display name during discovery (default: constants.DefaultPipelineVersionSuffix, e.g. 3.5.0)")
+	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Optional explicit pipeline version display name pin during discovery")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 

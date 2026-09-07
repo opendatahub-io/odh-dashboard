@@ -3,17 +3,15 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
 const extensions: Extension[] = [
   {
-    type: 'model-catalog.deployment/navigate-wizard',
-    properties: {
-      useAvailablePlatformIds: () =>
-        import('../modelRegistry/useAvailablePlatformIds').then((m) => m.default),
-      useNavigateToDeploymentWizardWithData: () =>
-        import('../modelRegistry/useNavigateToDeploymentWizardWithData').then(
-          (m) => m.useNavigateToDeploymentWizardWithData,
-        ),
-    },
+    type: 'core.action',
     flags: {
-      required: [SupportedArea.MODEL_SERVING],
+      required: [SupportedArea.MODEL_SERVING, SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'deploy-catalog-model',
+      label: 'Deploy model',
+      group: 'model-catalog.deploy',
+      component: () => import('../modelRegistry/DeployPrefillAction'),
     },
   },
 ];

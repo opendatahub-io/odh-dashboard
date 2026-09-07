@@ -2,6 +2,7 @@ import * as React from 'react';
 import { LabelGroup, Spinner } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   useRelatedNotebooks,
@@ -12,12 +13,28 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import ResourceLabel from '#~/pages/projects/screens/detail/connections/ResourceLabel';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
+// Host owns how each contributed resource kind renders (icon + color); extensions only pick a kind.
+const CONNECTED_RESOURCE_LABEL_STYLES: Record<
+  ConnectedResourceLabel['kind'],
+  Pick<React.ComponentProps<typeof ResourceLabel>, 'resourceType' | 'outlineColor'>
+> = {
+  'connected-models': { resourceType: ProjectObjectType.connectedModels, outlineColor: 'purple' },
+};
+
 export type ConnectedResourcesProps = EitherNotBoth<
   { connection: Connection },
   { pvc: PersistentVolumeClaimKind }
->;
+> & {
+  additionalResources?: ConnectedResourceLabel[];
+  additionalResourcesLoaded?: boolean;
+};
 
-const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc }) => {
+const ConnectedResources: React.FC<ConnectedResourcesProps> = ({
+  connection,
+  pvc,
+  additionalResources = [],
+  additionalResourcesLoaded = true,
+}) => {
   const { notebooks: connectedNotebooks, loaded: notebooksLoaded } = useRelatedNotebooks(
     connection
       ? ConnectedNotebookContext.EXISTING_DATA_CONNECTION
@@ -26,11 +43,11 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
   );
   const connectedModels = useInferenceServicesForConnection(connection ?? pvc);
 
-  if (!notebooksLoaded) {
+  if (!notebooksLoaded || !additionalResourcesLoaded) {
     return <Spinner size="sm" />;
   }
 
-  if (!connectedNotebooks.length && !connectedModels.length) {
+  if (!connectedNotebooks.length && !connectedModels.length && !additionalResources.length) {
     return '--';
   }
 
@@ -54,10 +71,16 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
       />
     ));
 
+  const renderAdditionalResourceLabels = () =>
+    additionalResources.map(({ key, title, kind }) => (
+      <ResourceLabel key={key} title={title} {...CONNECTED_RESOURCE_LABEL_STYLES[kind]} />
+    ));
+
   return (
     <LabelGroup>
       {renderNotebookLabels()}
       {renderModelLabels()}
+      {renderAdditionalResourceLabels()}
     </LabelGroup>
   );
 };

@@ -22,6 +22,7 @@ describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
   let notebookImage: string;
+  let hardwareProfileName: string;
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
@@ -31,6 +32,7 @@ describe('Workbenches - status tests', () => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
         notebookImage = fixtureData.notebookImage;
+        hardwareProfileName = fixtureData.hardwareProfileName;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
@@ -83,6 +85,8 @@ describe('Workbenches - status tests', () => {
           selectedImageStream = imageStreamName;
           cy.log(`Selected imagestream: ${selectedImageStream}`);
 
+          cy.step('Select the default hardware profile');
+          createSpawnerPage.selectHardwareProfile(hardwareProfileName);
           createSpawnerPage.findSubmitButton().click();
 
           // Wait for workbench to run

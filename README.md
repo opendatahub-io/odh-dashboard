@@ -113,7 +113,7 @@ This is a **monorepo** using npm workspaces and Turbo for orchestration:
 
 ```
 odh-dashboard/
-├── frontend/           # Main dashboard frontend (React + Webpack Module Federation)
+├── frontend/           # Main dashboard frontend (React + Module Federation)
 ├── backend/            # Main dashboard backend (Node.js/Express)
 ├── packages/           # Feature packages (~25 packages)
 │   ├── gen-ai/        # Generative AI features (has BFF)
@@ -130,7 +130,7 @@ Key technologies:
 - **React 18** - Frontend framework
 - **TypeScript** - Type safety
 - **PatternFly v6** - UI components
-- **Webpack Module Federation** - Runtime code sharing
+- **Module Federation** - Runtime code sharing
 - **Turbo** - Monorepo task orchestration
 - **Cypress** - E2E testing
 - **Jest** - Unit testing

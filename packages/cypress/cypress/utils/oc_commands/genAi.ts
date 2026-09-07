@@ -342,11 +342,10 @@ export const removeMCPServerConfigMapEntry = (configMapName: string, serverKey: 
  * and adds the Deployment, Service, and Route on top.
  * Idempotent — skips resources that already exist.
  *
- * The Route is ephemeral test infrastructure (torn down in after()) and uses
- * edge TLS + read-only mode. It is needed because the BFF may run outside the
- * cluster (local dev) and cannot reach in-cluster Service DNS.
- *
- * Returns the Route URL with `/mcp` suffix.
+ * Returns the in-cluster Service URL with `/mcp` suffix. The Route is still
+ * created (for manual debugging) but the Service URL is used for the test
+ * to avoid TLS failures on clusters where the ingress CA is not in the
+ * BFF's trusted CA bundle.
  */
 export const deployMCPServer = (
   mcpNamespace: string,
@@ -379,14 +378,9 @@ export const deployMCPServer = (
     timeout: 130000,
   });
 
-  return cy
-    .exec(`oc get route ${name} -n ${mcpNamespace} -o jsonpath='{.spec.host}'`)
-    .then((result) => {
-      const host = result.stdout.trim().replace(/^'|'$/g, '');
-      const url = `https://${host}/mcp`;
-      cy.log(`MCP server URL: ${url}`);
-      return cy.wrap(url);
-    });
+  const url = `http://${name}.${mcpNamespace}.svc.cluster.local:8080/mcp`;
+  cy.log(`MCP server URL: ${url}`);
+  return cy.wrap(url);
 };
 
 /**

@@ -1,11 +1,16 @@
 import {
   mockNimInferenceService,
+  mockNimModelPVC,
+  mockNimProject,
   mockNimServingRuntime,
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
+import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
@@ -13,8 +18,11 @@ import {
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   InferenceServiceModel,
+  NotebookModel,
+  ProjectModel,
   PVCModel,
   ServingRuntimeModel,
+  StorageClassModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
@@ -22,6 +30,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { clusterStorage } from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -397,7 +406,7 @@ describe('NIM Models Deployments', () => {
     // The PVC must be in the fetched list for the existing-storage select to render its name
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
-      mockK8sResourceList([mockPVCK8sResource({ name: 'my-nim-wizard-pvc' })]),
+      mockK8sResourceList([mockNimModelPVC({ name: 'my-nim-wizard-pvc' })]),
     );
     // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
     // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
@@ -456,7 +465,7 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.nim
       .findStorageModeSelect()
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
-    modelServingWizardEdit.nim.findExistingPVCSelect().should('contain.text', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
@@ -474,5 +483,79 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+  });
+
+  it('should NOT manage NIM PVCs in cluster storage tab NIM is disabled', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableNIMModelServing: true }));
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+        }),
+      ]),
+    );
+
+    clusterStorage.visit('test-project');
+
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('General purpose');
+  });
+
+  it('should manage NIM PVCs in cluster storage tab', () => {
+    initInterceptsToEnableNim();
+    cy.interceptOdh('GET /api/cluster-settings', mockClusterSettings({}));
+    cy.interceptK8s(ProjectModel, mockNimProject({}));
+    // NotebookModel backs the per-row root-volume/delete-action logic and the connected resources
+    // column (useRelatedNotebooks) — mock it empty so those resolve instead of spinning
+    cy.interceptK8sList(NotebookModel, mockK8sResourceList([]));
+    cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+    // Mocks the "Storage size" column response
+    cy.interceptOdh('POST /api/prometheus/pvc', {
+      code: 200,
+      response: mockPrometheusQueryVectorResponse({ result: [] }),
+    });
+
+    // A PVC caching a NIM model is annotated by the NIM deploy path
+    cy.interceptK8sList(
+      { model: PVCModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockNimModelPVC({
+          displayName: 'NIM Cache',
+          name: 'nim-cache',
+        }),
+      ]),
+    );
+    // KServe contributes the "Connected resources" column: a serving runtime mounting the PVC plus
+    // the inference service targeting that runtime surface the deployment on the PVC's row.
+    cy.interceptK8sList(
+      ServingRuntimeModel,
+      mockK8sResourceList([mockNimServingRuntime({ pvcName: 'nim-cache' })]),
+    );
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([mockNimInferenceService()]));
+
+    clusterStorage.visit('test-project');
+
+    // The nim-serving package contributes the "NIM storage" context, so the PVC is labelled by it
+    clusterStorage.getClusterStorageRow('NIM Cache').shouldHaveStorageTypeValue('NIM storage');
+
+    // The connected KServe deployment is listed by its inference service display name (not the
+    // serving runtime's generic "NVIDIA NIM" name)
+    clusterStorage
+      .getClusterStorageRow('NIM Cache')
+      .findConnectedResources()
+      .should('contain.text', 'Test Name');
+
+    // TODO followup PR: can edit and update subpath
   });
 });

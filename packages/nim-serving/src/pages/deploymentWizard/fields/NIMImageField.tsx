@@ -27,21 +27,25 @@ export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFiel
 export type NIMImageFieldExternalData = {
   nimImages: NIMImagesData;
   accountStatus: NIMAccountStatus;
+  nimImagesLoaded?: boolean;
   nimTemplate?: TemplateKind;
 };
 
-const useNIMImageFieldExternalData = (dependencies?: {
+export const useNIMImageFieldExternalData = (dependencies?: {
   project?: { projectName?: string };
+  isEditing?: boolean;
 }): {
   data: NIMImageFieldExternalData;
   loaded: boolean;
   loadError?: Error;
 } => {
   const projectName = dependencies?.project?.projectName;
+  const isEditing = dependencies?.isEditing ?? false;
   const {
     status: accountStatus,
     nimAccount,
     loaded: accountLoaded,
+    loadError: accountLoadError,
   } = useNIMAccountStatus(projectName);
 
   const {
@@ -61,23 +65,41 @@ const useNIMImageFieldExternalData = (dependencies?: {
     loaded: nimTemplateLoaded,
   } = useFetchNIMTemplate(nimAccount);
 
-  // Show as loaded if there is an error, otherwise loaded is false (for example existing deployments don't care)
+  const accountTerminal =
+    !!accountLoadError ||
+    accountStatus === NIMAccountStatus.NOT_FOUND ||
+    accountStatus === NIMAccountStatus.ERROR;
+
+  // Account failures and terminal Account states must settle the field. Dependent image/template
+  // requests cannot load without an Account, and edits must not remain blocked by those requests.
   const loaded =
+    isEditing ||
     !projectName ||
+    accountTerminal ||
     ((imagesLoaded || !!loadError) && accountLoaded && (nimTemplateLoaded || !!nimTemplateError));
 
   return React.useMemo(
     () => ({
-      data: { nimImages, accountStatus, nimTemplate },
+      data: { nimImages, accountStatus, nimImagesLoaded: imagesLoaded, nimTemplate },
       loaded,
-      loadError: loadError ?? nimTemplateError,
+      loadError: accountLoadError ?? loadError ?? nimTemplateError,
     }),
-    [nimImages, accountStatus, nimTemplate, loaded, loadError, nimTemplateError],
+    [
+      nimImages,
+      accountStatus,
+      imagesLoaded,
+      nimTemplate,
+      loaded,
+      accountLoadError,
+      loadError,
+      nimTemplateError,
+    ],
   );
 };
 
 export type NIMImageDependencies = {
   project: ProjectSectionType;
+  isEditing: boolean;
 };
 
 export type NIMImageFieldValue = {
@@ -198,7 +220,18 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   const isReselectionUnlocked = reselectionUnlockedRef.current;
 
   const selectedKey = value?.repository && value.tag ? getImageOptionKey(value) : undefined;
-  const catalogLoadedWithImages = Boolean(externalData?.loaded && images.length > 0);
+  const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
+  const catalogLoadedWithImages = Boolean(
+    externalData?.data.nimImagesLoaded &&
+      images.length > 0 &&
+      accountStatus === NIMAccountStatus.READY,
+  );
+  const isImageCatalogLoaded = externalData?.data.nimImagesLoaded ?? externalData?.loaded ?? false;
+  const canConfirmImageIsMissing = isImageCatalogLoaded && accountStatus === NIMAccountStatus.READY;
+  const accountRequestSettled =
+    accountStatus !== NIMAccountStatus.LOADING || Boolean(externalData?.loadError);
+  const shouldShowImagePreservedMessage =
+    isEditing && accountRequestSettled && accountStatus !== NIMAccountStatus.READY;
   const isImageSelectionLocked = isNIMImageSelectionLocked(
     isEditing,
     value,
@@ -220,8 +253,6 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [options, onChange, isImageSelectionLocked],
   );
 
-  const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
-
   if (!externalData || !externalData.loaded) {
     return (
       <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
@@ -238,7 +269,20 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     );
   }
 
+  const isAccountLoadFailed =
+    accountStatus === NIMAccountStatus.LOADING && Boolean(externalData.loadError);
+
+  if (!isEditing && isAccountLoadFailed) {
+    return (
+      <Alert variant="danger" isInline title="Unable to load NVIDIA NIM account">
+        NVIDIA NIM account information could not be loaded for this project. Ask your project
+        administrator to verify that you have permission to view NIM accounts, then try again.
+      </Alert>
+    );
+  }
+
   const isNIMUnconfigured =
+    !isEditing &&
     (accountStatus === NIMAccountStatus.NOT_FOUND || accountStatus === NIMAccountStatus.ERROR) &&
     images.length === 0;
 
@@ -278,14 +322,22 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
           }
         }}
       />
-      {externalData.loadError && (
+      {shouldShowImagePreservedMessage && (
+        <HelperText>
+          <HelperTextItem variant="error">
+            NVIDIA NIM account information could not be loaded. The deployed image is preserved but
+            cannot be changed.
+          </HelperTextItem>
+        </HelperText>
+      )}
+      {!isEditing && externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="error">
             There was a problem fetching the NIM models. Please try again later.
           </HelperTextItem>
         </HelperText>
       )}
-      {existingOptionNotFound && !externalData.loadError && (
+      {existingOptionNotFound && canConfirmImageIsMissing && !externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="warning" data-testid="nim-image-not-found-warning">
             The existing NIM image was not found. The deployment may not work as expected.
@@ -313,7 +365,10 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
     getInitialFieldData: (existingFieldData?: NIMImageFieldValue): NIMImageFieldValue =>
       existingFieldData ?? { repository: '', tag: '' },
     validationSchema: nimImageFieldSchema,
-    resolveDependencies: (formData) => ({ project: formData.project }),
+    resolveDependencies: (formData, initialData) => ({
+      project: formData.project,
+      isEditing: initialData?.isEditing ?? false,
+    }),
     getFieldOverrides: getNIMHardwareProfileFieldOverrides,
   },
   component: NIMImageFieldComponent,

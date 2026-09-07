@@ -1,6 +1,6 @@
+import * as React from 'react';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { SortableData } from '@odh-dashboard/ui-core';
-import * as React from 'react';
 import {
   ExternalModelsInfoPopoverLocation,
   MaaSEvents,
