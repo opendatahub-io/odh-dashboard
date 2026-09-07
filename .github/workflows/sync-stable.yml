@@ -16,16 +16,40 @@ concurrency:
   group: stable-ff-${{ github.workflow }}
   cancel-in-progress: false
 
-# Read-only default; the fast-forward job escalates to contents:write only for git push.
+# Read-only default; sync jobs escalate to contents:write only for git push.
 permissions:
   contents: read
 
 jobs:
+  validate:
+    name: Validate dispatch inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate workflow dispatch inputs
+        env:
+          SYNC_STABLE_INPUT: ${{ github.event.inputs.SYNC_STABLE }}
+          TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "ERROR: workflow must be dispatched from main, got: ${{ github.ref }}"
+            exit 1
+          fi
+
+          if [[ "$SYNC_STABLE_INPUT" != "SYNC_STABLE" ]]; then
+            echo "ERROR: SYNC_STABLE must be 'SYNC_STABLE', got: $SYNC_STABLE_INPUT"
+            exit 1
+          fi
+
+          if [[ ! "$TARGET_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "ERROR: target_commit must be a full 40-character SHA, got: $TARGET_COMMIT"
+            exit 1
+          fi
+
   fast-forward:
     name: Fast-forward main to stable
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      github.event.inputs.SYNC_STABLE == 'SYNC_STABLE'
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,21 +79,15 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if [[ ! "$TARGET_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
-            echo "ERROR: target_commit must be a full 40-character SHA, got: $TARGET_COMMIT"
-            exit 1
-          fi
-
-          git fetch origin main "$TARGET_COMMIT"
+          git fetch origin main
 
           if ! git cat-file -e "$TARGET_COMMIT^{commit}" 2>/dev/null; then
             echo "ERROR: target_commit $TARGET_COMMIT not found after fetch"
             exit 1
           fi
 
-          if ! git merge-base --is-ancestor "$TARGET_COMMIT" origin/main; then
-            echo "ERROR: target_commit $TARGET_COMMIT is not on main"
+          if ! git rev-list --first-parent origin/main | grep -Fxq "$TARGET_COMMIT"; then
+            echo "ERROR: target_commit $TARGET_COMMIT is not on main's first-parent history"
             exit 1
           fi
 
