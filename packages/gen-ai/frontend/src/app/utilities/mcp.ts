@@ -37,7 +37,7 @@ export const transformMCPServerData = (apiServer: MCPServerFromAPI): MCPServer =
   endpoint: 'View', // Simple endpoint display text
   connectionUrl: apiServer.url, // Full URL for popover
   tools: apiServer.tool_count,
-  version: apiServer.version || 'Unknown',
+  version: apiServer.version || '-',
   source: apiServer.source,
   logo: apiServer.logo,
   toolsList: apiServer.tools,
