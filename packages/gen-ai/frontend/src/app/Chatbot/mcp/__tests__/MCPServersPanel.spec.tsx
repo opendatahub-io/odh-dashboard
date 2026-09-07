@@ -281,7 +281,7 @@ describe('MCPServersPanel', () => {
       const badge = screen.getByTestId('mcp-registered-count-badge');
       expect(badge).toBeInTheDocument();
       // 0 selected out of 1 total server
-      expect(badge).toHaveTextContent('0 of 1 server on');
+      expect(badge).toHaveTextContent('0 of 1 servers on');
     });
 
     it('should show "Manage servers in AI Hub" in kebab menu', () => {

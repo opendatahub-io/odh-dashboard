@@ -477,8 +477,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                   </FlexItem>
                   <FlexItem>
                     <Label variant="outline" data-testid="mcp-registered-count-badge">
-                      {selectedRegisteredCount} of {registeredServers.length}{' '}
-                      {registeredServers.length === 1 ? 'server' : 'servers'} on
+                      {selectedRegisteredCount} of {registeredServers.length} servers on
                     </Label>
                   </FlexItem>
                 </Flex>
