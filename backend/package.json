@@ -93,5 +93,8 @@
     "ws": "^8.21.0",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.4.0"
+  },
+  "optionalDependencies": {
+    "ts-jest": "^29.4.12"
   }
 }
