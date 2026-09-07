@@ -6,9 +6,7 @@ import MCPServerTableRow from '~/app/AIAssets/components/mcp/MCPServerTableRow';
 
 jest.mock('../MCPServerStatus', () => ({
   __esModule: true,
-  default: ({ status }: { status: string }) => (
-    <span data-testid="mcp-status">{status}</span>
-  ),
+  default: ({ status }: { status: string }) => <span data-testid="mcp-status">{status}</span>,
 }));
 
 jest.mock('../MCPServerEndpointPopover', () => ({
@@ -39,11 +37,7 @@ const renderRow = (server: MCPServer) =>
   render(
     <table>
       <tbody>
-        <MCPServerTableRow
-          server={server}
-          isChecked={false}
-          onToggleCheck={jest.fn()}
-        />
+        <MCPServerTableRow server={server} isChecked={false} onToggleCheck={jest.fn()} />
       </tbody>
     </table>,
   );

@@ -74,6 +74,7 @@ describe('MCPTabContent', () => {
         version: '1.0.0',
         source: 'configmap',
         tools: [],
+        // eslint-disable-next-line camelcase
         tool_count: 0,
       },
       {
@@ -86,6 +87,7 @@ describe('MCPTabContent', () => {
         version: '1.0.0',
         source: 'configmap',
         tools: [],
+        // eslint-disable-next-line camelcase
         tool_count: 0,
       },
     ];
