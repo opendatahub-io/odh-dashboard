@@ -31,11 +31,11 @@ COPY --chown=default:root distributions/maas-consumer-portal/ ./distributions/ma
 COPY --chown=default:root distributions/base/ ./distributions/base/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
-COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 COPY --chown=default:root packages/maas/ ./packages/maas/
 COPY --chown=default:root packages/gen-ai/ ./packages/gen-ai/

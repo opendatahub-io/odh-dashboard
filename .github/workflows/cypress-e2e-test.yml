@@ -428,8 +428,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm and install dependencies
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -760,8 +765,13 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
-      - name: Setup pnpm and install dependencies
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build and upload ${{ matrix.package.name }}
@@ -1093,8 +1103,13 @@ jobs:
             echo "✅ Fetched mask script from ${{ github.event.repository.default_branch }}"
           fi
 
-      - name: Setup pnpm and install dependencies
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
 

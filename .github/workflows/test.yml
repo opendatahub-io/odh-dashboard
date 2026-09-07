@@ -31,10 +31,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup pnpm and install dependencies
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+      - name: Setup pnpm and Node.js
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
+          install-dependencies: 'false'
 
       - name: Validate module federation ports
         run: pnpm run validate:ports

@@ -30,6 +30,7 @@ COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --chown=default:root frontend/package.json ./frontend/
 # Copy required shared workspace packages needed for module builds
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/app-config/ ./packages/app-config/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/

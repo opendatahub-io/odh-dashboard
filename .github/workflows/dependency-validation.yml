@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
-      - "pnpm-lock.yaml"
+      - 'pnpm-lock.yaml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -63,7 +63,8 @@ jobs:
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
         with:
-          node-version: "22"
+          node-version: '22'
+          install-dependencies: 'false'
 
       - name: Run pnpm audit on head
         id: audit

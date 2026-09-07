@@ -91,7 +91,7 @@ jobs:
                 is_pre1=$(ruby -ryaml -e '
                   lock = YAML.load_file(ARGV[0])
                   dependency = ARGV[1]
-                  prefix = "/#{dependency}@"
+                  prefix = "#{dependency}@"
                   versions = lock.fetch("packages", {}).keys.filter_map do |key|
                     key.start_with?(prefix) ? key.delete_prefix(prefix).split("(", 2).first : nil
                   end
