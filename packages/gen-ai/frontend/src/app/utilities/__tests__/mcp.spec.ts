@@ -19,6 +19,10 @@ describe('MCP Utilities', () => {
         description: 'A test MCP server',
         logo: 'https://example.com/logo.png',
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 3,
       };
 
       const result = transformMCPServerData(apiServer);
@@ -30,8 +34,11 @@ describe('MCP Utilities', () => {
         status: 'active',
         endpoint: 'View',
         connectionUrl: 'https://example.com/mcp',
-        tools: 0,
-        version: 'Unknown',
+        tools: 3,
+        version: '1.0.0',
+        logo: 'https://example.com/logo.png',
+        source: 'configmap',
+        toolsList: [],
       });
     });
 
@@ -43,6 +50,10 @@ describe('MCP Utilities', () => {
         description: 'Server without logo',
         logo: null,
         status: 'error',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       };
 
       const result = transformMCPServerData(apiServer);
@@ -60,6 +71,10 @@ describe('MCP Utilities', () => {
         description: 'Test description',
         logo: null,
         status: 'healthy',
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       };
 
       const result = transformMCPServerData(apiServer);
@@ -400,6 +415,10 @@ describe('MCP Utilities', () => {
         description: 'Test server 1',
         logo: null,
         status: 'healthy' as const,
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       },
       {
         name: 'Server 2',
@@ -408,6 +427,10 @@ describe('MCP Utilities', () => {
         description: 'Test server 2',
         logo: null,
         status: 'healthy' as const,
+        version: '1.0.0',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
       },
     ];
 
@@ -597,6 +620,10 @@ describe('MCP Utilities', () => {
             description: 'Test server 1',
             logo: null,
             status: 'healthy' as const,
+            version: '1.0.0',
+            source: 'configmap',
+            tools: [],
+            tool_count: 0,
           },
           {
             name: 'Server 2',
@@ -605,6 +632,10 @@ describe('MCP Utilities', () => {
             description: 'Test server 2',
             logo: null,
             status: 'healthy' as const,
+            version: '1.0.0',
+            source: 'configmap',
+            tools: [],
+            tool_count: 0,
           },
         ];
 
