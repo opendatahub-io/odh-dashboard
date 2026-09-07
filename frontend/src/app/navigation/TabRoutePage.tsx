@@ -178,7 +178,7 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     (tabObjectTypeStr && isProjectObjectType(tabObjectTypeStr) ? tabObjectTypeStr : undefined) ??
     objectType;
 
-  const pageTitle = (
+  const pageTitle = singleTab?.properties.hidePageTitle ? null : (
     <PageSection hasBodyWrapper={false}>
       <Content component="h1" data-testid="app-tab-page-title">
         {resolvedObjectType ? (

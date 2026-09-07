@@ -41,7 +41,7 @@ const extensions: (
       pageId: 'openshell-tab-page',
       id: 'workspaces',
       title: 'Workspaces',
-      singleTabTitle: 'Workspaces',
+      hidePageTitle: true,
       component: () => import('./OpenShellWrapper'),
       group: '1_workspaces',
     },

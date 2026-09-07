@@ -10,7 +10,6 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/mod-arch-library/bff/internal/proxy"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )
 
@@ -81,7 +80,3 @@ func (app *App) BFFClientFactory() bffclient.BFFClientFactory { //nolint:unused
 	return app.bffClientFactory
 }
 
-// WebSocketTracker returns the shared connection tracker for WebSocket endpoints.
-func (app *App) WebSocketTracker() *proxy.ConnectionTracker { //nolint:unused
-	return app.wsTracker
-}

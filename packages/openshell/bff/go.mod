@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.0

@@ -66,6 +66,11 @@ export type TabRouteTabExtension = Extension<
      * (e.g. 'model-catalog', 'deployed-models').
      */
     objectType?: string;
+    /**
+     * When true in single-tab mode, skip the host page header so federated tab
+     * content can own its own title (e.g. an embedded upstream page).
+     */
+    hidePageTitle?: boolean;
     /** The component to render as tab content. */
     component: ComponentCodeRef;
     /** Group used to sort tabs lexicographically. Unspecified tabs will be sorted into the '5_default' group. */
