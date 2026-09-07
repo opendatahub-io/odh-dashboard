@@ -15,7 +15,7 @@ export const CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION =
 export const CLUSTER_QUEUE_WORKLOADS_EMPTY_TITLE = 'No workloads';
 export const CLUSTER_QUEUE_WORKLOADS_EMPTY_BODY = 'Admitted or waiting workloads will appear here.';
 export const CLUSTER_QUEUE_WORKLOADS_TYPE_HELP =
-  'Workload type: Workbench, Training, Model serving, Ray cluster, or Unknown (e.g. pipeline workloads without a dedicated integration).';
+  'Workload type: Workbench, Training, Ray job, Model serving, Ray cluster, or Unknown (e.g. pipeline workloads without a dedicated integration).';
 
 export enum ClusterQueueWorkloadsToolbarFilterOptions {
   name = 'name',

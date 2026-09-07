@@ -34,6 +34,7 @@ export type KueueProject = {
 export const QuotaUsageWorkloadTypes = {
   Workbench: 'Workbench',
   Train: 'Train',
+  RayJob: 'Ray job',
   Serve: 'Serve',
   RayCluster: 'Ray cluster',
   Unknown: 'Unknown',
@@ -44,16 +45,37 @@ export type QuotaUsageWorkloadType =
 
 /**
  * UXD Quota usage workloads table — Status column values.
- * Mapped from Kueue workload conditions via mapKueueStatusToQuotaUsageStatus.
+ * All Kueue workload statuses; mapped 1:1 from KueueWorkloadStatus via mapKueueStatusToQuotaUsageStatus.
  */
 export const QuotaUsageWorkloadStatuses = {
-  Pending: 'Pending',
   Queued: 'Queued',
+  Failed: 'Failed',
+  Preempted: 'Preempted',
+  Evicted: 'Evicted',
+  Requeued: 'Requeued',
+  Inadmissible: 'Inadmissible',
+  AdmissionCheck: 'Admission check',
+  BlockedOnPreemptionGates: 'Blocked',
+  Running: 'Running',
   Admitted: 'Admitted',
+  Complete: 'Complete',
 } as const;
 
 export type QuotaUsageWorkloadStatus =
   (typeof QuotaUsageWorkloadStatuses)[keyof typeof QuotaUsageWorkloadStatuses];
+
+/** Statuses for which queue position is fetched via the Kueue Visibility API. */
+export const QUOTA_USAGE_STATUSES_WITH_QUEUE_POSITION: QuotaUsageWorkloadStatus[] = [
+  QuotaUsageWorkloadStatuses.Queued,
+  QuotaUsageWorkloadStatuses.Inadmissible,
+];
+
+/** Statuses indicating the workload has passed Kueue admission. */
+export const QUOTA_USAGE_STATUSES_PAST_ADMISSION: QuotaUsageWorkloadStatus[] = [
+  QuotaUsageWorkloadStatuses.Admitted,
+  QuotaUsageWorkloadStatuses.Running,
+  QuotaUsageWorkloadStatuses.Complete,
+];
 
 /** Row model for the Quota usage tab workloads table (RHOAIENG-88168). */
 export type ClusterQueueWorkloadRow = {

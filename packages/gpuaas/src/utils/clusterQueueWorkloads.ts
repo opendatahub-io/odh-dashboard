@@ -1,5 +1,6 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
+  type K8sResourceCommon,
   type LocalQueueKind,
   type PodKind,
   type ProjectKind,
@@ -12,6 +13,7 @@ import { getPendingWorkloads } from '@odh-dashboard/internal/api/k8s/pendingWork
 import { listResourceFlavors } from '@odh-dashboard/internal/api/k8s/resourceFlavors';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { PodModel } from '@odh-dashboard/internal/api/models';
+import { RayJobModel, TrainJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import {
   getKueueWorkloadStatusWithMessage,
   KUEUE_QUEUE_LABEL,
@@ -20,6 +22,8 @@ import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { buildResourceFlavorByName, resolveWorkloadHardwareProfile } from './hardwareModels';
 import {
   type ClusterQueueWorkloadRow,
+  QUOTA_USAGE_STATUSES_PAST_ADMISSION,
+  QUOTA_USAGE_STATUSES_WITH_QUEUE_POSITION,
   QuotaUsageWorkloadStatuses,
   QuotaUsageWorkloadTypes,
   type QuotaUsageWorkloadStatus,
@@ -32,14 +36,20 @@ const ACCELERATOR_RE = new RegExp(ACCELERATOR_RESOURCE_REGEX);
 const NOTEBOOK_OWNER_KINDS = new Set(['job', 'statefulset', 'notebook', 'pod']);
 
 const KUEUE_JOB_NAME_LABEL = 'kueue.x-k8s.io/job-name';
+const KUEUE_JOB_UID_LABEL = 'kueue.x-k8s.io/job-uid';
 
 const TERMINAL_KUEUE_STATUSES = new Set([KueueWorkloadStatus.Complete, KueueWorkloadStatus.Failed]);
+
+/** Mirrors UnifiedJobKind.kind on the model training page (TrainJob | RayJob). */
+export type WorkloadJobKind = 'RayJob' | 'TrainJob';
 
 export type NamespaceWorkloadData = {
   namespace: string;
   workloads: WorkloadKind[];
   localQueues: LocalQueueKind[];
   pods: PodKind[];
+  /** job-uid label → job CR kind; used to classify Job-owned Kueue workloads as Train or Ray job. */
+  jobKindByUid: Map<string, WorkloadJobKind>;
 };
 
 export const listPods = async (namespace: string): Promise<PodKind[]> =>
@@ -48,16 +58,55 @@ export const listPods = async (namespace: string): Promise<PodKind[]> =>
     queryOptions: { ns: namespace },
   }).then((response) => response.items);
 
+const addJobKindsToMap = (
+  jobs: K8sResourceCommon[],
+  kind: WorkloadJobKind,
+  jobKindByUid: Map<string, WorkloadJobKind>,
+): void => {
+  for (const job of jobs) {
+    const uid = job.metadata?.uid;
+    if (uid) {
+      jobKindByUid.set(uid, kind);
+    }
+  }
+};
+
+const buildJobKindByUid = async (namespace: string): Promise<Map<string, WorkloadJobKind>> => {
+  const jobKindByUid = new Map<string, WorkloadJobKind>();
+
+  await Promise.all([
+    k8sListResource<K8sResourceCommon>({
+      model: RayJobModel,
+      queryOptions: { ns: namespace },
+    })
+      .then((response) => addJobKindsToMap(response.items, 'RayJob', jobKindByUid))
+      .catch(() => {
+        // RayJob CRD not installed or RBAC denied.
+      }),
+    k8sListResource<K8sResourceCommon>({
+      model: TrainJobModel,
+      queryOptions: { ns: namespace },
+    })
+      .then((response) => addJobKindsToMap(response.items, 'TrainJob', jobKindByUid))
+      .catch(() => {
+        // TrainJob CRD not installed or RBAC denied.
+      }),
+  ]);
+
+  return jobKindByUid;
+};
+
 export const fetchNamespaceWorkloadData = async (
   namespace: string,
 ): Promise<NamespaceWorkloadData> => {
-  const [workloads, localQueues, pods] = await Promise.all([
+  const [workloads, localQueues, pods, jobKindByUid] = await Promise.all([
     listWorkloads(namespace),
     listLocalQueues(namespace),
     listPods(namespace),
+    buildJobKindByUid(namespace),
   ]);
 
-  return { namespace, workloads, localQueues, pods };
+  return { namespace, workloads, localQueues, pods, jobKindByUid };
 };
 
 export const buildLocalQueueByName = (localQueues: LocalQueueKind[]): Map<string, LocalQueueKind> =>
@@ -162,6 +211,38 @@ export const isRayClusterWorkload = (workload: WorkloadKind): boolean =>
     (ownerRef) => ownerRef.kind === WorkloadOwnerType.RayCluster,
   );
 
+/**
+ * Resolves the training job CR kind for a Kueue workload — same distinction as
+ * `job.kind === 'TrainJob' | 'RayJob'` on the model training page.
+ * Checks owner ref kind first, then kueue.x-k8s.io/job-uid against listed job CRs.
+ */
+export const getWorkloadJobKind = (
+  workload: WorkloadKind,
+  jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
+): WorkloadJobKind | undefined => {
+  for (const ownerRef of workload.metadata?.ownerReferences ?? []) {
+    if (ownerRef.kind === 'RayJob') {
+      return 'RayJob';
+    }
+    if (ownerRef.kind === 'TrainJob') {
+      return 'TrainJob';
+    }
+  }
+
+  const jobUid = workload.metadata?.labels?.[KUEUE_JOB_UID_LABEL];
+  return jobUid ? jobKindByUid.get(jobUid) : undefined;
+};
+
+export const isRayJobWorkload = (
+  workload: WorkloadKind,
+  jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
+): boolean => getWorkloadJobKind(workload, jobKindByUid) === 'RayJob';
+
+export const isTrainJobWorkload = (
+  workload: WorkloadKind,
+  jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
+): boolean => getWorkloadJobKind(workload, jobKindByUid) === 'TrainJob';
+
 const isServingPod = (pod: PodKind): boolean => {
   const labels = pod.metadata.labels ?? {};
   if (labels['serving.kserve.io/inferenceservice']) {
@@ -236,13 +317,14 @@ export const isServingWorkload = (workload: WorkloadKind, pods: PodKind[]): bool
   return isServingPod(pod);
 };
 
-/** Training jobs: Job owner that is not a notebook workbench (TrainJob, RayJob, PyTorchJob, etc.). */
+/** Training jobs: Job owner that is not a notebook workbench (TrainJob, PyTorchJob, etc.). */
 export const isTrainingJobWorkload = (workload: WorkloadKind): boolean =>
   hasOwnerKind(workload, WorkloadOwnerType.Job) && !isNotebookWorkload(workload);
 
 export const resolveWorkloadType = (
   workload: WorkloadKind,
   pods: PodKind[],
+  jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
 ): QuotaUsageWorkloadType => {
   if (isServingWorkload(workload, pods)) {
     return QuotaUsageWorkloadTypes.Serve;
@@ -253,29 +335,37 @@ export const resolveWorkloadType = (
   if (isRayClusterWorkload(workload)) {
     return QuotaUsageWorkloadTypes.RayCluster;
   }
-  if (isTrainingJobWorkload(workload)) {
+
+  const jobKind = getWorkloadJobKind(workload, jobKindByUid);
+  if (jobKind === 'RayJob') {
+    return QuotaUsageWorkloadTypes.RayJob;
+  }
+  if (jobKind === 'TrainJob') {
     return QuotaUsageWorkloadTypes.Train;
   }
+
   return QuotaUsageWorkloadTypes.Unknown;
 };
 
-/**
- * UXD status mapping for the Quota usage workloads table.
- * - Queued → Queued
- * - Admitted / Running → Admitted
- * - Inadmissible, AdmissionCheck, BlockedOnPreemptionGates, Evicted, Requeued, Preempted → Pending
- */
+const KUEUE_TO_QUOTA_USAGE_STATUS: Record<KueueWorkloadStatus, QuotaUsageWorkloadStatus> = {
+  [KueueWorkloadStatus.Queued]: QuotaUsageWorkloadStatuses.Queued,
+  [KueueWorkloadStatus.Failed]: QuotaUsageWorkloadStatuses.Failed,
+  [KueueWorkloadStatus.Preempted]: QuotaUsageWorkloadStatuses.Preempted,
+  [KueueWorkloadStatus.Evicted]: QuotaUsageWorkloadStatuses.Evicted,
+  [KueueWorkloadStatus.Requeued]: QuotaUsageWorkloadStatuses.Requeued,
+  [KueueWorkloadStatus.Inadmissible]: QuotaUsageWorkloadStatuses.Inadmissible,
+  [KueueWorkloadStatus.AdmissionCheck]: QuotaUsageWorkloadStatuses.AdmissionCheck,
+  [KueueWorkloadStatus.BlockedOnPreemptionGates]:
+    QuotaUsageWorkloadStatuses.BlockedOnPreemptionGates,
+  [KueueWorkloadStatus.Running]: QuotaUsageWorkloadStatuses.Running,
+  [KueueWorkloadStatus.Admitted]: QuotaUsageWorkloadStatuses.Admitted,
+  [KueueWorkloadStatus.Complete]: QuotaUsageWorkloadStatuses.Complete,
+};
+
+/** Maps each KueueWorkloadStatus to its UXD Quota usage table status (1:1). */
 export const mapKueueStatusToQuotaUsageStatus = (
   kueueStatus: KueueWorkloadStatus,
-): QuotaUsageWorkloadStatus => {
-  if (kueueStatus === KueueWorkloadStatus.Queued) {
-    return QuotaUsageWorkloadStatuses.Queued;
-  }
-  if (kueueStatus === KueueWorkloadStatus.Admitted || kueueStatus === KueueWorkloadStatus.Running) {
-    return QuotaUsageWorkloadStatuses.Admitted;
-  }
-  return QuotaUsageWorkloadStatuses.Pending;
-};
+): QuotaUsageWorkloadStatus => KUEUE_TO_QUOTA_USAGE_STATUS[kueueStatus];
 
 export const getWorkloadAcceleratorCount = (workload: WorkloadKind): number =>
   workload.spec.podSets.reduce((podSetTotal, podSet) => {
@@ -336,6 +426,7 @@ export const mapWorkloadToRow = (
   pods: PodKind[],
   localQueueByName: Map<string, LocalQueueKind>,
   resourceFlavorByName: Map<string, ResourceFlavorKind>,
+  jobKindByUid: ReadonlyMap<string, WorkloadJobKind> = new Map(),
   clusterQueueName?: string,
 ): ClusterQueueWorkloadRow => {
   const kueueStatus = getKueueWorkloadStatusWithMessage(workload);
@@ -346,7 +437,7 @@ export const mapWorkloadToRow = (
     namespace,
     project: projectDisplayName,
     clusterQueue: clusterQueueName ?? resolveWorkloadClusterQueue(workload, localQueueByName),
-    type: resolveWorkloadType(workload, pods),
+    type: resolveWorkloadType(workload, pods, jobKindByUid),
     status,
     localQueue: workload.spec.queueName ?? '',
     accelerators: getWorkloadAcceleratorCount(workload),
@@ -363,7 +454,7 @@ export const filterAndMapClusterQueueWorkloads = (
   resourceFlavorByName: Map<string, ResourceFlavorKind>,
   includeTerminal = false,
 ): ClusterQueueWorkloadRow[] =>
-  namespaceData.flatMap(({ namespace, workloads, localQueues, pods }) => {
+  namespaceData.flatMap(({ namespace, workloads, localQueues, pods, jobKindByUid }) => {
     const localQueueByName = buildLocalQueueByName(localQueues);
     const projectDisplayName = projectDisplayNames.get(namespace) ?? namespace;
 
@@ -382,6 +473,7 @@ export const filterAndMapClusterQueueWorkloads = (
           pods,
           localQueueByName,
           resourceFlavorByName,
+          jobKindByUid,
           clusterQueueName,
         ),
       );
@@ -389,7 +481,7 @@ export const filterAndMapClusterQueueWorkloads = (
 
 /** All workloads in a namespace, regardless of cluster queue. */
 export const filterAndMapNamespaceWorkloads = (
-  { namespace, workloads, localQueues, pods }: NamespaceWorkloadData,
+  { namespace, workloads, localQueues, pods, jobKindByUid }: NamespaceWorkloadData,
   projectDisplayName: string,
   resourceFlavorByName: Map<string, ResourceFlavorKind>,
   includeTerminal = false,
@@ -406,6 +498,7 @@ export const filterAndMapNamespaceWorkloads = (
         pods,
         localQueueByName,
         resourceFlavorByName,
+        jobKindByUid,
       ),
     );
 };
@@ -427,7 +520,7 @@ export const fetchQueuePositions = async (
   const workloadsByQueue = new Map<string, ClusterQueueWorkloadRow[]>();
 
   for (const row of rows) {
-    if (row.status !== QuotaUsageWorkloadStatuses.Queued || !row.localQueue) {
+    if (!QUOTA_USAGE_STATUSES_WITH_QUEUE_POSITION.includes(row.status) || !row.localQueue) {
       continue;
     }
     const queueKey = `${row.namespace}/${row.localQueue}`;
@@ -464,7 +557,7 @@ export const applyQueuePositions = (
   positions: Map<QueuePositionKey, number>,
 ): ClusterQueueWorkloadRow[] =>
   rows.map((row) => {
-    if (row.status === QuotaUsageWorkloadStatuses.Admitted) {
+    if (QUOTA_USAGE_STATUSES_PAST_ADMISSION.includes(row.status)) {
       return row;
     }
 

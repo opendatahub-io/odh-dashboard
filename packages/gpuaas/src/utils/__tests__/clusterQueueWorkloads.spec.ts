@@ -19,6 +19,9 @@ import {
   isActiveWorkload,
   isKueueManagedWorkload,
   isRayClusterWorkload,
+  isRayJobWorkload,
+  isTrainJobWorkload,
+  getWorkloadJobKind,
   isServingWorkload,
   isTrainingJobWorkload,
   isWorkbenchWorkload,
@@ -226,16 +229,81 @@ describe('clusterQueueWorkloads', () => {
       expect(isRayClusterWorkload(workload)).toBe(true);
     });
 
-    it('resolves training workloads from Job owner when not a workbench', () => {
+    it('resolves ray job workloads from RayJob owner', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'rayjob-wl',
+          namespace: NS,
+          ownerReferences: [
+            { apiVersion: 'ray.io/v1', kind: 'RayJob', name: 'ray-job', uid: 'rayjob-uid' },
+          ],
+        },
+      });
+      expect(resolveWorkloadType(workload, [])).toBe(QuotaUsageWorkloadTypes.RayJob);
+      expect(isRayJobWorkload(workload)).toBe(true);
+    });
+
+    it('resolves ray job workloads from job-uid label matching a RayJob CR', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'rayjob-wl',
+          namespace: NS,
+          labels: { 'kueue.x-k8s.io/job-uid': 'rayjob-cr-uid' },
+          ownerReferences: [{ apiVersion: 'v1', kind: 'Job', name: 'ray-job', uid: 'job-uid' }],
+        },
+      });
+      const jobKindByUid = new Map([['rayjob-cr-uid', 'RayJob' as const]]);
+      expect(resolveWorkloadType(workload, [], jobKindByUid)).toBe(QuotaUsageWorkloadTypes.RayJob);
+      expect(isRayJobWorkload(workload, jobKindByUid)).toBe(true);
+      expect(getWorkloadJobKind(workload, jobKindByUid)).toBe('RayJob');
+    });
+
+    it('resolves train workloads from TrainJob owner', () => {
       const workload = baseWorkload({
         metadata: {
           name: 'train-wl',
           namespace: NS,
-          ownerReferences: [{ apiVersion: 'v1', kind: 'Job', name: 'train-job', uid: 'job-uid' }],
+          ownerReferences: [
+            {
+              apiVersion: 'trainer.kubeflow.org/v1alpha1',
+              kind: 'TrainJob',
+              name: 'train-job',
+              uid: 'trainjob-uid',
+            },
+          ],
         },
       });
       expect(resolveWorkloadType(workload, [])).toBe(QuotaUsageWorkloadTypes.Train);
+      expect(isTrainJobWorkload(workload)).toBe(true);
+      expect(getWorkloadJobKind(workload)).toBe('TrainJob');
+    });
+
+    it('resolves train workloads from job-uid label matching a TrainJob CR', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'train-wl',
+          namespace: NS,
+          labels: { 'kueue.x-k8s.io/job-uid': 'trainjob-cr-uid' },
+          ownerReferences: [{ apiVersion: 'v1', kind: 'Job', name: 'train-job', uid: 'job-uid' }],
+        },
+      });
+      const jobKindByUid = new Map([['trainjob-cr-uid', 'TrainJob' as const]]);
+      expect(resolveWorkloadType(workload, [], jobKindByUid)).toBe(QuotaUsageWorkloadTypes.Train);
+      expect(isTrainJobWorkload(workload, jobKindByUid)).toBe(true);
+      expect(getWorkloadJobKind(workload, jobKindByUid)).toBe('TrainJob');
+    });
+
+    it('classifies generic Job-owned workloads as unknown when not a TrainJob or RayJob', () => {
+      const workload = baseWorkload({
+        metadata: {
+          name: 'batch-wl',
+          namespace: NS,
+          ownerReferences: [{ apiVersion: 'v1', kind: 'Job', name: 'batch-job', uid: 'job-uid' }],
+        },
+      });
+      expect(resolveWorkloadType(workload, [])).toBe(QuotaUsageWorkloadTypes.Unknown);
       expect(isTrainingJobWorkload(workload)).toBe(true);
+      expect(getWorkloadJobKind(workload)).toBeUndefined();
     });
 
     it('resolves serving workloads from Pod owner single-hop labels', () => {
@@ -300,14 +368,19 @@ describe('clusterQueueWorkloads', () => {
   describe('mapKueueStatusToQuotaUsageStatus', () => {
     it.each([
       [KueueWorkloadStatus.Queued, QuotaUsageWorkloadStatuses.Queued],
+      [KueueWorkloadStatus.Failed, QuotaUsageWorkloadStatuses.Failed],
+      [KueueWorkloadStatus.Preempted, QuotaUsageWorkloadStatuses.Preempted],
+      [KueueWorkloadStatus.Evicted, QuotaUsageWorkloadStatuses.Evicted],
+      [KueueWorkloadStatus.Requeued, QuotaUsageWorkloadStatuses.Requeued],
+      [KueueWorkloadStatus.Inadmissible, QuotaUsageWorkloadStatuses.Inadmissible],
+      [KueueWorkloadStatus.AdmissionCheck, QuotaUsageWorkloadStatuses.AdmissionCheck],
+      [
+        KueueWorkloadStatus.BlockedOnPreemptionGates,
+        QuotaUsageWorkloadStatuses.BlockedOnPreemptionGates,
+      ],
+      [KueueWorkloadStatus.Running, QuotaUsageWorkloadStatuses.Running],
       [KueueWorkloadStatus.Admitted, QuotaUsageWorkloadStatuses.Admitted],
-      [KueueWorkloadStatus.Running, QuotaUsageWorkloadStatuses.Admitted],
-      [KueueWorkloadStatus.Inadmissible, QuotaUsageWorkloadStatuses.Pending],
-      [KueueWorkloadStatus.AdmissionCheck, QuotaUsageWorkloadStatuses.Pending],
-      [KueueWorkloadStatus.BlockedOnPreemptionGates, QuotaUsageWorkloadStatuses.Pending],
-      [KueueWorkloadStatus.Evicted, QuotaUsageWorkloadStatuses.Pending],
-      [KueueWorkloadStatus.Requeued, QuotaUsageWorkloadStatuses.Pending],
-      [KueueWorkloadStatus.Preempted, QuotaUsageWorkloadStatuses.Pending],
+      [KueueWorkloadStatus.Complete, QuotaUsageWorkloadStatuses.Complete],
     ])('maps %s to %s', (kueueStatus, expected) => {
       expect(mapKueueStatusToQuotaUsageStatus(kueueStatus)).toBe(expected);
     });
@@ -353,6 +426,7 @@ describe('clusterQueueWorkloads', () => {
             workloads: [admitted, queued, complete],
             localQueues: [localQueue(LQ, CQ)],
             pods: [],
+            jobKindByUid: new Map(),
           },
         ],
         projectDisplayNames,
@@ -435,6 +509,7 @@ describe('clusterQueueWorkloads', () => {
             ],
             localQueues: [localQueue(LQ, CQ)],
             pods: [servingPod, servingPodWithQueue],
+            jobKindByUid: new Map(),
           },
         ],
         projectDisplayNames,
@@ -476,6 +551,7 @@ describe('clusterQueueWorkloads', () => {
             workloads: [infraWorkload],
             localQueues: [localQueue(LQ, CQ)],
             pods: [infraPod],
+            jobKindByUid: new Map(),
           },
         ],
         projectDisplayNames,
@@ -530,6 +606,7 @@ describe('clusterQueueWorkloads', () => {
             workloads: [workload],
             localQueues: [localQueue(LQ, CQ)],
             pods: [servingPod],
+            jobKindByUid: new Map(),
           },
         ],
         projectDisplayNames,
@@ -711,6 +788,7 @@ describe('clusterQueueWorkloads', () => {
         [],
         buildLocalQueueByName([localQueue(LQ, CQ)]),
         new Map([['gpu-l40s', resourceFlavor]]),
+        new Map(),
         CQ,
       );
 
@@ -776,6 +854,7 @@ describe('clusterQueueWorkloads', () => {
           workloads: [admitted, queued, complete],
           localQueues: [localQueue(LQ, CQ)],
           pods: [],
+          jobKindByUid: new Map(),
         },
         'DSP One',
         emptyResourceFlavors,
