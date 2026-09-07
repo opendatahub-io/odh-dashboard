@@ -31,7 +31,9 @@ import (
 //
 //   - Cluster-state faults (config drift, managed-resource mutation, ownership
 //     changes): the desired state is mutated out-of-band with the real client,
-//     then a reconcile must restore it via Server-Side Apply.
+//     an apply-time fault is injected through the ChaosClient to confirm the
+//     restore fails gracefully while the fault is active, then a fault-free
+//     reconcile must restore the desired state via Server-Side Apply.
 //   - Client-boundary faults (transient/intermittent API errors): the
 //     reconciler is wired to a sdk.ChaosClient that injects errors on specific
 //     controller-runtime operations, verifying the controller surfaces the
@@ -100,9 +102,32 @@ func getCoreConfigMap(t *testing.T) *corev1.ConfigMap {
 	return cm
 }
 
+// assertApplyFaultIsGraceful injects a deterministic apply-time fault, drives a
+// reconcile through the ChaosClient, and asserts the controller fails gracefully
+// (a ChaosError, never a panic) rather than corrupting state. It leaves the
+// fault deactivated so the caller can verify self-healing on the next reconcile.
+func assertApplyFaultIsGraceful(t *testing.T, r *ctrlpkg.DashboardReconciler, faults *sdk.FaultConfig) {
+	t.Helper()
+
+	faults.SetFault(sdk.OpApply, sdk.FaultSpec{
+		ErrorRate: 1.0,
+		Error:     "chaos: apiserver unavailable during apply",
+	})
+	faults.Activate()
+
+	_, err := r.Reconcile(context.Background(), dashboardRequest())
+	require.Error(t, err, "reconcile should surface the injected apply fault")
+	var chaosErr *sdk.ChaosError
+	require.Truef(t, errors.As(err, &chaosErr), "error should be a ChaosError, got: %v", err)
+
+	faults.Deactivate()
+}
+
 // TestIntegration_Chaos_ConfigDrift_RestoredByReconcile injects config drift by
-// mutating a managed ConfigMap out-of-band and verifies the next reconcile
-// restores the operator-owned value via Server-Side Apply. (RHOAIENG-85609)
+// mutating a managed ConfigMap out-of-band, verifies the controller tolerates an
+// apply-time fault gracefully while the drift is present, and then confirms that
+// once the fault clears the next reconcile restores the operator-owned value via
+// Server-Side Apply. (RHOAIENG-85609)
 func TestIntegration_Chaos_ConfigDrift_RestoredByReconcile(t *testing.T) {
 	faults := &sdk.FaultConfig{}
 	r := setupChaosDashboard(t, faults)
@@ -118,7 +143,13 @@ func TestIntegration_Chaos_ConfigDrift_RestoredByReconcile(t *testing.T) {
 	require.NoError(t, k8sClient.Update(context.Background(), drift))
 	require.Equal(t, "drifted-by-chaos", getCoreConfigMap(t).Data["key"], "drift should be applied")
 
-	// Re-reconcile heals the drift.
+	// While an apply fault is active the reconcile fails gracefully and the drift
+	// remains unhealed.
+	assertApplyFaultIsGraceful(t, r, faults)
+	require.Equal(t, "drifted-by-chaos", getCoreConfigMap(t).Data["key"],
+		"drift should persist while the apply fault blocks reconciliation")
+
+	// Once the fault clears, re-reconcile heals the drift.
 	reconcile(t, r)
 
 	assert.Equal(t, original, getCoreConfigMap(t).Data["key"],
@@ -136,6 +167,8 @@ func TestIntegration_Chaos_ManagedResourceMutation_RestoredByReconcile(t *testin
 
 	deployments := listDeployments(t, "model-registry")
 	require.Len(t, deployments, 1)
+	require.NotEmpty(t, deployments[0].Spec.Template.Spec.Containers,
+		"managed Deployment should have containers")
 	original := deployments[0].Spec.Template.Spec.Containers[0].Image
 	require.NotEmpty(t, original, "managed Deployment should carry an operator-owned image")
 
@@ -147,7 +180,14 @@ func TestIntegration_Chaos_ManagedResourceMutation_RestoredByReconcile(t *testin
 		listDeployments(t, "model-registry")[0].Spec.Template.Spec.Containers[0].Image,
 		"mutation should be applied")
 
-	// Re-reconcile reasserts the desired image.
+	// While an apply fault is active the reconcile fails gracefully and the
+	// mutation remains unhealed.
+	assertApplyFaultIsGraceful(t, r, faults)
+	require.Equal(t, "registry.example.com/chaos-injected:mutated",
+		listDeployments(t, "model-registry")[0].Spec.Template.Spec.Containers[0].Image,
+		"mutation should persist while the apply fault blocks reconciliation")
+
+	// Once the fault clears, re-reconcile reasserts the desired image.
 	reconcile(t, r)
 
 	assert.Equal(t, original,
@@ -174,7 +214,13 @@ func TestIntegration_Chaos_OwnershipStripped_Reestablished(t *testing.T) {
 	require.NoError(t, k8sClient.Update(context.Background(), stripped))
 	require.Empty(t, getCoreConfigMap(t).OwnerReferences, "owner references should be stripped")
 
-	// Re-reconcile re-establishes ownership.
+	// While an apply fault is active the reconcile fails gracefully and ownership
+	// remains unrestored.
+	assertApplyFaultIsGraceful(t, r, faults)
+	require.Empty(t, getCoreConfigMap(t).OwnerReferences,
+		"owner references should remain stripped while the apply fault blocks reconciliation")
+
+	// Once the fault clears, re-reconcile re-establishes ownership.
 	reconcile(t, r)
 
 	restored := getCoreConfigMap(t)
@@ -208,7 +254,7 @@ func TestIntegration_Chaos_ClientApplyFault_DegradesAndRecovers(t *testing.T) {
 	require.Error(t, err, "reconcile should surface the injected apply fault")
 
 	var chaosErr *sdk.ChaosError
-	require.True(t, errors.As(err, &chaosErr), "error should be a ChaosError, got: %v", err)
+	require.Truef(t, errors.As(err, &chaosErr), "error should be a ChaosError, got: %v", err)
 	assert.Equal(t, sdk.OpApply, chaosErr.Operation)
 
 	// Status reflects the provisioning failure; the controller did not panic and
