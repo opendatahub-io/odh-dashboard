@@ -11,7 +11,7 @@ import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 
 jest.mock('~/app/hooks/useFetchMCPServers', () => ({
   __esModule: true,
-  default: jest.fn(() => ({ data: [], configMapName: null, loaded: true })),
+  default: jest.fn(() => ({ data: [], configMapName: null, registryAvailable: false, loaded: true })),
 }));
 
 const emptyChatbotContext = {
@@ -138,6 +138,7 @@ describe('useIsProfileDirty', () => {
         { name: 'server-b', url: 'http://server-b' },
       ] as never,
       configMapName: 'gen-ai-aa-mcp-servers',
+      registryAvailable: false,
       loaded: true,
       error: undefined,
     });

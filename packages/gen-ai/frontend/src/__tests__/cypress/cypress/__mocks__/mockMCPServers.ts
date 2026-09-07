@@ -10,6 +10,7 @@ export type MCPServer = {
   description: string;
   logo: string | null;
   status: 'healthy' | 'error' | 'unknown';
+  source?: 'registry' | 'configmap';
 };
 
 export type MCPConfigMapInfo = {
@@ -22,6 +23,8 @@ export type MCPServersData = {
   servers: MCPServer[];
   total_count: number;
   config_map_info: MCPConfigMapInfo;
+  registry_available?: boolean;
+  configmap_available?: boolean;
 };
 
 // The API returns data wrapped in { data: ... } which modArchRestGET unwraps
@@ -36,6 +39,7 @@ export const mockMCPServer = ({
   status = 'healthy',
   description = 'Test MCP server',
   logo = null,
+  source,
 }: Partial<MCPServer> = {}): MCPServer => ({
   name,
   url,
@@ -43,6 +47,7 @@ export const mockMCPServer = ({
   description,
   logo,
   status,
+  ...(source !== undefined && { source }),
 });
 
 export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
