@@ -76,12 +76,15 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
           }
 
           return cy
-            .exec(`oc get inferenceservices -n ${projectName} --no-headers 2>/dev/null | wc -l`, {
-              failOnNonZeroExit: false,
-            })
+            .exec(
+              `oc get inferenceservices -n ${projectName} -o jsonpath='{.items[?(@.metadata.name=="${testData.modelDeploymentName}")].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null`,
+              {
+                failOnNonZeroExit: false,
+              },
+            )
             .then((isResult) => {
-              if (parseInt(isResult.stdout.trim(), 10) > 0) {
-                cy.log('Model already deployed');
+              if (isResult.stdout.trim() === 'True') {
+                cy.log('Model already deployed and ready');
                 return;
               }
               cy.step('Deploy Gen AI model');
