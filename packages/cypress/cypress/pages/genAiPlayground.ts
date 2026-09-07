@@ -9,6 +9,8 @@ const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
 const GEN_AI_ALL_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
+const GEN_AI_MCP_REGISTRY_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -56,6 +58,12 @@ class GenAiPlayground {
 
   navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToPlaygroundWithMCPRegistry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_MCP_REGISTRY_FLAG}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }

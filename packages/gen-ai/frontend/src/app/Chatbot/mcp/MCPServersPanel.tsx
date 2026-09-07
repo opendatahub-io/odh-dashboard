@@ -467,6 +467,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                 >
                   <FlexItem>
                     <ExpandableSectionToggle
+                      toggleId="mcp-registered-section-toggle"
                       isExpanded={isRegisteredExpanded}
                       onToggle={() => setIsRegisteredExpanded((prev) => !prev)}
                       contentId="mcp-registered-content"
@@ -505,7 +506,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                     <DropdownItem
                       key="manage-servers"
                       icon={<ExternalLinkAltIcon />}
-                      to={MCP_CATALOG_URL}
+                      onClick={() => window.open(MCP_CATALOG_URL, '_blank', 'noopener,noreferrer')}
                       data-testid="mcp-manage-servers-link"
                     >
                       Manage servers in AI Hub
@@ -518,6 +519,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
               isExpanded={isRegisteredExpanded}
               isDetached
               contentId="mcp-registered-content"
+              toggleId="mcp-registered-section-toggle"
             >
               {renderServerTable(registeredServers, 'mcp-registered-servers-table')}
             </ExpandableSection>
@@ -527,6 +529,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
           <div data-testid="mcp-manual-section">
             <div className="pf-v6-u-mb-sm">
               <ExpandableSectionToggle
+                toggleId="mcp-manual-section-toggle"
                 isExpanded={isManualExpanded}
                 onToggle={() => setIsManualExpanded((prev) => !prev)}
                 contentId="mcp-manual-content"
@@ -539,6 +542,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
               isExpanded={isManualExpanded}
               isDetached
               contentId="mcp-manual-content"
+              toggleId="mcp-manual-section-toggle"
             >
               {manualServers.length === 0 ? (
                 <EmptyState
@@ -572,6 +576,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         <div data-testid="mcp-manual-section">
           <div className="pf-v6-u-mb-sm">
             <ExpandableSectionToggle
+              toggleId="mcp-manual-section-toggle"
               isExpanded={isManualExpanded}
               onToggle={() => setIsManualExpanded((prev) => !prev)}
               contentId="mcp-manual-content"
@@ -584,6 +589,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
             isExpanded={isManualExpanded}
             isDetached
             contentId="mcp-manual-content"
+            toggleId="mcp-manual-section-toggle"
           >
             {manualServers.length === 0 ? (
               <EmptyState

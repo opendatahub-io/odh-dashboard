@@ -263,7 +263,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       );
 
       cy.step('Navigate to playground with mcpRegistry flag enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);
 
       cy.step('Open settings panel and navigate to MCP tab');
       genAiPlayground.ensureSettingsPanelOpen();

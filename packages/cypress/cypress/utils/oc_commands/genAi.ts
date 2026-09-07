@@ -419,17 +419,21 @@ const execMlflowBffCurl = (
   const namespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'redhat-ods-applications';
   const svcUrl = `https://${MLFLOW_UI_BFF_SVC}.${namespace}.svc:${MLFLOW_UI_BFF_PORT}${path}`;
   const bodyArgs = body ? `-d '${JSON.stringify(body).replace(/'/g, "'\\''")}'` : '';
-  const cmd = [
-    `oc exec -n ${namespace} deploy/${MLFLOW_UI_BFF_DEPLOY} --`,
+  // Pipe auth headers via stdin so the OAuth token never appears in process arguments
+  // (avoids CWE-522; requires curl >= 7.55.0 for -H @- support).
+  const curlArgs = [
     `curl -sk -X ${method} '${svcUrl}'`,
     `-H 'Content-Type: application/json'`,
-    `-H "Authorization: Bearer $(oc whoami -t)"`,
-    `-H "X-Forwarded-Access-Token: $(oc whoami -t)"`,
+    `-H @-`,
     `-w '\\n%{http_code}'`,
     bodyArgs,
   ]
     .filter(Boolean)
     .join(' ');
+  const cmd =
+    `printf 'Authorization: Bearer %s\\r\\nX-Forwarded-Access-Token: %s\\r\\n' ` +
+    `"$(oc whoami -t)" "$(oc whoami -t)" | ` +
+    `oc exec -i -n ${namespace} deploy/${MLFLOW_UI_BFF_DEPLOY} -- ${curlArgs}`;
 
   return cy.exec(cmd, { timeout: 30000, failOnNonZeroExit: false }).then((result) => {
     const lines = result.stdout.trim().split('\n');
