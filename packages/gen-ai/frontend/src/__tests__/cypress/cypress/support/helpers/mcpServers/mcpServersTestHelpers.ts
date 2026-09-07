@@ -181,13 +181,10 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToPlayground = (
-  namespace: string,
-  options?: { devFeatureFlags?: Record<string, boolean> },
-): void => {
+export const navigateToPlayground = (namespace: string): void => {
   cy.step('Navigate to Playground');
   appChrome.visit();
-  playgroundPage.visit(namespace, options);
+  playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();
   playgroundPage.mcpTab.verifyMCPTabVisible();

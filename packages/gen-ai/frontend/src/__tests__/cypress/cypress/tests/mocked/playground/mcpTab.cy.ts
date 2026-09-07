@@ -698,7 +698,7 @@ describe('Playground - MCP Servers', () => {
         ],
       });
 
-      navigateToPlayground(namespace, { devFeatureFlags: { mcpRegistry: true } });
+      navigateToPlayground(namespace);
 
       cy.step('Verify Registered section is visible');
       playgroundPage.mcpTab.findRegisteredSection().should('be.visible');
@@ -731,7 +731,7 @@ describe('Playground - MCP Servers', () => {
         configmapServers: [],
       });
 
-      navigateToPlayground(namespace, { devFeatureFlags: { mcpRegistry: true } });
+      navigateToPlayground(namespace);
 
       cy.step('Verify Registered section is visible');
       playgroundPage.mcpTab.findRegisteredSection().should('be.visible');

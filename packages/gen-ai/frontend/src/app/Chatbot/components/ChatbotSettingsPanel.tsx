@@ -25,7 +25,7 @@ import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
-import { AGENT_CONFIG_MANAGEMENT, MCP_REGISTRY } from '~/odh/extensions';
+import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -119,7 +119,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
-  const [mcpRegistryFlag] = useFeatureFlag(MCP_REGISTRY);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
@@ -459,7 +458,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             mcpServers={mcpServers}
             mcpServersLoaded={mcpServersLoaded}
             mcpServersLoadError={mcpServersLoadError}
-            mcpRegistryAvailable={mcpRegistryFlag === true && mcpRegistryAvailable}
+            mcpRegistryAvailable={mcpRegistryAvailable}
             mcpServerTokens={mcpServerTokens}
             onMcpServerTokensChange={onMcpServerTokensChange}
             checkMcpServerStatus={checkMcpServerStatus}
