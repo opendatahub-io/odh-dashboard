@@ -38,8 +38,7 @@ This project is a web application built with a modular architecture. It consists
 ├── frontend/           # React frontend application
 │   ├── src/            # Source code
 │   └── dist/           # Build output (generated)
-├── Dockerfile          # Root-context Docker build used by the OpenShift helper
-└── Dockerfile.workspace # Workspace-aware build used by Konflux and local module builds
+└── Dockerfile.workspace # Root-context build used by OpenShift, Konflux, and local module builds
 ```
 
 ## Development Setup
@@ -286,9 +285,9 @@ docker build \
   --tag gen-ai .
 ```
 
-The OpenShift helper later in this document intentionally selects
-`packages/gen-ai/Dockerfile` instead. Do not run `docker build .` from
-`packages/gen-ai`, because the Dockerfiles need the repository root as their build context.
+The OpenShift helper uses the same `Dockerfile.workspace` build path. Do not run
+`docker build .` from `packages/gen-ai`, because the Dockerfile needs the repository
+root as its build context.
 
 ### Running the Docker Container
 
@@ -364,8 +363,8 @@ Run from the repository root:
 What the script does (high level):
 
 - Detects repo URL and current branch; validates HTTPS fetch URL
-- Creates a Docker BuildConfig via `oc new-app` (scoped to `packages/gen-ai`)
-- Patches the BuildConfig to use `packages/gen-ai/Dockerfile`
+- Creates a Docker BuildConfig via `oc new-app` (initially scoped to `packages/gen-ai`)
+- Patches the BuildConfig to use the root-context `packages/gen-ai/Dockerfile.workspace` in standalone mode
 - Cancels the auto-triggered first build and starts a new one
 - Waits for the Service and creates an edge Route on port 8080
 - Prints the public Route URL when ready

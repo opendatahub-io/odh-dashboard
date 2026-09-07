@@ -56,7 +56,8 @@ jobs:
       - name: Setup pnpm
         uses: ./.github/actions/pnpm-setup
         with:
-          node-version: "22"
+          node-version: '22'
+          install-dependencies: 'false'
 
       - name: Prod pnpm audit (high/critical)
         id: prod
