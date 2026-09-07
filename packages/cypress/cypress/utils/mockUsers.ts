@@ -71,7 +71,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   cy.intercept(
     { pathname: '/api/k8s/api/*/*' },
     {
-      statusCode: 200,
+      statusCode: isClusterAdmin ? 200 : 403,
       body: {
         apiVersion: 'unknown',
         metadata: {},
@@ -82,7 +82,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   cy.intercept(
     { pathname: '/api/k8s/apis/*/*/*' },
     {
-      statusCode: 200,
+      statusCode: isClusterAdmin ? 200 : 403,
       body: {
         apiVersion: 'unknown',
         metadata: {},

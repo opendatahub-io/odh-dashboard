@@ -335,10 +335,20 @@ describe('Model Training Pause/Resume', () => {
         {
           statusCode: 415,
           body: {
-            statusCode: 415,
-            code: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
-            error: 'Unsupported Media Type',
+            kind: 'Status',
+            apiVersion: 'v1',
+            status: 'Failure',
+            code: 415,
+            reason: 'DashboardProxyError',
             message: 'Unsupported Media Type: application/json-patch+json',
+            details: {
+              causes: [
+                {
+                  reason: 'FST_ERR_CTP_INVALID_MEDIA_TYPE',
+                  message: 'Unsupported Media Type: application/json-patch+json',
+                },
+              ],
+            },
           },
         },
       ).as('pauseWorkloadRejected');
@@ -353,7 +363,10 @@ describe('Model Training Pause/Resume', () => {
       pauseTrainingJobModal.pause();
 
       cy.wait('@pauseWorkloadRejected');
-      toastNotifications.findToastNotification(0).should('contain.text', 'Failed to pause job');
+      toastNotifications
+        .findToastNotification(0)
+        .should('contain.text', 'Failed to pause job')
+        .and('contain.text', 'Unsupported Media Type: application/json-patch+json');
       row.findStatus().should('contain.text', 'Running');
       row.findStatus().should('not.contain.text', 'Paused');
     });
