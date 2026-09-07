@@ -461,70 +461,69 @@ export const registerMCPServerInRegistry = (
 
   // Pre-cleanup: remove any stale server from a previous run (best effort, ignores errors).
   // This prevents 400 "already exists" failures when a prior test run's cleanup was incomplete.
-  return removeMCPServerFromRegistryBestEffort(workspace, serverName).then(() =>
-    // Step 1: Create the server entry
-    execMlflowBffCurl(
-      'POST',
-      `/api/v1/mcp-registry/servers?workspace=${workspace}`,
-      workspace,
-      { name: serverName, description },
-    )
-      .then((resp) => {
-        if (resp.status !== 201 && resp.status !== 409) {
-          throw new Error(`Failed to create MCP registry server: ${resp.status} ${resp.body}`);
-        }
+  return removeMCPServerFromRegistryBestEffort(workspace, serverName).then(
+    () =>
+      // Step 1: Create the server entry
+      execMlflowBffCurl('POST', `/api/v1/mcp-registry/servers?workspace=${workspace}`, workspace, {
+        name: serverName,
+        description,
+      })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry server: ${resp.status} ${resp.body}`);
+          }
 
-        // Step 2: Create a version
-        return execMlflowBffCurl(
-          'POST',
-          `/api/v1/mcp-registry/servers/${encodedName}/versions?workspace=${workspace}`,
-          workspace,
-          {
-            server_json: {
-              name: serverName,
-              version: '1.0.0',
-              display_name: serverName.split('/').pop(),
-              description,
+          // Step 2: Create a version
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions?workspace=${workspace}`,
+            workspace,
+            {
+              server_json: {
+                name: serverName,
+                version: '1.0.0',
+                display_name: serverName.split('/').pop(),
+                description,
+              },
             },
-          },
-        );
-      })
-      .then((resp) => {
-        if (resp.status !== 201 && resp.status !== 409) {
-          throw new Error(`Failed to create MCP registry version: ${resp.status} ${resp.body}`);
-        }
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            throw new Error(`Failed to create MCP registry version: ${resp.status} ${resp.body}`);
+          }
 
-        // Step 3: Activate the version
-        return execMlflowBffCurl(
-          'PATCH',
-          `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
-          workspace,
-          { status: 'active' },
-        );
-      })
-      .then((resp) => {
-        if (resp.status !== 200 && resp.status !== 409) {
-          cy.log(`Warning: Failed to activate version: ${resp.status} (may already be active)`);
-        }
+          // Step 3: Activate the version
+          return execMlflowBffCurl(
+            'PATCH',
+            `/api/v1/mcp-registry/servers/${encodedName}/versions/1.0.0?workspace=${workspace}`,
+            workspace,
+            { status: 'active' },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 200 && resp.status !== 409) {
+            cy.log(`Warning: Failed to activate version: ${resp.status} (may already be active)`);
+          }
 
-        // Step 4: Create an access endpoint
-        return execMlflowBffCurl(
-          'POST',
-          `/api/v1/mcp-registry/servers/${encodedName}/endpoints?workspace=${workspace}`,
-          workspace,
-          {
-            endpoint_url: serverUrl,
-            transport_type: 'streamable-http',
-            server_version: '1.0.0',
-          },
-        );
-      })
-      .then((resp) => {
-        if (resp.status !== 201 && resp.status !== 409) {
-          cy.log(`Warning: Failed to create endpoint: ${resp.status} (may already exist)`);
-        }
-        cy.log(`MCP server "${serverName}" registered in MLflow registry`);
-      }) as unknown as Cypress.Chainable<void>,
+          // Step 4: Create an access endpoint
+          return execMlflowBffCurl(
+            'POST',
+            `/api/v1/mcp-registry/servers/${encodedName}/endpoints?workspace=${workspace}`,
+            workspace,
+            {
+              endpoint_url: serverUrl,
+              transport_type: 'streamable-http',
+              server_version: '1.0.0',
+            },
+          );
+        })
+        .then((resp) => {
+          if (resp.status !== 201 && resp.status !== 409) {
+            cy.log(`Warning: Failed to create endpoint: ${resp.status} (may already exist)`);
+          }
+          cy.log(`MCP server "${serverName}" registered in MLflow registry`);
+        }) as unknown as Cypress.Chainable<void>,
   );
 };
 

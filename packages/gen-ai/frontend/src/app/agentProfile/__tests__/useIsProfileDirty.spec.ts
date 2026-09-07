@@ -11,7 +11,12 @@ import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 
 jest.mock('~/app/hooks/useFetchMCPServers', () => ({
   __esModule: true,
-  default: jest.fn(() => ({ data: [], configMapName: null, registryAvailable: false, loaded: true })),
+  default: jest.fn(() => ({
+    data: [],
+    configMapName: null,
+    registryAvailable: false,
+    loaded: true,
+  })),
 }));
 
 const emptyChatbotContext = {
