@@ -82,3 +82,43 @@ export const mockMCPServers = (servers?: MCPServer[]): MCPServersResponse => {
     },
   };
 };
+
+export const mockMCPServersWithRegistry = (
+  registryServers?: MCPServer[],
+  configmapServers?: MCPServer[],
+): MCPServersResponse => {
+  const regServers = registryServers ?? [
+    mockMCPServer({
+      name: 'Registry-MCP-Server',
+      url: 'http://registry-mcp-server.test.svc.cluster.local:8080/mcp',
+      transport: 'streamable-http',
+      status: 'healthy',
+      description: 'MCP server from registry',
+      source: 'registry',
+    }),
+  ];
+  const cmServers = configmapServers ?? [
+    mockMCPServer({
+      name: 'ConfigMap-MCP-Server',
+      url: 'http://configmap-mcp-server.test.svc.cluster.local:8080/sse',
+      transport: 'sse',
+      status: 'healthy',
+      description: 'MCP server from configmap',
+      source: 'configmap',
+    }),
+  ];
+  const allServers = [...regServers, ...cmServers];
+  return {
+    data: {
+      servers: allServers,
+      total_count: allServers.length,
+      config_map_info: {
+        name: 'mcp-servers-config',
+        namespace: 'crimson-show',
+        last_updated: new Date().toISOString(),
+      },
+      registry_available: true,
+      configmap_available: true,
+    },
+  };
+};

@@ -45,7 +45,42 @@ class MCPTab {
   }
 
   verifyMCPTabVisible(): void {
-    this.findMCPServersTable({ timeout: 30000 }).should('exist').and('be.visible');
+    // Check for either the servers table or the manual connection section
+    cy.findByTestId('mcp-manual-section', { timeout: 30000 }).should('exist');
+  }
+
+  // Registered section
+  findRegisteredSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-section');
+  }
+
+  findRegisteredToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-toggle');
+  }
+
+  findRegisteredCountBadge(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-count-badge');
+  }
+
+  findRegisteredKebab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-kebab');
+  }
+
+  findManageServersLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manage-servers-link');
+  }
+
+  // Manual Connection section
+  findManualSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-section');
+  }
+
+  findManualToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-toggle');
+  }
+
+  findManualEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-manual-empty-state');
   }
 
   private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {
