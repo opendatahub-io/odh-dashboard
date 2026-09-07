@@ -514,7 +514,9 @@ export const registerMCPServerInRegistry = (
         })
         .then((resp) => {
           if (resp.status !== 200 && resp.status !== 409) {
-            throw new Error(`Failed to activate MCP registry version: HTTP ${resp.status} ${resp.body}`);
+            throw new Error(
+              `Failed to activate MCP registry version: HTTP ${resp.status} ${resp.body}`,
+            );
           }
 
           // Step 4: Create an access endpoint
@@ -531,7 +533,9 @@ export const registerMCPServerInRegistry = (
         })
         .then((resp) => {
           if (resp.status !== 201 && resp.status !== 409) {
-            throw new Error(`Failed to create MCP registry endpoint: HTTP ${resp.status} ${resp.body}`);
+            throw new Error(
+              `Failed to create MCP registry endpoint: HTTP ${resp.status} ${resp.body}`,
+            );
           }
           cy.log(`MCP server "${serverName}" registered in MLflow registry`);
         }) as unknown as Cypress.Chainable<void>,
