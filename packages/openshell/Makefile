@@ -40,9 +40,13 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff
-dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
+dev-bff: ## Run BFF in mock mode with auth disabled (recommended for local dev)
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=disabled
+
+.PHONY: dev-bff-federated
+dev-bff-federated: ## Run BFF in federated mock mode (no cluster required)
+	cd bff && make run PORT=4022 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=disabled LOG_LEVEL=info
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -76,10 +80,6 @@ dev-start-federated:
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
 	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4022 npm run start:dev
-
-.PHONY: dev-bff-federated
-dev-bff-federated:
-	cd bff && make run PORT=4022 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

@@ -25,6 +25,119 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
+  /api/health/readyz:
+    summary: Readiness probe for OpenShell BFF.
+    get:
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+      operationId: readyz
+      summary: Readiness check
+  /api/v1/workspaces:
+    summary: List OpenShell workspaces.
+    get:
+      tags:
+        - Workspaces
+      parameters:
+        - name: labelSelector
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Optional label selector. Use `openshell.mock/empty` in mock mode to
+            return an empty list.
+      responses:
+        "200":
+          description: Workspace list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workspace"
+        "503":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listWorkspaces
+      summary: List workspaces
+  /api/v1/workspaces/{workspace}:
+    summary: Get a workspace by name.
+    get:
+      tags:
+        - Workspaces
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "200":
+          description: Workspace detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getWorkspace
+      summary: Get workspace
+  /api/v1/workspaces/{workspace}/sandboxes:
+    summary: List sandboxes in a workspace.
+    get:
+      tags:
+        - Sandboxes
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+        - name: labelSelector
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sandbox list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sandbox"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: listSandboxes
+      summary: List sandboxes
+  /api/v1/workspaces/{workspace}/sandboxes/{name}:
+    summary: Get a sandbox by name.
+    get:
+      tags:
+        - Sandboxes
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+        - $ref: "#/components/parameters/sandboxName"
+      responses:
+        "200":
+          description: Sandbox detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sandbox"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getSandbox
+      summary: Get sandbox
   /api/v1/namespaces:
     summary: Path used to get available namespaces.
     description: >-
@@ -162,6 +275,66 @@ components:
         - LAST_UPDATE_TIME
         - Id
       type: string
+    ObjectMeta:
+      type: object
+      required:
+        - id
+        - name
+        - createdAtMs
+        - resourceVersion
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        workspace:
+          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        createdAtMs:
+          type: integer
+          format: int64
+        resourceVersion:
+          type: integer
+          format: int64
+    Workspace:
+      type: object
+      required:
+        - metadata
+        - phase
+      properties:
+        metadata:
+          $ref: "#/components/schemas/ObjectMeta"
+        phase:
+          type: string
+          enum:
+            - ACTIVE
+            - TERMINATING
+            - UNSPECIFIED
+    Sandbox:
+      type: object
+      required:
+        - metadata
+        - spec
+        - status
+      properties:
+        metadata:
+          $ref: "#/components/schemas/ObjectMeta"
+        spec:
+          type: object
+        status:
+          type: object
+          properties:
+            phase:
+              type: string
+            currentPolicyVersion:
+              type: integer
 
   responses:
     NotFound:
@@ -293,6 +466,20 @@ components:
         type: string
       in: query
       required: false
+    workspace:
+      name: workspace
+      description: Workspace name.
+      schema:
+        type: string
+      in: path
+      required: true
+    sandboxName:
+      name: name
+      description: Sandbox name.
+      schema:
+        type: string
+      in: path
+      required: true
 
   securitySchemes:
     Bearer:
@@ -305,3 +492,9 @@ security:
 tags:
   - name: K8SOperation
     description: Operation performed in Kubernetes
+  - name: Health
+    description: Health and readiness probes
+  - name: Workspaces
+    description: OpenShell workspace operations
+  - name: Sandboxes
+    description: OpenShell sandbox operations

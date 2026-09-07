@@ -135,6 +135,10 @@ module.exports = merge(
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
             path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+            // openshell-dashboard pulls xterm/monaco CSS at import time (even when tabs are disabled).
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@xterm'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/openshell-dashboard'),
           ],
           use: ['style-loader', 'css-loader'],
         },

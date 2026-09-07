@@ -8,6 +8,7 @@ import {
   NotificationContextProvider,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import OpenShellUpstreamProviders from './OpenShellUpstreamProviders';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -36,7 +37,9 @@ const OpenShellFederatedProviders: React.FC<OpenShellFederatedProvidersProps> = 
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+          <OpenShellUpstreamProviders>{children}</OpenShellUpstreamProviders>
+        </QueryClientProvider>
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>

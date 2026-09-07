@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
 	"github.com/rs/cors"
@@ -46,6 +47,16 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !requiresAuth(r.URL.Path) {
 			next.ServeHTTP(w, r)
+			return
+		}
+
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if app.kubernetesClientFactory == nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("kubernetes client factory is not configured"))
 			return
 		}
 

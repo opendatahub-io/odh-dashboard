@@ -1,26 +1,42 @@
 import * as React from 'react';
-import { PageSection, Title } from '@patternfly/react-core';
-import { Route, Routes, useParams } from 'react-router-dom';
+import { SandboxDetailPage, WorkspaceDetailPage } from 'openshell-dashboard/pages';
+import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { openshellSandboxDetailPath } from '~/app/utilities/routes';
 import OpenShellFederatedProviders from './OpenShellFederatedProviders';
 
-const WorkspaceDetailPlaceholder: React.FC = () => {
+const WorkspaceDetailRoute: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
+
+  if (!workspaceId) {
+    return null;
+  }
 
   return (
-    <PageSection>
-      <Title headingLevel="h1" size="lg">
-        Workspace detail (placeholder)
-      </Title>
-      <p>Workspace ID: {workspaceId}</p>
-      <p>Sandbox detail will mount here in Phase 5.</p>
-    </PageSection>
+    <WorkspaceDetailPage
+      workspace={workspaceId}
+      onSelectSandbox={(sandboxName) =>
+        navigate(openshellSandboxDetailPath(workspaceId, sandboxName))
+      }
+    />
   );
+};
+
+const SandboxDetailRoute: React.FC = () => {
+  const { workspaceId, sandboxName } = useParams<{ workspaceId: string; sandboxName: string }>();
+
+  if (!workspaceId || !sandboxName) {
+    return null;
+  }
+
+  return <SandboxDetailPage workspace={workspaceId} sandboxName={sandboxName} />;
 };
 
 const OpenShellDetailRoutes: React.FC = () => (
   <OpenShellFederatedProviders>
     <Routes>
-      <Route path="*" element={<WorkspaceDetailPlaceholder />} />
+      <Route path="sandboxes/:sandboxName/*" element={<SandboxDetailRoute />} />
+      <Route path="*" element={<WorkspaceDetailRoute />} />
     </Routes>
   </OpenShellFederatedProviders>
 );

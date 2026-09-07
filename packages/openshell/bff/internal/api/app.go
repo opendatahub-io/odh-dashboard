@@ -20,6 +20,7 @@ import (
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/mocks"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/proxy"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 
@@ -28,11 +29,11 @@ import (
 
 const (
 	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
+	PathPrefix      = "/openshell"
 	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
-	UserPath      = ApiPathPrefix + "/user"
-	NamespacePath = ApiPathPrefix + "/namespaces"
+	UserPath        = ApiPathPrefix + "/user"
+	NamespacePath   = ApiPathPrefix + "/namespaces"
 )
 
 type App struct {
@@ -47,6 +48,7 @@ type App struct {
 	// bffClientFactory creates clients for inter-BFF communication
 	bffClientFactory bffclient.BFFClientFactory
 	wsTracker        *proxy.ConnectionTracker
+	openshellStore   *mocks.OpenShellStore
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -91,28 +93,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
+	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
+		if cfg.MockK8Client {
+			//mock all k8s calls with 'env test'
+			var clientset kubernetes.Interface
+			ctx, cancel := context.WithCancel(context.Background())
+			testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+				Logger: logger,
+				Ctx:    ctx,
+				Cancel: cancel,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to setup envtest: %w", err)
+			}
+			//create mocked kubernetes client factory
+			k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+
+		} else {
+			//create kubernetes client factory
+			k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
 
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		}
 	}
 
 	// Initialize BFF client factory for inter-BFF communication
@@ -148,6 +152,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffClientFactory:        bffFactory,
 	}
 
+	if cfg.MockHTTPClient {
+		app.openshellStore = mocks.NewOpenShellStore()
+	}
+
 	app.wsTracker = proxy.NewConnectionTracker(app.logger)
 
 	return app, nil
@@ -166,6 +174,10 @@ func (app *App) Shutdown() error {
 }
 
 func (app *App) Routes() http.Handler {
+	if app.config.AuthMethod != config.AuthMethodDisabled && app.kubernetesClientFactory == nil {
+		panic("kubernetesClientFactory must not be nil when auth is enabled")
+	}
+
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
 
@@ -175,6 +187,16 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+
+	// OpenShell mock workspace/sandbox endpoints (upstream openshell-dashboard shapes)
+	apiRouter.GET(AuthConfigPath, app.AuthConfigHandler)
+	apiRouter.GET(AuthWhoamiPath, app.AuthWhoamiHandler)
+	apiRouter.GET(WorkspacesPath, app.ListWorkspacesHandler)
+	apiRouter.GET(WorkspacePath, app.GetWorkspaceHandler)
+	apiRouter.GET(WorkspaceMembersPath, app.ListMembersHandler)
+	apiRouter.GET(WorkspaceProvidersPath, app.ListProvidersHandler)
+	apiRouter.GET(WorkspaceSandboxesPath, app.ListSandboxesHandler)
+	apiRouter.GET(WorkspaceSandboxPath, app.GetSandboxHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
@@ -190,6 +212,11 @@ func (app *App) Routes() http.Handler {
 	// handler for api calls
 	appMux.Handle(ApiPathPrefix+"/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+
+	readyzRouter := httprouter.New()
+	readyzRouter.GET(HealthReadyPath, app.ReadyzHandler)
+	appMux.Handle(HealthReadyPath, readyzRouter)
+	appMux.Handle(PathPrefix+HealthReadyPath, http.StripPrefix(PathPrefix, readyzRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
