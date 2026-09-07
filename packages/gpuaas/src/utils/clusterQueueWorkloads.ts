@@ -20,6 +20,7 @@ import {
 } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { buildResourceFlavorByName, resolveWorkloadHardwareProfile } from './hardwareModels';
+import { isAcceleratorResource } from './clusterQueueUtils';
 import {
   type ClusterQueueWorkloadRow,
   QUOTA_USAGE_STATUSES_PAST_ADMISSION,
@@ -29,9 +30,6 @@ import {
   type QuotaUsageWorkloadStatus,
   type QuotaUsageWorkloadType,
 } from '../types';
-import { ACCELERATOR_RESOURCE_REGEX } from '../const';
-
-const ACCELERATOR_RE = new RegExp(ACCELERATOR_RESOURCE_REGEX);
 
 const NOTEBOOK_OWNER_KINDS = new Set(['job', 'statefulset', 'notebook', 'pod']);
 
@@ -169,12 +167,12 @@ export const isKueueManagedWorkload = (
   return true;
 };
 
-/** Quota usage CQ table: Kueue-managed workloads only (Unknown type included — pipeline maps to Unknown until integrated). */
 export const isQuotaUsageClusterQueueWorkload = (
   workload: WorkloadKind,
   pods: PodKind[],
   localQueueByName: Map<string, LocalQueueKind>,
-): boolean => isKueueManagedWorkload(workload, pods, localQueueByName);
+): boolean =>
+  isGpuAwareWorkload(workload) && isKueueManagedWorkload(workload, pods, localQueueByName);
 
 export const isActiveWorkload = (workload: WorkloadKind): boolean => {
   const { status } = getKueueWorkloadStatusWithMessage(workload);
@@ -372,7 +370,7 @@ export const getWorkloadAcceleratorCount = (workload: WorkloadKind): number =>
     const perPod = podSet.template.spec.containers.reduce((containerTotal, container) => {
       const requests = container.resources?.requests ?? {};
       const acceleratorCount = Object.entries(requests).reduce((resourceTotal, [name, value]) => {
-        if (!ACCELERATOR_RE.test(name)) {
+        if (!isAcceleratorResource(name)) {
           return resourceTotal;
         }
         const parsed = Number(value);
@@ -382,6 +380,10 @@ export const getWorkloadAcceleratorCount = (workload: WorkloadKind): number =>
     }, 0);
     return podSetTotal + perPod * podSet.count;
   }, 0);
+
+/** True when the workload requests at least one accelerator resource in podSet container requests. */
+export const isGpuAwareWorkload = (workload: WorkloadKind): boolean =>
+  getWorkloadAcceleratorCount(workload) > 0;
 
 export const getProjectDisplayName = (project: ProjectKind): string =>
   project.metadata.annotations?.['openshift.io/display-name'] ?? project.metadata.name;

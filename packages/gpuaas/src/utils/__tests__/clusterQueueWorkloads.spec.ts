@@ -17,6 +17,7 @@ import {
   filterAndMapNamespaceWorkloads,
   formatWorkloadPriority,
   isActiveWorkload,
+  isGpuAwareWorkload,
   isKueueManagedWorkload,
   isRayClusterWorkload,
   isRayJobWorkload,
@@ -386,6 +387,41 @@ describe('clusterQueueWorkloads', () => {
     });
   });
 
+  describe('isGpuAwareWorkload', () => {
+    it('returns true when workload requests accelerator resources', () => {
+      expect(isGpuAwareWorkload(baseWorkload())).toBe(true);
+    });
+
+    it('returns false for CPU-only resource requests', () => {
+      const cpuOnly = baseWorkload({
+        spec: {
+          active: true,
+          queueName: LQ,
+          podSets: [
+            {
+              count: 1,
+              name: 'main',
+              template: {
+                metadata: {},
+                spec: {
+                  containers: [
+                    {
+                      name: 'main',
+                      image: 'test-image',
+                      env: [],
+                      resources: { requests: { cpu: '1', memory: '1Gi' } },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      });
+      expect(isGpuAwareWorkload(cpuOnly)).toBe(false);
+    });
+  });
+
   describe('filterAndMapClusterQueueWorkloads', () => {
     const projectDisplayNames = new Map([[NS, 'DSP One']]);
 
@@ -517,6 +553,61 @@ describe('clusterQueueWorkloads', () => {
       );
 
       expect(rows.map((row) => row.name)).toEqual(['admitted-wl', 'serving-kueue-wl']);
+    });
+
+    it('excludes Kueue-managed workloads without accelerator requests', () => {
+      const cpuOnly = baseWorkload({
+        metadata: {
+          name: 'cpu-only-wl',
+          namespace: NS,
+          labels: { 'kueue.x-k8s.io/job-name': 'nb-cpu' },
+          ownerReferences: [{ apiVersion: 'v1', kind: 'Job', name: 'nb-cpu', uid: 'job-cpu' }],
+        },
+        spec: {
+          active: true,
+          queueName: LQ,
+          podSets: [
+            {
+              count: 1,
+              name: 'main',
+              template: {
+                metadata: {},
+                spec: {
+                  containers: [
+                    {
+                      name: 'main',
+                      image: 'test-image',
+                      env: [],
+                      resources: { requests: { cpu: '1', memory: '1Gi' } },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        status: {
+          admission: { clusterQueue: CQ, podSetAssignments: [] },
+          conditions: admittedConditions,
+        },
+      });
+
+      const rows = filterAndMapClusterQueueWorkloads(
+        CQ,
+        [
+          {
+            namespace: NS,
+            workloads: [cpuOnly],
+            localQueues: [localQueue(LQ, CQ)],
+            pods: [],
+            jobKindByUid: new Map(),
+          },
+        ],
+        projectDisplayNames,
+        emptyResourceFlavors,
+      );
+
+      expect(rows).toHaveLength(0);
     });
 
     it('includes admitted infrastructure workloads with unknown type', () => {
