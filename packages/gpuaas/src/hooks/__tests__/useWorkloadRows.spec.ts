@@ -170,7 +170,10 @@ describe('useWorkloadRows', () => {
     });
     useProjectsMock.mockReturnValue([[], false, new Error('projects failed')]);
 
-    testHook(useWorkloadRows)({ mode: 'clusterQueues', clusterQueueNames: [] });
+    const renderResult = testHook(useWorkloadRows)({
+      mode: 'clusterQueues',
+      clusterQueueNames: [],
+    });
 
     const fetchCallback = useFetchMock.mock.calls[0][0];
     await expect(fetchCallback({ signal: new AbortController().signal })).resolves.toEqual({
@@ -178,6 +181,8 @@ describe('useWorkloadRows', () => {
       workloadsByClusterQueue: new Map(),
     });
     expect(fetchWorkloadsForClusterQueuesMock).not.toHaveBeenCalled();
+    expect(renderResult.result.current.loaded).toBe(true);
+    expect(renderResult.result.current.error).toBeUndefined();
   });
 
   it('passes initialPromisePurity to useFetch', () => {

@@ -18,6 +18,7 @@ import {
   formatWorkloadPriority,
   isActiveWorkload,
   isGpuAwareWorkload,
+  getWorkloadAcceleratorCount,
   isKueueManagedWorkload,
   isRayClusterWorkload,
   isRayJobWorkload,
@@ -420,6 +421,66 @@ describe('clusterQueueWorkloads', () => {
       });
       expect(isGpuAwareWorkload(cpuOnly)).toBe(false);
     });
+
+    it('returns true when accelerators are declared in limits only', () => {
+      const limitOnlyGpu = baseWorkload({
+        spec: {
+          active: true,
+          queueName: LQ,
+          podSets: [
+            {
+              count: 1,
+              name: 'main',
+              template: {
+                metadata: {},
+                spec: {
+                  containers: [
+                    {
+                      name: 'main',
+                      image: 'test-image',
+                      env: [],
+                      resources: { limits: { 'nvidia.com/gpu': '2' } },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      });
+      expect(isGpuAwareWorkload(limitOnlyGpu)).toBe(true);
+      expect(getWorkloadAcceleratorCount(limitOnlyGpu)).toBe(2);
+    });
+
+    it('parses kubernetes quantity strings for accelerator resources', () => {
+      const milliGpu = baseWorkload({
+        spec: {
+          active: true,
+          queueName: LQ,
+          podSets: [
+            {
+              count: 1,
+              name: 'main',
+              template: {
+                metadata: {},
+                spec: {
+                  containers: [
+                    {
+                      name: 'main',
+                      image: 'test-image',
+                      env: [],
+                      resources: { requests: { 'nvidia.com/gpu': '3000m' } },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      });
+      expect(isGpuAwareWorkload(milliGpu)).toBe(true);
+      expect(getWorkloadAcceleratorCount(milliGpu)).toBe(3);
+    });
   });
 
   describe('filterAndMapClusterQueueWorkloads', () => {
@@ -731,6 +792,17 @@ describe('clusterQueueWorkloads', () => {
       });
       const pod = makePod('pod-uid', { 'serving.kserve.io/inferenceservice': 'is-1' });
       expect(isKueueManagedWorkload(workload, [pod], localQueueByName)).toBe(false);
+    });
+
+    it('returns false for serving workloads when no correlated pods are available', () => {
+      const workload = baseWorkload({
+        metadata: {
+          ownerReferences: [
+            { apiVersion: 'v1', kind: WorkloadOwnerType.ReplicaSet, name: 'rs', uid: 'rs-uid' },
+          ],
+        },
+      });
+      expect(isKueueManagedWorkload(workload, [], localQueueByName)).toBe(false);
     });
 
     it('returns true for ReplicaSet-owned serving workloads with Kueue-labeled descendant pods', () => {

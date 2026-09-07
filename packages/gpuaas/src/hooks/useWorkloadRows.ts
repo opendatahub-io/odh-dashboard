@@ -152,8 +152,17 @@ const useWorkloadRows = (
     { refreshRate, initialPromisePurity: true },
   );
 
-  const loaded = scope.mode === 'namespace' ? workloadsLoaded : projectsLoaded && workloadsLoaded;
-  const error = scope.mode === 'namespace' ? workloadsError : projectsError ?? workloadsError;
+  const isSkippedClusterQueueScope =
+    scope.mode === 'clusterQueues' && scope.clusterQueueNames.length === 0;
+
+  const loaded =
+    scope.mode === 'namespace' || isSkippedClusterQueueScope
+      ? workloadsLoaded
+      : projectsLoaded && workloadsLoaded;
+  const error =
+    scope.mode === 'namespace' || isSkippedClusterQueueScope
+      ? workloadsError
+      : projectsError ?? workloadsError;
 
   return {
     data,

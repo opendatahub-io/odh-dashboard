@@ -21,6 +21,7 @@ import {
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { buildResourceFlavorByName, resolveWorkloadHardwareProfile } from './hardwareModels';
 import { isAcceleratorResource } from './clusterQueueUtils';
+import parseK8sQuantity from './parseK8sQuantity';
 import {
   type ClusterQueueWorkloadRow,
   QUOTA_USAGE_STATUSES_PAST_ADMISSION,
@@ -161,6 +162,9 @@ export const isKueueManagedWorkload = (
 
   if (isServingWorkload(workload, pods)) {
     const servingPods = findServingWorkloadPods(workload, pods);
+    if (servingPods.length === 0) {
+      return false;
+    }
     return servingPods.some((pod) => Boolean(pod.metadata.labels?.[KUEUE_QUEUE_LABEL]));
   }
 
@@ -369,19 +373,22 @@ export const getWorkloadAcceleratorCount = (workload: WorkloadKind): number =>
   workload.spec.podSets.reduce((podSetTotal, podSet) => {
     const perPod = podSet.template.spec.containers.reduce((containerTotal, container) => {
       const requests = container.resources?.requests ?? {};
-      const acceleratorCount = Object.entries(requests).reduce((resourceTotal, [name, value]) => {
+      const limits = container.resources?.limits ?? {};
+      const resourceNames = new Set([...Object.keys(requests), ...Object.keys(limits)]);
+
+      const acceleratorCount = [...resourceNames].reduce((resourceTotal, name) => {
         if (!isAcceleratorResource(name)) {
           return resourceTotal;
         }
-        const parsed = Number(value);
-        return resourceTotal + (Number.isFinite(parsed) ? parsed : 0);
+        const value = requests[name] ?? limits[name];
+        return resourceTotal + parseK8sQuantity(value);
       }, 0);
       return containerTotal + acceleratorCount;
     }, 0);
     return podSetTotal + perPod * podSet.count;
   }, 0);
 
-/** True when the workload requests at least one accelerator resource in podSet container requests. */
+/** True when the workload requests at least one accelerator resource in podSet container resources. */
 export const isGpuAwareWorkload = (workload: WorkloadKind): boolean =>
   getWorkloadAcceleratorCount(workload) > 0;
 
