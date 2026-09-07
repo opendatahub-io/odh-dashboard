@@ -15,16 +15,10 @@ interface MCPServerTableRowProps {
   isStatusLoading?: boolean;
 }
 
-function renameSource(source: string) {
-  let renamedSource = source;
-  if (source === 'configmap') {
-    renamedSource = 'Manual';
-  }
-  if (source === 'registry') {
-    renamedSource = 'Registered';
-  }
-  return renamedSource;
-}
+const SOURCE_LABELS: Record<string, string> = {
+  configmap: 'Manual',
+  registry: 'Registered',
+};
 
 const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
   server,
@@ -57,8 +51,8 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
         </Button>
       </MCPServerEndpointPopover>
     </Td>
-    <Td dataLabel="Source">{renameSource(server.source)}</Td>
-    <Td dataLabel="Version">{server.version}</Td>
+    <Td dataLabel="Source">{SOURCE_LABELS[server.source] ?? server.source}</Td>
+    <Td dataLabel="Version">{server.version || '-'}</Td>
   </Tr>
 );
 
