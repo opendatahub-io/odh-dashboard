@@ -63,6 +63,12 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Runtime stage: Serves production artifacts
   - Catches: Missing COPY commands, permission issues
 
+- ✅ **Dashboard operator image build** (`dashboard-operator/Dockerfile`)
+  - Builds: The controller-runtime operator image (`--build-arg OPERATOR_VERSION=ci-test`)
+  - Catches: Go compilation errors, missing COPY dependencies, FIPS build failures
+  - Output: Saved as the `dashboard-operator-image` artifact for reuse in the Phase 4 Kind cluster (no rebuild)
+  - Triggers: Runs when the PR touches `dashboard-operator/**` (alongside frontend/backend/manifest changes)
+
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
   - Starts container and waits 30 seconds
@@ -123,15 +129,27 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 ### Phase 4: Operator Integration (Kind Cluster)
 - ✅ **Kind cluster creation**
   - Creates: Temporary local Kubernetes cluster
-  - Loads: Built Docker image
+  - Loads: Built dashboard Docker image and the dashboard-operator image (from the Phase 1 artifacts)
 
 - ✅ **Manifest application**
-  - Applies: Kustomize overlays (`manifests/overlays/odh`)
+  - Applies: Kustomize overlays (`manifests/odh`)
   - Tests: CRD installation, ConfigMap generation
 
 - ✅ **Deployment validation**
   - Waits: Up to 5 minutes for pod to be ready
   - Checks: Pod status, logs, health endpoints
+
+- ✅ **Operator CRD + RBAC deployment**
+  - Applies: The `Dashboard` CRD (`components.platform.opendatahub.io`) and waits for the `Established` condition
+  - Applies: The operator ClusterRole (`config/rbac/role.yaml`) plus a ServiceAccount and ClusterRoleBinding
+  - Catches: CRD schema regressions, RBAC manifest errors that only surface on `kubectl apply`
+
+- ✅ **Operator reconciliation smoke test**
+  - Deploys: A minimal operator Deployment (no cert-manager webhook/metrics TLS — Kind-friendly)
+  - Creates: A minimal `Dashboard` CR and polls for reconciliation evidence
+  - Asserts: The finalizer (`components.platform.opendatahub.io/cleanup`) and `status.observedGeneration` are set, with **0 operator restarts**
+  - Catches: Controller panics on startup, scheme/registration errors, reconcile crashes that unit + envtest tests can miss on a real API server
+  - Note: The operand cannot fully provision on Kind (no OpenShift Routes/Ingress), so the test validates that the controller *starts reconciling cleanly*, not that the operand reaches Ready
 
 ### BFF Module Validation
 
@@ -158,18 +176,23 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 **Note:** BFF startup validation does not test application-level health (`/healthcheck` endpoint) or connectivity to backend services. It validates that the Go binary can start without crashing — the class of failure that previously only surfaced after merge.
 
 ### Phase 5: Manifest Validation
-- ✅ **Kustomize build testing**
-  - Builds: All overlays and bases
-  - Validates: YAML syntax, resource generation
+Runs independently of the Docker build (no image needed), so it fails fast on manifest regressions.
 
-- ✅ **ConfigMap generation**
-  - Tests: ConfigMapGenerators work correctly
-  - Catches: Missing files, syntax errors
+- ✅ **Kustomize build testing**
+  - Builds: Each overlay — `manifests/base`, `manifests/odh`, `manifests/rhoai`
+  - Validates: YAML syntax, kustomization references, resource generation
+  - Catches: Missing files, broken `resources:`/`patches:` paths, ConfigMapGenerator errors
+
+- ✅ **Kubernetes schema validation** (kubeconform)
+  - Pipes: Each `kustomize build` output through `kubeconform -strict -ignore-missing-schemas`
+  - Validates: Resources conform to the Kubernetes API schema (v1.31.0)
+  - Skips: CRDs without a published schema (`-ignore-missing-schemas`) so custom resources don't false-fail
+  - Catches: Invalid field names, wrong types, malformed spec sections before they reach a cluster
 
 ## Usage
 
 ### GitHub Actions (Automatic)
-The workflow runs automatically on all PRs to `main` that modify relevant files (frontend, backend, packages, Dockerfile, manifests).
+The workflow runs automatically on all PRs to `main` that modify relevant files (frontend, backend, packages, Dockerfile, manifests, `dashboard-operator/**`).
 
 **Skip validation on a PR:**
 Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
@@ -220,9 +243,10 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 ### GitHub Actions (Parallel)
 - Phase 0: 1-2 minutes
-- Phase 1 (ODH + RHOAI): 8-12 minutes (parallel)
+- Phase 1 (ODH + RHOAI + operator): 8-12 minutes (parallel)
 - Phase 2-3 (ODH + RHOAI): 3-5 minutes (parallel, after Phase 1)
-- Phase 4: 5-8 minutes
+- Phase 4 (dashboard + operator CRD/CR reconciliation): 6-10 minutes
+- Phase 5 (manifest validation): 1-2 minutes (parallel, independent of Docker build)
 
 **Total: 10-20 minutes** (with parallelization)
 
@@ -416,6 +440,7 @@ This validation catches issues like:
 - **PR #6727**: Fastify v5 content-type rejection (415 errors)
 - **PR #7387**: @fastify/websocket v11 SocketStream crashes
 - **PR #8479**: Go protobuf registration conflict in gen-ai BFF (startup panic)
+- **RHOAIENG-87691**: Operator build + CRD/CR reconciliation and manifest schema validation in the simulator
 
 ## References
 
