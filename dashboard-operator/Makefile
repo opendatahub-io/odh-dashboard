@@ -131,9 +131,10 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT_VERSION ?= v2.1.0
 CONTROLLER_GEN_VERSION ?= v0.17.2
 ENVTEST_VERSION ?= v0.24.1
-# Kubernetes control-plane version for envtest binaries. Pinned for reproducible
-# integration runs; bumping this busts the CI envtest binary cache.
-ENVTEST_K8S_VERSION ?= 1.31.x
+# Kubernetes control-plane version for envtest binaries. Pinned to an exact
+# patch (not a 1.31.x wildcard) so setup-envtest resolves the same assets
+# regardless of cache state; bumping this busts the CI envtest binary cache.
+ENVTEST_K8S_VERSION ?= 1.31.0
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT)
