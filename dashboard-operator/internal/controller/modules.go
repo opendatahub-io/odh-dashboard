@@ -28,6 +28,9 @@ type ModuleDefinition struct {
 	ProxyPaths              []proxyRoute
 	// InterBFFDeps injects service-discovery env vars into this module's container.
 	InterBFFDeps []interBFFDependency
+	// RequiredByMaaSConsumerPortal identifies the modules required when the
+	// MaaS Consumer Portal operand is managed independently of the dashboard.
+	RequiredByMaaSConsumerPortal bool
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
@@ -41,12 +44,13 @@ var moduleRegistry = map[string]ModuleDefinition{
 		RequiredDSCComponents: []string{"modelregistry"},
 	},
 	"genAi": {
-		Name:          "genAi",
-		ContainerName: "gen-ai-ui",
-		Port:          8143,
-		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
-		ManifestSlug:  "gen-ai",
-		TLS:           true,
+		Name:                         "genAi",
+		ContainerName:                "gen-ai-ui",
+		Port:                         8143,
+		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+		ManifestSlug:                 "gen-ai",
+		TLS:                          true,
+		RequiredByMaaSConsumerPortal: true,
 		InterBFFDeps: []interBFFDependency{{
 			EnvServiceName: "BFF_MAAS_SERVICE_NAME",
 			EnvServicePort: "BFF_MAAS_SERVICE_PORT",
@@ -64,12 +68,13 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ProxyPaths:            []proxyRoute{{Path: "/_bff/mlflow/api", PathRewrite: "/api"}},
 	},
 	"maas": {
-		Name:          "maas",
-		ContainerName: "maas-ui",
-		Port:          8243,
-		ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
-		ManifestSlug:  "maas",
-		TLS:           true,
+		Name:                         "maas",
+		ContainerName:                "maas-ui",
+		Port:                         8243,
+		ImageEnvVar:                  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+		ManifestSlug:                 "maas",
+		TLS:                          true,
+		RequiredByMaaSConsumerPortal: true,
 	},
 	"evalHub": {
 		Name:                  "evalHub",
@@ -122,18 +127,45 @@ var moduleRegistry = map[string]ModuleDefinition{
 }
 
 // resolveModuleStatuses determines the status of each module based on
-// DSC component availability, spec overrides, and inter-module dependencies.
+// aggregate operand demand, DSC component availability, spec overrides, and
+// inter-module dependencies.
 // It uses a three-pass algorithm:
 //
-//	Pass 1: DSC component gate + explicit CR overrides
+//	Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 //	Pass 2: Inter-module dependency resolution (transitive propagation)
 //	Pass 3: Unknown module detection
 func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.ModuleStatus {
 	now := metav1.Now()
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
-	// Pass 1: DSC component gate + explicit CR overrides
+	coreRequiresModules := spec.ManagementState != "Removed"
+	maasConsumerPortalRequiresModules := spec.MaaSConsumerPortal != nil &&
+		spec.MaaSConsumerPortal.ManagementState == "Managed"
+
+	// Pass 1: aggregate demand + DSC component gate + explicit CR overrides
 	for name, mod := range moduleRegistry {
+		// Explicit user configuration takes precedence over either operand's
+		// demand and must retain the ExplicitOverride status reason.
+		if override, ok := spec.Modules[name]; ok && override.State == v1alpha1.ModuleDisabled {
+			result[name] = v1alpha1.ModuleStatus{
+				Phase:              v1alpha1.ModulePhaseDisabled,
+				Reason:             "ExplicitOverride",
+				Message:            "Module explicitly disabled via spec.modules override",
+				LastTransitionTime: now,
+			}
+			continue
+		}
+
+		if !coreRequiresModules && (!maasConsumerPortalRequiresModules || !mod.RequiredByMaaSConsumerPortal) {
+			result[name] = v1alpha1.ModuleStatus{
+				Phase:              v1alpha1.ModulePhaseNotDeployed,
+				Reason:             "NotRequired",
+				Message:            "Module is not required by a managed operand",
+				LastTransitionTime: now,
+			}
+			continue
+		}
+
 		// Check DSC component dependencies (only when Components map is non-nil)
 		if len(mod.RequiredDSCComponents) > 0 && spec.Components != nil {
 			disabled := false
@@ -155,18 +187,6 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 			if disabled {
 				continue
 			}
-		}
-
-		// Check explicit CR override
-		if override, ok := spec.Modules[name]; ok && override.State == v1alpha1.ModuleDisabled {
-			result[name] = v1alpha1.ModuleStatus{
-				Phase:              v1alpha1.ModulePhaseDisabled,
-				Reason:             "ExplicitOverride",
-				Message:            "Module explicitly disabled via spec.modules override",
-				LastTransitionTime: now,
-			}
-
-			continue
 		}
 
 		// Tentatively enabled
@@ -219,6 +239,15 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 	}
 
 	return result
+}
+
+func preserveModuleStatusTransitionTimes(previous, next map[string]v1alpha1.ModuleStatus) {
+	for name, status := range next {
+		if prior, ok := previous[name]; ok && prior.Phase == status.Phase && prior.Reason == status.Reason && prior.Message == status.Message {
+			status.LastTransitionTime = prior.LastTransitionTime
+			next[name] = status
+		}
+	}
 }
 
 // overlayContainerReadiness inspects the pods backing the dashboard
