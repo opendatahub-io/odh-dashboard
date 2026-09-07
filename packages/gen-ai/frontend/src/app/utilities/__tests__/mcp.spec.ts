@@ -80,6 +80,45 @@ describe('MCP Utilities', () => {
       const result = transformMCPServerData(apiServer);
       expect(result.id).toBe(apiServer.url);
     });
+
+    it('falls back to dash when version is empty', () => {
+      const apiServer: MCPServerFromAPI = {
+        name: 'no-version',
+        url: 'https://example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '',
+        source: 'configmap',
+        tools: [],
+        tool_count: 0,
+      };
+
+      const result = transformMCPServerData(apiServer);
+      expect(result.version).toBe('-');
+    });
+
+    it('passes through registry source', () => {
+      const apiServer: MCPServerFromAPI = {
+        name: 'registry-server',
+        url: 'https://example.com/mcp',
+        transport: 'sse',
+        description: '',
+        logo: null,
+        status: 'healthy',
+        version: '2.1.0',
+        source: 'registry',
+        tools: [],
+        tool_count: 5,
+      };
+
+      const result = transformMCPServerData(apiServer);
+      expect(result.source).toBe('registry');
+      expect(result.version).toBe('2.1.0');
+      expect(result.tools).toBe(5);
+      expect(result.toolsList).toEqual([]);
+    });
   });
 
   describe('getStatusErrorMessage', () => {
