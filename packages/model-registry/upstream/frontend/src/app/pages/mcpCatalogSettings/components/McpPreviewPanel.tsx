@@ -115,32 +115,14 @@ const McpPreviewPanel: React.FC<McpPreviewPanelProps> = ({ preview }) => {
     return (
       <>
         <Tabs
-          id="mcp-preview-tabs"
           activeKey={activeTab === CatalogSettingsPreviewTab.INCLUDED ? 0 : 1}
           onSelect={handleTabSelect}
           aria-label="MCP preview tabs"
         >
-          <Tab
-            id="mcp-preview-included-tab"
-            tabContentId="mcp-preview-content"
-            eventKey={0}
-            title={<TabTitleText>MCP servers included</TabTitleText>}
-          />
-          <Tab
-            id="mcp-preview-excluded-tab"
-            tabContentId="mcp-preview-content"
-            eventKey={1}
-            title={<TabTitleText>MCP servers excluded</TabTitleText>}
-          />
+          <Tab eventKey={0} title={<TabTitleText>MCP servers included</TabTitleText>} />
+          <Tab eventKey={1} title={<TabTitleText>MCP servers excluded</TabTitleText>} />
         </Tabs>
-        <div
-          id="mcp-preview-content"
-          role="tabpanel"
-          aria-labelledby={`pf-tab-${activeTab === CatalogSettingsPreviewTab.INCLUDED ? 0 : 1}-mcp-preview-${
-            activeTab === CatalogSettingsPreviewTab.INCLUDED ? 'included' : 'excluded'
-          }-tab`}
-          className="pf-v6-u-mt-md"
-        >
+        <div className="pf-v6-u-mt-md">
           {hasFormChanged && (
             <Alert
               variant="info"
