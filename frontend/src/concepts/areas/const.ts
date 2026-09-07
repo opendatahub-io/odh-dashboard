@@ -29,6 +29,7 @@ export const techPreviewFlags = {
   agentOps: false,
   connectionTest: false,
   dataRegistry: false,
+  openShell: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -307,6 +308,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
+  },
+  [SupportedArea.PLUGIN_OPENSHELL]: {
+    featureFlags: ['openShell'],
   },
   [SupportedArea.GUIDED_TOUR]: {
     // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
