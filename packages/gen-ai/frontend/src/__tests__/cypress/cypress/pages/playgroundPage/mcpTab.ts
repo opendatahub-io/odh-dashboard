@@ -31,11 +31,18 @@ class MCPTab {
     this.findMCPTab().click();
   }
 
-  // The table inside the MCP tab (testId unchanged in component)
+  // The Manual Connection section table
   findMCPServersTable(
     options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table', options);
+    return cy.findByTestId('mcp-manual-servers-table', options);
+  }
+
+  // The Registered section table
+  findMCPRegisteredServersTable(
+    options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-registered-servers-table', options);
   }
 
   openMCPTab(): void {

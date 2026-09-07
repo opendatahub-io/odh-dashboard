@@ -209,7 +209,7 @@ describe('MCPServersPanel', () => {
       renderPanel({ servers, registryAvailable: false });
 
       expect(screen.getByTestId('mcp-manual-section')).toBeInTheDocument();
-      expect(screen.getByTestId('mcp-servers-panel-table')).toBeInTheDocument();
+      expect(screen.getByTestId('mcp-manual-servers-table')).toBeInTheDocument();
       expect(screen.getByText('Manual Connection')).toBeInTheDocument();
     });
 

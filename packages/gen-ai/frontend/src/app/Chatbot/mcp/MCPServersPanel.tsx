@@ -377,14 +377,14 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
     );
   }
 
-  const renderServerTable = (servers: MCPServer[]) => (
+  const renderServerTable = (servers: MCPServer[], tableTestId: string) => (
     <Table
       data={servers}
       columns={MCPPanelColumns}
       defaultSortColumn={0}
       enablePagination={false}
       rowRenderer={renderServerRow}
-      data-testid="mcp-servers-panel-table"
+      data-testid={tableTestId}
     />
   );
 
@@ -520,7 +520,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
               isDetached
               contentId="mcp-registered-content"
             >
-              {renderServerTable(registeredServers)}
+              {renderServerTable(registeredServers, 'mcp-registered-servers-table')}
             </ExpandableSection>
           </div>
 
@@ -555,7 +555,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                   </EmptyStateBody>
                 </EmptyState>
               ) : (
-                renderServerTable(manualServers)
+                renderServerTable(manualServers, 'mcp-manual-servers-table')
               )}
             </ExpandableSection>
           </div>
@@ -599,7 +599,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                 </EmptyStateBody>
               </EmptyState>
             ) : (
-              renderServerTable(manualServers)
+              renderServerTable(manualServers, 'mcp-manual-servers-table')
             )}
           </ExpandableSection>
         </div>
