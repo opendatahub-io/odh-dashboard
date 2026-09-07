@@ -25,11 +25,15 @@ export const useNIMPVC = (
           (vol) => vol.persistentVolumeClaim?.claimName,
         )?.persistentVolumeClaim?.claimName;
         if (pvcName) {
-          const pvcData = await getPvc(namespace, pvcName);
-          setPvc(pvcData);
-          const size = pvcData.spec.resources.requests.storage;
-          if (size) {
-            setPvcSize(size);
+          try {
+            const pvcData = await getPvc(namespace, pvcName);
+            setPvc(pvcData);
+            const size = pvcData.spec.resources.requests.storage;
+            if (size) {
+              setPvcSize(size);
+            }
+          } catch {
+            // PVC fetch failed — keep the default size rather than leaking an unhandled rejection.
           }
         }
       }
