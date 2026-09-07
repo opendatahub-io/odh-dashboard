@@ -4,7 +4,7 @@
   "description": "Model registry plugin for managing ML models.",
   "version": "0.0.0",
   "scripts": {
-    "install:module": "npm install --prefix upstream/frontend",
+    "install:module": "if [ \"$MODULE_CACHE_HIT\" = \"true\" ] && [ -d upstream/frontend/node_modules ]; then echo 'Using cached model-registry upstream dependencies'; else npm install --prefix upstream/frontend --no-audit --no-fund; fi",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
