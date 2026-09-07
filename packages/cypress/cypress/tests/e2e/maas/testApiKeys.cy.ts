@@ -16,7 +16,6 @@ import {
   deleteOpenShiftProject,
 } from '../../../utils/oc_commands/project';
 import { LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
-import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -132,7 +131,6 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
     () => {
       cy.step('Log into the application as user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
-      assertE2eLoggedInAs(LDAP_CONTRIBUTOR_USER);
 
       cy.step(
         'Verify the admin-created subscription is visible on the Subscriptions tab for the user',

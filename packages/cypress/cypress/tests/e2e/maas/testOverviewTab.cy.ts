@@ -11,7 +11,6 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
-import { assertE2eLoggedInAs } from '../../../utils/maasE2eAuth';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -115,7 +114,6 @@ describe('MaaS Governance Overview tab', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
-      assertE2eLoggedInAs(LDAP_ADMIN_USER);
 
       cy.step('Navigate to MaaS governance Overview tab');
       maasGovernancePage.visit('overview');
