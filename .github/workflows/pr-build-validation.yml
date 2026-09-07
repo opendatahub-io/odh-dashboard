@@ -88,8 +88,8 @@ jobs:
           echo "::group::Testing hermetic pnpm install with network disabled"
 
           # Two-stage approach:
-          # 1. Populate pnpm store with network enabled
-          # 2. Test that pnpm install --offline works (simulates hermetic environment)
+          # 1. Populate the pnpm store and Cypress binary cache with network enabled
+          # 2. Run the complete install with network access disabled
 
           PNPM_VERSION=$(jq -r '.packageManager | sub("^pnpm@"; "")' package.json)
 
@@ -110,16 +110,17 @@ jobs:
           WORKDIR /test
           COPY --from=cache-builder /pnpm-store /pnpm-store
           COPY --from=cache-builder /root/.cache/pnpm /root/.cache/pnpm
+          COPY --from=cache-builder /root/.cache/Cypress /root/.cache/Cypress
           COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
           COPY backend ./backend
           COPY frontend ./frontend
           COPY packages ./packages
           COPY distributions ./distributions
-          RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm-store
+          RUN --network=none pnpm install --frozen-lockfile --offline --store-dir /pnpm-store
           DOCKERFILE
 
           # Build the image - hermetic-test stage should work entirely from store
-          if ! docker build -f Dockerfile.hermetic-test -t hermetic-test --target hermetic-test . 2>&1 | tee /tmp/hermetic-build.log; then
+          if ! docker build --network=default -f Dockerfile.hermetic-test -t hermetic-test --target hermetic-test . 2>&1 | tee /tmp/hermetic-build.log; then
             echo "❌ FAIL: Hermetic install failed"
             echo ""
             echo "The offline install failed, which means:"
@@ -136,7 +137,7 @@ jobs:
           docker rmi hermetic-test || true
           rm -f Dockerfile.hermetic-test
 
-          echo "✅ PASS: Hermetic install succeeded (all dependencies resolved from lockfile store)"
+          echo "✅ PASS: Hermetic install succeeded (all dependencies and lifecycle assets resolved from local caches)"
           echo "::endgroup::"
 
       - name: Validate workspace dependencies vs Dockerfile COPY
@@ -168,25 +169,39 @@ jobs:
               while IFS= read -r ws_dir; do
                 if [ -z "$ws_dir" ]; then continue; fi
 
-                # Read the actual scoped npm package name (e.g. @odh-dashboard/k8s-core)
+                # Read the actual scoped workspace package name (e.g. @odh-dashboard/k8s-core)
                 PKG_JSON="$ws_dir/package.json"
                 [ ! -f "$PKG_JSON" ] && continue
                 PKG_NAME=$(jq -r '.name // empty' "$PKG_JSON" 2>/dev/null || true)
                 [ -z "$PKG_NAME" ] && continue
 
-                # Match only exact scoped imports in production source files.
-                # Exclude test files and directories — they don't run inside the
-                # container and their imports (e.g. @odh-dashboard/contract-tests,
-                # @odh-dashboard/jest-config) are dev-only and never need COPYing.
-                IMPORTS=$(grep -r \
+                # Match package imports, including subpaths and CommonJS/JavaScript
+                # configuration files. Exclude test files and directories — they don't
+                # run inside the container and their imports (e.g.
+                # @odh-dashboard/contract-tests, @odh-dashboard/jest-config) are
+                # dev-only and never need COPYing.
+                IMPORTS=$(grep -rE \
                   --include="*.ts" --include="*.tsx" \
+                  --include="*.js" --include="*.jsx" \
+                  --include="*.mjs" --include="*.cjs" \
                   --exclude="*.spec.ts" --exclude="*.spec.tsx" \
                   --exclude="*.test.ts" --exclude="*.test.tsx" \
+                  --exclude="*.spec.js" --exclude="*.spec.jsx" \
+                  --exclude="*.test.js" --exclude="*.test.jsx" \
                   --exclude="jest.config.*" \
+                  --exclude=".eslintrc.js" \
                   --exclude-dir="__tests__" \
                   --exclude-dir="contract-tests" \
                   --exclude-dir="cypress" \
-                  "from ['\"]${PKG_NAME}['\"]" "$DOCKERFILE_DIR" 2>/dev/null || true)
+                  --exclude-dir="node_modules" \
+                  --exclude-dir="dist" \
+                  --exclude-dir="@mf-types" \
+                  -e "from[[:space:]]*['\"]${PKG_NAME}(/[^'\"]*)?['\"]" \
+                  -e "require[[:space:]]*\\([[:space:]]*['\"]${PKG_NAME}(/[^'\"]*)?['\"]\\)" \
+                  -e "import[[:space:]]*\\([[:space:]]*['\"]${PKG_NAME}(/[^'\"]*)?['\"]\\)" \
+                  "$DOCKERFILE_DIR" 2>/dev/null \
+                  | grep -vE ":[[:space:]]*(import|export)[[:space:]]+type[[:space:]]" \
+                  || true)
 
                 if [ -n "$IMPORTS" ]; then
                   COPY_FOUND=$(grep "COPY.*${ws_dir}/" "$dockerfile" || true)
@@ -872,7 +887,7 @@ jobs:
   # (references ../common/crd but should be ../../common/crd).
   # Add manifest validation once the upstream path is fixed.
 
-  # BFF Module Validation: Build and smoke-test packages/*/Dockerfile.workspace images
+  # BFF Module Validation: Build and smoke-test workspace module/distribution Dockerfiles
   # Catches startup regressions (e.g. Go protobuf panics) that only surface when the
   # BFF binary runs, not when it compiles.
   detect-bff-changes:
@@ -903,12 +918,12 @@ jobs:
 
           # Check if root build files changed (affects all BFF builds)
           ROOT_BUILD_CHANGED=false
-          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|pnpm-lock\.yaml)$'; then
+          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$'; then
             ROOT_BUILD_CHANGED=true
             echo "Root build files changed — all BFF modules will be built"
           fi
 
-          # Dynamically discover packages with Dockerfile.workspace
+          # Dynamically discover workspace modules and distributions with Dockerfile.workspace
           MATRIX_ITEMS="[]"
           while IFS= read -r dockerfile; do
             [ -z "$dockerfile" ] && continue
@@ -926,7 +941,7 @@ jobs:
               MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
               echo "Will build: $MODULE_NAME ($dockerfile)"
             fi
-          done < <(find packages -maxdepth 2 -name "Dockerfile.workspace" -not -path "*/node_modules/*" | sort)
+          done < <(find packages distributions -maxdepth 2 -name "Dockerfile.workspace" -not -path "*/node_modules/*" | sort)
 
           COUNT=$(echo "$MATRIX_ITEMS" | jq 'length')
           if [ "$COUNT" -gt 0 ]; then

@@ -8,6 +8,10 @@ inputs:
     description: Whether to run pnpm install with --frozen-lockfile.
     required: false
     default: 'true'
+  install-dependencies:
+    description: Whether to install workspace dependencies after setting up pnpm and Node.js.
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -19,6 +23,7 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
     - name: Install dependencies
+      if: inputs.install-dependencies == 'true'
       shell: bash
       run: |
         if [[ "${{ inputs.frozen-lockfile }}" == 'true' ]]; then
