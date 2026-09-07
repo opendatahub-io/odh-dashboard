@@ -38,12 +38,16 @@ runs:
           frontend/src/node_modules
           packages/*/node_modules
           packages/*/*/node_modules
+          packages/model-registry/upstream/frontend/node_modules
           distributions/*/node_modules
           distributions/*/*/node_modules
           .cache/Cypress
-        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'backend/**/package.json', 'frontend/**/package.json', 'packages/*/package.json', 'packages/*/frontend/package.json', 'packages/*/ui/package.json', 'packages/*/cypress/package.json', 'distributions/*/package.json', 'distributions/*/frontend/package.json') }}
+        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'backend/**/package.json', 'frontend/**/package.json', 'packages/*/package.json', 'packages/*/frontend/package.json', 'packages/*/ui/package.json', 'packages/*/cypress/package.json', 'packages/model-registry/upstream/frontend/package.json', 'packages/model-registry/upstream/frontend/package-lock.json', 'distributions/*/package.json', 'distributions/*/frontend/package.json') }}
         restore-keys: |
           ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
+    - name: Export module cache status
+      shell: bash
+      run: echo "MODULE_CACHE_HIT=${{ steps.root-cache.outputs.cache-hit }}" >> "$GITHUB_ENV"
     - name: Install root dependencies
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
