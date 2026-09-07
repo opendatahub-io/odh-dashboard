@@ -12,6 +12,9 @@ spec:
         - name: node
           replicas: 1
           template:
+            metadata:
+              labels:
+                trainer.kubeflow.org/trainjob-ancestor-step: trainer
             spec:
               template:
                 spec:

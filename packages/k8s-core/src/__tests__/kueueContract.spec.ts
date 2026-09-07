@@ -1,39 +1,29 @@
 import {
   assertModelVersionServed,
-  fixturePath,
   getVersionSchema,
+  kueueFixturePath,
   loadCrd,
   resolveSchemaPath,
   schemaEnumValues,
   schemaSupportsType,
-} from './helpers/crdSchemaHelpers';
-import { ClusterQueueModel, LocalQueueModel, WorkloadModel } from '../api/models';
+} from '../testing/crdSchemaHelpers';
+import {
+  ClusterQueueModel,
+  CohortModel,
+  LocalQueueModel,
+  ResourceFlavorModel,
+  VisibilityLocalQueueModel,
+  WorkloadModel,
+  WorkloadPriorityClassModel,
+} from '../api/models';
 import { KUEUE_QUEUE_LABEL } from '../kueue/workloadStatus';
 
 const KUEUE_VERSION = 'v1beta2';
 
-const FRONTEND_KUEUE_MODELS = [
-  {
-    label: 'WorkloadPriorityClassModel',
-    apiVersion: 'v1beta2',
-    apiGroup: 'kueue.x-k8s.io',
-    kind: 'WorkloadPriorityClass',
-    fixture: 'kueue.x-k8s.io_workloadpriorityclasses.yaml',
-  },
-  {
-    label: 'CohortModel',
-    apiVersion: 'v1beta2',
-    apiGroup: 'kueue.x-k8s.io',
-    kind: 'Cohort',
-    fixture: 'kueue.x-k8s.io_cohorts.yaml',
-  },
-  {
-    label: 'ResourceFlavorModel',
-    apiVersion: 'v1beta2',
-    apiGroup: 'kueue.x-k8s.io',
-    kind: 'ResourceFlavor',
-    fixture: 'kueue.x-k8s.io_resourceflavors.yaml',
-  },
+const KUEUE_MODEL_FIXTURES = [
+  { model: WorkloadPriorityClassModel, fixture: 'kueue.x-k8s.io_workloadpriorityclasses.yaml' },
+  { model: CohortModel, fixture: 'kueue.x-k8s.io_cohorts.yaml' },
+  { model: ResourceFlavorModel, fixture: 'kueue.x-k8s.io_resourceflavors.yaml' },
 ] as const;
 
 type ContractField = {
@@ -64,7 +54,7 @@ describe('Kueue CRD contract tests', () => {
   describe('API models', () => {
     it('ClusterQueueModel targets a served CRD version', () => {
       assertModelVersionServed(
-        fixturePath('kueue.x-k8s.io_clusterqueues.yaml'),
+        kueueFixturePath('kueue.x-k8s.io_clusterqueues.yaml'),
         ClusterQueueModel.apiVersion,
         ClusterQueueModel.apiGroup,
       );
@@ -72,7 +62,7 @@ describe('Kueue CRD contract tests', () => {
 
     it('LocalQueueModel targets a served CRD version', () => {
       assertModelVersionServed(
-        fixturePath('kueue.x-k8s.io_localqueues.yaml'),
+        kueueFixturePath('kueue.x-k8s.io_localqueues.yaml'),
         LocalQueueModel.apiVersion,
         LocalQueueModel.apiGroup,
       );
@@ -80,31 +70,47 @@ describe('Kueue CRD contract tests', () => {
 
     it('WorkloadModel targets a served CRD version', () => {
       assertModelVersionServed(
-        fixturePath('kueue.x-k8s.io_workloads.yaml'),
+        kueueFixturePath('kueue.x-k8s.io_workloads.yaml'),
         WorkloadModel.apiVersion,
         WorkloadModel.apiGroup,
       );
     });
 
-    it.each(FRONTEND_KUEUE_MODELS)('$label targets a served CRD version', (model) => {
-      assertModelVersionServed(fixturePath(model.fixture), model.apiVersion, model.apiGroup);
+    it.each(KUEUE_MODEL_FIXTURES)(
+      '$model.kind targets a served CRD version',
+      ({ model, fixture }) => {
+        assertModelVersionServed(kueueFixturePath(fixture), model.apiVersion, model.apiGroup);
+      },
+    );
+
+    it('VisibilityLocalQueueModel targets the visibility API group', () => {
+      expect(VisibilityLocalQueueModel.apiGroup).toBe('visibility.kueue.x-k8s.io');
+      expect(VisibilityLocalQueueModel.apiVersion).toBe('v1beta2');
+      expect(VisibilityLocalQueueModel.kind).toBe('LocalQueue');
+      expect(VisibilityLocalQueueModel.plural).toBe('localqueues');
     });
 
-    it('VisibilityLocalQueueModel uses the visibility API group', () => {
-      const visibilityLocalQueueModel = {
-        apiGroup: 'visibility.kueue.x-k8s.io',
-        apiVersion: 'v1beta2',
-        kind: 'LocalQueue',
-      };
-      expect(visibilityLocalQueueModel.apiGroup).toBe('visibility.kueue.x-k8s.io');
-      expect(visibilityLocalQueueModel.apiVersion).toBe('v1beta2');
-      expect(visibilityLocalQueueModel.kind).toBe('LocalQueue');
+    it('VisibilityLocalQueueModel supports pendingworkloads subresource path', () => {
+      const resourcePath = [
+        'apis',
+        VisibilityLocalQueueModel.apiGroup,
+        VisibilityLocalQueueModel.apiVersion,
+        'namespaces',
+        'test-ns',
+        VisibilityLocalQueueModel.plural,
+        'test-queue',
+        'pendingworkloads',
+      ].join('/');
+
+      expect(resourcePath).toBe(
+        'apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-ns/localqueues/test-queue/pendingworkloads',
+      );
     });
   });
 
   describe('WorkloadKind contract', () => {
     it('validates dashboard-used Workload spec/status fields against CRD schema', () => {
-      assertFieldsExist(fixturePath('kueue.x-k8s.io_workloads.yaml'), [
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_workloads.yaml'), [
         { path: 'spec.active', type: 'boolean' },
         { path: 'spec.podSets', type: 'array' },
         { path: 'spec.priority', type: 'integer' },
@@ -123,7 +129,7 @@ describe('Kueue CRD contract tests', () => {
 
     it('does not use deprecated priorityClassSource in v1beta2 schema', () => {
       const schema = getVersionSchema(
-        loadCrd(fixturePath('kueue.x-k8s.io_workloads.yaml')),
+        loadCrd(kueueFixturePath('kueue.x-k8s.io_workloads.yaml')),
         KUEUE_VERSION,
       );
       expect(resolveSchemaPath(schema, 'spec.priorityClassSource')).toBeUndefined();
@@ -133,7 +139,7 @@ describe('Kueue CRD contract tests', () => {
 
   describe('ClusterQueueKind contract', () => {
     it('validates dashboard-used ClusterQueue fields against CRD schema', () => {
-      assertFieldsExist(fixturePath('kueue.x-k8s.io_clusterqueues.yaml'), [
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_clusterqueues.yaml'), [
         { path: 'spec.cohortName', type: 'string' },
         { path: 'spec.namespaceSelector', type: 'object' },
         {
@@ -156,7 +162,7 @@ describe('Kueue CRD contract tests', () => {
 
   describe('LocalQueueKind contract', () => {
     it('validates dashboard-used LocalQueue fields against CRD schema', () => {
-      assertFieldsExist(fixturePath('kueue.x-k8s.io_localqueues.yaml'), [
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_localqueues.yaml'), [
         { path: 'spec.clusterQueue', type: 'string' },
         { path: 'status.conditions', type: 'array' },
         { path: 'status.pendingWorkloads', type: 'integer' },
@@ -167,7 +173,7 @@ describe('Kueue CRD contract tests', () => {
 
   describe('CohortKind contract', () => {
     it('validates dashboard-used Cohort fields against CRD schema', () => {
-      assertFieldsExist(fixturePath('kueue.x-k8s.io_cohorts.yaml'), [
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_cohorts.yaml'), [
         { path: 'spec.parentName', type: 'string' },
         { path: 'spec.resourceGroups', type: 'array' },
         { path: 'spec.fairSharing', type: 'object' },
@@ -178,11 +184,20 @@ describe('Kueue CRD contract tests', () => {
 
   describe('ResourceFlavorKind contract', () => {
     it('validates dashboard-used ResourceFlavor fields against CRD schema', () => {
-      assertFieldsExist(fixturePath('kueue.x-k8s.io_resourceflavors.yaml'), [
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_resourceflavors.yaml'), [
         { path: 'spec.nodeLabels', type: 'object' },
         { path: 'spec.nodeTaints', type: 'array' },
         { path: 'spec.tolerations', type: 'array' },
         { path: 'spec.topologyName', type: 'string' },
+      ]);
+    });
+  });
+
+  describe('WorkloadPriorityClassKind contract', () => {
+    it('validates dashboard-used WorkloadPriorityClass fields against CRD schema', () => {
+      assertFieldsExist(kueueFixturePath('kueue.x-k8s.io_workloadpriorityclasses.yaml'), [
+        { path: 'value', type: 'integer' },
+        { path: 'description', type: 'string' },
       ]);
     });
   });

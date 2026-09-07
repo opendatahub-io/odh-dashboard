@@ -19,7 +19,38 @@ record_result() {
   local name="$1"
   local status="$2"
   local detail="$3"
-  printf '{"test":"%s","status":"%s","detail":"%s"}\n' "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer3.ndjson"
+  python3 -c 'import json,sys; print(json.dumps({"test":sys.argv[1],"status":sys.argv[2],"detail":sys.argv[3]}))' \
+    "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer3.ndjson"
+}
+
+workload_owned_by_uid() {
+  local owner_uid="$1"
+  kubectl get workloads -n kueue-sentinel -o json | python3 -c '
+import json
+import os
+import sys
+
+owner_uid = os.environ["OWNER_UID"]
+for item in json.load(sys.stdin).get("items", []):
+    for ref in item.get("metadata", {}).get("ownerReferences", []):
+        if ref.get("uid") == owner_uid:
+            print(item["metadata"]["name"])
+            raise SystemExit(0)
+' OWNER_UID="${owner_uid}"
+}
+
+wait_for_workload_admitted() {
+  local workload_name="$1"
+  local admitted=""
+  for _ in $(seq 1 30); do
+    admitted="$(kubectl get workload "${workload_name}" -n kueue-sentinel \
+      -o jsonpath='{.status.conditions[?(@.type=="Admitted")].status}' 2>/dev/null || true)"
+    if [[ "${admitted}" == "True" ]]; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
 }
 
 kubectl create namespace kueue-sentinel --dry-run=client -o yaml | kubectl apply -f -
@@ -47,10 +78,12 @@ else
   LAYER3_FAILED=true
 fi
 
+TRAINJOB_UID="$(kubectl get trainjob sentinel-trainjob-integration -n kueue-sentinel -o jsonpath='{.metadata.uid}')"
+
 log "Waiting for a Workload owned by the TrainJob"
 WORKLOAD_NAME=""
 for _ in $(seq 1 30); do
-  WORKLOAD_NAME="$(kubectl get workloads -n kueue-sentinel -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  WORKLOAD_NAME="$(workload_owned_by_uid "${TRAINJOB_UID}" || true)"
   if [[ -n "${WORKLOAD_NAME}" ]]; then
     break
   fi
@@ -65,20 +98,12 @@ else
 fi
 
 if [[ -n "${WORKLOAD_NAME}" ]]; then
-  log "Checking Workload admission status"
-  ADMITTED="$(kubectl get workload "${WORKLOAD_NAME}" -n kueue-sentinel \
-    -o jsonpath='{.status.conditions[?(@.type=="Admitted")].status}' 2>/dev/null || true)"
-  if [[ "${ADMITTED}" == "True" ]]; then
+  log "Waiting for Workload admission"
+  if wait_for_workload_admitted "${WORKLOAD_NAME}"; then
     record_result "workload_admitted" "pass" "Workload admitted by Kueue"
   else
-    QUOTA_RESERVED="$(kubectl get workload "${WORKLOAD_NAME}" -n kueue-sentinel \
-      -o jsonpath='{.status.conditions[?(@.type=="QuotaReserved")].status}' 2>/dev/null || true)"
-    if [[ "${QUOTA_RESERVED}" == "True" ]]; then
-      record_result "workload_admitted" "pass" "Workload quota reserved (admission in progress)"
-    else
-      record_result "workload_admitted" "fail" "Workload not admitted; check runtime patches / queue wiring"
-      LAYER3_FAILED=true
-    fi
+    record_result "workload_admitted" "fail" "Workload not admitted within timeout"
+    LAYER3_FAILED=true
   fi
 
   log "PATCH Workload spec.active=false (pause)"
@@ -103,7 +128,12 @@ if [[ -n "${WORKLOAD_NAME}" ]]; then
   log "PATCH Workload spec.active=true (resume)"
   kubectl patch workload "${WORKLOAD_NAME}" -n kueue-sentinel \
     --type=merge -p '{"spec":{"active":true}}'
-  record_result "workload_resume" "pass" "Workload resume patch accepted"
+  if wait_for_workload_admitted "${WORKLOAD_NAME}"; then
+    record_result "workload_resume" "pass" "Workload readmitted after resume"
+  else
+    record_result "workload_resume" "fail" "Workload not readmitted after resume"
+    LAYER3_FAILED=true
+  fi
 fi
 
 log "PATCH TrainJob spec.trainer.numNodes (expect immutability, matches scaling.ts)"
@@ -111,10 +141,11 @@ PATCH_OUTPUT="$(kubectl patch trainjob sentinel-trainjob-integration -n kueue-se
   --type=merge -p '{"spec":{"trainer":{"numNodes":3}}}' 2>&1)" || true
 if [[ "${PATCH_OUTPUT}" == *"field is immutable"* ]]; then
   record_result "trainjob_scale_immutable" "pass" \
-    "TrainJob scale patch rejected as immutable (matches dashboard scaling.ts)"
+    "TrainJob scale patch rejected as immutable"
 else
+  log "Unexpected immutability patch output: ${PATCH_OUTPUT}"
   record_result "trainjob_scale_immutable" "fail" \
-    "expected immutability rejection for spec.trainer patch, got: ${PATCH_OUTPUT}"
+    "expected immutability rejection for spec.trainer patch"
   LAYER3_FAILED=true
 fi
 

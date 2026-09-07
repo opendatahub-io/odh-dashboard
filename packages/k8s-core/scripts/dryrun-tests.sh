@@ -19,7 +19,8 @@ record_result() {
   local name="$1"
   local status="$2"
   local detail="$3"
-  printf '{"test":"%s","status":"%s","detail":"%s"}\n' "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer2.ndjson"
+  python3 -c 'import json,sys; print(json.dumps({"test":sys.argv[1],"status":sys.argv[2],"detail":sys.argv[3]}))' \
+    "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer2.ndjson"
 }
 
 kubectl create namespace kueue-sentinel --dry-run=client -o yaml | kubectl apply -f -
@@ -82,10 +83,11 @@ PATCH_OUTPUT="$(kubectl patch trainjob sentinel-trainjob-integration -n kueue-se
   --type=merge -p '{"spec":{"trainer":{"numNodes":3}}}' --dry-run=server 2>&1)" || true
 if [[ "${PATCH_OUTPUT}" == *"field is immutable"* ]]; then
   record_result "patch_trainjob_numnodes_immutable" "pass" \
-    "server rejected TrainJob scale patch as immutable (matches dashboard scaling.ts)"
+    "TrainJob scale patch rejected as immutable"
 else
+  log "Unexpected immutability patch output: ${PATCH_OUTPUT}"
   record_result "patch_trainjob_numnodes_immutable" "fail" \
-    "expected immutability rejection for spec.trainer patch, got: ${PATCH_OUTPUT}"
+    "expected immutability rejection for spec.trainer patch"
   LAYER2_FAILED=true
 fi
 

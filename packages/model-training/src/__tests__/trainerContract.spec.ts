@@ -6,7 +6,7 @@ import {
   loadCrd,
   resolveSchemaPath,
   schemaSupportsType,
-} from '@odh-dashboard/k8s-core/__tests__/helpers/crdSchemaHelpers';
+} from '@odh-dashboard/k8s-core/testing/crdSchemaHelpers';
 
 const TRAINER_VERSION = 'v1alpha1';
 const TRAINER_API_GROUP = 'trainer.kubeflow.org';
@@ -87,6 +87,7 @@ describe('Trainer CRD contract tests', () => {
     it('validates dashboard-used ClusterTrainingRuntime fields against CRD schema', () => {
       assertFieldsExist(fixturePath('trainer.kubeflow.org_clustertrainingruntimes.yaml'), [
         { path: 'spec.mlPolicy', type: 'object' },
+        { path: 'spec.mlPolicy.torch', type: 'object' },
         { path: 'spec.template', type: 'object' },
         { path: 'spec.template.spec', type: 'object' },
         { path: 'spec.template.spec.replicatedJobs', type: 'array' },

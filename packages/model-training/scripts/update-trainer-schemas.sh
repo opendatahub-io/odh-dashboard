@@ -10,8 +10,7 @@ VERSIONS_FILE="${SCRIPT_DIR}/VERSIONS"
 mkdir -p "${FIXTURE_DIR}"
 
 if [[ -z "${TRAINER_TAG:-}" ]] && [[ -f "${VERSIONS_FILE}" ]]; then
-  # shellcheck source=/dev/null
-  source "${VERSIONS_FILE}"
+  TRAINER_TAG="$(read_version_pin "${VERSIONS_FILE}" "TRAINER_TAG")"
 fi
 
 if [[ "${TRAINER_TAG:-}" == "latest" ]] || [[ -z "${TRAINER_TAG:-}" ]]; then
@@ -26,11 +25,9 @@ fi
 echo "Fetching Trainer ${TRAINER_TAG}"
 
 TRAINER_BASE="https://raw.githubusercontent.com/kubeflow/trainer/${TRAINER_TAG}/manifests/base/crds"
-for crd in \
-  trainer.kubeflow.org_trainjobs.yaml \
-  trainer.kubeflow.org_clustertrainingruntimes.yaml; do
-  fetch_crd "${TRAINER_BASE}/${crd}" "${FIXTURE_DIR}/${crd}"
-done
+fetch_crds_staged "${FIXTURE_DIR}" \
+  "${TRAINER_BASE}/trainer.kubeflow.org_trainjobs.yaml" "${FIXTURE_DIR}/trainer.kubeflow.org_trainjobs.yaml" \
+  "${TRAINER_BASE}/trainer.kubeflow.org_clustertrainingruntimes.yaml" "${FIXTURE_DIR}/trainer.kubeflow.org_clustertrainingruntimes.yaml"
 
 echo "Done. Run 'npm run test:contract' to validate."
 echo "RESOLVED_TRAINER_TAG=${TRAINER_TAG}"

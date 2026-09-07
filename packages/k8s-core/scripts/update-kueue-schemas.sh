@@ -10,8 +10,7 @@ VERSIONS_FILE="${SCRIPT_DIR}/VERSIONS"
 mkdir -p "${FIXTURE_DIR}"
 
 if [[ -z "${KUEUE_TAG:-}" ]] && [[ -f "${VERSIONS_FILE}" ]]; then
-  # shellcheck source=/dev/null
-  source "${VERSIONS_FILE}"
+  KUEUE_TAG="$(read_version_pin "${VERSIONS_FILE}" "KUEUE_TAG")"
 fi
 
 if [[ "${KUEUE_TAG:-}" == "latest" ]] || [[ -z "${KUEUE_TAG:-}" ]]; then
@@ -26,15 +25,13 @@ fi
 echo "Fetching Kueue ${KUEUE_TAG}"
 
 KUEUE_BASE="https://raw.githubusercontent.com/kubernetes-sigs/kueue/${KUEUE_TAG}/config/components/crd/bases"
-for crd in \
-  kueue.x-k8s.io_workloads.yaml \
-  kueue.x-k8s.io_clusterqueues.yaml \
-  kueue.x-k8s.io_localqueues.yaml \
-  kueue.x-k8s.io_workloadpriorityclasses.yaml \
-  kueue.x-k8s.io_cohorts.yaml \
-  kueue.x-k8s.io_resourceflavors.yaml; do
-  fetch_crd "${KUEUE_BASE}/${crd}" "${FIXTURE_DIR}/${crd}"
-done
+fetch_crds_staged "${FIXTURE_DIR}" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_workloads.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_workloads.yaml" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_clusterqueues.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_clusterqueues.yaml" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_localqueues.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_localqueues.yaml" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_workloadpriorityclasses.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_workloadpriorityclasses.yaml" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_cohorts.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_cohorts.yaml" \
+  "${KUEUE_BASE}/kueue.x-k8s.io_resourceflavors.yaml" "${FIXTURE_DIR}/kueue.x-k8s.io_resourceflavors.yaml"
 
 echo "Done. Run 'npm run test:contract' to validate."
 echo "RESOLVED_KUEUE_TAG=${KUEUE_TAG}"

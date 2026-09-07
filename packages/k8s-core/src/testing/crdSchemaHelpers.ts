@@ -27,9 +27,31 @@ export type CrdDocument = {
   };
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isCrdDocument = (value: unknown): value is CrdDocument => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const { spec } = value;
+  if (!isRecord(spec)) {
+    return false;
+  }
+
+  return Array.isArray(spec.versions);
+};
+
 export const loadCrd = (filePath: string): CrdDocument => {
   const raw = fs.readFileSync(filePath, 'utf8');
-  return yaml.load(raw) as CrdDocument;
+  const parsed = yaml.load(raw);
+
+  if (!isCrdDocument(parsed)) {
+    throw new Error(`Malformed CRD fixture at ${filePath}: spec.versions must be an array`);
+  }
+
+  return parsed;
 };
 
 export const getVersionSchema = (crd: CrdDocument, version: string): OpenAPISchema | undefined => {
@@ -106,8 +128,8 @@ export const schemaEnumValues = (schema: OpenAPISchema | undefined): string[] =>
   return schema.enum.map((value) => String(value));
 };
 
-export const fixturePath = (...segments: string[]): string =>
-  path.join(__dirname, '..', 'fixtures', 'kueue-crds', ...segments);
+export const kueueFixturePath = (...segments: string[]): string =>
+  path.join(__dirname, '..', '__tests__', 'fixtures', 'kueue-crds', ...segments);
 
 export const assertModelVersionServed = (
   crdFile: string,

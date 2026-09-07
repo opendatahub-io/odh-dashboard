@@ -33,13 +33,13 @@
     "./kueue/types": "./src/kueue/types.ts",
     "./kueue/messageUtils": "./src/kueue/messageUtils.ts",
     "./kueue/workloadStatus": "./src/kueue/workloadStatus.ts",
-    "./__tests__/helpers/crdSchemaHelpers": "./src/__tests__/helpers/crdSchemaHelpers.ts"
+    "./testing/crdSchemaHelpers": "./src/testing/crdSchemaHelpers.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
-    "test:unit": "jest --testPathIgnorePatterns=kueueContract",
+    "test:unit": "jest --testPathIgnorePatterns=kueueContract --passWithNoTests",
     "test:contract": "jest --testPathPattern=kueueContract",
     "kueue:update": "bash scripts/update-kueue-schemas.sh",
     "kueue:check": "npm run kueue:update && npm run test:contract && npm run type-check",
