@@ -16,24 +16,22 @@ concurrency:
   group: stable-ff-${{ github.workflow }}
   cancel-in-progress: false
 
-# Read-only default; sync jobs escalate to contents:write only for git push.
-permissions:
-  contents: read
-
 jobs:
   validate:
     name: Validate dispatch inputs
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Validate workflow dispatch inputs
         env:
           SYNC_STABLE_INPUT: ${{ github.event.inputs.SYNC_STABLE }}
           TARGET_COMMIT: ${{ github.event.inputs.target_commit }}
+          WORKFLOW_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
 
-          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
-            echo "ERROR: workflow must be dispatched from main, got: ${{ github.ref }}"
+          if [[ "$WORKFLOW_REF" != "refs/heads/main" ]]; then
+            echo "ERROR: workflow must be dispatched from main, got: $WORKFLOW_REF"
             exit 1
           fi
 
