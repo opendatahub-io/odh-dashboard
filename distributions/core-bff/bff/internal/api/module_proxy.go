@@ -160,11 +160,11 @@ func normalizeFederationEntries(entries []moduleFederationEntry) ([]normalizedPr
 }
 
 // validateProxyEntries rejects duplicate paths, reserved-route collisions, and invalid service refs.
-func validateProxyEntries(entries []normalizedProxyEntry) error {
+func validateProxyEntries(entries []normalizedProxyEntry, authTokenHeader string) error {
 	if err := validateProxyPaths(entries); err != nil {
 		return err
 	}
-	return validateServiceRefs(entries)
+	return validateServiceRefs(entries, authTokenHeader)
 }
 
 func validateProxyPaths(entries []normalizedProxyEntry) error {
@@ -218,7 +218,7 @@ func proxyPathsOverlap(a, b string) bool {
 	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
 }
 
-func validateServiceRefs(entries []normalizedProxyEntry) error {
+func validateServiceRefs(entries []normalizedProxyEntry, authTokenHeader string) error {
 	for _, e := range entries {
 		if e.service.Service.Name == "" {
 			return fmt.Errorf("entry %s has empty service name", e.entryName)
@@ -240,6 +240,9 @@ func validateServiceRefs(entries []normalizedProxyEntry) error {
 			for k := range e.service.Headers {
 				if strings.EqualFold(k, constants.HeaderAuthorization) {
 					return fmt.Errorf("entry %s sets a custom Authorization header while authorize is enabled; these conflict", e.entryName)
+				}
+				if authTokenHeader != "" && strings.EqualFold(k, authTokenHeader) {
+					return fmt.Errorf("entry %s sets a custom %s header while authorize is enabled; the server-resolved token takes precedence", e.entryName, authTokenHeader)
 				}
 			}
 		}
@@ -290,17 +293,26 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		// SetOutboundHeadersFn runs after stripping (see proxy.rewriteFunc), so
 		// the value set here is the trusted, server-resolved token. Both headers
 		// are forwarded so upstreams reading either convention authenticate.
+		//
+		// When the ingress auth header is the standard Authorization header, the
+		// "Bearer <token>" value from AuthHeaderFn is already correct, so we skip
+		// raw-token injection to avoid clobbering it with the unprefixed token.
 		authTokenHeader := app.config.AuthTokenHeader
-		cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
-			if authTokenHeader != "" {
-				if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-					if token := identity.ResolveToken(app.devFallbackToken); token != "" {
-						outH.Set(authTokenHeader, token)
+		injectAuthToken := authTokenHeader != "" && !strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)
+		if injectAuthToken || len(customHeaders) > 0 {
+			cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
+				// Apply custom headers first so the server-resolved token set below
+				// is authoritative and cannot be overridden by a static config value.
+				for k, v := range customHeaders {
+					outH.Set(k, v)
+				}
+				if injectAuthToken {
+					if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+						if token := identity.ResolveToken(app.devFallbackToken); token != "" {
+							outH.Set(authTokenHeader, token)
+						}
 					}
 				}
-			}
-			for k, v := range customHeaders {
-				outH.Set(k, v)
 			}
 		}
 	} else if len(customHeaders) > 0 {
@@ -331,7 +343,7 @@ func (app *App) initModuleProxies() error {
 		return nil
 	}
 
-	if err := validateProxyEntries(normalized); err != nil {
+	if err := validateProxyEntries(normalized, app.config.AuthTokenHeader); err != nil {
 		return err
 	}
 
