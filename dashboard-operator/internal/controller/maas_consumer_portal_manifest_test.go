@@ -152,7 +152,7 @@ func TestRenderMaaSConsumerPortalManifestBundle(t *testing.T) {
 	redirectPath := redirectFilter["requestRedirect"].(map[string]interface{})["path"].(map[string]interface{})
 	assert.Equal(t, "ReplaceFullPath", redirectPath["type"])
 	assert.Equal(t, "/maas-consumer-portal/", redirectPath["replaceFullPath"])
-	assert.Equal(t, int64(308), redirectFilter["requestRedirect"].(map[string]interface{})["statusCode"])
+	assert.Equal(t, int64(302), redirectFilter["requestRedirect"].(map[string]interface{})["statusCode"])
 	proxy := rules[1].(map[string]interface{})
 	assert.Equal(t, "PathPrefix", proxy["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["type"])
 	assert.Equal(t, "/maas-consumer-portal", proxy["matches"].([]interface{})[0].(map[string]interface{})["path"].(map[string]interface{})["value"])

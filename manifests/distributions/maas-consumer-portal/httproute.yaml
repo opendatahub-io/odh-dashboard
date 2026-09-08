@@ -20,7 +20,7 @@ spec:
             path:
               type: ReplaceFullPath
               replaceFullPath: /maas-consumer-portal/
-            statusCode: 308
+            statusCode: 302
     - matches:
         - path:
             type: PathPrefix
