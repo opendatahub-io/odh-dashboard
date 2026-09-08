@@ -11,7 +11,9 @@ jobs:
   test-all:
     if: >
       github.event.pull_request.draft &&
-      startsWith(github.head_ref, 'mergify/merge-queue/')
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'mergify[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'mergify/merge-queue/')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

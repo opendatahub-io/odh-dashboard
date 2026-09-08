@@ -3,14 +3,15 @@ name: ODH Dashboard Agent
 # Preflight checks on PRs using Claude Code.
 #
 # Triggers:
-#   pull_request_target — auto-runs on PR open/reopen
+#   pull_request_target — auto-runs on PR open/reopen/ready_for_review
 #   issue_comment       — @odh-dashboard-agent preflight (org members only)
 #
 # Dependabot PRs are skipped on pull_request_target (not useful for
 # dependency bumps; avoids noisy failures). Manual comment trigger still works.
 #
-# Draft PRs are skipped (e.g. Mergify merge-queue drafts). issue_comment
-# routes check isDraft via gh pr view; pull_request_target uses event payload.
+# Draft PRs are skipped (e.g. Mergify merge-queue drafts). ready_for_review
+# re-triggers when a draft is marked ready. issue_comment routes check isDraft
+# via gh pr view; pull_request_target uses event payload.
 #
 # Fork PRs are gated by GitHub's "Require approval for all external
 # contributors" setting — a maintainer must approve the workflow run.
@@ -22,7 +23,7 @@ name: ODH Dashboard Agent
 
 on:
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
