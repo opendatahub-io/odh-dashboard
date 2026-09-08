@@ -33,7 +33,7 @@ Once the package is identified, read `packages/<package-name>/package.json` to g
 
 ## Automated sync (model-registry)
 
-For **model-registry only**, GitHub Actions may already have an open sync PR on branch `automated/model-registry-upstream-sync` (workflow: `.github/workflows/model-registry-upstream-sync.yml`). See [docs/upstream-sync.md](../../docs/upstream-sync.md#automated-sync-model-registry).
+For **model-registry only**, GitHub Actions may already have an open sync PR on branch `automated/model-registry-upstream-sync` (workflow: `.github/workflows/model-registry-upstream-sync.yml`). See [docs/upstream-sync.md](../../../docs/upstream-sync.md#automated-sync-model-registry).
 
 **Default assignees** (notified when the workflow opens or updates the PR): `ppadti`, `manaswinidas`, `Philip-Carneiro`.
 
@@ -49,15 +49,15 @@ gh pr list --repo opendatahub-io/odh-dashboard --head automated/model-registry-u
 | **Open clean sync PR** (no conflict in title) | Review/merge via normal PR process, or ask whether to update that branch instead of opening a duplicate sync. |
 | **No open automated PR** | Proceed with normal manual sync (Phase 1 branch naming below). |
 
-When resuming conflict resolution on the automated branch:
+When resuming conflict resolution on the automated branch (use `upstream` for the canonical `opendatahub-io/odh-dashboard` remote; `origin` is the user's fork):
 
 ```bash
-git fetch origin
+git fetch upstream main automated/model-registry-upstream-sync
 git checkout automated/model-registry-upstream-sync
-git pull origin automated/model-registry-upstream-sync
+git pull upstream automated/model-registry-upstream-sync
 ```
 
-After conflicts are resolved and tests pass, push to `origin automated/model-registry-upstream-sync` so the existing PR updates (assignees are already set).
+After conflicts are resolved and tests pass, push to `upstream automated/model-registry-upstream-sync` so the existing PR updates (assignees are already set).
 
 ## PR Test Mode
 
@@ -79,11 +79,11 @@ First, check the current branch state:
 
 **If on `automated/model-registry-upstream-sync` (model-registry automated sync PR):**
 - Continue on this branch — resolve conflicts (Phase 3), then `--continue` and Phase 4 tests
-- Push to `origin automated/model-registry-upstream-sync` to update the open PR (do not rename the branch)
+- Push to `upstream automated/model-registry-upstream-sync` to update the open PR (do not rename the branch)
 
 **If on `main`:**
 - Ensure working directory is clean (no uncommitted changes)
-- Run `git pull` to ensure main is up to date before starting the sync
+- Run `git pull upstream main` to ensure main is up to date before starting the sync
 - **[model-registry]** If no argument forces a fresh branch, check for an open automated sync PR first (see **Automated sync (model-registry)** above). Prefer resuming `automated/model-registry-upstream-sync` when a conflict PR is already open.
 - **[PR Test Mode]** Generate branch name: `tmp-sync-pr-<number>` (extract the PR number from the URL)
 - **[Normal Mode]** Generate branch name: `<pkg>-sync-YYYY-MM-DD` (use today's date; `<pkg>` is a short prefix like `mr` for model-registry, `nb` for notebooks, etc.)

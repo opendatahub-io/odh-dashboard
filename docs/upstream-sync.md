@@ -260,17 +260,17 @@ Behavior:
 3. Otherwise run `npm run update-subtree -w packages/model-registry` in a **read-only sync job** (`persist-credentials: false`; no write token in `.git`).
 4. On conflict, commit the partial sync (including conflict markers) and open a PR for manual resolution — **no separate issue**.
 5. On a clean sync, run `test:lint`, `test:type-check`, and `test:unit` in `packages/model-registry/upstream/frontend`.
-6. A **publish job** applies the validated patches, pushes `automated/model-registry-upstream-sync`, creates or updates a PR against `main`, and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
+6. **publish-branch** applies validated patches and pushes `automated/model-registry-upstream-sync`; **publish-pr** creates or updates a PR against `main` and assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro`.
 
 ### Failure and conflict handling
 
 | Outcome | What happens |
 |---------|----------------|
 | **Clean sync** | Frontend lint/type-check/unit run in CI; PR opened with test results in the body. |
-| **Conflict** | Partial sync is committed (markers included); PR opened with `(conflicts — resolve manually)` in the title. Assignees are notified; resolve in the PR, run `--continue` and tests, then merge. |
-| **Hard failure** (not a conflict) | No PR. A **notify-failure** job opens or comments on a single tracking GitHub issue. |
+| **Conflict** | Partial sync is committed (markers included); PR opened with `(conflicts — resolve manually)` in the title. Assignees are notified; resolve in the PR, run `--continue` and tests, then merge. **No GitHub issue is created for conflicts.** |
+| **Hard failure** (not a conflict) | No PR. A **notify-failure** job opens or comments on a **single** tracking GitHub issue (reused across runs). The same assignees as sync PRs (`ppadti`, `manaswinidas`, `Philip-Carneiro`) are assigned so the team is notified. |
 
-Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
+Conflicts are expected to be common for model-registry syncs; they are handled entirely through the automated PR, not through issues. Conflict PRs skip automated frontend validation — run tests locally after resolving markers.
 
 **Handling conflicts:** The workflow assigns `ppadti`, `manaswinidas`, and `Philip-Carneiro` on the PR. Whoever picks it up should checkout `automated/model-registry-upstream-sync`, resolve markers, run `npm run update-subtree -w packages/model-registry -- --continue`, run frontend lint/type-check/unit tests, and push to update the PR. Use `/upstream-sync model-registry` in Claude Code for guided conflict resolution (see `.claude/skills/upstream-sync/SKILL.md`).
 
