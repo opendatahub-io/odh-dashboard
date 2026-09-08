@@ -319,6 +319,12 @@ export type Collection = {
   benchmarks?: CollectionBenchmark[];
 };
 
+export type CollectionPatchOperation = {
+  op: 'replace' | 'add' | 'remove';
+  path: string;
+  value?: unknown;
+};
+
 export type CollectionScope = 'system' | 'curated' | 'tenant';
 
 export type ListCollectionsParams = {

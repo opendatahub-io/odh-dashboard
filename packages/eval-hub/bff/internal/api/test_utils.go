@@ -199,6 +199,9 @@ func (e *erroringEHClient) CancelEvaluationJob(_ context.Context, _ string, _ st
 func (e *erroringEHClient) GetCollection(_ context.Context, _ string, _ string) (*evalhub.Collection, error) {
 	return nil, fmt.Errorf("erroring client")
 }
+func (e *erroringEHClient) PatchCollection(_ context.Context, _ string, _ string, _ []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
+	return nil, fmt.Errorf("erroring client")
+}
 func (e *erroringEHClient) DeleteCollection(_ context.Context, _ string, _ string) error {
 	return fmt.Errorf("erroring client")
 }

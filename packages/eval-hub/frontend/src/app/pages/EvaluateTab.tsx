@@ -85,6 +85,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
       label: 'Edit',
       onSelect: () => {
         // TODO: Redirect to the edit collection form once it is available.
+        // TODO: Use usePatchCollectionMutation to submit the form's JSON Patch operations.
       },
     },
     {

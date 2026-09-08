@@ -181,7 +181,7 @@ paths:
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
   /eval-hub/api/v1/evaluations/collections/{id}:
-    summary: Get or delete a single benchmark collection
+    summary: Get, patch, or delete a single benchmark collection
     description: >-
       Retrieves a single benchmark collection by its resource ID from the
       EvalHub control plane. Returns the collection with its benchmarks,
@@ -208,6 +208,36 @@ paths:
       operationId: getCollection
       summary: Get Collection by ID
       description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+    patch:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CollectionPatchOperation'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: patchCollection
+      summary: Patch Collection
+      description: Applies JSON Patch operations to partially update a benchmark collection.
     delete:
       tags:
         - Collections
@@ -1435,6 +1465,25 @@ components:
           items:
             $ref: '#/components/schemas/CollectionBenchmark'
           nullable: true
+
+    CollectionPatchOperation:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum:
+            - replace
+            - add
+            - remove
+          description: JSON Patch operation type
+        path:
+          type: string
+          description: JSON Pointer path to the collection field being changed
+        value:
+          description: Value for add or replace operations; omitted for remove operations
 
     CollectionsData:
       type: object

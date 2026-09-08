@@ -56,6 +56,17 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
 
+    it('should patch a collection', async () => {
+      const result = await apiClient.patch(
+        '/eval-hub/api/v1/evaluations/collections/collection-001?namespace=default',
+        [{ op: 'replace', path: '/name', value: 'Updated collection' }],
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
     it('should delete a collection', async () => {
       const result = await apiClient.delete(
         '/eval-hub/api/v1/evaluations/collections/collection-001?namespace=default',

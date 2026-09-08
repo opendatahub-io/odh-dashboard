@@ -2,9 +2,11 @@ package ehmocks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
@@ -38,6 +40,9 @@ func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.Li
 	for _, c := range all {
 		if m.deletedCollections[c.Resource.ID] {
 			continue
+		}
+		if override, ok := m.collectionOverrides[c.Resource.ID]; ok {
+			c = *override
 		}
 		if params.Name != "" && !containsCI(c.Name, params.Name) {
 			continue
@@ -372,6 +377,37 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 		}
 	}
 	return nil, nil
+}
+
+func (m *MockEvalHubClient) PatchCollection(_ context.Context, id string, _ string, operations []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
+	collection, err := m.GetCollection(context.Background(), id, "")
+	if err != nil || collection == nil {
+		return collection, err
+	}
+
+	collectionJSON, err := json.Marshal(collection)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection: %w", err)
+	}
+	operationsJSON, err := json.Marshal(operations)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection patch: %w", err)
+	}
+	patch, err := jsonpatch.DecodePatch(operationsJSON)
+	if err != nil {
+		return nil, fmt.Errorf("decode collection patch: %w", err)
+	}
+	updatedJSON, err := patch.Apply(collectionJSON)
+	if err != nil {
+		return nil, fmt.Errorf("apply collection patch: %w", err)
+	}
+
+	var updated evalhub.Collection
+	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
+		return nil, fmt.Errorf("unmarshal patched collection: %w", err)
+	}
+	m.SetCollection(id, &updated)
+	return &updated, nil
 }
 
 func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ string) error {

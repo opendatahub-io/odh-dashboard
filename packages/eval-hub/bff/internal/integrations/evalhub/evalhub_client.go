@@ -34,6 +34,14 @@ type ListCollectionsParams struct {
 	Scope     string
 }
 
+// CollectionPatchOperation is one JSON Patch operation accepted by EvalHub's
+// collection PATCH endpoint.
+type CollectionPatchOperation struct {
+	Op    string          `json:"op"`
+	Path  string          `json:"path"`
+	Value json.RawMessage `json:"value,omitempty"`
+}
+
 // GetJobLogsParams holds optional query parameters for the log endpoints.
 type GetJobLogsParams struct {
 	TailLines    string
@@ -50,6 +58,7 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
@@ -601,6 +610,24 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 	return resp, nil
 }
 
+// PatchCollection partially updates a tenant-owned collection using JSON Patch
+// operations. The namespace is sent as the X-Tenant header to scope the
+// request to the caller's tenant.
+func (c *EvalHubClient) PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := patch[Collection](c, ctx, path, operations, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "PatchCollection")
+	}
+	return resp, nil
+}
+
 // DeleteCollection permanently removes a benchmark collection from EvalHub.
 // The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
 func (c *EvalHubClient) DeleteCollection(ctx context.Context, id string, namespace string) error {
@@ -777,6 +804,55 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBody),
+		}
+	}
+
+	var result T
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// patch performs a typed PATCH request against the EvalHub API.
+// extraHeaders is an optional map of additional HTTP headers to include in the request.
+func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, extraHeaders map[string]string) (*T, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(respBody) > maxGetResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

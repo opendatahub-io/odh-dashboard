@@ -207,6 +207,46 @@ func TestEvalHubClient_DeleteCollection(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestEvalHubClient_PatchCollection(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/collection-001", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		var operations []CollectionPatchOperation
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&operations))
+		assert.Equal(t, []CollectionPatchOperation{{
+			Op: "replace", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
+		}}, operations)
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(Collection{
+			Resource: CollectionResource{ID: "collection-001"},
+			Name:     "Updated suite",
+		}))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.PatchCollection(context.Background(), "collection-001", "my-ns", []CollectionPatchOperation{{
+		Op: "replace", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
+	}})
+
+	require.NoError(t, err)
+	assert.Equal(t, "Updated suite", result.Name)
+}
+
+func TestEvalHubClient_PatchCollection_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	_, err := client.PatchCollection(context.Background(), "collection-001", "", nil)
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
 func TestEvalHubClient_DeleteCollection_EmptyNamespace(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
 	err := client.DeleteCollection(context.Background(), "collection-001", "")

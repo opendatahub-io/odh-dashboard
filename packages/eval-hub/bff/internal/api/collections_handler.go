@@ -14,6 +14,49 @@ import (
 type CollectionsEnvelope Envelope[evalhub.CollectionsResponse, None]
 type CollectionEnvelope Envelope[evalhub.Collection, None]
 
+func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := strings.TrimPrefix(ps.ByName("id"), "/")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	var operations []evalhub.CollectionPatchOperation
+	if err := app.ReadJSON(w, r, &operations); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	collection, err := client.PatchCollection(ctx, id, namespace, operations)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to patch collection")
+		return
+	}
+	if collection == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *App) DeleteCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

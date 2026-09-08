@@ -5,8 +5,13 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
-import { deleteCollection, getCollections } from '~/app/api/k8s';
-import type { CollectionScope, CollectionsListResponse } from '~/app/types';
+import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s';
+import type {
+  CollectionPatchOperation,
+  CollectionScope,
+  CollectionsListResponse,
+  Collection,
+} from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 
 export const collectionsQueryKeyPrefix = (namespace: string) =>
@@ -18,6 +23,12 @@ export const collectionsQueryKey = (
   limit = COLLECTION_FETCH_LIMIT,
 ) => [...collectionsQueryKeyPrefix(namespace), scope ?? 'all', limit] as const;
 
+/**
+ * Reads collections for the current tenant. The namespace identifies the
+ * tenant in the BFF request; the BFF forwards it to EvalHub as X-Tenant.
+ * The optional scope then narrows which collections are returned within that
+ * tenant context (for example, tenant or curated collections).
+ */
 export const useCollectionsQuery = (
   namespace: string,
   scope?: CollectionScope,
@@ -33,8 +44,11 @@ export const useCollectionsQuery = (
   });
 
 /**
- * Deletes a tenant-owned collection and refreshes every cached collection query
- * for the namespace, including queries with different scopes or page sizes.
+ * Deletes a tenant-owned collection in the current tenant context. The
+ * collection ID is resolved together with the namespace, so a collection from
+ * another tenant cannot be targeted by changing only the ID. After deletion,
+ * every cached collection query for the namespace is refreshed, including
+ * queries with different scopes or page sizes.
  */
 export const useDeleteCollectionMutation = (
   namespace: string,
@@ -48,6 +62,36 @@ export const useDeleteCollectionMutation = (
         return Promise.reject(new Error('Namespace is required to delete a collection'));
       }
       return deleteCollection('', namespace, collectionId)({});
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),
+  });
+};
+
+export type PatchCollectionVariables = {
+  collectionId: string;
+  operations: CollectionPatchOperation[];
+};
+
+/**
+ * Applies JSON Patch operations to a tenant-owned collection in the current
+ * tenant context. The namespace is forwarded to the BFF and becomes EvalHub's
+ * X-Tenant header; the collection ID identifies the resource within that
+ * tenant. After the patch succeeds, every cached collection query for the
+ * namespace is refreshed.
+ */
+export const usePatchCollectionMutation = (
+  namespace: string,
+): UseMutationResult<Collection, Error, PatchCollectionVariables> => {
+  const queryClient = useQueryClient();
+
+  return useMutation<Collection, Error, PatchCollectionVariables>({
+    mutationKey: ['evalhub', 'collections', 'patch', namespace],
+    mutationFn: ({ collectionId, operations }) => {
+      if (!namespace) {
+        return Promise.reject(new Error('Namespace is required to patch a collection'));
+      }
+      return patchCollection('', namespace, collectionId, operations)({});
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),

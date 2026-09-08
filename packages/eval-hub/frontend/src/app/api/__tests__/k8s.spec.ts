@@ -4,10 +4,12 @@ import {
   restGET,
   restCREATE,
   restDELETE,
+  restPATCH,
   isModArchResponse,
 } from 'mod-arch-core';
 import {
   deleteCollection,
+  patchCollection,
   getCollection,
   getCollections,
   getEvalHubCRStatus,
@@ -38,12 +40,14 @@ jest.mock('mod-arch-core', () => ({
   restGET: jest.fn(),
   restCREATE: jest.fn(),
   restDELETE: jest.fn(),
+  restPATCH: jest.fn(),
   isModArchResponse: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(restGET);
 const mockRestCREATE = jest.mocked(restCREATE);
 const mockRestDELETE = jest.mocked(restDELETE);
+const mockRestPATCH = jest.mocked(restPATCH);
 const mockIsModArchResponse = jest.mocked(isModArchResponse);
 // handleRestFailures is mocked to pass through the promise — no need to assert on it directly
 
@@ -356,6 +360,57 @@ describe('deleteCollection', () => {
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
+  });
+});
+
+describe('patchCollection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should call restPATCH with JSON Patch operations and the namespace', async () => {
+    const collection: Collection = { resource: { id: 'col-1' }, name: 'Updated suite' };
+    const operations = [{ op: 'replace' as const, path: '/name', value: 'Updated suite' }];
+    mockRestPATCH.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const opts = {};
+    const result = await patchCollection('', 'my-ns', 'col-1', operations)(opts);
+
+    expect(result).toEqual(collection);
+    expect(mockRestPATCH).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1',
+      operations,
+      { namespace: 'my-ns' },
+      opts,
+    );
+  });
+
+  it('should encode the collection ID in the URL', async () => {
+    mockRestPATCH.mockResolvedValue({ data: { resource: { id: 'col/special' }, name: 'Test' } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await patchCollection('', 'ns', 'col/special', [
+      { op: 'replace', path: '/name', value: 'Test' },
+    ])({});
+
+    expect(mockRestPATCH).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col%2Fspecial',
+      expect.any(Array),
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  it('should reject when collectionId is empty', async () => {
+    await expect(
+      patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
+    ).rejects.toThrow('collectionId must not be empty');
+
+    expect(mockRestPATCH).not.toHaveBeenCalled();
   });
 });
 

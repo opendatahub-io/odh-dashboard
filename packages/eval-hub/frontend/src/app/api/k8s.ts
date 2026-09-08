@@ -6,11 +6,13 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restPATCH,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Collection,
   CollectionBenchmark,
+  CollectionPatchOperation,
   CollectionsListResponse,
   EvalHubCRStatus,
   EvalHubHealthResponse,
@@ -288,6 +290,39 @@ export const deleteCollection =
         opts,
       ),
     ).then(() => undefined);
+  };
+
+export const patchCollection =
+  (
+    hostPath: string,
+    namespace: string,
+    collectionId: string,
+    operations: CollectionPatchOperation[],
+  ) =>
+  (opts: APIOptions): Promise<Collection> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restPATCH(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(
+          collectionId,
+        )}`,
+        // EvalHub's PATCH endpoint accepts a JSON Patch array. The shared REST
+        // helper types request bodies as records, although it serializes arrays correctly.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        operations as unknown as Record<string, unknown>,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
   };
 
 export const getCollections =
