@@ -166,9 +166,22 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	resp := CollectionsResponse{
 		Items: []Collection{
 			{
-				Resource:    CollectionResource{ID: "col-1"},
+				Resource: CollectionResource{
+					ID:             "col-1",
+					VersionCounter: 3,
+				},
 				Name:        "Safety Suite",
 				Description: "Safety benchmarks",
+				Domains:     []string{"safety"},
+				Tasks:       []string{"classification"},
+				Modalities:  []string{"text"},
+				Industries:  []string{"healthcare"},
+				AIEntities:  []string{"model"},
+				State: &CollectionState{
+					DerivedFrom: "curated-suite",
+					RunCount:    2,
+					PinnedOrder: 1,
+				},
 			},
 		},
 	}
@@ -176,6 +189,8 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "curated", r.URL.Query().Get("scope"))
+		assert.Equal(t, "curation_order", r.URL.Query().Get("sort_by"))
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -184,12 +199,26 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.ListCollections(context.Background(), ListCollectionsParams{Namespace: "test-namespace"})
+	result, err := client.ListCollections(context.Background(), ListCollectionsParams{
+		Namespace: "test-namespace",
+		Scope:     "curated",
+		SortBy:    "curation_order",
+	})
 
 	require.NoError(t, err)
 	assert.Len(t, result.Items, 1)
 	assert.Equal(t, "col-1", result.Items[0].Resource.ID)
 	assert.Equal(t, "Safety Suite", result.Items[0].Name)
+	assert.Equal(t, 3, result.Items[0].Resource.VersionCounter)
+	assert.Equal(t, []string{"safety"}, result.Items[0].Domains)
+	assert.Equal(t, []string{"classification"}, result.Items[0].Tasks)
+	assert.Equal(t, []string{"text"}, result.Items[0].Modalities)
+	assert.Equal(t, []string{"healthcare"}, result.Items[0].Industries)
+	assert.Equal(t, []string{"model"}, result.Items[0].AIEntities)
+	require.NotNil(t, result.Items[0].State)
+	assert.Equal(t, "curated-suite", result.Items[0].State.DerivedFrom)
+	assert.Equal(t, 2, result.Items[0].State.RunCount)
+	assert.Equal(t, 1, result.Items[0].State.PinnedOrder)
 }
 
 func TestEvalHubClient_DeleteCollection(t *testing.T) {

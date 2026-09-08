@@ -28,6 +28,27 @@ func TestGetCollectionHandler(t *testing.T) {
 	assert.Equal(t, "Open LLM Leaderboard v2", result.Data.Name)
 }
 
+func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	result, response, err := setupApiTestWithEvalHub[CollectionsEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&scope=curated&sort_by=curation_order&limit=4&offset=2",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.NotNil(t, mockClient.LastListCollectionsParams)
+	assert.Equal(t, "test-ns", mockClient.LastListCollectionsParams.Namespace)
+	assert.Equal(t, "curated", mockClient.LastListCollectionsParams.Scope)
+	assert.Equal(t, "curation_order", mockClient.LastListCollectionsParams.SortBy)
+	assert.Equal(t, 4, mockClient.LastListCollectionsParams.Limit)
+	assert.Equal(t, 2, mockClient.LastListCollectionsParams.Offset)
+	assert.NotNil(t, result.Data.Items)
+}
+
 // Verify that a percent-encoded slash (%2F) in the ID is decoded and the
 // handler calls GetCollection with the literal "col/special" ID.
 func TestGetCollectionHandlerEncodedSlashID(t *testing.T) {

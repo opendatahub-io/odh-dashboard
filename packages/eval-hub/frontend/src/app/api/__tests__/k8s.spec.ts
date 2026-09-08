@@ -481,6 +481,24 @@ describe('getCollections', () => {
     );
   });
 
+  it('should include the collection sort query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      scope: 'curated',
+      sortBy: 'curation_order',
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      { namespace: 'my-ns', scope: 'curated', sort_by: 'curation_order' },
+      {},
+    );
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);

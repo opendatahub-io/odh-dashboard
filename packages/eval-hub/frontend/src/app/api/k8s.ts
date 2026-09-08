@@ -350,6 +350,10 @@ export const getCollections =
     if (params.scope) {
       queryParams.scope = params.scope;
     }
+    if (params.sortBy) {
+      // eslint-disable-next-line camelcase
+      queryParams.sort_by = params.sortBy;
+    }
     return handleRestFailures(
       restGET(
         hostPath,

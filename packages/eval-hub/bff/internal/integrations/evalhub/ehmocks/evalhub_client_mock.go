@@ -12,8 +12,9 @@ import (
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	collectionOverrides map[string]*evalhub.Collection
-	deletedCollections  map[string]bool
+	collectionOverrides       map[string]*evalhub.Collection
+	deletedCollections        map[string]bool
+	LastListCollectionsParams *evalhub.ListCollectionsParams
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -33,6 +34,7 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.H
 
 // ListCollections returns mock benchmark collections with optional in-memory filtering and pagination.
 func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	m.LastListCollectionsParams = &params
 	all := mockCollections()
 
 	// Apply filters

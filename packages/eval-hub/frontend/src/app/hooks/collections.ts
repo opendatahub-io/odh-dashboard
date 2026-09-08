@@ -9,6 +9,7 @@ import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s
 import type {
   CollectionPatchOperation,
   CollectionScope,
+  CollectionSortBy,
   CollectionsListResponse,
   Collection,
 } from '~/app/types';
@@ -21,7 +22,8 @@ export const collectionsQueryKey = (
   namespace: string,
   scope?: CollectionScope,
   limit = COLLECTION_FETCH_LIMIT,
-) => [...collectionsQueryKeyPrefix(namespace), scope ?? 'all', limit] as const;
+  sortBy?: CollectionSortBy,
+) => [...collectionsQueryKeyPrefix(namespace), scope ?? 'all', limit, sortBy ?? 'default'] as const;
 
 /**
  * Reads collections for the current tenant. The namespace identifies the
@@ -33,11 +35,12 @@ export const useCollectionsQuery = (
   namespace: string,
   scope?: CollectionScope,
   limit = COLLECTION_FETCH_LIMIT,
+  sortBy: CollectionSortBy | undefined = scope === 'curated' ? 'curation_order' : undefined,
 ): UseQueryResult<CollectionsListResponse, Error> =>
   useQuery<CollectionsListResponse, Error>({
-    queryKey: collectionsQueryKey(namespace, scope, limit),
+    queryKey: collectionsQueryKey(namespace, scope, limit, sortBy),
     queryFn: ({ signal }) =>
-      getCollections('', { namespace, limit, scope })({
+      getCollections('', { namespace, limit, scope, sortBy })({
         signal,
       }),
     enabled: Boolean(namespace),

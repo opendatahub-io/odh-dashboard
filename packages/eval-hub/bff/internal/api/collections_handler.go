@@ -136,6 +136,7 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 		Category:  query.Get("category"),
 		Tags:      query.Get("tags"),
 		Scope:     query.Get("scope"),
+		SortBy:    query.Get("sort_by"),
 	}
 
 	if limitStr := query.Get("limit"); limitStr != "" {

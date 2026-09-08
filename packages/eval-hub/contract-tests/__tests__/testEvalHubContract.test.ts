@@ -45,6 +45,18 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
+  describe('Collections Endpoint', () => {
+    it('should list collections with curated ordering', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/collections?namespace=default&scope=curated&sort_by=curation_order',
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Collection by ID Endpoint', () => {
     it('should retrieve a single collection by ID', async () => {
       const result = await apiClient.get(

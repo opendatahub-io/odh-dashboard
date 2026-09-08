@@ -327,6 +327,8 @@ export type CollectionPatchOperation = {
 
 export type CollectionScope = 'system' | 'curated' | 'tenant';
 
+export type CollectionSortBy = 'curation_order';
+
 export type ListCollectionsParams = {
   namespace?: string;
   limit?: number;
@@ -335,6 +337,7 @@ export type ListCollectionsParams = {
   category?: string | null;
   tags?: string[];
   scope?: CollectionScope;
+  sortBy?: CollectionSortBy;
 };
 
 export type CollectionsListResponse = {

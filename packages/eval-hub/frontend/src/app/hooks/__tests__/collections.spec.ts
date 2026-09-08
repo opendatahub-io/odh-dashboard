@@ -1,20 +1,75 @@
 import * as React from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { deleteCollection, patchCollection } from '~/app/api/k8s';
+import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s';
 import {
   collectionsQueryKeyPrefix,
+  useCollectionsQuery,
   useDeleteCollectionMutation,
   usePatchCollectionMutation,
 } from '~/app/hooks/collections';
 
 jest.mock('~/app/api/k8s', () => ({
   deleteCollection: jest.fn(),
+  getCollections: jest.fn(),
   patchCollection: jest.fn(),
 }));
 
 const mockDeleteCollection = jest.mocked(deleteCollection);
+const mockGetCollections = jest.mocked(getCollections);
 const mockPatchCollection = jest.mocked(patchCollection);
+
+const createQueryWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper: React.FC<React.PropsWithChildren> = ({ children }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+  return { queryClient, wrapper };
+};
+
+describe('useCollectionsQuery', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('fetches tenant collections without curated ordering', async () => {
+    const getRequest = jest.fn().mockResolvedValue({ items: [] });
+    mockGetCollections.mockReturnValue(getRequest);
+    const { wrapper } = createQueryWrapper();
+
+    const { result } = renderHook(() => useCollectionsQuery('test-ns', 'tenant', 25), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetCollections).toHaveBeenCalledWith('', {
+      namespace: 'test-ns',
+      limit: 25,
+      scope: 'tenant',
+      sortBy: undefined,
+    });
+    expect(getRequest).toHaveBeenCalledWith({ signal: expect.anything() });
+  });
+
+  it('requests curated collections in curation order', async () => {
+    const getRequest = jest.fn().mockResolvedValue({ items: [] });
+    mockGetCollections.mockReturnValue(getRequest);
+    const { wrapper } = createQueryWrapper();
+
+    const { result } = renderHook(() => useCollectionsQuery('test-ns', 'curated'), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetCollections).toHaveBeenCalledWith('', {
+      namespace: 'test-ns',
+      limit: 200,
+      scope: 'curated',
+      sortBy: 'curation_order',
+    });
+  });
+});
 
 describe('useDeleteCollectionMutation', () => {
   beforeEach(() => {
