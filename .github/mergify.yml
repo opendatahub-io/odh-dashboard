@@ -19,7 +19,7 @@ queue_rules:
     max_checks_retries: 0
     merge_method: squash
     batch_size: 1
-    branch_protection_injection_mode: none
+    branch_protection_injection_mode: queue
     queue_conditions:
       - base = main
       - -draft
