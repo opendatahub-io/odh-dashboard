@@ -15,7 +15,8 @@ const AGENT_OPS_DEPLOY = 'agent-ops-deploy';
 const getDeployRouteExtensions = (): RouteExtension[] =>
   extensions.filter(
     (extension): extension is RouteExtension =>
-      extension.type === 'app.route' && extension.flags?.required?.includes(AGENT_OPS_DEPLOY),
+      extension.type === 'app.route' &&
+      Boolean(extension.flags?.required?.includes(AGENT_OPS_DEPLOY)),
   );
 
 describe('agent-ops extensions', () => {
