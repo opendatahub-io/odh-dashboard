@@ -66,6 +66,7 @@ aliases:
   model-registry-catalog-approvers:
     - mturley
     - YuliaKrimerman
+    - ppadti
   model-registry-catalog-reviewers:
     - manaswinidas
     - mturley
