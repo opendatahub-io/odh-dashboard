@@ -15,7 +15,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -312,10 +311,6 @@ func TestReconcileUnsupportedMaaSConsumerPortal_CleanupFailurePreservesURL(t *te
 func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 	s := maasConsumerPortalScheme(t)
 	portalLabels := map[string]string{labels.PlatformPartOf: maasConsumerPortalPartOf}
-	consoleLink := &unstructured.Unstructured{}
-	consoleLink.SetGroupVersionKind(consoleLinkGVK)
-	consoleLink.SetName(maasConsumerPortalConsoleLinkName)
-	consoleLink.SetLabels(portalLabels)
 	dashboard := &v1alpha1.Dashboard{ObjectMeta: metav1.ObjectMeta{
 		Name:              v1alpha1.DashboardInstanceName,
 		Finalizers:        []string{dashboardFinalizer},
@@ -333,7 +328,6 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
 		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
-		consoleLink,
 	}
 	serviceAccountDeleteAttempted := false
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).WithInterceptorFuncs(interceptor.Funcs{
