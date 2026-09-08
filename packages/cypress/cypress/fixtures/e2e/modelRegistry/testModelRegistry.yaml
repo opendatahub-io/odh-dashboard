@@ -21,7 +21,7 @@ modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeS390x: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 servingRuntimeX86: 'vLLM CPU (x86) ServingRuntime for KServe'
-deploymentType: 'Inference service'
+deploymentType: 'Legacy deployment'
 
 # Second model (URI)
 uriModelName: "test-uri-model"
