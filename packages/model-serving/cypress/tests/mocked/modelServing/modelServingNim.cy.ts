@@ -412,8 +412,25 @@ describe('NIM Models Deployments', () => {
     // The PVC must be in the fetched list for the existing-storage select to render its name
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
-      mockK8sResourceList([mockNimModelPVC({ name: 'my-nim-wizard-pvc' })]),
+      mockK8sResourceList([
+        mockNimModelPVC({ name: 'my-nim-wizard-pvc' }),
+        mockNimModelPVC({ name: 'updated-nim-wizard-pvc' }),
+      ]),
     );
+    cy.interceptK8s(
+      'PUT',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-name' },
+      mockNimServingRuntime({
+        image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
+        pvcName: 'updated-nim-wizard-pvc',
+        subPath: 'updated-cache-path',
+      }),
+    ).as('updateServingRuntime');
+    cy.interceptK8s(
+      'PUT',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-name' },
+      mockNimInferenceService(),
+    ).as('updateInferenceService');
     // Auth is enabled by default on the NIM deployment (no enable-auth=false annotation), so the
     // token auth field reads the deployment's service-account token secret ("<deployment-name>-sa")
     // and prefills the existing service account name from the secret's display name.
@@ -473,6 +490,12 @@ describe('NIM Models Deployments', () => {
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
+    modelServingWizardEdit.nim.findExistingPVCInput().click();
+    cy.findByRole('option', { name: 'updated-nim-wizard-pvc' }).click();
+    modelServingWizardEdit.nim
+      .findSubPathInput()
+      .type('{selectall}updated-cache-path')
+      .should('have.value', 'updated-cache-path');
 
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -489,6 +512,18 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findEnvVariableName('0').should('have.value', 'CUSTOM_VAR');
     modelServingWizardEdit.findEnvVariableValue('0').should('have.value', 'custom-value');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findDeployButton().should('be.enabled').click();
+
+    cy.wait('@updateServingRuntime').then((interception) => {
+      expect(interception.request.body.spec.volumes).to.deep.include({
+        persistentVolumeClaim: { claimName: 'updated-nim-wizard-pvc' },
+      });
+      expect(interception.request.body.spec.containers[0].volumeMounts).to.deep.include({
+        mountPath: '/mnt/models/cache',
+        subPath: 'updated-cache-path',
+      });
+    });
+    cy.wait('@updateInferenceService');
   });
 
   it('should NOT manage NIM PVCs in cluster storage tab NIM is disabled', () => {

@@ -5,7 +5,7 @@ import type {
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { KServeDeployment } from './types';
-import { assembleServingRuntime, createServingRuntime } from './deployServer';
+import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
 import {
   assembleInferenceService,
   deployInferenceService,
@@ -26,6 +26,7 @@ export const deployKServeDeployment = async (
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
+  updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
   const inferenceServiceData: CreatingInferenceServiceObject = {
     project: projectName,
@@ -70,11 +71,11 @@ export const deployKServeDeployment = async (
     assembledDeployment = applyFieldData(assembledDeployment);
   }
 
-  // Only newly assembled servers are created; editing leaves the existing runtime alone and
-  // updates the inference service only.
   let servingRuntimeResult = existingDeployment?.server;
   if (!servingRuntimeResult && assembledDeployment.server) {
     servingRuntimeResult = await createServingRuntime(assembledDeployment.server, { dryRun });
+  } else if (updateExistingServingRuntime && assembledDeployment.server) {
+    servingRuntimeResult = await updateServingRuntime(assembledDeployment.server, { dryRun });
   }
 
   const inferenceServiceResult = await deployInferenceService(

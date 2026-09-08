@@ -2,13 +2,14 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/f
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { deployKServeDeployment } from '../deploy';
-import { createServingRuntime } from '../deployServer';
+import { createServingRuntime, updateServingRuntime } from '../deployServer';
 import { deployInferenceService } from '../deployModel';
 import type { KServeDeployment } from '../types';
 
 jest.mock('../deployServer', () => ({
   ...jest.requireActual('../deployServer'),
   createServingRuntime: jest.fn(),
+  updateServingRuntime: jest.fn(),
 }));
 jest.mock('../deployModel', () => ({
   ...jest.requireActual('../deployModel'),
@@ -16,6 +17,7 @@ jest.mock('../deployModel', () => ({
 }));
 
 const mockCreateServingRuntime = jest.mocked(createServingRuntime);
+const mockUpdateServingRuntime = jest.mocked(updateServingRuntime);
 const mockDeployInferenceService = jest.mocked(deployInferenceService);
 
 const WIZARD_DATA = {
@@ -56,8 +58,47 @@ describe('deployKServeDeployment', () => {
     );
 
     expect(mockCreateServingRuntime).not.toHaveBeenCalled();
+    expect(mockUpdateServingRuntime).not.toHaveBeenCalled();
     expect(mockDeployInferenceService).toHaveBeenCalledTimes(1);
     expect(result.server).toBe(existingDeployment.server);
+  });
+
+  it('should update an existing serving runtime when explicitly requested', async () => {
+    const existingServer = mockServingRuntimeK8sResource({ name: 'existing-runtime' });
+    const updatedServer = {
+      ...existingServer,
+      spec: {
+        ...existingServer.spec,
+        containers: existingServer.spec.containers.map((container) => ({
+          ...container,
+          image: 'updated-image',
+        })),
+      },
+    };
+    mockUpdateServingRuntime.mockResolvedValue(updatedServer);
+
+    const result = await deployKServeDeployment(
+      WIZARD_DATA,
+      {},
+      'test-project',
+      {
+        modelServingPlatformId: 'kserve',
+        model: mockInferenceServiceK8sResource({}),
+        server: existingServer,
+      },
+      undefined,
+      existingServer,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      (deployment) => ({ ...deployment, server: updatedServer }),
+      true,
+    );
+
+    expect(mockUpdateServingRuntime).toHaveBeenCalledWith(updatedServer, { dryRun: true });
+    expect(result.server).toBe(updatedServer);
   });
 
   it('should create a serving runtime for a new deployment', async () => {
