@@ -73,9 +73,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
   },
   {
     type: 'app.tab-route/page',
-    flags: {
-      required: [SupportedArea.AGENT_OPS],
-    },
     properties: {
       id: 'agents-tab-page',
       title: 'Agents',
