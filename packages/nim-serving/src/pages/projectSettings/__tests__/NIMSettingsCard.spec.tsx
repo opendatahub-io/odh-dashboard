@@ -218,4 +218,44 @@ describe('NIMSettingsCard', () => {
 
     jest.useRealTimers();
   });
+
+  it('should fire delete tracking only once when overlapping poll callbacks resolve', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
+    const pendingResolves: Array<(value: null) => void> = [];
+    const refresh = jest.fn(
+      () =>
+        new Promise<null>((resolve) => {
+          pendingResolves.push(resolve);
+        }),
+    );
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.READY,
+      refresh,
+    });
+    mockDeleteNIMResources.mockResolvedValue(undefined);
+
+    render(<NIMSettingsCard namespace="test-ns" />);
+
+    await user.click(screen.getByTestId('nim-remove-button'));
+    await user.click(screen.getByTestId('nim-delete-confirm'));
+
+    await jest.advanceTimersByTimeAsync(1000);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(refresh).toHaveBeenCalledTimes(2);
+
+    pendingResolves.forEach((resolve) => resolve(null));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockFireNimAccountRemoved).toHaveBeenCalledTimes(1);
+    expect(mockFireNimAccountRemoved).toHaveBeenCalledWith({
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+
+    jest.useRealTimers();
+  });
 });

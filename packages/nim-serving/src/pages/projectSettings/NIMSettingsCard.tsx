@@ -55,6 +55,17 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const [deleteError, setDeleteError] = React.useState<Error>();
 
   const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
+  const hasTrackedDeleteRef = React.useRef(false);
+  const trackDeleteRemoved = React.useCallback(
+    (properties: Parameters<typeof fireNimAccountRemoved>[0]) => {
+      if (hasTrackedDeleteRef.current) {
+        return;
+      }
+      hasTrackedDeleteRef.current = true;
+      fireNimAccountRemoved(properties);
+    },
+    [],
+  );
   const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
     if (deleteStatusIntervalRef.current !== undefined) {
       clearInterval(deleteStatusIntervalRef.current);
@@ -75,12 +86,13 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const handleRemoveConfirm = React.useCallback(async () => {
     setIsDeleting(true);
     setDeleteError(undefined);
+    hasTrackedDeleteRef.current = false;
     try {
       await deleteNIMResources(namespace);
     } catch (e) {
       const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
       stopPollingDeleteStatus(error);
-      fireNimAccountRemoved({
+      trackDeleteRemoved({
         outcome: TrackingOutcome.submit,
         success: false,
         error: NimFailureCategory.DELETE_FAILED,
@@ -95,14 +107,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         if (!result) {
           stopPollingDeleteStatus();
           setIsDeleteModalOpen(false);
-          fireNimAccountRemoved({
+          trackDeleteRemoved({
             outcome: TrackingOutcome.submit,
             success: true,
           });
         } else if (retries <= 0) {
           const error = new Error('NIM resources were not deleted in time.');
           stopPollingDeleteStatus(error);
-          fireNimAccountRemoved({
+          trackDeleteRemoved({
             outcome: TrackingOutcome.submit,
             success: false,
             error: NimFailureCategory.DELETE_TIMEOUT,
@@ -111,14 +123,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
       } catch (e) {
         const error = e instanceof Error ? e : new Error('Failed to remove NIM.');
         stopPollingDeleteStatus(error);
-        fireNimAccountRemoved({
+        trackDeleteRemoved({
           outcome: TrackingOutcome.submit,
           success: false,
           error: NimFailureCategory.DELETE_FAILED,
         });
       }
     }, 1000);
-  }, [namespace, refresh, stopPollingDeleteStatus]);
+  }, [namespace, refresh, stopPollingDeleteStatus, trackDeleteRemoved]);
 
   const renderFooterContent = () => {
     if (!accessReviewLoaded || (status === NIMAccountStatus.LOADING && !loadError)) {

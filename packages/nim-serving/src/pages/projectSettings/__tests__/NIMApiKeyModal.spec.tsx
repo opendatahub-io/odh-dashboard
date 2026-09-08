@@ -133,6 +133,89 @@ describe('NIMApiKeyModal tracking', () => {
     expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(1);
   });
 
+  it('should not track submit failure when refresh fails after a successful create', async () => {
+    const refresh = jest.fn().mockRejectedValue(new Error('Refresh failed'));
+    render(
+      <NIMApiKeyModal
+        {...defaultProps}
+        refresh={refresh}
+        accountStatus={NIMAccountStatus.NOT_FOUND}
+      />,
+    );
+
+    await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-test-key');
+    await userEvent.click(screen.getByTestId('nim-api-key-submit'));
+
+    await waitFor(() => {
+      expect(mockCreateNIMResources).toHaveBeenCalledWith('test-ns', 'nvapi-test-key');
+      expect(screen.getByText('Refresh failed')).toBeInTheDocument();
+    });
+
+    expect(mockFireNimAccountEnabled).not.toHaveBeenCalled();
+  });
+
+  it('should track a successful retry after validation failure', async () => {
+    const refresh = jest.fn().mockResolvedValue(undefined);
+    const { rerender } = render(
+      <NIMApiKeyModal
+        {...defaultProps}
+        refresh={refresh}
+        accountStatus={NIMAccountStatus.NOT_FOUND}
+      />,
+    );
+
+    await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-bad-key');
+    await userEvent.click(screen.getByTestId('nim-api-key-submit'));
+
+    await waitFor(() => {
+      expect(mockCreateNIMResources).toHaveBeenCalledWith('test-ns', 'nvapi-bad-key');
+    });
+
+    rerender(
+      <NIMApiKeyModal
+        {...defaultProps}
+        refresh={refresh}
+        accountStatus={NIMAccountStatus.PENDING}
+      />,
+    );
+    rerender(
+      <NIMApiKeyModal {...defaultProps} refresh={refresh} accountStatus={NIMAccountStatus.ERROR} />,
+    );
+
+    await waitFor(() => {
+      expect(mockFireNimAccountEnabled).toHaveBeenCalledWith({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: NimFailureCategory.VALIDATION_FAILED,
+        mode: NimAccountEnabledMode.ENABLE,
+      });
+    });
+
+    await userEvent.clear(screen.getByTestId('nim-api-key-input'));
+    await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-good-key');
+    await userEvent.click(screen.getByTestId('nim-api-key-submit'));
+
+    rerender(
+      <NIMApiKeyModal
+        {...defaultProps}
+        refresh={refresh}
+        accountStatus={NIMAccountStatus.PENDING}
+      />,
+    );
+    rerender(
+      <NIMApiKeyModal {...defaultProps} refresh={refresh} accountStatus={NIMAccountStatus.READY} />,
+    );
+
+    await waitFor(() => {
+      expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(2);
+      expect(mockFireNimAccountEnabled).toHaveBeenLastCalledWith({
+        outcome: TrackingOutcome.submit,
+        success: true,
+        mode: NimAccountEnabledMode.REPLACE,
+      });
+    });
+  });
+
   it('should not include the API key in tracking payloads', async () => {
     mockCreateNIMResources.mockRejectedValue(new Error('Forbidden'));
 

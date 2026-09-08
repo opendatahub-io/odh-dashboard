@@ -55,21 +55,25 @@ describe('useNimAccountEnabledTracking', () => {
     });
   });
 
-  it('should reset tracking state when submitted returns to false', () => {
+  it('should reset tracking refs when resetTrackingRefs is called before a retry', () => {
     const renderResult = testHook(useNimAccountEnabledTracking)(
       true,
-      NIMAccountStatus.PENDING,
+      NIMAccountStatus.ERROR,
       NimAccountEnabledMode.ENABLE,
     );
 
-    renderResult.rerender(true, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
     expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(1);
 
-    renderResult.rerender(false, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
+    renderResult.result.current.resetTrackingRefs();
     renderResult.rerender(true, NIMAccountStatus.PENDING, NimAccountEnabledMode.ENABLE);
     renderResult.rerender(true, NIMAccountStatus.READY, NimAccountEnabledMode.ENABLE);
 
     expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(2);
+    expect(mockFireNimAccountEnabled).toHaveBeenLastCalledWith({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: NimAccountEnabledMode.ENABLE,
+    });
   });
 
   it('should track API failures with an allowlisted category', () => {
