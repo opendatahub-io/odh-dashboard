@@ -6,12 +6,21 @@ import type {
   AutoRAGEvaluationMetricResult,
 } from '~/app/types/autoragPattern';
 
+/* eslint-disable camelcase -- evaluation result fields use the API's snake_case names */
 const rawEvaluationResultSchema = z.object({
   question: z.string(),
   answer: z.string(),
   question_id: z.string().optional(), // eslint-disable-line camelcase
   correct_answers: z.array(z.string()), // eslint-disable-line camelcase
-  answer_contexts: z.array(z.object({ text: z.string(), document_id: z.string() })), // eslint-disable-line camelcase
+  answer_contexts: z.array(
+    z
+      .object({
+        text: z.string(),
+        document_key: z.string().optional(),
+        document_id: z.string().optional(),
+      })
+      .refine((context) => context.document_key !== undefined || context.document_id !== undefined),
+  ), // eslint-disable-line camelcase
   metrics: z
     .array(z.object({ name: z.string(), evaluator: z.string(), score: z.number() }))
     .optional(),
@@ -41,10 +50,14 @@ export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEval
     // When absent, comparison matching falls back to array index.
     question_id: raw.question_id, // eslint-disable-line camelcase
     answer: raw.answer,
-    answer_contexts: raw.answer_contexts, // eslint-disable-line camelcase
+    answer_contexts: raw.answer_contexts.map(({ text, document_key, document_id }) => ({
+      text,
+      document_key: document_key ?? document_id!,
+    })), // eslint-disable-line camelcase
     metrics,
   };
 }
+/* eslint-enable camelcase */
 
 /**
  * Lazily fetches evaluation_results.json for a single pattern from S3.

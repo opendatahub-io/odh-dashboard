@@ -5,6 +5,7 @@ const LEGACY_PARAM_RENAMES: Record<string, string> = {
   llama_stack_vector_io_provider_id: 'vector_io_provider_id',
   llama_stack_secret_name: 'ogx_secret_name',
   embeddings_models: 'embedding_models',
+  input_data_key: 'input_data_keys',
 };
 /* eslint-enable camelcase */
 
@@ -28,7 +29,8 @@ export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
       changed = true;
     }
     if (!(newKey in normalized) || isCanonical) {
-      normalized[newKey] = value;
+      normalized[newKey] =
+        newKey === 'input_data_keys' && typeof value === 'string' ? [value] : value;
     }
   }
 

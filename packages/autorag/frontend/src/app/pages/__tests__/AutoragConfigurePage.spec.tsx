@@ -905,7 +905,7 @@ describe('AutoragConfigurePage', () => {
       });
     });
 
-    it('should upload file on selection in upload mode and pass resolved input_data_key to pipeline run', async () => {
+    it('should upload file on selection in upload mode and pass resolved input_data_keys to pipeline run', async () => {
       const user = userEvent.setup();
       mockMutateAsync.mockResolvedValue({ run_id: 'new-run-456' });
       mockS3UploadMutateAsync.mockResolvedValue({ uploaded: true, key: 'resolved-key.pdf' });
@@ -956,7 +956,7 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledWith(
           expect.objectContaining({
-            input_data_key: 'resolved-key.pdf',
+            input_data_keys: ['resolved-key.pdf'],
           }),
         );
       });
@@ -1074,7 +1074,7 @@ describe('AutoragConfigurePage', () => {
       vector_io_provider_id: 'chromadb',
       input_data_secret_name: 'Test AWS Secret',
       input_data_bucket_name: 'test-bucket',
-      input_data_key: 'my-data/input.pdf',
+      input_data_keys: ['my-data/input.pdf'],
       test_data_secret_name: 'Test AWS Secret',
       test_data_bucket_name: 'test-bucket',
       test_data_key: 'eval.json',
@@ -1917,7 +1917,7 @@ describe('AutoragConfigurePage', () => {
         vector_io_provider_id: 'chromadb',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
-        input_data_key: 'my-data/input.pdf',
+        input_data_keys: ['my-data/input.pdf'],
         test_data_secret_name: 'Test AWS Secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'eval.json',

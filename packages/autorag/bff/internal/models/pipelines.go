@@ -56,7 +56,7 @@ type CreateAutoRAGRunRequest struct {
 	TestDataKey                string   `json:"test_data_key"`
 	InputDataSecretName        string   `json:"input_data_secret_name"`
 	InputDataBucketName        string   `json:"input_data_bucket_name"`
-	InputDataKey               string   `json:"input_data_key"`
+	InputDataKeys              []string `json:"input_data_keys"`
 	OGXSecretName              string   `json:"ogx_secret_name"`
 	Preset                     *string  `json:"preset,omitempty"`
 	EmbeddingsModels           []string `json:"embedding_models,omitempty"`

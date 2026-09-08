@@ -43,6 +43,14 @@ describe('normalizePipelineRun', () => {
     });
   });
 
+  it('should normalize a legacy input_data_key to a one-item input_data_keys array', () => {
+    const run = makeRun({ input_data_key: 'docs/input.pdf' });
+    const result = normalizePipelineRun(run);
+
+    expect(result.runtime_config?.parameters).toEqual({ input_data_keys: ['docs/input.pdf'] });
+    expect(result.runtime_config?.parameters).not.toHaveProperty('input_data_key');
+  });
+
   it('should return the same object when no legacy keys are present', () => {
     const run = makeRun({ vector_io_provider_id: 'milvus', ogx_secret_name: 'sec' });
     const result = normalizePipelineRun(run);

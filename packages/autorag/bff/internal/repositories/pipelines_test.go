@@ -102,7 +102,7 @@ func validRequest() models.CreateAutoRAGRunRequest {
 		TestDataKey:         "test.jsonl",
 		InputDataSecretName: "input-secret",
 		InputDataBucketName: "input-bucket",
-		InputDataKey:        "docs/",
+		InputDataKeys:       []string{"docs/"},
 		OGXSecretName:       "ogx-secret",
 	}
 }
@@ -122,7 +122,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		for _, field := range []string{"display_name", "test_data_secret_name", "test_data_bucket_name",
-			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_key", "ogx_secret_name"} {
+			"test_data_key", "input_data_secret_name", "input_data_bucket_name", "input_data_keys", "ogx_secret_name"} {
 			if !strings.Contains(err.Error(), field) {
 				t.Errorf("error should mention %q: %v", field, err)
 			}
@@ -130,6 +130,28 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		var ve *ValidationError
 		if !errors.As(err, &ve) {
 			t.Errorf("expected *ValidationError, got %T", err)
+		}
+	})
+
+	t.Run("input_data_keys validation", func(t *testing.T) {
+		tests := []struct {
+			name string
+			keys []string
+			want string
+		}{
+			{name: "too many", keys: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"}, want: "at most 10"},
+			{name: "empty", keys: []string{""}, want: "input_data_keys[0]"},
+			{name: "whitespace", keys: []string{"  \t"}, want: "input_data_keys[0]"},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := validRequest()
+				req.InputDataKeys = tt.keys
+				err := ValidateCreateAutoRAGRunRequest(req)
+				if err == nil || !strings.Contains(err.Error(), tt.want) {
+					t.Fatalf("error = %v, want it to contain %q", err, tt.want)
+				}
+			})
 		}
 	})
 
@@ -225,8 +247,12 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		if params["test_data_secret_name"] != "test-secret" {
 			t.Errorf("test_data_secret_name = %v", params["test_data_secret_name"])
 		}
-		if params["input_data_key"] != "docs/" {
-			t.Errorf("input_data_key = %v", params["input_data_key"])
+		inputDataKeys, ok := params["input_data_keys"].([]string)
+		if !ok || len(inputDataKeys) != 1 || inputDataKeys[0] != "docs/" {
+			t.Errorf("input_data_keys = %v", params["input_data_keys"])
+		}
+		if _, ok := params["input_data_key"]; ok {
+			t.Error("input_data_key must not be serialized")
 		}
 		if params["ogx_secret_name"] != "ogx-secret" {
 			t.Errorf("ogx_secret_name = %v", params["ogx_secret_name"])

@@ -170,7 +170,7 @@ function AutoragConfigure({
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const initialInputDataKey = initialValues?.input_data_key;
+  const initialInputDataKey = initialValues?.input_data_keys?.[0];
 
   const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
     initialInputDataSecret,
@@ -212,7 +212,7 @@ function AutoragConfigure({
     inputDataBucketName,
     testDataSecretName,
     testDataBucketName,
-    inputDataKey,
+    inputDataKeys,
   ] = useWatch({
     control: form.control,
     name: [
@@ -221,10 +221,11 @@ function AutoragConfigure({
       'input_data_bucket_name',
       'test_data_secret_name',
       'test_data_bucket_name',
-      'input_data_key',
+      'input_data_keys',
     ],
   });
 
+  const inputDataKey = inputDataKeys[0] ?? '';
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
   const {
@@ -334,7 +335,7 @@ function AutoragConfigure({
   useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
@@ -352,7 +353,7 @@ function AutoragConfigure({
   useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
@@ -370,7 +371,7 @@ function AutoragConfigure({
   const clearInputDataUpload = useCallback(() => {
     setIsInputDataFileUploading(false);
     setIsInputDataDropdownOpen(false);
-    setValue('input_data_key', '', { shouldValidate: true });
+    setValue('input_data_keys', [], { shouldValidate: true });
   }, [setValue]);
 
   const uploadInputDataFile = useCallback(
@@ -390,7 +391,7 @@ function AutoragConfigure({
         return;
       }
       const uploadRequestId = ++inputDataUploadSeqRef.current;
-      setValue('input_data_key', '', { shouldValidate: true });
+      setValue('input_data_keys', [], { shouldValidate: true });
       setIsInputDataDropdownOpen(false);
       setIsInputDataFileUploading(true);
       try {
@@ -404,7 +405,7 @@ function AutoragConfigure({
         if (uploadRequestId !== inputDataUploadSeqRef.current) {
           return;
         }
-        setValue('input_data_key', uploadResult.key, { shouldValidate: true });
+        setValue('input_data_keys', [uploadResult.key], { shouldValidate: true });
         fireAutoragKnowledgeSourceConfigured({
           knowledgeSourceType: 'upload',
           countOfDocuments: 1,
@@ -638,7 +639,7 @@ function AutoragConfigure({
                                           isDisabled={isSubmitting}
                                           onClick={() => {
                                             setSelectedInputDataFile(undefined);
-                                            setValue('input_data_key', '', {
+                                            setValue('input_data_keys', [], {
                                               shouldValidate: true,
                                             });
                                           }}
@@ -1054,14 +1055,14 @@ function AutoragConfigure({
                                 <Watch
                                   key="edit-experiment-settings"
                                   control={form.control}
-                                  name="input_data_key"
-                                  render={(inputDataKeyValue) => (
+                                  name="input_data_keys"
+                                  render={(inputDataKeysValue) => (
                                     <Button
                                       variant="secondary"
                                       onClick={openExperimentSettings}
                                       isDisabled={
                                         !inputDataBucketName ||
-                                        !inputDataKeyValue ||
+                                        !inputDataKeysValue.length ||
                                         form.formState.isSubmitting ||
                                         isModelsLoading ||
                                         isModelsError ||
@@ -1220,12 +1221,12 @@ function AutoragConfigure({
             const file = files[0];
             const filePath = file.path.replace(/^\//, '');
             if (fileExplorerMode === 'input_data') {
-              setValue('input_data_key', filePath, { shouldValidate: true });
+              setValue('input_data_keys', [filePath], { shouldValidate: true });
               setSelectedInputDataFile(file);
               inputDataS3SelectionCommittedRef.current = true;
               fireAutoragKnowledgeSourceConfigured({
                 knowledgeSourceType: 's3',
-                // Only files[0] is ever committed to input_data_key, so report 1 committed
+                // Only files[0] is ever committed to input_data_keys, so report 1 committed
                 // document regardless of how many files the picker returned (e.g. a folder).
                 countOfDocuments: 1,
                 outcome: TrackingOutcome.submit,

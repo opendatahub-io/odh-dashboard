@@ -10,7 +10,7 @@ describe('normalizeEvaluationResult', () => {
     correct_answers: ['RAG retrieves and generates.'],
     question_id: 'q0',
     answer: 'RAG is a pattern.',
-    answer_contexts: [{ text: 'Context text', document_id: 'doc0' }],
+    answer_contexts: [{ text: 'Context text', document_key: 'doc0' }],
   };
 
   it('should pass through V2 results with metrics array unchanged', () => {
@@ -91,14 +91,27 @@ describe('normalizeEvaluationResult', () => {
     const raw: RawEvaluationResult = {
       ...baseFields,
       answer_contexts: [
-        { text: 'ctx1', document_id: 'doc1' },
-        { text: 'ctx2', document_id: 'doc2' },
+        { text: 'ctx1', document_key: 'doc1' },
+        { text: 'ctx2', document_key: 'doc2' },
       ],
       metrics: [],
     };
 
     const result = normalizeEvaluationResult(raw);
     expect(result.answer_contexts).toHaveLength(2);
-    expect(result.answer_contexts[0].document_id).toBe('doc1');
+    expect(result.answer_contexts[0].document_key).toBe('doc1');
+  });
+
+  it('should normalize legacy document_id contexts without emitting the old field', () => {
+    const raw: RawEvaluationResult = {
+      ...baseFields,
+      answer_contexts: [{ text: 'legacy context', document_id: 'legacy-doc' }],
+      metrics: [],
+    };
+
+    const result = normalizeEvaluationResult(raw);
+    expect(result.answer_contexts).toEqual([
+      { text: 'legacy context', document_key: 'legacy-doc' },
+    ]);
   });
 });

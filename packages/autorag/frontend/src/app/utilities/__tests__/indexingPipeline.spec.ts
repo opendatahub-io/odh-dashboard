@@ -45,7 +45,7 @@ const patternWithSpec: AutoragPattern = {
         embedding_model_id: 'embedding-model',
         input_data_secret_name: 'data-connection',
         input_data_bucket_name: 'bucket',
-        input_data_key: 'docs/',
+        input_data_keys: ['docs/'],
         ogx_secret_name: 'ogx',
         vector_io_provider_id: 'milvus',
         chunk_size: 512,

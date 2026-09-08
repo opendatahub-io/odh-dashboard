@@ -161,7 +161,7 @@ export type AutoragPattern = {
 
 export type AutoRAGEvaluationAnswerContext = {
   text: string;
-  document_id: string;
+  document_key: string;
 };
 
 export type AutoRAGEvaluationMetricResult = {

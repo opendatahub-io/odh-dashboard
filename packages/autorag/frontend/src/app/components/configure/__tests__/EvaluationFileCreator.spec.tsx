@@ -365,7 +365,7 @@ describe('EvaluationFileCreator', () => {
         {
           question: 'What is ML?',
           correct_answers: ['Machine Learning'], // eslint-disable-line camelcase
-          correct_answer_document_ids: ['data.json'], // eslint-disable-line camelcase
+          correct_answer_document_keys: ['data.json'], // eslint-disable-line camelcase
         },
       ]);
 

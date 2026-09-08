@@ -1257,7 +1257,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1267,7 +1267,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'input.pdf',
+          input_data_keys: ['input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1279,7 +1279,7 @@ describe('AutoragConfigure', () => {
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
     });
 
-    it('should show the selected input data file when input_data_key is provided', () => {
+    it('should show the selected input data file when input_data_keys is provided', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1291,7 +1291,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1301,7 +1301,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'my-data/input.pdf',
+          input_data_keys: ['my-data/input.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1328,7 +1328,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1338,7 +1338,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1364,7 +1364,7 @@ describe('AutoragConfigure', () => {
           },
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1374,7 +1374,7 @@ describe('AutoragConfigure', () => {
         {
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1427,7 +1427,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1438,7 +1438,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1490,7 +1490,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1502,7 +1502,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1545,7 +1545,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1557,7 +1557,7 @@ describe('AutoragConfigure', () => {
           ogx_secret_name: 'Test OGX Secret',
           input_data_secret_name: 'Test Secret 1',
           input_data_bucket_name: 'test-bucket-1',
-          input_data_key: 'data.pdf',
+          input_data_keys: ['data.pdf'],
           test_data_secret_name: 'Test Secret 1',
           test_data_bucket_name: 'test-bucket-1',
           test_data_key: 'eval.json',
@@ -1665,7 +1665,7 @@ describe('AutoragConfigure', () => {
       // FileExplorer should now be visible
       expect(screen.getByTestId('file-explorer-modal')).toBeInTheDocument();
 
-      // Select a file in the FileExplorer (this sets input_data_bucket_name and input_data_key)
+      // Select a file in the FileExplorer (this sets input_data_bucket_name and input_data_keys)
       const fileSelectButton = screen.getByTestId('file-explorer-select-file');
       fireEvent.click(fileSelectButton);
 
