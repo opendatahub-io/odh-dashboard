@@ -282,31 +282,61 @@ func TestIntegration_Chaos_ClientApplyFault_DegradesAndRecovers(t *testing.T) {
 	assert.Equal(t, common.PhaseReady, dashboard.Status.Phase)
 }
 
-// TestIntegration_Chaos_IntermittentClientFaults_EventuallyConverges injects
-// intermittent (probabilistic) faults across read and apply operations to model
-// a flaky API server during an upgrade. Every reconcile must either succeed or
-// fail with a ChaosError — never a non-chaos error, never a panic — and the
-// controller must converge to a healthy state once the faults clear.
+// TestIntegration_Chaos_IntermittentClientFaults_EventuallyConverges models a
+// flaky API server during an upgrade. It first drives two deterministic fault
+// phases (read, then apply) so each injection path is provably exercised and the
+// test cannot pass vacuously if injection regresses, then applies intermittent
+// mixed faults to confirm the controller never panics and only ever surfaces
+// ChaosErrors, and finally verifies convergence once the faults clear.
 // (RHOAIENG-85609)
 func TestIntegration_Chaos_IntermittentClientFaults_EventuallyConverges(t *testing.T) {
 	faults := &sdk.FaultConfig{}
 	r := setupChaosDashboard(t, faults, "modelRegistry")
 
+	// observed records which fault paths actually fired, so the coverage below
+	// cannot pass without genuine injection.
+	observed := map[sdk.Operation]bool{}
+
+	// Phase 1 — deterministic read fault: the outer Get fails before any deploy.
+	faults.SetFault(sdk.OpGet, sdk.FaultSpec{ErrorRate: 1.0, Error: "chaos: get unavailable"})
+	faults.Activate()
+	_, err := r.Reconcile(context.Background(), dashboardRequest())
+	require.Error(t, err, "an active OpGet fault should surface an error")
+	var getErr *sdk.ChaosError
+	require.Truef(t, errors.As(err, &getErr), "expected a ChaosError, got: %v", err)
+	assert.Equal(t, sdk.OpGet, getErr.Operation)
+	observed[getErr.Operation] = true
+	faults.RemoveFault(sdk.OpGet)
+
+	// Phase 2 — deterministic apply fault: reads are healthy, so the SSA deploy
+	// fails on apply.
+	faults.SetFault(sdk.OpApply, sdk.FaultSpec{ErrorRate: 1.0, Error: "chaos: apply unavailable"})
+	_, err = r.Reconcile(context.Background(), dashboardRequest())
+	require.Error(t, err, "an active OpApply fault should surface an error")
+	var applyErr *sdk.ChaosError
+	require.Truef(t, errors.As(err, &applyErr), "expected a ChaosError, got: %v", err)
+	assert.Equal(t, sdk.OpApply, applyErr.Operation)
+	observed[applyErr.Operation] = true
+	faults.RemoveFault(sdk.OpApply)
+
+	// Phase 3 — intermittent mixed faults: hammer the reconciler and confirm any
+	// error is an injected ChaosError (the controller must not turn chaos into a
+	// different failure mode) and that it never panics.
 	faults.SetFault(sdk.OpGet, sdk.FaultSpec{ErrorRate: 0.5, Error: "chaos: intermittent get timeout"})
 	faults.SetFault(sdk.OpApply, sdk.FaultSpec{ErrorRate: 0.5, Error: "chaos: intermittent apply conflict"})
-	faults.Activate()
-
-	// Hammer the reconciler under intermittent faults. Any error must be an
-	// injected ChaosError (the controller must not turn chaos into a different
-	// failure mode), and it must never panic.
 	for i := range 12 {
 		_, err := r.Reconcile(context.Background(), dashboardRequest())
 		if err != nil {
 			var chaosErr *sdk.ChaosError
 			require.Truef(t, errors.As(err, &chaosErr),
 				"iteration %d: every error under chaos must be a ChaosError, got: %v", i, err)
+			observed[chaosErr.Operation] = true
 		}
 	}
+
+	// Both fault paths were genuinely exercised (guaranteed by phases 1 and 2).
+	assert.True(t, observed[sdk.OpGet], "the OpGet fault path should have been exercised")
+	assert.True(t, observed[sdk.OpApply], "the OpApply fault path should have been exercised")
 
 	// Clear faults and drive to convergence.
 	faults.Deactivate()
