@@ -6,6 +6,10 @@
   gap: var(--pf-t--global--spacer--md);
 }
 
+.evalhub-evaluate-tab .evalhub-benchmark-suite-gallery {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .evalhub-evaluate-tab__summary {
   color: var(--pf-t--global--text--color--subtle);
   margin-block-start: var(--pf-t--global--spacer--md);
@@ -19,6 +23,7 @@
   align-items: flex-start;
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 .evalhub-create-suite-card__icon {
@@ -41,8 +46,8 @@
   margin: 0;
 }
 
-.evalhub-create-suite-card__description + .pf-v6-c-button {
-  margin-block-start: var(--pf-t--global--spacer--md);
+.evalhub-create-suite-card__button {
+  margin-block-start: auto;
 }
 
 .evalhub-runs-tab__description {

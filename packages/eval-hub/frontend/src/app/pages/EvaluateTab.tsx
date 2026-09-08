@@ -10,11 +10,10 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { Link, useNavigate } from 'react-router-dom';
-import type { Collection } from '~/app/types';
+import { Link } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery } from '~/app/hooks/useCollectionsQuery';
-import { evaluationCollectionsRoute, evaluationStartRoute } from '~/app/routes';
+import { evaluationCollectionsRoute } from '~/app/routes';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 
@@ -27,8 +26,12 @@ type EvaluateTabProps = {
   namespace: string;
 };
 
+function handleRunCollection(): null {
+  // TODO: Redirect to the Start evaluation run form.
+  return null;
+}
+
 const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
-  const navigate = useNavigate();
   const { data, isLoading, error } = useCollectionsQuery(
     namespace,
     'tenant',
@@ -41,19 +44,6 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
   const totalCount = hasApiCollections
     ? (data?.total_count ?? collections.length)
     : collections.length;
-
-  const handleRunCollection = React.useCallback(
-    (collection: Collection) => {
-      const params = new URLSearchParams({
-        type: 'collection',
-        collectionId: collection.resource.id,
-      });
-      navigate(`${evaluationStartRoute(namespace)}?${params.toString()}`, {
-        state: { collection },
-      });
-    },
-    [namespace, navigate],
-  );
 
   const contextualActions = (
     <DropdownItem value="delete" data-testid="benchmark-suite-delete-action">
@@ -72,11 +62,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
         </Title>
       </StackItem>
       <StackItem>
-        <Gallery hasGutter minWidths={{ default: '300px' }} maxWidths={{ default: '400px' }}>
+        <Gallery hasGutter className="evalhub-benchmark-suite-gallery">
           <GalleryItem>
             <CreateBenchmarkSuiteCard
               onCreateSuite={() => {
-                // TODO: Redirect to the Create suite form.
+                // TODO: Redirect to the Create collections form.
               }}
             />
           </GalleryItem>
@@ -86,7 +76,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
                 collection={collection}
                 primaryAction={{
                   label: 'Run benchmark suite',
-                  onClick: () => handleRunCollection(collection),
+                  onClick: handleRunCollection,
                 }}
                 contextualActions={contextualActions}
               />

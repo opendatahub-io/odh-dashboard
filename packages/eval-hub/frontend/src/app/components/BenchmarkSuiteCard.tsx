@@ -66,7 +66,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           <FlexItem className="evalhub-benchmark-suite-card__domains">
             <Flex spaceItems={{ default: 'spaceItemsSm' }}>
               {domains.map((domain) => (
-                <Label key={domain} color={getCategoryColor(domain)} isCompact>
+                <Label key={domain} color={getCategoryColor(domain)}>
                   {formatCategory(domain)}
                 </Label>
               ))}
@@ -110,11 +110,9 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           </Content>
         )}
         {metrics.length > 0 && (
-          <LabelGroup isCompact className="evalhub-benchmark-suite-card__metrics">
+          <LabelGroup className="evalhub-benchmark-suite-card__metrics" numLabels={metrics.length}>
             {metrics.map((metric) => (
-              <Label key={metric} isCompact variant="outline">
-                {getMetricDisplayName(metric)}
-              </Label>
+              <Label key={metric}>{getMetricDisplayName(metric)}</Label>
             ))}
           </LabelGroup>
         )}

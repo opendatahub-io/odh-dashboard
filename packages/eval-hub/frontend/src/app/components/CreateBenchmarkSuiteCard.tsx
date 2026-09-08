@@ -26,7 +26,12 @@ const CreateBenchmarkSuiteCard: React.FC<CreateBenchmarkSuiteCardProps> = ({
         Build a reusable evaluation suite by selecting benchmarks, setting thresholds, and
         configuring pass criteria.
       </Content>
-      <Button variant="secondary" onClick={onCreateSuite} data-testid="create-suite-button">
+      <Button
+        className="evalhub-create-suite-card__button"
+        variant="secondary"
+        onClick={onCreateSuite}
+        data-testid="create-suite-button"
+      >
         Create suite
       </Button>
     </CardBody>
