@@ -378,6 +378,18 @@ describe('Configure Schema', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it.each(['', '   ', '\t\n'])('should reject blank input data keys: %j', (key) => {
+      const result = schema.base.shape.input_data_keys.safeParse([key]);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should preserve whitespace inside a non-blank input data key', () => {
+      const key = 'input/my document.pdf';
+
+      expect(schema.base.shape.input_data_keys.parse([key])).toEqual([key]);
+    });
   });
 
   describe('Transformers', () => {

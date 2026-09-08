@@ -65,7 +65,11 @@ function createConfigureSchema() {
 
       input_data_secret_name: z.string().min(1).default(''),
       input_data_bucket_name: z.string().min(1).default(''),
-      input_data_keys: z.array(z.string()).min(1).max(10).default([]),
+      input_data_keys: z
+        .array(z.string().refine((value) => value.trim().length > 0))
+        .min(1)
+        .max(10)
+        .default([]),
 
       test_data_secret_name: z.string().min(1).default(''),
       test_data_bucket_name: z.string().min(1).default(''),
