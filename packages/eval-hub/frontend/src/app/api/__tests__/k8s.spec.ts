@@ -499,6 +499,30 @@ describe('getCollections', () => {
     );
   });
 
+  it('should include collection classification filters', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', {
+      namespace: 'my-ns',
+      domains: ['agent_tools', 'tool_use'],
+      industries: ['healthcare'],
+      aiEntities: ['agent'],
+    })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      {
+        namespace: 'my-ns',
+        domains: 'agent_tools,tool_use',
+        industries: 'healthcare',
+        ai_entities: 'agent',
+      },
+      {},
+    );
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);

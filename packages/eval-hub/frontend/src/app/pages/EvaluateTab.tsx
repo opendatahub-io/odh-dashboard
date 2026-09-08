@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Stack, StackItem, Title } from '@patternfly/react-core';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
+import CuratedSuiteCategories from '~/app/components/CuratedSuiteCategories';
 
 // Show five suites so the create-suite card occupies the sixth slot in the preview gallery.
 const MAX_VISIBLE_BENCHMARK_SUITES = 5;
@@ -30,6 +31,9 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => (
         showSummary
         onCreateSuite={handleCreateSuite}
       />
+    </StackItem>
+    <StackItem className="evalhub-evaluate-tab__curated">
+      <CuratedSuiteCategories namespace={namespace} />
     </StackItem>
   </Stack>
 );

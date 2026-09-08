@@ -8,6 +8,7 @@ import {
 import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s';
 import type {
   CollectionPatchOperation,
+  CollectionFilterParams,
   CollectionScope,
   CollectionSortBy,
   CollectionsListResponse,
@@ -23,7 +24,17 @@ export const collectionsQueryKey = (
   scope?: CollectionScope,
   limit = COLLECTION_FETCH_LIMIT,
   sortBy?: CollectionSortBy,
-) => [...collectionsQueryKeyPrefix(namespace), scope ?? 'all', limit, sortBy ?? 'default'] as const;
+  filters?: CollectionFilterParams,
+) =>
+  [
+    ...collectionsQueryKeyPrefix(namespace),
+    scope ?? 'all',
+    limit,
+    sortBy ?? 'default',
+    filters?.domains ?? [],
+    filters?.industries ?? [],
+    filters?.aiEntities ?? [],
+  ] as const;
 
 /**
  * Reads collections for the current tenant. The namespace identifies the
@@ -36,11 +47,12 @@ export const useCollectionsQuery = (
   scope?: CollectionScope,
   limit = COLLECTION_FETCH_LIMIT,
   sortBy: CollectionSortBy | undefined = scope === 'curated' ? 'curation_order' : undefined,
+  filters?: CollectionFilterParams,
 ): UseQueryResult<CollectionsListResponse, Error> =>
   useQuery<CollectionsListResponse, Error>({
-    queryKey: collectionsQueryKey(namespace, scope, limit, sortBy),
+    queryKey: collectionsQueryKey(namespace, scope, limit, sortBy, filters),
     queryFn: ({ signal }) =>
-      getCollections('', { namespace, limit, scope, sortBy })({
+      getCollections('', { namespace, limit, scope, sortBy, ...filters })({
         signal,
       }),
     enabled: Boolean(namespace),

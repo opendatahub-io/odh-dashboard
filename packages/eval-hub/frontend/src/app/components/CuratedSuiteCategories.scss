@@ -1,0 +1,77 @@
+.evalhub-curated-suite-categories {
+  padding: var(--pf-t--global--spacer--lg);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.evalhub-curated-suite-categories__title {
+  margin-block-end: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-curated-suite-categories__description {
+  margin-block-end: var(--pf-t--global--spacer--lg);
+}
+
+.evalhub-curated-suite-categories__link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.evalhub-curated-suite-categories__link:focus-visible {
+  outline: var(--pf-t--global--border--width--strong) solid
+    var(--pf-t--global--color--brand--default);
+  outline-offset: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-curated-suite-categories__card {
+  --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+  transition: box-shadow 150ms ease-in-out;
+}
+
+.evalhub-curated-suite-categories__link:hover
+  .evalhub-curated-suite-categories__card {
+  box-shadow: var(--pf-t--global--box-shadow--md);
+}
+
+.evalhub-curated-suite-categories__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-block-end: var(--pf-t--global--spacer--md);
+  border-radius: 50%;
+  color: var(--pf-t--global--color--brand--default);
+}
+
+.evalhub-curated-suite-categories__icon--blue {
+  background-color: var(--pf-t--color--blue--10);
+}
+
+.evalhub-curated-suite-categories__icon--purple {
+  background-color: var(--pf-t--color--purple--10);
+}
+
+.evalhub-curated-suite-categories__icon--red {
+  background-color: var(--pf-t--color--red--10);
+}
+
+.evalhub-curated-suite-categories__icon--teal {
+  background-color: var(--pf-t--color--teal--10);
+}
+
+.evalhub-curated-suite-categories__icon--yellow {
+  background-color: var(--pf-t--color--yellow--10);
+}
+
+.evalhub-curated-suite-categories__card-title {
+  margin-block-end: var(--pf-t--global--spacer--sm);
+  color: var(--pf-t--global--color--brand--default);
+}
+
+.evalhub-curated-suite-categories__card-description {
+  margin: 0;
+}

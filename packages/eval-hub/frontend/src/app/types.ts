@@ -329,7 +329,13 @@ export type CollectionScope = 'system' | 'curated' | 'tenant';
 
 export type CollectionSortBy = 'curation_order';
 
-export type ListCollectionsParams = {
+export type CollectionFilterParams = {
+  domains?: string[];
+  industries?: string[];
+  aiEntities?: string[];
+};
+
+export type ListCollectionsParams = CollectionFilterParams & {
   namespace?: string;
   limit?: number;
   offset?: number;

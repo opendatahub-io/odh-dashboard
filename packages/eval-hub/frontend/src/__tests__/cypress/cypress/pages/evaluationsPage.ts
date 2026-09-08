@@ -91,6 +91,14 @@ class EvaluationsPage {
     return cy.findByTestId('benchmark-suites-summary');
   }
 
+  findCuratedSuiteCategories() {
+    return cy.findByTestId('curated-suite-categories');
+  }
+
+  findCuratedSuiteCategoryCard(categoryId: string) {
+    return cy.findByTestId(`curated-suite-category-card-${categoryId}`);
+  }
+
   findEmptyState() {
     return cy.findByTestId('eval-hub-empty-state');
   }

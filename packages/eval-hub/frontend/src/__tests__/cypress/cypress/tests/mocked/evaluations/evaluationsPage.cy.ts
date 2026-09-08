@@ -112,6 +112,19 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuitesSummary().should('contain.text', '5 of 6 benchmark suites');
   });
 
+  it('should render curated suite category cards and link to filtered collections', () => {
+    initIntercepts({ collections: mockBenchmarkSuiteCollections() });
+
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findCuratedSuiteCategories().should('exist');
+    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('contain.text', 'Agents');
+    evaluationsPage.findCuratedSuiteCategoryCard('models').click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections`);
+    cy.url().should('include', 'scope=curated');
+    cy.url().should('include', 'ai_entities=model');
+  });
+
   it('should show suite contextual actions and the delete confirmation modal', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
@@ -125,7 +138,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('be.visible');
     evaluationsPage
       .findBenchmarkSuiteDeleteModal()
-      .should('contain.text', 'Are you sure you want to delete Model suite 2?');
+      .should('contain.text', 'The Model suite 2 benchmark suite will be permanently deleted.');
     evaluationsPage.findBenchmarkSuiteDeleteCancel().click();
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('not.exist');
   });

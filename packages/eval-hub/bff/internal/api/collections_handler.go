@@ -131,12 +131,15 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 	query := r.URL.Query()
 
 	params := evalhub.ListCollectionsParams{
-		Namespace: query.Get("namespace"),
-		Name:      query.Get("name"),
-		Category:  query.Get("category"),
-		Tags:      query.Get("tags"),
-		Scope:     query.Get("scope"),
-		SortBy:    query.Get("sort_by"),
+		Namespace:  query.Get("namespace"),
+		Name:       query.Get("name"),
+		Category:   query.Get("category"),
+		Tags:       query.Get("tags"),
+		Scope:      query.Get("scope"),
+		SortBy:     query.Get("sort_by"),
+		Domains:    query.Get("domains"),
+		Industries: query.Get("industries"),
+		AIEntities: query.Get("ai_entities"),
 	}
 
 	if limitStr := query.Get("limit"); limitStr != "" {

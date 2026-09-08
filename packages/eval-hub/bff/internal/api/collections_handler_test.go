@@ -34,7 +34,7 @@ func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
 
 	result, response, err := setupApiTestWithEvalHub[CollectionsEnvelope](
 		http.MethodGet,
-		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&scope=curated&sort_by=curation_order&limit=4&offset=2",
+		ApiPathPrefix+"/evaluations/collections?namespace=test-ns&scope=curated&sort_by=curation_order&domains=agent_tools&industries=healthcare&ai_entities=agent&limit=4&offset=2",
 		nil, nil, identity, mockClient,
 	)
 
@@ -44,6 +44,9 @@ func TestCollectionsHandlerForwardsScopeAndSort(t *testing.T) {
 	assert.Equal(t, "test-ns", mockClient.LastListCollectionsParams.Namespace)
 	assert.Equal(t, "curated", mockClient.LastListCollectionsParams.Scope)
 	assert.Equal(t, "curation_order", mockClient.LastListCollectionsParams.SortBy)
+	assert.Equal(t, "agent_tools", mockClient.LastListCollectionsParams.Domains)
+	assert.Equal(t, "healthcare", mockClient.LastListCollectionsParams.Industries)
+	assert.Equal(t, "agent", mockClient.LastListCollectionsParams.AIEntities)
 	assert.Equal(t, 4, mockClient.LastListCollectionsParams.Limit)
 	assert.Equal(t, 2, mockClient.LastListCollectionsParams.Offset)
 	assert.NotNil(t, result.Data.Items)

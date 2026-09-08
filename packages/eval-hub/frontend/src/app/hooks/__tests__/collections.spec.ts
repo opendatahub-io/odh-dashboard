@@ -69,6 +69,34 @@ describe('useCollectionsQuery', () => {
       sortBy: 'curation_order',
     });
   });
+
+  it('passes curated classification filters to the collection API', async () => {
+    const getRequest = jest.fn().mockResolvedValue({ items: [] });
+    mockGetCollections.mockReturnValue(getRequest);
+    const { wrapper } = createQueryWrapper();
+
+    const { result } = renderHook(
+      () =>
+        useCollectionsQuery('test-ns', 'curated', 200, undefined, {
+          domains: ['agent_tools'],
+          industries: ['healthcare'],
+          aiEntities: ['agent'],
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetCollections).toHaveBeenCalledWith('', {
+      namespace: 'test-ns',
+      limit: 200,
+      scope: 'curated',
+      sortBy: 'curation_order',
+      domains: ['agent_tools'],
+      industries: ['healthcare'],
+      aiEntities: ['agent'],
+    });
+  });
 });
 
 describe('useDeleteCollectionMutation', () => {

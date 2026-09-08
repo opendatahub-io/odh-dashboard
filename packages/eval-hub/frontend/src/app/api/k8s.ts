@@ -354,6 +354,16 @@ export const getCollections =
       // eslint-disable-next-line camelcase
       queryParams.sort_by = params.sortBy;
     }
+    if (params.domains && params.domains.length > 0) {
+      queryParams.domains = params.domains.join(',');
+    }
+    if (params.industries && params.industries.length > 0) {
+      queryParams.industries = params.industries.join(',');
+    }
+    if (params.aiEntities && params.aiEntities.length > 0) {
+      // eslint-disable-next-line camelcase
+      queryParams.ai_entities = params.aiEntities.join(',');
+    }
     return handleRestFailures(
       restGET(
         hostPath,

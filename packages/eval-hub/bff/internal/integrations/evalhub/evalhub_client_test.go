@@ -191,6 +191,9 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
 		assert.Equal(t, "curated", r.URL.Query().Get("scope"))
 		assert.Equal(t, "curation_order", r.URL.Query().Get("sort_by"))
+		assert.Equal(t, "agent_tools,tool_use", r.URL.Query().Get("domains"))
+		assert.Equal(t, "healthcare", r.URL.Query().Get("industries"))
+		assert.Equal(t, "agent", r.URL.Query().Get("ai_entities"))
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -200,9 +203,12 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
 	result, err := client.ListCollections(context.Background(), ListCollectionsParams{
-		Namespace: "test-namespace",
-		Scope:     "curated",
-		SortBy:    "curation_order",
+		Namespace:  "test-namespace",
+		Scope:      "curated",
+		SortBy:     "curation_order",
+		Domains:    "agent_tools,tool_use",
+		Industries: "healthcare",
+		AIEntities: "agent",
 	})
 
 	require.NoError(t, err)

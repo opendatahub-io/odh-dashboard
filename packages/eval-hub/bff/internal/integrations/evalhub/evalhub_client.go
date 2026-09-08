@@ -25,14 +25,17 @@ type ListEvaluationJobsParams struct {
 
 // ListCollectionsParams holds optional query parameters for the list collections endpoint.
 type ListCollectionsParams struct {
-	Namespace string
-	Limit     int
-	Offset    int
-	Name      string
-	Category  string
-	Tags      string
-	Scope     string
-	SortBy    string
+	Namespace  string
+	Limit      int
+	Offset     int
+	Name       string
+	Category   string
+	Tags       string
+	Scope      string
+	SortBy     string
+	Domains    string
+	Industries string
+	AIEntities string
 }
 
 // CollectionPatchOperation is one JSON Patch operation accepted by EvalHub's
@@ -594,6 +597,15 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	}
 	if params.SortBy != "" {
 		query.Set("sort_by", params.SortBy)
+	}
+	if params.Domains != "" {
+		query.Set("domains", params.Domains)
+	}
+	if params.Industries != "" {
+		query.Set("industries", params.Industries)
+	}
+	if params.AIEntities != "" {
+		query.Set("ai_entities", params.AIEntities)
 	}
 
 	path := "/evaluations/collections"
