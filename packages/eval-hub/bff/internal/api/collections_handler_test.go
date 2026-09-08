@@ -75,3 +75,40 @@ func TestGetCollectionHandlerNotFound(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, response.StatusCode)
 }
+
+func TestDeleteCollectionHandler(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+
+	body, response, err := setupApiTestWithEvalHubRaw(
+		http.MethodDelete,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Empty(t, body)
+	assert.Equal(t, http.StatusNoContent, response.StatusCode)
+
+	_, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodGet,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		nil, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, getResponse.StatusCode)
+}
+
+func TestDeleteCollectionHandlerServerError(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+
+	_, response, err := setupApiTestWithEvalHubRaw(
+		http.MethodDelete,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		nil, identity, &erroringEHClient{},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
+}

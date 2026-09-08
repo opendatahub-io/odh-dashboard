@@ -14,6 +14,30 @@ import (
 type CollectionsEnvelope Envelope[evalhub.CollectionsResponse, None]
 type CollectionEnvelope Envelope[evalhub.Collection, None]
 
+func (app *App) DeleteCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	id := strings.TrimPrefix(ps.ByName("id"), "/")
+	if id == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if err := client.DeleteCollection(ctx, id, namespace); err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to delete collection")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

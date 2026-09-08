@@ -55,5 +55,15 @@ describe('EvalHub API Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should delete a collection', async () => {
+      const result = await apiClient.delete(
+        '/eval-hub/api/v1/evaluations/collections/collection-001?namespace=default',
+      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.response.status).toBe(204);
+      }
+    });
   });
 });

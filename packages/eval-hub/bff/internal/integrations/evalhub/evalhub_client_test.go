@@ -192,6 +192,31 @@ func TestEvalHubClient_ListCollections(t *testing.T) {
 	assert.Equal(t, "Safety Suite", result.Items[0].Name)
 }
 
+func TestEvalHubClient_DeleteCollection(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/collection-001", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	err := client.DeleteCollection(context.Background(), "collection-001", "my-ns")
+
+	require.NoError(t, err)
+}
+
+func TestEvalHubClient_DeleteCollection_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	err := client.DeleteCollection(context.Background(), "collection-001", "")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
 func TestEvalHubClient_ListCollections_EmptyItems(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useCollectionsQuery } from '~/app/hooks/useCollectionsQuery';
+import { useCollectionsQuery } from '~/app/hooks/collections';
 import { CollectionsListResponse } from '~/app/types';
 
 const INITIAL_RESPONSE: CollectionsListResponse = { items: [] };

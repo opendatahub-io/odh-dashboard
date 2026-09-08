@@ -11,6 +11,7 @@ import (
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
 	collectionOverrides map[string]*evalhub.Collection
+	deletedCollections  map[string]bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -35,6 +36,9 @@ func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.Li
 	// Apply filters
 	filtered := make([]evalhub.Collection, 0, len(all))
 	for _, c := range all {
+		if m.deletedCollections[c.Resource.ID] {
+			continue
+		}
 		if params.Name != "" && !containsCI(c.Name, params.Name) {
 			continue
 		}
@@ -355,6 +359,9 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	if m.deletedCollections[id] {
+		return nil, nil
+	}
 	if c, ok := m.collectionOverrides[id]; ok {
 		return c, nil
 	}
@@ -365,6 +372,15 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 		}
 	}
 	return nil, nil
+}
+
+func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ string) error {
+	if m.deletedCollections == nil {
+		m.deletedCollections = make(map[string]bool)
+	}
+	m.deletedCollections[id] = true
+	delete(m.collectionOverrides, id)
+	return nil
 }
 
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {

@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
-import { useCollectionsQuery } from '~/app/hooks/useCollectionsQuery';
+import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { evaluationCollectionsRoute } from '~/app/routes';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
@@ -40,6 +40,12 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
     'tenant',
     MAX_VISIBLE_BENCHMARK_SUITES,
   );
+  const {
+    error: deleteError,
+    isPending: isDeleting,
+    mutateAsync: deleteCollection,
+    reset: resetDeleteMutation,
+  } = useDeleteCollectionMutation(namespace);
   const apiCollections = data?.items ?? [];
   const hasApiCollections = apiCollections.length > 0;
   const collections = hasApiCollections ? apiCollections : MOCK_COLLECTIONS;
@@ -48,28 +54,44 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
     ? (data?.total_count ?? collections.length)
     : collections.length;
 
-  const handleDeleteSelect = React.useCallback((collection: Collection) => {
-    setCollectionToDelete(collection);
-  }, []);
+  const handleDeleteSelect = React.useCallback(
+    (collection: Collection) => {
+      resetDeleteMutation();
+      setCollectionToDelete(collection);
+    },
+    [resetDeleteMutation],
+  );
 
-  const handleDeleteConfirm = React.useCallback(() => {
-    // TODO: Call the BFF delete collection endpoint and refresh the gallery.
+  const handleDeleteConfirm = React.useCallback(async () => {
+    if (!collectionToDelete) {
+      return;
+    }
+    try {
+      await deleteCollection(collectionToDelete.resource.id);
+      setCollectionToDelete(null);
+    } catch {
+      // Keep the modal open so the mutation error can be shown to the user.
+    }
+  }, [collectionToDelete, deleteCollection]);
+
+  const handleDeleteClose = React.useCallback(() => {
+    resetDeleteMutation();
     setCollectionToDelete(null);
-  }, []);
+  }, [resetDeleteMutation]);
 
   const contextualActions: BenchmarkSuiteCardAction[] = [
     {
       id: 'edit',
       label: 'Edit',
       onSelect: () => {
-        // TODO: Redirect to the edit collections form.
+        // TODO: Redirect to the edit collection form once it is available.
       },
     },
     {
       id: 'duplicate',
       label: 'Duplicate',
       onSelect: () => {
-        // TODO: Call the BFF clone collection endpoint and refresh the gallery.
+        // TODO: Load the full collection by ID using PR #9368 before calling the clone endpoint.
       },
     },
     {
@@ -148,8 +170,10 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace }) => {
               deleted.
             </>
           }
-          onClose={() => setCollectionToDelete(null)}
+          onClose={handleDeleteClose}
           onConfirm={handleDeleteConfirm}
+          actionError={deleteError?.message}
+          isSubmitting={isDeleting}
           ariaLabel="Delete benchmark suite?"
           dataTestId="benchmark-suite-delete-modal"
           confirmTestId="benchmark-suite-delete-confirm"

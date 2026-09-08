@@ -273,6 +273,23 @@ export const getCollection =
     });
   };
 
+export const deleteCollection =
+  (hostPath: string, namespace: string, collectionId: string) =>
+  (opts: APIOptions): Promise<void> => {
+    if (!collectionId) {
+      return Promise.reject(new Error('collectionId must not be empty'));
+    }
+    return handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
+        {},
+        { namespace },
+        opts,
+      ),
+    ).then(() => undefined);
+  };
+
 export const getCollections =
   (hostPath: string, params: ListCollectionsParams) =>
   (opts: APIOptions): Promise<CollectionsListResponse> => {

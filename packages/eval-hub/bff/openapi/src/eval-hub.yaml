@@ -181,7 +181,7 @@ paths:
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
 
   /eval-hub/api/v1/evaluations/collections/{id}:
-    summary: Get a single benchmark collection
+    summary: Get or delete a single benchmark collection
     description: >-
       Retrieves a single benchmark collection by its resource ID from the
       EvalHub control plane. Returns the collection with its benchmarks,
@@ -208,6 +208,28 @@ paths:
       operationId: getCollection
       summary: Get Collection by ID
       description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+    delete:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '204':
+          description: Collection deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteCollection
+      summary: Delete Collection
+      description: Permanently deletes a benchmark collection from the EvalHub server.
 
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers

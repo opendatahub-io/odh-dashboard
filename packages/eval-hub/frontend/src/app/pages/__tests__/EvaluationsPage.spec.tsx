@@ -68,11 +68,17 @@ jest.mock('~/app/context/CollectionsContext', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/useCollectionsQuery', () => ({
+jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: jest.fn().mockReturnValue({
     data: { items: [] },
     isLoading: false,
     error: null,
+  }),
+  useDeleteCollectionMutation: jest.fn().mockReturnValue({
+    error: null,
+    isPending: false,
+    mutateAsync: jest.fn(),
+    reset: jest.fn(),
   }),
 }));
 
