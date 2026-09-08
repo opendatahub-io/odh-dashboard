@@ -8,6 +8,7 @@ import {
   CardTitle,
   Content,
   Dropdown,
+  DropdownItem,
   DropdownList,
   Flex,
   FlexItem,
@@ -17,9 +18,16 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import { Collection } from '~/app/types';
+import type { Collection } from '~/app/types';
 import { formatCategory, getCategoryColor, getMetricDisplayName } from './benchmarkUtils';
 import './BenchmarkSuiteCard.scss';
+
+export type BenchmarkSuiteCardAction = {
+  id: string;
+  label: string;
+  onSelect: (collection: Collection) => void;
+  isDanger?: boolean;
+};
 
 type BenchmarkSuiteCardProps = {
   collection: Collection;
@@ -27,7 +35,7 @@ type BenchmarkSuiteCardProps = {
     label: string;
     onClick: () => void;
   };
-  contextualActions?: React.ReactNode;
+  contextualActions?: BenchmarkSuiteCardAction[];
 };
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
@@ -72,7 +80,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
               ))}
             </Flex>
           </FlexItem>
-          {contextualActions && (
+          {contextualActions && contextualActions.length > 0 && (
             <FlexItem>
               <Dropdown
                 isOpen={isMenuOpen}
@@ -91,7 +99,22 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                   </MenuToggle>
                 )}
               >
-                <DropdownList>{contextualActions}</DropdownList>
+                <DropdownList>
+                  {contextualActions.map((action) => (
+                    <DropdownItem
+                      key={action.id}
+                      value={action.id}
+                      isDanger={action.isDanger}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        action.onSelect(collection);
+                      }}
+                      data-testid={`benchmark-suite-card-action-${action.id}-${collection.resource.id}`}
+                    >
+                      {action.label}
+                    </DropdownItem>
+                  ))}
+                </DropdownList>
               </Dropdown>
             </FlexItem>
           )}

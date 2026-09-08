@@ -134,6 +134,25 @@ describe('EvaluationsPage', () => {
     );
   });
 
+  it('should show the suite contextual actions and delete confirmation modal', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(screen.getByTestId('benchmark-suite-delete-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-delete-modal')).toHaveTextContent(
+      'The Model suite 2 benchmark suite will be permanently deleted.',
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
+
+    expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+  });
+
   it('should use the Runs tab from the URL and render its content description', () => {
     const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
     mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);

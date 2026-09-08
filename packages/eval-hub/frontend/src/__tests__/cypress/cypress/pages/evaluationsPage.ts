@@ -71,6 +71,18 @@ class EvaluationsPage {
     return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
   }
 
+  findBenchmarkSuiteAction(action: string, collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-action-${action}-${collectionId}`).find('button');
+  }
+
+  findBenchmarkSuiteDeleteModal() {
+    return cy.findByTestId('benchmark-suite-delete-modal');
+  }
+
+  findBenchmarkSuiteDeleteCancel() {
+    return cy.findByTestId('benchmark-suite-delete-cancel');
+  }
+
   findBenchmarkSuitePrimaryAction(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
   }

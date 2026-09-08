@@ -111,6 +111,24 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('trace-evaluation-suite').should('exist');
     evaluationsPage.findBenchmarkSuitesSummary().should('contain.text', '5 of 6 benchmark suites');
   });
+
+  it('should show suite contextual actions and the delete confirmation modal', () => {
+    initIntercepts({ collections: mockBenchmarkSuiteCollections() });
+
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuiteMenu('model-suite-2').click();
+
+    evaluationsPage.findBenchmarkSuiteAction('edit', 'model-suite-2').should('be.visible');
+    evaluationsPage.findBenchmarkSuiteAction('duplicate', 'model-suite-2').should('be.visible');
+    evaluationsPage.findBenchmarkSuiteAction('delete', 'model-suite-2').click();
+
+    evaluationsPage.findBenchmarkSuiteDeleteModal().should('be.visible');
+    evaluationsPage
+      .findBenchmarkSuiteDeleteModal()
+      .should('contain.text', 'Are you sure you want to delete Model suite 2?');
+    evaluationsPage.findBenchmarkSuiteDeleteCancel().click();
+    evaluationsPage.findBenchmarkSuiteDeleteModal().should('not.exist');
+  });
 });
 
 describe('Evaluations Page - Table', () => {
