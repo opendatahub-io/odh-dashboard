@@ -72,7 +72,7 @@ func (r *DashboardReconciler) reconcileMaaSConsumerPortal(ctx context.Context, d
 	url, ok := maasConsumerPortalURL(gatewayDomain)
 	if !ok {
 		cm.MarkFalse(conditionMaaSConsumerPortalAvailable, conditions.WithReason("MaaSConsumerPortalDomainRequired"), conditions.WithMessage("MaaS Consumer Portal is enabled but gateway domain is not set"))
-		return 0
+		return maasConsumerPortalRetryInterval
 	}
 	if err := r.deployMaaSConsumerPortalBundle(ctx, dashboard, url, gatewayDomain); err != nil {
 		// The module and federation steps run before the bundle. Preserve their

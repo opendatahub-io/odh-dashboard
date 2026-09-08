@@ -33,6 +33,8 @@ OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TAR
 
 `MOCK_USER` sets the identity header the mock BFF expects (`kubeflow-userid`). Use `user@example.com` — that is the mock user’s identity with RBAC bindings in the maas mock client.
 
+When using cluster proxy mode with an internally signed dashboard certificate, set `ODH_DASHBOARD_CA_FILE` to the PEM file for the CA that issued the certificate. Cluster proxy TLS verification remains enabled.
+
 ### Mode B: Real cluster data
 
 **Terminal 1 — Port-forward both BFFs:**

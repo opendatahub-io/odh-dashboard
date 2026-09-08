@@ -143,6 +143,24 @@ func TestReconcileMaaSConsumerPortal_UnsupportedPlatform(t *testing.T) {
 	assert.Empty(t, dashboard.Status.MaaSConsumerPortalURL)
 }
 
+func TestReconcileMaaSConsumerPortal_MissingGatewayDomainRetries(t *testing.T) {
+	s := maasConsumerPortalScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		Spec: v1alpha1.DashboardSpec{
+			MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Managed"},
+		},
+		Status: v1alpha1.DashboardStatus{MaaSConsumerPortalURL: "https://previous.example.com/"},
+	}
+	r := &DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(s).Build(), Scheme: s, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
+	cm := maasConsumerPortalTestManager(t, dashboard)
+
+	assert.Equal(t, maasConsumerPortalRetryInterval, r.reconcileMaaSConsumerPortal(context.Background(), dashboard, cm, nil))
+	condition := cm.GetCondition(conditionMaaSConsumerPortalAvailable)
+	require.NotNil(t, condition)
+	assert.Equal(t, "MaaSConsumerPortalDomainRequired", condition.Reason)
+	assert.Equal(t, "https://previous.example.com/", dashboard.Status.MaaSConsumerPortalURL)
+}
+
 func maasConsumerPortalScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	s := runtime.NewScheme()

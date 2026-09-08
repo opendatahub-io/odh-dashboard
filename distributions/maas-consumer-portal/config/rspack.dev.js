@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
 const { execSync } = require('child_process');
 const { merge } = require('rspack-merge');
 const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
@@ -8,6 +10,11 @@ const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
 const BASE_PATH = '/maas-consumer-portal';
+
+const clusterCAFile = process.env.ODH_DASHBOARD_CA_FILE;
+const clusterProxyAgent = clusterCAFile
+  ? new https.Agent({ ca: fs.readFileSync(clusterCAFile) })
+  : undefined;
 
 // Derived from frontend/config/rspack.dev.js — token acquisition, route
 // discovery, and proxy setup are duplicated across 7+ bundler configs in the
@@ -131,7 +138,8 @@ const buildProxyConfig = () => {
           context: [`${BASE_PATH}/maas/api`, `${BASE_PATH}/gen-ai/api`],
           target: `https://${dashboardHost}`,
           pathRewrite: { [`^${BASE_PATH}`]: '' },
-          secure: false,
+          secure: true,
+          ...(clusterProxyAgent ? { agent: clusterProxyAgent } : {}),
           changeOrigin: true,
           on,
         },
