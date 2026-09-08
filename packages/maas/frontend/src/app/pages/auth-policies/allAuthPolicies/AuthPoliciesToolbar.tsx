@@ -8,6 +8,7 @@ import {
   EventTrackingFilterAttribute,
   EventTrackingResourceType,
   MaaSEvents,
+  MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
   AuthPoliciesFilterDataType,
@@ -46,7 +47,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
               fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.KEYWORD,
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
-              });
+              } satisfies MaaSSettingsListFilteredProperties);
             },
           }}
         />

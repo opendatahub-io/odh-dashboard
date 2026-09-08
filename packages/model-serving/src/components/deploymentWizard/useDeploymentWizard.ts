@@ -35,6 +35,7 @@ import {
   type InitialWizardFormData,
   type WizardField,
   type WizardFormData,
+  type WizardStateOverrides,
 } from '../../shared/types/form-data';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -49,6 +50,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     isExternalRouteVisible: boolean;
     shouldAutoCheckTokens: boolean;
   };
+  computedOverrides: WizardStateOverrides;
   dispatch: React.Dispatch<WizardFormAction>;
   fields: WizardField<unknown>[];
 };
@@ -213,12 +215,17 @@ export const useModelDeploymentWizard = (
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
     useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
 
-  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const tokenAuthOverrides = React.useMemo(
+    () => computedOverrides.tokenAuthentication ?? {},
+    [computedOverrides.tokenAuthentication],
+  );
+  const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
       ...state,
       tokenAuthentication: {
         ...state.tokenAuthentication,
+        ...tokenAuthOverrides,
         isDisabled: tokenAuthDisabled,
         ...(tokenAuthDisabled ? { data: [] } : {}),
       },
@@ -227,12 +234,13 @@ export const useModelDeploymentWizard = (
         ...computedOverrides['llmd-serving/gateway'],
       },
     }),
-    [state, tokenAuthDisabled, computedOverrides],
+    [state, tokenAuthDisabled, tokenAuthOverrides, computedOverrides],
   );
 
   return {
     initialData,
     state: stateWithOverrides,
+    computedOverrides,
     dispatch,
     fields,
     loaded: {

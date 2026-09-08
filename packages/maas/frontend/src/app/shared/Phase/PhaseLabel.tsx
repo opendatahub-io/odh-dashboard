@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, Label } from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Label } from '@patternfly/react-core';
 import {
   normalizePhase,
   getPhaseProps,
@@ -28,6 +28,7 @@ type PhaseLabelProps = {
   lastTransitionTime?: string;
   affectedModels?: AffectedModel[];
   overviewLoaded?: boolean;
+  secondaryStatus?: React.ReactNode;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -46,6 +47,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   lastTransitionTime,
   affectedModels,
   overviewLoaded = false,
+  secondaryStatus,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
@@ -68,16 +70,21 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
 
   return (
     <>
-      <Label
-        variant={isClickable ? 'filled' : 'outline'}
-        isCompact
-        isClickable={isClickable}
-        data-testid="phase-label"
-        {...phaseProps}
-        onClick={isClickable ? handleClick : undefined}
-      >
-        {normalized}
-      </Label>
+      <Flex>
+        <FlexItem>
+          <Label
+            variant={isClickable ? 'filled' : 'outline'}
+            isCompact
+            isClickable={isClickable}
+            data-testid="phase-label"
+            {...phaseProps}
+            onClick={isClickable ? handleClick : undefined}
+          >
+            {normalized}
+          </Label>
+        </FlexItem>
+        {secondaryStatus && <FlexItem>{secondaryStatus}</FlexItem>}
+      </Flex>
       {statusSubtext && subtextProps && !hideSubtext ? (
         <Content component="small" {...subtextProps} data-testid="phase-label-subtext">
           {statusSubtext}

@@ -10,6 +10,7 @@ import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/mod
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import { maasWizardField } from '../../../pages/modelsAsAService';
@@ -24,7 +25,6 @@ import {
   InferenceServiceModel,
   LLMInferenceServiceModel,
   ProjectModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '../../../utils/models';
@@ -193,6 +193,9 @@ describe('MaaS Deployment Wizard', () => {
       .findGatewaySelect()
       .should('be.disabled')
       .should('contain.text', 'maas-default-gateway | openshift-ingress');
+    modelServingWizard.findGatewaySelectTooltip().should('exist');
+    // Token authentication section is visible.
+    modelServingWizard.findAuthenticationSection().should('exist');
 
     modelServingWizard.findNextButton().should('be.enabled').click();
 

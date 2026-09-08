@@ -1,8 +1,6 @@
 import {
   OwnerReference,
-  k8sCreateResource,
   k8sDeleteResource,
-  k8sGetResource,
   k8sPatchResource,
   K8sStatus,
   K8sResourceCommon,
@@ -10,45 +8,15 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import { KnownLabels, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { addOwnerReference } from '@odh-dashboard/k8s-core/api/k8sUtils';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   K8sAPIOptions,
   RoleBindingKind,
   RoleBindingRoleRef,
   RoleBindingSubject,
 } from '#~/k8sTypes';
-import { RoleBindingModel } from '#~/api/models';
 import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
-import { addOwnerReference } from '#~/api/k8sUtils';
-
-export const generateRoleBindingServiceAccount = (
-  name: string,
-  serviceAccountName: string,
-  roleRef: Omit<RoleBindingRoleRef, 'apiGroup'>,
-  namespace: string,
-): RoleBindingKind => {
-  const roleBindingObject: RoleBindingKind = {
-    apiVersion: 'rbac.authorization.k8s.io/v1',
-    kind: 'RoleBinding',
-    metadata: {
-      name,
-      namespace,
-      labels: {
-        [KnownLabels.DASHBOARD_RESOURCE]: 'true',
-      },
-    },
-    roleRef: {
-      apiGroup: 'rbac.authorization.k8s.io',
-      ...roleRef,
-    },
-    subjects: [
-      {
-        kind: 'ServiceAccount',
-        name: serviceAccountName,
-      },
-    ],
-  };
-  return roleBindingObject;
-};
 
 export const generateRoleBindingPermissions = (
   namespace: string,
@@ -99,18 +67,6 @@ export const listRoleBindings = (
     queryOptions,
   });
 };
-
-export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> =>
-  k8sGetResource({
-    model: RoleBindingModel,
-    queryOptions: { name: rbName, ns: projectName },
-  });
-
-export const createRoleBinding = (
-  data: RoleBindingKind,
-  opts?: K8sAPIOptions,
-): Promise<RoleBindingKind> =>
-  k8sCreateResource(applyK8sAPIOptions({ model: RoleBindingModel, resource: data }, opts));
 
 export const deleteRoleBinding = (
   rbName: string,

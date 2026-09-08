@@ -1,7 +1,7 @@
 import {
   TOOL_CALLING_VALIDATED_ARGS_VALUE,
   mockToolCallingValidatedConfiguration,
-} from '@odh-dashboard/internal/__mocks__/mockValidatedConfigurations';
+} from '@odh-dashboard/model-serving/__mocks__/mockValidatedConfigurations';
 import {
   buildRuntimeArgsFromValidatedSelections,
   formatValidatedOptionValueForDisplay,

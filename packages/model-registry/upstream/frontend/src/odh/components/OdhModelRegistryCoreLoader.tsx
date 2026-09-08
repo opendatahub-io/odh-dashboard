@@ -8,6 +8,7 @@ import EmptyModelRegistryState from '~/app/pages/modelRegistry/screens/component
 import ModelRegistryCoreLoader from '~/app/pages/modelRegistry/ModelRegistryCoreLoader';
 import { isAdminCheckExtension, isRegistrySettingsUrlExtension } from '~/odh/extension-points';
 import { REGISTRY_SETTINGS_PAGE_TITLE, REGISTRY_SETTINGS_URL } from '~/odh/const';
+import { AdminStatusProvider } from '~/odh/context/AdminStatusContext';
 import OdhUnavailableModelRegistry from './OdhUnavailableModelRegistry';
 
 type OdhModelRegistryCoreLoaderProps = {
@@ -57,9 +58,9 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
         }
         customAction={
           !isAdmin ? (
-            <WhosMyAdministrator />
+            <WhosMyAdministrator linkTestId="whos-my-admin-link" />
           ) : (
-            <Link to={settingsUrl}>
+            <Link to={settingsUrl} data-testid="model-registry-settings-link">
               Go to <b>{settingsTitle}</b>
             </Link>
           )
@@ -93,11 +94,18 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
             return <Bullseye>Loading...</Bullseye>;
           }
           return (
-            <ModelRegistryCoreLoader
-              getInvalidRedirectPath={getInvalidRedirectPath}
-              emptyStatePage={createEmptyStatePage(isAdmin)}
-              unavailableStatePage={createUnavailableStatePage(isAdmin)}
-            />
+            <AdminStatusProvider
+              isAdmin={isAdmin}
+              loaded={loaded}
+              settingsUrl={settingsUrl}
+              settingsTitle={settingsTitle}
+            >
+              <ModelRegistryCoreLoader
+                getInvalidRedirectPath={getInvalidRedirectPath}
+                emptyStatePage={createEmptyStatePage(isAdmin)}
+                unavailableStatePage={createUnavailableStatePage(isAdmin)}
+              />
+            </AdminStatusProvider>
           );
         }}
       </AdminCheckComponent>

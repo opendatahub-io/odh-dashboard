@@ -11,14 +11,14 @@ paths:
 # Modular Architecture — ODH Dashboard
 
 > **Canonical docs** — read these first for full details:
-> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy flow, webpack setup, troubleshooting
+> - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy flow, rspack setup, troubleshooting
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, lazy loading, helper components, hooks, type guards, best practices
 
 This rule summarises the architecture at a glance and lists key files. Defer to the docs above for full explanations.
 
 ## Quick architecture summary
 
-The host app (`frontend/`) uses Webpack Module Federation (`@module-federation/enhanced`) to load remote packages at runtime. Remotes are discovered automatically from workspace packages that declare a `module-federation` key in `package.json`.
+The host app (`frontend/`) uses Module Federation (`@module-federation/enhanced`) to load remote packages at runtime. Remotes are discovered automatically from workspace packages that declare a `module-federation` key in `package.json`.
 
 | Role | Location | MF Name |
 |---|---|---|
@@ -80,7 +80,7 @@ packages/<name>/
 ├── frontend/
 │   ├── config/
 │   │   ├── moduleFederation.js
-│   │   └── webpack.{common,dev,prod}.js
+│   │   └── rspack.{common,dev,prod}.js
 │   └── src/
 │       ├── odh/
 │       │   ├── extensions.ts       # Extension definitions

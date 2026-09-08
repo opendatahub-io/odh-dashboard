@@ -247,10 +247,7 @@ const renderWithContext = ({
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
       ?.optimization_metric as
-      | 'faithfulness'
-      | 'answer_correctness'
-      | 'context_correctness'
-      | undefined) ??
+      'faithfulness' | 'answer_correctness' | 'context_correctness' | undefined) ??
     'faithfulness';
 
   const contextValue = {

@@ -1,4 +1,5 @@
 import { ExistingSecretRef } from '#~/pages/projects/types';
+import { isValidEnvVarName, RESERVED_ENV_NAMES } from '#~/pages/projects/screens/spawner/service';
 
 export type KeyCollision = {
   key: string;
@@ -18,6 +19,9 @@ export const detectExistingSecretKeyCollisions = (
 
   existingSecretRefs.forEach((ref) => {
     ref.selectedKeys.forEach((key) => {
+      if (!isValidEnvVarName(key) || RESERVED_ENV_NAMES.has(key)) {
+        return;
+      }
       const sources = keySourceMap.get(key) ?? new Set<string>();
       sources.add(ref.secretName);
       keySourceMap.set(key, sources);

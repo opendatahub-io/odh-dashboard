@@ -1,8 +1,12 @@
 import * as React from 'react';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  aggregateKueueStatusForModel,
+  KUEUE_QUEUE_LABEL,
+} from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   buildModelDeploymentKey,
   buildWorkloadMapForDeployments,
@@ -11,7 +15,6 @@ import {
   useWatchISPods,
   useWatchLLMISPods,
 } from '#~/api/k8s/workloads';
-import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 
 // Avoids importing @odh-dashboard/llmd-serving/types (not a frontend dep).
 type NamedModelResource = { metadata: { name: string; labels?: Record<string, string> } };

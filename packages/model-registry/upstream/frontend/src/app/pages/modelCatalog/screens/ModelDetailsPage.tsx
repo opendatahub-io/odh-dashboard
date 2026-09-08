@@ -20,10 +20,10 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
-import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
+import useCatalogDeployPrefillData from '~/odh/hooks/useCatalogDeployPrefillData';
 import {
   decodeParams,
   getModelName,
@@ -48,9 +48,10 @@ const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
 
 type ModelDetailsPageProps = {
   tab: string;
+  customNoRegistriesButton?: (variant: 'primary' | 'secondary') => React.ReactNode;
 };
 
-const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegistriesButton }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
@@ -64,14 +65,23 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     ModelRegistrySelectorContext,
   );
   const actionExtensions = useExtensions(isActionExtension);
-  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
-    isNavigateToDeploymentWizardWithDataExtension,
+  const isDeployAvailable = React.useMemo(
+    () => actionExtensions.some((action) => action.properties.group === MODEL_CATALOG_DEPLOY_GROUP),
+    [actionExtensions],
   );
-  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
+  );
+
+  const catalogDeployProps = useCatalogDeployPrefillData(
+    model,
+    artifacts,
+    artifactLoaded,
+    artifactsLoadError,
+    decodedParams.sourceId || '',
+    decodedParams.modelName || '',
   );
 
   const handleValidatedLabelClicked = React.useCallback(() => {
@@ -128,10 +138,14 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     return modelRegistries.length === 0 ? (
-      registerButtonTooltip(
-        'Request access to a model registry',
-        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-        variant,
+      customNoRegistriesButton ? (
+        customNoRegistriesButton(variant)
+      ) : (
+        registerButtonTooltip(
+          'Request access to a model registry',
+          'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+          variant,
+        )
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
       registerButtonTooltip('', 'Model location is unavailable', variant)
@@ -233,7 +247,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                 <ExtensibleActions
                   actions={actionExtensions}
                   group={MODEL_CATALOG_DEPLOY_GROUP}
-                  componentProps={{ model }}
+                  componentProps={catalogDeployProps}
                 />
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,14 +17,19 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/api/common/validation"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
@@ -36,6 +42,7 @@ const integrationNamespace = "integration-test"
 var (
 	testEnv   *envtest.Environment
 	k8sClient client.Client
+	restCfg   *rest.Config
 )
 
 func TestMain(m *testing.M) {
@@ -52,10 +59,20 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "failed to add routev1 scheme: %v\n", err)
 		os.Exit(1)
 	}
+	if err := apiextensionsv1.AddToScheme(s); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to add apiextensionsv1 scheme: %v\n", err)
+		os.Exit(1)
+	}
+	if err := gatewayv1.Install(s); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to add Gateway API scheme: %v\n", err)
+		os.Exit(1)
+	}
 
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
+			// Minimal ConsoleLink CRD (provided by OpenShift in production).
+			filepath.Join("testdata", "crd"),
 		},
 		Scheme: s,
 	}
@@ -65,11 +82,14 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "failed to start envtest: %v\n", err)
 		os.Exit(1)
 	}
+	restCfg = cfg
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: s})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create client: %v\n", err)
-		testEnv.Stop()
+		if stopErr := testEnv.Stop(); stopErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to stop envtest: %v\n", stopErr)
+		}
 		os.Exit(1)
 	}
 
@@ -77,13 +97,20 @@ func TestMain(m *testing.M) {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: integrationNamespace}}
 	if err := k8sClient.Create(ctx, ns); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create test namespace: %v\n", err)
-		testEnv.Stop()
+		if stopErr := testEnv.Stop(); stopErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to stop envtest: %v\n", stopErr)
+		}
 		os.Exit(1)
 	}
 
 	code := m.Run()
 
-	testEnv.Stop()
+	if stopErr := testEnv.Stop(); stopErr != nil {
+		fmt.Fprintf(os.Stderr, "failed to stop envtest: %v\n", stopErr)
+		if code == 0 {
+			code = 1
+		}
+	}
 	os.Exit(code)
 }
 
@@ -111,6 +138,9 @@ data:
   key: value
 `), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+	// Provide the same minimal core fixture in the RHOAI overlay for tests that
+	// exercise RHOAI-specific reconciliation.
+	require.NoError(t, os.CopyFS(filepath.Join(base, "rhoai"), os.DirFS(overlay)))
 
 	// Per-module manifests: basePath/modules/<slug>/
 	// The module path must match deployModuleManifests in module_deploy.go.
@@ -118,12 +148,18 @@ data:
 		moduleDir := filepath.Join(base, "modules", slug)
 		require.NoError(t, os.MkdirAll(moduleDir, 0755))
 
-		require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
+		kustomization := fmt.Sprintf(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
-`), 0644))
+configMapGenerator:
+  - name: %[1]s-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+`, slug)
+		require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "kustomization.yaml"), []byte(kustomization), 0644))
 
 		deployment := fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
@@ -285,11 +321,26 @@ func listServices(t *testing.T, componentLabel string) []corev1.Service {
 	return services.Items
 }
 
-func getFederationConfigMap(t *testing.T) *corev1.ConfigMap {
+func listConfigMaps(t *testing.T, componentLabel string) []corev1.ConfigMap {
+	t.Helper()
+	var configMaps corev1.ConfigMapList
+	err := k8sClient.List(context.Background(), &configMaps,
+		client.InNamespace(integrationNamespace),
+		client.MatchingLabels{
+			labels.PlatformPartOf:         "dashboard",
+			"app.kubernetes.io/component": componentLabel,
+		},
+	)
+	require.NoError(t, err)
+
+	return configMaps.Items
+}
+
+func getConfigMap(t *testing.T, name string) *corev1.ConfigMap {
 	t.Helper()
 	cm := &corev1.ConfigMap{}
 	err := k8sClient.Get(context.Background(), types.NamespacedName{
-		Name:      "federation-config",
+		Name:      name,
 		Namespace: integrationNamespace,
 	}, cm)
 	if err != nil {
@@ -351,6 +402,69 @@ func disableAllModulesExcept(enabled ...string) map[string]v1alpha1.ModuleOverri
 	return modules
 }
 
+// newManifestReconciler builds a DashboardReconciler wired to the shared k8sClient.
+func newManifestReconciler(manifests string) *ctrlpkg.DashboardReconciler {
+	return newReconcilerWithClient(k8sClient, manifests)
+}
+
+// newReconcilerWithClient builds a DashboardReconciler with an explicit client.
+// The observability _Deployed test uses this to inject an isolated client whose
+// RESTMapper has been warmed with the Perses CRD.
+func newReconcilerWithClient(cli client.Client, manifests string) *ctrlpkg.DashboardReconciler {
+	return &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                cli.Scheme(),
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+}
+
+// deleteIgnoreNotFound deletes each object via the shared client, ignoring NotFound.
+func deleteIgnoreNotFound(t *testing.T, objs ...client.Object) {
+	t.Helper()
+	ctx := context.Background()
+	for _, object := range objs {
+		if err := k8sClient.Delete(ctx, object); client.IgnoreNotFound(err) != nil {
+			t.Logf("warning: failed to delete %T %s: %v", object, object.GetName(), err)
+		}
+	}
+}
+
+// newIsolatedClient builds a fresh client with its own RESTMapper. The
+// observability _Deployed test uses it so that listing PersesDashboards (which
+// caches a positive REST mapping once the CRD exists) never poisons the shared
+// client's mapper that _PersesCRDNotFound relies on staying empty.
+func newIsolatedClient(t *testing.T) client.Client {
+	t.Helper()
+	cli, err := client.New(restCfg, client.Options{Scheme: k8sClient.Scheme()})
+	require.NoError(t, err)
+
+	return cli
+}
+
+// readParamsEnv parses a KEY=VALUE params.env file into a map, mirroring the
+// controller's own readExistingParams (blank and comment lines skipped). Used to
+// assert the inter-BFF service-discovery env vars the reconciler writes.
+func readParamsEnv(t *testing.T, path string) map[string]string {
+	t.Helper()
+	params := map[string]string{}
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if key, value, ok := strings.Cut(line, "="); ok {
+			params[key] = value
+		}
+	}
+
+	return params
+}
+
 func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	manifests := createIntegrationManifests(t, []string{"model-registry"})
 
@@ -390,7 +504,7 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	require.Len(t, svcs, 1, "expected exactly one model-registry Service")
 
 	// Verify federation ConfigMap contains the modelRegistry entry.
-	fedCM := getFederationConfigMap(t)
+	fedCM := getConfigMap(t, "federation-config")
 	require.NotNil(t, fedCM, "federation-config ConfigMap should exist")
 
 	entries := parseFederationEntries(t, fedCM)
@@ -417,6 +531,56 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 
 	// Verify URL was extracted from Gateway.Domain.
 	assert.Equal(t, "https://test.example.com/", dashboard.Status.URL)
+}
+
+func TestIntegration_PlatformContractConformance(t *testing.T) {
+	manifests := createIntegrationManifests(t, []string{"model-registry"})
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                k8sClient,
+		Scheme:                k8sClient.Scheme(),
+		ManifestsBasePath:     manifests,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             integrationNamespace,
+		ApplicationsNamespace: integrationNamespace,
+	}
+
+	dashboard := newDashboard(v1alpha1.DashboardSpec{
+		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+		Modules: disableAllModulesExcept("modelRegistry"),
+	})
+
+	ctx := context.Background()
+	require.NoError(t, k8sClient.Create(ctx, dashboard))
+
+	t.Cleanup(func() { deleteDashboard(t) })
+	t.Cleanup(func() { cleanupModuleResources(t) })
+
+	// The first reconcile adds the finalizer and the second deploys the module.
+	reconcile(t, r)
+	reconcile(t, r)
+
+	// envtest has no kubelet to update Deployment status. Report the operand as
+	// available so the next reconcile can exercise the successful Ready contract.
+	deployments := listDeployments(t, "model-registry")
+	require.Len(t, deployments, 1)
+	deployment := &deployments[0]
+	require.NotNil(t, deployment.Spec.Replicas)
+	deployment.Status.Replicas = *deployment.Spec.Replicas
+	deployment.Status.ReadyReplicas = *deployment.Spec.Replicas
+	deployment.Status.AvailableReplicas = *deployment.Spec.Replicas
+	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
+
+	reconcile(t, r)
+	dashboard = getDashboard(t)
+	require.Equal(t, common.PhaseReady, dashboard.Status.Phase)
+
+	validation.ValidatePlatformContract(t, k8sClient, validation.ContractOptions{
+		GVK:          v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),
+		InstanceName: v1alpha1.DashboardInstanceName,
+		Timeout:      5 * time.Second,
+		PollInterval: 100 * time.Millisecond,
+	})
 }
 
 func TestIntegration_StandaloneDisableModule(t *testing.T) {
@@ -467,7 +631,7 @@ func TestIntegration_StandaloneDisableModule(t *testing.T) {
 	assert.Empty(t, svcs, "model-registry Service should be deleted after disabling")
 
 	// Verify federation ConfigMap no longer contains modelRegistry.
-	fedCM := getFederationConfigMap(t)
+	fedCM := getConfigMap(t, "federation-config")
 	require.NotNil(t, fedCM)
 	entries := parseFederationEntries(t, fedCM)
 	entry := findFederationEntry(entries, "modelRegistry")
@@ -569,16 +733,33 @@ func TestIntegration_DSCComponentGate(t *testing.T) {
 		cleanupModuleResources(t)
 	})
 
-	// Create Dashboard with DSC Components map that does NOT include
-	// "modelregistry" — the component required by the modelRegistry module.
+	// Start with the modelregistry component available so the module and all of
+	// its resources are deployed before exercising the disabled-module cleanup.
 	dashboard := newDashboard(v1alpha1.DashboardSpec{
 		Gateway: &v1alpha1.GatewaySpec{Domain: "test.example.com"},
 		Modules: disableAllModulesExcept("modelRegistry"),
 		Components: map[string]v1alpha1.ComponentAvailability{
-			"kserve": {ManagementState: "Managed"},
+			"modelregistry": {ManagementState: "Managed"},
 		},
 	})
 	require.NoError(t, k8sClient.Create(ctx, dashboard))
+
+	reconcile(t, r)
+	reconcile(t, r)
+
+	assert.Len(t, listDeployments(t, "model-registry"), 1)
+	assert.Len(t, listServices(t, "model-registry"), 1)
+	configMaps := listConfigMaps(t, "model-registry")
+	require.Len(t, configMaps, 1)
+	paramsUID := configMaps[0].UID
+
+	// Remove the component required by modelRegistry. This transition must
+	// remove every module-scoped resource, including its generated ConfigMap.
+	dashboard = getDashboard(t)
+	dashboard.Spec.Components = map[string]v1alpha1.ComponentAvailability{
+		"kserve": {ManagementState: "Managed"},
+	}
+	require.NoError(t, k8sClient.Update(ctx, dashboard))
 
 	reconcile(t, r)
 	reconcile(t, r)
@@ -591,6 +772,33 @@ func TestIntegration_DSCComponentGate(t *testing.T) {
 	assert.Equal(t, v1alpha1.ModulePhaseDisabled, status.Phase)
 	assert.Equal(t, "ComponentNotAvailable", status.Reason)
 
-	deps := listDeployments(t, "model-registry")
-	assert.Empty(t, deps, "model-registry Deployment should not exist without DSC component")
+	assert.Empty(t, listDeployments(t, "model-registry"), "model-registry Deployment should be removed")
+	assert.Empty(t, listServices(t, "model-registry"), "model-registry Service should be removed")
+	assert.Empty(t, listConfigMaps(t, "model-registry"), "model-registry ConfigMap should be removed")
+
+	var coreConfigMap corev1.ConfigMap
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{
+		Name: "dashboard-core-config", Namespace: integrationNamespace,
+	}, &coreConfigMap), "core ConfigMap should not be removed with module resources")
+
+	// A repeated reconcile must remain a no-op while the module is disabled.
+	reconcile(t, r)
+	assert.Empty(t, listConfigMaps(t, "model-registry"))
+
+	// Re-enable the component and verify that the full module resource set is
+	// recreated rather than relying on stale resources from its prior state.
+	dashboard = getDashboard(t)
+	dashboard.Spec.Components = map[string]v1alpha1.ComponentAvailability{
+		"modelregistry": {ManagementState: "Managed"},
+	}
+	require.NoError(t, k8sClient.Update(ctx, dashboard))
+
+	reconcile(t, r)
+	reconcile(t, r)
+
+	assert.Len(t, listDeployments(t, "model-registry"), 1)
+	assert.Len(t, listServices(t, "model-registry"), 1)
+	configMaps = listConfigMaps(t, "model-registry")
+	require.Len(t, configMaps, 1)
+	assert.NotEqual(t, paramsUID, configMaps[0].UID, "module ConfigMap should be recreated after re-enabling")
 }

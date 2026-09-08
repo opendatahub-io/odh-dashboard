@@ -33,8 +33,11 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(() => ({ status: true })),
 }));
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/secrets', () => ({
   getSecret: jest.fn(),
+}));
+
+jest.mock('#~/api', () => ({
   updatePvc: jest.fn(),
 }));
 

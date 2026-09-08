@@ -524,6 +524,17 @@ export type RoleBindingKind = K8sResourceCommon & {
   roleRef: RoleBindingRoleRef;
 };
 
+export type ServiceAccountKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations;
+    name: string;
+    namespace: string;
+  };
+  secrets?: {
+    name: string;
+  }[];
+};
+
 export type TrustyAIKind = K8sResourceCommon & {
   metadata: {
     name: string;

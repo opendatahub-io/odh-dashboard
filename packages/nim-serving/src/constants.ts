@@ -6,6 +6,8 @@ export const NIM_LEGACY_ID = 'nvidia-nim';
 /** Platform id for NIMService deployments managed by the k8s-nim-operator. */
 export const NIM_SERVICE_ID = 'nvidia-nim-service';
 export const NIM_MODEL_TYPE = 'NVIDIA NIM';
+/** Prefix for NVIDIA accelerator identifiers on hardware profiles (gpu, mig, etc.). */
+export const NVIDIA_ACCELERATOR_PREFIX = 'nvidia.com/';
 
 export const KSERVE_CONTAINER_NAME = 'kserve-container';
 export const NIM_CACHE_MOUNT_PATH = '/mnt/models/cache';

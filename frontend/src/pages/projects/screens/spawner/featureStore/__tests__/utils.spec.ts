@@ -357,4 +357,83 @@ describe('generateFeastMetadata', () => {
       expect(result.labels).toBeUndefined();
     });
   });
+
+  describe('API unavailable scenario', () => {
+    it('should preserve existing annotations and labels when API is unavailable during update', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+            annotations: {
+              'opendatahub.io/feast-config': `${PROJECT_NAME_CREDIT_SCORING},${PROJECT_NAME_BANKING}`,
+            },
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true, false);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': `${PROJECT_NAME_CREDIT_SCORING},${PROJECT_NAME_BANKING}`,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+
+    it('should return no annotations/labels when API is unavailable and notebook has none', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {},
+            annotations: {},
+          },
+        },
+      });
+      const result = generateFeastMetadata([], existingNotebook, true, false);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toBeUndefined();
+      expect(result.labels).toBeUndefined();
+    });
+
+    it('should not preserve annotations on create even when API is unavailable', () => {
+      const result = generateFeastMetadata([], undefined, false, false);
+
+      expect(result.featureStores).toHaveLength(0);
+      expect(result.annotations).toBeUndefined();
+      expect(result.labels).toBeUndefined();
+    });
+
+    it('should use selected feature stores when API is available', () => {
+      const existingNotebook = mockNotebookK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'opendatahub.io/feast-integration': 'true',
+            },
+            annotations: {
+              'opendatahub.io/feast-config': PROJECT_NAME_CREDIT_SCORING,
+            },
+          },
+        },
+      });
+      const result = generateFeastMetadata(
+        [MOCK_BANKING_FEATURE_STORE],
+        existingNotebook,
+        true,
+        true,
+      );
+
+      expect(result.featureStores).toHaveLength(1);
+      expect(result.annotations).toEqual({
+        'opendatahub.io/feast-config': PROJECT_NAME_BANKING,
+      });
+      expect(result.labels).toEqual({
+        'opendatahub.io/feast-integration': 'true',
+      });
+    });
+  });
 });

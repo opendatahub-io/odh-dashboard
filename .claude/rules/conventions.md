@@ -20,7 +20,7 @@ paths:
 | PatternFly v6 | Primary UI component library — import from `@patternfly/react-core`, `@patternfly/react-table`, `@patternfly/react-icons` |
 | Material UI | Secondary UI library (Kubeflow mode only) |
 | Fastify | Backend server framework |
-| Webpack | Build tooling with Module Federation |
+| Rspack | Build tooling with Module Federation |
 | Turbo | Monorepo task runner |
 
 ## Code Style

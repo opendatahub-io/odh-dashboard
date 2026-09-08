@@ -47,7 +47,7 @@ packages/autorag/
 │   └── Makefile             # BFF build commands
 ├── frontend/                # React Frontend application
 │   ├── src/                 # Source code
-│   ├── config/              # Webpack & Module Federation
+│   ├── config/              # Rspack & Module Federation
 │   └── package.json         # Frontend dependencies
 ├── docs/                    # Documentation
 ├── Dockerfile               # Multi-stage container build

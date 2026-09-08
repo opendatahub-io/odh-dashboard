@@ -4,7 +4,7 @@
     "outDir": "dist",
     "module": "esnext",
     "target": "es2021",
-    "lib": ["es2021", "dom", "ES2023.Array"],
+    "lib": ["es2021", "dom", "ES2022.Object", "ES2022.Array", "ES2023.Array"],
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "bundler",

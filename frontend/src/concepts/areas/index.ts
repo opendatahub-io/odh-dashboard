@@ -7,4 +7,3 @@
   This area should not bloat to support specifics of any area, this is just helpers and ways to
   determine the state we are in.
 */
-export { default as AreaComponent, conditionalArea } from './AreaComponent';

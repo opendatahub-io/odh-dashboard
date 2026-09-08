@@ -14,8 +14,8 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SortableData, Table } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
+import { createSecret, replaceSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import ExtendedButton from '#~/components/ExtendedButton';
-import { createSecret, replaceSecret } from '#~/api';
 import { NotebookKind } from '#~/k8sTypes';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {

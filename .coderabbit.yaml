@@ -273,10 +273,16 @@ reviews:
         2. Cache inputs/outputs must be accurate — incorrect caching causes stale builds.
         3. Changes here affect all package build ordering and CI performance.
 
-    # ── Webpack config ────────────────────────────────────────────
+    # ── Bundler config ────────────────────────────────────────────
     - path: "**/webpack.{common,dev,prod}.{ts,js}"
       instructions: |
-        WEBPACK CONFIG:
+        WEBPACK CONFIG (Cypress preprocessor and upstream packages only):
+        (Suppression) Do not suggest alternative bundler configurations
+        or plugin replacements. Only flag security issues and broken build logic.
+
+    - path: "**/rspack.{common,dev,prod}.{ts,js}"
+      instructions: |
+        RSPACK CONFIG:
         (Suppression) Do not suggest alternative bundler configurations
         or plugin replacements. Only flag security issues and broken build logic.
 

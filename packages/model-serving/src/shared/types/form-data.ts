@@ -240,12 +240,31 @@ export type GenericFieldProps = {
   isDisabled?: boolean;
 };
 
+export type WizardFieldHelpPopover = {
+  title?: string;
+  content: string;
+};
+
 export type WizardStateOverrides = {
-  tokenAuthentication?: { isDisabled?: boolean };
+  tokenAuthentication?: {
+    isDisabled?: boolean;
+    disabledHelperText?: string;
+  };
   'llmd-serving/gateway'?: {
     isDisabled?: boolean;
     selection?: { name: string; namespace?: string };
     hiddenOptions?: { name: string; namespace?: string }[];
+    disabledTooltip?: string;
+    labelHelpPopover?: WizardFieldHelpPopover;
+    /**
+     * Optional per-option label overrides, keyed by the gateway key:
+     * `${name} | ${namespace}`.
+     */
+    labelOverrides?: Record<string, string>;
+  };
+  hardwareProfile?: {
+    /** Accelerator identifier prefix used to prioritize matching hardware profiles. */
+    preferredAccelerator?: string;
   };
 };
 

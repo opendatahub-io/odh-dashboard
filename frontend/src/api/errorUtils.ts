@@ -1,5 +1,4 @@
 import { AxiosError } from 'axios';
-import { K8sStatusError } from '@odh-dashboard/k8s-core';
 
 const isAxiosErrorWithResponseMessage = (
   error?: Error | AxiosError,
@@ -14,14 +13,4 @@ export const throwErrorFromAxios = (error: Error | AxiosError): never => {
     throw new Error(error.response?.data.message);
   }
   throw error;
-};
-
-export const getGenericErrorCode = (error: unknown): number | undefined => {
-  if (error instanceof K8sStatusError) {
-    return error.statusObject.code;
-  }
-  if (error instanceof AxiosError) {
-    return error.response?.status;
-  }
-  return undefined;
 };

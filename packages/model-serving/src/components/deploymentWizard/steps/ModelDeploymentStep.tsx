@@ -1,5 +1,7 @@
 import React from 'react';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
+import { isHardwareProfileWithAcceleratorPrefix } from '@odh-dashboard/hardware-profiles/shared';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
@@ -31,6 +33,15 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   hideProjectSection,
 }) => {
   const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
+  const preferredAccelerator = wizardState.computedOverrides.hardwareProfile?.preferredAccelerator;
+
+  const isHardwareProfilePreferred = React.useMemo(
+    (): ((profile: HardwareProfileKind) => boolean) | undefined =>
+      preferredAccelerator
+        ? (profile) => isHardwareProfileWithAcceleratorPrefix(profile, preferredAccelerator)
+        : undefined,
+    [preferredAccelerator],
+  );
 
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
@@ -89,6 +100,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             project={projectName}
             hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
             isEditing={wizardState.initialData?.isEditing}
+            isHardwareProfilePreferred={isHardwareProfilePreferred}
           />
         )}
         {wizardState.state.modelFormatState.isVisible && (

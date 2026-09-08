@@ -81,9 +81,9 @@ maas/
 │   │   ├── __mocks__/           # Jest mocks
 │   │   └── __tests__/           # Test files
 │   ├── config/
-│   │   ├── webpack.common.js    # Shared webpack config
-│   │   ├── webpack.dev.js       # Development webpack config
-│   │   ├── webpack.prod.js      # Production webpack config
+│   │   ├── rspack.common.js    # Shared rspack config
+│   │   ├── rspack.dev.js       # Development rspack config
+│   │   ├── rspack.prod.js      # Production rspack config
 │   │   └── moduleFederation.js  # Module Federation config
 │   ├── package.json             # NPM dependencies and scripts
 │   └── README.md                # Frontend documentation
@@ -237,7 +237,7 @@ All backend-for-frontend (BFF) Go code MUST use the following directory organiza
 - React 18 + TypeScript
 - PatternFly v6 (primary UI framework)
 - Material UI v7 (Kubeflow flavor only)
-- Webpack with Module Federation
+- Rspack with Module Federation
 - **mod-arch-core** - Core functionality, hooks, context providers
 
 ### Development Guidelines

@@ -59,7 +59,20 @@ export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): s
     case 'oauth2':
       return 'OAuth 2.0';
     default:
-      return authMechanism;
+      return '-';
+  }
+};
+
+export const convertStringToAuthMechanism = (authMechanism: string): AuthMechanism => {
+  switch (authMechanism) {
+    case 'apikey':
+      return 'apikey';
+    case 'sigv4':
+      return 'sigv4';
+    case 'oauth2':
+      return 'oauth2';
+    default:
+      return 'apikey';
   }
 };
 

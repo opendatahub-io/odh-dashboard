@@ -50,7 +50,7 @@ odh-dashboard/
 | TypeScript    | Type safety                                |
 | PatternFly v6 | Primary UI component library (RHOAI/ODH)   |
 | Material UI   | Secondary UI library (Kubeflow mode)       |
-| Webpack       | Build tooling with Module Federation       |
+| Rspack        | Build tooling with Module Federation       |
 | Cypress       | E2E and component testing                  |
 | Jest          | Unit testing                               |
 | Turbo         | Monorepo task runner                       |
@@ -107,7 +107,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **envtest Integration Tests** | `envtest-integration-tests.md` | When writing or modifying envtest integration tests in `dashboard-operator/` |
 | **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
-| **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
+| **Module Federation**       | `module-federation.md`        | When configuring Module Federation, rspack remotes, or shared dependencies     |
 | **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
 | **Operator Controller**     | `operator-controller.md`      | When working on Go operator/controller-runtime code in `dashboard-operator/`   |
 | **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
@@ -148,5 +148,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |
 | **Coverage Boost**                 | `skills/coverage-boost/`               | Parsing coverage reports to find uncovered lines, then generating targeted unit tests to boost coverage for a package or file |
 | **envtest Debug**                  | `skills/envtest-debug/`                | Debugging envtest integration test failures — analyzes output, identifies failure patterns, suggests fixes |
+| **Upstream Test Recommender**      | `skills/upstream-test-recommender/`    | Analyzing a `cypress_found_bug` Jira issue — identifies upstream repo, audits test infra, classifies bug, recommends test using repo's own tools. `--implement` generates test code. `--parity` runs backend/frontend test parity analysis |
+| **Upstream Test Audit**            | `skills/upstream-test-audit/`          | Batch analysis of all `cypress_found_bug` issues — generates HTML executive report with SVG charts, per-repo gap analysis, and team responsibility breakdown |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

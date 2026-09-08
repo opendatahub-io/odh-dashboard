@@ -1,4 +1,7 @@
-import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import {
+  KueueWorkloadStatus,
+  type KueueWorkloadStatusWithMessage,
+} from '@odh-dashboard/k8s-core/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getKueueSubStepInfo,
@@ -13,7 +16,7 @@ import {
   appendModelDeploymentPodAdmissionSuffix,
   getModelDeploymentKueueDetailMessage,
   isInadmissibleQuotaCondition,
-} from '#~/concepts/kueue/messageUtils';
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
 
 describe('isInadmissibleQuotaCondition', () => {
   it('returns true for reason Inadmissible', () => {

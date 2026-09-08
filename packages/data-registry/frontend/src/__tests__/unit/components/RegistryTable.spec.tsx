@@ -37,7 +37,9 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         loaded
         error={undefined}
         labels={mockLabels}
+        project="test-project"
         onManageCollections={jest.fn()}
+        onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
         {...props}
       />

@@ -8,6 +8,7 @@ import {
   EventTrackingFilterAttribute,
   MaaSEvents,
   EventTrackingResourceType,
+  MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
   SubscriptionsFilterDataType,
@@ -46,7 +47,7 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
               fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
                 filterAttribute: EventTrackingFilterAttribute.KEYWORD,
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
-              });
+              } satisfies MaaSSettingsListFilteredProperties);
             },
           }}
         />
