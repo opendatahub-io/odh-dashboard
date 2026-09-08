@@ -20,7 +20,7 @@ This document describes the GET endpoint for retrieving available models from a 
 The endpoint:
 1. Validates `namespace` and `secretName` query parameters
 2. Reads the specified Kubernetes secret from the namespace
-3. Extracts `MAAS_BASE_URL` and `MAAS_API_KEY` from the secret (key names are matched case-insensitively; legacy `OGX_CLIENT_*` keys are accepted)
+3. Extracts `MAAS_BASE_URL` and `MAAS_API_KEY` from the secret (key names are matched case-insensitively)
 4. Creates a Models as a Service client using those credentials
 5. Calls the Models as a Service server to list available models
 6. Translates the response from Models as a Service's native format into a stable public API format
@@ -28,12 +28,12 @@ The endpoint:
 
 ### Secret Requirements
 
-The secret must contain a matching pair of keys (names are matched case-insensitively):
+The secret must contain both keys (names are matched case-insensitively):
 
 | Key | Description |
 |-----|-------------|
-| `MAAS_BASE_URL` (or legacy `OGX_CLIENT_BASE_URL`) | The URL of the Models as a Service server (e.g., `http://maas-svc.my-namespace.svc.cluster.local:8321`) |
-| `MAAS_API_KEY` (or legacy `OGX_CLIENT_API_KEY`) | The API key for authenticating with the Models as a Service server. The key may be present but empty for no-auth servers. |
+| `MAAS_BASE_URL` | The URL of the Models as a Service server (e.g., `http://maas-svc.my-namespace.svc.cluster.local:8321`) |
+| `MAAS_API_KEY` | The API key for authenticating with the Models as a Service server. The key may be present but empty for no-auth servers. |
 
 ### Middleware Chain
 

@@ -95,7 +95,7 @@ paths:
           description: >-
             Secret type filter:
             - 'storage': Filters for storage secrets (e.g., S3 secrets with classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT). Key matching is case-sensitive.
-            - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has any supported base-URL alias (MAAS_BASE_URL or OGX_CLIENT_BASE_URL) together with any supported API-key alias (MAAS_API_KEY or OGX_CLIENT_API_KEY), including mixed pairs. The API-key key may be present but empty.
+            - 'maas': Filters for Models as a Service secrets. Key matching is case-insensitive. A secret matches if it has MAAS_API_KEY and MAAS_BASE_URL. The API-key key may be present but empty. OGX_CLIENT_* keys are not treated as MaaS.
             - 'vector-db': Filters for vector database secrets used by documents-rag-optimization-pipeline. Annotation types milvus, pgvector, or vector-db match. Unannotated secrets match if they have MILVUS_URI (Milvus) or PGVECTOR_HOST (PGVector). Key matching is case-insensitive.
             - Omit for all secrets
 
@@ -132,8 +132,7 @@ paths:
       description: >-
         Retrieves secrets from a specified namespace with optional filtering by type.
         Storage classification-key matching is case-sensitive.
-        MaaS classification-key matching is case-insensitive and accepts any mix of MAAS_API_KEY / MAAS_BASE_URL
-        and the legacy OGX_CLIENT_API_KEY / OGX_CLIENT_BASE_URL aliases.
+        MaaS classification-key matching is case-insensitive and requires MAAS_API_KEY and MAAS_BASE_URL.
         Vector database classification-key matching is case-insensitive (MILVUS_URI or PGVECTOR_HOST).
 
         Secret Type Classification Precedence:
@@ -141,7 +140,7 @@ paths:
         1. Annotation-based type (highest priority): If the secret has the 'opendatahub.io/connection-type' annotation with a non-empty value, that annotated type is used
         2. Key-based classification (fallback): If no connection-type annotation is present, type is determined by the presence of specific classification keys:
            - 's3': S3 storage secrets (classification keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT)
-           - 'maas': Models as a Service secrets (MAAS_API_KEY and MAAS_BASE_URL, or legacy OGX_CLIENT_API_KEY and OGX_CLIENT_BASE_URL)
+           - 'maas': Models as a Service secrets (MAAS_API_KEY and MAAS_BASE_URL)
 
         Optional Keys:
         Secrets may contain additional optional keys beyond classification requirements (e.g., AWS_S3_BUCKET, AWS_DEFAULT_REGION for S3 secrets).

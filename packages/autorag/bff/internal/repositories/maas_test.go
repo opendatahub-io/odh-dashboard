@@ -198,19 +198,16 @@ func TestResolveMaaSCredentials(t *testing.T) {
 		}
 	})
 
-	t.Run("legacy OGX keys are accepted", func(t *testing.T) {
+	t.Run("OGX keys are not accepted as MaaS credentials", func(t *testing.T) {
 		k8s := &mockK8sForMaaS{getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 			return &v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "s", Namespace: "ns"}, Data: map[string][]byte{
 				"OGX_CLIENT_BASE_URL": []byte("https://maas.example.com"),
 				"OGX_CLIENT_API_KEY":  []byte("legacy-key"),
 			}}, nil
 		}}
-		baseURL, apiKey, err := resolveMaaSCredentials(context.Background(), k8s, "ns", "s")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if baseURL != "https://maas.example.com" || apiKey != "legacy-key" {
-			t.Errorf("baseURL=%q apiKey=%q", baseURL, apiKey)
+		_, _, err := resolveMaaSCredentials(context.Background(), k8s, "ns", "s")
+		if err == nil {
+			t.Fatal("expected error for OGX-only secret")
 		}
 	})
 

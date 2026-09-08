@@ -18,8 +18,8 @@ var storageTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var maasCredentialBaseURLKeys = []string{"maas_base_url", "ogx_client_base_url"}
-var maasCredentialAPIKeyKeys = []string{"maas_api_key", "ogx_client_api_key"}
+var maasCredentialBaseURLKeys = []string{"maas_base_url"}
+var maasCredentialAPIKeyKeys = []string{"maas_api_key"}
 
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
@@ -35,7 +35,7 @@ func NewK8sRepository() *K8sRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "maas": secrets with connection-type=maas, or (if unannotated) MaaS/legacy OGX credential keys
+//   - "maas": secrets with connection-type=maas, or (if unannotated) MAAS_BASE_URL and MAAS_API_KEY
 //   - "vector-db": connection-type milvus/pgvector/vector-db, or (if unannotated) MILVUS_URI or PGVECTOR_HOST
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
@@ -82,9 +82,8 @@ func (r *K8sRepository) GetFilteredSecrets(
 
 // GetSecretCredentials retrieves a named secret and returns MaaS credential keys
 // (MAAS_BASE_URL, MAAS_API_KEY) with base64-encoded values.
-// Legacy OGX_CLIENT_* keys are mapped to the same MAAS_* names so the frontend
-// playground does not need to know about the old schema.
 // Empty API key values are included (no-auth MaaS). Missing keys are omitted.
+// OGX_CLIENT_* keys are not treated as MaaS credentials.
 func (r *K8sRepository) GetSecretCredentials(
 	k8sService kubernetes.Service,
 	ctx context.Context,
@@ -137,9 +136,8 @@ func secretInfoHasAnyKeyCI(data map[string]string, names ...string) bool {
 	return false
 }
 
-// isMaasCompatibleSecret reports whether a secret has any supported base-URL
-// alias together with any supported API-key alias (including mixed MaaS/OGX
-// pairs). The API-key value may be empty.
+// isMaasCompatibleSecret reports whether a secret has MAAS_BASE_URL and
+// MAAS_API_KEY (case-insensitive). The API-key value may be empty.
 func isMaasCompatibleSecret(secret kubernetes.SecretInfo) bool {
 	return secretInfoHasAnyKeyCI(secret.Data, maasCredentialBaseURLKeys...) &&
 		secretInfoHasAnyKeyCI(secret.Data, maasCredentialAPIKeyKeys...)
@@ -166,7 +164,7 @@ func filterVectorDbSecrets(secrets []kubernetes.SecretInfo) []kubernetes.SecretI
 }
 
 // matchesMaasTypeFilter follows OpenAPI type-filter precedence:
-// annotated connection-type wins; otherwise require a MaaS/legacy OGX credential pair.
+// annotated connection-type wins; otherwise require MAAS_BASE_URL and MAAS_API_KEY.
 func matchesMaasTypeFilter(secret kubernetes.SecretInfo) bool {
 	if secret.Type != "" {
 		return strings.EqualFold(secret.Type, "maas")

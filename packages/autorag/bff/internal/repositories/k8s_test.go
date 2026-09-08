@@ -197,22 +197,22 @@ func TestDetectType(t *testing.T) {
 		}
 	})
 
-	t.Run("empty filter treats lowercase OGX keys as maas", func(t *testing.T) {
+	t.Run("empty filter does not treat OGX keys as maas", func(t *testing.T) {
 		secret := kubernetes.SecretInfo{
 			Data: map[string]string{
 				"ogx_client_api_key":  "k",
 				"ogx_client_base_url": "u",
 			},
 		}
-		if got := detectType(secret, ""); got != "maas" {
-			t.Errorf("got %q, want maas", got)
+		if got := detectType(secret, ""); got != "" {
+			t.Errorf("got %q, want empty", got)
 		}
 	})
 
-	t.Run("empty filter treats legacy OGX keys as maas", func(t *testing.T) {
+	t.Run("empty filter does not treat legacy OGX keys as maas", func(t *testing.T) {
 		secret := ogxSecret("s")
-		if got := detectType(secret, ""); got != "maas" {
-			t.Errorf("got %q, want maas", got)
+		if got := detectType(secret, ""); got != "" {
+			t.Errorf("got %q, want empty", got)
 		}
 	})
 
@@ -279,8 +279,8 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 2 {
-			t.Fatalf("expected 2 maas secrets (MaaS + legacy OGX), got %d", len(result))
+		if len(result) != 1 {
+			t.Fatalf("expected 1 maas secret, got %d", len(result))
 		}
 		names := map[string]bool{}
 		for _, s := range result {
@@ -289,8 +289,8 @@ func TestGetFilteredSecrets(t *testing.T) {
 				t.Errorf("%s Type = %q, want maas", s.Name, s.Type)
 			}
 		}
-		if !names["maas-conn"] || !names["ogx-conn"] {
-			t.Errorf("names = %v, want maas-conn and ogx-conn", names)
+		if !names["maas-conn"] || names["ogx-conn"] {
+			t.Errorf("names = %v, want only maas-conn", names)
 		}
 	})
 
@@ -396,7 +396,7 @@ func TestGetFilteredSecrets(t *testing.T) {
 		}
 	})
 
-	t.Run("maas type includes lowercase MaaS and OGX keys and empty API keys", func(t *testing.T) {
+	t.Run("maas type includes lowercase MaaS keys and empty API keys, excludes OGX", func(t *testing.T) {
 		k8sLower := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{
@@ -429,19 +429,19 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 3 {
-			t.Fatalf("expected 3 maas secrets, got %d", len(result))
+		if len(result) != 2 {
+			t.Fatalf("expected 2 maas secrets, got %d", len(result))
 		}
 		names := map[string]bool{}
 		for _, s := range result {
 			names[s.Name] = true
 		}
-		if !names["lower-maas"] || !names["lower-ogx"] || !names["empty-key"] {
+		if !names["lower-maas"] || names["lower-ogx"] || !names["empty-key"] {
 			t.Errorf("names = %v", names)
 		}
 	})
 
-	t.Run("maas type includes mixed MaaS and OGX credential aliases", func(t *testing.T) {
+	t.Run("maas type excludes mixed MaaS and OGX credential aliases", func(t *testing.T) {
 		k8sMixed := &mockK8sService{
 			getSecretInfosFn: func(ctx context.Context, namespace string) ([]kubernetes.SecretInfo, error) {
 				return []kubernetes.SecretInfo{
@@ -467,18 +467,8 @@ func TestGetFilteredSecrets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(result) != 2 {
-			t.Fatalf("expected 2 mixed-alias maas secrets, got %d", len(result))
-		}
-		names := map[string]bool{}
-		for _, s := range result {
-			names[s.Name] = true
-			if s.Type != "maas" {
-				t.Errorf("%s Type = %q, want maas", s.Name, s.Type)
-			}
-		}
-		if !names["maas-url-ogx-key"] || !names["ogx-url-maas-key"] {
-			t.Errorf("names = %v", names)
+		if len(result) != 0 {
+			t.Fatalf("expected 0 mixed-alias maas secrets, got %d (%v)", len(result), result)
 		}
 	})
 
@@ -682,7 +672,7 @@ func TestGetSecretCredentials(t *testing.T) {
 		}
 	})
 
-	t.Run("maps legacy OGX keys to MAAS names", func(t *testing.T) {
+	t.Run("does not map OGX keys to MAAS names", func(t *testing.T) {
 		k8s := &mockK8sService{
 			getSecretFn: func(_ context.Context, _, _ string) (*v1.Secret, error) {
 				return &v1.Secret{
@@ -699,14 +689,8 @@ func TestGetSecretCredentials(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if result["MAAS_API_KEY"] != base64.StdEncoding.EncodeToString([]byte("legacy-key")) {
-			t.Errorf("MAAS_API_KEY = %q", result["MAAS_API_KEY"])
-		}
-		if result["MAAS_BASE_URL"] != base64.StdEncoding.EncodeToString([]byte("https://ogx.example.com")) {
-			t.Errorf("MAAS_BASE_URL = %q", result["MAAS_BASE_URL"])
-		}
-		if _, ok := result["OGX_CLIENT_API_KEY"]; ok {
-			t.Error("OGX_CLIENT_API_KEY should not be returned")
+		if len(result) != 0 {
+			t.Fatalf("expected empty credentials for OGX-only secret, got %v", result)
 		}
 	})
 

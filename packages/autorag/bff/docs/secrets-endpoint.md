@@ -236,7 +236,7 @@ The endpoint supports four filtering modes based on the `type` parameter:
 
 3. **`type=maas`**: Filters for MaaS (Models as a Service) secrets
    - **Annotation first**: a secret with `opendatahub.io/connection-type: maas` is included even if it does not have MaaS credential keys
-   - **Key-based fallback** (no connection-type annotation): the secret must have any supported base-URL alias (`MAAS_BASE_URL` or `OGX_CLIENT_BASE_URL`) together with any supported API-key alias (`MAAS_API_KEY` or `OGX_CLIENT_API_KEY`), including mixed pairs. Key matching is case-insensitive. The API-key value may be empty (no-auth)
+   - **Key-based fallback** (no connection-type annotation): the secret must have `MAAS_API_KEY` and `MAAS_BASE_URL`. Key matching is case-insensitive. The API-key value may be empty (no-auth). `OGX_CLIENT_*` keys are not treated as MaaS.
    - A secret annotated as a different type is excluded even if it has MaaS keys
 
 4. **`type=vector-db`**: Filters for vector database secrets used by the optimization pipeline
@@ -264,7 +264,7 @@ A secret missing any of these required keys would NOT match and would be exclude
 }
 ```
 
-A secret missing any of these required keys is excluded from `type=maas` **unless** it has `opendatahub.io/connection-type: maas`. Key matching for the credential-key fallback is case-insensitive. Mixed MaaS and legacy `OGX_CLIENT_*` aliases are accepted when no connection-type annotation is set.
+A secret missing any of these required keys is excluded from `type=maas` **unless** it has `opendatahub.io/connection-type: maas`. Key matching for the credential-key fallback is case-insensitive. `OGX_CLIENT_*` keys are not treated as MaaS.
 
 ### Secret Data Field
 
