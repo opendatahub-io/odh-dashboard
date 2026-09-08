@@ -25,7 +25,7 @@ record_result() {
 
 workload_owned_by_uid() {
   local owner_uid="$1"
-  kubectl get workloads -n kueue-sentinel -o json | python3 -c '
+  OWNER_UID="${owner_uid}" kubectl get workloads -n kueue-sentinel -o json | python3 -c '
 import json
 import os
 import sys
@@ -36,7 +36,7 @@ for item in json.load(sys.stdin).get("items", []):
         if ref.get("uid") == owner_uid:
             print(item["metadata"]["name"])
             raise SystemExit(0)
-' OWNER_UID="${owner_uid}"
+'
 }
 
 wait_for_workload_admitted() {
