@@ -352,7 +352,9 @@ jobs:
             .
 
       - name: Save operator image
-        run: docker save dashboard-operator:sim-test | gzip > /tmp/dashboard-operator.tar.gz
+        run: |
+          set -euo pipefail
+          docker save dashboard-operator:sim-test | gzip > /tmp/dashboard-operator.tar.gz
 
       - name: Upload operator image artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
@@ -375,7 +377,9 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     env:
       KUSTOMIZE_VERSION: v5.4.3
+      KUSTOMIZE_SHA256: 3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7
       KUBECONFORM_VERSION: v0.6.7
+      KUBECONFORM_SHA256: 95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73
       K8S_SCHEMA_VERSION: '1.31.0'
     steps:
       - name: Checkout code
@@ -385,15 +389,17 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Installing kustomize ${KUSTOMIZE_VERSION}"
-          curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
-            | tar -xz -C /tmp
+          curl -sSLo /tmp/kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  /tmp/kustomize.tar.gz" | sha256sum --check --status
+          tar -xz -C /tmp -f /tmp/kustomize.tar.gz
           sudo mv /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
           echo "::endgroup::"
 
           echo "::group::Installing kubeconform ${KUBECONFORM_VERSION}"
-          curl -sSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
-            | tar -xz -C /tmp kubeconform
+          curl -sSLo /tmp/kubeconform.tar.gz "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  /tmp/kubeconform.tar.gz" | sha256sum --check --status
+          tar -xz -C /tmp -f /tmp/kubeconform.tar.gz kubeconform
           sudo mv /tmp/kubeconform /usr/local/bin/kubeconform
           kubeconform -v
           echo "::endgroup::"
