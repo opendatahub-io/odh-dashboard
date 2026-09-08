@@ -3,6 +3,7 @@ package controller_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -13,8 +14,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	"github.com/opendatahub-io/odh-platform-utilities/api/common"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
@@ -66,6 +70,77 @@ func allDeployedStatuses() map[string]v1alpha1.ModuleStatus {
 		}
 	}
 	return statuses
+}
+
+func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Scheme:                scheme,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		ApplicationsNamespace: testNamespace,
+	}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		ManagementSpec:     common.ManagementSpec{ManagementState: "Removed"},
+		MaaSConsumerPortal: &v1alpha1.MaaSConsumerPortalSpec{ManagementState: "Removed"},
+	}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	require.NoError(t, err)
+	for module, status := range statuses {
+		assert.Equalf(t, v1alpha1.ModulePhaseNotDeployed, status.Phase, "%s should not be deployed", module)
+		assert.Equalf(t, "NotRequired", status.Reason, "%s should be marked not required", module)
+	}
+}
+
+func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testing.T) {
+	scheme := testScheme(t)
+	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
+	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
+	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment, service).Build(), Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.Equal(t, v1alpha1.ModulePhaseDisabled, statuses["maas"].Phase)
+	assert.Equal(t, "ExplicitOverride", statuses["maas"].Reason)
+	assert.Error(t, reconciler.Get(context.Background(), types.NamespacedName{Name: "maas-ui", Namespace: testNamespace}, &appsv1.Deployment{}))
+	assert.Error(t, reconciler.Get(context.Background(), types.NamespacedName{Name: "maas-ui", Namespace: testNamespace}, &corev1.Service{}))
+}
+
+func TestReconcileModuleDemand_ReturnsCleanupError(t *testing.T) {
+	scheme := testScheme(t)
+	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(context.Context, client.WithWatch, client.Object, ...client.DeleteOption) error {
+				return errors.New("simulated delete failure")
+			},
+		}).Build(),
+		Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace,
+	}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	assert.Nil(t, statuses)
+	require.ErrorContains(t, err, "deleting deployment for module maas: simulated delete failure")
+}
+
+func TestReconcileModuleDemand_OverlaysStandaloneReadiness(t *testing.T) {
+	scheme := testScheme(t)
+	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
+	replicas := int32(1)
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}, Spec: appsv1.DeploymentSpec{Replicas: &replicas}}
+	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build(), Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
+	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"modelRegistry": {State: v1alpha1.ModuleDisabled}, "genAi": {State: v1alpha1.ModuleDisabled}, "mlflow": {State: v1alpha1.ModuleDisabled}, "evalHub": {State: v1alpha1.ModuleDisabled}, "automl": {State: v1alpha1.ModuleDisabled}, "autorag": {State: v1alpha1.ModuleDisabled}, "agentOps": {State: v1alpha1.ModuleDisabled}, "notebooks": {State: v1alpha1.ModuleDisabled}}}}
+
+	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	require.NoError(t, err)
+	assert.Equal(t, v1alpha1.ModulePhaseDegraded, statuses["maas"].Phase)
+	assert.Equal(t, "ReplicasNotReady", statuses["maas"].Reason)
 }
 
 func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {

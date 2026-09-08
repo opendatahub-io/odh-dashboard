@@ -88,7 +88,7 @@ type InitInterceptsOptions = {
   /** When set, per-model DCGM queries return data keyed by this model name. */
   dcgmModelName?: string;
   clusterQueues?: Parameters<typeof mockClusterQueueK8sResource>[0][];
-  cohortNames?: string[];
+  cohortNames?: (string | { name: string; parentName?: string })[];
   resourceFlavors?: Parameters<typeof mockResourceFlavorK8sResource>[0][];
   hasChartData?: boolean;
 };
@@ -144,7 +144,13 @@ const initIntercepts = ({
   );
   cy.interceptK8sList(
     CohortModel,
-    mockK8sResourceList(cohortNames.map((name) => mockCohortK8sResource({ name }))),
+    mockK8sResourceList(
+      cohortNames.map((entry) =>
+        typeof entry === 'string'
+          ? mockCohortK8sResource({ name: entry })
+          : mockCohortK8sResource(entry),
+      ),
+    ),
   );
   cy.interceptK8sList(
     ResourceFlavorModel,
@@ -269,7 +275,7 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
       infrastructurePage.findRefreshBadge().should('exist');
-      infrastructurePage.findRefreshBadge().should('contain.text', 'Last update');
+      infrastructurePage.findRefreshBadge().should('contain.text', 'Updated');
     });
 
     it('should display empty states when no accelerators are present', () => {
@@ -385,22 +391,43 @@ describe('GPUaaS Infrastructure Page', () => {
     });
   });
 
-  describe('Cluster queue utilization section', () => {
+  describe('Quota usage section', () => {
+    const nestedCohortQuotaUsageIntercepts: Pick<
+      InitInterceptsOptions,
+      'clusterQueues' | 'cohortNames' | 'resourceFlavors'
+    > = {
+      clusterQueues: [
+        {
+          name: 'prod-serving',
+          cohortName: 'inference-edge',
+          gpuFlavorName: 'a100-flavor',
+          gpuNominalQuota: 4,
+        },
+        {
+          name: 'legacy-batch',
+          gpuFlavorName: 'a100-flavor',
+          gpuNominalQuota: 2,
+        },
+      ],
+      cohortNames: ['production', { name: 'inference-edge', parentName: 'production' }],
+      resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
+    };
+
     beforeEach(() => {
       asClusterAdminUser();
     });
 
-    it('should show empty state when no GPU CQs exist or all are CPU-only', () => {
-      // Stage 1: no cluster queues at all
+    it('should show empty state when no cluster queues exist', () => {
       initIntercepts({ clusterQueues: [], cohortNames: [], resourceFlavors: [] });
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
+      infrastructurePage.switchToQuotaUsageTab();
       infrastructurePage
-        .findCQUtilizationEmptyState()
+        .findQuotaUsageEmptyState()
         .should('exist')
         .should('contain.text', 'No accelerator cluster queues found');
+    });
 
-      // Stage 2: only CPU-only CQ — same empty state
+    it('should show empty state when all cluster queues are CPU-only', () => {
       initIntercepts({
         clusterQueues: [
           {
@@ -414,11 +441,11 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [],
       });
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage.findCQUtilizationEmptyState().should('exist');
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageEmptyState().should('exist');
     });
 
-    it('should render CQ card with subtitle, hardware badge, donut, workload counts, and cohort accordion', () => {
+    it('should render tree with default cohort selection when no unassigned cluster queues exist', () => {
       initIntercepts({
         clusterQueues: [
           {
@@ -435,187 +462,47 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
       });
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
+      infrastructurePage.switchToQuotaUsageTab();
       infrastructurePage
-        .findCQUtilizationSubtitle()
-        .should('contain.text', 'Compute profile accelerator utilization grouped by Kueue cohort.');
-      infrastructurePage.findCohortAccordion('cohort-1').should('exist');
-      infrastructurePage.findCQCard('cq-gpu').should('exist');
-      infrastructurePage.findHardwareModelBadge('NVIDIA A100').should('exist');
-      infrastructurePage.findAcceleratorDonutChart().should('exist');
-      infrastructurePage
-        .findCQWorkloadCounts()
-        .should('contain.text', 'Workloads: 2 active, 1 pending');
+        .findQuotaUsageDescription()
+        .should('contain.text', 'View quota usage across cluster queues');
+      infrastructurePage.findQuotaUsageTreeNode('cohort-1').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('cq-gpu').should('exist');
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'cohort-1');
+      infrastructurePage.findQuotaUsageCollapseAll().should('exist');
     });
 
-    it('should render two CQ cards with DCGM utilization columns when telemetry is available', () => {
-      initIntercepts({
-        clusterQueues: [
-          {
-            name: 'notebook-queues',
-            cohortName: 'research-sandbox',
-            gpuFlavorName: 'mi300x-flavor',
-            gpuNominalQuota: 6,
-            gpuUsed: 2,
-            admittedWorkloads: 2,
-            pendingWorkloads: 2,
-          },
-          {
-            name: 'experiment-queues',
-            cohortName: 'research-sandbox',
-            gpuFlavorName: 'mi300x-flavor',
-            gpuNominalQuota: 4,
-            gpuUsed: 0,
-            admittedWorkloads: 0,
-            pendingWorkloads: 1,
-          },
-        ],
-        cohortNames: ['research-sandbox'],
-        resourceFlavors: [{ name: 'mi300x-flavor', gpuProduct: 'AMD MI300X' }],
-        dcgmModelName: 'AMD MI300X',
-      });
+    it('should render nested cohort tree and navigate breadcrumb segments', () => {
+      initIntercepts(nestedCohortQuotaUsageIntercepts);
       infrastructurePage.visit();
-      infrastructurePage.switchToClusterQueueUtilizationTab();
-      infrastructurePage.scrollToCQUtilizationSection();
-      infrastructurePage.findCohortAccordion('research-sandbox').should('exist');
-      infrastructurePage.findCQCard('notebook-queues').should('exist');
-      infrastructurePage.findCQCard('experiment-queues').should('exist');
-      // Scope to one card since both share the same model badge testid
-      infrastructurePage
-        .findCQCard('notebook-queues')
-        .findByTestId('hardware-model-badge-AMD MI300X')
-        .should('exist');
-      infrastructurePage.findAcceleratorDonutChartInCard('notebook-queues').should('exist');
-      infrastructurePage.findAcceleratorDonutChartInCard('experiment-queues').should('exist');
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageCollapseAll().should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('production').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('inference-edge').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('prod-serving').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'prod-serving');
+      infrastructurePage.findQuotaUsageBreadcrumb().should('contain.text', 'production');
+      infrastructurePage.findQuotaUsageBreadcrumb().should('contain.text', 'inference-edge');
+      infrastructurePage.findQuotaUsageBreadcrumbSegment('production').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'production');
+      infrastructurePage.findQuotaUsageTreeNode('inference-edge').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'inference-edge');
+      infrastructurePage.findQuotaUsageBreadcrumbSegment('production').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'production');
     });
 
-    describe('borrow donut state', () => {
-      // a100-train-queues: 6 nominal, 4 used → 2 unallocated (available to borrow); burst-training: 8 nominal, 10 used, 2 borrowed
-      const COHORT = 'ml-training-cohort';
-      const FLAVOR = 'a100-flavor';
-
-      beforeEach(() => {
-        initIntercepts({
-          clusterQueues: [
-            {
-              name: 'a100-train-queues',
-              cohortName: COHORT,
-              gpuFlavorName: FLAVOR,
-              gpuNominalQuota: 6,
-              gpuUsed: 4,
-              admittedWorkloads: 1,
-              pendingWorkloads: 2,
-            },
-            {
-              name: 'burst-training',
-              cohortName: COHORT,
-              gpuFlavorName: FLAVOR,
-              gpuNominalQuota: 8,
-              gpuUsed: 10,
-              gpuBorrowed: 2,
-              admittedWorkloads: 2,
-              pendingWorkloads: 2,
-            },
-          ],
-          cohortNames: [COHORT],
-          resourceFlavors: [{ name: FLAVOR, gpuProduct: 'NVIDIA A100' }],
-          dcgmModelName: 'NVIDIA A100',
-        });
-        infrastructurePage.visit();
-        infrastructurePage.switchToClusterQueueUtilizationTab();
-        infrastructurePage.scrollToCQUtilizationSection();
-      });
-
-      it('shows borrow badge, no lent badge, workload counts, all chart columns, and per-model badge popovers', () => {
-        // Cohort-level badges
-        infrastructurePage.findCohortAccordion(COHORT).should('exist');
-        infrastructurePage.findCohortBorrowBadge().should('exist');
-        infrastructurePage
-          .findCohortUnallocatedBorrowable()
-          .should('contain.text', '2 available to borrow');
-
-        // Unallocated-capacity CQ — no borrow badge, normal donut
-        infrastructurePage
-          .findWorkloadCountsInCard('a100-train-queues')
-          .should('contain.text', 'Workloads: 1 active, 2 pending');
-        infrastructurePage.findAcceleratorDonutChartInCard('a100-train-queues').should('exist');
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', 'Compute consumption')
-          .should('contain.text', 'Memory consumption');
-
-        // Borrower card
-        infrastructurePage
-          .findCQBorrowBadgeInCard('burst-training')
-          .should('contain.text', 'Borrowed: 2');
-        infrastructurePage
-          .findWorkloadCountsInCard('burst-training')
-          .should('contain.text', 'Workloads: 2 active, 2 pending');
-        infrastructurePage.findAcceleratorDonutChartInCard('burst-training').should('exist');
-        infrastructurePage
-          .findCQCard('burst-training')
-          .should('contain.text', 'Compute consumption')
-          .should('contain.text', 'Memory consumption');
-
-        // Borrowed badge popover: shows per-model borrowed count
-        infrastructurePage.findCQBorrowBadgeInCard('burst-training').click();
-        infrastructurePage
-          .findOpenPopover()
-          .should('contain.text', 'Borrowed capacity')
-          .should('contain.text', '2 × NVIDIA A100');
-        cy.get('body').type('{esc}');
-      });
-
-      it('shows per-model breakdown in donut segment hover tooltip', () => {
-        // a100-train-queues has unallocated capacity but is shown as a normal donut (no Lent segment).
-        // Hovering the used segment shows the own-capacity tooltip.
-        infrastructurePage
-          .findAcceleratorDonutChartInCard('a100-train-queues')
-          .find('svg path')
-          .first()
-          .trigger('mouseover', { force: true });
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', 'NVIDIA A100: 4/6 in use');
-      });
-
-      describe('pure borrower CQ (nominal=0, used>0)', () => {
-        const PURE_BORROWER_COHORT = 'burst-cohort';
-        const PURE_BORROWER_FLAVOR = 'h100-flavor';
-
-        beforeEach(() => {
-          initIntercepts({
-            clusterQueues: [
-              {
-                name: 'pure-borrower-cq',
-                cohortName: PURE_BORROWER_COHORT,
-                gpuFlavorName: PURE_BORROWER_FLAVOR,
-                gpuNominalQuota: 0,
-                gpuUsed: 6,
-                admittedWorkloads: 1,
-                pendingWorkloads: 0,
-              },
-            ],
-            cohortNames: [PURE_BORROWER_COHORT],
-            resourceFlavors: [{ name: PURE_BORROWER_FLAVOR, gpuProduct: 'NVIDIA H100' }],
-            dcgmModelName: 'NVIDIA H100',
-          });
-          infrastructurePage.visit();
-          infrastructurePage.switchToClusterQueueUtilizationTab();
-        });
-
-        it('renders the CQ card with all 3 chart columns and a fully-filled borrowed donut', () => {
-          infrastructurePage.findAcceleratorDonutChartInCard('pure-borrower-cq').should('exist');
-          infrastructurePage
-            .findCQCard('pure-borrower-cq')
-            .findByText('Borrowed: 6')
-            .should('exist');
-          infrastructurePage
-            .findCQCard('pure-borrower-cq')
-            .should('contain.text', 'Compute consumption')
-            .should('contain.text', 'Memory consumption');
-        });
-      });
+    it('should select cohort nodes and filter tree results by search', () => {
+      initIntercepts(nestedCohortQuotaUsageIntercepts);
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode('Unassigned').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('legacy-batch').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'legacy-batch');
+      infrastructurePage.findQuotaUsageTreeNode('production').click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', 'production');
+      infrastructurePage.findQuotaUsageNavSearch().type('prod-serving');
+      infrastructurePage.findQuotaUsageTreeNode('prod-serving').should('exist');
+      infrastructurePage.findQuotaUsageTreeNode('legacy-batch').should('not.exist');
     });
   });
 });
