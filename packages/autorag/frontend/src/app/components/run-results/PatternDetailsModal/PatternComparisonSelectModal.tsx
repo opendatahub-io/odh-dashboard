@@ -13,7 +13,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
-  getMetricByName,
+  getOptimizationMetric,
 } from '~/app/utilities/utils';
 
 type ColumnDef = {
@@ -40,7 +40,7 @@ const getColumns = (optimizedMetric: string): ColumnDef[] => [
   {
     label: `${formatMetricName(optimizedMetric)} (Optimized)`,
     getValue: (p) => {
-      const mean = getMetricByName(p, optimizedMetric)?.scores.mean;
+      const mean = getOptimizationMetric(p)?.scores.mean;
       return mean != null ? formatMetricValue(mean) : 'N/A';
     },
   },

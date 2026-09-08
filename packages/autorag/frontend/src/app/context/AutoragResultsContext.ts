@@ -21,7 +21,7 @@ export type AutoragResultsContextProps = {
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
   /**
-   * Client-side winning pattern: the record key of the highest-`final_score` pattern.
+   * Client-side winning pattern: the record key of the highest optimization metric score.
    * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
    * loaded `patterns` (by record key, not display name) rather than the component stage map.
    */

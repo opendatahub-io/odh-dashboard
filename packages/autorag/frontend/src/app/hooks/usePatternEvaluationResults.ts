@@ -1,21 +1,15 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { z } from 'zod';
 import { fetchS3Json } from '~/app/hooks/queries';
-import type {
-  AutoRAGEvaluationResult,
-  AutoRAGEvaluationMetricResult,
-} from '~/app/types/autoragPattern';
+import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 
 const rawEvaluationResultSchema = z.object({
   question: z.string(),
   answer: z.string(),
   question_id: z.string().optional(), // eslint-disable-line camelcase
   correct_answers: z.array(z.string()), // eslint-disable-line camelcase
-  answer_contexts: z.array(z.object({ text: z.string(), document_id: z.string() })), // eslint-disable-line camelcase
-  metrics: z
-    .array(z.object({ name: z.string(), evaluator: z.string(), score: z.number() }))
-    .optional(),
-  scores: z.record(z.string(), z.number()).optional(),
+  answer_contexts: z.array(z.object({ text: z.string(), document_key: z.string() })), // eslint-disable-line camelcase
+  metrics: z.array(z.object({ name: z.string(), evaluator: z.string(), score: z.number() })),
 });
 
 const evaluationResultsSchema = z.array(rawEvaluationResultSchema);
@@ -23,17 +17,6 @@ const evaluationResultsSchema = z.array(rawEvaluationResultSchema);
 export type RawEvaluationResult = z.infer<typeof rawEvaluationResultSchema>;
 
 export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
-  const metrics: AutoRAGEvaluationMetricResult[] =
-    raw.metrics && raw.metrics.length > 0
-      ? raw.metrics
-      : raw.scores
-        ? Object.entries(raw.scores).map(([name, score]) => ({
-            name,
-            evaluator: 'unitxt',
-            score,
-          }))
-        : [];
-
   return {
     question: raw.question,
     correct_answers: raw.correct_answers, // eslint-disable-line camelcase
@@ -42,7 +25,7 @@ export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEval
     question_id: raw.question_id, // eslint-disable-line camelcase
     answer: raw.answer,
     answer_contexts: raw.answer_contexts, // eslint-disable-line camelcase
-    metrics,
+    metrics: raw.metrics,
   };
 }
 

@@ -56,6 +56,22 @@ class AutoragResultsPage {
     return cy.findByTestId(`leaderboard-row-${rank}`);
   }
 
+  findMetricHeader(metric: string) {
+    return cy.findByTestId(`metric-header-${metric}`);
+  }
+
+  findMetricCell(metric: string, rank: number) {
+    return cy.findByTestId(`metric-${metric}-${rank}`);
+  }
+
+  findMetricColumnCheck(metric: string) {
+    return cy.findByTestId(`column-check-metric:${metric}`);
+  }
+
+  findMetricColumnChecks() {
+    return cy.findByTestId('column-list').find('[data-testid^="column-check-metric:"]');
+  }
+
   findPatternLink(rank: number) {
     return cy.findByTestId(`pattern-link-${rank}`);
   }
@@ -112,6 +128,14 @@ class AutoragResultsPage {
     return cy.findByTestId(`tab-${tabKey}`);
   }
 
+  findSampleQAEntries() {
+    return this.findPatternDetailsModal().find('[data-testid^="qa-entry-"]');
+  }
+
+  findScoreRadarCharts() {
+    return this.findPatternDetailsModal().findByTestId('score-radar-chart');
+  }
+
   // Runs table (experiments page)
   findRunsTable() {
     return cy.findByTestId('autorag-runs-table');
@@ -139,6 +163,14 @@ class AutoragResultsPage {
 
   findCIScoresLegend() {
     return cy.findByTestId('ci-legend');
+  }
+
+  findCITrack(metric: string) {
+    return cy.findByTestId(`ci-track-${metric}`);
+  }
+
+  findCIMarker(marker: 'low' | 'mean' | 'high', metric: string) {
+    return cy.findByTestId(`ci-marker-${marker}-${metric}`);
   }
 
   // Pattern details modal actions

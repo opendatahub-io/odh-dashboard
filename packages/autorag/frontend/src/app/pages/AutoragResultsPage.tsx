@@ -34,6 +34,7 @@ import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/ut
 import {
   formatMetricName,
   getOptimizedMetricForRAG,
+  getOptimizationMetric,
   isRunTerminatable,
   isRunRetryable,
   parseErrorStatus,
@@ -275,10 +276,7 @@ function AutoragResultsPage(): React.JSX.Element {
       }
 
       const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
-      const scoreLookup = Object.fromEntries(
-        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
-      );
-      const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
+      const metricMean = getOptimizationMetric(pattern)?.scores.mean;
       setDrawerContent({
         type: 'playground',
         responsesTemplate,

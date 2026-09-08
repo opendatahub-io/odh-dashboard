@@ -25,7 +25,8 @@ import {
   formatMetricValue,
   formatPatternName,
   getOptimizedScore,
-  getMetricByName,
+  getMetricIdentity,
+  getOptimizationMetric,
 } from '~/app/utilities/utils';
 import {
   fireAutoragPatternsCompared,
@@ -400,7 +401,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
                     ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
-                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                        getOptimizationMetric(data)?.scores.mean ?? 'N/A',
                       )}`
                     : `Final score: ${getOptimizedScore(data)}`}
                 </p>
@@ -417,7 +418,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   <KeyValueList entries={buildTopLevelFields(data)} />
                   <ConfidenceIntervalChart
                     scores={Object.fromEntries(
-                      data.evaluation.metrics.map((m) => [m.name, m.scores]),
+                      data.evaluation.metrics.map((m) => [getMetricIdentity(m), m.scores]),
                     )}
                   />
                 </>

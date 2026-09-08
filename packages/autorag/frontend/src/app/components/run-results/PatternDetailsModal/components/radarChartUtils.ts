@@ -11,9 +11,10 @@ export function collectAllMetricNames(
   const names: string[] = [];
   for (const result of results) {
     for (const m of result.metrics) {
-      if (!seen.has(m.name)) {
-        seen.add(m.name);
-        names.push(m.name);
+      const identity = `${m.evaluator}:${m.name}`;
+      if (!seen.has(identity)) {
+        seen.add(identity);
+        names.push(identity);
       }
     }
   }
@@ -27,7 +28,7 @@ export function metricValues(
   metrics: AutoRAGEvaluationMetricResult[],
   allMetricNames: string[],
 ): number[] {
-  const byName = new Map(metrics.map((m) => [m.name, m.score]));
+  const byName = new Map(metrics.map((m) => [`${m.evaluator}:${m.name}`, m.score]));
   return allMetricNames.map((name) => byName.get(name) ?? 0);
 }
 

@@ -4,13 +4,15 @@ import type {
   AutoragPatternScores,
   TabContentProps,
 } from '~/app/types/autoragPattern';
-import { formatPatternName, getOptimizedScore } from '~/app/utilities/utils';
+import { formatPatternName, getMetricIdentity, getOptimizedScore } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
 function metricsToScores(pattern: AutoragPattern): AutoragPatternScores {
-  return Object.fromEntries(pattern.evaluation.metrics.map((m) => [m.name, m.scores]));
+  return Object.fromEntries(
+    pattern.evaluation.metrics.map((m) => [getMetricIdentity(m), m.scores]),
+  );
 }
 
 export function buildTopLevelFields(pattern: AutoragPattern): Record<string, unknown> {
