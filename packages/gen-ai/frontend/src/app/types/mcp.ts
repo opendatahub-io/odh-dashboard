@@ -21,7 +21,7 @@ export type MCPServerFromAPI = {
   /** Server status from ConfigMap validation */
   status: 'healthy' | 'error' | 'unknown';
   version: string;
-  source: string;
+  source?: 'registry' | 'configmap';
   tools: MCPTool[];
   tool_count: number;
 };
@@ -50,6 +50,14 @@ export type MCPServersResponse = {
   total_count: number;
   /** Metadata about the source ConfigMap — null when no ConfigMap exists */
   config_map_info: MCPConfigMapInfo | null;
+  /** Whether the MCP registry (MLflow) backend is available */
+  registry_available?: boolean;
+  /** Error message if registry fetch failed */
+  registry_error?: string;
+  /** Whether the ConfigMap backend is available */
+  configmap_available?: boolean;
+  /** Error message if ConfigMap fetch failed */
+  configmap_error?: string;
 };
 
 /**
@@ -173,7 +181,8 @@ export interface MCPServer {
   connectionUrl: string;
   tools: number;
   toolsList?: MCPTool[];
+  source?: 'registry' | 'configmap';
   version: string;
-  source: string;
   logo: string | null;
+  /** Origin of the server: "registry" or "configmap" */
 }
