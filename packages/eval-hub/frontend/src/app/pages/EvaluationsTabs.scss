@@ -6,10 +6,6 @@
   gap: var(--pf-t--global--spacer--md);
 }
 
-.evalhub-evaluate-tab .evalhub-benchmark-suite-gallery {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 .evalhub-evaluate-tab__summary {
   color: var(--pf-t--global--text--color--subtle);
   margin-block-start: var(--pf-t--global--spacer--md);

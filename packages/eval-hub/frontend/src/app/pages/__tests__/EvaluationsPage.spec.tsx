@@ -159,6 +159,15 @@ describe('EvaluationsPage', () => {
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
   });
 
+  it('should link to the tenant benchmark suites page', () => {
+    renderPage('test-project');
+
+    expect(screen.getByRole('link', { name: 'Go to Benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/collections',
+    );
+  });
+
   it('should use the Runs tab from the URL and render its content description', () => {
     const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'completed' })];
     mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
@@ -254,6 +263,7 @@ describe('EvaluationsPage', () => {
       renderPage('test-project');
       selectRunsTab();
       expect(screen.getByTestId('eval-hub-empty-state')).toBeInTheDocument();
+      expect(screen.queryByTestId('runs-tab-description')).not.toBeInTheDocument();
     });
 
     it('should render the evaluations table when evaluations exist', () => {

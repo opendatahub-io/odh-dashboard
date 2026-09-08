@@ -77,5 +77,13 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
     ['mc1', 'toxicity'],
     ['mc1_acc', 'toxicity_score'],
   ),
+  createMockCollection(
+    'guardrails-compliance-suite',
+    'Guardrails compliance suite',
+    ['compliance', 'guardrails'],
+    'Test policy adherence, harmful content refusal, and guardrail effectiveness.',
+    ['attack-success', 'toxicity'],
+    ['attack_success_rate', 'toxicity_score'],
+  ),
 ];
 /* eslint-enable camelcase */

@@ -219,15 +219,17 @@ const EvaluationsPage: React.FC = () => {
               className="evalhub-evaluations-tab-content evalhub-runs-tab"
               data-testid="runs-tab-content"
             >
-              <StackItem>
-                <Content
-                  component="p"
-                  className="evalhub-runs-tab__description"
-                  data-testid="runs-tab-description"
-                >
-                  {RUNS_DESCRIPTION}
-                </Content>
-              </StackItem>
+              {evaluations.length > 0 && (
+                <StackItem>
+                  <Content
+                    component="p"
+                    className="evalhub-runs-tab__description"
+                    data-testid="runs-tab-description"
+                  >
+                    {RUNS_DESCRIPTION}
+                  </Content>
+                </StackItem>
+              )}
               <StackItem>
                 {evaluations.length === 0 ? (
                   <EvalHubEmptyState />
