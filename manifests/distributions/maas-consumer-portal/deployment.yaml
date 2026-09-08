@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-consumer-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: maas-consumer-portal
+  template:
+    metadata:
+      labels:
+        deployment: maas-consumer-portal
+        app.kubernetes.io/component: maas-consumer-portal
+        app.kubernetes.io/part-of: maas-consumer-portal
+        platform.opendatahub.io/part-of: maas-consumer-portal
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: maas-consumer-portal
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: portal-sa-token
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
+              - configMap:
+                  name: openshift-service-ca.crt
+                  items:
+                    - key: service-ca.crt
+                      path: service-ca.crt
+        - name: portal-tls
+          secret:
+            secretName: maas-consumer-portal-tls
+        - name: maas-consumer-portal-federation-config
+          configMap:
+            name: maas-consumer-portal-federation-config
+            items:
+              - key: module-federation-config.json
+                path: maas-consumer-portal-federation-config.json
+        - name: odh-trusted-ca-cert
+          configMap:
+            name: odh-trusted-ca-bundle
+            optional: true
+            items:
+              - key: ca-bundle.crt
+                path: odh-trusted-ca-bundle.crt
+        - name: odh-ca-cert
+          configMap:
+            name: odh-trusted-ca-bundle
+            optional: true
+            items:
+              - key: odh-ca-bundle.crt
+                path: odh-ca-bundle.crt
+      containers:
+        - name: maas-consumer-portal
+          image: core-bff-image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: portal-ui
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8443
+              scheme: HTTPS
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8443
+              scheme: HTTPS
+            timeoutSeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+              ephemeral-storage: 100Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: portal-tls
+              mountPath: /etc/tls/private
+              readOnly: true
+            - name: maas-consumer-portal-federation-config
+              mountPath: /etc/odh-dashboard
+              readOnly: true
+            - name: odh-trusted-ca-cert
+              mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+              subPath: odh-trusted-ca-bundle.crt
+              readOnly: true
+            - name: odh-trusted-ca-cert
+              mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+              subPath: odh-trusted-ca-bundle.crt
+              readOnly: true
+            - name: odh-ca-cert
+              mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+              subPath: odh-ca-bundle.crt
+              readOnly: true
+            - name: odh-ca-cert
+              mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+              subPath: odh-ca-bundle.crt
+              readOnly: true
+            - name: portal-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          args:
+            - --deployment-mode=standalone
+            - --auth-method=user_token
+            - --auth-token-header=x-forwarded-access-token
+            - --auth-token-prefix=
+            - --platform-type=OpenShift
+            - --namespace=dashboard-namespace
+            - --static-assets-dir=/static/maas-consumer-portal
+            - --mf-remotes-config=/etc/odh-dashboard/maas-consumer-portal-federation-config.json
+            - --port=8443
+            - --cert-file=/etc/tls/private/tls.crt
+            - --key-file=/etc/tls/private/tls.key
+            - --bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

@@ -22,7 +22,7 @@ jest.mock('react-router-dom', () => ({
   useParams: jest.fn(() => ({})),
   useLocation: () => mockUseLocation(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/areas/AreaComponent', () => ({
+jest.mock('@odh-dashboard/ui-core/components/conditionalArea', () => ({
   conditionalArea: () => (Component: React.ComponentType) => Component,
 }));
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({

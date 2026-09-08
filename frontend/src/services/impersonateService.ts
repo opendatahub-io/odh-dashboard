@@ -1,4 +1,4 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export const updateImpersonateSettings = (impersonate: boolean): Promise<void> => {
   const url = '/api/dev-impersonate';

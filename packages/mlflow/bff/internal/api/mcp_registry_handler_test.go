@@ -458,6 +458,8 @@ func TestUpdateMCPServerSuccess(t *testing.T) {
 
 	now := time.Now()
 	mockClient.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
+		Return(&mcpregistry.MCPServer{Name: testMCPServerName}, nil)
+	mockClient.On("GetMCPServer", tmock.Anything, testMCPServerName).
 		Return(&mcpregistry.MCPServer{Name: testMCPServerName, DisplayName: "New Name", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
 
 	body := `{"display_name":"New Name"}`
@@ -566,6 +568,8 @@ func TestRegisterMCPServerSuccess(t *testing.T) {
 			CreationTimestamp: now, LastUpdatedTimestamp: now,
 		}, nil)
 	mockClient.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
+		Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+	mockClient.On("GetMCPServer", tmock.Anything, testMCPServerName).
 		Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
 	mockClient.On("SetMCPServerTag", tmock.Anything, testMCPServerName, "team", "platform").Return(nil)
 
@@ -800,6 +804,21 @@ func TestSetMCPServerAliasMissingFields(t *testing.T) {
 	body := `{"alias":"production"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/servers/"+testMCPServerName+"/aliases", strings.NewReader(body))
 	req = requestWithMLflowClient(req, &mlflowpkg.MockClient{})
+	rr := httptest.NewRecorder()
+
+	app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam("/"+testMCPServerName+"/aliases"))
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestSetMCPServerAliasReservedLatest(t *testing.T) {
+	app := newTestAppWithMCPRegistryRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodDisabled}
+
+	body := `{"alias":"latest","version":"1.0.0"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mcp-registry/servers/"+testMCPServerName+"/aliases?workspace=my-ns", strings.NewReader(body))
+	req = requestWithMLflowClient(req, &mlflowpkg.MockClient{})
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	app.MLflowMCPServerCatchAllPostHandler(rr, req, restParam("/"+testMCPServerName+"/aliases"))
@@ -1212,6 +1231,8 @@ func TestUpdateMCPAccessEndpointSuccess(t *testing.T) {
 
 	now := time.Now()
 	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, testMCPServerName, "ep-1", tmock.Anything).
+		Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: testMCPServerName}, nil)
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, testMCPServerName, "ep-1").
 		Return(&mcpregistry.MCPAccessEndpoint{
 			ID: "ep-1", ServerName: testMCPServerName, EndpointURL: "https://mcp.example.com/new",
 			CreationTimestamp: now, LastUpdatedTimestamp: now,
@@ -1511,6 +1532,8 @@ func TestMCPRegistryHandlerPermissions(t *testing.T) {
 				now := time.Now()
 				m.On("UpdateMCPServer", tmock.Anything, testMCPServerName, tmock.Anything).
 					Return(&mcpregistry.MCPServer{Name: testMCPServerName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+				m.On("GetMCPServer", tmock.Anything, testMCPServerName).
+					Return(&mcpregistry.MCPServer{Name: testMCPServerName, DisplayName: "New Name", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
 			},
 		},
 		{

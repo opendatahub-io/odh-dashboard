@@ -20,6 +20,7 @@ import {
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext, Controller } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
+import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
 
 const COLUMN_TYPE_OPTIONS = [
   { key: 'string', label: 'string' },
@@ -39,7 +40,7 @@ const SchemaSection: React.FC = () => {
     control,
     register,
     formState: { errors },
-  } = useFormContext<RegisterDataFormData>();
+  } = useFormContext<RegisterDataFormData | EditAssetFormData>();
   const { fields, append, remove } = useFieldArray({ control, name: 'schemaFields' });
   const [openTypeIndex, setOpenTypeIndex] = React.useState<number | null>(null);
   const nextIdRef = React.useRef(0);

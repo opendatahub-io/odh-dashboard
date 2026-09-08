@@ -676,7 +676,7 @@ func TestService_DiscoverNamedPipelines(t *testing.T) {
 		}
 	})
 
-	t.Run("falls back to most recently created version", func(t *testing.T) {
+	t.Run("uses most recently created version when no version is pinned", func(t *testing.T) {
 		client := &mockPipelineClient{
 			listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
 				return &PipelinesResponse{
@@ -693,7 +693,7 @@ func TestService_DiscoverNamedPipelines(t *testing.T) {
 		}
 		svc := newTestServiceWithMock(client)
 
-		result, err := svc.DiscoverNamedPipelines(testCtx(), "test-ns", "2.0", map[string]string{
+		result, err := svc.DiscoverNamedPipelines(testCtx(), "test-ns", "", map[string]string{
 			"type-a": "pipeline-a",
 		})
 		if err != nil {
@@ -703,7 +703,31 @@ func TestService_DiscoverNamedPipelines(t *testing.T) {
 			t.Fatal("expected type-a to be discovered")
 		}
 		if result["type-a"].PipelineVersionID != "v-latest" {
-			t.Errorf("expected fallback version, got %q", result["type-a"].PipelineVersionID)
+			t.Errorf("expected newest version, got %q", result["type-a"].PipelineVersionID)
+		}
+	})
+
+	t.Run("does not fall back when a pinned version is unavailable", func(t *testing.T) {
+		client := &mockPipelineClient{
+			listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+				return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "p1", DisplayName: "pipeline-a"}}}, nil
+			},
+			listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+				return &PipelineVersionsResponse{PipelineVersions: []PipelineVersion{
+					{PipelineVersionID: "v-newest", DisplayName: "3.6.0"},
+				}}, nil
+			},
+		}
+		svc := newTestServiceWithMock(client)
+
+		result, err := svc.DiscoverNamedPipelines(testCtx(), "test-ns", "3.5.0", map[string]string{
+			"type-a": "pipeline-a",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result["type-a"] != nil {
+			t.Errorf("expected no discovery for unavailable pinned version, got %+v", result["type-a"])
 		}
 	})
 

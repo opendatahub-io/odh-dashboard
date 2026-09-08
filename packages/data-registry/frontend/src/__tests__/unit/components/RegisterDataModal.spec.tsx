@@ -3,11 +3,24 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
+import * as connectionsHook from '~/app/hooks/useConnections';
 
 jest.mock('~/app/api/dataRegistry');
+jest.mock('~/app/hooks/useConnections');
+jest.mock('mod-arch-core', () => ({
+  ...jest.requireActual('mod-arch-core'),
+  useSettings: jest.fn(),
+}));
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
+const mockUseConnections = jest.mocked(connectionsHook.useConnections);
+const mockUseSettings = jest.mocked(require('mod-arch-core').useSettings);
+
+const mockConnections = [
+  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
+  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
+];
 
 describe('RegisterDataModal', () => {
   const defaultProps = {
@@ -21,6 +34,13 @@ describe('RegisterDataModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: 'test-user' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
   });
 
   it('should render modal with all form fields', () => {
@@ -107,6 +127,12 @@ describe('RegisterDataModal', () => {
     expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
+  it('should render owner field', () => {
+    render(<RegisterDataModal {...defaultProps} />);
+
+    expect(screen.getByText('Owner')).toBeTruthy();
+  });
+
   it('should submit as volume when asset type is unstructured', async () => {
     const user = userEvent.setup();
     mockCreateVolume.mockResolvedValue({
@@ -131,6 +157,7 @@ describe('RegisterDataModal', () => {
         name: 'test-volume',
         // eslint-disable-next-line camelcase
         content_type: 'other',
+        owner: 'test-user',
       });
     });
 
@@ -173,6 +200,7 @@ describe('RegisterDataModal', () => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
         format: 'iceberg',
+        owner: 'test-user',
       });
     });
 
@@ -220,6 +248,102 @@ describe('RegisterDataModal', () => {
     expect(screen.getByText('Create new collection')).toBeTruthy();
   });
 
+  it('should display available connections in dropdown', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    expect(screen.getByText('My S3 Connection')).toBeTruthy();
+    expect(screen.getByText('My URI Connection')).toBeTruthy();
+  });
+
+  it('should show empty state when no connections available', async () => {
+    mockUseConnections.mockReturnValue([[], true, undefined]);
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    expect(screen.getByText('No connections available')).toBeTruthy();
+  });
+
+  it('should include connection_ref when connection is selected for volume', async () => {
+    const user = userEvent.setup();
+    mockCreateVolume.mockResolvedValue({
+      name: 'test-volume',
+      'catalog-name': 'test-project',
+      'schema-name': 'collection-1',
+      'volume-type': 'other',
+      'storage-location': '',
+    });
+
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-volume');
+
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => {
+      expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
+        name: 'test-volume',
+        // eslint-disable-next-line camelcase
+        content_type: 'other',
+        // eslint-disable-next-line camelcase
+        connection_ref: 'my-s3-connection',
+        owner: 'test-user',
+      });
+    });
+  });
+
+  it('should include connection_ref when connection is selected for table', async () => {
+    const user = userEvent.setup();
+    /* eslint-disable camelcase */
+    mockCreateGenericTable.mockResolvedValue({
+      name: 'test-table',
+      asset_type: 'table',
+      format: 'iceberg',
+      location: '',
+      description: '',
+      labels: [],
+      collection: 'collection-1',
+      connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
+      owner: '',
+      registered_by: '',
+      created_at: '',
+    });
+    /* eslint-enable camelcase */
+
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Structured'));
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-table');
+
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => {
+      expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
+        name: 'test-table',
+        format: 'iceberg',
+        // eslint-disable-next-line camelcase
+        connection_ref: 'my-s3-connection',
+        owner: 'test-user',
+      });
+    });
+  });
+
   it('should not include default path "/" in request', async () => {
     const user = userEvent.setup();
     mockCreateVolume.mockResolvedValue({
@@ -244,7 +368,33 @@ describe('RegisterDataModal', () => {
         name: 'minimal',
         // eslint-disable-next-line camelcase
         content_type: 'other',
+        owner: 'test-user',
       });
     });
+  });
+
+  it('should show validation error when submitting without owner', async () => {
+    mockUseSettings.mockReturnValue({
+      userSettings: { userId: '' },
+      configSettings: null,
+      loaded: true,
+      loadError: undefined,
+    });
+
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-asset');
+
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Owner is required')).toBeTruthy();
+    });
+
+    expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 });

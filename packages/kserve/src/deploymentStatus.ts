@@ -1,6 +1,6 @@
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/internal/concepts/kueue/types';
+import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   checkModelPodStatus,
   getInferenceServiceModelState,
@@ -15,8 +15,8 @@ import { toConditionStatus } from '@odh-dashboard/model-serving/extension-points
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
-import { getKueueSchedulingSubStep } from '@odh-dashboard/internal/concepts/kueue/index';
-import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
+import { getKueueSchedulingSubStep } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import { KServeDeployment } from './types';
 
 export const patchDeploymentStoppedStatus = (

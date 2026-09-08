@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { getConfigMap } from '#~/api';
+import { getConfigMap } from '@odh-dashboard/k8s-core/api/configMaps';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
 import {
@@ -9,7 +9,7 @@ import {
 } from '#~/concepts/modelCatalog/const';
 
 // Mock the dependencies
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/configMaps', () => ({
   getConfigMap: jest.fn(),
 }));
 

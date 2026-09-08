@@ -20,7 +20,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: dev-start
-dev-start: ## Start in mock mode (BFF + rspack dev server, no cluster needed)
+dev-start: ## Start in mock mode (BFF + dev server, no cluster needed)
 	npm run start:dev
 
 ##@ Build

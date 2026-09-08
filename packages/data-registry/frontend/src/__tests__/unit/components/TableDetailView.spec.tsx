@@ -40,11 +40,11 @@ describe('TableDetailView', () => {
     expect(link).toHaveTextContent('default');
   });
 
-  it('should render connection name without prefix', () => {
+  it('should render connection name', () => {
     const asset = mockAssetResponse();
     renderView(asset);
-    expect(screen.getByTestId('connection-ref-rhai')).toHaveTextContent('my-s3-connection');
-    expect(screen.getByTestId('connection-ref-rhai').textContent).not.toContain('Connection:');
+    const el = screen.getByTestId('connection-ref-label');
+    expect(el).toHaveTextContent('my-s3-connection');
   });
 
   it('should render created and last modified with user attribution', () => {

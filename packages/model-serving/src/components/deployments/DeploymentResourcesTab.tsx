@@ -11,9 +11,9 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { getAllConsumedResources } from '@odh-dashboard/internal/utilities/clusterQueueUtils';
-import useAssignedFlavor from '@odh-dashboard/internal/utilities/useAssignedFlavor';
-import useClusterQueue from '@odh-dashboard/internal/utilities/useClusterQueue';
+import { getAllConsumedResources } from '@odh-dashboard/ui-core/utilities/clusterQueueUtils';
+import useAssignedFlavor from '@odh-dashboard/ui-core/hooks/useAssignedFlavor';
+import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
 import useClusterQueueFromLocalQueue from '../../shared/kueue/useClusterQueueFromLocalQueue';
 
 type DeploymentResourcesTabProps = {

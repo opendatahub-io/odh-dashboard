@@ -5,6 +5,7 @@ A modern web application with a modular architecture, featuring a React frontend
 ## Contributing
 
 Interested in contributing? See our [Contributing Guide](CONTRIBUTING.md) for:
+
 - Development setup and quick start
 - Testing requirements and workflows
 - Coding standards and conventions
@@ -134,6 +135,33 @@ make run MOCK_MAAS_CLIENT=true
 make dev-bff-mock
 ```
 
+### Local MLflow and MCP Registry
+
+`MOCK_MLFLOW_CLIENT=true` starts the **full** local MLflow stack: tracking server on `:5001` (seeded with prompts and MCP registry rows) and MLflow BFF on `:4020`. Prompts and MCP registry APIs both work whenever this flag is active.
+
+| Command | Cluster | MLflow |
+|---------|---------|--------|
+| `make dev-start` | Yes | Off (unless `MOCK_MLFLOW_CLIENT=true` in `.env.local`) |
+| `make dev-start` + `MOCK_MLFLOW_CLIENT=true` in `.env.local` | Yes | Full stack (same MLflow behavior as `dev-start-mlflow`) |
+| `make dev-start-mock` | No | Full stack (hardcoded in Makefile) |
+| `make dev-start-mlflow` | Yes | Full stack (hardcoded in Makefile) |
+
+Add to `packages/gen-ai/.env.local` for MLflow on your usual `dev-start` workflow:
+
+```bash
+MOCK_MLFLOW_CLIENT=true
+PLAYGROUND_NAMESPACE=<your-openshift-namespace>   # optional — creates a matching MLflow workspace
+```
+
+**Optional: register a real Kubernetes MCP server (one-time cluster setup):**
+
+```bash
+cd packages/gen-ai
+make deploy-k8s-mcp
+```
+
+For seeding detail, env variables, and manual seed commands, see [bff/README.md](bff/README.md#inter-bff-communication-gen-ai--mlflow).
+
 ## Running Frontend and BFF Together
 
 For convenience, you can start both the frontend and BFF simultaneously using these Makefile targets from the root of the gen-ai package:
@@ -219,7 +247,6 @@ or
 echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.zshrc
 ```
 
-
 Then run the below, which will start the gen-ai frontend, bff with debugger, and port-forwarding (VSCode can attach on port 2345).
 
 ```bash
@@ -261,7 +288,7 @@ docker build -t gen-ai .
 docker run -p 8080:8080 gen-ai
 ```
 
-The application will be available at http://localhost:8080
+The application will be available at <http://localhost:8080>
 
 ### Docker Build Arguments
 

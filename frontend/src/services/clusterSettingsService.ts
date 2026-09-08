@@ -1,5 +1,5 @@
 import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 
 export const fetchClusterSettings = (): Promise<ClusterSettingsType> => {
   const url = '/api/cluster-settings';

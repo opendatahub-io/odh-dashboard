@@ -23,12 +23,14 @@ describe('SchemaColumnsTable', () => {
     expect(screen.getAllByText('string')).toHaveLength(2);
   });
 
-  it('should only show Name and Type columns', () => {
+  it('should show all schema columns', () => {
     render(<SchemaColumnsTable columns={mockColumns} />);
     const headers = screen.getByTestId('schema-columns-table').querySelectorAll('thead th');
-    expect(headers).toHaveLength(2);
+    expect(headers).toHaveLength(4);
     expect(headers[0]).toHaveTextContent('Name');
     expect(headers[1]).toHaveTextContent('Type');
+    expect(headers[2]).toHaveTextContent('Description');
+    expect(headers[3]).toHaveTextContent('Nullable');
   });
 
   it('should render empty state when no columns', () => {

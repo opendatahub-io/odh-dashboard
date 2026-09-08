@@ -3,6 +3,7 @@
  * Covers basic table rendering, filtering, role details modal, and role unassignment.
  */
 import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { RoleBindingModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   initProjectRbacIntercepts,
   mockClusterRoleK8sResource,
@@ -15,7 +16,7 @@ import { DeleteModal } from '../../../../pages/components/DeleteModal';
 import { projectRbacPermissions } from '../../../../pages/projectRbacPermissions';
 import { be } from '../../../../utils/should';
 import { getK8sAPIResourceURL } from '../../../../utils/k8s';
-import { ClusterRoleModel, RoleBindingModel } from '../../../../utils/models';
+import { ClusterRoleModel } from '../../../../utils/models';
 import { asProjectAdminUser } from '../../../../utils/mockUsers';
 
 describe('Permissions tab (projectRBAC) - General', () => {

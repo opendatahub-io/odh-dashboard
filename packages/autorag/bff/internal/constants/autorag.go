@@ -17,10 +17,6 @@ const (
 
 	// PipelineTypeIndexing identifies the documents-indexing-pipeline type used during discovery and in run responses.
 	PipelineTypeIndexing = "indexing"
-
-	// DefaultPipelineVersionSuffix is the preferred pipeline version display name used during
-	// discovery. Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
-	DefaultPipelineVersionSuffix = "3.5.0"
 )
 
 var ValidOptimizationMetrics = map[string]bool{

@@ -4,7 +4,7 @@ import * as useGetArtifactsList from '#~/concepts/pipelines/apiHooks/mlmd/useGet
 import * as MlmdListContext from '#~/concepts/pipelines/context/MlmdListContext';
 import { ArtifactsList } from '#~/pages/pipelines/global/experiments/artifacts/ArtifactsList';
 
-jest.mock('#~/api/errorUtils', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/errorUtils', () => ({
   getGenericErrorCode: jest.fn(() => null),
 }));
 
