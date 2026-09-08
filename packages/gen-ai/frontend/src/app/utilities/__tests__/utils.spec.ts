@@ -256,6 +256,14 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.status).toBe('Running');
   });
 
+  it('should fall back to model_name when display_name is empty', () => {
+    const result = convertMaaSModelToAIModel(
+      makeAAModelResponse({ model_name: 'openai-gpt-4o-mini', display_name: '' }),
+    );
+
+    expect(result.display_name).toBe('openai-gpt-4o-mini');
+  });
+
   it('should pass through model_type field', () => {
     const aaModel = makeAAModelResponse({
       model_type: 'embedding',

@@ -290,7 +290,12 @@ export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
     }
   }
 
-  return { ...model, internalEndpoint, externalEndpoint };
+  return {
+    ...model,
+    display_name: model.display_name || model.model_name,
+    internalEndpoint,
+    externalEndpoint,
+  };
 };
 
 /**
