@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -15,6 +15,11 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   SupportedArea: { KUEUE: 'kueue' },
   useIsAreaAvailable: jest.fn(),
+}));
+
+jest.mock('../../components/InfrastructureKueueHelpLink', () => ({
+  __esModule: true,
+  default: () => null,
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => {
@@ -69,9 +74,18 @@ jest.mock('../../components/BorrowingLendingSection', () => ({
   default: () => <div data-testid="borrowing" />,
 }));
 
-jest.mock('../../components/ClusterQueueUtilizationSection', () => ({
+jest.mock('../../hooks/useQuotaHierarchy', () => ({
   __esModule: true,
-  default: () => <div data-testid="cluster-queue" />,
+  default: () => ({
+    data: { tree: [] },
+    loaded: true,
+    refresh: jest.fn(),
+  }),
+}));
+
+jest.mock('../../components/QuotaUsageSection', () => ({
+  __esModule: true,
+  default: () => <div data-testid="quota-usage" />,
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
@@ -138,7 +152,10 @@ describe('InfrastructurePage - Tracking Events', () => {
       const user = userEvent.setup();
       render(<InfrastructurePage />);
 
-      const refreshButton = screen.getByRole('button', { name: 'Refresh' });
+      const refreshButton = within(screen.getByTestId('infrastructure-refresh-badge')).getByRole(
+        'button',
+        { name: 'Refresh' },
+      );
       await user.click(refreshButton);
 
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
@@ -154,7 +171,10 @@ describe('InfrastructurePage - Tracking Events', () => {
       };
       render(<InfrastructurePage />);
 
-      const refreshButton = screen.getByRole('button', { name: 'Refresh' });
+      const refreshButton = within(screen.getByTestId('infrastructure-refresh-badge')).getByRole(
+        'button',
+        { name: 'Refresh' },
+      );
       await user.click(refreshButton);
 
       expect(mockFireMisc).toHaveBeenCalledWith(

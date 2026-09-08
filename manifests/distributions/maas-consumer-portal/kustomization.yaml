@@ -1,0 +1,121 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - httproute.yaml
+  - consolelink.yaml
+configMapGenerator:
+  - name: maas-consumer-portal-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/component: maas-consumer-portal
+      app.kubernetes.io/name: maas-consumer-portal
+      app.kubernetes.io/part-of: maas-consumer-portal
+      platform.opendatahub.io/part-of: maas-consumer-portal
+    includeSelectors: false
+replacements:
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.core-bff-image
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-consumer-portal].image
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.parentRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-hostname
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.hostnames.0
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.section-title
+    targets:
+      - select:
+          group: console.openshift.io
+          version: v1
+          kind: ConsoleLink
+          name: maas-consumer-portal-link
+        fieldPaths:
+          - spec.applicationMenu.section
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-url
+    targets:
+      - select:
+          group: console.openshift.io
+          version: v1
+          kind: ConsoleLink
+          name: maas-consumer-portal-link
+        fieldPaths:
+          - spec.href
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.dashboard-namespace
+    targets:
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: ClusterRoleBinding
+          name: maas-consumer-portal
+        fieldPaths:
+          - subjects.0.namespace
+      - select:
+          kind: Deployment
+          name: maas-consumer-portal
+        # Kustomize cannot select a scalar argument by flag name. Keep
+        # --namespace=dashboard-namespace at args.5; the manifest rendering
+        # test verifies the resulting argument.
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-consumer-portal].args.5
+        options:
+          delimiter: "="
+          index: 1
+      - select:
+          kind: NetworkPolicy
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.egress.2.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+          - spec.egress.3.to.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: maas-consumer-portal-params
+      fieldPath: data.maas-consumer-portal-federation-config
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-consumer-portal
+        fieldPaths:
+          - spec.template.spec.volumes.[name=maas-consumer-portal-federation-config].configMap.name

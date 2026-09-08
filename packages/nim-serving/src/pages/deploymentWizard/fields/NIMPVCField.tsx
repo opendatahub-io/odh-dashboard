@@ -9,21 +9,27 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import type { TypeaheadSelectOption } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
 import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
-import { isNIMPVC, NIM_PVC_SUBPATH_ANNOTATION } from '../../clusterStorage/clusterStorage';
+import { categorizePVCs, type ExistingPVCOption } from './nimPVCUtils';
+
+export {
+  NIM_PVC_ANNOTATION,
+  NIM_PVC_SUBPATH_ANNOTATION,
+} from '../../clusterStorage/clusterStorage';
 
 export enum NIMPVCStorageMode {
   NEW = 'new',
@@ -69,35 +75,10 @@ type StorageClassOption = {
   displayName: string;
 };
 
-type ExistingPVCOption = {
-  name: string;
-  subPath?: string;
-};
-
 type NIMPVCExternalData = {
   storageClasses: StorageClassOption[];
   defaultStorageClassName: string;
   existingPVCs: ExistingPVCOption[];
-};
-
-const toPVCOption = (pvc: PersistentVolumeClaimKind): ExistingPVCOption => ({
-  name: pvc.metadata.name,
-  subPath: pvc.metadata.annotations?.[NIM_PVC_SUBPATH_ANNOTATION],
-});
-
-const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): ExistingPVCOption[] => {
-  const nimPVCs: ExistingPVCOption[] = [];
-  const otherPVCs: ExistingPVCOption[] = [];
-
-  for (const pvc of pvcs) {
-    if (isNIMPVC(pvc)) {
-      nimPVCs.push(toPVCOption(pvc));
-    } else {
-      otherPVCs.push(toPVCOption(pvc));
-    }
-  }
-
-  return [...nimPVCs, ...otherPVCs];
 };
 
 type FetchedStorageData = {
@@ -135,7 +116,7 @@ const useNIMPVCExternalData = (dependencies?: {
         name: sc.metadata.name,
         displayName: sc.metadata.annotations?.['openshift.io/display-name'] || sc.metadata.name,
       })),
-      existingPVCs: sortPVCsNIMFirst(pvcList),
+      existingPVCs: categorizePVCs(pvcList),
     };
   }, [projectName]);
 
@@ -258,9 +239,10 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
     label: sc.displayName,
   }));
 
-  const existingPVCOptions: SimpleSelectOption[] = existingPVCs.map((pvc) => ({
-    key: pvc.name,
-    label: pvc.name,
+  const existingPVCOptions: TypeaheadSelectOption[] = existingPVCs.map((pvc) => ({
+    value: pvc.name,
+    content: pvc.name,
+    group: pvc.category,
   }));
 
   return (
@@ -297,91 +279,99 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
         )}
       </FormGroup>
 
-      {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
-        <>
-          <FormGroup label="Cluster storage name" fieldId="nim-pvc-name" isRequired>
-            <TextInput
-              id="nim-pvc-name"
-              data-testid="nim-pvc-name-input"
-              value={fieldValue.pvcName}
-              onChange={(_event, val) => updateField({ pvcName: val })}
-              placeholder="nim-pvc"
+      <div className="pf-v6-u-pl-xl">
+        {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
+          <>
+            <FormGroup label="Cluster storage name" fieldId="nim-pvc-name" isRequired>
+              <TextInput
+                id="nim-pvc-name"
+                data-testid="nim-pvc-name-input"
+                value={fieldValue.pvcName}
+                onChange={(_event, val) => updateField({ pvcName: val })}
+                placeholder="nim-pvc"
+                isDisabled={isDisabled}
+              />
+              <HelperText>
+                <HelperTextItem>
+                  This cluster storage can be reused for future deployments of this NIM image.
+                </HelperTextItem>
+              </HelperText>
+            </FormGroup>
+
+            <SubPathField
+              subPath={fieldValue.subPath}
+              onSubPathChange={(val) => updateField({ subPath: val })}
               isDisabled={isDisabled}
             />
-            <HelperText>
-              <HelperTextItem>
-                This cluster storage can be reused for future deployments of this NIM image.
-              </HelperTextItem>
-            </HelperText>
-          </FormGroup>
 
-          <SubPathField
-            subPath={fieldValue.subPath}
-            onSubPathChange={(val) => updateField({ subPath: val })}
-            isDisabled={isDisabled}
-          />
+            <FormGroup label="Storage class" fieldId="nim-storage-class" isRequired>
+              <SimpleSelect
+                dataTestId="nim-storage-class-select"
+                options={storageClassOptions}
+                value={fieldValue.storageClassName}
+                onChange={(val) => updateField({ storageClassName: val })}
+                isDisabled={isDisabled}
+                isFullWidth
+                placeholder="Select storage class"
+              />
+            </FormGroup>
 
-          <FormGroup label="Storage class" fieldId="nim-storage-class" isRequired>
-            <SimpleSelect
-              dataTestId="nim-storage-class-select"
-              options={storageClassOptions}
-              value={fieldValue.storageClassName}
-              onChange={(val) => updateField({ storageClassName: val })}
+            <FormGroup label="NVIDIA NIM storage size" fieldId="nim-storage-size" isRequired>
+              <NumberInputWrapper
+                id="nim-storage-size"
+                data-testid="nim-storage-size-input"
+                value={fieldValue.storageSizeGi}
+                min={MIN_STORAGE_SIZE_GI}
+                onChange={(val) =>
+                  updateField({
+                    storageSizeGi: Math.max(MIN_STORAGE_SIZE_GI, val ?? DEFAULT_STORAGE_SIZE_GI),
+                  })
+                }
+                unit="GiB"
+                isDisabled={isDisabled}
+              />
+              <HelperText>
+                <HelperTextItem>
+                  Specify the size of the PVC. Make sure it is larger than the NIM image size
+                  specified by NVIDIA.
+                </HelperTextItem>
+              </HelperText>
+            </FormGroup>
+          </>
+        ) : (
+          <>
+            <FormGroup label="Cluster storage name" fieldId="nim-existing-pvc" isRequired>
+              <TypeaheadSelect
+                dataTestId="nim-existing-pvc-select"
+                selectOptions={existingPVCOptions}
+                selected={fieldValue.pvcName || undefined}
+                onSelect={(_, val) => {
+                  const pvcName = String(val);
+                  if (pvcName === fieldValue.pvcName) {
+                    return;
+                  }
+                  const selectedPVC = existingPVCMap.get(pvcName);
+                  updateField({
+                    pvcName,
+                    subPath: selectedPVC?.subPath ?? DEFAULT_SUBPATH,
+                  });
+                }}
+                isDisabled={isDisabled}
+                isRequired={false}
+                placeholder="Select cluster storage..."
+                collapsibleGroupsThreshold={12}
+                maxMenuHeight="300px"
+              />
+            </FormGroup>
+
+            <SubPathField
+              subPath={fieldValue.subPath}
+              onSubPathChange={(val) => updateField({ subPath: val })}
               isDisabled={isDisabled}
-              isFullWidth
-              placeholder="Select storage class"
             />
-          </FormGroup>
-
-          <FormGroup label="NVIDIA NIM storage size" fieldId="nim-storage-size" isRequired>
-            <NumberInputWrapper
-              id="nim-storage-size"
-              data-testid="nim-storage-size-input"
-              value={fieldValue.storageSizeGi}
-              min={MIN_STORAGE_SIZE_GI}
-              onChange={(val) =>
-                updateField({
-                  storageSizeGi: Math.max(MIN_STORAGE_SIZE_GI, val ?? DEFAULT_STORAGE_SIZE_GI),
-                })
-              }
-              unit="GiB"
-              isDisabled={isDisabled}
-            />
-            <HelperText>
-              <HelperTextItem>
-                Specify the size of the PVC. Make sure it is larger than the NIM image size
-                specified by NVIDIA.
-              </HelperTextItem>
-            </HelperText>
-          </FormGroup>
-        </>
-      ) : (
-        <>
-          <FormGroup label="Cluster storage name" fieldId="nim-existing-pvc" isRequired>
-            <SimpleSelect
-              dataTestId="nim-existing-pvc-select"
-              options={existingPVCOptions}
-              value={fieldValue.pvcName}
-              onChange={(val) => {
-                const selectedPVC = existingPVCMap.get(val);
-                updateField({
-                  pvcName: val,
-                  subPath: selectedPVC?.subPath ?? DEFAULT_SUBPATH,
-                });
-              }}
-              isDisabled={isDisabled}
-              isFullWidth
-              placeholder="Select..."
-            />
-          </FormGroup>
-
-          <SubPathField
-            subPath={fieldValue.subPath}
-            onSubPathChange={(val) => updateField({ subPath: val })}
-            isDisabled={isDisabled}
-          />
-        </>
-      )}
+          </>
+        )}
+      </div>
     </FormSection>
   );
 };

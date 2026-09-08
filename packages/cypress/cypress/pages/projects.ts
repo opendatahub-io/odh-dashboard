@@ -533,6 +533,22 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   findNIMReplaceKeyButton() {
     return cy.findByTestId('nim-replace-key-button');
   }
+
+  findNIMApiKeyModal() {
+    return cy.findByTestId('nim-api-key-modal');
+  }
+
+  findNIMApiKeyInput() {
+    return cy.findByTestId('nim-api-key-input');
+  }
+
+  findNIMApiKeySubmitButton() {
+    return cy.findByTestId('nim-api-key-submit');
+  }
+
+  findNIMApiKeyCloseButton() {
+    return cy.findByTestId('nim-api-key-close', { timeout: 60000 });
+  }
 }
 
 class ProjectDetailsOverviewTab extends ProjectDetails {

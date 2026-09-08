@@ -32,7 +32,8 @@ name: Cypress e2e Test
 #   3. Auto-detected from PR changes (always additive):
 #      Turbo detects changed packages → reads "e2eCiTags" from package.json
 #      Git diff detects changed frontend sub-areas → inline mapping resolves tags
-#      All auto-detected tags are consolidated into ONE additional matrix job
+#      When ≤8 auto-detected tags: consolidated into ONE additional matrix job
+#      When >8 auto-detected tags: split across two matrix jobs (half each)
 #
 #      To add auto-detection for a package:
 #        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
@@ -41,7 +42,7 @@ name: Cypress e2e Test
 #
 # LIMITS:
 #   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
-#   - Auto-detected tags are consolidated into 1 job (no limit needed)
+#   - Auto-detected tags: ≤8 → 1 job; >8 → split across 2 jobs (half each)
 #   - 10 runners shared across 30+ devs
 #
 # REQUIRED SECRETS:
@@ -585,7 +586,8 @@ jobs:
         run: |
           # Configuration
           MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
-          
+          MAX_AUTO_TAGS_PER_JOB=8  # Above this, split auto-detected tags across two matrix entries
+
           # Defaults
           TAGS=""
           SOURCE="default"
@@ -595,7 +597,8 @@ jobs:
             echo "⏭️ Skipping default @ci-dashboard-regression-tags (skip_default=true)"
           fi
           EXTRA_COUNT=0
-          AUTO_DETECTED_ENTRY=""
+          AUTO_DETECTED_ENTRY_1=""
+          AUTO_DETECTED_ENTRY_2=""
 
           # Priority 1: Manual input (workflow_dispatch)
           if [[ -n "$INPUT_ADDITIONAL_TAGS" ]]; then
@@ -635,7 +638,7 @@ jobs:
             echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
           fi
 
-          # Priority 3: Auto-detected from PR changes (additive, consolidated into ONE job)
+          # Priority 3: Auto-detected from PR changes (additive, split if >MAX_AUTO_TAGS_PER_JOB)
           AUTO_TAGS="$STEP_AUTO_TAGS"
           if [[ "$INPUT_SKIP_AUTO_DETECT" == "true" ]]; then
             echo "⏭️ Skipping auto-detection (skip_auto_detect=true)"
@@ -660,31 +663,48 @@ jobs:
             FILTERED_AUTO=$(echo "$FILTERED_AUTO" | xargs)
 
             if [[ -n "$FILTERED_AUTO" ]]; then
-              # Consolidate remaining auto-detected tags into a single matrix entry
-              # Cypress grep treats space-separated tags as OR, so one job covers all areas
-              AUTO_DETECTED_ENTRY="$FILTERED_AUTO"
+              AUTO_TAG_COUNT=$(echo "$FILTERED_AUTO" | wc -w | tr -d ' ')
+
+              if [[ $AUTO_TAG_COUNT -gt $MAX_AUTO_TAGS_PER_JOB ]]; then
+                # Too many tags for one runner — split across two matrix entries
+                AUTO_TAGS_ARRAY=($FILTERED_AUTO)
+                MIDPOINT=$(( (AUTO_TAG_COUNT + 1) / 2 ))
+                AUTO_DETECTED_ENTRY_1="${AUTO_TAGS_ARRAY[*]:0:$MIDPOINT}"
+                AUTO_DETECTED_ENTRY_2="${AUTO_TAGS_ARRAY[*]:$MIDPOINT}"
+                echo "🤖 $AUTO_TAG_COUNT auto-detected tags (split across 2 jobs):"
+                echo "   Job 1: $AUTO_DETECTED_ENTRY_1"
+                echo "   Job 2: $AUTO_DETECTED_ENTRY_2"
+              else
+                # Consolidate into a single matrix entry
+                # Cypress grep treats space-separated tags as OR, so one job covers all areas
+                AUTO_DETECTED_ENTRY_1="$FILTERED_AUTO"
+                echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY_1"
+              fi
+
               if [[ "$SOURCE" == "default" ]]; then
                 SOURCE="auto-detected"
               else
                 SOURCE="$SOURCE+auto-detected"
               fi
-              echo "🤖 Auto-detected tags (consolidated into 1 job): $AUTO_DETECTED_ENTRY"
             else
               echo "ℹ️  All auto-detected tags already covered by manual/label tags"
             fi
           fi
 
           # Convert to JSON matrix (deduplicated)
-          if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY" ]]; then
+          if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY_1" ]]; then
             echo "❌ No tags to run. Provide additional_tags or disable skip options."
             exit 1
           fi
           MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
             sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
 
-          # Append the consolidated auto-detected entry as a single matrix item
-          if [[ -n "$AUTO_DETECTED_ENTRY" ]]; then
-            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY" '. + [$entry] | unique')
+          # Append auto-detected entries (1 or 2 depending on tag count)
+          if [[ -n "$AUTO_DETECTED_ENTRY_1" ]]; then
+            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY_1" '. + [$entry] | unique')
+          fi
+          if [[ -n "$AUTO_DETECTED_ENTRY_2" ]]; then
+            MATRIX=$(echo "$MATRIX" | jq -c --arg entry "$AUTO_DETECTED_ENTRY_2" '. + [$entry] | unique')
           fi
           
           # Convert to objects with dynamic timeout: 30 min base + 7 min per tag, capped at 360 min
@@ -762,6 +782,7 @@ jobs:
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
+    name: e2e-tests (${{ matrix.tag }})
     needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
     if: >-
       !cancelled() && !failure() &&

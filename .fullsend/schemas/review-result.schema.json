@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-result.schema.json",
+  "title": "Review Agent Result",
+  "description": "Agent fills findings, risk, confidence, product_ask, change_summary, verification, and optional decision_needed/inspected. The host post-script sets action and body.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pr_number", "repo", "head_sha"],
+  "properties": {
+    "action": { "type": "string", "enum": ["approve", "request-changes", "comment", "reject", "failure"] },
+    "pr_number": { "type": "integer", "minimum": 1 },
+    "repo": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
+    "head_sha": { "type": "string", "pattern": "^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$" },
+    "body": { "type": "string", "minLength": 1 },
+    "schema_version": { "type": "string", "const": "2" },
+    "change_summary": { "type": "string", "minLength": 1 },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "reason": { "type": "string", "enum": ["tool-failure", "missing-context", "ambiguous-findings", "token-limit"] },
+    "risk": { "$ref": "#/$defs/rated" },
+    "confidence": { "$ref": "#/$defs/confidence_rated" },
+    "product_ask": { "$ref": "#/$defs/product_ask" },
+    "verification": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/verification_row" } },
+    "decision_needed": { "$ref": "#/$defs/decision_needed" },
+    "inspected": { "$ref": "#/$defs/inspected" },
+    "label_actions": { "$ref": "#/$defs/label_actions" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "failure" } }, "required": ["action"] },
+      "then": { "required": ["reason"] },
+      "else": { "required": ["risk", "confidence", "change_summary", "verification"] }
+    },
+    {
+      "if": { "required": ["reason"] },
+      "then": {
+        "properties": { "action": { "const": "failure" } },
+        "required": ["action"]
+      }
+    }
+  ],
+  "$defs": {
+    "rated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "why"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Blast radius if this change ships wrong: low is narrow/internal; medium is feature-local or sensitive-adjacent; high is wide or product-visible; critical crosses a trust boundary or risks data loss. This is not finding severity."
+        },
+        "why": { "type": "string", "minLength": 1 }
+      }
+    },
+    "confidence_rated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "why"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "Trustworthiness of this review, following the weaker of proof quality and patch-review completeness: high means evidence matches and producers ran; medium is usable but incomplete; low cannot support approve."
+        },
+        "why": { "type": "string", "minLength": 1 }
+      }
+    },
+    "verification_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "result"],
+      "properties": {
+        "id": { "type": "string", "enum": ["description-vs-code", "evidence", "security", "blocking-findings", "product-ask"] },
+        "label": { "type": "string", "minLength": 1 },
+        "result": { "type": "string", "enum": ["pass", "fail", "could-not-verify"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "decision_needed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "options"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1 },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "implication": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "inspected": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": { "type": "string" },
+        "producers": { "type": "array", "items": { "type": "string" } },
+        "could_not_verify": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["severity", "category", "file", "description"],
+      "properties": {
+        "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
+        "category": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "remediation": { "type": "string", "minLength": 1 },
+        "why": { "type": "string", "minLength": 1 },
+        "actionable": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "severity": { "enum": ["critical", "high", "medium"] } }, "required": ["severity"] },
+          "then": { "required": ["why"] }
+        },
+        {
+          "if": { "properties": { "severity": { "enum": ["critical", "high"] } }, "required": ["severity"] },
+          "then": { "required": ["remediation"] }
+        }
+      ]
+    },
+    "product_ask": {
+      "type": "object",
+      "description": "PR description vs linked Jira description. Not code-vs-acceptance-criteria and not sent through the challenger.",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["none", "aligned", "mismatch-justified", "mismatch-unjustified"] },
+        "aligned": { "type": "array", "items": { "type": "string" } },
+        "mismatched": { "type": "array", "items": { "type": "string" } },
+        "justified_in_description": { "type": "boolean" },
+        "needs_human": { "type": "boolean" }
+      }
+    },
+    "label_actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "actions"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["action", "label"],
+            "properties": {
+              "action": { "type": "string", "enum": ["add", "remove"] },
+              "label": { "type": "string", "minLength": 1, "pattern": "^[a-zA-Z0-9._/: +-]+$" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
