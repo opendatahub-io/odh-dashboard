@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
-import MyBenchmarkSuitesPage from '~/app/pages/MyBenchmarkSuitesPage';
+import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
 
 const mockUseCollectionsQuery = jest.fn();
 
@@ -16,6 +16,10 @@ jest.mock('~/app/hooks/collections', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
@@ -25,12 +29,12 @@ const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/test-project/collections']}>
       <Routes>
-        <Route path="/:namespace/collections" element={<MyBenchmarkSuitesPage />} />
+        <Route path="/:namespace/collections" element={<BenchmarkSuitesPage />} />
       </Routes>
     </MemoryRouter>,
   );
 
-describe('MyBenchmarkSuitesPage', () => {
+describe('BenchmarkSuitesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseCollectionsQuery.mockReturnValue({

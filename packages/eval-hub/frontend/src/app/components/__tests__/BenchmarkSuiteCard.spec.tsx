@@ -70,6 +70,23 @@ describe('BenchmarkSuiteCard', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('should invoke the suite selection callback when the name is clicked', () => {
+    const collection = mockCollection({ id: 'model-suite' });
+    const onSelect = jest.fn();
+
+    render(
+      <BenchmarkSuiteCard
+        collection={collection}
+        primaryAction={{ label: 'Run benchmark suite', onClick: jest.fn() }}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-name-model-suite'));
+
+    expect(onSelect).toHaveBeenCalledWith(collection);
+  });
+
   it('should use the legacy category when domains are not available', () => {
     render(
       <BenchmarkSuiteCard

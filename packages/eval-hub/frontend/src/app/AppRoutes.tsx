@@ -6,7 +6,7 @@ import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
 import EvalHubCoreLoader from './components/EvalHubCoreLoader';
 import ToastNotifications from './components/ToastNotifications';
 import EvaluationsPage from './pages/EvaluationsPage';
-import MyBenchmarkSuitesPage from './pages/MyBenchmarkSuitesPage';
+import BenchmarkSuitesPage from './pages/BenchmarkSuitesPage';
 import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
 import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
@@ -34,7 +34,7 @@ const AppRoutes: React.FC = () => (
         element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
       >
         <Route path=":namespace" element={<EvaluationsPage />} />
-        <Route path=":namespace/collections" element={<MyBenchmarkSuitesPage />} />
+        <Route path=":namespace/collections" element={<BenchmarkSuitesPage />} />
         <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
         <Route
           path={`:namespace/${evaluationComparePathSegment}/benchmarks`}

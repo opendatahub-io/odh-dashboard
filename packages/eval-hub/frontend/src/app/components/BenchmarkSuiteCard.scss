@@ -22,6 +22,14 @@
   overflow-wrap: anywhere;
 }
 
+.evalhub-benchmark-suite-card__title-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  text-decoration: none;
+}
+
 .evalhub-benchmark-suite-card__count {
   color: var(--pf-t--global--text--color--subtle);
   font-size: var(--pf-t--global--font--size--sm);

@@ -67,6 +67,14 @@ class EvaluationsPage {
     return cy.findByTestId(`benchmark-suite-card-${collectionId}`);
   }
 
+  findBenchmarkSuiteName(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-name-${collectionId}`);
+  }
+
+  findCollectionDrawerPanel() {
+    return cy.findByTestId('collection-drawer-panel');
+  }
+
   findBenchmarkSuiteMenu(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
   }

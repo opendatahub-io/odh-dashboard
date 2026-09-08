@@ -36,12 +36,14 @@ type BenchmarkSuiteCardProps = {
     onClick: () => void;
   };
   contextualActions?: BenchmarkSuiteCardAction[];
+  onSelect?: (collection: Collection) => void;
 };
 
 const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   collection,
   primaryAction,
   contextualActions,
+  onSelect,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const domains = collection.domains?.length
@@ -121,7 +123,19 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         </Flex>
       </CardHeader>
       <CardTitle className="evalhub-benchmark-suite-card__title">
-        {collection.name}
+        {onSelect ? (
+          <Button
+            variant="link"
+            isInline
+            className="evalhub-benchmark-suite-card__title-button"
+            onClick={() => onSelect(collection)}
+            data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
+          >
+            {collection.name}
+          </Button>
+        ) : (
+          collection.name
+        )}
         <Content component="p" className="evalhub-benchmark-suite-card__count">
           {benchmarkCount} benchmark{benchmarkCount === 1 ? '' : 's'}
         </Content>

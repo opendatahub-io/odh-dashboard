@@ -82,6 +82,10 @@ jest.mock('~/app/hooks/collections', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectIconWithSizeModule(),
 );

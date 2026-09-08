@@ -10,7 +10,7 @@ import {
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type { Collection, EvalHubHealthResponse, EvaluationJob } from '~/app/types';
+import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -19,6 +19,7 @@ type InterceptOptions = {
   namespaces?: Namespace[];
   health?: EvalHubHealthResponse;
   jobs?: EvaluationJob[];
+  providers?: Provider[];
   collections?: Collection[];
   collectionsTotalCount?: number;
 };
@@ -27,6 +28,7 @@ const initIntercepts = ({
   namespaces = [mockNamespace({ name: NAMESPACE })],
   health = mockEvalHubHealth(),
   jobs = [],
+  providers = [],
   collections = [],
   collectionsTotalCount,
 }: InterceptOptions = {}) => {
@@ -41,6 +43,8 @@ const initIntercepts = ({
   cy.interceptApi('GET /api/:apiVersion/evalhub/health', { path: API_VERSION }, health);
 
   cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, jobs);
+
+  cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, providers);
 
   cy.interceptApi(
     'GET /api/:apiVersion/evaluations/collections',
@@ -110,6 +114,17 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('code-quality-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('trace-evaluation-suite').should('exist');
     evaluationsPage.findBenchmarkSuitesSummary().should('contain.text', '5 of 6 benchmark suites');
+  });
+
+  it('should open the suite details drawer when selecting a suite name', () => {
+    initIntercepts({ collections: mockBenchmarkSuiteCollections() });
+
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuiteName('model-suite-2').click();
+
+    evaluationsPage.findCollectionDrawerPanel().should('be.visible');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run benchmark suite');
   });
 
   it('should render curated suite category cards and link to filtered collections', () => {

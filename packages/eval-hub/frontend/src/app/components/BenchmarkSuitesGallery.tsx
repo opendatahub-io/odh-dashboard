@@ -19,6 +19,7 @@ type BenchmarkSuitesGalleryProps = {
   maxVisibleCollections?: number;
   showSummary?: boolean;
   onCreateSuite?: () => void;
+  onSelectCollection: (collection: Collection) => void;
 };
 
 function handleRunCollection(): null {
@@ -31,6 +32,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   maxVisibleCollections,
   showSummary = false,
   onCreateSuite,
+  onSelectCollection,
 }) => {
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const { data, isLoading, error } = useCollectionsQuery(
@@ -118,6 +120,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 onClick: handleRunCollection,
               }}
               contextualActions={contextualActions}
+              onSelect={onSelectCollection}
             />
           </GalleryItem>
         ))}
