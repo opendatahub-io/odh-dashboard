@@ -1263,13 +1263,8 @@ class ModelServingWizard extends Wizard {
 
     dropdown.then(($el) => {
       if ($el.prop('disabled')) {
-        if (profileName) {
-          cy.wrap($el).contains(profileName).should('exist');
-          cy.log(`Dropdown is disabled with value: ${profileName}`);
-        } else {
-          cy.wrap($el).contains(profileDisplayName).should('exist');
-          cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
-        }
+        cy.wrap($el).contains(profileDisplayName).should('exist');
+        cy.log(`Dropdown is disabled with value: ${profileDisplayName}`);
       } else {
         dropdown.click();
         if (profileName) {
