@@ -24,10 +24,18 @@ const PACKAGE_SRC_DIR = path.resolve(RELATIVE_DIRNAME, '../src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
 
 const assertLoopbackHost = () => {
-  if (AUTH_METHOD === 'user_token' && !['localhost', '127.0.0.1', '::1'].includes(HOST)) {
+  if (AUTH_METHOD === 'user_token' && !LOOPBACK_HOSTS.includes(HOST)) {
     throw new Error('AUTH_METHOD=user_token requires a loopback HOST');
+  }
+};
+
+const assertCredentialedProxyTransport = () => {
+  const isTls = PROXY_PROTOCOL === 'https' || PROXY_PROTOCOL === 'https:';
+  if (AUTH_METHOD === 'user_token' && !isTls && !LOOPBACK_HOSTS.includes(PROXY_HOST)) {
+    throw new Error('AUTH_METHOD=user_token requires HTTPS for a non-loopback proxy target');
   }
 };
 
@@ -57,6 +65,7 @@ const getKubeconfigToken = () => {
   }
 };
 
+assertCredentialedProxyTransport();
 const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
 
 const getProxyHeaders = () => {
