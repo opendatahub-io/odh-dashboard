@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.45.0"
+      "openai_sdk_version": "3.1.0"
     }
   },
   "response": {
@@ -20,6 +20,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash"
         }
       },
@@ -30,47 +31,8 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Pro"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-2.0-flash",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 2.0 Flash"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-2.0-flash-001",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 2.0 Flash 001"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-2.0-flash-lite-001",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 2.0 Flash-Lite 001"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-2.0-flash-lite",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 2.0 Flash-Lite"
         }
       },
       {
@@ -80,6 +42,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash Preview TTS"
         }
       },
@@ -90,7 +53,19 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Pro Preview TTS"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.7-flash-video-understanding-eap",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "[Confidential] Gemini 3.7 Flash Video Understanding EAP"
         }
       },
       {
@@ -100,6 +75,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemma 4 26B A4B IT"
         }
       },
@@ -110,6 +86,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemma 4 31B IT"
         }
       },
@@ -120,6 +97,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Flash Latest"
         }
       },
@@ -130,6 +108,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Flash-Lite Latest"
         }
       },
@@ -140,6 +119,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Pro Latest"
         }
       },
@@ -150,6 +130,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash-Lite"
         }
       },
@@ -160,17 +141,8 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-3-pro-preview",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini 3 Pro Preview"
         }
       },
       {
@@ -180,6 +152,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3 Flash Preview"
         }
       },
@@ -190,6 +163,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Pro Preview"
         }
       },
@@ -200,6 +174,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Pro Preview Custom Tools"
         }
       },
@@ -210,6 +185,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Flash Lite Preview"
         }
       },
@@ -220,6 +196,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Flash Lite"
         }
       },
@@ -230,6 +207,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana Pro"
         }
       },
@@ -240,6 +218,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana Pro"
         }
       },
@@ -250,6 +229,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana Pro"
         }
       },
@@ -260,6 +240,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana 2"
         }
       },
@@ -270,6 +251,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana 2"
         }
       },
@@ -280,6 +262,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Nano Banana 2 Lite"
         }
       },
@@ -290,7 +273,19 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.5 Flash"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.5-flash-lite",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "Gemini 3.5 Flash Lite"
         }
       },
       {
@@ -300,7 +295,30 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Omni Flash Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.6-flash",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "Gemini 3.6 Flash"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.7-flash",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "Gemini 3.7 Flash"
         }
       },
       {
@@ -310,6 +328,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Lyria 3 Clip Preview"
         }
       },
@@ -320,6 +339,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Lyria 3 Pro Preview"
         }
       },
@@ -330,17 +350,8 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Flash TTS Preview"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemini-robotics-er-1.5-preview",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemini Robotics-ER 1.5 Preview"
         }
       },
       {
@@ -350,7 +361,19 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Robotics-ER 1.6 Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-robotics-er-2-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "Gemini Robotics-ER 2 Preview"
         }
       },
       {
@@ -360,6 +383,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Computer Use Preview 10-2025"
         }
       },
@@ -370,6 +394,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Antigravity Agent Preview"
         }
       },
@@ -380,6 +405,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Deep Research Max Preview (Apr-21-2026)"
         }
       },
@@ -390,6 +416,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Deep Research Preview (Apr-21-2026)"
         }
       },
@@ -400,6 +427,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Deep Research Pro Preview (Dec-12-2025)"
         }
       },
@@ -410,6 +438,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Embedding 001"
         }
       },
@@ -420,6 +449,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Embedding 2 Preview"
         }
       },
@@ -430,6 +460,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini Embedding 2"
         }
       },
@@ -440,6 +471,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Model that performs Attributed Question Answering."
         }
       },
@@ -450,6 +482,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Imagen 4"
         }
       },
@@ -460,6 +493,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Imagen 4 Ultra"
         }
       },
@@ -470,6 +504,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Imagen 4 Fast"
         }
       },
@@ -480,6 +515,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Veo 3.1"
         }
       },
@@ -490,6 +526,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Veo 3.1 fast"
         }
       },
@@ -500,6 +537,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Veo 3.1 lite"
         }
       },
@@ -510,6 +548,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash Native Audio Latest"
         }
       },
@@ -520,6 +559,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash Native Audio Preview 09-2025"
         }
       },
@@ -530,6 +570,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 2.5 Flash Native Audio Preview 12-2025"
         }
       },
@@ -540,7 +581,19 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.1 Flash Live Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-robotics-er-2-streaming-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "shutdown_date": null,
+          "display_name": "Gemini Robotics-ER 2 Streaming Preview"
         }
       },
       {
@@ -550,6 +603,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Gemini 3.5 Live Translate Preview"
         }
       },
@@ -560,6 +614,7 @@
           "created": null,
           "object": "model",
           "owned_by": "google",
+          "shutdown_date": null,
           "display_name": "Lyria Realtime Experimental"
         }
       }

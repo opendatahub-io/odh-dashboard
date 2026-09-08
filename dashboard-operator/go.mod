@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	github.com/opendatahub-io/odh-platform-utilities v0.2.1-0.20260804085229-7872bf1402b9
+	github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1
