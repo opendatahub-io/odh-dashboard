@@ -113,7 +113,17 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
+    },
+    properties: {
+      path: '/ai-hub/models/deployments/external-providers/*',
+      component: () => import('./ExternalProvidersWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/maas/tokens/*',

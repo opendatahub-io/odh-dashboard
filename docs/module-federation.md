@@ -29,7 +29,7 @@ Shared module policy is centralized in `@odh-dashboard/app-config` and enforced 
 
 - **`OdhFederationPlugin`** — host and remotes. Import from `@odh-dashboard/app-config/rspack` (dashboard host and package remotes) or `@odh-dashboard/app-config/webpack` (notebooks and model-registry upstream only). Pass `isHost: true` for the dashboard and for standalone remotes; pass `isHost: false` when the package is a federated remote.
 
-The plugin configures shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not maintain shared dependency lists manually. Entries from the default PatternFly / React / SDK map are shared only when they appear in `dependencies` of the `package.json` in webpack `compiler.context`. ODH packages are shared from workspace discovery (see table below), not gated on each remote's `dependencies`.
+The plugin configures shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not maintain shared dependency lists manually. Entries from the default PatternFly / React / SDK map are shared only when they appear in `dependencies` of the `package.json` in the bundler `compiler.context`. ODH packages are shared from workspace discovery (see table below), not gated on each remote's `dependencies`.
 
 #### What is automatically shared
 
@@ -212,11 +212,11 @@ Federated modules can extend the host application by exposing extensions through
 
 ### Exposing Extensions
 
-Your module's webpack configuration must expose extensions:
+Your module's rspack configuration must expose extensions:
 
 ```javascript
-// webpack config (packages/my-module/frontend/config/moduleFederation.js)
-const { OdhFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+// rspack config (packages/my-module/frontend/config/moduleFederation.js)
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 module.exports = {
   moduleFederationPlugins: [
@@ -263,7 +263,7 @@ For detailed information about:
 
 Please refer to the [Extensibility Documentation](./extensibility.md).
 
-## Webpack Configuration
+## Rspack Configuration
 
 ### Required Dependencies
 
@@ -273,7 +273,7 @@ In the remote's **frontend** `package.json`:
 npm install --save-dev @module-federation/enhanced
 ```
 
-In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a `devDependency` (resolved via workspace hoisting when the frontend webpack config requires it):
+In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a `devDependency` (resolved via workspace hoisting when the frontend rspack config requires it):
 
 ```json
 {
@@ -291,7 +291,7 @@ Remote modules use `OdhFederationPlugin` with `isHost` derived from `DEPLOYMENT_
 
 ```javascript
 // packages/my-module/frontend/config/moduleFederation.js
-const { OdhFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 module.exports = {
   moduleFederationPlugins: [
@@ -354,7 +354,7 @@ module.exports = {
 1. Add camelCase `module-federation` configuration to the parent `package.json`
 2. Add `@module-federation/enhanced` to the frontend `package.json` `devDependencies`
 3. Add `@odh-dashboard/app-config` to the parent `package.json` `devDependencies` (requires Node.js 22.18.0+; no separate app-config build)
-4. Create a `moduleFederation.js` using `OdhFederationPlugin` from `@odh-dashboard/app-config/webpack` (`isHost: process.env.DEPLOYMENT_MODE === 'standalone'`)
+4. Create a `moduleFederation.js` using `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (`isHost: process.env.DEPLOYMENT_MODE === 'standalone'`)
 5. Create extensions and extension-points files under `src/odh/`
 6. Build and serve your module locally
 
@@ -368,20 +368,20 @@ module.exports = {
 
 The monorepo contains two types of packages:
 
-- **Federated remotes** (webpack + MF config): Packages like `gen-ai`, `maas`, `mlflow` that build separately and the host loads at runtime.
-- **Library packages** (no webpack, no MF config): Packages like `llmd-serving`, `model-serving`, `kserve`, `plugin-core` that expose raw TypeScript via `package.json` `exports`.
+- **Federated remotes** (rspack + MF config): Packages like `gen-ai`, `maas`, `mlflow` that build separately and the host loads at runtime. Upstream `notebooks` and `model-registry` still use webpack.
+- **Library packages** (no rspack, no MF config): Packages like `llmd-serving`, `model-serving`, `kserve`, `plugin-core` that expose raw TypeScript via `package.json` `exports`.
 
-When a federated remote imports from a library package, webpack must compile the library's TypeScript and the code can end up duplicated between the host and remote bundles. Host-provided ODH packages (on the host dependency graph or that export `./extensions`) are shared as singletons with `import: false` on remotes so the remote consumes the host copy.
+When a federated remote imports from a library package, rspack must compile the library's TypeScript and the code can end up duplicated between the host and remote bundles. Host-provided ODH packages (on the host dependency graph or that export `./extensions`) are shared as singletons with `import: false` on remotes so the remote consumes the host copy.
 
-### Webpack Exclude Regex
+### Rspack Exclude Regex
 
-All `webpack.common.js` files use a negative lookahead in the TS/JS rule to allow `@odh-dashboard/*` packages to be compiled:
+All `rspack.common.js` files use a negative lookahead in the TS/JS rule to allow `@odh-dashboard/*` packages to be compiled:
 
 ```javascript
 exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
 ```
 
-This ensures webpack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.
+This ensures rspack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.
 
 ### Adding a New Library Package
 
@@ -389,7 +389,7 @@ When creating a new `@odh-dashboard/*` library package that will be consumed by 
 
 1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
 2. For remotes to use `import: false` against it, the package must be host-provided: either appear in the host's `@odh-dashboard/*` dependency closure, or export `./extensions` (included in the host via the virtual `plugin-extensions` module). Otherwise it is only shared as a singleton with import/fallback if reached from a federated package's dependency tree.
-3. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
+3. Ensure the consumer's `rspack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 
 ## Troubleshooting
 
@@ -398,5 +398,5 @@ When creating a new `@odh-dashboard/*` library package that will be consumed by 
 1. **Module not loading**: Verify the camelCase module name matches between `package.json` `module-federation.name` and `OdhFederationPlugin`
 2. **Shared dependency conflicts**: Confirm the module is listed in that package's `dependencies` (plugins only share packages present there) and that `@odh-dashboard/app-config` is installed as a parent `devDependency`
 3. **Proxy issues**: Check that the backend service is running and accessible
-4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your webpack configuration
-5. **Module parse failed for `@odh-dashboard/*` packages**: Ensure `webpack.common.js` uses `exclude: [/node_modules\/(?!@odh-dashboard)/]` instead of `exclude: [/node_modules/]` in the TS/JS rule
+4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your rspack configuration
+5. **Module parse failed for `@odh-dashboard/*` packages**: Ensure `rspack.common.js` uses `exclude: [/node_modules\/(?!@odh-dashboard)/]` instead of `exclude: [/node_modules/]` in the TS/JS rule

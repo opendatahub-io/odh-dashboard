@@ -330,6 +330,26 @@ export type ExternalModelProviderDetailViewedProperties = {
   providerType: ExternalModelProviderType;
 };
 
+export const convertStringToExternalModelProviderType = (
+  type: string,
+): ExternalModelProviderType => {
+  switch (type) {
+    case 'openai':
+      return ExternalModelProviderType.OPENAI;
+    case 'anthropic':
+      return ExternalModelProviderType.ANTHROPIC;
+    case 'azure':
+      return ExternalModelProviderType.AZURE;
+    case 'bedrock':
+      return ExternalModelProviderType.BEDROCK;
+    case 'vertex':
+      return ExternalModelProviderType.VERTEX;
+    case 'other':
+      return ExternalModelProviderType.OTHER;
+  }
+  return ExternalModelProviderType.OTHER;
+};
+
 export const enum ExternalModelsInfoPopoverTarget {
   COLUMN_EXTERNAL_PROVIDER = 'column-external-provider',
   COLUMN_STATUS = 'column-status',

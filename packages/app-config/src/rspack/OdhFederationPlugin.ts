@@ -10,7 +10,7 @@ const { BaseOdhFederationPlugin } = require('../webpack/BaseOdhFederationPlugin.
 export type { OdhFederationPluginOptions };
 
 /**
- * Rspack Module Federation plugin for host and remote builds.
+ * Module Federation plugin for host and remote builds.
  *
  * Usage:
  *   new OdhFederationPlugin({ name: 'host', isHost: true, remotes, dts })

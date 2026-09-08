@@ -1,9 +1,9 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
+import { getClusterQueue } from '@odh-dashboard/k8s-core/api/clusterQueues';
 import { ClusterQueueKind } from '#~/k8sTypes';
-import useClusterQueue from '#~/utilities/useClusterQueue';
-import { getClusterQueue } from '#~/api';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/clusterQueues', () => ({
   getClusterQueue: jest.fn(),
 }));
 

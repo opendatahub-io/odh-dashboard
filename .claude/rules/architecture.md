@@ -18,7 +18,7 @@ ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides t
 
 ### Main Applications
 
-- `frontend/` — Main React 18 dashboard application (PatternFly v6, Webpack, Module Federation host)
+- `frontend/` — Main React 18 dashboard application (PatternFly v6, Rspack, Module Federation host)
 - `backend/` — Fastify server with Kubernetes client integration, proxying requests to OpenShift APIs
 
 ### Feature Plugin Packages (`packages/`)
@@ -27,7 +27,7 @@ Feature packages provide extensions and are discovered by `discoverPluginPackage
 
 #### Module Federation Remotes
 
-These packages have a `module-federation` config in `package.json`, their own webpack build under `frontend/config/`, and produce a `remoteEntry.js` that is loaded dynamically at runtime:
+These packages have a `module-federation` config in `package.json`, their own rspack build under `frontend/config/`, and produce a `remoteEntry.js` that is loaded dynamically at runtime:
 
 - `automl` — AutoML features (has Go BFF)
 - `autorag` — AutoRAG features (has Go BFF)
@@ -42,7 +42,7 @@ These packages have a `module-federation` config in `package.json`, their own we
 
 #### Bundled Plugin Packages
 
-These packages export extensions but have **no** `module-federation` config. They are compiled directly into the host bundle at build time — no separate webpack build, no `remoteEntry.js`, no standalone dev server:
+These packages export extensions but have **no** `module-federation` config. They are compiled directly into the host bundle at build time — no separate rspack build, no `remoteEntry.js`, no standalone dev server:
 
 - `feature-store` — Feature Store (read-only Feast UI; no BFF, proxies through main dashboard backend)
 - `kserve` — KServe integration
@@ -94,16 +94,16 @@ Dashboard variants — three independently-deployable distributions plus a share
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
-| `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Webpack |
-| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | Make + Webpack |
-| `rhaii/` | RHAII-specific distribution | No | Webpack |
-| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | Webpack |
+| `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Rspack |
+| `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | Make + Rspack |
+| `rhaii/` | RHAII-specific distribution | No | Rspack |
+| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | Rspack |
 
 - `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/`, `rhaii/`, and `maas-consumer-portal/` extend
-- `rhaii/` is frontend-only — React + Webpack + Module Federation host configuration
+- `rhaii/` is frontend-only — React + Rspack + Module Federation host configuration
 - `maas-consumer-portal/` is frontend-only — bundles maas and gen-ai packages directly, connects through their BFFs (no BFF of its own)
 - `core-bff/` has both a Go BFF (`bff/`) and React frontend (`frontend/`) with its own contract tests (`contract-tests/`)
-- Each distribution has its own `package.json`, `tsconfig.json`, and webpack config; dependencies on internal packages resolve through the workspace
+- Each distribution has its own `package.json`, `tsconfig.json`, and rspack config; dependencies on internal packages resolve through the workspace
 - `core-bff/` follows contract-first development (OpenAPI → BFF stub → Frontend → Production BFF)
 
 See `distributions/core-bff/AGENTS.md` for the most detailed reference. See `.claude/rules/distributions.md` for distribution-specific conventions and `.claude/rules/bff-go.md` for Go BFF conventions (applies to core-bff BFF code).

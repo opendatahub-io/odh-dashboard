@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   useKueueStatusForDeployments,
   type KueueStatusForDeploymentsResult,

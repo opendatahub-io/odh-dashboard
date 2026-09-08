@@ -37,8 +37,8 @@ const maxRedirects = 5;
 
 // Tiered timeout strategy for different URL types
 const TIMEOUT_TIERS = {
-  INTERNAL: 5000, // Internal Red Hat domains (*.redhat.com, *.openshift.com)
-  NORMAL: 15000, // Most external URLs
+  INTERNAL: 10000, // Cluster-adjacent Red Hat domains (*.redhat.com, *.openshift.com)
+  NORMAL: 15000, // Most external URLs, including public docs CDNs
   SLOW: 30000, // Known slow services (catalogs, CDNs, etc.)
 };
 
@@ -49,6 +49,10 @@ const SLOW_DOMAINS = [
   'registry.redhat.io', // Red Hat registry - can be slow
 ];
 
+// Public CDN-backed docs hosts. These match INTERNAL_DOMAINS suffixes but are not
+// fast internal endpoints; CI 5s INTERNAL timeouts flake on docs.redhat.com.
+const EXTERNAL_REDHAT_DOMAINS = ['docs.redhat.com'];
+
 // Internal/fast domains
 const INTERNAL_DOMAINS = ['.redhat.com', '.openshift.com', 'redhat.com', 'openshift.com'];
 
@@ -57,6 +61,11 @@ const getTimeoutForUrl = (url: string): number => {
   // Check if it's a known slow domain
   if (SLOW_DOMAINS.some((domain) => url.includes(domain))) {
     return TIMEOUT_TIERS.SLOW;
+  }
+
+  // Public docs.redhat.com is a large external CDN, not an internal service
+  if (EXTERNAL_REDHAT_DOMAINS.some((domain) => url.includes(domain))) {
+    return TIMEOUT_TIERS.NORMAL;
   }
 
   // Check if it's an internal domain

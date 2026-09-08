@@ -1,5 +1,5 @@
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { NotebookState, NotebookData, NotebookRunningState } from '#~/types';
 import { NotebookKind } from '#~/k8sTypes';
 

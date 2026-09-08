@@ -32,7 +32,7 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
+import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/model-serving/concepts/useStopModalPreference';
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import {
@@ -41,6 +41,7 @@ import {
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
 import { be } from '@odh-dashboard/cypress/cypress/utils/should';
+import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -48,7 +49,6 @@ import {
   PodModel,
   ProjectModel,
   RouteModel,
-  SecretModel,
   ServingRuntimeModel,
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';

@@ -47,7 +47,6 @@ describe('MCPTabContent', () => {
     onMcpServerTokensChange: jest.fn(),
     checkMcpServerStatus: mockCheckMcpServerStatus,
     initialServerStatuses: new Map<string, ServerStatusInfo>(),
-    activeToolsCount: 0,
     onActiveToolsCountChange: jest.fn(),
     onToolsWarningChange: jest.fn(),
   };
@@ -101,39 +100,6 @@ describe('MCPTabContent', () => {
     render(<MCPTabContent {...defaultProps} mcpServersLoadError={error} />);
 
     expect(screen.getByTestId('servers-error')).toHaveTextContent('Failed to load servers');
-  });
-
-  it('displays active tools badge with zero count when activeToolsCount is 0', () => {
-    render(<MCPTabContent {...defaultProps} activeToolsCount={0} />);
-
-    const badge = screen.getByTestId('active-tools-count-badge');
-    expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent('0 tools enabled');
-  });
-
-  it('displays active tools badge with singular text when activeToolsCount is 1', () => {
-    render(<MCPTabContent {...defaultProps} activeToolsCount={1} />);
-
-    const badge = screen.getByTestId('active-tools-count-badge');
-    expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent('1 tool enabled');
-  });
-
-  it('displays active tools badge with plural text when activeToolsCount is greater than 1', () => {
-    render(<MCPTabContent {...defaultProps} activeToolsCount={5} />);
-
-    const badge = screen.getByTestId('active-tools-count-badge');
-    expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent('5 tools enabled');
-  });
-
-  it('displays active tools badge with correct count for various values', () => {
-    const { rerender } = render(<MCPTabContent {...defaultProps} activeToolsCount={10} />);
-
-    expect(screen.getByTestId('active-tools-count-badge')).toHaveTextContent('10 tools enabled');
-
-    rerender(<MCPTabContent {...defaultProps} activeToolsCount={42} />);
-    expect(screen.getByTestId('active-tools-count-badge')).toHaveTextContent('42 tools enabled');
   });
 
   it('passes custom configId to MCPServersPanel', () => {

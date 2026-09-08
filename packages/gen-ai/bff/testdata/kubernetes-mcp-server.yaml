@@ -1,0 +1,135 @@
+# Kubernetes MCP server for local dev / shared cluster.
+# Requirements: OpenShift or OCP (Route resource).
+# Apply: make deploy-k8s-mcp  OR  oc apply -f bff/testdata/kubernetes-mcp-server.yaml
+# Cleanup: oc delete namespace mcp-servers
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp-servers
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-mcp-server
+  namespace: mcp-servers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k8s-mcp-namespace-view
+  namespace: mcp-servers
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k8s-mcp-namespace-view-binding
+  namespace: mcp-servers
+subjects:
+  - kind: ServiceAccount
+    name: k8s-mcp-server
+    namespace: mcp-servers
+roleRef:
+  kind: Role
+  name: k8s-mcp-namespace-view
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+data:
+  config.toml: |
+    port = "8080"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+  labels:
+    app: kubernetes-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubernetes-mcp-server
+  template:
+    metadata:
+      labels:
+        app: kubernetes-mcp-server
+    spec:
+      serviceAccountName: k8s-mcp-server
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: server
+          image: quay.io/containers/kubernetes_mcp_server:v0.0.65
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "/etc/kubernetes-mcp-server/config.toml"
+            - "--read-only"
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/kubernetes-mcp-server
+      volumes:
+        - name: config
+          configMap:
+            name: kubernetes-mcp-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+  labels:
+    app: kubernetes-mcp-server
+spec:
+  selector:
+    app: kubernetes-mcp-server
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+  labels:
+    app: kubernetes-mcp-server
+spec:
+  to:
+    kind: Service
+    name: kubernetes-mcp-server
+  port:
+    targetPort: http
+  tls:
+    termination: edge

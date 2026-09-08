@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { TOOL_CALLING_VALIDATED_ARGS_VALUE } from '@odh-dashboard/internal/__mocks__/mockValidatedConfigurations';
+import { TOOL_CALLING_VALIDATED_ARGS_VALUE } from '@odh-dashboard/model-serving/__mocks__/mockValidatedConfigurations';
 import { useValidatedConfigurationsField } from '../useValidatedConfigurationsField';
 
 describe('useValidatedConfigurationsField', () => {

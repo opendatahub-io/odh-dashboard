@@ -1,4 +1,4 @@
-import axios from '#~/utilities/axios';
+import axios from '@odh-dashboard/ui-core/utilities/axios';
 import { RoleBindingKind } from '#~/k8sTypes';
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> => {

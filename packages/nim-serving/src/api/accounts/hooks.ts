@@ -16,6 +16,7 @@ type NIMAccountStatusResult = {
   nimAccount: NIMAccountKind | null;
   errorMessages: string[];
   loaded: boolean;
+  loadError?: Error;
   refresh: () => Promise<NIMAccountKind | null | undefined>;
   startRevalidation: () => void;
 };
@@ -40,6 +41,7 @@ const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
   const {
     data: nimAccount,
     loaded,
+    error: loadError,
     refresh,
   } = useFetch(fetchCallback, null, {
     refreshRate: pollRate,
@@ -89,6 +91,7 @@ const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
     nimAccount,
     errorMessages: effectiveErrors,
     loaded,
+    loadError,
     refresh,
     startRevalidation,
   };

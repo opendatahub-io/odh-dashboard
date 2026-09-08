@@ -6,7 +6,8 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '#~/api';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { assembleSecretJudge, assembleSecretTeacher } from '#~/api';
 import {
   FineTuneTaxonomyType,
   ModelCustomizationEndpointType,

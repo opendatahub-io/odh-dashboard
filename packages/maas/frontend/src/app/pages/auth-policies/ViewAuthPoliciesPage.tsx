@@ -30,6 +30,8 @@ import {
   EventTrackingEditSource,
   MaaSEvents,
   EventTrackingContext,
+  MaaSResourceDeletedProperties,
+  MaaSGovernanceYamlViewedProperties,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
@@ -87,7 +89,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
                 outcome: TrackingOutcome.submit,
-              });
+              } satisfies MaaSResourceDeletedProperties);
               navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
@@ -95,7 +97,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
                 source: EventTrackingSource.DETAIL_KEBAB,
                 resourceStatus: policy.phase ?? '',
                 outcome: TrackingOutcome.cancel,
-              });
+              } satisfies MaaSResourceDeletedProperties);
             }
           }}
         />
@@ -145,7 +147,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
               fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_VIEWED, {
                 resourceType: EventTrackingResourceType.AUTHPOLICY,
                 context: EventTrackingContext.DETAILS,
-              });
+              } satisfies MaaSGovernanceYamlViewedProperties);
             }
           }}
         >

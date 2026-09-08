@@ -1,17 +1,17 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import useAssignedFlavor from '#~/utilities/useAssignedFlavor';
-import { listWorkloads } from '#~/api';
-import { getAssignedFlavorFromWorkload } from '#~/utilities/clusterQueueUtils';
+import useAssignedFlavor from '@odh-dashboard/ui-core/hooks/useAssignedFlavor';
+import { listWorkloads } from '@odh-dashboard/k8s-core/api/workloads';
+import { getAssignedFlavorFromWorkload } from '@odh-dashboard/ui-core/utilities/clusterQueueUtils';
 
 const NAMESPACE = 'my-project';
 const LOCAL_QUEUE_NAME = 'my-queue';
 const WORKLOAD_NAME = 'my-notebook';
 const CLUSTER_QUEUE_NAME = 'my-cluster-queue';
 
-jest.mock('#~/api', () => ({
+jest.mock('@odh-dashboard/k8s-core/api/workloads', () => ({
   listWorkloads: jest.fn(),
 }));
-jest.mock('#~/utilities/clusterQueueUtils', () => ({
+jest.mock('@odh-dashboard/ui-core/utilities/clusterQueueUtils', () => ({
   getAssignedFlavorFromWorkload: jest.fn(),
 }));
 

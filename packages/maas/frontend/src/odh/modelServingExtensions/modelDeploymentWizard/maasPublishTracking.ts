@@ -77,7 +77,10 @@ export const fireMaaSPublishTrackingEvent = (
     return;
   }
   session = session ? { ...session, completed: true } : null;
-  fireFormTrackingEvent(MaaSEvents.MODEL_AS_MAAS_PUBLISHED, properties);
+  fireFormTrackingEvent(
+    MaaSEvents.MODEL_AS_MAAS_PUBLISHED,
+    properties satisfies ModelAsMaasPublishedProperties,
+  );
 };
 
 /**

@@ -14,6 +14,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { conditionalArea } from '@odh-dashboard/ui-core/components/conditionalArea';
 import {
   DSPAMlflowIntegrationMode,
   DSPipelineKind,
@@ -24,7 +25,6 @@ import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipel
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal.tsx';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
-import { conditionalArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';

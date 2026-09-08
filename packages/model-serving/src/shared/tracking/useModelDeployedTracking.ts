@@ -66,6 +66,7 @@ export const useModelDeployedTracking = (
   formState: WizardFormState,
   initialWizardData?: InitialWizardFormData,
   platformId?: string,
+  isEdit?: boolean,
 ): {
   fireModelDeployedTracking: (
     outcome: 'submit' | 'cancel',
@@ -99,6 +100,7 @@ export const useModelDeployedTracking = (
       fireDeploymentFormTracking(
         trackEvent,
         toDeploymentTrackingProperties(wizardProperties, errorMessage),
+        isEdit,
       );
     },
     [
@@ -107,6 +109,7 @@ export const useModelDeployedTracking = (
       formState,
       getTrackingProperties,
       trackEvent,
+      isEdit,
     ],
   );
 

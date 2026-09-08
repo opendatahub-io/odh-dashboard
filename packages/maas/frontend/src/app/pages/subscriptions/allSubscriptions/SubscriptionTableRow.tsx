@@ -14,7 +14,11 @@ import {
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
 import { useSubscriptionAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import {
+  convertStringToPhaseStatus,
+  PhaseLabelLocation,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
@@ -26,6 +30,8 @@ import {
   convertStringToPopoverViewedStatus,
   EventTrackingEditSource,
   MaaSEvents,
+  MaaSSettingsDetailsViewedProperties,
+  MaaSSettingsListRowExpandedProperties,
   MaaSGovernanceStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
@@ -64,7 +70,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       resourceType: EventTrackingResourceType.SUBSCRIPTION,
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: subscription.phase ?? '',
-    });
+    } satisfies MaaSSettingsDetailsViewedProperties);
     navigate(getSubscriptionViewUrl(subscriptionName), navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
@@ -107,7 +113,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
                     resourceType: EventTrackingResourceType.SUBSCRIPTION,
                     source: EventTrackingSource.TAB_LINK,
                     resourceStatus: subscription.phase ?? '',
-                  })
+                  } satisfies MaaSSettingsDetailsViewedProperties)
                 }
               >
                 {subscription.displayName ?? subscription.name}
@@ -205,10 +211,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
                 fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   expandedSection: EventTrackingExpandedSection.GROUPS,
-                  resourceStatus: subscription.phase ?? '',
+                  resourceStatus: convertStringToPhaseStatus(subscription.phase ?? ''),
                   modelCount: modelsCount,
                   groupCount: groupsCount,
-                });
+                } satisfies MaaSSettingsListRowExpandedProperties);
               }
             },
             expandId: `expand-${subscription.name}-groups`,
@@ -230,10 +236,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
                 fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   expandedSection: EventTrackingExpandedSection.MODELS,
-                  resourceStatus: subscription.phase ?? '',
+                  resourceStatus: convertStringToPhaseStatus(subscription.phase ?? ''),
                   modelCount: modelsCount,
                   groupCount: groupsCount,
-                });
+                } satisfies MaaSSettingsListRowExpandedProperties);
               }
             },
             expandId: `expand-${subscription.name}-models`,

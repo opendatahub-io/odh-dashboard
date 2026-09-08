@@ -12,10 +12,7 @@ import {
   HelperTextItem,
   PageSection,
 } from '@patternfly/react-core';
-import {
-  MultiSelection,
-  SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -166,11 +163,28 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
       if (!initialPolicy) {
         const request: CreatePolicyRequest = { name: nameDescData.k8sName.value, ...sharedFields };
         await createAuthPolicy()(apiOpts, request);
-        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_CREATED, submitCreateTrackingEventProperties);
+        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_CREATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: selectedModels.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          modelCountAvailable: modelRefs.length,
+          prefillSource: preSelectedModel
+            ? EventTrackingPrefillSource.MODEL
+            : EventTrackingPrefillSource.NONE,
+        } satisfies AuthPolicyCreatedSuccessProperties);
       } else {
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
-        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_UPDATED, submitUpdateTrackingEventProperties);
+        fireFormTrackingEvent(MaaSEvents.AUTH_POLICY_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          groupCount: selectedGroupNames.length,
+          modelCount: selectedModels.length,
+          hasDescription: nameDescData.description.trim() !== '',
+          editSource,
+        } satisfies AuthPolicyUpdatedSuccessProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('auth-policies'));
@@ -182,17 +196,15 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
       fireFormTrackingEvent(
         initialPolicy ? MaaSEvents.AUTH_POLICY_UPDATED : MaaSEvents.AUTH_POLICY_CREATED,
         initialPolicy
-          ? {
-              ...errorUpdateTrackingEventProperties,
+          ? ({
               outcome: TrackingOutcome.submit,
               success: false,
               editSource,
-            }
-          : {
-              ...errorCreateTrackingEventProperties,
+            } satisfies AuthPolicyUpdatedErrorProperties)
+          : ({
               outcome: TrackingOutcome.submit,
               success: false,
-            },
+            } satisfies AuthPolicyCreatedErrorProperties),
       );
       setSubmitError(errMsg);
     } finally {
@@ -202,47 +214,6 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
 
   const primaryLabel = initialPolicy ? 'Save changes' : 'Create authorization policy';
   const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
-
-  const cancelUpdateTrackingEventProperties: AuthPolicyUpdatedCancelProperties = {
-    outcome: TrackingOutcome.cancel,
-    editSource,
-  };
-
-  const cancelCreateTrackingEventProperties: AuthPolicyCreatedCancelProperties = {
-    outcome: TrackingOutcome.cancel,
-  };
-
-  const errorUpdateTrackingEventProperties: AuthPolicyUpdatedErrorProperties = {
-    outcome: TrackingOutcome.submit,
-    success: false,
-    editSource,
-  };
-
-  const errorCreateTrackingEventProperties: AuthPolicyCreatedErrorProperties = {
-    outcome: TrackingOutcome.submit,
-    success: false,
-  };
-
-  const submitUpdateTrackingEventProperties: AuthPolicyUpdatedSuccessProperties = {
-    outcome: TrackingOutcome.submit,
-    success: true,
-    groupCount: selectedGroupNames.length,
-    modelCount: selectedModels.length,
-    hasDescription: nameDescData.description.trim() !== '',
-    editSource,
-  };
-
-  const submitCreateTrackingEventProperties: AuthPolicyCreatedSuccessProperties = {
-    outcome: TrackingOutcome.submit,
-    success: true,
-    groupCount: selectedGroupNames.length,
-    modelCount: selectedModels.length,
-    hasDescription: nameDescData.description.trim() !== '',
-    modelCountAvailable: modelRefs.length,
-    prefillSource: preSelectedModel
-      ? EventTrackingPrefillSource.MODEL
-      : EventTrackingPrefillSource.NONE,
-  };
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -368,8 +339,13 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
               fireFormTrackingEvent(
                 initialPolicy ? MaaSEvents.AUTH_POLICY_UPDATED : MaaSEvents.AUTH_POLICY_CREATED,
                 initialPolicy
-                  ? cancelUpdateTrackingEventProperties
-                  : cancelCreateTrackingEventProperties,
+                  ? ({
+                      outcome: TrackingOutcome.cancel,
+                      editSource,
+                    } satisfies AuthPolicyUpdatedCancelProperties)
+                  : ({
+                      outcome: TrackingOutcome.cancel,
+                    } satisfies AuthPolicyCreatedCancelProperties),
               );
             }}
             isDisabled={isSubmitting}

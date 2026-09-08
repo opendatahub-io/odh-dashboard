@@ -188,7 +188,7 @@ STYLE_THEME=patternfly
 
 Federated modules use `Dockerfile.workspace` — a multi-stage build:
 
-1. **Stage 1 (Node)**: Build the frontend webpack bundle
+1. **Stage 1 (Node)**: Build the frontend rspack bundle
    - Copy root workspace manifests, install deps
    - Copy package source, run `npm run build` with `DEPLOYMENT_MODE=standalone`
 2. **Stage 2 (Go)**: Build the BFF binary (if included)
@@ -224,7 +224,7 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
 
 ## Shared Singletons (moduleFederation.js)
 
-`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from webpack `compiler.context`.
+`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from rspack `compiler.context`.
 
 Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds eager-share and bundle imports, while federated remotes use `import: false`.
 
@@ -239,7 +239,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 3 | Unique frontend port allocated (9100–9399) | Phase 1 |
 | 4 | Unique BFF port allocated (4000–4099) if BFF included | Phase 1 |
 | 5 | `tsconfig.json`, `jest.config.ts`, `.eslintrc.js` present | Phase 2 |
-| 6 | Webpack configs under `frontend/config/` | Phase 2 |
+| 6 | Rspack configs under `frontend/config/` | Phase 2 |
 | 7 | Extensions file with area, nav, route stubs | Phase 2 |
 | 8 | Feature flag added to `DashboardCommonConfig` in `k8sTypes.ts` | Phase 3 |
 | 9 | `SupportedArea` enum entry added in `types.ts` | Phase 3 |
@@ -281,7 +281,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer` and retry.
 
-### Webpack build fails with "shared module not found"
+### Rspack build fails with "shared module not found"
 
 **Symptom**: Build error mentioning missing shared module.
 

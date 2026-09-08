@@ -16,7 +16,7 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { createSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 

@@ -2,7 +2,7 @@ import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import {
   Connection,

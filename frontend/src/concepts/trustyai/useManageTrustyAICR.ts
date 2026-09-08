@@ -4,7 +4,8 @@ import { TRUSTYAI_SECRET_NAME } from '@odh-dashboard/trustyai/const';
 import { getTrustyStatusState } from '@odh-dashboard/trustyai/utilities/utils';
 import { createTrustyAICR, deleteTrustyAICR } from '@odh-dashboard/trustyai/api/k8s';
 import useTrustyAINamespaceCR from '@odh-dashboard/trustyai/context/useTrustyAINamespaceCR';
-import { assembleSecret, createSecret, deleteSecret } from '#~/api';
+import { createSecret, deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import { assembleSecret } from '#~/api';
 import useTrustyBrowserStorage from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
 
 export type UseManageTrustyAICRReturnType = {

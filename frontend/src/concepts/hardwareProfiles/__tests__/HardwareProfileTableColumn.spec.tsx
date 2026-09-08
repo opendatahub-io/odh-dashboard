@@ -4,12 +4,12 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookKind } from '#~/k8sTypes';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({

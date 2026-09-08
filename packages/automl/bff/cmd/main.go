@@ -30,7 +30,7 @@ func main() {
 	flag.BoolVar(&cfg.MockModelRegistryClient, "mock-model-registry-client", getEnvAsBool("MOCK_MODEL_REGISTRY_CLIENT", false), "Use mock Model Registry client")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "autogluon-timeseries-training-pipeline"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: autogluon-timeseries-training-pipeline)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "autogluon-tabular-training-pipeline"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: autogluon-tabular-training-pipeline)")
-	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Preferred pipeline version display name during discovery (default: constants.DefaultPipelineVersionSuffix)")
+	flag.StringVar(&cfg.PipelineVersionSuffix, "pipeline-version-suffix", getEnvAsString("PIPELINE_VERSION_SUFFIX", ""), "Optional explicit pipeline version display name pin during discovery")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
