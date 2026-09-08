@@ -111,7 +111,7 @@ jest.mock('~/app/hooks/useFetchBFFConfig', () => ({
 
 jest.mock('~/app/hooks/useFetchMCPServers', () => ({
   __esModule: true,
-  default: () => ({ data: [], loaded: true, error: undefined }),
+  default: () => ({ data: [], registryAvailable: false, loaded: true, error: undefined }),
 }));
 
 jest.mock('~/app/hooks/useMCPServerStatuses', () => ({

@@ -38,6 +38,7 @@ export const transformMCPServerData = (apiServer: MCPServerFromAPI): MCPServer =
   connectionUrl: apiServer.url, // Full URL for popover
   tools: 0, // Not used in table, keeping for type compatibility
   version: 'Unknown', // Not used in table, keeping for type compatibility
+  source: apiServer.source,
 });
 
 /**
