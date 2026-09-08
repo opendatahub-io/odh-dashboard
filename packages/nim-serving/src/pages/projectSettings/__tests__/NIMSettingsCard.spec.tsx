@@ -188,7 +188,7 @@ describe('NIMSettingsCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('should time out delete polling after ten refresh attempts', async () => {
+  it('should time out delete polling after ten seconds', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
@@ -219,15 +219,14 @@ describe('NIMSettingsCard', () => {
     jest.useRealTimers();
   });
 
-  it('should fire delete tracking only once when overlapping poll callbacks resolve', async () => {
+  it('should stop delete polling when refresh hangs past the deadline', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
-    const pendingResolves: Array<(value: null) => void> = [];
     const refresh = jest.fn(
       () =>
-        new Promise<null>((resolve) => {
-          pendingResolves.push(resolve);
+        new Promise<null>(() => {
+          /* never resolves */
         }),
     );
     mockUseNIMAccountStatus.mockReturnValue({
@@ -242,19 +241,50 @@ describe('NIMSettingsCard', () => {
     await user.click(screen.getByTestId('nim-remove-button'));
     await user.click(screen.getByTestId('nim-delete-confirm'));
 
-    await jest.advanceTimersByTimeAsync(1000);
-    await jest.advanceTimersByTimeAsync(1000);
-    expect(refresh).toHaveBeenCalledTimes(2);
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(mockFireNimAccountRemoved).toHaveBeenCalledWith({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: NimFailureCategory.DELETE_TIMEOUT,
+    });
 
-    pendingResolves.forEach((resolve) => resolve(null));
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    jest.useRealTimers();
+  });
+
+  it('should ignore a late refresh completion after delete polling times out', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
+    let resolveRefresh: ((value: null) => void) | undefined;
+    const refresh = jest.fn(
+      () =>
+        new Promise<null>((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.READY,
+      refresh,
+    });
+    mockDeleteNIMResources.mockResolvedValue(undefined);
+
+    render(<NIMSettingsCard namespace="test-ns" />);
+
+    await user.click(screen.getByTestId('nim-remove-button'));
+    await user.click(screen.getByTestId('nim-delete-confirm'));
+
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(mockFireNimAccountRemoved).toHaveBeenCalledTimes(1);
+
+    resolveRefresh?.(null);
     await Promise.resolve();
     await Promise.resolve();
 
     expect(mockFireNimAccountRemoved).toHaveBeenCalledTimes(1);
-    expect(mockFireNimAccountRemoved).toHaveBeenCalledWith({
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
 
     jest.useRealTimers();
   });
