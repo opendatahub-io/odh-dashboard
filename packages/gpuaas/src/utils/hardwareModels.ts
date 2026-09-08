@@ -1,8 +1,53 @@
-import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind, ResourceFlavorKind, type WorkloadKind } from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 import { ACCELERATOR_RESOURCE_REGEX } from '../const';
 
 const ACCELERATOR_RE = new RegExp(ACCELERATOR_RESOURCE_REGEX);
+
+const GPU_PRODUCT_LABELS = [
+  'nvidia.com/gpu.product',
+  'amd.com/gpu.product',
+  'intel.com/gpu.product',
+] as const;
+
+export const buildResourceFlavorByName = (
+  resourceFlavors: ResourceFlavorKind[],
+): Map<string, ResourceFlavorKind> =>
+  new Map(
+    resourceFlavors.flatMap((resourceFlavor) => {
+      const name = resourceFlavor.metadata?.name;
+      return name ? [[name, resourceFlavor] as const] : [];
+    }),
+  );
+
+/** Resolves admitted ResourceFlavor assignments to GPU product names. */
+export const resolveWorkloadHardwareProfile = (
+  workload: WorkloadKind,
+  resourceFlavorByName: Map<string, ResourceFlavorKind>,
+): string | undefined => {
+  const models = new Set<string>();
+
+  for (const assignment of workload.status?.admission?.podSetAssignments ?? []) {
+    for (const flavorName of Object.values(assignment.flavors ?? {})) {
+      const resourceFlavor = resourceFlavorByName.get(flavorName);
+      if (!resourceFlavor?.spec.nodeLabels) {
+        continue;
+      }
+      for (const label of GPU_PRODUCT_LABELS) {
+        const value = resourceFlavor.spec.nodeLabels[label];
+        if (value) {
+          models.add(value);
+        }
+      }
+    }
+  }
+
+  if (models.size === 0) {
+    return undefined;
+  }
+
+  return [...models].toSorted((a, b) => a.localeCompare(b)).join(', ');
+};
 
 export type ModelGpuCount = {
   model: string;
@@ -10,12 +55,6 @@ export type ModelGpuCount = {
   nominal: number;
   borrowed?: number;
 };
-
-const GPU_PRODUCT_LABELS = [
-  'nvidia.com/gpu.product',
-  'amd.com/gpu.product',
-  'intel.com/gpu.product',
-] as const;
 
 /**
  * Resolves hardware model names for each ClusterQueue by mapping through

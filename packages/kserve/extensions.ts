@@ -25,6 +25,7 @@ import type {
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type {
   AreaExtension,
+  ClusterStorageConnectedResourcesExtension,
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
@@ -34,6 +35,7 @@ import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/types';
+import type { KServeConnectedResourcesData } from './src/clusterStorage/connectedResources';
 
 export const KSERVE_ID = 'kserve';
 const ADMIN_USER = 'ADMIN_USER';
@@ -175,6 +177,7 @@ const extensions: (
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
   | TabRouteTabExtension
   | RouteExtension
+  | ClusterStorageConnectedResourcesExtension<KServeConnectedResourcesData>
 )[] = [
   {
     type: 'app.area',
@@ -183,6 +186,22 @@ const extensions: (
       featureFlags: ['disableKServe'],
       requiredComponents: [DataScienceStackComponent.K_SERVE],
       reliantAreas: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.cluster-storage/connected-resources',
+    properties: {
+      useConnectedResources: () =>
+        import('./src/clusterStorage/connectedResources').then(
+          (m) => m.useConnectedKServeResources,
+        ),
+      getConnectedResources: () =>
+        import('./src/clusterStorage/connectedResources').then(
+          (m) => m.getConnectedKServeResourceLabels,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {

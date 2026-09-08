@@ -23,16 +23,17 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `maasConsumerPortal` | `MaasConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; host derived as `maas-consumer-portal.<gateway.domain>`) |
+| `maasConsumerPortal` | `MaaSConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; host derived as `maas-consumer-portal.<gateway.domain>`) |
 
 ### Status Fields
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaasConsumerPortalAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSConsumerPortalAvailable` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
+| `maasConsumerPortalUrl` | `string` | Last known good MaaS Consumer Portal URL; cleared when the operand is removed |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
 | `releases` | `[]ComponentRelease` | Deployed component versions |
 
@@ -72,16 +73,17 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 
 1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings
 2. Cross-namespace resources (e.g., Perses proxy in observability namespace) are cleaned up
-3. Status is updated: `phase: NotReady`, `ProvisioningSucceeded: False` (reason: `Removed`), `Degraded: False` (reason: `Removed`)
-4. `status.url` and `status.moduleStatuses` are cleared
-5. The controller returns without requeuing -- it will reconcile again if the CR is updated
+3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
+4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
+5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure
 
-**The MaaS Consumer Portal is an independent operand, decoupled from the core dashboard's `managementState`.** The portal is gated on its own `spec.maasConsumerPortal.managementState`, not on the core dashboard's lifecycle, and this independence is *structural* rather than special-cased:
+**The MaaS Consumer Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasConsumerPortal.managementState`, not the core dashboard lifecycle:
 
-- The portal is reconciled **once per loop in the outer `Reconcile`, before the `managementState` branch** — so it runs identically whether the core dashboard is `Managed` or `Removed` (it is not invoked from inside either branch).
-- Portal resources carry a **distinct ownership label `platform.opendatahub.io/part-of: maas-consumer-portal`** (not `dashboard`). The core teardown selects `part-of: dashboard`, so it *never matches* portal resources — there is no per-resource skip to keep in sync.
+- Namespaced resources are rendered into `APPLICATIONS_NAMESPACE`; portal resources carry `platform.opendatahub.io/part-of: maas-consumer-portal`, so core teardown (`part-of: dashboard`) never matches them.
+- The shared MaaS and GenAI BFFs remain aggregate-demand resources. Portal-only operation retains them on RHOAI unless an explicit module disable overrides demand.
+- On non-RHOAI platforms the controller removes stale portal resources and reports an informational `UnsupportedPlatform` condition without creating portal demand.
 
-Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` leaves the portal fully available, and `MaasConsumerPortalAvailable` reflects the portal's actual state (not `Removed`). When `maasConsumerPortal.managementState: Removed`, the portal reconcile removes its own resources by name. This mirrors the two-management-state model where the portal (`maasConsumerPortal.managementState`) and the core dashboard are enabled independently, and means new portal resources (BFFs, HTTPRoute) inherit the decoupling for free.
+Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes only portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. Dashboard CR deletion cleans up all portal resources.
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -133,14 +135,14 @@ The eight registered modules and their manifest directories:
 | mlflow | `manifests/modules/mlflow/` | `odh-dashboard-mlflow-ui` |
 | modelRegistry | `manifests/modules/model-registry/` | `odh-dashboard-model-registry-ui` |
 
-### MaaS Consumer Portal ConsoleLink
+### MaaS Consumer Portal Operand
 
-When `spec.maasConsumerPortal.managementState` is `Managed` and `spec.gateway.domain` is set, the controller deploys a cluster-scoped `ConsoleLink` (`console.openshift.io/v1`, name `maas-consumer-portal-link`) that surfaces the MaaS Consumer Portal in the OpenShift application-menu launcher. The manifest bundle lives at `manifests/maas-consumer-portal-consolelink/rhoai/` (`consolelink.yaml`, `kustomization.yaml`, `params.env`).
+When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, HTTPRoute, and ConsoleLink.
 
-- **Host derivation**: the `href` is derived as `https://maas-consumer-portal.<spec.gateway.domain>/` -- there is no per-portal hostname field. If `spec.gateway.domain` is empty the link cannot be built and `MaasConsumerPortalAvailable` is set `False` with reason `MaasConsumerPortalDomainRequired`.
-- **Lifecycle**: the portal is reconciled once per loop in the outer `Reconcile`, independent of the core dashboard's `managementState` (see [ManagementState Handling](#managementstate-handling)). The ConsoleLink is removed when the portal is disabled (`maasConsumerPortal.managementState: Removed`) or when the Dashboard CR is deleted; it is **not** removed by the core dashboard's `managementState: Removed` while the portal stays Managed. Because `ConsoleLink` is cluster-scoped, deletion on disable is done explicitly by name (the SSA deployer is additive and does not prune); deletion on CR removal is via ownerReference GC (the link owner-references the Dashboard CR).
-- **Ownership**: portal resources are labeled `platform.opendatahub.io/part-of: maas-consumer-portal`, distinct from the core dashboard's `part-of: dashboard`. This keeps the core teardown selector from ever matching portal resources, so the portal is a self-contained operand rather than a special case inside the core lifecycle.
-- **Platform scope**: OpenShift-based platforms; not gated by platform. When `managementState: Managed` and `spec.gateway.domain` is set, the ConsoleLink is deployed on self-managed RHOAI, managed RHOAI, and Open Data Hub alike -- the deploy path does not block Open Data Hub. It always renders from the `/rhoai` manifest source, so on Open Data Hub it deploys with RHOAI branding and the reconciler logs a warning rather than skipping it. `ConsoleLink` (`console.openshift.io`) is always present on OpenShift, so there is no CRD-existence gate. RBAC for `console.openshift.io/consolelinks` lives in `config/rbac/role.yaml`.
+- **Host and URL**: `maas-consumer-portal.<spec.gateway.domain>` and `https://maas-consumer-portal.<spec.gateway.domain>/`. The URL is retained across transient failures and cleared on removal.
+- **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
+- **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
+- **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, ConsoleLink, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
 
 ## Module Registry and Dependency Resolution
 
@@ -311,7 +313,7 @@ On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-
 
 ### Labels
 
-Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. The MaaS Consumer Portal ConsoleLink is the exception: it is labeled `platform.opendatahub.io/part-of: maas-consumer-portal` so the core teardown selector (`part-of: dashboard`) never matches it (see [MaaS Consumer Portal ConsoleLink](#maas-consumer-portal-consolelink)).
+Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. MaaS Consumer Portal resources use `platform.opendatahub.io/part-of: maas-consumer-portal`, so the core teardown selector (`part-of: dashboard`) never matches them (see [MaaS Consumer Portal Operand](#maas-consumer-portal-operand)).
 
 ## Status Aggregation
 
@@ -335,13 +337,13 @@ The Dashboard type provides five methods:
 
 | Condition | True Means | False Means |
 |-----------|-----------|-------------|
-| `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
+| `Ready` | All managed operands are healthy | A managed operand is unhealthy, or neither operand is managed |
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
-| `MaasConsumerPortalAvailable` | MaaS Consumer Portal ConsoleLink deployed | ConsoleLink not deployed (reasons `Disabled`, `MaasConsumerPortalDomainRequired`, `MaasConsumerPortalDeployFailed`, `MaasConsumerPortalDeleteFailed`) -- all `False` states use `severity: Info`, so they never block `Ready` |
+| `MaaSConsumerPortalAvailable` | MaaS Consumer Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
 
-The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaasConsumerPortalAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled, or any `MaasConsumerPortalAvailable=False` state) are treated as non-blocking by the rollup.
+The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Consumer Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
 
 ### Phase Derivation
 

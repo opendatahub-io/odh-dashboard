@@ -138,8 +138,7 @@ export type KueueWorkbenchTestData = {
 export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
   updatedCpuQuota: number;
   updatedMemoryQuota: number;
-  waitingForQuotaMessage: string;
-  queuePositionMarker: string;
+  exceededQuotaMessage: string;
 };
 
 export type WBControlSuiteTestData = {
@@ -694,6 +693,24 @@ export type FeatureStoreTestData = {
   sectionTab: string;
   notebookImage: string;
   hardwareProfileName: string;
+};
+
+export type FeatureStoreAdminLifecycleTestData = {
+  createPageTitle: string;
+  managePageTitle: string;
+  statusReady: string;
+  wizardSteps: {
+    details: string;
+    registry: string;
+    onlineOfflineStores: string;
+    advancedOptions: string;
+    review: string;
+  };
+  expandedDetails: {
+    feastProject: string;
+    conditions: string;
+  };
+  deleteAction: string;
 };
 
 export type GenAiTestData = {

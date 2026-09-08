@@ -11,7 +11,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v0.3.1
 	github.com/ogx-ai/ogx-k8s-operator v0.9.0
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/opendatahub-io/mlflow-go v0.0.0-20260814111624-b1898e60a157
 	github.com/patrickmn/go-cache v2.1.0+incompatible

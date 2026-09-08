@@ -274,6 +274,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // MCP hooks
   const {
     data: mcpServers = [],
+    registryAvailable: mcpRegistryAvailable,
     loaded: mcpServersLoaded,
     error: mcpServersLoadError,
   } = useFetchMCPServers();
@@ -1127,6 +1128,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 mcpServers={mcpServers}
                 mcpServersLoaded={mcpServersLoaded}
                 mcpServersLoadError={mcpServersLoadError}
+                mcpRegistryAvailable={mcpRegistryAvailable}
                 mcpServerTokens={mcpServerTokens}
                 onMcpServerTokensChange={setMcpServerTokens}
                 checkMcpServerStatus={checkMcpServerStatus}

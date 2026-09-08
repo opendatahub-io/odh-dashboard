@@ -1,4 +1,6 @@
 import {
+  checkMaaSAuthPolicyState,
+  checkMaaSSubscriptionState,
   cleanupAuthPolicy,
   cleanupSubscription,
   createLLMInferenceServiceWithMaaSEnabled,
@@ -206,6 +208,15 @@ describe('MaaS Governance Overview tab', () => {
       overviewTabPage.findTable().should('exist');
       overviewRow.findModelAuthorizationPolicies().should('contain.text', '1');
       overviewRow.findModelPoliciesWarning().should('not.exist');
+
+      cy.step('Wait for subscription and auth policy CRs to reach Active');
+      ensureAdminOcSession();
+      checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
+        phase: PhaseStatus.ACTIVE,
+      });
+      checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, {
+        phase: PhaseStatus.ACTIVE,
+      });
 
       cy.step('Verify the Model is Ready Status after creating the subscription and policy');
       overviewRow.findModelPhase().should('contain.text', PhaseStatus.READY);
