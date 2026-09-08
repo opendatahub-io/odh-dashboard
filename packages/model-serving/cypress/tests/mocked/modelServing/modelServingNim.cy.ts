@@ -490,8 +490,7 @@ describe('NIM Models Deployments', () => {
       .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
-    modelServingWizardEdit.nim.findExistingPVCInput().click();
-    cy.findByRole('option', { name: 'updated-nim-wizard-pvc' }).click();
+    modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');
     modelServingWizardEdit.nim
       .findSubPathInput()
       .type('{selectall}updated-cache-path')
@@ -515,10 +514,16 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.findDeployButton().should('be.enabled').click();
 
     cy.wait('@updateServingRuntime').then((interception) => {
-      expect(interception.request.body.spec.volumes).to.deep.include({
-        persistentVolumeClaim: { claimName: 'updated-nim-wizard-pvc' },
-      });
-      expect(interception.request.body.spec.containers[0].volumeMounts).to.deep.include({
+      const pvcVolume = interception.request.body.spec.volumes.find(
+        (volume: { persistentVolumeClaim?: { claimName: string } }) =>
+          volume.persistentVolumeClaim?.claimName === 'updated-nim-wizard-pvc',
+      );
+      const cacheVolumeMount = interception.request.body.spec.containers[0].volumeMounts.find(
+        (volumeMount: { mountPath: string }) => volumeMount.mountPath === '/mnt/models/cache',
+      );
+
+      expect(pvcVolume?.persistentVolumeClaim?.claimName).to.equal('updated-nim-wizard-pvc');
+      expect(cacheVolumeMount).to.containSubset({
         mountPath: '/mnt/models/cache',
         subPath: 'updated-cache-path',
       });
