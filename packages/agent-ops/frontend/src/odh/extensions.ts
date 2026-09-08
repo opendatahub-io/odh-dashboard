@@ -7,6 +7,7 @@ import type {
 // Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
 const agentDeploymentsPath = '/ai-hub/agents/deployments';
 const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
+const agentOpsWorkspacesDetailPath = '/ai-hub/agents/workspaces/:workspaceId/*';
 
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
@@ -33,14 +34,23 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
     properties: {
       pageId: AGENTS_TAB_PAGE,
-      id: 'deployments',
-      title: 'Deployments',
-      component: () => import('./AgentDeploymentsWrapper.tsx'),
-      group: '1_deployments',
+      id: 'workspaces',
+      title: 'Workspaces',
+      component: () => import('./WorkspacesWrapper.tsx'),
+      group: '1_workspaces',
     },
   },
-  // Full-page breakout routes share one wrapper and internal router. Keep separate
-  // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: agentOpsWorkspacesDetailPath,
+      component: () => import('./WorkspacesDetailRoutes.tsx'),
+    },
+  },
+  // Deployments tab and breakout routes stay gated on agentOpsDeploy (hidden until follow-up).
   {
     type: 'app.route',
     flags: {

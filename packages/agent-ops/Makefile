@@ -68,14 +68,16 @@ dev-bff-kubeflow:
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=internal
 
 ########### Dev Federated ###########
+OPENSHELL_BFF_PORT ?= 8080
+
 .PHONY: dev-start-federated
 dev-start-federated:
 	@trap 'exit 0' INT; \
 	make -j 2 dev-bff-federated dev-frontend-federated
 
 .PHONY: dev-frontend-federated
-dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9111 PROXY_PORT=4021 npm run start:dev
+dev-frontend-federated: ## Federated UI dev server; proxies API to upstream OpenShell BFF (OPENSHELL_BFF_PORT, default 8080)
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9111 PROXY_PORT=$(OPENSHELL_BFF_PORT) npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
