@@ -14,7 +14,6 @@ module.exports = {
     '^react$': '<rootDir>/../../../node_modules/react',
     '^react-dom$': '<rootDir>/../../../node_modules/react-dom',
     '~/(.*)': '<rootDir>/src/$1',
-    '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },
   testEnvironment: 'jest-environment-jsdom',
   transform: {
