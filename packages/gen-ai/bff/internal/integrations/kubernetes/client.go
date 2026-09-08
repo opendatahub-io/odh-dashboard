@@ -74,4 +74,17 @@ type KubernetesClientInterface interface {
 	GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error)
 	UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error)
 	DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error
+
+	// Agent Deployment operations
+	CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error)
+	CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error)
+	CreateSandboxCR(ctx context.Context, namespace string, opts SandboxCROptions) (string, error)
+	SetSandboxConfigMapsOwner(ctx context.Context, namespace, sandboxName string, configMapNames ...string) error
+	CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error
+	RollbackSandboxDeployment(ctx context.Context, namespace string, resources SandboxDeploymentResources)
+
+	// Agent Deployment networking
+	WaitForSandboxSelector(ctx context.Context, namespace, sandboxName string) (map[string]string, error)
+	CreateSandboxService(ctx context.Context, namespace, sandboxName string, selector map[string]string) error
+	CreateSandboxRoute(ctx context.Context, namespace, sandboxName string) (string, error)
 }

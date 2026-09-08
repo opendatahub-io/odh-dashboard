@@ -846,3 +846,48 @@ func (m *TokenKubernetesClientMock) DeleteAgentProfile(ctx context.Context, name
 	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)
 	return m.TokenKubernetesClient.DeleteAgentProfile(ctx, namespace, profileID)
 }
+
+func (m *TokenKubernetesClientMock) CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error) {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "llama-stack-config-" + profileID + "-mock",
+			Namespace: namespace,
+		},
+	}, nil
+}
+
+func (m *TokenKubernetesClientMock) CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error) {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "wrapper-app-" + profileID + "-mock",
+			Namespace: namespace,
+		},
+	}, nil
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxCR(ctx context.Context, namespace string, opts k8s.SandboxCROptions) (string, error) {
+	return opts.Name + "-mock", nil
+}
+
+func (m *TokenKubernetesClientMock) SetSandboxConfigMapsOwner(ctx context.Context, namespace, sandboxName string, configMapNames ...string) error {
+	return nil
+}
+
+func (m *TokenKubernetesClientMock) CreateMLflowRoleBinding(ctx context.Context, namespace string, sandboxName string) error {
+	return nil
+}
+
+func (m *TokenKubernetesClientMock) RollbackSandboxDeployment(ctx context.Context, namespace string, resources k8s.SandboxDeploymentResources) {
+}
+
+func (m *TokenKubernetesClientMock) WaitForSandboxSelector(ctx context.Context, namespace, sandboxName string) (map[string]string, error) {
+	return map[string]string{"agents.x-k8s.io/sandbox-name-hash": "mockhash"}, nil
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxService(ctx context.Context, namespace, sandboxName string, selector map[string]string) error {
+	return nil
+}
+
+func (m *TokenKubernetesClientMock) CreateSandboxRoute(ctx context.Context, namespace, sandboxName string) (string, error) {
+	return "https://" + sandboxName + "-" + namespace + ".apps.example.com", nil
+}

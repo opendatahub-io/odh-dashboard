@@ -172,4 +172,8 @@ type EnvConfig struct {
 	// PgvectorImage is the container image for auto-provisioned pgvector.
 	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
 	PgvectorImage string
+
+	// OGXCoreImage is the container image for the OGX core agent runtime.
+	// Injected by the operator via RELATED_IMAGE_OGX_CORE.
+	OGXCoreImage string
 }
