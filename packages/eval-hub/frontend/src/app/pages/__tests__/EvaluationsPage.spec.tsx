@@ -68,6 +68,14 @@ jest.mock('~/app/context/CollectionsContext', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useCollectionsQuery', () => ({
+  useCollectionsQuery: jest.fn().mockReturnValue({
+    data: { items: [] },
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectIconWithSizeModule(),
 );
@@ -120,6 +128,7 @@ describe('EvaluationsPage', () => {
     expect(screen.getByText('Evaluations')).toBeInTheDocument();
     expect(screen.getByTestId('evaluate-tab')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Create benchmark suites and run evaluations to measure model, agent, and dataset performance.',
     );

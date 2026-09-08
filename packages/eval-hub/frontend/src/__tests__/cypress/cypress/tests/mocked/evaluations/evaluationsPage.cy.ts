@@ -4,10 +4,13 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
-import { mockCollectionsListResponse } from '~/__mocks__/mockCollection';
+import {
+  mockBenchmarkSuiteCollections,
+  mockCollectionsListResponse,
+} from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type { EvalHubHealthResponse, EvaluationJob } from '~/app/types';
+import type { Collection, EvalHubHealthResponse, EvaluationJob } from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -16,12 +19,16 @@ type InterceptOptions = {
   namespaces?: Namespace[];
   health?: EvalHubHealthResponse;
   jobs?: EvaluationJob[];
+  collections?: Collection[];
+  collectionsTotalCount?: number;
 };
 
 const initIntercepts = ({
   namespaces = [mockNamespace({ name: NAMESPACE })],
   health = mockEvalHubHealth(),
   jobs = [],
+  collections = [],
+  collectionsTotalCount,
 }: InterceptOptions = {}) => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
@@ -38,7 +45,7 @@ const initIntercepts = ({
   cy.interceptApi(
     'GET /api/:apiVersion/evaluations/collections',
     { path: API_VERSION },
-    mockCollectionsListResponse([]),
+    mockCollectionsListResponse(collections, collectionsTotalCount),
   );
 };
 
@@ -87,6 +94,22 @@ describe('Evaluations Page - Tabs', () => {
     cy.go('back');
     evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
     evaluationsPage.findCreateSuiteCard().should('exist');
+  });
+
+  it('should render tenant benchmark suites in the gallery', () => {
+    initIntercepts({
+      collections: mockBenchmarkSuiteCollections(),
+      collectionsTotalCount: 6,
+    });
+
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
+    evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('contain.text', 'Model suite 7');
+    evaluationsPage.findBenchmarkSuiteCard('agent-safety-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('code-quality-suite').should('exist');
+    evaluationsPage.findBenchmarkSuiteCard('trace-evaluation-suite').should('exist');
+    evaluationsPage.findBenchmarkSuitesSummary().should('contain.text', '5 of 6 benchmark suites');
   });
 });
 

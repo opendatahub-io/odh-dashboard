@@ -207,7 +207,7 @@ const EvaluationsPage: React.FC = () => {
             aria-label="Evaluate tab"
             data-testid="evaluate-tab"
           >
-            <EvaluateTab />
+            <EvaluateTab namespace={namespace ?? ''} />
           </Tab>
           <Tab
             eventKey={RUNS_TAB}

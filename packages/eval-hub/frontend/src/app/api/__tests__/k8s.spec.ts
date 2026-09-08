@@ -359,6 +359,20 @@ describe('getCollections', () => {
     expect(result).toEqual({ items: [] });
   });
 
+  it('should include the collection scope query param', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await getCollections('', { namespace: 'my-ns', scope: 'tenant' })({});
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections',
+      { namespace: 'my-ns', scope: 'tenant' },
+      {},
+    );
+  });
+
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);

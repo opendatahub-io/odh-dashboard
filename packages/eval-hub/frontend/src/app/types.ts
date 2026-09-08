@@ -274,6 +274,13 @@ export type CollectionResource = {
   updated_at?: string;
   read_only?: boolean;
   owner?: string;
+  version_counter?: number;
+};
+
+export type CollectionState = {
+  derived_from?: string;
+  run_count?: number;
+  pinned_order?: number;
 };
 
 export type CollectionPrimaryScore = {
@@ -301,10 +308,18 @@ export type Collection = {
   category?: string;
   description?: string;
   tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  ai_entities?: string[];
+  state?: CollectionState;
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
 };
+
+export type CollectionScope = 'system' | 'curated' | 'tenant';
 
 export type ListCollectionsParams = {
   namespace?: string;
@@ -313,7 +328,7 @@ export type ListCollectionsParams = {
   name?: string;
   category?: string | null;
   tags?: string[];
-  scope?: string;
+  scope?: CollectionScope;
 };
 
 export type CollectionsListResponse = {

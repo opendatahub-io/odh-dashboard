@@ -6,6 +6,11 @@
   gap: var(--pf-t--global--spacer--md);
 }
 
+.evalhub-evaluate-tab__summary {
+  color: var(--pf-t--global--text--color--subtle);
+  margin-block-start: var(--pf-t--global--spacer--md);
+}
+
 .evalhub-create-suite-card {
   --pf-v6-c-card--BorderColor: var(--pf-t--global--border--color--default);
 }

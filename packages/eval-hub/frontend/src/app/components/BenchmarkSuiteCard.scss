@@ -1,0 +1,45 @@
+.evalhub-benchmark-suite-card {
+  min-width: 0;
+}
+
+.evalhub-benchmark-suite-card__header {
+  padding-block-end: 0;
+}
+
+.evalhub-benchmark-suite-card__header-content {
+  width: 100%;
+}
+
+.evalhub-benchmark-suite-card__domains {
+  min-width: 0;
+}
+
+.evalhub-benchmark-suite-card__domains .pf-v6-c-flex {
+  flex-wrap: wrap;
+}
+
+.evalhub-benchmark-suite-card__title {
+  overflow-wrap: anywhere;
+}
+
+.evalhub-benchmark-suite-card__count {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--sm);
+  margin-block-start: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-benchmark-suite-card__body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-benchmark-suite-card__description {
+  color: var(--pf-t--global--text--color--regular);
+  margin: 0;
+}
+
+.evalhub-benchmark-suite-card__metrics {
+  margin-block-start: auto;
+}
