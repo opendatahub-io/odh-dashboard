@@ -190,6 +190,7 @@ curl 'http://localhost:4000/api/v1/maas/models?namespace=default&secretName=any-
 - The `secretName` parameter is validated as a DNS-1123 label to prevent injection
 - The Models as a Service base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
 - Secret values (API keys) are not logged
+- The Models as a Service API key is sent as `Authorization` over HTTPS, loopback HTTP, and Kubernetes service FQDNs (`<service>.<namespace>.svc.cluster.local`). It is omitted for other `http://` hosts to avoid leaking the token on untrusted cleartext URLs.
 
 ## Implementation Details
 

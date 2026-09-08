@@ -168,7 +168,7 @@ curl -s 'http://localhost:4000/api/v1/maas/vector-stores?namespace=default&secre
 - The `secretName` parameter is validated as a DNS-1123 label to prevent injection
 - The Models as a Service base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
 - Secret values (API keys) are not logged
-- Authorization header is only sent over HTTPS to prevent token leakage
+- The Models as a Service API key is sent as `Authorization` over HTTPS, loopback HTTP, and Kubernetes service FQDNs (`<service>.<namespace>.svc.cluster.local`). It is omitted for other `http://` hosts to avoid leaking the token on untrusted cleartext URLs.
 
 ## Implementation Details
 

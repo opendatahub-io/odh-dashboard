@@ -295,7 +295,10 @@ func TestSetAuthHeader(t *testing.T) {
 		{"https host gets bearer token", "tok", "https://maas.example.com/v1/models", "Bearer tok"},
 		{"localhost over http gets bearer token", "tok", "http://localhost:8080/v1/models", "Bearer tok"},
 		{"127.0.0.1 over http gets bearer token", "tok", "http://127.0.0.1:8080/v1/models", "Bearer tok"},
-		{"plain http to a remote host omits the token", "tok", "http://maas.internal.svc:8080/v1/models", ""},
+		{"ipv6 loopback over http gets bearer token", "tok", "http://[::1]:8080/v1/models", "Bearer tok"},
+		{"in-cluster service FQDN over http gets bearer token", "tok", "http://maas.ns.svc.cluster.local:8080/v1/models", "Bearer tok"},
+		{"short cluster DNS over http omits the token", "tok", "http://maas.internal.svc:8080/v1/models", ""},
+		{"plain http to a remote host omits the token", "tok", "http://maas.example.com/v1/models", ""},
 		{"empty apiKey never sets a header", "", "https://maas.example.com/v1/models", ""},
 	}
 

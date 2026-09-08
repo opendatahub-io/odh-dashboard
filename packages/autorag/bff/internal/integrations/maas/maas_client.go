@@ -188,15 +188,27 @@ func (c *MaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) 
 }
 
 // setAuthHeader sets the Authorization header when an API key is provided.
-// The header is omitted over plain HTTP (except localhost) to avoid leaking tokens.
+// The header is omitted over untrusted plain HTTP to avoid leaking tokens.
 func setAuthHeader(req *http.Request, apiKey string) {
 	if apiKey == "" {
 		return
 	}
-	isLocalhost := req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1"
-	if req.URL.Scheme == "https" || isLocalhost {
+	if req.URL.Scheme == "https" || (req.URL.Scheme == "http" && allowBearerOverHTTP(req.URL.Hostname())) {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
+}
+
+// allowBearerOverHTTP reports whether Authorization may be sent on an http URL.
+// Trusted HTTP hosts are loopback and Kubernetes service FQDNs
+// (<service>.<namespace>.svc.cluster.local), matching in-cluster MaaS URLs.
+func allowBearerOverHTTP(hostname string) bool {
+	host := strings.ToLower(strings.TrimSuffix(hostname, "."))
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+	labels := strings.Split(host, ".")
+	return len(labels) == 5 && labels[0] != "" && labels[1] != "" &&
+		labels[2] == "svc" && labels[3] == "cluster" && labels[4] == "local"
 }
 
 // Compile-time interface checks.
