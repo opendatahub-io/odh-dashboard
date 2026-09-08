@@ -4,7 +4,7 @@ import PortalAreaContextProvider from './PortalAreaContextProvider';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Standalone,
-  URL_PREFIX: '/maas',
+  URL_PREFIX: `${process.env.BASE_PATH || ''}/maas`,
   BFF_API_VERSION: 'v1',
 };
 

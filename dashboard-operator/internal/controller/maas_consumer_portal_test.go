@@ -86,14 +86,14 @@ func portalTestRouteWithParents(generation int64, conditions ...[]metav1.Conditi
 
 func TestReconcileMaaSConsumerPortalAvailability(t *testing.T) {
 	readyRoute := &gatewayv1.HTTPRoute{
-		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace},
 		Status: gatewayv1.HTTPRouteStatus{RouteStatus: gatewayv1.RouteStatus{Parents: []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
 			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue},
 			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue},
 		}}}}},
 	}
 	availableDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace},
 		Status:     appsv1.DeploymentStatus{Conditions: []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}},
 	}
 	statuses := map[string]v1alpha1.ModuleStatus{
@@ -201,7 +201,7 @@ func TestReconcileMaaSConsumerPortal_PreservesEarlierFailure(t *testing.T) {
 func TestDeployMaaSConsumerPortalBundle(t *testing.T) {
 	s := maasConsumerPortalScheme(t)
 	base := t.TempDir()
-	bundle := filepath.Join(base, "distributions", maasConsumerPortalHostPrefix)
+	bundle := filepath.Join(base, "distributions", maasConsumerPortalDeploymentName)
 	require.NoError(t, os.MkdirAll(bundle, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(bundle, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -233,18 +233,18 @@ spec:
 	federationConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: maasConsumerPortalTestNamespace}, Data: map[string]string{federationConfigKey: "[]"}}
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(federationConfig).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
-	require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://maas-consumer-portal.apps.example.com/"))
+	require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://apps.example.com/maas-consumer-portal/", "apps.example.com"))
 	deployment := &appsv1.Deployment{}
-	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace}, deployment))
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace}, deployment))
 	assert.NotEmpty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])
 
 	t.Run("does not fail while the federation ConfigMap is unavailable", func(t *testing.T) {
 		cli := fake.NewClientBuilder().WithScheme(s).Build()
 		r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 
-		require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://maas-consumer-portal.apps.example.com/"))
+		require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://apps.example.com/maas-consumer-portal/", "apps.example.com"))
 		deployment := &appsv1.Deployment{}
-		require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace}, deployment))
+		require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace}, deployment))
 		assert.Empty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])
 	})
 }
@@ -252,13 +252,13 @@ spec:
 func TestReconcileRemovedMaaSConsumerPortal_CleanupFailureRetries(t *testing.T) {
 	s := maasConsumerPortalScheme(t)
 	portalDeployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{
-		Name:      maasConsumerPortalHostPrefix,
+		Name:      maasConsumerPortalDeploymentName,
 		Namespace: maasConsumerPortalTestNamespace,
 		Labels:    map[string]string{labels.PlatformPartOf: maasConsumerPortalPartOf},
 	}}
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(portalDeployment).WithInterceptorFuncs(interceptor.Funcs{
 		Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, options ...client.DeleteOption) error {
-			if _, isDeployment := obj.(*appsv1.Deployment); isDeployment && obj.GetName() == maasConsumerPortalHostPrefix {
+			if _, isDeployment := obj.(*appsv1.Deployment); isDeployment && obj.GetName() == maasConsumerPortalDeploymentName {
 				return errors.New("simulated portal cleanup failure")
 			}
 			return delegate.Delete(ctx, obj, options...)
@@ -303,18 +303,18 @@ func TestReconcileDeletion_CleansMaaSConsumerPortalResources(t *testing.T) {
 		Finalizers:        []string{dashboardFinalizer},
 		DeletionTimestamp: &metav1.Time{Time: time.Now()},
 	}}
-	portalServiceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}}
+	portalServiceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}}
 	objects := []client.Object{
 		dashboard,
-		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
-		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
+		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		portalServiceAccount,
-		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
+		&networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix + "-tls", Namespace: maasConsumerPortalTestNamespace}},
-		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Labels: portalLabels}},
-		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Labels: portalLabels}},
-		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalHostPrefix, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName + "-tls", Namespace: maasConsumerPortalTestNamespace}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Labels: portalLabels}},
+		&gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace, Labels: portalLabels}},
 		consoleLink,
 	}
 	serviceAccountDeleteAttempted := false
