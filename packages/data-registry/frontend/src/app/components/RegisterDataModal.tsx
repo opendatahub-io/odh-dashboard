@@ -148,7 +148,7 @@ const RegisterDataModal: React.FC<RegisterDataModalProps> = ({
   onManageCollections,
 }) => {
   const { userSettings } = useSettings();
-  const userId = userSettings?.userId || '';
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
   const [connections, connectionsLoaded, connectionsError] = useConnections(project);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');

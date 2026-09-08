@@ -14,9 +14,9 @@ import {
   TextArea,
   Alert,
 } from '@patternfly/react-core';
-import { TypeaheadSelect } from '@patternfly/react-templates';
 import { useSettings } from 'mod-arch-core';
 import { createCollection } from '~/app/api/dataRegistry';
+import OwnerTypeaheadSelect from '~/app/components/shared/OwnerTypeaheadSelect';
 
 type CreateCollectionModalProps = {
   isOpen: boolean;
@@ -26,8 +26,6 @@ type CreateCollectionModalProps = {
 };
 
 const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
-
-const UNASSIGNED = 'Unassigned';
 
 const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   isOpen,
@@ -136,22 +134,10 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             />
           </FormGroup>
           <FormGroup label="Owner" isRequired fieldId="collection-owner">
-            <TypeaheadSelect
-              key={userId}
+            <OwnerTypeaheadSelect
               id="collection-owner"
-              placeholder="Select or type owner"
-              initialOptions={[
-                ...(userId ? [{ content: userId, value: userId, selected: owner === userId }] : []),
-                { content: UNASSIGNED, value: UNASSIGNED, selected: owner === UNASSIGNED },
-                ...(owner && owner !== userId && owner !== UNASSIGNED
-                  ? [{ content: owner, value: owner, selected: true }]
-                  : []),
-              ]}
-              onSelect={(_event, value) => setOwner(String(value))}
-              onClearSelection={() => setOwner('')}
-              isCreatable
-              createOptionMessage={(newValue) => `Use "${newValue}"`}
-              toggleWidth="100%"
+              value={owner}
+              onChange={setOwner}
               data-testid="collection-owner-input"
             />
           </FormGroup>
