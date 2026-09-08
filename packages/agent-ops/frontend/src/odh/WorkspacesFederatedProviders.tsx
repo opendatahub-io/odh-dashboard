@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import {
   BrowserStorageContextProvider,
   DeploymentMode,
@@ -7,6 +7,7 @@ import {
   ModularArchContextProvider,
   NotificationContextProvider,
 } from 'mod-arch-core';
+import { createWorkspacesQueryClient } from '~/app/hooks/queryClient';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import WorkspacesUpstreamProviders from './WorkspacesUpstreamProviders';
 
@@ -16,35 +17,26 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION,
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 30000,
-    },
-    mutations: {
-      gcTime: Infinity,
-    },
-  },
-});
-
 type WorkspacesFederatedProvidersProps = {
   children: React.ReactNode;
 };
 
 const WorkspacesFederatedProviders: React.FC<WorkspacesFederatedProvidersProps> = ({
   children,
-}) => (
-  <ModularArchContextProvider config={modularArchConfig}>
-    <BrowserStorageContextProvider>
-      <NotificationContextProvider>
-        <QueryClientProvider client={queryClient}>
-          <WorkspacesUpstreamProviders>{children}</WorkspacesUpstreamProviders>
-        </QueryClientProvider>
-      </NotificationContextProvider>
-    </BrowserStorageContextProvider>
-  </ModularArchContextProvider>
-);
+}) => {
+  const [queryClient] = React.useState(createWorkspacesQueryClient);
+
+  return (
+    <ModularArchContextProvider config={modularArchConfig}>
+      <BrowserStorageContextProvider>
+        <NotificationContextProvider>
+          <QueryClientProvider client={queryClient}>
+            <WorkspacesUpstreamProviders>{children}</WorkspacesUpstreamProviders>
+          </QueryClientProvider>
+        </NotificationContextProvider>
+      </BrowserStorageContextProvider>
+    </ModularArchContextProvider>
+  );
+};
 
 export default WorkspacesFederatedProviders;

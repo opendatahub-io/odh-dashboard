@@ -7,6 +7,7 @@ import type {
 // Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
 const agentDeploymentsPath = '/ai-hub/agents/deployments';
 const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
+// Must match `${agentOpsWorkspacesPath}/:workspaceId/*` in ~/app/utilities/routes.ts.
 const agentOpsWorkspacesDetailPath = '/ai-hub/agents/workspaces/:workspaceId/*';
 
 const AGENT_OPS = 'agent-ops';

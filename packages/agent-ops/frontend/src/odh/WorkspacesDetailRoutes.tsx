@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SandboxDetailPage, WorkspaceDetailPage } from 'openshell-dashboard/pages';
-import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { agentOpsSandboxDetailPath } from '~/app/utilities/routes';
+import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { agentOpsSandboxDetailPath, agentOpsWorkspacesPath } from '~/app/utilities/routes';
 import WorkspacesFederatedProviders from './WorkspacesFederatedProviders';
 
 const WorkspaceDetailRoute: React.FC = () => {
@@ -9,7 +9,7 @@ const WorkspaceDetailRoute: React.FC = () => {
   const navigate = useNavigate();
 
   if (!workspaceId) {
-    return null;
+    return <Navigate to={agentOpsWorkspacesPath} replace />;
   }
 
   return (
