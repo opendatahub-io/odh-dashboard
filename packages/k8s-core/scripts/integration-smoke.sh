@@ -23,20 +23,30 @@ record_result() {
     "${name}" "${status}" "${detail}" >> "${RESULTS_DIR}/layer3.ndjson"
 }
 
-workload_owned_by_uid() {
-  local owner_uid="$1"
-  OWNER_UID="${owner_uid}" kubectl get workloads -n kueue-sentinel -o json | python3 -c '
-import json
-import os
-import sys
+# Match dashboard getWorkloadForJob(): Kueue labels workloads with job-uid/job-name, not TrainJob ownerReferences.
+find_workload_for_trainjob() {
+  local namespace="$1"
+  local trainjob_uid="$2"
+  local trainjob_name="$3"
+  local workload_name=""
 
-owner_uid = os.environ["OWNER_UID"]
-for item in json.load(sys.stdin).get("items", []):
-    for ref in item.get("metadata", {}).get("ownerReferences", []):
-        if ref.get("uid") == owner_uid:
-            print(item["metadata"]["name"])
-            raise SystemExit(0)
-'
+  workload_name="$(kubectl get workloads -n "${namespace}" \
+    -l "kueue.x-k8s.io/job-uid=${trainjob_uid}" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  if [[ -n "${workload_name}" ]]; then
+    echo "${workload_name}"
+    return 0
+  fi
+
+  workload_name="$(kubectl get workloads -n "${namespace}" \
+    -l "kueue.x-k8s.io/job-name=${trainjob_name}" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  if [[ -n "${workload_name}" ]]; then
+    echo "${workload_name}"
+    return 0
+  fi
+
+  return 1
 }
 
 wait_for_workload_admitted() {
@@ -57,6 +67,7 @@ kubectl create namespace kueue-sentinel --dry-run=client -o yaml | kubectl apply
 kubectl label namespace kueue-sentinel kueue.openshift.io/managed=true --overwrite
 
 log "Ensuring base resources exist"
+kubectl delete workload sentinel-workload -n kueue-sentinel --ignore-not-found
 kubectl apply -f "${FIXTURES_DIR}/resourceflavor.yaml"
 kubectl apply -f "${FIXTURES_DIR}/clusterqueue.yaml"
 kubectl apply -f "${FIXTURES_DIR}/localqueue.yaml"
@@ -79,11 +90,12 @@ else
 fi
 
 TRAINJOB_UID="$(kubectl get trainjob sentinel-trainjob-integration -n kueue-sentinel -o jsonpath='{.metadata.uid}')"
+TRAINJOB_NAME="sentinel-trainjob-integration"
 
-log "Waiting for a Workload owned by the TrainJob"
+log "Waiting for a Kueue Workload labeled for the TrainJob"
 WORKLOAD_NAME=""
 for _ in $(seq 1 30); do
-  WORKLOAD_NAME="$(workload_owned_by_uid "${TRAINJOB_UID}" || true)"
+  WORKLOAD_NAME="$(find_workload_for_trainjob kueue-sentinel "${TRAINJOB_UID}" "${TRAINJOB_NAME}" || true)"
   if [[ -n "${WORKLOAD_NAME}" ]]; then
     break
   fi
