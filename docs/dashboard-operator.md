@@ -419,7 +419,7 @@ Each certificate includes DNS names for in-cluster service discovery:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | >= 1.25 | Build and test |
+| Go | >= 1.26 | Build and test |
 | controller-gen | (via Makefile) | CRD/RBAC generation from markers |
 | golangci-lint | v2 | Linting (downloaded by `make lint`) |
 | Helm | >= 3.x | Chart validation and local rendering |
