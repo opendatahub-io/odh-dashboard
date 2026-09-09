@@ -8,6 +8,7 @@ const useFetchMCPServers = (): {
   registryAvailable: boolean;
   loaded: boolean;
   error: Error | undefined;
+  refetch: () => void;
 } => {
   const { api, apiAvailable } = useGenAiAPI();
   const [data, setData] = React.useState<MCPServerFromAPI[]>([]);
@@ -16,6 +17,7 @@ const useFetchMCPServers = (): {
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const fetchAttempted = React.useRef(false);
+  const [retryCount, setRetryCount] = React.useState(0);
 
   React.useEffect(() => {
     if (apiAvailable && !fetchAttempted.current) {
@@ -37,9 +39,16 @@ const useFetchMCPServers = (): {
           setLoaded(true);
         });
     }
-  }, [apiAvailable, api]);
+  }, [apiAvailable, api, retryCount]);
 
-  return { data, configMapName, registryAvailable, loaded, error };
+  const refetch = React.useCallback(() => {
+    fetchAttempted.current = false;
+    setLoaded(false);
+    setError(undefined);
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  return { data, configMapName, registryAvailable, loaded, error, refetch };
 };
 
 export default useFetchMCPServers;
