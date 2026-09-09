@@ -299,6 +299,74 @@ describe('Pipeline Import and Upload', () => {
     );
   });
 
+  it('rejects an invalid pipeline URL until it is corrected', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+    pipelineImportModal.shouldBeOpen();
+
+    pipelineImportModal.fillPipelineName('New pipeline');
+    pipelineImportModal.findImportPipelineRadio().check();
+
+    // Typing an invalid URL should not show an error or block the submit button --
+    // the user is free to type and attempt to submit.
+    pipelineImportModal.findPipelineUrlInput().type('not-a-url');
+    pipelineImportModal.findPipelineUrlError().should('not.exist');
+    pipelineImportModal.findSubmitButton().should('be.enabled');
+
+    // Submitting with an invalid URL surfaces the field error and keeps the modal open,
+    // instead of proceeding with the import.
+    pipelineImportModal.submit();
+    pipelineImportModal.findPipelineUrlError().should('exist').and('contain.text', 'Invalid URL');
+    pipelineImportModal.shouldBeOpen();
+
+    // Correcting the URL clears the error immediately.
+    pipelineImportModal.findPipelineUrlInput().clear().type('https://example.com/pipeline.yaml');
+    pipelineImportModal.findPipelineUrlError().should('not.exist');
+
+    // Submitting now proceeds with the import as normal.
+    const uploadPipelineAndVersionParams = {
+      pipeline: {
+        display_name: 'New pipeline',
+      },
+      pipeline_version: {
+        display_name: 'New pipeline',
+        package_url: {
+          pipeline_url: 'https://example.com/pipeline.yaml',
+        },
+      },
+    };
+    const createdMockPipeline = buildMockPipeline(uploadPipelineAndVersionParams.pipeline);
+    const createdVersion = buildMockPipelineVersion(
+      uploadPipelineAndVersionParams.pipeline_version,
+    );
+
+    pipelineImportModal
+      .mockCreatePipelineAndVersion(uploadPipelineAndVersionParams, projectName)
+      .as('uploadPipelineAndVersion');
+    pipelinesTable.mockGetPipelines([createdMockPipeline], projectName);
+    pipelinesTable.mockGetPipelineVersions([createdVersion], 'new-pipeline', projectName);
+    pipelineDetails.mockGetPipeline(projectName, createdMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(createdMockPipeline.pipeline_id, createdVersion, projectName)
+      .as('getPipelineVersion');
+
+    pipelineImportModal.submit();
+
+    cy.wait('@uploadPipelineAndVersion');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
+
+    verifyRelativeURL(
+      `/develop-train/pipelines/definitions/${projectName}/${createdMockPipeline.pipeline_id}/${createdVersion.pipeline_version_id}/view`,
+    );
+  });
+
   it('uploads a new pipeline version', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);

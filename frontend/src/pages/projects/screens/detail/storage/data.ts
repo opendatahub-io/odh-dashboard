@@ -3,8 +3,11 @@ import { getDisplayNameFromK8sResource, getPvcAccessMode } from '@odh-dashboard/
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';
 import { StorageTableData } from './types';
+import { getContextStorageTypeExplanation, StorageContextType } from './useStorageContextType';
 
-export const columns: SortableData<StorageTableData>[] = [
+export const columns = (data: {
+  storageContextTypes: StorageContextType[];
+}): SortableData<StorageTableData>[] => [
   {
     field: 'name',
     label: 'Name',
@@ -45,8 +48,7 @@ export const columns: SortableData<StorageTableData>[] = [
     width: 15,
     sortable: false,
     info: {
-      popover:
-        'The context indicates the purpose of the storage: general purpose, or model storage.',
+      popover: getContextStorageTypeExplanation(data.storageContextTypes),
       popoverProps: {
         showClose: true,
       },

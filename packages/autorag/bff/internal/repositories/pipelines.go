@@ -59,9 +59,6 @@ type PipelinesRepositoryConfig struct {
 }
 
 func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
-	if cfg.DefaultPipelineVersion == "" {
-		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
-	}
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 

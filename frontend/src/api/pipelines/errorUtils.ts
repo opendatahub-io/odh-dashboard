@@ -13,6 +13,37 @@ type ResultErrorKF = {
   /** Displayable message */
   error_message: string;
 };
+export enum GrpcStatusCode {
+  OK = 0,
+  CANCELLED = 1,
+  UNKNOWN = 2,
+  INVALID_ARGUMENT = 3,
+  DEADLINE_EXCEEDED = 4,
+  NOT_FOUND = 5,
+  ALREADY_EXISTS = 6,
+  PERMISSION_DENIED = 7,
+  RESOURCE_EXHAUSTED = 8,
+  FAILED_PRECONDITION = 9,
+  ABORTED = 10,
+  OUT_OF_RANGE = 11,
+  UNIMPLEMENTED = 12,
+  INTERNAL = 13,
+  UNAVAILABLE = 14,
+  DATA_LOSS = 15,
+  UNAUTHENTICATED = 16,
+}
+class GrpcError extends Error {
+  grpcCode: GrpcStatusCode;
+
+  result?: unknown;
+
+  constructor(message: string, grpcCode: GrpcStatusCode, result?: unknown) {
+    super(message);
+    this.name = 'PipelineApiError';
+    this.grpcCode = grpcCode;
+    this.result = result;
+  }
+}
 
 const isErrorKF = (e: unknown): e is ErrorKF =>
   typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
@@ -33,7 +64,6 @@ const isGrpcErrorKF = (e: unknown): e is GrpcErrorKF => {
     obj.code !== 0 &&
     typeof obj.message === 'string' &&
     !('error' in e) &&
-    !('details' in e) &&
     !('run_id' in e) &&
     !('recurring_run_id' in e)
   );
@@ -47,11 +77,8 @@ const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
-      if (isErrorKF(result)) {
+      if (isErrorKF(result) || isGrpcErrorKF(result)) {
         throw result;
-      }
-      if (isGrpcErrorKF(result)) {
-        throw new Error(result.message);
       }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
@@ -68,6 +95,9 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     .catch((e) => {
       if (isErrorKF(e)) {
         throw new Error(e.error);
+      }
+      if (isGrpcErrorKF(e)) {
+        throw new GrpcError(e.message, e.code, e);
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it

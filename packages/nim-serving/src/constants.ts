@@ -1,5 +1,8 @@
 export const NIM_OPERATOR_MANAGED_BY = 'k8s-nim-operator';
 
+export const NIM_IMAGE_FIELD_ID = 'nim-serving/nimImage';
+export const NIM_PVC_STORAGE_FIELD_ID = 'nim-serving/pvcStorage';
+
 /** Platform id for the legacy NIM UI (KServe-backed NIM serving). */
 export const NIM_LEGACY_ID = 'nvidia-nim';
 

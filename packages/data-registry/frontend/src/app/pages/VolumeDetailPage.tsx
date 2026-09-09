@@ -19,7 +19,6 @@ import {
   Tabs,
   TabContent,
   TabTitleText,
-  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
@@ -27,6 +26,7 @@ import { useVolume } from '~/app/hooks/useVolume';
 import { deleteVolume } from '~/app/api/dataRegistry';
 import { browseUrl } from '~/app/utilities/routes';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
+import EditAssetModal from '~/app/components/EditAssetModal';
 import VolumeDetailView from './VolumeDetailView';
 
 const VolumeDetailPage: React.FC = () => {
@@ -37,9 +37,10 @@ const VolumeDetailPage: React.FC = () => {
   }>();
   const navigate = useNavigate();
 
-  const [volume, loaded, loadError] = useVolume(project, collection, name);
+  const [volume, loaded, loadError, refresh] = useVolume(project, collection, name);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
 
   const handleDelete = React.useCallback(async () => {
     if (!project || !collection || !name) {
@@ -83,6 +84,7 @@ const VolumeDetailPage: React.FC = () => {
           <MenuToggle
             ref={toggleRef}
             variant="plain"
+            isDisabled={!loaded}
             onClick={() => setIsActionsOpen((prev) => !prev)}
             isExpanded={isActionsOpen}
             aria-label="Actions"
@@ -94,11 +96,13 @@ const VolumeDetailPage: React.FC = () => {
         popperProps={{ position: 'right' }}
       >
         <DropdownList>
-          <Tooltip content="Edit functionality coming soon">
-            <DropdownItem key="edit" isDisabled data-testid="asset-action-edit">
-              Edit
-            </DropdownItem>
-          </Tooltip>
+          <DropdownItem
+            key="edit"
+            onClick={() => setIsEditModalOpen(true)}
+            data-testid="asset-action-edit"
+          >
+            Edit
+          </DropdownItem>
           <DropdownItem
             key="delete"
             onClick={() => setIsDeleteModalOpen(true)}
@@ -114,6 +118,20 @@ const VolumeDetailPage: React.FC = () => {
           assetType="volume"
           onDelete={handleDelete}
           onClose={() => setIsDeleteModalOpen(false)}
+        />
+      ) : null}
+      {isEditModalOpen && volume && project && collection && name ? (
+        <EditAssetModal
+          asset={volume}
+          assetKind="volume"
+          project={project}
+          collection={collection}
+          name={name}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={() => {
+            setIsEditModalOpen(false);
+            refresh();
+          }}
         />
       ) : null}
     </>

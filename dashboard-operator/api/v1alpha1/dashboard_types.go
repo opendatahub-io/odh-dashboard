@@ -101,8 +101,8 @@ type ObservabilitySpec struct {
 
 // +kubebuilder:object:generate=true
 
-// MaasConsumerPortalSpec configures the MaaS Consumer Portal.
-type MaasConsumerPortalSpec struct {
+// MaaSConsumerPortalSpec configures the MaaS Consumer Portal.
+type MaaSConsumerPortalSpec struct {
 	// ManagementState controls whether the portal is deployed.
 	// "Managed" deploys the portal (requires Gateway.Domain to be set,
 	// since the portal host is derived from it); "Removed" tears it down.
@@ -177,9 +177,9 @@ type DashboardSpec struct {
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
 
-	// MaasConsumerPortal configures the MaaS Consumer Portal.
+	// MaaSConsumerPortal configures the MaaS Consumer Portal.
 	// +optional
-	MaasConsumerPortal *MaasConsumerPortalSpec `json:"maasConsumerPortal,omitempty"`
+	MaaSConsumerPortal *MaaSConsumerPortalSpec `json:"maasConsumerPortal,omitempty"`
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
@@ -213,6 +213,11 @@ type DashboardStatus struct {
 	// check the Ready condition before relying on this endpoint.
 	// +optional
 	URL string `json:"url,omitempty"`
+
+	// MaaSConsumerPortalURL is the externally-reachable MaaS Consumer Portal URL (last known good).
+	// It is cleared when the portal operand is removed.
+	// +optional
+	MaaSConsumerPortalURL string `json:"maasConsumerPortalUrl,omitempty"`
 
 	// ModuleStatuses reports the deployment state of each module.
 	// +optional

@@ -1,10 +1,12 @@
 import { mcpTab } from './playgroundPage/mcpTab';
+import { appendFeatureFlagParams } from './appChrome';
 
 class PlaygroundPage {
   mcpTab = mcpTab;
 
   visit(namespace?: string): void {
-    cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');
+    const base = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
+    cy.visit(appendFeatureFlagParams(base));
     this.waitForPageLoad();
   }
 

@@ -10,6 +10,7 @@ import {
   navigateToPlayground,
   initAutoConnectIntercepts,
   initHighToolsCountIntercepts,
+  initRegistryIntercepts,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
@@ -679,6 +680,67 @@ describe('Playground - MCP Servers', () => {
       freshServerRowFor40.findToolsButton().should('contain.text', '40 active');
 
       cy.step('Test completed - No warning for 40 or fewer tools');
+    },
+  );
+
+  it(
+    'should show Registered and Manual Connection sections when registry servers exist',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@Registry'] },
+    () => {
+      const namespace = config.defaultNamespace;
+
+      initRegistryIntercepts({
+        config,
+        namespace,
+        registryServers: [{ name: 'Registry-Server-1', url: 'http://registry-server-1.local/mcp' }],
+        configmapServers: [
+          { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
+        ],
+      });
+
+      navigateToPlayground(namespace);
+
+      cy.step('Verify Registered section is visible');
+      playgroundPage.mcpTab.findRegisteredSection().should('be.visible');
+      playgroundPage.mcpTab.findRegisteredToggle().should('contain.text', 'Registered');
+      playgroundPage.mcpTab.findRegisteredCountBadge().should('contain.text', '0 of 1 servers on');
+
+      cy.step('Verify Manual Connection section is visible');
+      playgroundPage.mcpTab.findManualSection().should('be.visible');
+      playgroundPage.mcpTab.findManualToggle().should('contain.text', 'Manual Connection');
+
+      cy.step('Verify kebab menu has Manage servers in AI Hub link');
+      playgroundPage.mcpTab.findRegisteredKebab().click();
+      playgroundPage.mcpTab
+        .findManageServersLink()
+        .should('be.visible')
+        .and('contain.text', 'Manage servers in AI Hub');
+    },
+  );
+
+  it(
+    'should show Manual Connection empty state when no configmap servers in grouped layout',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@Registry', '@EmptyState'] },
+    () => {
+      const namespace = config.defaultNamespace;
+
+      initRegistryIntercepts({
+        config,
+        namespace,
+        registryServers: [{ name: 'Registry-Server-1', url: 'http://registry-server-1.local/mcp' }],
+        configmapServers: [],
+      });
+
+      navigateToPlayground(namespace);
+
+      cy.step('Verify Registered section is visible');
+      playgroundPage.mcpTab.findRegisteredSection().should('be.visible');
+
+      cy.step('Verify Manual Connection shows empty state');
+      playgroundPage.mcpTab.findManualEmptyState().should('be.visible');
+      playgroundPage.mcpTab
+        .findManualEmptyState()
+        .should('contain.text', 'No manual servers configured');
     },
   );
 });
