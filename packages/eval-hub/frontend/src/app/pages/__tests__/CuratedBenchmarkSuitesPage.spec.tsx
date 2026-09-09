@@ -56,7 +56,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-pagination-bottom')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
     expect(screen.getAllByText('Customize')).toHaveLength(5);
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(

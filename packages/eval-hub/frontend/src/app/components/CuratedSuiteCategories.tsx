@@ -1,17 +1,7 @@
 import * as React from 'react';
-import {
-  Card,
-  CardBody,
-  Content,
-  Flex,
-  FlexItem,
-  Grid,
-  GridItem,
-  Title,
-} from '@patternfly/react-core';
-import { CpuIcon, LinkIcon } from '@patternfly/react-icons';
+import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
+import { RhStandardAgenticIcon, RhStandardAiModelIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import redHatLogo from '@odh-dashboard/internal/images/red-hat.svg';
 import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
 import './CuratedSuiteCategories.scss';
 
@@ -31,7 +21,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
     title: 'Agents',
     description:
       'Evaluate AI agent behavior, tool usage, and multi-step task completion across various scenarios.',
-    icon: LinkIcon,
+    icon: RhStandardAgenticIcon,
     iconColor: 'purple',
     aiEntities: ['agent'],
   },
@@ -40,7 +30,7 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
     title: 'Models',
     description:
       'Benchmark model accuracy, latency, and quality across standard and custom evaluation datasets.',
-    icon: CpuIcon,
+    icon: RhStandardAiModelIcon,
     iconColor: 'red',
     aiEntities: ['model'],
   },
@@ -95,26 +85,9 @@ type CuratedSuiteCategoriesProps = {
 
 const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespace }) => (
   <section className="evalhub-curated-suite-categories" data-testid="curated-suite-categories">
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      spaceItems={{ default: 'spaceItemsSm' }}
-      className="evalhub-curated-suite-categories__header"
-    >
-      <FlexItem>
-        <img
-          src={redHatLogo}
-          alt=""
-          className="evalhub-curated-suite-categories__logo"
-          aria-hidden="true"
-          data-testid="curated-suite-categories-logo"
-        />
-      </FlexItem>
-      <FlexItem>
-        <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
-          Browse Red Hat curated suites
-        </Title>
-      </FlexItem>
-    </Flex>
+    <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
+      Browse curated benchmark suites
+    </Title>
     <Content component="p" className="evalhub-curated-suite-categories__description">
       Pick a category and customize a suite for your own collection.
     </Content>

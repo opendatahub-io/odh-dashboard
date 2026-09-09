@@ -5,19 +5,8 @@
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
-.evalhub-curated-suite-categories__header {
-  margin-block-end: var(--pf-t--global--spacer--sm);
-}
-
-.evalhub-curated-suite-categories__logo {
-  display: block;
-  width: var(--pf-t--global--icon--size--font--heading--h1);
-  height: auto;
-  filter: brightness(0.95);
-}
-
 .evalhub-curated-suite-categories__title {
-  margin: 0;
+  margin-block-end: var(--pf-t--global--spacer--sm);
 }
 
 .evalhub-curated-suite-categories__description {
@@ -56,6 +45,11 @@
   margin-block-end: var(--pf-t--global--spacer--md);
   border-radius: 50%;
   color: var(--pf-t--global--color--brand--default);
+}
+
+.evalhub-curated-suite-categories__icon > svg {
+  width: var(--pf-t--global--icon--size--xl);
+  height: var(--pf-t--global--icon--size--xl);
 }
 
 .evalhub-curated-suite-categories__icon--blue {

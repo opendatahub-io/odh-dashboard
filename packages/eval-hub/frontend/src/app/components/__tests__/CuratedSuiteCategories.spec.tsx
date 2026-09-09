@@ -15,8 +15,8 @@ describe('CuratedSuiteCategories', () => {
     renderSection();
 
     expect(screen.getByTestId('curated-suite-categories')).toBeInTheDocument();
-    expect(screen.getByTestId('curated-suite-categories-logo')).toBeInTheDocument();
-    expect(screen.getByText('Browse Red Hat curated suites')).toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-categories-logo')).not.toBeInTheDocument();
+    expect(screen.getByText('Browse curated benchmark suites')).toBeInTheDocument();
     expect(
       screen.getByText('Pick a category and customize a suite for your own collection.'),
     ).toBeInTheDocument();

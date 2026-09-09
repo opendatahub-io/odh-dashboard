@@ -61,7 +61,7 @@ describe('BenchmarkSuitesPage', () => {
     expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-pagination-bottom')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-trace-evaluation-suite')).toBeInTheDocument();
     expect(

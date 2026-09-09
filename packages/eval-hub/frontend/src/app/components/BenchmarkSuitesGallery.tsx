@@ -530,26 +530,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to All my benchmark suites</Link>
         </StackItem>
       )}
-      {showPagination && !isLoading && !shouldShowLoadError && filteredCollections.length > 0 && (
-        <Pagination
-          itemCount={filteredCollectionCount}
-          perPage={pageSize}
-          page={page}
-          onSetPage={(_event, newPage) => setPage(newPage)}
-          onPerPageSelect={(_event, newPageSize) => {
-            setPageSize(newPageSize);
-            setPage(1);
-          }}
-          perPageOptions={PAGE_SIZE_OPTIONS.map((size) => ({
-            title: String(size),
-            value: size,
-          }))}
-          variant="bottom"
-          widgetId="benchmark-suites-pagination-bottom"
-          data-testid="benchmark-suites-pagination-bottom"
-          menuAppendTo="inline"
-        />
-      )}
       {collectionToDelete && (
         <DeleteConfirmationModal
           title="Delete benchmark suite?"
