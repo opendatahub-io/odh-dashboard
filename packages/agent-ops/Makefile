@@ -37,7 +37,7 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	cd frontend && npm install --legacy-peer-deps
 
 .PHONY: dev-bff
 dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)

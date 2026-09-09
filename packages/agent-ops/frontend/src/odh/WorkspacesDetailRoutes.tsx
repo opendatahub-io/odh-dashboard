@@ -8,6 +8,7 @@ import {
 } from '~/app/utilities/routes';
 import WorkspacesFederatedProviders from './WorkspacesFederatedProviders';
 
+// Breakout routes render in the host router; plugin-core has no param-based redirect API.
 const WorkspaceDetailRoute: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
