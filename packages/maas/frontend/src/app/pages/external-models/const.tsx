@@ -26,6 +26,9 @@ export const initialExternalModelsFilterData: ExternalModelsFilterDataType = {
 export const deploymentsExternalPath = (namespace: string): string =>
   `/ai-hub/models/deployments/external/${namespace}`;
 
+export const createExternalModelPath = (namespace: string): string =>
+  `${deploymentsExternalPath(namespace)}/register`;
+
 const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
