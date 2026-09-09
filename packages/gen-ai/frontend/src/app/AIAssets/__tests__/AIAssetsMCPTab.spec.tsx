@@ -45,6 +45,7 @@ describe('AIAssetsMCPTab', () => {
       registryAvailable: false,
       loaded: false,
       error: undefined,
+      refetch: jest.fn(),
     });
 
     mockUseMCPServerStatuses.mockReturnValue({
@@ -70,6 +71,7 @@ describe('AIAssetsMCPTab', () => {
       registryAvailable: false,
       loaded: true,
       error: new Error('ConfigMap not found'),
+      refetch: jest.fn(),
     });
 
     mockUseMCPServerStatuses.mockReturnValue({
@@ -99,6 +101,7 @@ describe('AIAssetsMCPTab', () => {
       registryAvailable: false,
       loaded: true,
       error: undefined,
+      refetch: jest.fn(),
     });
 
     mockUseMCPServerStatuses.mockReturnValue({
@@ -135,6 +138,7 @@ describe('AIAssetsMCPTab', () => {
       registryAvailable: false,
       loaded: true,
       error: undefined,
+      refetch: jest.fn(),
     });
 
     mockUseMCPServerStatuses.mockReturnValue({
