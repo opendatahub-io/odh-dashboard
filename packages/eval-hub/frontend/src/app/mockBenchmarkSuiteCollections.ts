@@ -85,5 +85,21 @@ export const mockBenchmarkSuiteCollections = (): Collection[] => [
     ['attack-success', 'toxicity'],
     ['attack_success_rate', 'toxicity_score'],
   ),
+  createMockCollection(
+    'finance-evaluation-suite',
+    'Finance evaluation suite',
+    ['general', 'model'],
+    'Evaluate model performance for financial services and banking scenarios.',
+    ['accuracy', 'detection-rate', 'compliance-rate'],
+    ['acc', 'detection_rate', 'compliance_rate'],
+  ),
+  createMockCollection(
+    'open-llm-leaderboard-v2',
+    'Open LLM Leaderboard v2',
+    ['general', 'model'],
+    'Comprehensive evaluation suite for general-purpose language models.',
+    ['accuracy'],
+    ['acc'],
+  ),
 ];
 /* eslint-enable camelcase */

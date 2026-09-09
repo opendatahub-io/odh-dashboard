@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -47,6 +48,15 @@ const BenchmarkSuitesPage: React.FC = () => {
           <ApplicationsPage
             title="My benchmark suites"
             description="View, run, and manage all benchmark suites you have created or saved."
+            headerAction={
+              <Button
+                variant="primary"
+                onClick={handleCreateSuite}
+                data-testid="create-benchmark-suite-button"
+              >
+                Create benchmark suite
+              </Button>
+            }
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -62,6 +72,9 @@ const BenchmarkSuitesPage: React.FC = () => {
               <Stack className="evalhub-benchmark-suites-page__content">
                 <BenchmarkSuitesGallery
                   namespace={namespace ?? ''}
+                  showCreateSuiteCard={false}
+                  showFilters
+                  showPagination
                   onCreateSuite={handleCreateSuite}
                   onSelectCollection={selectCollection}
                 />

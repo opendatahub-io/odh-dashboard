@@ -103,7 +103,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should render tenant benchmark suites in the gallery', () => {
     initIntercepts({
       collections: mockBenchmarkSuiteCollections(),
-      collectionsTotalCount: 6,
+      collectionsTotalCount: 8,
     });
 
     evaluationsPage.visit(NAMESPACE);

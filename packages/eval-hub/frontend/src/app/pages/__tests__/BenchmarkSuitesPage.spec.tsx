@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
@@ -42,7 +42,7 @@ describe('BenchmarkSuitesPage', () => {
         items: mockBenchmarkSuiteCollections(),
         // Match the BFF response field name used by CollectionsListResponse.
         // eslint-disable-next-line camelcase
-        total_count: 6,
+        total_count: 8,
       },
       isLoading: false,
       error: null,
@@ -56,12 +56,57 @@ describe('BenchmarkSuitesPage', () => {
     expect(
       screen.getByText('View, run, and manage all benchmark suites you have created or saved.'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-suite-card')).toBeInTheDocument();
+    expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-pagination-bottom')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-trace-evaluation-suite')).toBeInTheDocument();
     expect(
       screen.getByTestId('benchmark-suite-card-guardrails-compliance-suite'),
     ).toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith('test-project', 'tenant', undefined);
+  });
+
+  it('should filter tenant benchmark suites by name', () => {
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'code' },
+    });
+
+    expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+  });
+
+  it('should show a search icon when no suites match the filters', () => {
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'not-found' },
+    });
+
+    const emptyState = screen.getByTestId('benchmark-suites-empty-state');
+    expect(emptyState).toBeInTheDocument();
+    expect(emptyState.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('should filter tenant benchmark suites by category and evaluates type', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+
+    expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'All categories' }));
+    fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Agent' }));
+
+    expect(screen.getByTestId('benchmark-suite-card-agent-safety-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-code-quality-suite')).not.toBeInTheDocument();
   });
 });
