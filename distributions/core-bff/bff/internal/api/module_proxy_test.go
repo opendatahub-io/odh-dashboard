@@ -920,6 +920,47 @@ func TestInitModuleProxies_AuthorizeEmptyAuthTokenHeader(t *testing.T) {
 	assert.Empty(t, receivedTokenHeader)
 }
 
+// TestInitModuleProxies_AuthorizeWithAuthorizationHeader verifies that when the
+// configured ingress auth header IS the standard Authorization header, the
+// server-resolved token still reaches the upstream. SensitiveIngressHeaders
+// appends the configured header to StripHeaders, so the value AuthHeaderFn sets
+// is stripped before the request goes out; SetOutboundHeadersFn (which runs after
+// stripping) must re-inject it as "Bearer <token>". Regression test for the
+// AuthTokenHeader == "Authorization" configuration.
+func TestInitModuleProxies_AuthorizeWithAuthorizationHeader(t *testing.T) {
+	var receivedAuthHeader string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.DevMode = true
+		a.config.AuthTokenHeader = "Authorization"
+	})
+	proxyHandler := createTestProxy(t, app, backend.URL, "/auth-header/api", "/api", true, false, nil)
+
+	admin := k8mocks.DefaultTestUsers[0]
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth-header/api/v1/items", nil)
+	// A client attempts to spoof the Authorization header. It must be stripped
+	// and overwritten by the server-resolved token, never forwarded as-is.
+	req.Header.Set("Authorization", "Bearer attacker-token")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken("test-token-123"),
+	})
+	proxyHandler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	// The trusted token is forwarded with the "Bearer " prefix (not a raw,
+	// unprefixed token, and not the spoofed inbound value).
+	assert.Equal(t, "Bearer test-token-123", receivedAuthHeader)
+	assert.NotContains(t, receivedAuthHeader, "attacker-token")
+}
+
 func TestInitModuleProxies_PathRewrite(t *testing.T) {
 	var receivedPath string
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

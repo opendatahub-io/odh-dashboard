@@ -294,22 +294,30 @@ func (app *App) buildModuleProxyConfig(entry normalizedProxyEntry, targetURL *ur
 		// the value set here is the trusted, server-resolved token. Both headers
 		// are forwarded so upstreams reading either convention authenticate.
 		//
-		// When the ingress auth header is the standard Authorization header, the
-		// "Bearer <token>" value from AuthHeaderFn is already correct, so we skip
-		// raw-token injection to avoid clobbering it with the unprefixed token.
+		// This injection also covers the case where the configured auth header IS
+		// the standard Authorization header: SensitiveIngressHeaders appends the
+		// configured header to StripHeaders, so the "Bearer <token>" value set by
+		// AuthHeaderFn would otherwise be stripped and never reach the upstream.
+		// Because SetOutboundHeadersFn runs after stripping, re-injecting here (with
+		// the "Bearer " prefix for the Authorization header, raw otherwise) restores
+		// the trusted token regardless of which header is configured.
 		authTokenHeader := app.config.AuthTokenHeader
-		injectAuthToken := authTokenHeader != "" && !strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)
-		if injectAuthToken || len(customHeaders) > 0 {
+		if authTokenHeader != "" || len(customHeaders) > 0 {
+			isAuthorizationHeader := strings.EqualFold(authTokenHeader, constants.HeaderAuthorization)
 			cfg.SetOutboundHeadersFn = func(r *http.Request, outH http.Header) {
 				// Apply custom headers first so the server-resolved token set below
 				// is authoritative and cannot be overridden by a static config value.
 				for k, v := range customHeaders {
 					outH.Set(k, v)
 				}
-				if injectAuthToken {
+				if authTokenHeader != "" {
 					if identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
 						if token := identity.ResolveToken(app.devFallbackToken); token != "" {
-							outH.Set(authTokenHeader, token)
+							if isAuthorizationHeader {
+								outH.Set(authTokenHeader, k8s.BearerTokenPrefix+token)
+							} else {
+								outH.Set(authTokenHeader, token)
+							}
 						}
 					}
 				}
