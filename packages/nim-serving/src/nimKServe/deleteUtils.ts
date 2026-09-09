@@ -15,7 +15,7 @@ export const getNIMKServePVCReference = (
     server,
   } = deployment;
   const { namespace } = modelMetadata;
-  if (!namespace || !server) {
+  if (typeof namespace !== 'string' || !namespace.trim() || !server) {
     return undefined;
   }
 
@@ -33,7 +33,7 @@ export const getNIMKServePVCReference = (
     (volume) => volume.name === cacheMount.name && volume.persistentVolumeClaim,
   );
   const pvcName = pvcVolume?.persistentVolumeClaim?.claimName;
-  if (!pvcName || typeof pvcName !== 'string') {
+  if (typeof pvcName !== 'string' || !pvcName.trim()) {
     return undefined;
   }
 

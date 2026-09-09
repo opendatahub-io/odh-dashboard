@@ -47,6 +47,23 @@ describe('getNIMKServePVCReference', () => {
     ).toBeUndefined();
   });
 
+  it('should return undefined for a whitespace-only PVC name', () => {
+    const server = mockServer();
+    server.spec.volumes = server.spec.volumes?.map((volume) =>
+      volume.persistentVolumeClaim
+        ? { ...volume, persistentVolumeClaim: { claimName: '   ' } }
+        : volume,
+    );
+
+    expect(
+      getNIMKServePVCReference({
+        modelServingPlatformId: 'kserve',
+        model: mockNimInferenceService({ name: 'nim', namespace: 'project' }),
+        server,
+      }),
+    ).toBeUndefined();
+  });
+
   it('should return undefined when the cache volume is not a PVC', () => {
     const server = mockServer();
     server.spec.volumes = server.spec.volumes?.map((volume) =>
