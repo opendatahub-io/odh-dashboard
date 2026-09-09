@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ActionGroup,
   Alert,
@@ -260,8 +260,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             title="No models available"
             data-testid="policy-no-models-warning"
           >
-            There are no model endpoints available on the cluster. Deploy a model and create a
-            MaaSModelRef before creating an authorization policy.
+            There are no model endpoints available on the cluster. To create an authorization
+            policy, first deploy a model from the{' '}
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef.
           </Alert>
         ) : (
           <>

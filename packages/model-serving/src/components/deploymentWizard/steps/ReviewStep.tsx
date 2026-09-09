@@ -41,6 +41,7 @@ type StatusItemKey = WizardStateKey | `${WizardStateKey}-${string}` | 'projectNa
 
 type StatusItem<K extends StatusItemKey = StatusItemKey> = {
   key: K;
+  replaces?: string;
   label: string;
   comp: (state: WizardState) => React.ReactNode;
   optional?: boolean;
@@ -60,13 +61,37 @@ const getExtensionItems = (
     ?.filter((section) => section.title === title)
     .flatMap((section) => section.items) ?? [];
 
+export const mergeReviewItems = (
+  baseItems: StatusItem[],
+  extensionItems: StatusItem[],
+): StatusItem[] =>
+  extensionItems.reduce<StatusItem[]>((items, extensionItem) => {
+    if (extensionItem.replaces) {
+      const replacementIndex = items.findIndex((item) => item.key === extensionItem.replaces);
+      if (replacementIndex >= 0) {
+        return [
+          ...items.slice(0, replacementIndex),
+          extensionItem,
+          ...items.slice(replacementIndex + 1),
+        ];
+      }
+    }
+    return [...items, extensionItem];
+  }, baseItems);
+
+const mergeSectionItems = (
+  title: WizardStepTitle,
+  baseItems: StatusItem[],
+  extensionStatusSections?: StatusSection[],
+): StatusItem[] => mergeReviewItems(baseItems, getExtensionItems(title, extensionStatusSections));
+
 const getStatusSections = (
   projectName: string | undefined,
   extensionStatusSections: StatusSection[] | undefined,
   isGenAiEnabled: boolean,
   hasModelServerExtension: boolean,
 ): StatusSection[] => {
-  return [
+  const statusSections: StatusSection[] = [
     {
       title: WizardStepTitle.MODEL_DETAILS,
       items: [
@@ -213,7 +238,6 @@ const getStatusSections = (
           isVisible: (wizardState) =>
             wizardState.state.modelLocationData.data?.type === ModelLocationType.PVC,
         },
-        ...getExtensionItems(WizardStepTitle.MODEL_DETAILS, extensionStatusSections),
       ],
     },
     {
@@ -268,7 +292,6 @@ const getStatusSections = (
           label: 'Replicas',
           comp: (state) => state.numReplicas.data ?? 1,
         },
-        ...getExtensionItems(WizardStepTitle.MODEL_DEPLOYMENT, extensionStatusSections),
       ],
     },
     {
@@ -370,11 +393,20 @@ const getStatusSections = (
             return wizardState.state.deploymentStrategy.isVisible;
           },
         },
-        ...getExtensionItems(WizardStepTitle.ADVANCED_SETTINGS, extensionStatusSections),
       ],
     },
     ...(extensionStatusSections?.filter((section) => !isWizardStepTitle(section.title)) ?? []),
   ];
+
+  return statusSections.map((section) => {
+    if (!isWizardStepTitle(section.title)) {
+      return section;
+    }
+    return {
+      ...section,
+      items: mergeSectionItems(section.title, section.items, extensionStatusSections),
+    };
+  });
 };
 
 export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
@@ -408,6 +440,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
       title: section.title ?? '',
       items: section.items.map((item) => ({
         key: item.key,
+        replaces: item.replaces,
         label: item.label,
         comp: (state) => item.value(state),
         optional: item.optional,

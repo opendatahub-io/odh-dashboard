@@ -37,6 +37,7 @@ These packages have a `module-federation` config in `package.json`, their own rs
 - `mlflow` — MLflow integration (has Go BFF)
 - `mlflow-embedded` — Embedded MLflow integration
 - `model-registry` — Model Registry UI (has Go BFF)
+- `model-serving` — Model Serving UI (MF remote; hybrid with bundled `src/` until host cutover)
 - `notebooks` — Notebooks management
 - `observability` — Observability features
 
@@ -47,7 +48,6 @@ These packages export extensions but have **no** `module-federation` config. The
 - `feature-store` — Feature Store (read-only Feast UI; no BFF, proxies through main dashboard backend)
 - `kserve` — KServe integration
 - `llmd-serving` — LLM serving
-- `model-serving` — Model Serving UI
 - `model-training` — Model training UI
 - `nim-serving` — NIM serving
 
