@@ -109,7 +109,6 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 	It("should return 401 without auth identity", func() {
 		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/models", nil)
 
-		// No identity in context — OGX always forwards JWT via forward_headers
 		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)

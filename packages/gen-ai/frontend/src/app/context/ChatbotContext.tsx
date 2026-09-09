@@ -69,7 +69,11 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
   const { data: aiModels, loaded: aiModelsLoaded, error: aiModelsError } = useFetchAIModels();
 
   const maasModels = React.useMemo(
-    () => aiModels.filter((m) => m.model_source_type === 'maas'),
+    (): AIModel[] =>
+      aiModels
+        .filter((m) => m.model_source_type === 'maas')
+        // Enrich with `id` so components that match by raw MaaS model identifier work correctly.
+        .map((m): AIModel => ({ ...m, id: m.model_id })),
     [aiModels],
   );
   const maasModelsLoaded = aiModelsLoaded;

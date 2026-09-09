@@ -28,6 +28,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -156,16 +157,13 @@ func TestCanListOGXServersSARStructure(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
-	t.Run("should handle MaaS models correctly", func(t *testing.T) {
-		// Create a mock BFF client for MaaS
+	t.Run("should validate MaaS models without registering them", func(t *testing.T) {
 		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 
-		// Create a token client
 		client := &TokenKubernetesClient{
 			Logger: slog.Default(),
 		}
 
-		// Test models with only MaaS models (no regular models to avoid Kubernetes client issues)
 		models := []models.InstallModel{
 			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
 			{ModelName: "granite-7b-lab", ModelSourceType: models.ModelSourceTypeMaaS},
@@ -173,19 +171,14 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Test the MaaS model handling logic (with empty guardrails)
 		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
-		// This should succeed since we're only using MaaS models
-		assert.NoError(t, err)
+		assert.NoError(t, err, "validation should pass for ready MaaS models")
 		assert.NotEmpty(t, result)
 
-		// Verify the result contains MaaS model configurations
-		assert.Contains(t, result, "llama-2-7b-chat")
-		assert.Contains(t, result, "granite-7b-lab")
-		assert.Contains(t, result, "maas-vllm-inference")
-
-		// Verify models are also added to registered_resources
+		// MaaS inference models are validated but NOT registered in config —
+		// passthrough resolves them per-request. Only the default embedding model
+		// should appear in registered_resources.
 		var cfg LlamaStackConfig
 		err = cfg.FromYAML(result)
 		assert.NoError(t, err)
@@ -194,8 +187,8 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 			registered[m.ModelID] = true
 		}
 		assert.True(t, registered[constants.DefaultEmbeddingModel().ModelID], "default embedding model should be registered")
-		assert.True(t, registered["llama-2-7b-chat"], "MaaS model should be registered")
-		assert.True(t, registered["granite-7b-lab"], "MaaS model should be registered")
+		assert.False(t, registered["llama-2-7b-chat"], "MaaS inference model should NOT be registered (passthrough resolves per-request)")
+		assert.False(t, registered["granite-7b-lab"], "MaaS inference model should NOT be registered (passthrough resolves per-request)")
 	})
 
 	t.Run("should fail when MaaS model is not ready", func(t *testing.T) {
@@ -335,6 +328,70 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		// Verify the zero-value of EnvConfig has RBAC disabled
 		var cfg config.EnvConfig
 		assert.False(t, cfg.EnableLlamaStackRBAC, "EnableLlamaStackRBAC should default to false")
+	})
+}
+
+func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
+	t.Run("should add passthrough provider when GatewayDomain is set", func(t *testing.T) {
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			EnvConfig: config.EnvConfig{
+				GatewayDomain: "apps.cluster.example.com",
+				APIPathPrefix: "/api/v1",
+			},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "my-namespace", testModels, nil, mockBFFClient, "test-token", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+
+		expectedURL := "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-namespace"
+		assert.True(t, cfg.HasPassthroughProvider(expectedURL), "config should include passthrough provider with correct URL")
+
+		// Find the passthrough provider and verify its config
+		var passthrough *Provider
+		for i := range cfg.Providers.Inference {
+			if cfg.Providers.Inference[i].ProviderID == constants.PassthroughProviderID {
+				passthrough = &cfg.Providers.Inference[i]
+				break
+			}
+		}
+		require.NotNil(t, passthrough, "passthrough provider must be present")
+		assert.Equal(t, constants.PassthroughProviderID, passthrough.ProviderID)
+		assert.Equal(t, "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-namespace", passthrough.Config["base_url"])
+	})
+
+	t.Run("should NOT add passthrough provider when GatewayDomain is empty", func(t *testing.T) {
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{GatewayDomain: ""},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "my-namespace", testModels, nil, mockBFFClient, "test-token", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+
+		assert.False(t, cfg.HasPassthroughProvider("https://any.com/gen-ai/api/v1/genai-proxy/ns/my-namespace"), "config should NOT include passthrough when GatewayDomain is empty")
 	})
 }
 
@@ -966,11 +1023,10 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	t.Run("should successfully generate config with custom_endpoint model", func(t *testing.T) {
-		scheme := runtime.NewScheme()
-		require.NoError(t, corev1.AddToScheme(scheme))
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
 
-		configMapYAML := `
+	configMapYAML := `
 providers:
   inference:
     - provider_id: "endpoint-1"
@@ -983,16 +1039,17 @@ registered_resources:
       provider_id: "endpoint-1"
       model_type: "llm"
 `
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      constants.ExternalModelsConfigMapName,
-				Namespace: "test-namespace",
-			},
-			Data: map[string]string{
-				"config.yaml": configMapYAML,
-			},
-		}
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ExternalModelsConfigMapName,
+			Namespace: "test-namespace",
+		},
+		Data: map[string]string{
+			"config.yaml": configMapYAML,
+		},
+	}
 
+	t.Run("should validate custom_endpoint model without registering it", func(t *testing.T) {
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(configMap).
@@ -1013,11 +1070,45 @@ registered_resources:
 		ctx := context.Background()
 		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
 
-		require.NoError(t, err)
+		require.NoError(t, err, "validation should pass for existing custom endpoint model")
 		require.NotEmpty(t, result)
-		assert.Contains(t, result, "gpt-4o")
-		assert.Contains(t, result, "endpoint-1")
-		assert.Contains(t, result, "api.openai.com")
+
+		// Non-embedding external models are validated but NOT registered —
+		// passthrough resolves them per-request.
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+		registered := map[string]bool{}
+		for _, m := range cfg.RegisteredResources.Models {
+			registered[m.ModelID] = true
+		}
+		assert.False(t, registered["gpt-4o"], "non-embedding external model should NOT be registered (passthrough resolves per-request)")
+	})
+
+	t.Run("should fail when custom_endpoint model is not in ConfigMap", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(configMap).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		installModels := []models.InstallModel{
+			{
+				ModelName:       "nonexistent-model",
+				ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+			},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
+
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "cannot find external model")
 	})
 }
 
@@ -2392,5 +2483,118 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 		conn, err := pgvectorConnectionFromConfig(cfg)
 		require.NoError(t, err)
 		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
+	})
+}
+
+// TestInstallOGXServer_ZeroRestartPath verifies that InstallOGXServer returns the
+// existing OGXServer immediately (without creating a new one) when the server's
+// ConfigMap already contains a remote::passthrough provider whose base_url matches
+// the URL derived from the current EnvConfig.
+func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
+	const (
+		testNamespace  = "test-ns"
+		gatewayDomain  = "apps.cluster.example.com"
+		apiPathPrefix  = "/api/v1"
+		pathPrefix     = "/gen-ai"
+		cmName         = "ogx-config"
+		cmKey          = "config.yaml"
+		existingServer = "my-ogx-server"
+	)
+
+	passthroughURL := "https://" + gatewayDomain + pathPrefix + apiPathPrefix + "/genai-proxy/ns/" + testNamespace
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, ogxapi.AddToScheme(scheme))
+
+	buildClient := func(cmData string) *TokenKubernetesClient {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: cmName, Namespace: testNamespace},
+			Data:       map[string]string{cmKey: cmData},
+		}
+		server := &ogxapi.OGXServer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      existingServer,
+				Namespace: testNamespace,
+				Labels:    map[string]string{OpenDataHubDashboardLabelKey: "true"},
+			},
+			Spec: ogxapi.OGXServerSpec{
+				OverrideConfig: &ogxapi.ConfigMapKeyRef{
+					Name: cmName,
+					Key:  cmKey,
+				},
+			},
+		}
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm, server).
+			Build()
+
+		return &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+			EnvConfig: config.EnvConfig{
+				GatewayDomain: gatewayDomain,
+				APIPathPrefix: apiPathPrefix,
+				PathPrefix:    pathPrefix,
+			},
+		}
+	}
+
+	t.Run("returns existing server when passthrough URL matches", func(t *testing.T) {
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+
+		result, err := kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, nil, false, mockBFF)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, existingServer, result.Name, "zero-restart path must return the existing server")
+	})
+
+	t.Run("returns error when vector stores are requested on existing passthrough server", func(t *testing.T) {
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+		vectorStores := []models.InstallVectorStore{{VectorStoreID: "store-1"}}
+
+		_, err = kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, vectorStores, false, mockBFF)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "vector stores", "must reject vector store installs on zero-restart path")
+	})
+
+	t.Run("does not take zero-restart path when passthrough URL is stale", func(t *testing.T) {
+		staleURL := "https://old-domain.com/gen-ai/api/v1/genai-proxy/ns/" + testNamespace
+		provider := NewPassthroughProvider(constants.PassthroughProviderID, staleURL)
+		cfg := NewDefaultLlamaStackConfig()
+		cfg.AddInferenceProvider(provider)
+		yamlData, err := cfg.ToYAML()
+		require.NoError(t, err)
+
+		kc := buildClient(yamlData)
+		mockBFF := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+
+		_, err = kc.InstallOGXServer(context.Background(), identity, testNamespace,
+			[]models.InstallModel{}, nil, false, mockBFF)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
 }

@@ -15,17 +15,17 @@ type ModelsResponse = llamastack.APIResponse
 func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	models, err := app.repositories.Models.ListModels(ctx)
+	ogxModels, err := app.repositories.Models.ListModels(ctx)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
 	includeEmbeddingModels := r.URL.Query().Get("include_embedding_models") == "true"
-	models = filterModels(models, app.config.FilteredModelKeywords, includeEmbeddingModels)
+	ogxModels = filterModels(ogxModels, app.config.FilteredModelKeywords, includeEmbeddingModels)
 
 	response := ModelsResponse{
-		Data: models,
+		Data: ogxModels,
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, response, nil)

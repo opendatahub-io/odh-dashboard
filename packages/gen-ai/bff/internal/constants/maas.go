@@ -15,4 +15,9 @@ const (
 
 	// MaaSReturnAllModelsHeader is the header name for requesting enriched model details from MaaS BFF
 	MaaSReturnAllModelsHeader = "X-MaaS-Return-All-Models"
+
+	// MaaSSubscriptionHeader is the HTTP header used to forward the MaaS subscription
+	// name from OGX to the BFF proxy (via forward_headers config). The proxy uses it
+	// to issue a properly-scoped ephemeral token per request.
+	MaaSSubscriptionHeader = "X-MaaS-Subscription"
 )

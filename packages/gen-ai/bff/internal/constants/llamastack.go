@@ -20,6 +20,16 @@ const (
 	DefaultVectorStoreProvider = "milvus"
 )
 
+// Passthrough Provider — enables OGX zero-restart model discovery via BFF proxy.
+const (
+	// PassthroughProviderID is the provider_id used for the remote::passthrough entry.
+	// Must match the provider_id prefix that OGX uses in model IDs (e.g. "genai-bff-proxy/model-name").
+	PassthroughProviderID = "genai-bff-proxy"
+
+	// PassthroughProviderType is the OGX/LlamaStack provider type for passthrough.
+	PassthroughProviderType = "remote::passthrough"
+)
+
 type EmbeddingModelConfig struct {
 	ModelID            string `json:"model_id"`
 	ProviderID         string `json:"provider_id"`
