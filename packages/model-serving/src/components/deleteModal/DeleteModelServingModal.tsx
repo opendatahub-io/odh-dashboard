@@ -36,10 +36,13 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
     setError(undefined);
   };
 
-  const deletePrimaryResource = React.useCallback(
-    () => deleteModal?.properties.onDelete(deployment) ?? Promise.resolve(),
-    [deleteModal, deployment],
-  );
+  const deletePrimaryResource = React.useCallback(async () => {
+    if (!deleteModal) {
+      throw new Error('The delete action is not available');
+    }
+
+    await deleteModal.properties.onDelete(deployment);
+  }, [deleteModal, deployment]);
 
   const onDelete = async () => {
     if (!getDisplayNameFromK8sResource(deployment.model)) {
@@ -64,11 +67,15 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   const ResolvedDeleteModalComponent = isDeleteModalComponent(DeleteModalComponent)
     ? DeleteModalComponent
     : undefined;
+  const deleteName = getDisplayNameFromK8sResource(deployment.model);
 
-  return !deleteModalLoaded || !deleteModal ? null : getDisplayNameFromK8sResource(
-      deployment.model,
-    ) && ResolvedDeleteModalComponent ? (
+  if (!deleteModalLoaded || !deleteModal || !deleteName) {
+    return null;
+  }
+
+  return ResolvedDeleteModalComponent ? (
     <ResolvedDeleteModalComponent
+      key={`${deployment.model.metadata.namespace}/${deployment.model.metadata.name}`}
       deployment={deployment}
       onClose={onBeforeClose}
       onDelete={deletePrimaryResource}
@@ -83,11 +90,10 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
       onDelete={onDelete}
       deleting={isDeleting}
       error={error}
-      deleteName={getDisplayNameFromK8sResource(deployment.model)}
+      deleteName={deleteName}
     >
-      The <strong>{getDisplayNameFromK8sResource(deployment.model)}</strong> model deployment and
-      its API keys will be deleted, and its model endpoint will no longer be available as an AI
-      asset or MaaS.
+      The <strong>{deleteName}</strong> model deployment and its API keys will be deleted, and its
+      model endpoint will no longer be available as an AI asset or MaaS.
     </DeleteModal>
   );
 };
