@@ -78,7 +78,15 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated: ## Federated UI dev server; proxies API to upstream OpenShell BFF (OPENSHELL_BFF_PORT, default 8080)
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9111 PROXY_PORT=$(OPENSHELL_BFF_PORT) npm run start:dev
+	@case "$${OPENSHELL_BFF_PORT}" in \
+	  ''|*[!0-9]*) \
+	    echo "OPENSHELL_BFF_PORT must be numeric" >&2; exit 1;; \
+	  *) \
+	    if [ "$${OPENSHELL_BFF_PORT}" -lt 1 ] || [ "$${OPENSHELL_BFF_PORT}" -gt 65535 ]; then \
+	      echo "OPENSHELL_BFF_PORT must be between 1 and 65535" >&2; exit 1; \
+	    fi;; \
+	esac; \
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9111 PROXY_PORT="$${OPENSHELL_BFF_PORT}" npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:

@@ -18,6 +18,10 @@ const WorkspaceDetailRoute: React.FC = () => {
       onSelectSandbox={(sandboxName) =>
         navigate(agentOpsSandboxDetailPath(workspaceId, sandboxName))
       }
+      onViewSandbox={(sandboxName, tab) => {
+        const path = agentOpsSandboxDetailPath(workspaceId, sandboxName);
+        navigate(tab ? `${path}?tab=${encodeURIComponent(tab)}` : path);
+      }}
     />
   );
 };
