@@ -106,9 +106,6 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
-    // Module Federation bootstrap share-scope initialization is incompatible
-    // with Rspack's lazy-compilation proxy in the federated dev server.
-    lazyCompilation: false,
     optimization: {
       removeEmptyChunks: true,
     },
