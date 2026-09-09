@@ -8,6 +8,7 @@ import ProjectsContextProvider from './context/ProjectsContextProvider';
 import { createDistribution } from '../../base/src/lib';
 
 const remoteEntry = process.env.MODEL_SERVING_REMOTE_ENTRY;
+const REMOTE_LOAD_TIMEOUT_MS = 10_000;
 
 // Ensure the host publishes ui-core's root export into the federation share scope.
 // The shell otherwise consumes only ui-core subpath exports.
@@ -21,7 +22,15 @@ const start = async () => {
 
   if (remoteEntry) {
     try {
-      const remote = await loadRemote<{ default: Extension[] }>('modelServing/extensions');
+      const remote = await Promise.race([
+        loadRemote<{ default: Extension[] }>('modelServing/extensions'),
+        new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error('Timed out loading the model-serving remote.')),
+            REMOTE_LOAD_TIMEOUT_MS,
+          );
+        }),
+      ]);
       if (remote?.default) {
         extensions.modelServing = remote.default;
         resolvedFeatureFlags['model-serving-shell'] = true;

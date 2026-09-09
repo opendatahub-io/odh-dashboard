@@ -5,8 +5,21 @@ import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
-/** Dashboard install namespace — excluded from the selectable project list. */
-const DASHBOARD_NAMESPACE = 'opendatahub';
+/** Local-development fallback when the BFF status endpoint is unavailable. */
+const DEFAULT_DASHBOARD_NAMESPACE = 'opendatahub';
+
+const getDashboardNamespace = (value: unknown): string | undefined => {
+  if (typeof value !== 'object' || value === null || !('kube' in value)) {
+    return undefined;
+  }
+  const { kube } = value;
+  if (typeof kube !== 'object' || kube === null || !('namespace' in kube)) {
+    return undefined;
+  }
+  return typeof kube.namespace === 'string' && kube.namespace.length > 0
+    ? kube.namespace
+    : undefined;
+};
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
@@ -25,6 +38,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
+  const [dashboardNamespace, setDashboardNamespace] = React.useState(DEFAULT_DASHBOARD_NAMESPACE);
   const [storedPreferredName, setStoredPreferredName] = useBrowserStorage<string>(
     PREFERRED_NAMESPACE_STORAGE_KEY,
     '',
@@ -43,7 +57,18 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
     const load = async (): Promise<void> => {
       try {
-        const projects = await fetchNamespaces(controller.signal);
+        const [projects, statusResponse] = await Promise.all([
+          fetchNamespaces(controller.signal),
+          typeof fetch === 'function'
+            ? fetch('/api/status', { signal: controller.signal }).catch(() => undefined)
+            : Promise.resolve(undefined),
+        ]);
+        if (statusResponse?.ok) {
+          const namespace = getDashboardNamespace(await statusResponse.json());
+          if (namespace) {
+            setDashboardNamespace(namespace);
+          }
+        }
         if (!unmounted) {
           setProjectData(projects);
           setLoadError(undefined);
@@ -83,7 +108,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     const active: ProjectKind[] = [];
     const terminating: ProjectKind[] = [];
     for (const project of projectData) {
-      if (!isAvailableProject(project.metadata.name, DASHBOARD_NAMESPACE)) {
+      if (!isAvailableProject(project.metadata.name, dashboardNamespace)) {
         continue;
       }
       if (project.status?.phase === 'Active') {
@@ -101,7 +126,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         a.metadata.name.localeCompare(b.metadata.name),
       ),
     };
-  }, [projectData]);
+  }, [dashboardNamespace, projectData]);
 
   React.useEffect(() => {
     if (!loaded || projects.length === 0 || initializedFromStorage.current) {

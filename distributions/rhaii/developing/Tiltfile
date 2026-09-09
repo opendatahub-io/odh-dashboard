@@ -84,7 +84,7 @@ if enable_model_serving:
     )
     local_resource(
         "model-serving-remote",
-        serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev",
+        serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 _DEV_SERVER_ALLOWED_ORIGIN=http://localhost:4000 npm run start:dev",
         serve_env=remote_env,
         resource_deps=["workspace-install"],
         readiness_probe=probe(http_get=http_get_action(port=9109, path="/remoteEntry.js")),
