@@ -72,6 +72,67 @@ export const QUOTA_UNASSIGNED_LABEL = 'Unassigned';
 export const QUOTA_UNASSIGNED_TOOLTIP = 'Cluster queues not assigned to a cohort.';
 export const QUOTA_USAGE_TREE_DRAWER_PANEL_ID = 'quota-usage-tree-drawer-panel';
 
+export const QUOTA_USAGE_SUMMARY = {
+  title: 'Summary',
+  workloads: 'Workloads',
+  acceleratorTableTitle: 'Accelerator usage',
+  viewKueueProjects: 'View Kueue projects',
+  capacity: 'Accelerators allocated',
+  compute: 'Accelerator compute',
+  memory: 'Accelerator memory',
+  help: {
+    capacity: 'GPU units in use compared to nominal quota from the cluster queue resource groups.',
+    compute: 'Average DCGM compute utilization across accelerator models in this selection.',
+    memory: 'Average DCGM memory utilization across accelerator models in this selection.',
+  },
+} as const;
+
+export const QUOTA_USAGE_ACCELERATOR_TABLE = {
+  acceleratorTableTitle: 'Accelerator usage',
+  acceleratorTableSubtitle: 'Accelerator capacity, compute, and memory usage.',
+  empty: 'No accelerator model details are available for this selection.',
+  columnLabels: {
+    accelerator: 'Accelerator',
+    capacity: 'Capacity',
+    compute: 'Compute',
+    memory: 'Memory',
+  },
+  help: {
+    capacity: 'In-use GPU units compared to nominal quota for this model.',
+    compute: 'DCGM compute utilization for this accelerator model.',
+    memory: 'DCGM memory utilization for this accelerator model.',
+  },
+} as const;
+
+export const QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS = [
+  { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.accelerator, field: 'model', sortable: true },
+  { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.capacity, field: 'nominal', sortable: true },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.compute,
+    field: 'computePercentage',
+    sortable: true,
+  },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.memory,
+    field: 'memoryPercentage',
+    sortable: true,
+  },
+];
+
+export const QUOTA_USAGE_METER = {
+  overQuotaTooltip: 'Over quota',
+} as const;
+
+export const QUOTA_USAGE_BORROWING = {
+  enabledLabel: 'Borrowing enabled',
+  label: (count: number, cohortName: string): string =>
+    `Borrowing ${count} ${cohortName} accelerators`,
+  popoverBorrowingLabel: 'Borrowing:',
+  popoverSinceLabel: 'Since:',
+  popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
+  cohortCalloutSuffix: (cohortName: string): string => ` is borrowing ${cohortName} accelerators`,
+} as const;
+
 export const INFRASTRUCTURE_SECTIONS = [
   {
     id: 'cluster',
