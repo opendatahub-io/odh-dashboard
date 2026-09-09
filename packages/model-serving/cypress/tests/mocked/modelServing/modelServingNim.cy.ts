@@ -188,7 +188,13 @@ describe('NIM Models Deployments', () => {
     modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
     modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 4: Summary
+    // Step 4: Review
+    modelServingWizard.findReviewStep().should('be.enabled');
+    modelServingWizard
+      .findReviewStepModelDetailsSection()
+      .should('contain.text', ModelTypeLabel.NIM)
+      .and('contain.text', 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1')
+      .and('not.contain.text', 'Model location');
     modelServingWizard.findSubmitButton().should('be.enabled').click();
 
     // PVC creation — dry-run validates the PVC can be created
