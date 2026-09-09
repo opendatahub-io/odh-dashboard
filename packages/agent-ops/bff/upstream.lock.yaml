@@ -1,0 +1,6 @@
+image: quay.io/gkrumbach07/openshell-dashboard@sha256:6b09b05323a8ff39ae7ff14567687ed6e7ec244ef59b7663a9c1a2021dcee5e8
+sourceTag: sha-1d82f88
+sourceRepository: https://github.com/Gkrumbach07/openshell-dashboard
+sourceCommit: 1d82f88a39b4ec548b3353f8bdf42a54f1de7858
+sourceRef: refs/heads/main
+executable: /usr/local/bin/openshell-dashboard

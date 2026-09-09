@@ -23,13 +23,3 @@ replacements:
           name: agent-ops-ui
         fieldPaths:
           - spec.template.spec.containers.[name=agent-ops-ui].image
-  - source:
-      kind: ConfigMap
-      name: agent-ops-params
-      fieldPath: data.gateway-domain
-    targets:
-      - select:
-          kind: Deployment
-          name: agent-ops-ui
-        fieldPaths:
-          - spec.template.spec.containers.[name=agent-ops-ui].env.[name=GATEWAY_DOMAIN].value

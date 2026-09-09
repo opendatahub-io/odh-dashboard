@@ -113,7 +113,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		TLS:           true,
 		ProxyPaths: []proxyRoute{
 			{Path: "/agent-ops/api", PathRewrite: "/api"},
-			{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
+			{Path: "/agent-ops/healthcheck", PathRewrite: "/api/v1/healthz"},
 		},
 	},
 	"notebooks": {

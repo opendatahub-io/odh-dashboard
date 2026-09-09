@@ -5,12 +5,15 @@
 # Source code arguments - can be overridden for different modules
 ARG MODULE_NAME=agent-ops
 ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
-ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
+ARG OPENSHELL_BFF_IMAGE=quay.io/gkrumbach07/openshell-dashboard@sha256:6b09b05323a8ff39ae7ff14567687ed6e7ec244ef59b7663a9c1a2021dcee5e8
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.25
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
+
+# The OpenShell project owns this executable. Keep the digest synchronized
+# with bff/upstream.lock.yaml.
+FROM ${OPENSHELL_BFF_IMAGE} AS upstream-bff
 
 # UI build stage
 FROM ${NODE_BASE_IMAGE} AS ui-builder
@@ -63,44 +66,19 @@ RUN npm ci --ignore-scripts
 # Build the module
 RUN npm run build:prod
 
-# BFF build stage
-FROM ${GOLANG_BASE_IMAGE} AS bff-builder
-
-ARG BFF_SOURCE_CODE
-ARG TARGETOS
-ARG TARGETARCH
-
-WORKDIR /usr/src/app
-
-# Copy the Go Modules manifests
-COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
-COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
-
-# Download dependencies
-RUN go mod download
-
-# Copy the go source files
-COPY pkg/tls/ /pkg/tls/
-COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
-COPY ${BFF_SOURCE_CODE}/internal/ internal/
-COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
-
-# Build the Go application
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
-
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
 
 ARG UI_SOURCE_CODE
 
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
-COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
+COPY --from=upstream-bff /usr/local/bin/openshell-dashboard /openshell-dashboard
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 
-# Set environment variables
-# Expose port 8080
+ENV PORT=8080 \
+    STATIC_DIR=/static
+
 EXPOSE 8080
 
-ENTRYPOINT ["/bff"]
+ENTRYPOINT ["/openshell-dashboard"]
