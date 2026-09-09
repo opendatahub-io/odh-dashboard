@@ -83,7 +83,7 @@ function createConfigureSchema() {
         .number()
         .min(MIN_RAG_PATTERNS, `Minimum number of RAG patterns is ${MIN_RAG_PATTERNS}`)
         .max(MAX_RAG_PATTERNS, `Maximum number of RAG patterns is ${MAX_RAG_PATTERNS}`)
-        .default(8),
+        .default(5),
 
       // Output-only run metadata populated by the pipeline after language detection.
       detected_language: z.string().optional(),

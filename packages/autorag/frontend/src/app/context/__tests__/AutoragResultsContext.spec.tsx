@@ -121,7 +121,7 @@ describe('getAutoragContext', () => {
           generation_models: [],
           embedding_models: [],
           optimization_metric: 'faithfulness',
-          optimization_max_rag_patterns: 8,
+          optimization_max_rag_patterns: 5,
           preset: 'speed',
         },
         ragPatternsBasePath: undefined,
@@ -154,7 +154,7 @@ describe('getAutoragContext', () => {
           generation_models: [],
           embedding_models: [],
           optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-          optimization_max_rag_patterns: 8,
+          optimization_max_rag_patterns: 5,
           preset: 'speed',
         },
         ragPatternsBasePath: undefined,
@@ -199,7 +199,7 @@ describe('getAutoragContext', () => {
         generation_models: ['llama-3', 'gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
+        optimization_max_rag_patterns: 9,
       });
 
       const context = getAutoragContext({
@@ -220,7 +220,7 @@ describe('getAutoragContext', () => {
         generation_models: ['llama-3', 'gpt-4'],
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
-        optimization_max_rag_patterns: 12,
+        optimization_max_rag_patterns: 9,
         preset: 'speed',
       });
     });
@@ -265,7 +265,7 @@ describe('getAutoragContext', () => {
         generation_models: [],
         embedding_models: [],
         optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-        optimization_max_rag_patterns: 8,
+        optimization_max_rag_patterns: 5,
         preset: 'speed',
       });
     });
@@ -291,7 +291,7 @@ describe('getAutoragContext', () => {
         generation_models: [],
         embedding_models: [],
         optimization_metric: DEFAULT_OPTIMIZATION_METRIC,
-        optimization_max_rag_patterns: 8,
+        optimization_max_rag_patterns: 5,
         preset: 'speed',
       });
     });
