@@ -414,16 +414,24 @@ type EvalHubClient struct {
 
 // NewEvalHubClient creates a new client configured for EvalHub.
 func NewEvalHubClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) *EvalHubClient {
+	return NewEvalHubClientWithTransport(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath, nil)
+}
+
+// NewEvalHubClientWithTransport creates a new client with an optional HTTP transport wrapper.
+func NewEvalHubClientWithTransport(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string, wrapTransport func(http.RoundTripper) http.RoundTripper) *EvalHubClient {
 	tlsConfig := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs
 	}
 
+	var transport http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	if wrapTransport != nil {
+		transport = wrapTransport(transport)
+	}
+
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 2 * time.Minute,
+		Transport: transport,
+		Timeout:   2 * time.Minute,
 	}
 
 	return &EvalHubClient{
