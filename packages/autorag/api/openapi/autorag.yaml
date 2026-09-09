@@ -1397,6 +1397,7 @@ components:
           items:
             type: string
             minLength: 1
+            pattern: '.*\S.*'
           description: Object keys within the input data bucket
           example:
             - "documents/"
