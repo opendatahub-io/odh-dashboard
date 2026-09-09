@@ -1,3 +1,4 @@
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import {
   mockNimInferenceService,
   mockNimModelPVC,
@@ -6,6 +7,7 @@ import {
 } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { Volume } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
@@ -25,6 +27,7 @@ import {
   StorageClassModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
+  deleteModelServingModal,
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
@@ -71,6 +74,94 @@ describe('NIM Models Deployments', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Edit').should('exist');
     modelServingGlobal.getModelRow('Test Name').findKebabAction('Delete').should('exist');
+  });
+
+  it('should warn before deleting a shared NIM cache PVC', () => {
+    const selectedDeployment = mockNimInferenceService();
+    const sharedDeployment = mockInferenceServiceK8sResource({
+      name: 'shared-model',
+      displayName: 'Shared model',
+      runtimeName: 'test-name',
+    });
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([selectedDeployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+    cy.interceptK8s(
+      'DELETE',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-name' },
+      mock200Status({}),
+    ).as('deleteInferenceService');
+    cy.interceptK8s(
+      'DELETE',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-name' },
+      mock200Status({}),
+    ).as('deleteServingRuntime');
+    cy.interceptK8s(
+      'DELETE',
+      { model: PVCModel, ns: 'test-project', name: 'nim-cache' },
+      mock200Status({}),
+    ).as('deleteNIMPVC');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    deleteModelServingModal.shouldBeOpen();
+    deleteModelServingModal.findPVCCheckbox().should('not.be.checked');
+    deleteModelServingModal.findPVCDependentsAlert().should('not.exist');
+    deleteModelServingModal.findInput().type('Test Name');
+
+    cy.interceptK8sList(
+      InferenceServiceModel,
+      mockK8sResourceList([selectedDeployment, sharedDeployment]),
+    ).as('getPVCDependentInferenceServices');
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime])).as(
+      'getPVCDependentServingRuntimes',
+    );
+
+    deleteModelServingModal.findPVCCheckbox().click();
+    cy.wait('@getPVCDependentInferenceServices');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'Other model deployments use this PVC')
+      .and('contain.text', 'Shared model');
+    deleteModelServingModal.findPVCDependentItems().should('have.length', 1);
+    cy.testA11y();
+
+    deleteModelServingModal.findSubmitButton().click();
+    cy.wait('@deleteInferenceService');
+    cy.wait('@deleteServingRuntime');
+    cy.wait('@deleteNIMPVC');
+  });
+
+  it('should confirm deletion when the NIM cache PVC has no other dependents', () => {
+    const deployment = mockNimInferenceService();
+    const runtime = mockNimServingRuntime({ pvcName: 'nim-cache' });
+
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getDeploymentRow('Test Name').findKebabAction('Delete').click();
+
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([deployment])).as(
+      'getPVCDependentInferenceServices',
+    );
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([runtime])).as(
+      'getPVCDependentServingRuntimes',
+    );
+
+    deleteModelServingModal.findPVCCheckbox().click();
+    cy.wait('@getPVCDependentInferenceServices');
+    cy.wait('@getPVCDependentServingRuntimes');
+    deleteModelServingModal
+      .findPVCDependentsAlert()
+      .should('contain.text', 'PVC is not shared')
+      .and('contain.text', 'No other model deployments use this PVC');
+    cy.testA11y();
   });
 
   it('should show the NIM deployment details in the expanded row on the project Models tab', () => {

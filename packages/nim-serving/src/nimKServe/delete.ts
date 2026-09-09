@@ -2,7 +2,7 @@ import { deletePvc } from '@odh-dashboard/internal/api';
 import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { NIMKServePVCReference } from './deleteUtils';
 
-type DeletePVC = (name: string, namespace: string) => Promise<K8sStatus>;
+type DeletePVC = (name: string, namespace: string) => Promise<K8sStatus | undefined>;
 
 export type DeleteLegacyNIMDeploymentArgs = {
   deletePrimaryDeployment: () => Promise<void>;
@@ -25,7 +25,7 @@ export const deleteLegacyNIMDeployment = async ({
   }
 
   const status = await deletePVCResource(pvcToDelete.name, pvcToDelete.namespace);
-  if (status.status !== 'Success') {
+  if (typeof status?.status === 'string' && status.status !== 'Success') {
     throw new Error(`Unable to delete PVC ${pvcToDelete.name}: ${status.message}`);
   }
 };
