@@ -140,15 +140,20 @@ func TestRoutes_SPAFallback(t *testing.T) {
 	ts := newTestServer(t)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/")
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	for _, requestPath := range []string{"/", "/client-side-route"} {
+		t.Run(requestPath, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + requestPath)
+			require.NoError(t, err)
+			defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, "no-cache", resp.Header.Get("Cache-Control"))
 
-	body, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	assert.Contains(t, string(body), "<html>")
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.Contains(t, string(body), "<html>")
+		})
+	}
 }
 
 func TestRoutes_MethodNotAllowed(t *testing.T) {
