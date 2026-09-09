@@ -25,18 +25,6 @@ module.exports = (overrides = {}) =>
                 modelServing: `modelServing@${process.env.MODEL_SERVING_REMOTE_ENTRY}`,
               }
             : undefined,
-          shared: {
-            '@odh-dashboard/ui-core': {
-              singleton: true,
-              requiredVersion: '*',
-              eager: true,
-            },
-            '@openshift/dynamic-plugin-sdk-utils': {
-              singleton: true,
-              requiredVersion: '^5.0.0',
-              eager: true,
-            },
-          },
           dts: false,
         }),
         new rspack.DefinePlugin({
