@@ -60,14 +60,17 @@ describe('useWizardTrackingProperties', () => {
       },
     ] as never);
 
+    const externalData = {
+      'nim-serving/nimImage': { data: { nimImages: [] }, loaded: true },
+    };
     const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'nvidia-nim');
-    const result = await renderResult.result.current.getTrackingProperties();
+    const result = await renderResult.result.current.getTrackingProperties(externalData);
 
     expect(result).toEqual({
       nimModelId: 'meta/llama3-8b',
       nimImageVersion: '1.0.0',
     });
-    expect(mockGetProperties).toHaveBeenCalledWith(mockWizardState);
+    expect(mockGetProperties).toHaveBeenCalledWith(mockWizardState, externalData);
   });
 
   it('should only use the first matching extension for the platform', async () => {

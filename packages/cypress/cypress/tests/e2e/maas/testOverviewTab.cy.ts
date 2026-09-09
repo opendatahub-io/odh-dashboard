@@ -28,10 +28,9 @@ import {
   viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
+import type { ModelAsAServiceTestData } from '../../../types';
 import { PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
-import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import {
   checkLLMInferenceServiceState,
   cleanupLLMInferenceService,
@@ -44,10 +43,9 @@ let projectName: string;
 let modelName: string;
 let subscriptionName: string;
 let policyName: string;
-let modelUri: string;
-let connectionName: string;
 let subscriptionGroups: string[];
 let tokenRateLimit: string;
+let llmInferenceServiceFixturePath: string;
 const rowIndex = 0;
 
 describe('MaaS Governance Overview tab', () => {
@@ -60,10 +58,9 @@ describe('MaaS Governance Overview tab', () => {
         modelName = `${testData.singleModelName}-${uuid}`;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         policyName = `${subscriptionName}-policy`;
-        modelUri = testData.modelLocationURI;
-        connectionName = `${modelName}-connection`;
         subscriptionGroups = testData.subscriptionGroups;
         tokenRateLimit = `${testData.tokenRateLimit.limit} / ${testData.tokenRateLimit.window} ${testData.tokenRateLimit.unit}`;
+        llmInferenceServiceFixturePath = testData.llmInferenceServiceFixturePath;
       })
       .then(() => {
         ensureAdminOcSession();
@@ -84,19 +81,10 @@ describe('MaaS Governance Overview tab', () => {
       })
       .then(() => {
         ensureAdminOcSession();
-        cy.log('Create LLMInferenceService + MaaSModelRef');
-        const dataConnectionReplacements: DataConnectionUriReplacements = {
-          NAMESPACE: projectName,
-          MODEL_URI: Buffer.from(modelUri).toString('base64'),
-          CONNECTION_NAME: connectionName,
-        };
-
-        createDataConnectionUri(dataConnectionReplacements);
         createLLMInferenceServiceWithMaaSEnabled(
           projectName,
           modelName,
-          dataConnectionReplacements.CONNECTION_NAME,
-          'resources/maas/llmInferenceserviceWithMaasEnabled.yaml',
+          llmInferenceServiceFixturePath,
         );
         checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
         createMaaSModelRef(projectName, modelName);
@@ -124,7 +112,7 @@ describe('MaaS Governance Overview tab', () => {
 
   it(
     'should render the overview table and support group-chip highlighting within a model row',
-    { tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent', '@MaaSCI'] },
+    { tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@MaaSCI'] },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
