@@ -131,7 +131,7 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({ collection,
                   const assetType = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
                   return (
                     <AssetRow
-                      key={asset.name}
+                      key={`${asset.assetType}-${asset.name}`}
                       asset={asset}
                       assetType={assetType}
                       collectionName={collection.name}

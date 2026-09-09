@@ -16,7 +16,8 @@ import {
 import { TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { CollectionInfo } from '~/app/hooks/useCollections';
+import { useAssets } from '~/app/hooks/useAssets';
+import { useCollections, type CollectionInfo } from '~/app/hooks/useCollections';
 import { collectionDetailUrl } from '~/app/utilities/routes';
 import CreateCollectionModal from './CreateCollectionModal';
 import DeleteCollectionModal from './DeleteCollectionModal';
@@ -25,7 +26,6 @@ type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   project: string;
-  collections: CollectionInfo[];
   onRefresh: () => void;
 };
 
@@ -33,9 +33,16 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   isOpen,
   onClose,
   project,
-  collections,
   onRefresh,
 }) => {
+  const [assets, , , assetsRefresh, collectionNames] = useAssets(project);
+  const [collections, , , collectionsRefresh] = useCollections(project, assets, collectionNames);
+
+  const handleRefresh = React.useCallback(() => {
+    assetsRefresh();
+    collectionsRefresh();
+    onRefresh();
+  }, [assetsRefresh, collectionsRefresh, onRefresh]);
   const [filterText, setFilterText] = React.useState('');
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<CollectionInfo | null>(null);
@@ -111,7 +118,13 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               {filteredCollections.map((collection) => (
                 <Tr key={collection.name}>
                   <Td dataLabel="Name">
-                    <Link to={collectionDetailUrl(project, collection.name)}>
+                    <Link
+                      to={collectionDetailUrl(project, collection.name)}
+                      onClick={() => {
+                        setFilterText('');
+                        onClose();
+                      }}
+                    >
                       {collection.name}
                     </Link>
                   </Td>
@@ -151,7 +164,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         project={project}
-        onCreated={onRefresh}
+        onCreated={handleRefresh}
       />
 
       <DeleteCollectionModal
@@ -159,7 +172,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         onClose={() => setDeleteTarget(null)}
         project={project}
         collection={deleteTarget}
-        onDeleted={onRefresh}
+        onDeleted={handleRefresh}
       />
     </>
   );

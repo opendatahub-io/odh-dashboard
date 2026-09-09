@@ -23,13 +23,13 @@ export type CollectionDetail = {
 const mapTableToAsset = (asset: AssetResponse): CollectionAsset => ({
   name: asset.name,
   assetType: 'table',
-  format: asset.format || 'Structured',
+  format: asset.format || '-',
 });
 
 const mapVolumeToAsset = (volume: VolumeInfo): CollectionAsset => ({
   name: volume.name,
   assetType: 'volume',
-  format: volume['volume-type'] || 'Unstructured',
+  format: volume['volume-type'] || '-',
 });
 
 export const useCollectionDetail = (
@@ -65,8 +65,8 @@ export const useCollectionDetail = (
           return;
         }
 
-        const tableAssets = assetsResponse.assets.map(mapTableToAsset);
-        const volumeAssets = volumesResponse.volumes.map(mapVolumeToAsset);
+        const tableAssets = (assetsResponse.assets ?? []).map(mapTableToAsset);
+        const volumeAssets = (volumesResponse.volumes ?? []).map(mapVolumeToAsset);
         const allAssets = [...tableAssets, ...volumeAssets];
 
         const structuredCount = tableAssets.length;
@@ -85,7 +85,7 @@ export const useCollectionDetail = (
         setDetail({
           name: collection,
           description,
-          owner: namespaceResponse.properties.owner || 'system:admin',
+          owner: namespaceResponse.properties.owner || '-',
           createdAt,
           createdBy,
           assets: allAssets,

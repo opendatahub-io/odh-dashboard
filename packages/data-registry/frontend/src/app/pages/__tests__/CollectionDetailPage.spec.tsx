@@ -2,10 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import * as useCollectionDetailHook from '~/app/hooks/useCollectionDetail';
-import * as useAssetsHook from '~/app/hooks/useAssets';
-import * as useCollectionsHook from '~/app/hooks/useCollections';
 import type { CollectionDetail } from '~/app/hooks/useCollectionDetail';
-import type { CollectionInfo } from '~/app/hooks/useCollections';
 import CollectionDetailPage from '~/app/pages/CollectionDetailPage';
 
 jest.mock('~/app/hooks/useCollectionDetail');
@@ -28,14 +25,6 @@ const mockCollectionDetail: CollectionDetail = {
   assets: [{ name: 'table1', assetType: 'table', format: 'iceberg' }],
 };
 
-const mockCollectionInfo: CollectionInfo = {
-  name: 'default',
-  description: 'Test collection',
-  assetNames: ['table1'],
-  tableCount: 1,
-  volumeCount: 0,
-};
-
 describe('CollectionDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -43,14 +32,6 @@ describe('CollectionDetailPage', () => {
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
       .mockReturnValue([mockCollectionDetail, true, undefined, jest.fn()]);
-
-    jest
-      .mocked(useAssetsHook.useAssets)
-      .mockReturnValue([[], true, undefined, jest.fn(), ['default']]);
-
-    jest
-      .mocked(useCollectionsHook.useCollections)
-      .mockReturnValue([[mockCollectionInfo], true, undefined, jest.fn()]);
   });
 
   it('should render collection detail page with title and badge', () => {
@@ -112,7 +93,7 @@ describe('CollectionDetailPage', () => {
     fireEvent.click(screen.getByTestId('collection-actions-toggle'));
 
     const deleteAction = screen.getByTestId('collection-action-delete');
-    expect(deleteAction).toHaveClass('pf-m-disabled');
+    expect(deleteAction).toHaveClass('pf-m-aria-disabled');
   });
 
   it('should enable delete action when collection is empty', () => {
@@ -194,23 +175,7 @@ describe('CollectionDetailPage', () => {
     expect(screen.getByText('Collection not found')).toBeInTheDocument();
   });
 
-  it('should refresh all data when handleRefresh is called', async () => {
-    const refreshCollection = jest.fn();
-    const refreshAssets = jest.fn();
-    const refreshCollections = jest.fn();
-
-    jest
-      .mocked(useCollectionDetailHook.useCollectionDetail)
-      .mockReturnValue([mockCollectionDetail, true, undefined, refreshCollection]);
-
-    jest
-      .mocked(useAssetsHook.useAssets)
-      .mockReturnValue([[], true, undefined, refreshAssets, ['default']]);
-
-    jest
-      .mocked(useCollectionsHook.useCollections)
-      .mockReturnValue([[mockCollectionInfo], true, undefined, refreshCollections]);
-
+  it('should open register data modal from actions dropdown', async () => {
     render(
       <BrowserRouter>
         <CollectionDetailPage />

@@ -25,8 +25,6 @@ import {
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useCollectionDetail } from '~/app/hooks/useCollectionDetail';
-import { useAssets } from '~/app/hooks/useAssets';
-import { useCollections } from '~/app/hooks/useCollections';
 import { browseUrl } from '~/app/utilities/routes';
 import DeleteCollectionModal from '~/app/components/DeleteCollectionModal';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
@@ -42,18 +40,6 @@ const CollectionDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [collectionDetail, loaded, loadError, refresh] = useCollectionDetail(project, collection);
-  const [assets, , , assetsRefresh, collectionNames] = useAssets(project || '');
-  const [collections, , , collectionsRefresh] = useCollections(
-    project || '',
-    assets,
-    collectionNames,
-  );
-
-  const handleRefresh = React.useCallback(() => {
-    refresh();
-    assetsRefresh();
-    collectionsRefresh();
-  }, [refresh, assetsRefresh, collectionsRefresh]);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isManageCollectionsOpen, setIsManageCollectionsOpen] = React.useState(false);
@@ -127,8 +113,12 @@ const CollectionDetailPage: React.FC = () => {
           >
             <DropdownItem
               key="delete"
-              onClick={() => setIsDeleteModalOpen(true)}
-              isDisabled={hasAssets}
+              onClick={() => {
+                if (!hasAssets) {
+                  setIsDeleteModalOpen(true);
+                }
+              }}
+              isAriaDisabled={hasAssets}
               data-testid="collection-action-delete"
             >
               Delete collection
@@ -156,8 +146,7 @@ const CollectionDetailPage: React.FC = () => {
         <ManageCollectionsModal
           isOpen={isManageCollectionsOpen}
           project={project}
-          collections={collections}
-          onRefresh={handleRefresh}
+          onRefresh={refresh}
           onClose={() => {
             setIsManageCollectionsOpen(false);
           }}
@@ -168,7 +157,7 @@ const CollectionDetailPage: React.FC = () => {
           isOpen={isRegisterDataOpen}
           project={project}
           collections={[collection]}
-          onCreated={handleRefresh}
+          onCreated={refresh}
           onManageCollections={() => {
             setIsRegisterDataOpen(false);
             setIsManageCollectionsOpen(true);

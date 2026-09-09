@@ -73,7 +73,7 @@ export type AssetResponse = {
 };
 
 export type AssetListResponse = {
-  assets: AssetResponse[];
+  assets?: AssetResponse[];
 };
 
 export type VolumeInfo = {
@@ -92,7 +92,7 @@ export type VolumeInfo = {
 };
 
 export type ListVolumesResponse = {
-  volumes: VolumeInfo[];
+  volumes?: VolumeInfo[];
 };
 
 export type ListNamespacesResponse = {
