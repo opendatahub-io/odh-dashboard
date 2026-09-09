@@ -10,6 +10,7 @@ import K8sNameDescriptionField, {
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { StorageData } from '#~/pages/projects/types';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
+import { StorageContextType } from '#~/pages/projects/screens/detail/storage/useStorageContextType';
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
@@ -26,6 +27,8 @@ type CreateNewStorageSectionProps<D extends StorageData> = {
   setValid?: (isValid: boolean) => void;
   hasDuplicateName?: boolean;
   editableK8sName?: boolean;
+  storageContextTypes?: StorageContextType[];
+  storageContextTypesLoaded?: boolean;
 };
 
 const CreateNewStorageSection = <D extends StorageData>({
@@ -74,6 +77,10 @@ const CreateNewStorageSection = <D extends StorageData>({
     // only update if the name description changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clusterStorageNameDesc, isValidModelPath]);
+
+  // Not all consumers of this modal load extensions for dynamic context types (workbenches)
+  const isContextTypeLoaded =
+    storageContextTypes === undefined || storageContextTypesLoaded === true;
 
   return (
     <FormSection>
