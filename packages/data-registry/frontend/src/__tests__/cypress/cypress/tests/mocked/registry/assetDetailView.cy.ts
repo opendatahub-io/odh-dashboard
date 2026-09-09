@@ -42,6 +42,7 @@ const mockVolumeResponse = {
   labels: ['source-docs', 'unstructured'],
   properties: {
     description: 'Training document storage',
+    'content-type': 'application/pdf',
     purpose: 'training',
     environment: 'production',
     registered_by: 'ml-team@example.com',
@@ -171,11 +172,11 @@ describe('Volume Detail View', () => {
     cy.findByTestId('asset-updated-at').should('contain.text', 'by admin@example.com');
   });
 
-  it('should not display format field for unstructured assets', () => {
+  it('should display the unstructured format field', () => {
     cy.visit('/main-view/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
-    cy.findByTestId('asset-format').should('not.exist');
+    cy.findByTestId('asset-format').should('contain.text', 'Documents');
   });
 
   it('should display asset type badge and Overview tab', () => {
@@ -196,6 +197,7 @@ describe('Volume Detail View', () => {
     cy.contains('unstructured').should('exist');
 
     cy.findByTestId('properties-card').should('exist');
+    cy.contains('content-type: application/pdf').should('exist');
     cy.contains('purpose: training').should('exist');
     cy.contains('environment: production').should('exist');
   });

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { VolumeInfo, AssetResponse, ConnectionRef } from '~/app/types';
+import { getRawUnstructuredFormat, normalizeUnstructuredFormat } from './formatUtils';
 
 export const volumeToAsset = (volume: VolumeInfo, collection: string): AssetResponse => {
   // Extract connection_ref from properties if it exists
@@ -18,16 +19,20 @@ export const volumeToAsset = (volume: VolumeInfo, collection: string): AssetResp
   const displayProperties = { ...volume.properties };
   delete displayProperties['connection-ref'];
   delete displayProperties.description;
-  delete displayProperties['content-type'];
   delete displayProperties.registered_by;
+  delete displayProperties.updated_by;
   delete displayProperties.location;
+
+  const contentType = getRawUnstructuredFormat(volume.properties?.['content-type']);
 
   return {
     name: volume.name,
     asset_type: 'Unstructured',
-    format: volume['volume-type'],
+    format: normalizeUnstructuredFormat(
+      getRawUnstructuredFormat(contentType, volume['volume-type']),
+    ),
     location: volume['storage-location'] || volume.properties?.location,
-    content_type: volume.properties?.['content-type'],
+    content_type: contentType,
     collection,
     connection_ref: connectionRef,
     owner: volume.owner,

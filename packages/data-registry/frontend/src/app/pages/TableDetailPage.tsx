@@ -40,7 +40,6 @@ const TableDetailPage: React.FC = () => {
   }>();
   const navigate = useNavigate();
 
-<<<<<<< HEAD
   const isVolume = assetType === 'volume';
 
   const [genericTable, genericLoaded, genericError, refreshGenericTable] = useGenericTable(
@@ -113,6 +112,35 @@ const TableDetailPage: React.FC = () => {
     </Breadcrumb>
   );
 
+  let editAssetModal: React.ReactNode = null;
+  if (isEditModalOpen && project && collection && name) {
+    if (isVolume && volume) {
+      editAssetModal = (
+        <EditAssetModal
+          asset={volume}
+          assetKind="volume"
+          project={project}
+          collection={collection}
+          name={name}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={handleSaved}
+        />
+      );
+    } else if (!isVolume && genericTable) {
+      editAssetModal = (
+        <EditAssetModal
+          asset={genericTable}
+          assetKind="table"
+          project={project}
+          collection={collection}
+          name={name}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={handleSaved}
+        />
+      );
+    }
+  }
+
   const headerAction = (
     <>
       <Dropdown
@@ -159,33 +187,7 @@ const TableDetailPage: React.FC = () => {
           onClose={() => setIsDeleteModalOpen(false)}
         />
       ) : null}
-      {isEditModalOpen && project && collection && name
-        ? isVolume && volume
-          ? (
-              <EditAssetModal
-                asset={volume}
-                assetKind="volume"
-                project={project}
-                collection={collection}
-                name={name}
-                onClose={() => setIsEditModalOpen(false)}
-                onSaved={handleSaved}
-              />
-            )
-          : !isVolume && genericTable
-            ? (
-                <EditAssetModal
-                  asset={genericTable}
-                  assetKind="table"
-                  project={project}
-                  collection={collection}
-                  name={name}
-                  onClose={() => setIsEditModalOpen(false)}
-                  onSaved={handleSaved}
-                />
-              )
-            : null
-        : null}
+      {editAssetModal}
     </>
   );
 
