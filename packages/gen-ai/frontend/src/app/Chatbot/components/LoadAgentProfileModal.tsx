@@ -115,11 +115,11 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
     }
     return (
       <>
-        <Table aria-label="Agents" variant="compact">
+        <Table aria-label="Agents">
           <Thead>
             <Tr>
               <Th>Name</Th>
-              <Th modifier="fitContent">Last modified</Th>
+              <Th>Last modified</Th>
               <Th modifier="fitContent" screenReaderText="Actions" />
             </Tr>
           </Thead>
@@ -133,19 +133,18 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   data-testid={`load-agent-profile-row-${profile.profileId}`}
                 >
                   <Td dataLabel="Name">
-                    <strong>{profile.displayName}</strong>
+                    {profile.displayName}
                     {profile.description && (
-                      <div className="pf-v6-u-font-size-sm pf-v6-u-color-200">
+                      <div style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
                         {profile.description}
                       </div>
                     )}
                   </Td>
-                  <Td dataLabel="Last modified" modifier="fitContent">
-                    {formatDate(profile.lastModified)}
-                  </Td>
+                  <Td dataLabel="Last modified">{formatDate(profile.lastModified)}</Td>
                   <Td dataLabel="Actions" modifier="fitContent">
                     <Button
                       variant="secondary"
+                      size="sm"
                       isDisabled={isLoaded}
                       onClick={() => {
                         onSelect(profile.profileId);
@@ -174,11 +173,18 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       data-testid="load-agent-profile-modal"
     >
       <ModalHeader
-        title="Load agent"
+        title="Select agent configuration"
         labelId="load-agent-profile-modal-title"
-        description="Select a saved agent to load into the playground."
+        description="Select a saved agent configuration to load into the playground."
       />
       <ModalBody>
+        <Alert
+          variant="info"
+          isInline
+          isPlain
+          className="pf-v6-u-mb-md"
+          title="Side-by-side chat comparison isn't available for saved agents."
+        />
         <Toolbar
           inset={{ default: 'insetNone' }}
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}

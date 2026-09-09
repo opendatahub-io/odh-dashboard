@@ -3,6 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoadAgentProfileModal from '~/app/Chatbot/components/LoadAgentProfileModal';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
+import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
+import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 
 jest.mock('~/app/hooks/useGenAiAPI', () => ({
   useGenAiAPI: jest.fn(() => ({
@@ -20,6 +22,12 @@ const renderModal = () =>
 describe('LoadAgentProfileModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useChatbotConfigStore.setState({
+      configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
+      configIds: [DEFAULT_CONFIG_ID],
+      profileApplied: false,
+      loadedProfileId: null,
+    });
   });
 
   it('should render the modal title and description', async () => {
@@ -30,10 +38,42 @@ describe('LoadAgentProfileModal', () => {
 
     renderModal();
 
-    expect(screen.getByText('Load agent')).toBeInTheDocument();
+    expect(screen.getByText('Select agent configuration')).toBeInTheDocument();
     expect(
-      screen.getByText('Select a saved agent to load into the playground.'),
+      screen.getByText('Select a saved agent configuration to load into the playground.'),
     ).toBeInTheDocument();
+  });
+
+  it('should always show the saved agent comparison warning', () => {
+    renderModal();
+
+    expect(
+      screen.getByText("Side-by-side chat comparison isn't available for saved agents."),
+    ).toBeInTheDocument();
+  });
+
+  it('should use the default table row sizing and small load buttons', async () => {
+    jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
+      profiles: [
+        {
+          profileId: 'uuid-1',
+          name: 'agent-profile-uuid-1',
+          displayName: 'Coding assistant',
+          description: 'Code review',
+          namespace: 'test-ns',
+          lastModified: '2026-06-15T10:00:00Z',
+        },
+      ],
+      totalCount: 1,
+    } as never);
+
+    renderModal();
+
+    await waitFor(() => screen.getByTestId('load-agent-profile-button-uuid-1'));
+
+    expect(screen.getByTestId('load-agent-profile-button-uuid-1')).toHaveClass('pf-m-small');
+    expect(screen.getByRole('grid')).not.toHaveClass('pf-m-compact');
+    expect(screen.getByText('Coding assistant').tagName).not.toBe('STRONG');
   });
 
   it('should show a spinner while loading', () => {
