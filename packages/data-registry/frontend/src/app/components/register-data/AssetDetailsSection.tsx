@@ -271,16 +271,23 @@ const AssetDetailsSection: React.FC<AssetDetailsSectionProps> = (props) => {
                   isFullWidth
                   data-testid="data-format-toggle"
                 >
-                  {formatOptions.find((f) => f.key === field.value)?.label || 'Select format'}
+                  {formatOptions.find((f) => f.key === field.value)?.label ||
+                    (isEditMode ? field.value : 'Select format')}
                 </MenuToggle>
               )}
             >
               <SelectList>
+                {isEditMode && !formatOptions.some((f) => f.key === field.value) ? (
+                  <SelectOption value={field.value} description="Current value">
+                    {field.value}
+                  </SelectOption>
+                ) : null}
                 {formatOptions.map((option) => (
                   <SelectOption
                     key={option.key}
                     value={option.key}
                     description={option.description}
+                    data-testid={`data-format-option-${option.key}`}
                   >
                     {option.label}
                   </SelectOption>
