@@ -71,19 +71,20 @@ if enable_model_serving:
     remote_env = {}
     if node_bin:
         remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
+    quoted_repo_root = '"' + repo_root.replace('"', '\\"') + '"'
     model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
     quoted_model_serving_frontend = '"' + model_serving_frontend.replace('"', '\\"') + '"'
     local_resource(
-        "model-serving-install",
-        cmd="npm install --prefix " + quoted_model_serving_frontend,
+        "workspace-install",
+        cmd="npm install --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
         labels=["model-serving"],
     )
     local_resource(
         "model-serving-remote",
         serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev",
         serve_env=remote_env,
-        resource_deps=["model-serving-install"],
-        readiness_probe=probe(http_get="http://localhost:9109/remoteEntry.js"),
+        resource_deps=["workspace-install"],
+        readiness_probe=probe(http_get=http_get_action(port=9109, path="/remoteEntry.js")),
         labels=["model-serving"],
     )
 
