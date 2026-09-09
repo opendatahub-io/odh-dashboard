@@ -63,9 +63,6 @@ describe('ModelServing - tolerations tests', () => {
       isS390x = !!testData.isS390x;
 
       // LOCAL DEBUG ONLY — remove before final push
-      const awsPipelines = Cypress.env('AWS_PIPELINES') as Record<string, Record<string, string>>;
-      const bucket3 = awsPipelines.BUCKET_3;
-
       const awsPipelines = Cypress.env('AWS_PIPELINES') as {
         AWS_ACCESS_KEY_ID: string;
         AWS_SECRET_ACCESS_KEY: string;
