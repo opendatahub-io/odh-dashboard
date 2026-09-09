@@ -73,7 +73,7 @@ describe('LoadAgentProfileModal', () => {
 
     expect(screen.getByTestId('load-agent-profile-button-uuid-1')).toHaveClass('pf-m-small');
     expect(screen.getByRole('grid')).not.toHaveClass('pf-m-compact');
-    expect(screen.getByText('Coding assistant').tagName).not.toBe('STRONG');
+    expect(screen.getByText('Coding assistant')).toHaveClass('pf-v6-u-font-weight-bold');
   });
 
   it('should explain why the loaded agent button is disabled', async () => {
