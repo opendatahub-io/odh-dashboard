@@ -30,6 +30,7 @@ import {
   hasModelArtifacts,
   isModelValidated,
   isRedHatModel,
+  getHfAccessLabelVariant,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -42,6 +43,7 @@ import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
 import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import { useUserInteraction } from '~/concepts/userInteraction';
 import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
+import ModelCatalogAccessLabel from '~/app/pages/modelCatalog/components/ModelCatalogAccessLabel';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
@@ -84,6 +86,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
     decodedParams.modelName || '',
   );
 
+  const accessLabelVariant = model ? getHfAccessLabelVariant(model) : null;
+  const gatedAccessDenied = accessLabelVariant === 'gated-denied';
+
   const handleValidatedLabelClicked = React.useCallback(() => {
     if (!model) {
       return;
@@ -118,6 +123,14 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
+    if (gatedAccessDenied) {
+      return (
+        <Button variant={variant} isDisabled data-testid="register-model-button">
+          Register model
+        </Button>
+      );
+    }
+
     if (!modelRegistriesLoaded || modelRegistriesLoadError) {
       return null;
     }
@@ -197,7 +210,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                     alignItems={{ default: 'alignItemsCenter' }}
                   >
                     <FlexItem>{getModelName(model.name)}</FlexItem>
-                    {isModelValidated(model) && (
+                    {isModelValidated(model) ? (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
                         <Label
                           variant="outline"
@@ -209,7 +222,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
                           Validated
                         </Label>
                       </Popover>
-                    )}
+                    ) : accessLabelVariant ? (
+                      <ModelCatalogAccessLabel variant={accessLabelVariant} />
+                    ) : null}
                     {isRedHatModel(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.RED_HAT}>
                         <Label color="grey" isClickable>
@@ -244,11 +259,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
           model && (
             <ActionList>
               <ActionListGroup>
-                <ExtensibleActions
-                  actions={actionExtensions}
-                  group={MODEL_CATALOG_DEPLOY_GROUP}
-                  componentProps={catalogDeployProps}
-                />
+                {!gatedAccessDenied && (
+                  <ExtensibleActions
+                    actions={actionExtensions}
+                    group={MODEL_CATALOG_DEPLOY_GROUP}
+                    componentProps={catalogDeployProps}
+                  />
+                )}
                 {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
             </ActionList>
@@ -263,6 +280,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab, customNoRegist
             artifacts={artifacts}
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
+            gatedAccessDenied={gatedAccessDenied}
           />
         )}
       </ApplicationsPage>
