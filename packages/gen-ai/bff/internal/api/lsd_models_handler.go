@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,13 @@ type ModelsResponse = llamastack.APIResponse
 func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	ogxModels, err := app.repositories.Models.ListModels(ctx)
+	providerData, err := app.getProviderData(ctx, "")
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to build provider data: %w", err))
+		return
+	}
+
+	ogxModels, err := app.repositories.Models.ListModels(ctx, providerData)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return
