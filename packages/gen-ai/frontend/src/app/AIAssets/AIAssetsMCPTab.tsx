@@ -9,6 +9,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import MCPServersTable from '~/app/AIAssets/components/mcp/MCPServersTable';
@@ -19,6 +20,8 @@ import NoData from '~/app/EmptyStates/NoData';
  * Loads MCP servers and checks their statuses when the tab is accessed.
  */
 const AIAssetsMCPTab: React.FC = () => {
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const mcpRegistryEnabled = dashboardConfig?.dashboardConfig.mcpRegistry ?? false;
   const { data: servers = [], registryAvailable, loaded, error, refetch } = useFetchMCPServers();
   const [isRegistryBannerDismissed, setIsRegistryBannerDismissed] = React.useState(false);
   const { serverStatuses, statusesLoading } = useMCPServerStatuses(servers, loaded);
@@ -48,7 +51,7 @@ const AIAssetsMCPTab: React.FC = () => {
 
   return (
     <Stack hasGutter>
-      {!registryAvailable && !isRegistryBannerDismissed && (
+      {mcpRegistryEnabled && !registryAvailable && !isRegistryBannerDismissed && (
         <StackItem>
           <Alert
             variant="warning"

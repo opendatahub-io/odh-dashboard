@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import type { MCPServerFromAPI } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
@@ -30,6 +31,20 @@ jest.mock('~/app/AIAssets/components/mcp/MCPServersTable', () => ({
 
 const mockUseFetchMCPServers = jest.mocked(useFetchMCPServers);
 const mockUseMCPServerStatuses = jest.mocked(useMCPServerStatuses);
+
+const withDashboardConfig = (overrides: Record<string, unknown>) => {
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(
+      DashboardConfigContext.Provider,
+      {
+        value: {
+          dashboardConfig: overrides,
+        } as React.ContextType<typeof DashboardConfigContext>,
+      },
+      children,
+    );
+  return wrapper;
+};
 
 describe('AIAssetsMCPTab', () => {
   beforeEach(() => {
@@ -157,5 +172,51 @@ describe('AIAssetsMCPTab', () => {
     expect(screen.getByTestId('mcp-servers-table')).toBeInTheDocument();
     expect(screen.getByTestId('server-server-1')).toBeInTheDocument();
     expect(screen.getByText('server-1')).toBeInTheDocument();
+  });
+
+  it('should show registry unavailable banner when mcpRegistry flag is enabled and registry is down', () => {
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [
+        { name: 'server-1', url: 'http://example.com', transport: 'sse', logo: '' },
+      ] as MCPServerFromAPI[],
+      configMapName: null,
+      registryAvailable: false,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />, { wrapper: withDashboardConfig({ mcpRegistry: true }) });
+
+    expect(screen.getByText('MCP registry unavailable')).toBeInTheDocument();
+  });
+
+  it('should not show registry unavailable banner when mcpRegistry flag is disabled', () => {
+    mockUseFetchMCPServers.mockReturnValue({
+      data: [
+        { name: 'server-1', url: 'http://example.com', transport: 'sse', logo: '' },
+      ] as MCPServerFromAPI[],
+      configMapName: null,
+      registryAvailable: false,
+      loaded: true,
+      error: undefined,
+      refetch: jest.fn(),
+    });
+
+    mockUseMCPServerStatuses.mockReturnValue({
+      serverStatuses: new Map(),
+      statusesLoading: new Set(),
+      checkServerStatus: jest.fn(),
+    });
+
+    render(<AIAssetsMCPTab />);
+
+    expect(screen.queryByText('MCP registry unavailable')).not.toBeInTheDocument();
   });
 });
