@@ -1335,7 +1335,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findRuntimeArgsTextBox() {
-    return cy.findByTestId('runtime-args-textarea');
+    return cy.findByTestId('runtime-args-checkbox');
   }
 
   findEnvVariablesCheckbox() {
