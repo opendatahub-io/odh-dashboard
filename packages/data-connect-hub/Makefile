@@ -81,13 +81,17 @@ dev-frontend-federated:
 dev-bff-federated:
 	cd bff && make run PORT=4004 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
+########### Dev E2E ###########
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+E2E_BFF_PORT ?= 8080
+
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock:
-	cd bff && make run PORT=8080 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=internal
+	cd bff && make run PORT=$(E2E_BFF_PORT) MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=internal
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster:
-	cd bff && make run PORT=8080 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=$(E2E_BFF_PORT) MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 
