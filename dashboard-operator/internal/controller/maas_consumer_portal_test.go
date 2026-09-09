@@ -250,7 +250,7 @@ spec:
 	federationConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: maasConsumerPortalFederationConfigMapName, Namespace: maasConsumerPortalTestNamespace}, Data: map[string]string{federationConfigKey: "[]"}}
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(federationConfig).Build()
 	r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
-	require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://apps.example.com/maas-consumer-portal/", "apps.example.com"))
+	require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "apps.example.com"))
 	deployment := &appsv1.Deployment{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace}, deployment))
 	assert.NotEmpty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])
@@ -259,7 +259,7 @@ spec:
 		cli := fake.NewClientBuilder().WithScheme(s).Build()
 		r := &DashboardReconciler{Client: cli, Scheme: s, ManifestsBasePath: base, ApplicationsNamespace: maasConsumerPortalTestNamespace, Platform: cluster.SelfManagedRhoai}
 
-		require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "https://apps.example.com/maas-consumer-portal/", "apps.example.com"))
+		require.NoError(t, r.deployMaaSConsumerPortalBundle(context.Background(), dashboard, "apps.example.com"))
 		deployment := &appsv1.Deployment{}
 		require.NoError(t, cli.Get(context.Background(), client.ObjectKey{Name: maasConsumerPortalDeploymentName, Namespace: maasConsumerPortalTestNamespace}, deployment))
 		assert.Empty(t, deployment.Spec.Template.Annotations[maasConsumerPortalFederationHashAnnotation])

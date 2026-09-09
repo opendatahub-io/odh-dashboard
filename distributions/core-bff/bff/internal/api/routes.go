@@ -72,7 +72,7 @@ func (app *App) newStaticHandler() http.Handler {
 	fileServer := http.FileServer(staticDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
-		if r.URL.Path == "/" || path.Base(r.URL.Path) == constants.IndexHTMLFileName {
+		if r.URL.Path == "/" || r.URL.Path == "/"+constants.IndexHTMLFileName {
 			// The SPA entry point must revalidate after gateway logout so a cached
 			// document cannot render with an expired authentication session.
 			w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)

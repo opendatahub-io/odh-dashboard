@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,11 +150,31 @@ func TestRoutes_SPAFallback(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assert.Equal(t, "no-cache", resp.Header.Get("Cache-Control"))
 
-			body, err := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 			require.NoError(t, err)
 			assert.Contains(t, string(body), "<html>")
 		})
 	}
+}
+
+func TestRoutes_NestedIndexHTMLIsCacheable(t *testing.T) {
+	tmpDir := t.TempDir()
+	nestedDir := filepath.Join(tmpDir, "generated")
+	require.NoError(t, os.Mkdir(nestedDir, 0750))
+	require.NoError(t, os.WriteFile(filepath.Join(nestedDir, constants.IndexHTMLFileName), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+	})
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/generated/" + constants.IndexHTMLFileName)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Empty(t, resp.Header.Get(constants.HeaderCacheControl))
 }
 
 func TestRoutes_MethodNotAllowed(t *testing.T) {
