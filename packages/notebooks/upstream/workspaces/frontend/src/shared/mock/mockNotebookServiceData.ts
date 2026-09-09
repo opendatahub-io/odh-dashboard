@@ -8,6 +8,7 @@ import {
   V1PersistentVolumeMode,
   V1PersistentVolumeReclaimPolicy,
   V1PodPhase,
+  V1SecretType,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
@@ -61,6 +62,36 @@ export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMock
   clusterMetrics: {
     workspacesCount: 0,
   },
+  restrictions: {
+    deny: true,
+    denyMessage: {
+      text: 'This workspace kind is currently unavailable. Please contact your administrator.',
+    },
+  },
+  activityRules: [
+    {
+      config: {
+        secondsSinceActive: 3600,
+        minRunningSeconds: 300,
+      },
+      match: {
+        matchNamespace: {
+          selector: { matchLabels: { tier: 'development' } },
+        },
+      },
+      effect: {
+        pauseWorkspace: true,
+      },
+    },
+    {
+      config: {
+        secondsSinceActive: 86400,
+      },
+      effect: {
+        pauseWorkspace: true,
+      },
+    },
+  ],
 });
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];
@@ -90,24 +121,6 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
     lastUpdate: new Date(2024, 11, 20).getTime(),
   },
   podTemplate: {
-    podMetadata: {
-      labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
-      annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
-    },
-    volumes: {
-      home: {
-        pvcName: 'Volume-Home',
-        mountPath: '/home',
-        readOnly: false,
-      },
-      data: [
-        {
-          pvcName: 'PVC-1',
-          mountPath: '/data',
-          readOnly: false,
-        },
-      ],
-    },
     options: {
       imageConfig: {
         current: {
@@ -260,14 +273,18 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
 });
 
 export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
-  name: 'My Third Jupyter Notebook',
+  name: 'my-third-jupyter-notebook',
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
   state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-  pendingRestart: true,
   activity: {
     lastActivity: new Date(2025, 2, 15).getTime(),
     lastUpdate: new Date(2025, 2, 1).getTime(),
+    rules: {
+      pauseWorkspace: {
+        eligibleAfter: new Date(Date.now() + 500 * 60 * 60 * 24).getTime(),
+      },
+    },
   },
 });
 
@@ -323,7 +340,7 @@ export const mockWorkspaceCreate = buildMockWorkspaceCreate({});
 export const mockWorkspaceUpdate = buildMockWorkspaceUpdate({});
 export const mockSecretCreate: SecretsSecretCreate = {
   name: 'secret-1',
-  type: 'Opaque',
+  type: V1SecretType.SecretTypeOpaque,
   immutable: false,
   contents: {
     username: {
@@ -335,7 +352,7 @@ export const mockSecretCreate: SecretsSecretCreate = {
 
 export const mockSecretCreate3: SecretsSecretCreate = {
   name: 'secret-3',
-  type: 'Opaque',
+  type: V1SecretType.SecretTypeOpaque,
   immutable: false,
   contents: {
     apiKey: {},
@@ -346,7 +363,6 @@ export const mockSecretCreate3: SecretsSecretCreate = {
 export const mockSecretsList = [
   buildMockSecret({
     name: 'secret-1',
-    immutable: true,
     mounts: buildMockSecretMountList(1, 5),
   }),
   buildMockSecret({
@@ -606,6 +622,7 @@ export const mockListValuesImages: OptionsImageConfigValue[] = [
       { key: 'gpuRequired', value: 'true' },
     ],
     hidden: false,
+    restrictions: { deny: false },
   },
 ];
 
@@ -621,5 +638,6 @@ export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
       { key: 'memory', value: '16Gi' },
       { key: 'gpu', value: '1' },
     ],
+    restrictions: { deny: false },
   },
 ];

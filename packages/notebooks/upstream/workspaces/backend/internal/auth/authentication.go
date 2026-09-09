@@ -19,12 +19,25 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/authentication/user"
+	authenticationv1client "k8s.io/client-go/kubernetes/typed/authentication/v1"
 )
+
+// withAuthenticatedGroup ensures "system:authenticated" is present in groups, as required by RBAC
+// bindings that use that group. Shared by NewRequestAuthenticator and NewBearerTokenAuthenticator.
+func withAuthenticatedGroup(groups []string) []string {
+	if !slices.Contains(groups, "system:authenticated") {
+		groups = append(groups, "system:authenticated")
+	}
+	return groups
+}
 
 // NewRequestAuthenticator returns a new request authenticator based on the provided configuration.
 func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHeader string) (authenticator.Request, error) {
@@ -54,20 +67,6 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 			return response, ok, nil
 		}
 
-		// get existing groups and ensure system:authenticated is included
-		// this is required for RBAC bindings that use the system:authenticated group
-		groups := response.User.GetGroups()
-		hasSystemAuthenticated := false
-		for _, g := range groups {
-			if g == "system:authenticated" {
-				hasSystemAuthenticated = true
-				break
-			}
-		}
-		if !hasSystemAuthenticated {
-			groups = append(groups, "system:authenticated")
-		}
-
 		// trim the user id prefix from the username (if configured)
 		username := response.User.GetName()
 		if useridPrefix != "" {
@@ -77,8 +76,69 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 		return &authenticator.Response{
 			User: &user.DefaultInfo{
 				Name:   username,
-				Groups: groups,
+				Groups: withAuthenticatedGroup(response.User.GetGroups()),
 				Extra:  response.User.GetExtra(),
+			},
+		}, true, nil
+	})
+
+	return requestAuthenticator, nil
+}
+
+// NewBearerTokenAuthenticator returns a new request authenticator that resolves the request's
+// identity from a configurable request header (optionally stripping a configurable prefix, e.g.
+// "Bearer ") via a Kubernetes TokenReview.
+//
+// This is used for deployments (e.g. RHOAI/ODH) where the caller forwards the end-user's own
+// token instead of injecting `kubeflow-userid`/`kubeflow-groups` request headers. The header and
+// prefix are configurable so this can match whatever the calling proxy forwards.
+//
+// SECURITY: this assumes a trusted reverse proxy sits in front of this service and *replaces*
+// (not appends to) the configured header with a validated value before forwarding the request.
+// Go's http.Header.Get returns only the first value for a repeated header, so if the proxy ever
+// appends instead of replacing, a client-supplied value placed first would be trusted instead of
+// the validated one. As defense in depth, requests carrying more than one value for the header
+// are rejected outright rather than guessing which value is authoritative.
+func NewBearerTokenAuthenticator(tokenReviews authenticationv1client.TokenReviewInterface, header string, prefix string) (authenticator.Request, error) {
+	requestAuthenticator := authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
+		values := req.Header.Values(header)
+		if len(values) == 0 {
+			return nil, false, nil
+		}
+		if len(values) > 1 {
+			return nil, false, fmt.Errorf("multiple values found for header %q; refusing to authenticate", header)
+		}
+
+		raw := values[0]
+		token := raw
+		if prefix != "" {
+			if !strings.HasPrefix(raw, prefix) {
+				return nil, false, nil
+			}
+			token = strings.TrimPrefix(raw, prefix)
+		}
+		token = strings.TrimSpace(token)
+		if token == "" {
+			return nil, false, nil
+		}
+
+		review, err := tokenReviews.Create(req.Context(), &authenticationv1.TokenReview{
+			Spec: authenticationv1.TokenReviewSpec{
+				Token: token,
+			},
+		}, metav1.CreateOptions{})
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to create TokenReview: %w", err)
+		}
+
+		if !review.Status.Authenticated {
+			return nil, false, nil
+		}
+
+		return &authenticator.Response{
+			User: &user.DefaultInfo{
+				Name:   review.Status.User.Username,
+				Groups: withAuthenticatedGroup(review.Status.User.Groups),
 			},
 		}, true, nil
 	})

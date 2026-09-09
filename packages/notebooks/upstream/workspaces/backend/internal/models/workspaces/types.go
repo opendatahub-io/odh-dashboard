@@ -28,18 +28,20 @@ import (
 // TODO: we need to validate which fields should actually be returned in the response
 //   - should only be returning fields relevant to the list view in the UI
 type WorkspaceListItem struct {
-	Name           string                            `json:"name"`
-	Namespace      string                            `json:"namespace"`
-	WorkspaceKind  WorkspaceKindInfo                 `json:"workspaceKind"`
-	Paused         bool                              `json:"paused"`
-	PausedTime     int64                             `json:"pausedTime"`
-	PendingRestart bool                              `json:"pendingRestart"`
-	State          kubefloworgv1beta1.WorkspaceState `json:"state"`
-	StateMessage   string                            `json:"stateMessage"`
-	PodTemplate    PodTemplate                       `json:"podTemplate"`
-	Activity       Activity                          `json:"activity"`
-	Services       []Service                         `json:"services"`
-	Audit          commonCore.Audit                  `json:"audit"`
+	Name string `json:"name"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName     string                            `json:"displayName,omitempty"`
+	Namespace       string                            `json:"namespace"`
+	WorkspaceKind   WorkspaceKindInfo                 `json:"workspaceKind"`
+	Paused          bool                              `json:"paused"`
+	PausedTime      int64                             `json:"pausedTime"`      // Unix Epoch time in milliseconds
+	LastRunningTime int64                             `json:"lastRunningTime"` // Unix Epoch time in milliseconds
+	State           kubefloworgv1beta1.WorkspaceState `json:"state"`
+	StateMessage    string                            `json:"stateMessage"`
+	PodTemplate     PodTemplate                       `json:"podTemplate"`
+	Activity        Activity                          `json:"activity"`
+	Services        []Service                         `json:"services"`
+	Audit           commonCore.Audit                  `json:"audit"`
 }
 
 type WorkspaceKindInfo struct {
@@ -50,32 +52,7 @@ type WorkspaceKindInfo struct {
 }
 
 type PodTemplate struct {
-	PodMetadata PodMetadata        `json:"podMetadata"`
-	Volumes     PodVolumes         `json:"volumes"`
-	Options     PodTemplateOptions `json:"options"`
-}
-
-type PodMetadata struct {
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-}
-
-type PodVolumes struct {
-	Home    *PodVolumeInfo  `json:"home,omitempty"`
-	Data    []PodVolumeInfo `json:"data"`
-	Secrets []PodSecretInfo `json:"secrets,omitempty"`
-}
-
-type PodVolumeInfo struct {
-	PVCName   string `json:"pvcName"`
-	MountPath string `json:"mountPath"`
-	ReadOnly  bool   `json:"readOnly"`
-}
-
-type PodSecretInfo struct {
-	SecretName  string `json:"secretName"`
-	MountPath   string `json:"mountPath"`
-	DefaultMode int32  `json:"defaultMode,omitempty"`
+	Options PodTemplateOptions `json:"options"`
 }
 
 type PodTemplateOptions struct {
@@ -125,16 +102,17 @@ const (
 )
 
 type Activity struct {
-	LastActivity int64          `json:"lastActivity"` // Unix Epoch time
-	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time
+	LastActivity int64          `json:"lastActivity"` // Unix Epoch time in milliseconds
+	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time in milliseconds
 	LastProbe    *LastProbeInfo `json:"lastProbe,omitempty"`
+	Rules        *ActivityRules `json:"rules,omitempty"`
 }
 
 type LastProbeInfo struct {
-	StartTimeMs int64       `json:"startTimeMs"` // Unix Epoch time in milliseconds
-	EndTimeMs   int64       `json:"endTimeMs"`   // Unix Epoch time in milliseconds
-	Result      ProbeResult `json:"result"`
-	Message     string      `json:"message"`
+	StartTime int64       `json:"startTime"` // Unix Epoch time in milliseconds
+	EndTime   int64       `json:"endTime"`   // Unix Epoch time in milliseconds
+	Result    ProbeResult `json:"result"`
+	Message   string      `json:"message"`
 }
 
 type ProbeResult string
@@ -144,6 +122,14 @@ const (
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
 )
+
+type ActivityRules struct {
+	PauseWorkspace *ActivityPauseRule `json:"pauseWorkspace,omitempty"`
+}
+
+type ActivityPauseRule struct {
+	EligibleAfter int64 `json:"eligibleAfter"` // Unix Epoch time in milliseconds
+}
 
 type Service struct {
 	HttpService *HttpService `json:"httpService,omitempty"`

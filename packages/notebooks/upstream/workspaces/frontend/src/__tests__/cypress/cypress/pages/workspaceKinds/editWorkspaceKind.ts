@@ -68,11 +68,11 @@ class EditWorkspaceKind {
   }
 
   findIconUrlInput() {
-    return cy.findByTestId('workspace-kind-icon-input');
+    return cy.findByTestId('workspace-kind-icon-url-input');
   }
 
   findLogoUrlInput() {
-    return cy.findByTestId('workspace-kind-logo-input');
+    return cy.findByTestId('workspace-kind-logo-url-input');
   }
 
   findHiddenSwitch() {
@@ -1094,6 +1094,83 @@ class EditWorkspaceKind {
     cy.findByTestId(`toleration-seconds-cell-${index}`).should('have.text', value);
   }
 
+  // Activity Rules
+  findAddActivityRuleButton() {
+    return cy.findByTestId('add-activity-rule-button');
+  }
+
+  clickAddActivityRule() {
+    this.findAddActivityRuleButton().click();
+  }
+
+  findActivityRuleModal() {
+    return cy.findByTestId('activity-rule-modal');
+  }
+
+  assertActivityRuleModalVisible(visible: boolean) {
+    if (visible) {
+      this.findActivityRuleModal().should('be.visible');
+    } else {
+      this.findActivityRuleModal().should('not.exist');
+    }
+  }
+
+  findActivityRuleModalSubmitButton() {
+    return cy.findByTestId('activity-rule-modal-submit-button');
+  }
+
+  submitActivityRuleModal() {
+    this.findActivityRuleModalSubmitButton().click();
+  }
+
+  findActivityRuleModalCancelButton() {
+    return cy.findByTestId('activity-rule-modal-cancel-button');
+  }
+
+  cancelActivityRuleModal() {
+    this.findActivityRuleModalCancelButton().click();
+  }
+
+  findPauseWorkspaceCheckbox() {
+    return cy.findByTestId('activity-rule-pause-workspace-checkbox');
+  }
+
+  togglePauseWorkspace() {
+    this.findPauseWorkspaceCheckbox().click();
+  }
+
+  findActivityRulesTable() {
+    return cy.findByTestId('activity-rules-table');
+  }
+
+  assertActivityRuleRowCount(count: number) {
+    if (count === 0) {
+      cy.findByTestId('activity-rules-table').should('not.exist');
+    } else {
+      this.findActivityRulesTable().find('tbody tr').should('have.length', count);
+    }
+  }
+
+  assertActivityRuleTimeoutCell(index: number, value: string) {
+    cy.findByTestId(`activity-rule-timeout-cell-${index}`).should('have.text', value);
+  }
+
+  assertActivityRuleMinRunningCell(index: number, value: string) {
+    cy.findByTestId(`activity-rule-min-running-cell-${index}`).should('have.text', value);
+  }
+
+  assertActivityRuleEffectCell(index: number, value: string) {
+    cy.findByTestId(`activity-rule-effect-cell-${index}`).should('have.text', value);
+  }
+
+  clickEditActivityRule(index: number) {
+    cy.findByTestId(`activity-rule-edit-${index}`).click();
+  }
+
+  clickRemoveActivityRule(index: number) {
+    cy.findByTestId(`activity-rule-remove-${index}`).click();
+  }
+
   // Action Buttons
   findSubmitButton() {
     return cy.findByTestId('submit-button');
@@ -1123,8 +1200,78 @@ class EditWorkspaceKind {
     this.findSubmitButton().should('have.text', text);
   }
 
-  assertErrorAlertVisible() {
-    cy.findByTestId('workspace-kind-form-error').should('be.visible');
+  assertErrorToastVisible() {
+    cy.findByTestId('toast-notification-group')
+      .findByTestId('toast-notification-danger')
+      .should('exist');
+  }
+
+  // View mode tabs (Form / YAML)
+  findFormTab() {
+    return cy.findByTestId('form-tab');
+  }
+
+  findYamlTab() {
+    return cy.findByTestId('yaml-tab');
+  }
+
+  clickFormTab() {
+    this.findFormTab().click();
+  }
+
+  clickYamlTab() {
+    this.findYamlTab().click();
+  }
+
+  assertFormTabActive() {
+    this.findFormTab().should('have.attr', 'aria-selected', 'true');
+  }
+
+  assertYamlTabActive() {
+    this.findYamlTab().should('have.attr', 'aria-selected', 'true');
+  }
+
+  assertTabsVisible() {
+    this.findFormTab().should('be.visible');
+    this.findYamlTab().should('be.visible');
+  }
+
+  // YAML editor
+  findYamlEditor() {
+    return cy.findByTestId('yaml-editor');
+  }
+
+  assertYamlEditorVisible() {
+    this.findYamlEditor().should('be.visible');
+  }
+
+  assertYamlEditorNotVisible() {
+    this.findYamlEditor().should('not.be.visible');
+  }
+
+  findYamlParseError() {
+    return cy.findByTestId('yaml-parse-error');
+  }
+
+  assertYamlParseErrorVisible() {
+    this.findYamlParseError().should('be.visible');
+  }
+
+  assertYamlParseErrorNotVisible() {
+    this.findYamlParseError().should('not.exist');
+  }
+
+  // Revert button
+  findRevertButton() {
+    return cy.findByTestId('revert-button');
+  }
+
+  clickRevert() {
+    this.findRevertButton().click();
+  }
+
+  assertRevertButtonVisible() {
+    this.findRevertButton().should('be.visible');
   }
 
   private wait() {
