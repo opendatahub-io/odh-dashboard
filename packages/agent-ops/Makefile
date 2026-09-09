@@ -82,7 +82,7 @@ dev-frontend-federated: ## Federated UI dev server; proxies API to upstream Open
 	  ''|*[!0-9]*) \
 	    echo "OPENSHELL_BFF_PORT must be numeric" >&2; exit 1;; \
 	  *) \
-	    if [ "$${OPENSHELL_BFF_PORT}" -lt 1 ] || [ "$${OPENSHELL_BFF_PORT}" -gt 65535 ]; then \
+	    if ! awk 'BEGIN { exit !(ARGV[1] >= 1 && ARGV[1] <= 65535) }' "$${OPENSHELL_BFF_PORT}"; then \
 	      echo "OPENSHELL_BFF_PORT must be between 1 and 65535" >&2; exit 1; \
 	    fi;; \
 	esac; \
