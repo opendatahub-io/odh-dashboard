@@ -9,6 +9,7 @@ import type {
   WizardFieldExtractorExtension,
   WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { ModelServingDeleteModal } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
@@ -125,6 +126,7 @@ const nimKServeFormDataExtension: ModelServingDeploymentFormDataExtension<KServe
 
 const extensions: (
   | ModelServingDeploy<KServeDeployment>
+  | ModelServingDeleteModal<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | WizardFieldExtractorExtension<NIMImageFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<NIMPVCFieldValue, KServeDeployment>
@@ -142,6 +144,23 @@ const extensions: (
       priority: 50,
       supportsOverwrite: true,
       deploy: () => import('../src/nimKServe/deploy').then((m) => m.deployNIMKServeDeployment),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.platform/delete-deployment',
+    properties: {
+      platform: KSERVE_ID,
+      isActive: () =>
+        import('../src/nimKServe/extractFormData').then((m) => m.isNIMKServeDeployment),
+      priority: 50,
+      onDelete: () => import('@odh-dashboard/kserve/deployments').then((m) => m.deleteDeployment),
+      title: 'Delete model deployment?',
+      submitButtonLabel: 'Delete model deployment',
+      DeleteModalComponent: () =>
+        import('../src/nimKServe/NIMKServeDeleteModal').then((m) => m.default),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],
