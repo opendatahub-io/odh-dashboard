@@ -58,7 +58,7 @@ export type AssetResponse = {
   format?: string;
   location?: string;
   content_type?: string;
-  columns?: SchemaField[];
+  columns?: SchemaField[] | null;
   collection?: string;
   // Backend will return ConnectionRef object per OpenAPI spec; currently returns a plain string
   connection_ref?: ConnectionRef | string | null;

@@ -63,9 +63,13 @@ WORKDIR /usr/src/app
 
 # Copy Go module files and download dependencies
 COPY distributions/core-bff/bff/go.mod distributions/core-bff/bff/go.sum ./
+# The core-bff module has a replace directive for the shared pkg/tls module
+# (../../../pkg/tls, which resolves to /pkg/tls from this WORKDIR).
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
 RUN go mod download
 
 # Copy source code
+COPY pkg/tls/ /pkg/tls/
 COPY distributions/core-bff/bff/cmd/ cmd/
 COPY distributions/core-bff/bff/internal/ internal/
 COPY distributions/core-bff/bff/openapi/ openapi/

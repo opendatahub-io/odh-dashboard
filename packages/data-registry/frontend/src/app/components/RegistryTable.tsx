@@ -29,7 +29,7 @@ import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
-import { tableDetailUrl, volumeDetailUrl } from '~/app/utilities/routes';
+import { assetDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
 
 type RegistryTableProps = {
@@ -498,11 +498,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                         component={(props) => (
                           <Link
                             {...props}
-                            to={
-                              asset.assetType === 'volume'
-                                ? volumeDetailUrl(project, asset.collection, asset.name)
-                                : tableDetailUrl(project, asset.collection, asset.name)
-                            }
+                            to={assetDetailUrl(
+                              project,
+                              asset.collection,
+                              asset.name,
+                              asset.assetType,
+                            )}
                           />
                         )}
                       >
