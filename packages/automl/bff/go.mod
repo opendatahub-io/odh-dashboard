@@ -1,6 +1,6 @@
 module github.com/opendatahub-io/automl-library/bff
 
-go 1.26
+go 1.26.0
 
 replace github.com/opendatahub-io/odh-dashboard/packages/autox-core/services => ../../autox-core/services
 
@@ -14,7 +14,7 @@ require (
 	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
 	k8s.io/client-go v0.34.3
