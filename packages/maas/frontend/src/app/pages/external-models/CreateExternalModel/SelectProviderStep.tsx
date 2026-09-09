@@ -14,6 +14,7 @@ import TypeaheadSelect, {
 import { Link } from 'react-router-dom';
 import { ExternalProvider } from '~/app/types/external-models';
 import { externalProvidersManagementPath } from '~/app/pages/external-providers/const';
+
 export type ProviderSourceType = 'existing' | 'create-new';
 
 type SelectProviderStepProps = {
@@ -125,8 +126,7 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                 isInline
                 isPlain
                 title="Create new provider is not available here yet"
-              >
-              </Alert>
+              />
             ) : null
           }
         />

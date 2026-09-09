@@ -5,8 +5,7 @@ export const PROVIDER_REFERENCE_API_FORMATS = {
   'openai-chat': {
     label: 'OpenAI Chat',
     defaultPath: '/v1/chat/completions',
-    pathHelper:
-      'Pre-filled with /v1/chat/completions — the standard OpenAI Chat Completions path.',
+    pathHelper: 'Pre-filled with /v1/chat/completions — the standard OpenAI Chat Completions path.',
   },
   messages: {
     label: 'Anthropic Messages',
@@ -47,7 +46,5 @@ export const getProviderRefWeightPercentage = (
 export const recordToConfigPairs = (config?: Record<string, string>): ConfigPair[] =>
   config ? Object.entries(config).map(([key, value]) => ({ key, value })) : [];
 
-export const getProviderDisplayName = (
-  providerName: string,
-  provider?: ExternalProvider,
-): string => provider?.displayName ?? providerName;
+export const getProviderDisplayName = (providerName: string, provider?: ExternalProvider): string =>
+  provider?.displayName ?? providerName;

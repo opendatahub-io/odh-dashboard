@@ -56,11 +56,7 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
   onEdit,
   onRemove,
 }) => (
-  <Table
-    aria-label="Provider references"
-    variant="compact"
-    data-testid="provider-references-table"
-  >
+  <Table aria-label="Provider references" variant="compact" data-testid="provider-references-table">
     <Thead>
       <Tr>
         <Th style={headerCellStyle}>Provider</Th>

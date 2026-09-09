@@ -1,5 +1,14 @@
 import React from 'react';
-import { Button, Flex, FlexItem, HelperText, HelperTextItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  HelperText,
+  HelperTextItem,
+  Stack,
+  StackItem,
+  TextInput,
+} from '@patternfly/react-core';
 
 type InheritedProviderConfigProps = {
   config: Record<string, string>;
@@ -13,8 +22,7 @@ const InheritedProviderConfig: React.FC<InheritedProviderConfigProps> = ({
   const entries = Object.entries(config);
   const [showAll, setShowAll] = React.useState(false);
   const hasPreviewLimit = previewCount !== undefined && entries.length > previewCount;
-  const visibleEntries =
-    hasPreviewLimit && !showAll ? entries.slice(0, previewCount) : entries;
+  const visibleEntries = hasPreviewLimit && !showAll ? entries.slice(0, previewCount) : entries;
 
   if (entries.length === 0) {
     return (

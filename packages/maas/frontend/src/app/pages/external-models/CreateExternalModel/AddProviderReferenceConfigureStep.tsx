@@ -129,8 +129,7 @@ const AddProviderReferenceConfigureStep: React.FC<AddProviderReferenceConfigureS
         hasToggleIcon={false}
         toggleContent={(expanded) => (
           <>
-            {expanded ? <AngleDownIcon aria-hidden /> : <AngleRightIcon aria-hidden />}
-            {' '}
+            {expanded ? <AngleDownIcon aria-hidden /> : <AngleRightIcon aria-hidden />}{' '}
             {expanded
               ? 'Hide advanced settings'
               : `Advanced settings (${inheritedConfigCount} inherited, ${overrideCount} ${overrideLabel})`}
@@ -155,8 +154,8 @@ const AddProviderReferenceConfigureStep: React.FC<AddProviderReferenceConfigureS
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
-                    These values come from the provider and are available for {'{key}'} resolution in
-                    the path. Add an override below to change a value for this model.
+                    These values come from the provider and are available for {'{key}'} resolution
+                    in the path. Add an override below to change a value for this model.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
@@ -167,18 +166,23 @@ const AddProviderReferenceConfigureStep: React.FC<AddProviderReferenceConfigureS
             </FormGroup>
           </StackItem>
           <StackItem>
-            <FormGroup label="Model configuration" fieldId="provider-ref-model-configuration" isStack>
+            <FormGroup
+              label="Model configuration"
+              fieldId="provider-ref-model-configuration"
+              isStack
+            >
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
                     Add key-value pairs specific to this model reference. Values are only used as{' '}
-                    {'{key}'} placeholders in the path field – they do not affect other configuration.
-                    Inherited values from the provider appear here and can be overridden per-model.
+                    {'{key}'} placeholders in the path field – they do not affect other
+                    configuration. Inherited values from the provider appear here and can be
+                    overridden per-model.
                   </HelperTextItem>
                   <HelperTextItem>
                     For example, Vertex AI providers typically need <strong>project</strong> and{' '}
-                    <strong>location</strong> keys (e.g., project=my-gcp-project, location=us-central1).
-                    AWS Bedrock may need <strong>region</strong>.
+                    <strong>location</strong> keys (e.g., project=my-gcp-project,
+                    location=us-central1). AWS Bedrock may need <strong>region</strong>.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>

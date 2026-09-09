@@ -23,7 +23,6 @@ import {
   isProviderReferenceApiFormat,
   PROVIDER_REFERENCE_API_FORMAT_OPTIONS,
   PROVIDER_REFERENCE_API_FORMATS,
-  ProviderReferenceApiFormat,
 } from './providerReferenceUtils';
 
 const KEY_VALUE_PAIRS_DESCRIPTION =
@@ -57,8 +56,8 @@ const EditProviderReferenceForm: React.FC<EditProviderReferenceFormProps> = ({
       return;
     }
     onChange({
-      apiFormat: key as ProviderReferenceApiFormat,
-      path: PROVIDER_REFERENCE_API_FORMATS[key as ProviderReferenceApiFormat].defaultPath,
+      apiFormat: key,
+      path: PROVIDER_REFERENCE_API_FORMATS[key].defaultPath,
     });
   };
 
@@ -105,8 +104,8 @@ const EditProviderReferenceForm: React.FC<EditProviderReferenceFormProps> = ({
             <HelperTextItem>{KEY_VALUE_PAIRS_DESCRIPTION}</HelperTextItem>
             <HelperTextItem>
               For example, Vertex AI providers typically need <strong>project</strong> and{' '}
-              <strong>location</strong> keys (e.g., project=my-gcp-project, location=us-central1). AWS
-              Bedrock may need <strong>region</strong>.
+              <strong>location</strong> keys (e.g., project=my-gcp-project, location=us-central1).
+              AWS Bedrock may need <strong>region</strong>.
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
@@ -131,8 +130,7 @@ const EditProviderReferenceForm: React.FC<EditProviderReferenceFormProps> = ({
                 hasToggleIcon={false}
                 toggleContent={(expanded) => (
                   <>
-                    {expanded ? <AngleDownIcon aria-hidden /> : <AngleRightIcon aria-hidden />}
-                    {' '}
+                    {expanded ? <AngleDownIcon aria-hidden /> : <AngleRightIcon aria-hidden />}{' '}
                     {expanded ? 'Hide key-value pairs' : 'Show key-value pairs'}
                   </>
                 )}
@@ -152,7 +150,11 @@ const EditProviderReferenceForm: React.FC<EditProviderReferenceFormProps> = ({
           </StackItem>
 
           <StackItem>
-            <FormGroup label="Model configuration" fieldId="provider-ref-model-configuration" isStack>
+            <FormGroup
+              label="Model configuration"
+              fieldId="provider-ref-model-configuration"
+              isStack
+            >
               <ModelConfigPairsEditor
                 pairs={form.configPairs}
                 onChange={(configPairs) => onChange({ configPairs })}

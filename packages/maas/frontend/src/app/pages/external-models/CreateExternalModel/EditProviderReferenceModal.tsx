@@ -14,10 +14,7 @@ import {
   ProviderReferenceFormData,
   validateProviderReferenceForm,
 } from './providerReferenceFormTypes';
-import {
-  isProviderReferenceApiFormat,
-  recordToConfigPairs,
-} from './providerReferenceUtils';
+import { isProviderReferenceApiFormat, recordToConfigPairs } from './providerReferenceUtils';
 
 type EditProviderReferenceModalProps = {
   isOpen: boolean;
@@ -87,10 +84,7 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
       onClose={onClose}
       aria-labelledby="edit-provider-reference-modal-title"
     >
-      <ModalHeader
-        title="Edit provider reference"
-        labelId="edit-provider-reference-modal-title"
-      />
+      <ModalHeader title="Edit provider reference" labelId="edit-provider-reference-modal-title" />
       <ModalBody>
         <EditProviderReferenceForm
           form={form}

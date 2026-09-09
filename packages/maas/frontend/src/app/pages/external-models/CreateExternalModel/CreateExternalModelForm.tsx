@@ -95,9 +95,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
       refreshExternalModels();
       navigate(returnTo);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : 'Failed to create external model',
-      );
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create external model');
       setIsSubmitting(false);
     }
   };
@@ -176,8 +174,8 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
             <HelperText>
               <HelperTextItem>
                 Configure which external providers serve this model and how traffic is distributed.
-                A provider reference links this model to an existing provider connection and specifies
-                the target model ID, API format, and traffic weight.
+                A provider reference links this model to an existing provider connection and
+                specifies the target model ID, API format, and traffic weight.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>

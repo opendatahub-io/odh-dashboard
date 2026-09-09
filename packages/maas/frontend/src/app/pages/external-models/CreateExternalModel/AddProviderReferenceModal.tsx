@@ -35,7 +35,8 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
 }) => {
   const [providerSource, setProviderSource] = React.useState<ProviderSourceType>('existing');
   const [providerName, setProviderName] = React.useState('');
-  const [configureForm, setConfigureForm] = React.useState<ProviderReferenceFormData>(emptyConfigureForm);
+  const [configureForm, setConfigureForm] =
+    React.useState<ProviderReferenceFormData>(emptyConfigureForm);
   const [configureTouched, setConfigureTouched] = React.useState(false);
 
   React.useEffect(() => {
@@ -75,14 +76,7 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
       config: configPairsToRecord(configureForm.configPairs),
     });
     onClose();
-  }, [
-    configureForm,
-    configureValidationError,
-    isStepOneValid,
-    onAdd,
-    onClose,
-    providerName,
-  ]);
+  }, [configureForm, configureValidationError, isStepOneValid, onAdd, onClose, providerName]);
 
   const wizardFooter = React.useMemo(
     () => (
@@ -127,11 +121,7 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
             externalProviders={externalProviders}
           />
         </WizardStep>
-        <WizardStep
-          name="Configure model"
-          id="configure-model-step"
-          isDisabled={!isStepOneValid}
-        >
+        <WizardStep name="Configure model" id="configure-model-step" isDisabled={!isStepOneValid}>
           <AddProviderReferenceConfigureStep
             form={configureForm}
             selectedProvider={selectedProvider}

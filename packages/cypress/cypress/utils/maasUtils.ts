@@ -1117,7 +1117,6 @@ export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
       project: 'my-project',
       location: 'us-east1',
       region: 'us-east-1',
-      api_version: 'v1',
     },
   }),
   mockExternalProvider({
