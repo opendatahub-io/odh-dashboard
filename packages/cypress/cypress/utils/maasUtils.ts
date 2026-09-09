@@ -1099,6 +1099,43 @@ export const mockExternalModels = (): ExternalModel[] => [
   }),
 ];
 
+export const mockExternalProvidersForCreateFlow = (): ExternalProvider[] => [
+  mockExternalProvider({
+    name: 'anthropic-dev',
+    displayName: 'Anthropic Provider',
+    description: 'Anthropic provider for create flow tests.',
+    provider: 'anthropic',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.anthropic.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'anthropic-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+    config: {
+      project: 'my-project',
+      location: 'us-east1',
+      region: 'us-east-1',
+      api_version: 'v1',
+    },
+  }),
+  mockExternalProvider({
+    name: 'openai-prod',
+    displayName: 'OpenAI Production',
+    description: 'OpenAI production provider for create flow tests.',
+    provider: 'openai',
+    phase: 'Ready',
+    statusMessage: 'External provider is ready',
+    endpointUrl: 'api.openai.com',
+    authMechanism: 'apikey',
+    credentialSecretRef: 'openai-api-key',
+    lastTransitionTime: '2025-03-01T10:00:00Z',
+    conditionType: 'Ready',
+    reason: 'ready',
+  }),
+];
+
 export const mockExternalProviders = (): ExternalProvider[] => [
   mockFailedExternalProvider(),
   mockInvalidExternalProvider(),

@@ -1812,6 +1812,170 @@ class ExternalModelsPage {
   findExternalProvidersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('manage-external-providers-button');
   }
+
+  findAddExternalModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-external-model-button');
+  }
+}
+
+class CreateExternalModelPage {
+  visit(namespace = 'test-project'): void {
+    cy.visitWithLogin(`/ai-hub/models/deployments/external/${namespace}/register`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-name');
+  }
+
+  findDescriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-name-desc-description');
+  }
+
+  findProjectInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-project');
+  }
+
+  findAddProviderReferenceButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('add-provider-reference-button');
+  }
+
+  findProviderReferencesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-references-table');
+  }
+
+  findProviderRefsRequiredInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-refs-required-info');
+  }
+
+  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-external-model-button');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('cancel-create-external-model-button');
+  }
+
+  findProviderRefEditButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-edit-${index}`);
+  }
+
+  findProviderRefRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-row-${index}`);
+  }
+}
+
+class ProviderReferenceModalBase extends Modal {
+  findTargetModelInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-target-model');
+  }
+
+  fillTargetModel(targetModel: string): void {
+    this.findTargetModelInput().clear();
+    this.findTargetModelInput().type(targetModel);
+  }
+
+  findApiFormatSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-api-format');
+  }
+
+  findPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-path');
+  }
+
+  findInheritedProviderConfig(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('inherited-provider-config');
+  }
+
+  findInheritedConfigKey(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`inherited-config-key-${key}`);
+  }
+
+  findInheritedConfigValue(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`inherited-config-value-${key}`);
+  }
+}
+
+class AddProviderReferenceModal extends ProviderReferenceModalBase {
+  constructor() {
+    super('Add provider reference');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('dialog', { name: 'Add provider reference' });
+  }
+
+  findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-next');
+  }
+
+  findAddButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('add-provider-reference-submit');
+  }
+
+  findBackButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-back');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-wizard-cancel');
+  }
+
+  findProviderSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-ref-provider-select');
+  }
+
+  selectProvider(displayName: string): void {
+    this.findProviderSelect().click();
+    cy.findByRole('option', { name: displayName }).click();
+  }
+
+  goToConfigureStep(): void {
+    this.findNextButton().click();
+  }
+
+  expandAdvancedSettings(): void {
+    this.find().findByTestId('provider-ref-advanced-settings').click();
+  }
+
+  addProviderReference(providerDisplayName: string, targetModel: string): void {
+    this.selectProvider(providerDisplayName);
+    this.goToConfigureStep();
+    this.fillTargetModel(targetModel);
+    this.findAddButton().click();
+    this.shouldBeOpen(false);
+  }
+}
+
+class EditProviderReferenceModal extends ProviderReferenceModalBase {
+  constructor() {
+    super('Edit provider reference');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('dialog', { name: 'Edit provider reference' });
+  }
+
+  findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-reference-submit');
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('edit-provider-reference-cancel');
+  }
+
+  findInheritedConfigToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('inherited-provider-config-toggle');
+  }
 }
 
 class ExternalModelTableRow extends TableRow {
@@ -2173,6 +2337,9 @@ export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
 export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
+export const createExternalModelPage = new CreateExternalModelPage();
+export const addProviderReferenceModal = new AddProviderReferenceModal();
+export const editProviderReferenceModal = new EditProviderReferenceModal();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
 export const pathModal = new PathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
