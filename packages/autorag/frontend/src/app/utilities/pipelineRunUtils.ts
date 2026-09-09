@@ -28,6 +28,9 @@ export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
     if (!isCanonical) {
       changed = true;
     }
+    if (isCanonical && newKey === 'input_data_keys' && typeof value === 'string') {
+      changed = true;
+    }
     if (!(newKey in normalized) || isCanonical) {
       normalized[newKey] =
         newKey === 'input_data_keys' && typeof value === 'string' ? [value] : value;
