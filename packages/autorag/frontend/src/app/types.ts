@@ -141,19 +141,6 @@ export type MaasModelsResponse = {
   models: MaasModel[];
 };
 
-export type MaasVectorStoreProvider = {
-  provider_id: string;
-  provider_type: string;
-};
-
-export type MaasVectorStoreProvidersResponse = {
-  vector_store_providers: MaasVectorStoreProvider[];
-};
-
-export type MaasFilteredVectorStoreProvidersResponse = MaasVectorStoreProvidersResponse & {
-  totalProviderCount: number;
-};
-
 export type SecretListItem = {
   uuid: string;
   name: string;

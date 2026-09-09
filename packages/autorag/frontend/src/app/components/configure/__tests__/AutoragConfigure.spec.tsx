@@ -112,17 +112,13 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-// Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
+// Mock queries hooks used by AutoragConfigure (model pickers)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   useMaasModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
     isError: false,
-  }),
-  useMaasVectorStoreProvidersQuery: jest.fn().mockReturnValue({
-    data: { vector_store_providers: [] }, // eslint-disable-line camelcase
-    isLoading: false,
   }),
   useSecretsQuery: jest.fn().mockReturnValue({
     data: [],

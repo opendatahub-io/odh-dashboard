@@ -16,7 +16,6 @@ This service exposes the following endpoints:
 - GET `/api/v1/secrets` – list and filter Kubernetes secrets by type
 - GET `/api/v1/s3/file` – retrieve a file from S3 storage
 - GET `/api/v1/maas/models` – list available models from Models as a Service Distribution
-- GET `/api/v1/maas/vector-stores` – list available vector stores from Models as a Service Distribution
 - GET `/api/v1/pipeline-runs` – query AutoRAG pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single managed pipeline run (AutoRAG or indexing) with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
@@ -112,7 +111,6 @@ GET /api/v1/namespaces             (dev / mock mode only)
 GET  /api/v1/secrets                 (requires namespace parameter)
 GET  /api/v1/s3/file                 (requires namespace, secretName, and key parameters)
 GET  /api/v1/maas/models              (requires namespace and secretName parameters)
-GET  /api/v1/maas/vector-stores       (requires namespace and secretName parameters)
 GET  /api/v1/pipeline-runs          (requires namespace parameter)
 GET  /api/v1/pipeline-runs/:runId   (requires namespace parameter)
 POST /api/v1/pipeline-runs          (requires namespace parameter)
@@ -148,7 +146,6 @@ For detailed API documentation, see:
 - [Secrets API](docs/secrets-endpoint.md)
 - [Pipeline Runs API](../docs/pipeline-runs-api.md)
 - [MaaS Models API](docs/maas-models-endpoint.md)
-- [MaaS Vector Stores API](docs/maas-vector-stores-endpoint.md)
 
 <!-- Minimal scope: all former Mod Arch examples removed -->
 
@@ -184,7 +181,7 @@ This means you can simply start the BFF in dev mode and it will handle all servi
 
 ### Setting up a Models as a Service secret
 
-The AutoRAG BFF requires a Kubernetes secret with Models as a Service credentials to access models and vector stores. The secret must contain the Models as a Service server URL and an API key (OAuth2 token from Keycloak).
+The AutoRAG BFF requires a Kubernetes secret with Models as a Service credentials to access models. The secret must contain the Models as a Service server URL and an API key (OAuth2 token from Keycloak).
 
 #### Secret format
 
@@ -218,7 +215,7 @@ TOKEN=$(oc exec -n maas $(oc get pods -n maas -l app=maas -o jsonpath='{.items[0
 
 # 3. Verify the token works
 curl -s -H "Authorization: Bearer ${TOKEN}" \
-  'https://<maas-route>/v1/vector_stores' | jq
+  'https://<maas-route>/v1/models' | jq
 ```
 
 #### Creating the secret
@@ -253,7 +250,6 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 
 For more details on the Models as a Service endpoints, see:
 - [MaaS Models API](docs/maas-models-endpoint.md)
-- [MaaS Vector Stores API](docs/maas-vector-stores-endpoint.md)
 
 ### Enabling CORS
 

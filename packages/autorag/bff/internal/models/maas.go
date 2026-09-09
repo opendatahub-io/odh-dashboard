@@ -38,25 +38,3 @@ type MaaSModel struct {
 type MaaSModelsData struct {
 	Models []MaaSModel `json:"models"` // Complete list of all models
 }
-
-// MaaSProvider represents a single provider entry returned by the
-// Models as a Service /v1/providers endpoint.
-type MaaSProvider struct {
-	API          string `json:"api"`           // API type (e.g., "vector_io", "inference")
-	ProviderID   string `json:"provider_id"`   // Provider identifier (e.g., "milvus")
-	ProviderType string `json:"provider_type"` // Provider implementation type (e.g., "remote::milvus")
-}
-
-// MaaSVectorStoreProvider represents a vector store provider in our stable public API format.
-// This is the contract exposed to the frontend and should remain stable.
-type MaaSVectorStoreProvider struct {
-	ProviderID   string `json:"provider_id"`   // Provider identifier (e.g., "milvus")
-	ProviderType string `json:"provider_type"` // Provider implementation type (e.g., "remote::milvus")
-}
-
-// MaaSVectorStoreProvidersData wraps the vector store provider list for the API response.
-// Note: Always create a bespoke type for list types, this creates minimal work later if implementing pagination
-// as the necessary metadata can be added at a later date without breaking the API.
-type MaaSVectorStoreProvidersData struct {
-	VectorStoreProviders []MaaSVectorStoreProvider `json:"vector_store_providers"`
-}

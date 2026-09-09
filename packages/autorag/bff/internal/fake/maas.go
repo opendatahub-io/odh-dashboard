@@ -32,10 +32,3 @@ func (c *MaaSClient) ListModels(_ context.Context, _, _ string) ([]models.MaaSNa
 		},
 	}, nil
 }
-
-func (c *MaaSClient) ListProviders(_ context.Context, _, _ string) ([]models.MaaSProvider, error) {
-	return []models.MaaSProvider{
-		{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
-		{API: "vector_io", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
-	}, nil
-}

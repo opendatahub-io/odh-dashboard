@@ -552,55 +552,6 @@ paths:
       summary: Get MaaS Models
       description: Returns available models from Models as a Service Distribution using credentials from a Kubernetes secret
 
-  /api/v1/maas/vector-stores:
-    summary: List available MaaS vector store providers
-    description: >-
-      Lists available vector store providers from Models as a Service Distribution (MaaS).
-      Calls the native /v1/providers endpoint and filters for vector_io API type.
-      Returns provider identifiers and types (e.g., remote::milvus).
-      Requires namespace and secretName parameters. The secretName identifies a Kubernetes secret
-      containing MAAS_BASE_URL and MAAS_API_KEY credentials.
-    get:
-      tags:
-        - VectorStores
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace containing the Models as a Service credentials secret
-          required: true
-          schema:
-            type: string
-            example: 'default'
-        - name: secretName
-          in: query
-          description: Name of the Kubernetes secret containing Models as a Service credentials (MAAS_BASE_URL and MAAS_API_KEY)
-          required: true
-          schema:
-            type: string
-            maxLength: 253
-            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
-            example: 'my-maas-secret'
-      responses:
-        "200":
-          $ref: "#/components/responses/MaaSVectorStoresResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "502":
-          $ref: "#/components/responses/BadGateway"
-      operationId: getMaaSVectorStoreProviders
-      summary: Get MaaS Vector Store Providers
-      description: Returns available vector store providers from Models as a Service Distribution using credentials from a Kubernetes secret
-
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
@@ -1038,33 +989,6 @@ components:
           description: Complete list of all available models
           items:
             $ref: '#/components/schemas/MaaSModel'
-
-    MaaSVectorStoreProvider:
-      type: object
-      description: Vector store provider from Models as a Service Distribution
-      required:
-        - provider_id
-        - provider_type
-      properties:
-        provider_id:
-          type: string
-          description: Provider identifier
-          example: "milvus"
-        provider_type:
-          type: string
-          description: Provider implementation type
-          example: "remote::milvus"
-    MaaSVectorStoreProvidersData:
-      type: object
-      description: List of vector store providers from Models as a Service Distribution
-      required:
-        - vector_store_providers
-      properties:
-        vector_store_providers:
-          type: array
-          description: List of vector_io providers
-          items:
-            $ref: '#/components/schemas/MaaSVectorStoreProvider'
 
     SecretTypeSchema:
       description: >-
@@ -1938,27 +1862,6 @@ components:
                   provider: "ollama"
                   resource_path: "ollama://models/nomic-embed-text"
 
-    MaaSVectorStoresResponse:
-      description: List of available MaaS vector store providers
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              metadata:
-                type: object
-                description: Metadata about the response
-              data:
-                $ref: '#/components/schemas/MaaSVectorStoreProvidersData'
-          example:
-            metadata: {}
-            data:
-              vector_store_providers:
-                - provider_id: "milvus"
-                  provider_type: "remote::milvus"
-                - provider_id: "faiss"
-                  provider_type: "inline::faiss"
-
     SecretsResponse:
       content:
         application/json:
@@ -2351,5 +2254,3 @@ tags:
     description: AI model discovery and management from Models as a Service Distribution
   - name: PipelineOperation
     description: Operations for querying Kubeflow Pipeline runs
-  - name: VectorStores
-    description: Vector store provider discovery from Models as a Service Distribution

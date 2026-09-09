@@ -61,7 +61,7 @@ func NewNotFoundError(message string) *MaaSError {
 // wrapClientError wraps Go errors from httpClient.Do() into our MaaSError type.
 // It handles network-level errors (connection refused, timeout, DNS failures).
 // For HTTP status code errors, use mapHTTPStatusToError instead.
-// The operation parameter should be the function name that failed (e.g. "ListModels", "ListProviders").
+// The operation parameter should be the function name that failed (e.g. "ListModels").
 func wrapClientError(err error, operation string) *MaaSError {
 	if err == nil {
 		return nil

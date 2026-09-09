@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
-	"strings"
 
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
@@ -16,9 +15,7 @@ import (
 
 var ErrMaaSCredentialValidation = errors.New("MaaS credential validation failed")
 
-const vectorIOAPI = "vector_io"
-
-// MaaSRepository handles MaaS model and vector store provider operations.
+// MaaSRepository handles MaaS model operations.
 // Reads credentials from Kubernetes secrets per-call and delegates to the stateless MaaS client.
 type MaaSRepository struct {
 	maasClient maas.MaaSClientInterface
@@ -114,39 +111,6 @@ func (r *MaaSRepository) translateMaaSModel(native models.MaaSNativeModel) (mode
 	}
 
 	return result, true
-}
-
-// --- Vector Store Providers ---
-
-// GetMaaSVectorStoreProviders retrieves vector store providers from MaaS by calling
-// /v1/providers and filtering for the vector_io API type.
-func (r *MaaSRepository) GetMaaSVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.MaaSVectorStoreProvidersData, error) {
-	baseURL, apiKey, err := resolveMaaSCredentials(ctx, r.k8sService, namespace, secretName)
-	if err != nil {
-		return nil, err
-	}
-
-	allProviders, err := r.maasClient.ListProviders(ctx, baseURL, apiKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaS providers: %w", err)
-	}
-
-	vectorStoreProviders := make([]models.MaaSVectorStoreProvider, 0)
-	for _, p := range allProviders {
-		if isVectorIOProvider(p) {
-			vectorStoreProviders = append(vectorStoreProviders, models.MaaSVectorStoreProvider{
-				ProviderID:   p.ProviderID,
-				ProviderType: p.ProviderType,
-			})
-		}
-	}
-
-	return &models.MaaSVectorStoreProvidersData{VectorStoreProviders: vectorStoreProviders}, nil
-}
-
-func isVectorIOProvider(p models.MaaSProvider) bool {
-	api := strings.ToLower(strings.TrimSpace(p.API))
-	return api == vectorIOAPI || strings.HasPrefix(api, vectorIOAPI+"::")
 }
 
 // --- Credential Helpers ---

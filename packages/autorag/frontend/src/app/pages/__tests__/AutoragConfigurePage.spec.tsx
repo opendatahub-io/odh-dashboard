@@ -191,15 +191,6 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     error: null,
   })),
-  useMaasVectorStoreProvidersQuery: jest.fn(() => ({
-    data: {
-      vector_store_providers: [
-        { provider_id: 'milvus', provider_type: 'remote::milvus' },
-        { provider_id: 'chromadb', provider_type: 'remote::chromadb' },
-      ],
-    }, // eslint-disable-line camelcase
-    isLoading: false,
-  })),
   useSecretsQuery: jest.fn(() => ({
     data: [],
     isLoading: false,

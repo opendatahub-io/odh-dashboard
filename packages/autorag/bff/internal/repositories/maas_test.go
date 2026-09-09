@@ -16,19 +16,12 @@ import (
 // --- Mocks ---
 
 type mockMaaSClient struct {
-	listModelsFn    func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error)
-	listProvidersFn func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error)
+	listModelsFn func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error)
 }
 
 func (m *mockMaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
 	if m.listModelsFn != nil {
 		return m.listModelsFn(ctx, baseURL, apiKey)
-	}
-	return nil, nil
-}
-func (m *mockMaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-	if m.listProvidersFn != nil {
-		return m.listProvidersFn(ctx, baseURL, apiKey)
 	}
 	return nil, nil
 }
@@ -381,136 +374,6 @@ func TestGetMaaSModels(t *testing.T) {
 		}
 		if len(data.Models) != 0 {
 			t.Errorf("expected 0, got %d", len(data.Models))
-		}
-	})
-}
-
-// === GetMaaSVectorStoreProviders ===
-
-func TestGetMaaSVectorStoreProviders(t *testing.T) {
-	t.Run("filters to vector_io providers only", func(t *testing.T) {
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				return []models.MaaSProvider{
-					{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
-					{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
-					{API: "vector_io", ProviderID: "chromadb", ProviderType: "remote::chromadb"},
-					{API: "safety", ProviderID: "llama-guard", ProviderType: "remote::llama-guard"},
-				}, nil
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		data, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(data.VectorStoreProviders) != 2 {
-			t.Fatalf("expected 2 vector_io providers, got %d", len(data.VectorStoreProviders))
-		}
-		if data.VectorStoreProviders[0].ProviderID != "milvus" || data.VectorStoreProviders[1].ProviderID != "chromadb" {
-			t.Errorf("unexpected providers: %+v", data.VectorStoreProviders)
-		}
-	})
-
-	t.Run("accepts vector_io prefixed api values", func(t *testing.T) {
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				return []models.MaaSProvider{
-					{API: "vector_io::pgvector", ProviderID: "pgvector", ProviderType: "remote::pgvector"},
-				}, nil
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		data, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(data.VectorStoreProviders) != 1 || data.VectorStoreProviders[0].ProviderID != "pgvector" {
-			t.Errorf("unexpected: %+v", data.VectorStoreProviders)
-		}
-	})
-
-	t.Run("no vector_io providers returns empty", func(t *testing.T) {
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				return []models.MaaSProvider{
-					{API: "inference", ProviderID: "ollama"},
-				}, nil
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		data, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(data.VectorStoreProviders) != 0 {
-			t.Errorf("expected 0, got %d", len(data.VectorStoreProviders))
-		}
-	})
-
-	t.Run("empty provider list", func(t *testing.T) {
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				return []models.MaaSProvider{}, nil
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		data, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(data.VectorStoreProviders) != 0 {
-			t.Errorf("expected 0, got %d", len(data.VectorStoreProviders))
-		}
-	})
-
-	t.Run("credential resolution failure", func(t *testing.T) {
-		k8s := &mockK8sForMaaS{getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
-			return nil, fmt.Errorf("not found")
-		}}
-		repo := NewMaaSRepository(slog.Default(), nil, k8s)
-
-		_, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "missing")
-		if err == nil {
-			t.Error("expected error")
-		}
-	})
-
-	t.Run("MaaS client error", func(t *testing.T) {
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				return nil, fmt.Errorf("connection refused")
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		_, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err == nil {
-			t.Error("expected error")
-		}
-	})
-
-	t.Run("forwards correct credentials", func(t *testing.T) {
-		var gotURL, gotKey string
-		maasClient := &mockMaaSClient{
-			listProvidersFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-				gotURL = baseURL
-				gotKey = apiKey
-				return nil, nil
-			},
-		}
-		repo := NewMaaSRepository(slog.Default(), maasClient, defaultK8s())
-
-		_, err := repo.GetMaaSVectorStoreProviders(context.Background(), "ns", "maas-creds")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if gotURL != "https://maas.example.com" || gotKey != "key-123" {
-			t.Errorf("baseURL=%q apiKey=%q", gotURL, gotKey)
 		}
 	})
 }

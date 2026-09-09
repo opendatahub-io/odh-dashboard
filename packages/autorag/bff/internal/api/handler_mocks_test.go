@@ -238,11 +238,3 @@ func (m *mockMaaSRepo) GetMaaSModels(ctx context.Context, namespace, secretName 
 	}
 	return args.Get(0).(*models.MaaSModelsData), args.Error(1)
 }
-
-func (m *mockMaaSRepo) GetMaaSVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.MaaSVectorStoreProvidersData, error) {
-	args := m.Called(ctx, namespace, secretName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.MaaSVectorStoreProvidersData), args.Error(1)
-}

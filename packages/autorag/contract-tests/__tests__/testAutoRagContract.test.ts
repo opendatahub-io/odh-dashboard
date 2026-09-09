@@ -81,30 +81,6 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('MaaS Vector Store Providers Endpoint', () => {
-    it('should retrieve vector store providers list', async () => {
-      const result = await apiClient.get(
-        `/api/v1/maas/vector-stores?namespace=${NS}&secretName=${MAAS_SECRET}`,
-      );
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/MaaSVectorStoresResponse/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return 400 when namespace parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/maas/vector-stores?secretName=${MAAS_SECRET}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-
-    it('should return 400 when secretName parameter is missing', async () => {
-      const result = await apiClient.get(`/api/v1/maas/vector-stores?namespace=${NS}`);
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-  });
-
   describe('Secrets Endpoint', () => {
     it('should retrieve all secrets', async () => {
       const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}`);

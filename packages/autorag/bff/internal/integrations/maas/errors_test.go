@@ -64,11 +64,11 @@ func TestWrapClientError(t *testing.T) {
 		// silently misclassified as a connection failure.
 		plain := errors.New("boom")
 
-		wrapped := wrapClientError(plain, "ListProviders")
+		wrapped := wrapClientError(plain, "ListModels")
 
 		assert.Equal(t, ErrCodeInternalError, wrapped.Code)
 		assert.Equal(t, http.StatusInternalServerError, wrapped.StatusCode)
-		assert.Contains(t, wrapped.Message, "ListProviders")
+		assert.Contains(t, wrapped.Message, "ListModels")
 		assert.Contains(t, wrapped.Message, "boom")
 	})
 }

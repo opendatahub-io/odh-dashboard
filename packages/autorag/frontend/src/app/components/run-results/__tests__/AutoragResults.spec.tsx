@@ -207,6 +207,9 @@ const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transf
 const useAutoragTaskTopologyMock = jest.mocked(useAutoragTaskTopologyModule.useAutoragTaskTopology);
 const buildStageMapTopologyMock = jest.mocked(buildStageMapTopologyModule.buildStageMapTopology);
 
+const lastMockValue = <T,>(results: Array<{ value?: T }>): T | undefined =>
+  results[results.length - 1]?.value;
+
 const getPipelineVisualization = () => screen.getByTestId('autorag-pipeline-visualization');
 
 describe('AutoragResults', () => {
@@ -688,7 +691,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -741,7 +744,7 @@ describe('AutoragResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(buildStageMapTopologyMock.mock.results),
         undefined,
       );
     });
@@ -773,7 +776,7 @@ describe('AutoragResults', () => {
 
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -786,7 +789,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });
@@ -800,7 +803,7 @@ describe('AutoragResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
+        lastMockValue(useAutoragTaskTopologyMock.mock.results),
         undefined,
       );
     });

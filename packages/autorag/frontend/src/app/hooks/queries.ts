@@ -1,12 +1,11 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getMaasModels, getMaasVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
+import { getMaasModels, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   MaasModelsResponse,
   MaasModelType,
-  MaasFilteredVectorStoreProvidersResponse,
   ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
@@ -219,51 +218,6 @@ export function useS3ListFilesQuery(
     },
     enabled: Boolean(namespace && path),
     retry: false,
-  });
-}
-
-export function useMaasVectorStoreProvidersQuery(
-  namespace: string,
-  secretName: string,
-  providerTypes?: string[],
-): UseQueryResult<MaasFilteredVectorStoreProvidersResponse, Error> {
-  return useQuery({
-    enabled: !!namespace && !!secretName,
-    // providerTypes is intentionally excluded: select transforms cached data without
-    // affecting the cache, so different provider type filters safely share one cache entry.
-    queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
-    queryFn: async () => {
-      try {
-        const response = await getMaasVectorStores('')(namespace, secretName)({});
-        z.object({
-          // eslint-disable-next-line camelcase
-          vector_store_providers: z.array(
-            z.object({
-              // eslint-disable-next-line camelcase
-              provider_id: z.string(),
-              // eslint-disable-next-line camelcase
-              provider_type: z.string(),
-            }),
-          ),
-        }).parse(response);
-        return response;
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          throw new Error('Invalid MaaS vector store providers response');
-        }
-        throw error;
-      }
-    },
-    // Filter by provider_type when a non-empty providerTypes array is given.
-    // totalProviderCount preserves the unfiltered count so the UI can distinguish
-    // "no providers at all" from "providers exist but none are supported".
-    select: (data) => ({
-      // eslint-disable-next-line camelcase
-      vector_store_providers: data.vector_store_providers.filter(
-        (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
-      ),
-      totalProviderCount: data.vector_store_providers.length,
-    }),
   });
 }
 

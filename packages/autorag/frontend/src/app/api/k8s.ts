@@ -6,12 +6,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import {
-  MaasModelsResponse,
-  MaasVectorStoreProvidersResponse,
-  NamespaceKind,
-  SecretListItem,
-} from '~/app/types';
+import { MaasModelsResponse, NamespaceKind, SecretListItem } from '~/app/types';
 
 export const getUser =
   (hostPath: string) =>
@@ -86,24 +81,6 @@ export const getMaasModels =
       ),
     ).then((response) => {
       if (isModArchResponse<MaasModelsResponse>(response)) {
-        return response.data;
-      }
-      throw new Error('Invalid response format');
-    });
-
-export const getMaasVectorStores =
-  (hostPath: string) =>
-  (namespace: string, secretName: string) =>
-  (opts: APIOptions): Promise<MaasVectorStoreProvidersResponse> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/vector-stores`,
-        { namespace, secretName },
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<MaasVectorStoreProvidersResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

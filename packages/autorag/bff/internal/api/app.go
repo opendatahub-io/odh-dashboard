@@ -39,7 +39,6 @@ const (
 	S3FilePath               = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath              = ApiPathPrefix + "/s3/files"
 	MaaSModelsPath           = ApiPathPrefix + "/maas/models"
-	MaaSVectorStoresPath     = ApiPathPrefix + "/maas/vector-stores"
 	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
 	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
 	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
@@ -309,7 +308,6 @@ func (app *App) Routes() http.Handler {
 
 	// Models as a Service — credentials are resolved by the repository from the secretName query param
 	apiRouter.GET(MaaSModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.MaaSModelsHandler)))
-	apiRouter.GET(MaaSVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.MaaSVectorStoresHandler)))
 
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))

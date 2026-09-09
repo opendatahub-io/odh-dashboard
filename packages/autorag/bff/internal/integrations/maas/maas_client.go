@@ -24,7 +24,6 @@ type httpClientInterface interface {
 // multiple namespaces and secrets without reconstructing the HTTP client.
 type MaaSClientInterface interface {
 	ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error)
-	ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error)
 }
 
 // MaaSClient communicates with an Models as a Service Distribution server.
@@ -153,38 +152,6 @@ func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]
 	}
 
 	return envelope.Data, nil
-}
-
-// ListProviders retrieves all registered providers from Models as a Service via /v1/providers.
-func (c *MaaSClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.MaaSProvider, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	const maxProvidersResponseBytes = 1 << 20 // 1 MiB
-	body, err := c.getJSON(ctx, baseURL, apiKey, "ListProviders", "providers", maxProvidersResponseBytes, []string{
-		"/v1/providers",
-		"/v1/openai/v1/providers",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var envelope struct {
-		Data      []models.MaaSProvider `json:"data"`
-		Providers []models.MaaSProvider `json:"providers"`
-	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
-		var bare []models.MaaSProvider
-		if errBare := json.Unmarshal(body, &bare); errBare == nil {
-			return bare, nil
-		}
-		return nil, NewMaaSError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse Models as a Service providers response: %s", err.Error()),
-			http.StatusInternalServerError)
-	}
-	if len(envelope.Data) > 0 {
-		return envelope.Data, nil
-	}
-	return envelope.Providers, nil
 }
 
 // setAuthHeader sets the Authorization header when an API key is provided.

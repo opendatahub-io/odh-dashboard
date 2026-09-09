@@ -18,7 +18,6 @@ import (
 
 type maasRepository interface {
 	GetMaaSModels(ctx context.Context, namespace, secretName string) (*models.MaaSModelsData, error)
-	GetMaaSVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.MaaSVectorStoreProvidersData, error)
 }
 
 type MaaSHandler struct {
@@ -27,7 +26,6 @@ type MaaSHandler struct {
 }
 
 type MaaSModelsEnvelope Envelope[*models.MaaSModelsData, None]
-type MaaSVectorStoresEnvelope Envelope[*models.MaaSVectorStoreProvidersData, None]
 
 // MaaSModelsHandler handles GET /api/v1/maas/models
 // Returns all available models from Models as a Service Distribution.
@@ -61,44 +59,6 @@ func (h *MaaSHandler) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, 
 	}
 
 	err = writeJSON(w, http.StatusOK, maasModelsEnvelope, nil)
-	if err != nil {
-		serverErrorResponse(h.logger, w, r, err)
-	}
-}
-
-// MaaSVectorStoresHandler handles GET /api/v1/maas/vector-stores
-// Returns available vector store providers from Models as a Service Distribution,
-// filtered to only include providers with the vector_io API type.
-func (h *MaaSHandler) MaaSVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-
-	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if !ok || namespace == "" {
-		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
-		return
-	}
-
-	secretName := r.URL.Query().Get("secretName")
-	if secretName == "" {
-		badRequestResponse(h.logger, w, r, "missing required query parameter: secretName")
-		return
-	}
-	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		badRequestResponse(h.logger, w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
-		return
-	}
-
-	providersData, err := h.repo.GetMaaSVectorStoreProviders(ctx, namespace, secretName)
-	if err != nil {
-		h.handleMaaSOrK8sError(w, r, err)
-		return
-	}
-
-	envelope := MaaSVectorStoresEnvelope{
-		Data: providersData,
-	}
-
-	err = writeJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
 		serverErrorResponse(h.logger, w, r, err)
 	}
