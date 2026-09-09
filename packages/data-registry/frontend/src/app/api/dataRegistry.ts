@@ -51,6 +51,7 @@ const volumeInfoSchema = z
     'volume-type': z.string(),
     'storage-location': z.string(),
     labels: z.array(z.string()).nullable().optional(),
+    properties: z.record(z.string(), z.string()).optional(),
   })
   .passthrough();
 

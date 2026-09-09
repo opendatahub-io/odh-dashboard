@@ -174,6 +174,7 @@ const DataRegistryPage: React.FC = () => {
             }}
             onManageLabels={() => setIsLabelsModalOpen(true)}
             onRegisterData={() => setIsRegisterModalOpen(true)}
+            onRefresh={handleRefresh}
           />
           <ManageCollectionsModal
             isOpen={isCollectionsModalOpen}
