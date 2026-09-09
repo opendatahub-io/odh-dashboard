@@ -15,7 +15,7 @@ import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
 import {
   getApiFormatLabel,
   getProviderDisplayName,
-  getProviderRefWeightPercentage,
+  formatProviderRefWeightPercentage,
 } from './providerReferenceUtils';
 
 type ProviderReferencesTableProps = {
@@ -29,24 +29,21 @@ type ProviderReferencesTableProps = {
 const WEIGHT_POPOVER_CONTENT =
   'Weights are relative integers that determine traffic distribution. The system calculates percentages from the ratio of all weights. Set to 0 to temporarily disable a provider without removing it. Example: weights of 5, 3, 2 result in 50%, 30%, 20% traffic split.';
 
-const headerCellStyle = { verticalAlign: 'middle' } as const;
-const bodyCellStyle = { verticalAlign: 'middle' } as const;
+const tableCellClassName = 'pf-v6-u-align-content-center';
 
 const WeightColumnHeader: React.FC = () => (
-  <span
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 'var(--pf-t--global--spacer--xs)',
-      whiteSpace: 'nowrap',
-    }}
+  <Flex
+    display={{ default: 'inlineFlex' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    gap={{ default: 'gapXs' }}
+    className="pf-v6-u-text-nowrap"
   >
     Weight
     <FieldGroupHelpLabelIcon
       content={WEIGHT_POPOVER_CONTENT}
       buttonTestId="provider-ref-weight-help"
     />
-  </span>
+  </Flex>
 );
 
 const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
@@ -59,14 +56,14 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
   <Table aria-label="Provider references" variant="compact" data-testid="provider-references-table">
     <Thead>
       <Tr>
-        <Th style={headerCellStyle}>Provider</Th>
-        <Th modifier="nowrap" style={headerCellStyle}>
+        <Th className={tableCellClassName}>Provider</Th>
+        <Th modifier="nowrap" className={tableCellClassName}>
           Target model ID
         </Th>
-        <Th modifier="nowrap" style={headerCellStyle}>
+        <Th modifier="nowrap" className={tableCellClassName}>
           API format
         </Th>
-        <Th modifier="nowrap" style={headerCellStyle}>
+        <Th modifier="nowrap" className={tableCellClassName}>
           <WeightColumnHeader />
         </Th>
       </Tr>
@@ -74,19 +71,19 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
     <Tbody>
       {providerRefs.map((providerRef, index) => (
         <Tr key={`${providerRef.providerName}-${index}`} data-testid={`provider-ref-row-${index}`}>
-          <Td dataLabel="Provider" style={bodyCellStyle}>
+          <Td dataLabel="Provider" className={tableCellClassName}>
             {getProviderDisplayName(
               providerRef.providerName,
               externalProviders.find((item) => item.name === providerRef.providerName),
             )}
           </Td>
-          <Td dataLabel="Target model ID" modifier="nowrap" style={bodyCellStyle}>
+          <Td dataLabel="Target model ID" modifier="nowrap" className={tableCellClassName}>
             {providerRef.targetModel}
           </Td>
-          <Td dataLabel="API format" modifier="nowrap" style={bodyCellStyle}>
+          <Td dataLabel="API format" modifier="nowrap" className={tableCellClassName}>
             {getApiFormatLabel(providerRef.apiFormat)}
           </Td>
-          <Td dataLabel="Weight" modifier="nowrap" style={bodyCellStyle}>
+          <Td dataLabel="Weight" modifier="nowrap" className={tableCellClassName}>
             <Flex
               direction={{ default: 'column' }}
               gap={{ default: 'gapSm' }}
@@ -136,7 +133,7 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
-                      {getProviderRefWeightPercentage(providerRefs, index)}%
+                      {formatProviderRefWeightPercentage(providerRefs, index)}
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>

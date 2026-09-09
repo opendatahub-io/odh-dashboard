@@ -61,10 +61,9 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
   const { getFieldValidation } = useZodFormValidation({ providerRefs }, externalModelFormSchema);
 
+  const providerRefsErrors = providerRefsTouched ? getFieldValidation(['providerRefs'], true) : [];
   const providerRefsValidationError =
-    providerRefsTouched && getFieldValidation(['providerRefs'], true).length > 0
-      ? getFieldValidation(['providerRefs'], true)[0].message
-      : undefined;
+    providerRefsErrors.length > 0 ? providerRefsErrors[0].message : undefined;
 
   const canSubmit =
     isK8sNameDescriptionDataValid(nameDescData) &&

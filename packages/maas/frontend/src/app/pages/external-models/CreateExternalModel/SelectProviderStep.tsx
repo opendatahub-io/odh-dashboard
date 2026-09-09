@@ -70,7 +70,6 @@ const SelectProviderStep: React.FC<SelectProviderStepProps> = ({
                 isStack
               >
                 <TypeaheadSelect
-                  id="provider-ref-provider"
                   dataTestId="provider-ref-provider-select"
                   selectOptions={providerOptions}
                   selected={providerName}

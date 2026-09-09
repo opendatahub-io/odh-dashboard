@@ -43,6 +43,25 @@ export const getProviderRefWeightPercentage = (
   return Math.round((providerRefs[index].weight / totalWeight) * 100);
 };
 
+const isExactWeightPercentage = (weight: number, totalWeight: number): boolean =>
+  (weight * 100) % totalWeight === 0;
+
+export const formatProviderRefWeightPercentage = (
+  providerRefs: ProviderRef[],
+  index: number,
+): string => {
+  const totalWeight = providerRefs.reduce((sum, ref) => sum + ref.weight, 0);
+  if (totalWeight <= 0) {
+    return '0%';
+  }
+
+  const { weight } = providerRefs[index];
+  const percentage = getProviderRefWeightPercentage(providerRefs, index);
+  const prefix = isExactWeightPercentage(weight, totalWeight) ? '' : '≈ ';
+
+  return `${prefix}${percentage}%`;
+};
+
 export const recordToConfigPairs = (config?: Record<string, string>): ConfigPair[] =>
   config ? Object.entries(config).map(([key, value]) => ({ key, value })) : [];
 
