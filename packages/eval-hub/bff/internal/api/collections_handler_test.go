@@ -104,6 +104,7 @@ func TestCreateCollectionHandler(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
 	assert.Equal(t, "created-collection", result.Data.Resource.ID)
 	assert.Equal(t, "My New Suite", result.Data.Name)
+	assert.Equal(t, "model", result.Data.Category)
 	assert.Equal(t, []string{"safety"}, result.Data.Domains)
 	assert.Equal(t, []string{"model"}, result.Data.AIEntities)
 	assert.Len(t, result.Data.Benchmarks, 1)

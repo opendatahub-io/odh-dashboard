@@ -133,6 +133,10 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 	}
+	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
+	if len(input.AIEntities) > 0 {
+		input.Category = input.AIEntities[0]
+	}
 
 	collection, err := client.CreateCollection(ctx, namespace, input)
 	if err != nil {
