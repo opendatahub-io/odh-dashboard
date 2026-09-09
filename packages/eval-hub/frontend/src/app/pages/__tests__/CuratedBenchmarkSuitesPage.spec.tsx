@@ -62,9 +62,10 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'curated',
-      undefined,
+      6,
       'curation_order',
       { aiEntities: ['agent'] },
+      0,
     );
   });
 

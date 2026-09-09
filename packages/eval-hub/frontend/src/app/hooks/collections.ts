@@ -13,6 +13,7 @@ import type {
   CollectionSortBy,
   CollectionsListResponse,
   Collection,
+  ListCollectionsParams,
 } from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 
@@ -25,11 +26,13 @@ export const collectionsQueryKey = (
   limit = COLLECTION_FETCH_LIMIT,
   sortBy?: CollectionSortBy,
   filters?: CollectionFilterParams,
+  offset?: number,
 ) =>
   [
     ...collectionsQueryKeyPrefix(namespace),
     scope ?? 'all',
     limit,
+    offset ?? 0,
     sortBy ?? 'default',
     filters?.domains ?? [],
     filters?.industries ?? [],
@@ -48,13 +51,17 @@ export const useCollectionsQuery = (
   limit = COLLECTION_FETCH_LIMIT,
   sortBy: CollectionSortBy | undefined = scope === 'curated' ? 'curation_order' : undefined,
   filters?: CollectionFilterParams,
+  offset?: number,
 ): UseQueryResult<CollectionsListResponse, Error> =>
   useQuery<CollectionsListResponse, Error>({
-    queryKey: collectionsQueryKey(namespace, scope, limit, sortBy, filters),
-    queryFn: ({ signal }) =>
-      getCollections('', { namespace, limit, scope, sortBy, ...filters })({
-        signal,
-      }),
+    queryKey: collectionsQueryKey(namespace, scope, limit, sortBy, filters, offset),
+    queryFn: ({ signal }) => {
+      const params: ListCollectionsParams = { namespace, limit, scope, sortBy, ...filters };
+      if (offset != null) {
+        params.offset = offset;
+      }
+      return getCollections('', params)({ signal });
+    },
     enabled: Boolean(namespace),
   });
 

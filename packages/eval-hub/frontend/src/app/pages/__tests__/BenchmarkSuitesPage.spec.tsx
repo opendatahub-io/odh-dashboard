@@ -69,9 +69,10 @@ describe('BenchmarkSuitesPage', () => {
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'tenant',
+      6,
       undefined,
       undefined,
-      undefined,
+      0,
     );
   });
 

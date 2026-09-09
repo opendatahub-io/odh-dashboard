@@ -70,6 +70,27 @@ describe('useCollectionsQuery', () => {
     });
   });
 
+  it('passes the pagination offset with the collection request', async () => {
+    const getRequest = jest.fn().mockResolvedValue({ items: [] });
+    mockGetCollections.mockReturnValue(getRequest);
+    const { wrapper } = createQueryWrapper();
+
+    const { result } = renderHook(
+      () => useCollectionsQuery('test-ns', 'curated', 6, 'curation_order', undefined, 6),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockGetCollections).toHaveBeenCalledWith('', {
+      namespace: 'test-ns',
+      limit: 6,
+      offset: 6,
+      scope: 'curated',
+      sortBy: 'curation_order',
+    });
+  });
+
   it('passes curated classification filters to the collection API', async () => {
     const getRequest = jest.fn().mockResolvedValue({ items: [] });
     mockGetCollections.mockReturnValue(getRequest);

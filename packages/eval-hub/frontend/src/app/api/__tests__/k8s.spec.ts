@@ -532,17 +532,17 @@ describe('getCollections', () => {
     );
   });
 
-  it('should call restGET with namespace and limit query params', async () => {
+  it('should call restGET with namespace and pagination query params', async () => {
     mockRestGET.mockResolvedValue({ data: { items: [] } });
     mockIsModArchResponse.mockReturnValue(true);
 
     const opts = {};
-    await getCollections('', { namespace: 'my-ns', limit: 200 })(opts);
+    await getCollections('', { namespace: 'my-ns', limit: 6, offset: 6 })(opts);
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/eval-hub/api/v1/evaluations/collections',
-      { namespace: 'my-ns', limit: '200' },
+      { namespace: 'my-ns', limit: '6', offset: '6' },
       opts,
     );
   });

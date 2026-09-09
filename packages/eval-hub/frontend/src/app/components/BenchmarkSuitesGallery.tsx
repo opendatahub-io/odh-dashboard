@@ -167,12 +167,15 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const notification = useNotification();
+  const queryLimit = showPagination ? pageSize : maxVisibleCollections;
+  const queryOffset = showPagination ? (page - 1) * pageSize : undefined;
   const { data, isLoading, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
-    maxVisibleCollections,
+    queryLimit,
     scope === 'curated' ? 'curation_order' : undefined,
     queryFilters,
+    queryOffset,
   );
   const {
     isPending: isDeleting,
@@ -191,9 +194,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     [mockAiEntity, scope],
   );
   const shouldShowLoadError = Boolean(error);
+  // TODO: Remove the mock fallback and its pagination branch once the collections API is the
+  // source of truth for the benchmark suites shown here.
+  const isUsingMockCollections = !isLoading && !hasApiCollections && !shouldShowLoadError;
   const collections = React.useMemo(
-    () => (shouldShowLoadError ? [] : hasApiCollections ? apiCollections : mockCollections),
-    [apiCollections, hasApiCollections, mockCollections, shouldShowLoadError],
+    () =>
+      shouldShowLoadError || isLoading ? [] : hasApiCollections ? apiCollections : mockCollections,
+    [apiCollections, hasApiCollections, isLoading, mockCollections, shouldShowLoadError],
   );
   const sourceCollections = React.useMemo(
     () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
@@ -238,10 +245,20 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     });
   }, [categoryFilter, evaluatesFilter, nameFilter, sourceCollections]);
 
+  // Mock data has already been loaded in full, so it needs local slicing until the mock fallback
+  // is removed. API responses are already limited to the requested page.
   const visibleCollections = showPagination
-    ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
+    ? isUsingMockCollections
+      ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
+      : filteredCollections.slice(0, pageSize)
     : sourceCollections;
-  const filteredCollectionCount = showPagination ? filteredCollections.length : totalCount;
+  // TODO: Remove the mock count branch when mock collections are no longer needed and always use
+  // the API total_count for pagination.
+  const filteredCollectionCount = showPagination
+    ? isUsingMockCollections
+      ? filteredCollections.length
+      : (data?.total_count ?? filteredCollections.length)
+    : totalCount;
   const hasActiveFilters = Boolean(nameFilter || categoryFilter || evaluatesFilter);
 
   React.useEffect(() => {
