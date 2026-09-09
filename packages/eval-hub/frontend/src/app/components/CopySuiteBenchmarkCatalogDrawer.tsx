@@ -74,7 +74,7 @@ type CopySuiteBenchmarkCatalogDrawerProps = {
   onSave: (selectedKeys: string[]) => void;
   onClose: () => void;
   detailsBenchmarkKey?: string;
-  onOpenDetails: (benchmarkKey: string) => void;
+  onOpenDetails: (benchmarkKey: string | undefined) => void;
 };
 
 const getTargetTypes = (provider: Provider): string[] => {
@@ -185,10 +185,31 @@ const CopySuiteBenchmarkCatalogDrawer: React.FC<CopySuiteBenchmarkCatalogDrawerP
     };
   }, []);
 
+  const handleDrawerKeyDown = React.useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      event.stopPropagation();
+      if (detailsBenchmarkKey) {
+        onOpenDetails(undefined);
+      } else {
+        onClose();
+      }
+    },
+    [detailsBenchmarkKey, onClose, onOpenDetails],
+  );
+
   const drawer = (
     <Backdrop data-testid="copy-suite-add-benchmarks-catalog-backdrop">
       <div className="evalhub-copy-suite-benchmark-catalog__host">
-        <Drawer isExpanded isInline={false} data-testid="copy-suite-add-benchmarks-catalog-drawer">
+        <Drawer
+          isExpanded
+          isInline={false}
+          data-testid="copy-suite-add-benchmarks-catalog-drawer"
+          onKeyDown={handleDrawerKeyDown}
+        >
           <DrawerContent
             id="copy-suite-add-benchmarks-catalog-drawer-content"
             onClick={onClose}
@@ -201,9 +222,14 @@ const CopySuiteBenchmarkCatalogDrawer: React.FC<CopySuiteBenchmarkCatalogDrawerP
                 minSize="60%"
                 maxSize="100%"
                 resizeAriaLabel="Resize benchmark catalog drawer"
+                focusTrap={{
+                  enabled: true,
+                  elementToFocusOnExpand: '#copy-suite-add-benchmarks-catalog-drawer-panel',
+                  'aria-labelledby': 'copy-suite-add-benchmarks-catalog-title',
+                }}
               >
                 <DrawerHead>
-                  <Title headingLevel="h2" size="xl">
+                  <Title id="copy-suite-add-benchmarks-catalog-title" headingLevel="h2" size="xl">
                     Add remove benchmarks
                   </Title>
                   <DrawerActions>

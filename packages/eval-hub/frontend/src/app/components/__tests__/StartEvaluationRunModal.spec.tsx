@@ -180,6 +180,15 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('model-picker-toggle')).not.toBeInTheDocument();
   });
 
+  it('should show evaluating when a collection has one unknown AI entity', () => {
+    renderModal(undefined, undefined, {
+      collection: { ...collection, ai_entities: ['unknown'] },
+      defaultSourceMode: 'model',
+    });
+
+    expect(screen.getByTestId('source-mode-toggle')).toHaveTextContent('Model');
+  });
+
   it('should show evaluating when a collection has multiple AI entities', () => {
     renderModal(undefined, undefined, {
       collection: { ...collection, ai_entities: ['model', 'agent'] },

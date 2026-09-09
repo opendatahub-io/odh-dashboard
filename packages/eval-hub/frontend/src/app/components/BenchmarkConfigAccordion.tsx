@@ -17,7 +17,11 @@ import {
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
-import { clampNumSamples, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
+import {
+  clampNumSamples,
+  getBenchmarkKey,
+  type CopySuiteBenchmark,
+} from '~/app/pages/useCopySuiteForm';
 
 import './BenchmarkConfigAccordion.scss';
 
@@ -34,18 +38,19 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
   onRemove,
   canRemove,
 }) => {
-  const [expanded, setExpanded] = React.useState<Set<number>>(
-    () => new Set(benchmarks.map((_, i) => i)),
+  const [expanded, setExpanded] = React.useState<Set<string>>(
+    () => new Set(benchmarks.map(getBenchmarkKey)),
   );
   const [metricOpenIndex, setMetricOpenIndex] = React.useState<number | null>(null);
 
-  const toggleExpand = React.useCallback((index: number) => {
+  const toggleExpand = React.useCallback((benchmark: CopySuiteBenchmark) => {
+    const benchmarkKey = getBenchmarkKey(benchmark);
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(benchmarkKey)) {
+        next.delete(benchmarkKey);
       } else {
-        next.add(index);
+        next.add(benchmarkKey);
       }
       return next;
     });
@@ -62,11 +67,12 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
   return (
     <div className="evalhub-benchmark-config-accordion" data-testid="benchmark-config-accordion">
       {benchmarks.map((benchmark, index) => {
-        const isExpanded = expanded.has(index);
+        const benchmarkKey = getBenchmarkKey(benchmark);
+        const isExpanded = expanded.has(benchmarkKey);
         const itemId = `benchmark-${index}`;
 
         return (
-          <div key={`${benchmark.id}-${index}`} data-testid={`benchmark-item-${index}`}>
+          <div key={benchmarkKey} data-testid={`benchmark-item-${index}`}>
             <Flex
               alignItems={{ default: 'alignItemsFlexStart' }}
               className="evalhub-benchmark-config-accordion__row"
@@ -86,7 +92,7 @@ const BenchmarkConfigAccordion: React.FC<BenchmarkConfigAccordionProps> = ({
                       }
                       data-testid={`benchmark-expand-toggle-${index}`}
                       className="evalhub-benchmark-config-accordion__expand-toggle"
-                      onClick={() => toggleExpand(index)}
+                      onClick={() => toggleExpand(benchmark)}
                     >
                       {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
                     </Button>

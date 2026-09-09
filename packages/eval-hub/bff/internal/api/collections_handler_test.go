@@ -265,6 +265,27 @@ func TestCloneCollectionHandler(t *testing.T) {
 	assert.Equal(t, []string{"agent"}, result.Data.AIEntities)
 }
 
+func TestCloneCollectionHandlerEncodedSlashID(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollection("col/special", &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "col/special"},
+		Name:     "Slash Collection",
+	})
+
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodPost,
+		ApiPathPrefix+"/evaluations/collections/col%2Fspecial/clones?namespace=test-ns",
+		evalhub.CloneCollectionRequest{Name: "Cloned Slash Collection"},
+		nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+	assert.Equal(t, "col/special-clone", result.Data.Resource.ID)
+	assert.Equal(t, "Cloned Slash Collection", result.Data.Name)
+}
+
 func TestCloneCollectionHandlerEmptyBody(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
@@ -344,7 +365,7 @@ func TestCloneCollectionHandlerNullBody(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
 }
 
-func TestCloneCollectionHandlerInvalidBenchmarkID(t *testing.T) {
+func TestCloneCollectionHandlerInvalidBenchmark(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 
 	for _, tc := range []struct {
@@ -354,6 +375,7 @@ func TestCloneCollectionHandlerInvalidBenchmarkID(t *testing.T) {
 		{name: "empty", benchmarks: []evalhub.CollectionBenchmark{{ID: ""}}},
 		{name: "whitespace-only", benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}},
 		{name: "invalid ID after valid ID", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}, {ID: " "}}},
+		{name: "negative weight", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			body := evalhub.CloneCollectionRequest{

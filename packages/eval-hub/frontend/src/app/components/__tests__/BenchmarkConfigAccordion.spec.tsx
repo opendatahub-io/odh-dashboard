@@ -70,6 +70,26 @@ describe('BenchmarkConfigAccordion', () => {
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeInTheDocument();
   });
 
+  it('should keep expansion state attached to a benchmark when an earlier benchmark is removed', () => {
+    const { rerender } = renderAccordion();
+    const firstToggle = screen.getByTestId('benchmark-expand-toggle-0');
+
+    fireEvent.click(firstToggle);
+    rerender(
+      <BenchmarkConfigAccordion
+        benchmarks={[benchmarks[1]]}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        canRemove
+      />,
+    );
+
+    expect(screen.getByTestId('benchmark-expand-toggle-0')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
   it('should update the selected metric', () => {
     const onUpdate = jest.fn();
     renderAccordion({ onUpdate });

@@ -306,7 +306,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
           onSave={onApplyBenchmarkSelection}
           onClose={closeCatalog}
           detailsBenchmarkKey={detailsBenchmarkKey}
-          onOpenDetails={setDetailsBenchmarkKey}
+          onOpenDetails={(benchmarkKey) => setDetailsBenchmarkKey(benchmarkKey)}
         />
       ) : null}
 

@@ -120,6 +120,20 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
 		return
 	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+	}
+	if input.Collection != nil {
+		for _, benchmark := range input.Collection.Benchmarks {
+			if strings.TrimSpace(benchmark.ID) == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+				return
+			}
+		}
+	}
 	if len(input.Benchmarks) == 0 && input.Collection == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark or a collection is required"))
 		return

@@ -222,4 +222,41 @@ describe('CopySuiteBenchmarkCatalogDrawer', () => {
       'evalhub-copy-suite-benchmark-catalog__row--active',
     );
   });
+
+  it('should label the drawer and focus the panel when it opens', () => {
+    renderDrawer();
+
+    expect(screen.getByRole('dialog', { name: 'Add remove benchmarks' })).toHaveAttribute(
+      'aria-labelledby',
+      'copy-suite-add-benchmarks-catalog-title',
+    );
+  });
+
+  it('should close the details overlay before closing the catalog on Escape', () => {
+    const onClose = jest.fn();
+    const onOpenDetails = jest.fn();
+    renderDrawer({
+      detailsBenchmarkKey: 'provider-one:planning',
+      onClose,
+      onOpenDetails,
+    });
+
+    fireEvent.keyDown(screen.getByTestId('copy-suite-add-benchmarks-catalog-drawer'), {
+      key: 'Escape',
+    });
+
+    expect(onOpenDetails).toHaveBeenCalledWith(undefined);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('should close the catalog on Escape when the details overlay is closed', () => {
+    const onClose = jest.fn();
+    renderDrawer({ onClose });
+
+    fireEvent.keyDown(screen.getByTestId('copy-suite-add-benchmarks-catalog-drawer'), {
+      key: 'Escape',
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

@@ -156,6 +156,44 @@ func TestCreateEvaluationJobHandlerRequiresBenchmarksOrCollection(t *testing.T) 
 				Collection: &evalhub.JobCollectionID{},
 			},
 		},
+		{
+			name: "benchmark with empty ID",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:       baseRequest.Name,
+				Model:      baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{ID: ""}},
+			},
+		},
+		{
+			name: "benchmark with whitespace-only ID",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:       baseRequest.Name,
+				Model:      baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{ID: " \t"}},
+			},
+		},
+		{
+			name: "collection benchmark with empty ID",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Collection: &evalhub.JobCollectionID{
+					ID:         "collection-001",
+					Benchmarks: []evalhub.JobBenchmark{{ID: ""}},
+				},
+			},
+		},
+		{
+			name: "collection benchmark with whitespace-only ID",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Collection: &evalhub.JobCollectionID{
+					ID:         "collection-001",
+					Benchmarks: []evalhub.JobBenchmark{{ID: " \t"}},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](

@@ -303,6 +303,20 @@ describe('CopySuitePage', () => {
     expect(screen.getByText('Return to benchmark suites')).toBeInTheDocument();
   });
 
+  it('should show an error state when providers cannot be loaded', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    mockUseProviders.mockReturnValue({
+      providers: [],
+      loaded: false,
+      loadError: new Error('Providers unavailable'),
+    });
+
+    renderPage();
+
+    expect(screen.getByTestId('copy-suite-load-error')).toHaveTextContent('Providers unavailable');
+    expect(screen.queryByLabelText('Loading benchmark suite')).not.toBeInTheDocument();
+  });
+
   it('should fetch the collection using the route namespace and id', async () => {
     const fetcher = jest.fn().mockResolvedValue(sourceCollection);
     mockGetCollection.mockReturnValue(fetcher);

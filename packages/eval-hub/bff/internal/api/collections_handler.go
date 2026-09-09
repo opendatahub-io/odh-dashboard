@@ -168,7 +168,12 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	id := ps.ByName("id")
+	id := strings.TrimSuffix(ps.ByName("id"), "/")
+	if !strings.HasSuffix(id, "/clones") {
+		app.notFoundResponse(w, r)
+		return
+	}
+	id = strings.TrimPrefix(strings.TrimSuffix(id, "/clones"), "/")
 	if id == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
 		return
@@ -194,6 +199,10 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	for _, benchmark := range input.Benchmarks {
 		if strings.TrimSpace(benchmark.ID) == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+		if benchmark.Weight < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
 			return
 		}
 	}

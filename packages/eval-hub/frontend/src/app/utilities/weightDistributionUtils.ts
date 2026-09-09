@@ -31,9 +31,12 @@ export const weightsToPercentages = (weights: number[]): number[] => {
   const floors = exact.map((value) => Math.floor(value));
   const remainder = 100 - floors.reduce((sum, value) => sum + value, 0);
 
-  const ranked = exact
-    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
-    .toSorted((a, b) => b.fraction - a.fraction);
+  const rankedEntries = exact.map((value, index) => ({
+    index,
+    fraction: value - Math.floor(value),
+  }));
+  // eslint-disable-next-line no-restricted-properties
+  const ranked = [...rankedEntries].sort((a, b) => b.fraction - a.fraction);
 
   const percentages = [...floors];
   for (let i = 0; i < remainder; i += 1) {
@@ -82,9 +85,12 @@ const distributeIntegerPercentages = (weights: number[], total: number): number[
       : weights.map(() => total / weights.length);
   const integers = exact.map(Math.floor);
   const remainder = total - integers.reduce((sum, value) => sum + value, 0);
-  const ranked = exact
-    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
-    .toSorted((a, b) => b.fraction - a.fraction || a.index - b.index);
+  const rankedEntries = exact.map((value, index) => ({
+    index,
+    fraction: value - Math.floor(value),
+  }));
+  // eslint-disable-next-line no-restricted-properties
+  const ranked = [...rankedEntries].sort((a, b) => b.fraction - a.fraction || a.index - b.index);
 
   for (let index = 0; index < remainder; index += 1) {
     integers[ranked[index].index] += 1;

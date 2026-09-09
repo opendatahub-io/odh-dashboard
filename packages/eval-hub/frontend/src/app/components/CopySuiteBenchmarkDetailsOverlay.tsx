@@ -22,7 +22,17 @@ const CopySuiteBenchmarkDetailsOverlay: React.FC<CopySuiteBenchmarkDetailsOverla
   const overlay = (
     <Backdrop data-testid="copy-suite-benchmark-details-backdrop">
       <div className="evalhub-copy-suite-benchmark-details-overlay__host">
-        <Drawer isExpanded isInline={false} data-testid="copy-suite-benchmark-details-drawer">
+        <Drawer
+          isExpanded
+          isInline={false}
+          data-testid="copy-suite-benchmark-details-drawer"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.stopPropagation();
+              onClose();
+            }
+          }}
+        >
           <DrawerContent
             id="copy-suite-benchmark-details-drawer"
             onClick={onClose}

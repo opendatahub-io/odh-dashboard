@@ -40,7 +40,7 @@ const (
 	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
 	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
-	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/:id/clones"
+	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/*id"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"

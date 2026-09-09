@@ -95,7 +95,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     workspace: namespace ?? '',
   });
 
-  const hasSingleAiEntity = collection?.ai_entities?.length === 1;
   const aiEntitySourceMode = React.useMemo(() => {
     const aiEntities = collection?.ai_entities;
     if (aiEntities?.length !== 1) {
@@ -103,10 +102,9 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     }
 
     const aiEntity = aiEntities[0];
-    return isSuiteEvaluatesOption(aiEntity)
-      ? suiteEvaluatesToSourceMode(aiEntity)
-      : defaultSourceMode;
-  }, [collection, defaultSourceMode]);
+    return isSuiteEvaluatesOption(aiEntity) ? suiteEvaluatesToSourceMode(aiEntity) : undefined;
+  }, [collection]);
+  const hasSingleAiEntity = aiEntitySourceMode !== undefined;
 
   const {
     inferenceServices,

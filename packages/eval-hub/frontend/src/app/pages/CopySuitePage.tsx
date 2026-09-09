@@ -69,7 +69,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
 
-  const { providers, loaded: providersLoaded } = useProviders(namespace ?? '');
+  const {
+    providers,
+    loaded: providersLoaded,
+    loadError: providersLoadError,
+  } = useProviders(namespace ?? '');
 
   const form = useCopySuiteForm({
     namespace,
@@ -112,15 +116,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     [isPageInteractionDisabled],
   );
 
-  if ((!isCreateMode && !loaded) || !providersLoaded) {
-    return (
-      <Bullseye>
-        <Spinner aria-label="Loading benchmark suite" />
-      </Bullseye>
-    );
-  }
-
-  if (!isCreateMode && (loadError || !sourceCollection)) {
+  if (
+    loadError ||
+    providersLoadError ||
+    (!isCreateMode && loaded && providersLoaded && !sourceCollection)
+  ) {
     return (
       <Bullseye>
         <EmptyState
@@ -131,7 +131,9 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
           data-testid="copy-suite-load-error"
         >
           <EmptyStateBody>
-            {loadError?.message ?? 'The requested collection could not be found.'}
+            {loadError?.message ??
+              providersLoadError?.message ??
+              'The requested collection could not be found.'}
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
@@ -146,6 +148,14 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             </EmptyStateActions>
           </EmptyStateFooter>
         </EmptyState>
+      </Bullseye>
+    );
+  }
+
+  if ((!isCreateMode && !loaded) || !providersLoaded) {
+    return (
+      <Bullseye>
+        <Spinner aria-label="Loading benchmark suite" />
       </Bullseye>
     );
   }
