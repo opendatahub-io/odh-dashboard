@@ -11,17 +11,23 @@ const renderSection = () =>
   );
 
 describe('CuratedSuiteCategories', () => {
-  it('should render all curated suite category cards', () => {
+  it('should render supported curated suite category cards', () => {
     renderSection();
 
     expect(screen.getByTestId('curated-suite-categories')).toBeInTheDocument();
-    expect(screen.getByText('Red Hat curated suites to save as your own')).toBeInTheDocument();
+    expect(screen.getByTestId('curated-suite-categories-logo')).toBeInTheDocument();
+    expect(screen.getByText('Browse Red Hat curated suites')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pick a category and customize a suite for your own collection.'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('curated-suite-category-card-agents')).toBeInTheDocument();
     expect(screen.getByTestId('curated-suite-category-card-models')).toBeInTheDocument();
-    expect(screen.getByTestId('curated-suite-category-card-traces')).toBeInTheDocument();
-    expect(screen.getByTestId('curated-suite-category-card-guardrails')).toBeInTheDocument();
-    expect(screen.getByTestId('curated-suite-category-card-agent-tools')).toBeInTheDocument();
-    expect(screen.getByTestId('curated-suite-category-card-agent-skills')).toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-category-card-traces')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-category-card-guardrails')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('curated-suite-category-card-agent-tools')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('curated-suite-category-card-agent-skills'),
+    ).not.toBeInTheDocument();
   });
 
   it('should link category cards to curated collection filters', () => {
@@ -31,9 +37,9 @@ describe('CuratedSuiteCategories', () => {
       'href',
       '/evaluation/test-project/create/collections?scope=curated&ai_entities=model',
     );
-    expect(screen.getByTestId('curated-suite-category-card-agent-tools')).toHaveAttribute(
+    expect(screen.getByTestId('curated-suite-category-card-agents')).toHaveAttribute(
       'href',
-      '/evaluation/test-project/create/collections?scope=curated&domains=agent_tools',
+      '/evaluation/test-project/create/collections?scope=curated&ai_entities=agent',
     );
   });
 });

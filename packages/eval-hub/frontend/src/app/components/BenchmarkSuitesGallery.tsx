@@ -142,8 +142,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       )}
       {showSummary && !isLoading && !error && totalCount > 0 && (
         <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          {visibleCollections.length} of {totalCount} benchmark suites{' '}
-          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to Benchmark suites</Link>
+          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>
+            <span>Go to All my benchmark suites</span>
+          </Link>
         </StackItem>
       )}
       {collectionToDelete && (

@@ -166,7 +166,7 @@ describe('EvaluationsPage', () => {
   it('should link to the tenant benchmark suites page', () => {
     renderPage('test-project');
 
-    expect(screen.getByRole('link', { name: 'Go to Benchmark suites' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Go to All my benchmark suites' })).toHaveAttribute(
       'href',
       '/evaluation/test-project/collections',
     );

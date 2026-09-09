@@ -113,7 +113,9 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('agent-safety-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('code-quality-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('trace-evaluation-suite').should('exist');
-    evaluationsPage.findBenchmarkSuitesSummary().should('contain.text', '5 of 6 benchmark suites');
+    evaluationsPage
+      .findBenchmarkSuitesSummary()
+      .should('contain.text', 'Go to All my benchmark suites');
   });
 
   it('should open the suite details drawer when selecting a suite name', () => {
