@@ -95,9 +95,9 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
                 {!isValidated && !isRedHat && accessLabelVariant ? (
                   <ModelCatalogAccessLabel variant={accessLabelVariant} />
                 ) : (
-                  !isValidated && !isRedHat && source && (
-                    <Label data-testid="model-catalog-source-label">{source.name}</Label>
-                  )
+                  !isValidated &&
+                  !isRedHat &&
+                  source && <Label data-testid="model-catalog-source-label">{source.name}</Label>
                 )}
               </Flex>
             </FlexItem>
