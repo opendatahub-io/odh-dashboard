@@ -18,7 +18,7 @@ module.exports = (overrides = {}) =>
     {
       plugins: [
         new OdhFederationPlugin({
-          name: 'rhaiiHost',
+          name: 'host',
           isHost: true,
           remotes: process.env.MODEL_SERVING_REMOTE_ENTRY
             ? {
