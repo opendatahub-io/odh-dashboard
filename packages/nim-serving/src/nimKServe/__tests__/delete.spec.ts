@@ -39,6 +39,22 @@ describe('deleteLegacyNIMDeployment', () => {
     expect(deletePVCResource).toHaveBeenCalledWith('nim-cache', 'project');
   });
 
+  it.each([undefined, {}, { status: { phase: 'Pending' } }])(
+    'should treat a non-status PVC deletion response as success',
+    async (status) => {
+      const deletePVCResource = jest.fn().mockResolvedValue(status);
+
+      await expect(
+        deleteLegacyNIMDeployment({
+          deletePrimaryDeployment: jest.fn().mockResolvedValue(undefined),
+          pvcToDelete: pvc,
+          deletePVC: true,
+          deletePVCResource,
+        }),
+      ).resolves.toBeUndefined();
+    },
+  );
+
   it('should not delete the PVC when the primary deployment fails', async () => {
     const deletePrimaryDeployment = jest.fn().mockRejectedValue(new Error('primary failed'));
     const deletePVCResource = jest.fn();

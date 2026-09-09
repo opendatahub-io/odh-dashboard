@@ -213,7 +213,23 @@ class ServingModal extends Modal {
 
 class DeleteModelServingModal extends DeleteModal {
   constructor() {
-    super('Delete tier?');
+    super('Delete model deployment?');
+  }
+
+  findPVCCheckbox() {
+    return this.find().findByTestId('nim-delete-pvc-checkbox');
+  }
+
+  findPVCDependentsLoadingAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-loading');
+  }
+
+  findPVCDependentsAlert() {
+    return this.find().findByTestId('nim-delete-pvc-dependents-alert');
+  }
+
+  findPVCDependentItems() {
+    return this.find().findAllByTestId('nim-delete-pvc-dependent-item');
   }
 }
 
