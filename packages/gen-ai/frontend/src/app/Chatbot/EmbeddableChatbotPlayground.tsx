@@ -4,26 +4,15 @@ import * as React from 'react';
 // which is where the chatbot stylesheet is normally imported.
 import '@patternfly/chatbot/dist/css/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  ModularArchConfig,
-  DeploymentMode,
-  ModularArchContextProvider,
-  NotificationContextProvider,
-} from 'mod-arch-core';
+import { NotificationContextProvider } from 'mod-arch-core';
 import type { EmbeddableChatbotPlaygroundProps } from '~/types/embeddable-chatbot';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { API_URL_PREFIX } from '~/app/utilities/const';
 import ChatbotPlayground from './ChatbotPlayground';
 import { EmbeddedMessagesContext } from './context/EmbeddedMessagesContext';
 import { createChatbotConfigStore, ChatbotConfigStoreContext, DEFAULT_CONFIG_ID } from './store';
 
-const modularArchConfig: ModularArchConfig = {
-  deploymentMode: DeploymentMode.Federated,
-  URL_PREFIX: API_URL_PREFIX,
-  BFF_API_VERSION: 'v1',
-};
 
 /**
  * Embeddable wrapper for the ChatbotPlayground component.
@@ -41,6 +30,8 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   patternName: _patternName,
   bffBasePath,
+  responsesEndpointUrl,
+  additionalMetadata,
   welcomeContent,
   placeholderBotContent,
 }) => {
@@ -131,8 +122,17 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
       namespace,
       secretName,
       responsesTemplate,
+      responsesEndpointUrl,
+      additionalMetadata,
     }),
-    [bffBasePath, namespace, secretName, responsesTemplate],
+    [
+      bffBasePath,
+      namespace,
+      secretName,
+      responsesTemplate,
+      responsesEndpointUrl,
+      additionalMetadata,
+    ],
   );
 
   // Dummy state for props ChatbotPlayground requires
@@ -141,29 +141,27 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <NotificationContextProvider>
-          <UserContextProvider>
-            <GenAiContext.Provider value={stubGenAiContextValue}>
-              <ChatbotContext.Provider value={stubChatbotContextValue}>
-                <ChatbotConfigStoreContext.Provider value={scopedStore}>
-                  <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
-                    <ChatbotPlayground
-                      isViewCodeModalOpen={isViewCodeModalOpen}
-                      setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-                      isNewChatModalOpen={isNewChatModalOpen}
-                      setIsNewChatModalOpen={setIsNewChatModalOpen}
-                      activePaneConfigId={DEFAULT_CONFIG_ID}
-                      welcomeContent={welcomeContent}
-                      placeholderBotContent={placeholderBotContent}
-                    />
-                  </EmbeddedMessagesContext.Provider>
-                </ChatbotConfigStoreContext.Provider>
-              </ChatbotContext.Provider>
-            </GenAiContext.Provider>
-          </UserContextProvider>
-        </NotificationContextProvider>
-      </ModularArchContextProvider>
+      <NotificationContextProvider>
+        <UserContextProvider>
+          <GenAiContext.Provider value={stubGenAiContextValue}>
+            <ChatbotContext.Provider value={stubChatbotContextValue}>
+              <ChatbotConfigStoreContext.Provider value={scopedStore}>
+                <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
+                  <ChatbotPlayground
+                    isViewCodeModalOpen={isViewCodeModalOpen}
+                    setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+                    isNewChatModalOpen={isNewChatModalOpen}
+                    setIsNewChatModalOpen={setIsNewChatModalOpen}
+                    activePaneConfigId={DEFAULT_CONFIG_ID}
+                    welcomeContent={welcomeContent}
+                    placeholderBotContent={placeholderBotContent}
+                  />
+                </EmbeddedMessagesContext.Provider>
+              </ChatbotConfigStoreContext.Provider>
+            </ChatbotContext.Provider>
+          </GenAiContext.Provider>
+        </UserContextProvider>
+      </NotificationContextProvider>
     </QueryClientProvider>
   );
 };
