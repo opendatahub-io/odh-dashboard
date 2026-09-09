@@ -22,8 +22,14 @@ const start = async () => {
   if (remoteEntry) {
     try {
       const remote = await loadRemote<{ default: Extension[] }>('modelServing/extensions');
-      extensions.modelServing = remote?.default ?? [];
-      resolvedFeatureFlags['model-serving-shell'] = true;
+      if (remote?.default) {
+        extensions.modelServing = remote.default;
+        resolvedFeatureFlags['model-serving-shell'] = true;
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('Model-serving remote loaded without extension declarations.');
+        resolvedFeatureFlags['model-serving-shell'] = false;
+      }
     } catch (error: unknown) {
       // eslint-disable-next-line no-console
       console.warn(
