@@ -76,6 +76,33 @@ describe('LoadAgentProfileModal', () => {
     expect(screen.getByText('Coding assistant').tagName).not.toBe('STRONG');
   });
 
+  it('should explain why the loaded agent button is disabled', async () => {
+    useChatbotConfigStore.setState({ loadedProfileId: 'uuid-1' });
+    jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
+      profiles: [
+        {
+          profileId: 'uuid-1',
+          name: 'agent-profile-uuid-1',
+          displayName: 'Coding assistant',
+          description: 'Code review',
+          namespace: 'test-ns',
+          lastModified: '2026-06-15T10:00:00Z',
+        },
+      ],
+      totalCount: 1,
+    } as never);
+
+    const user = userEvent.setup();
+    renderModal();
+
+    const button = await screen.findByTestId('load-agent-profile-button-uuid-1');
+    await user.hover(button);
+
+    await waitFor(() => {
+      expect(screen.getByText('This agent is already loaded.')).toBeInTheDocument();
+    });
+  });
+
   it('should show a spinner while loading', () => {
     jest
       .mocked(mockGenAiContextValue.apiState.api.listAgentProfiles)

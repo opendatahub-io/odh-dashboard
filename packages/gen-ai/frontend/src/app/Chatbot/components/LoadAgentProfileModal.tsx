@@ -15,6 +15,7 @@ import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -126,6 +127,20 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
           <Tbody>
             {paginatedProfiles.map((profile) => {
               const isLoaded = profile.profileId === loadedProfileId;
+              const loadButton = (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  isDisabled={isLoaded}
+                  onClick={() => {
+                    onSelect(profile.profileId);
+                    onClose();
+                  }}
+                  data-testid={`load-agent-profile-button-${profile.profileId}`}
+                >
+                  Load agent
+                </Button>
+              );
               return (
                 <Tr
                   key={profile.profileId}
@@ -140,18 +155,13 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   </Td>
                   <Td dataLabel="Last modified">{formatDate(profile.lastModified)}</Td>
                   <Td dataLabel="Actions" modifier="fitContent">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      isDisabled={isLoaded}
-                      onClick={() => {
-                        onSelect(profile.profileId);
-                        onClose();
-                      }}
-                      data-testid={`load-agent-profile-button-${profile.profileId}`}
-                    >
-                      Load agent
-                    </Button>
+                    {isLoaded ? (
+                      <Tooltip content="This agent is already loaded.">
+                        <span>{loadButton}</span>
+                      </Tooltip>
+                    ) : (
+                      loadButton
+                    )}
                   </Td>
                 </Tr>
               );
