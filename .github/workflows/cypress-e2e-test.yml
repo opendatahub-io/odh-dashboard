@@ -1215,6 +1215,19 @@ jobs:
           # Export for e2e proxy
           echo "ODH_DASHBOARD_URL=$DASHBOARD_URL" >> $GITHUB_ENV
 
+          # The Gen AI BFF uses this hostname to construct the externally
+          # reachable genai-proxy URL for the cluster under test. Derive it
+          # from the selected dashboard URL instead of a separate secret.
+          GATEWAY_DOMAIN="${DASHBOARD_URL#http://}"
+          GATEWAY_DOMAIN="${GATEWAY_DOMAIN#https://}"
+          GATEWAY_DOMAIN="${GATEWAY_DOMAIN%%/*}"
+          if [ -z "$GATEWAY_DOMAIN" ]; then
+            echo "Unable to derive GATEWAY_DOMAIN from ODH_DASHBOARD_URL"
+            exit 1
+          fi
+          echo "::add-mask::$GATEWAY_DOMAIN"
+          echo "GATEWAY_DOMAIN=$GATEWAY_DOMAIN" >> $GITHUB_ENV
+
           if [ -n "$ODH_NAMESPACES" ]; then
             echo "::add-mask::$ODH_NAMESPACES"
             echo "📝 Overriding namespaces with ODH values..."
