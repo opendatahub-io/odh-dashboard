@@ -14,6 +14,7 @@ type DeleteModalProps = {
   testId?: string;
   typeConfirmationLabel?: string;
   removeConfirmation?: boolean;
+  additionalContent?: React.ReactNode;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -28,6 +29,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   testId,
   typeConfirmationLabel = 'deletion',
   removeConfirmation = false,
+  additionalContent,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -81,6 +83,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           </Flex>
         </StackItem>
       )}
+
+      {additionalContent ? <StackItem>{additionalContent}</StackItem> : null}
 
       {error && (
         <StackItem>
