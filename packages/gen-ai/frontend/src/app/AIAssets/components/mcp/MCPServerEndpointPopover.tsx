@@ -18,17 +18,17 @@ const MCPServerEndpointPopover: React.FC<MCPServerEndpointPopoverProps> = ({
     headerContent="Service endpoint"
     headerComponent="h2"
     bodyContent={
-      <>
-        <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+      <div className="pf-v6-u-mt-md">
+        <ClipboardCopy isReadOnly hoverTip="Copy endpoint" clickTip="Copied">
           {connectionUrl}
         </ClipboardCopy>
         {source === 'registry' && (
-          <Content component={ContentVariants.small} className="pf-v6-u-mt-sm">
+          <Content component={ContentVariants.small} className="pf-v6-u-mt-md">
             For authentication information refer to the{' '}
             <a href={MCP_CATALOG_PATH}>catalog listing</a> for this server.
           </Content>
         )}
-      </>
+      </div>
     }
     position="top-start"
   >
