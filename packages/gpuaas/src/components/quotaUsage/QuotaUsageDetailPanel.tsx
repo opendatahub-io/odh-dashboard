@@ -12,6 +12,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { InfrastructureIcon, ListIcon, ResourcesEmptyIcon } from '@patternfly/react-icons';
+import QuotaUsageWorkloadsCollapsible from './QuotaUsageWorkloadsCollapsible';
 import { QUOTA_UNASSIGNED_LABEL, QUOTA_UNASSIGNED_TOOLTIP } from '../../const';
 import { QuotaSelection, QuotaTreeNode } from '../../types';
 import { selectionFromPath } from '../../utils/quotaUsageTreeUtils';
@@ -80,6 +81,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   }
 
   const showBreadcrumb = selection.path.length > 1 && selection.path[0] !== QUOTA_UNASSIGNED_LABEL;
+  const showWorkloadsSection = selection.type === 'clusterQueue';
 
   return (
     <>
@@ -132,7 +134,11 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
           </Content>
         </Stack>
       </DrawerHead>
-      <DrawerPanelBody className={scrollableBodyClassName} />
+      <DrawerPanelBody className={`${scrollableBodyClassName} pf-v6-u-pt-lg`}>
+        {showWorkloadsSection && (
+          <QuotaUsageWorkloadsCollapsible clusterQueueName={selection.clusterQueueName} />
+        )}
+      </DrawerPanelBody>
     </>
   );
 };

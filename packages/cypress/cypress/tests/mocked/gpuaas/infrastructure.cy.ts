@@ -5,9 +5,20 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
 import { mockResourceFlavorK8sResource } from '@odh-dashboard/internal/__mocks__/mockResourceFlavorK8sResource';
+import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
+import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
-import { CohortModel, ResourceFlavorModel } from '../../../utils/models';
+import {
+  ClusterQueueModel,
+  LocalQueueModel,
+  WorkloadModel,
+} from '@odh-dashboard/k8s-core/api/models';
+import { CohortModel, PodModel, ProjectModel, ResourceFlavorModel } from '../../../utils/models';
+import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
@@ -503,6 +514,207 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findQuotaUsageNavSearch().type('prod-serving');
       infrastructurePage.findQuotaUsageTreeNode('prod-serving').should('exist');
       infrastructurePage.findQuotaUsageTreeNode('legacy-batch').should('not.exist');
+    });
+  });
+
+  describe('Cluster queue workloads section', () => {
+    const PROJECT_D = 'project-d';
+    const CLUSTER_QUEUE = 'burst-training';
+    const LOCAL_QUEUE = 'large-model-jobs';
+    const COHORT = 'ml-training';
+
+    const gpuPodSet: WorkloadPodSet = {
+      count: 1,
+      name: 'main',
+      template: {
+        metadata: {},
+        spec: {
+          containers: [
+            {
+              name: 'main',
+              image: 'test-image',
+              env: [],
+              resources: { requests: { 'nvidia.com/gpu': '2' } },
+            },
+          ],
+        },
+      },
+    };
+
+    const makeGpuWorkload = (name: string, mockStatus: WorkloadStatusType): WorkloadKind => ({
+      ...mockWorkloadK8sResource({
+        k8sName: name,
+        namespace: PROJECT_D,
+        ownerName: `${name}-owner`,
+        ownerKind: WorkloadOwnerType.Job,
+        mockStatus,
+        podSets: [gpuPodSet],
+      }),
+      spec: {
+        ...mockWorkloadK8sResource({
+          k8sName: name,
+          namespace: PROJECT_D,
+          mockStatus,
+          podSets: [gpuPodSet],
+        }).spec,
+        queueName: LOCAL_QUEUE,
+      },
+    });
+
+    const pendingWorkload = makeGpuWorkload('llm-pretrain-run', WorkloadStatusType.Pending);
+    const inadmissibleWorkload = makeGpuWorkload(
+      'multimodal-trial',
+      WorkloadStatusType.Inadmissible,
+    );
+
+    const initWorkloadIntercepts = ({
+      workloads = [pendingWorkload, inadmissibleWorkload],
+      workloadListError = false,
+    }: {
+      workloads?: WorkloadKind[];
+      workloadListError?: boolean;
+    } = {}) => {
+      initIntercepts({
+        clusterQueues: [
+          {
+            name: CLUSTER_QUEUE,
+            cohortName: COHORT,
+            gpuFlavorName: 'a100-flavor',
+            gpuNominalQuota: 8,
+          },
+        ],
+        cohortNames: ['research', { name: COHORT, parentName: 'research' }],
+        resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
+      });
+
+      cy.interceptK8sList(
+        ProjectModel,
+        mockK8sResourceList([
+          mockProjectK8sResource({
+            k8sName: PROJECT_D,
+            displayName: 'Project-D',
+            enableKueue: true,
+          }),
+        ]),
+      );
+
+      cy.interceptK8sList({ model: PodModel, ns: PROJECT_D }, mockK8sResourceList([]));
+
+      const projectDLocalQueue = {
+        ...mockLocalQueueK8sResource({
+          name: LOCAL_QUEUE,
+          namespace: PROJECT_D,
+        }),
+        spec: { clusterQueue: CLUSTER_QUEUE },
+      };
+
+      // Cluster-wide LocalQueue index (listAllLocalQueues). interceptK8sList infers ns from mock
+      // items and would register a namespaced path; listAllLocalQueues is cluster-scoped.
+      cy.intercept(
+        'GET',
+        getK8sAPIResourceURL(LocalQueueModel),
+        mockK8sResourceList([projectDLocalQueue]),
+      );
+
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: PROJECT_D },
+        mockK8sResourceList([projectDLocalQueue]),
+      );
+
+      if (workloadListError) {
+        cy.interceptK8sList({ model: WorkloadModel, ns: PROJECT_D }, { statusCode: 500 });
+      } else {
+        cy.interceptK8sList(
+          { model: WorkloadModel, ns: PROJECT_D },
+          mockK8sResourceList(workloads),
+        );
+      }
+
+      cy.intercept(
+        'GET',
+        `/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/${PROJECT_D}/localqueues/${LOCAL_QUEUE}/pendingworkloads`,
+        {
+          kind: 'PendingWorkloadsSummary',
+          apiVersion: 'visibility.kueue.x-k8s.io/v1beta2',
+          metadata: {},
+          items: [
+            {
+              metadata: { name: 'llm-pretrain-run', namespace: PROJECT_D },
+              priority: 0,
+              localQueueName: LOCAL_QUEUE,
+              positionInClusterQueue: 0,
+              positionInLocalQueue: 0,
+            },
+          ],
+        },
+      );
+    };
+
+    beforeEach(() => {
+      asClusterAdminUser();
+    });
+
+    it('should not show workloads section when a cohort is selected', () => {
+      initWorkloadIntercepts();
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(COHORT).click();
+      infrastructurePage.findQuotaUsageDetailTitle().should('contain.text', COHORT);
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('not.exist');
+    });
+
+    it('should show workloads table when a cluster queue is selected', () => {
+      initWorkloadIntercepts();
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findQuotaUsageWorkloadsSection().should('exist');
+      infrastructurePage.findClusterQueueWorkloadsTable().should('exist');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run')
+        .should('contain.text', 'Project-D')
+        .and('contain.text', 'Queued')
+        .and('contain.text', '1st');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('contain.text', 'Inadmissible')
+        .and('contain.text', '--');
+    });
+
+    it('should show empty state when the cluster queue has no workloads', () => {
+      initWorkloadIntercepts({ workloads: [] });
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsEmptyState().should('exist');
+      infrastructurePage.findClusterQueueWorkloadsTable().should('not.exist');
+    });
+
+    it('should filter workloads by name and status', () => {
+      initWorkloadIntercepts();
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsNameFilter().type('llm-pretrain');
+      infrastructurePage.findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run').should('exist');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('not.exist');
+      infrastructurePage.findClusterQueueWorkloadsNameFilter().clear();
+      infrastructurePage.findClusterQueueWorkloadsStatusFilter().click();
+      cy.findByRole('option', { name: 'Queued' }).click();
+      infrastructurePage.findClusterQueueWorkloadRow(PROJECT_D, 'llm-pretrain-run').should('exist');
+      infrastructurePage
+        .findClusterQueueWorkloadRow(PROJECT_D, 'multimodal-trial')
+        .should('not.exist');
+    });
+
+    it('should show an error when namespace workload data fails to load', () => {
+      initWorkloadIntercepts({ workloadListError: true });
+      infrastructurePage.visit();
+      infrastructurePage.switchToQuotaUsageTab();
+      infrastructurePage.findQuotaUsageTreeNode(CLUSTER_QUEUE).click();
+      infrastructurePage.findClusterQueueWorkloadsError().should('exist');
     });
   });
 });
