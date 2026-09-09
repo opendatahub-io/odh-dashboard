@@ -35,8 +35,12 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   project,
   onRefresh,
 }) => {
-  const [assets, , , assetsRefresh, collectionNames] = useAssets(project);
-  const [collections, , , collectionsRefresh] = useCollections(project, assets, collectionNames);
+  const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project);
+  const [collections, , collectionsError, collectionsRefresh] = useCollections(
+    project,
+    assets,
+    collectionNames,
+  );
 
   const handleRefresh = React.useCallback(() => {
     assetsRefresh();
@@ -74,6 +78,13 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         <ModalHeader title="Manage collections" />
         <ModalBody>
           <Stack hasGutter>
+            {assetsError || collectionsError ? (
+              <StackItem>
+                <Alert variant="danger" isInline title="Error loading data">
+                  {(assetsError || collectionsError)?.message || 'Failed to load collections data.'}
+                </Alert>
+              </StackItem>
+            ) : null}
             <StackItem>
               <Alert variant="info" isInline title="Changes affect all project assets">
                 Editing or deleting a collection updates or removes it from every asset using it

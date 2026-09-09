@@ -74,7 +74,7 @@ describe('Data Registry - Collection Details', () => {
     cy.get('[data-testid="collection-actions-toggle"]').click();
 
     // Verify delete is disabled
-    cy.get('[data-testid="collection-action-delete"]').should('be.disabled');
+    cy.get('[data-testid="collection-action-delete"]').should('have.attr', 'aria-disabled', 'true');
   });
 
   it('should open register data modal', () => {

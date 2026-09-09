@@ -11,14 +11,10 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
-  Flex,
-  FlexItem,
   Grid,
   GridItem,
   Label,
   MenuToggle,
-  Timestamp,
-  TimestampFormat,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
@@ -150,7 +146,7 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({ collection,
       <Card data-testid="collection-details-card">
         <CardTitle>Collection details</CardTitle>
         <CardBody>
-          <DescriptionList data-testid="collection-detail-description-list">
+          <DescriptionList isHorizontal data-testid="collection-detail-description-list">
             <DescriptionListGroup>
               <DescriptionListTerm>Structured</DescriptionListTerm>
               <DescriptionListDescription data-testid="collection-structured-count">
@@ -175,26 +171,9 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({ collection,
             <DescriptionListGroup>
               <DescriptionListTerm>Created</DescriptionListTerm>
               <DescriptionListDescription data-testid="collection-created-at">
-                {collection.createdAt ? (
-                  <Flex
-                    direction={{ default: 'column' }}
-                    spaceItems={{ default: 'spaceItemsNone' }}
-                  >
-                    <FlexItem>
-                      <Timestamp
-                        date={new Date(collection.createdAt)}
-                        dateFormat={TimestampFormat.long}
-                      />
-                    </FlexItem>
-                    {collection.createdBy ? (
-                      <FlexItem>
-                        <Content component="small">by {collection.createdBy}</Content>
-                      </FlexItem>
-                    ) : null}
-                  </Flex>
-                ) : (
-                  '-'
-                )}
+                {collection.createdAt
+                  ? `${new Date(collection.createdAt).toLocaleString()}${collection.createdBy ? ` by ${collection.createdBy}` : ''}`
+                  : '-'}
               </DescriptionListDescription>
             </DescriptionListGroup>
           </DescriptionList>

@@ -117,7 +117,8 @@ describe('CollectionDetailPage', () => {
     fireEvent.click(screen.getByTestId('collection-actions-toggle'));
 
     const deleteAction = screen.getByTestId('collection-action-delete');
-    expect(deleteAction).not.toBeDisabled();
+    expect(deleteAction).not.toHaveClass('pf-m-aria-disabled');
+    expect(deleteAction).not.toHaveAttribute('aria-disabled');
   });
 
   it('should render overview tab by default', () => {

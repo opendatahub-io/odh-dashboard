@@ -931,6 +931,8 @@ describe('Create Collection with Owner', () => {
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['new-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
         owner: 'test-user',
       });
     });
@@ -965,6 +967,8 @@ describe('Create Collection with Owner', () => {
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['unassigned-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
         owner: 'Unassigned',
       });
     });

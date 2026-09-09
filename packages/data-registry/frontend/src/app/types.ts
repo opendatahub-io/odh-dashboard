@@ -106,7 +106,6 @@ export type NamespaceResponse = {
 
 export type CreateNamespaceRequest = {
   namespace: string[];
-  owner?: string;
   properties?: Record<string, string>;
 };
 
