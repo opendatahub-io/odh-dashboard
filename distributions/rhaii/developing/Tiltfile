@@ -55,9 +55,11 @@ docker_build(
 
 k8s_yaml(kustomize(os.path.join(tilt_root, "manifests")))
 
+dashboard_resource_deps = ["model-serving-remote"] if enable_model_serving else []
 k8s_resource(
     "rhaii-dashboard",
     port_forwards=[port_forward(4000, 4000, name="RHAII Dashboard")],
+    resource_deps=dashboard_resource_deps,
     labels=["rhaii"],
 )
 
@@ -69,11 +71,19 @@ if enable_model_serving:
     remote_env = {}
     if node_bin:
         remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
+    model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
+    quoted_model_serving_frontend = '"' + model_serving_frontend.replace('"', '\\"') + '"'
+    local_resource(
+        "model-serving-install",
+        cmd="npm install --prefix " + quoted_model_serving_frontend,
+        labels=["model-serving"],
+    )
     local_resource(
         "model-serving-remote",
-        serve_cmd="cd " + os.path.join(repo_root, "packages/model-serving/frontend") + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev",
+        serve_cmd="cd " + quoted_model_serving_frontend + " && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9109 PROXY_PORT=4000 npm run start:dev",
         serve_env=remote_env,
-        resource_deps=["rhaii-dashboard"],
+        resource_deps=["model-serving-install"],
+        readiness_probe=probe(http_get="http://localhost:9109/remoteEntry.js"),
         labels=["model-serving"],
     )
 

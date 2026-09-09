@@ -20,9 +20,18 @@ const start = async () => {
   const resolvedFeatureFlags = { ...featureFlags };
 
   if (remoteEntry) {
-    const remote = await loadRemote<{ default: Extension[] }>('modelServing/extensions');
-    extensions.modelServing = remote?.default ?? [];
-    resolvedFeatureFlags['model-serving-shell'] = true;
+    try {
+      const remote = await loadRemote<{ default: Extension[] }>('modelServing/extensions');
+      extensions.modelServing = remote?.default ?? [];
+      resolvedFeatureFlags['model-serving-shell'] = true;
+    } catch (error: unknown) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Failed to load the model-serving remote; continuing with static extensions.',
+        error,
+      );
+      resolvedFeatureFlags['model-serving-shell'] = false;
+    }
   }
 
   createDistribution({
