@@ -50,12 +50,13 @@ describe('NavBar', () => {
     initIntercepts({ namespaces: [] });
     appChrome.visit();
     navBar.shouldNamespaceSelectorHaveNoItems();
+    navBar.shouldShowEmptyState();
   });
 
-  it('Should show username and log out', () => {
+  it('Should show the project selector', () => {
     initIntercepts({});
     appChrome.visit();
-    navBar.findUsername().should('have.text', 'test-user');
+    navBar.findNamespaceSelector().should('exist');
   });
 
   it('Should select and update namespace', () => {

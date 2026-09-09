@@ -113,8 +113,9 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.modelRegistrySettings:
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.dataConnection:
-    case ProjectObjectType.connections:
       return 'var(--ai-data-connection--BackgroundColor)';
+    case ProjectObjectType.connections:
+      return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.user:
       return 'var(--ai-user--BackgroundColor)';
     case ProjectObjectType.group:
