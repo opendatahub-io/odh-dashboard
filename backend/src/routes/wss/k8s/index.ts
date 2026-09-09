@@ -42,10 +42,6 @@ const closeWebSocket = (socket: WebSocket, code: number, reason: string | Buffer
   }
 };
 
-/** Fastify 4 websocket handler received `{ socket }`; v10+ passes the WebSocket itself. */
-export const getWebsocketSource = (connection: WebSocket | { socket: WebSocket }): WebSocket =>
-  'socket' in connection && connection.socket ? connection.socket : (connection as WebSocket);
-
 const waitConnection = (socket: WebSocket, write: () => void) => {
   if (socket.readyState === WebSocket.CONNECTING) {
     socket.once('open', write);
@@ -83,7 +79,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/*',
     { websocket: true },
     (
-      connection,
+      connection: WebSocket,
       req: OauthFastifyRequest<{
         Querystring: Record<string, string>;
         Params: { '*': string; [key: string]: string };
@@ -91,7 +87,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = getWebsocketSource(connection);
+        const source = connection;
         const kubeUri = req.params['*'];
         const connectionId = `${req.id}-${kubeUri}`;
 

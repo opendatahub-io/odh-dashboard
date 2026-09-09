@@ -98,6 +98,26 @@ describe('app static and view wiring', () => {
       expect(response.statusCode).not.toBe(500);
     });
 
+    it('should 500 every asset with the v6 setHeaders form', async () => {
+      const legacy = fastify();
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      await legacy.register(require('@fastify/static'), {
+        root: publicDir,
+        wildcard: false,
+        index: false,
+        setHeaders: (res: { setHeader: (name: string, value: string) => void }) => {
+          res.setHeader('Cache-Control', 'no-cache');
+        },
+      });
+      await legacy.ready();
+
+      const response = await legacy.inject({ method: 'GET', url: `/${HASHED_ASSET}` });
+
+      expect(response.statusCode).toBe(500);
+
+      await legacy.close();
+    });
+
     it('should not auto-serve index.html for the static root', async () => {
       // `index: false` — '/' must fall through to the view route, not the static plugin.
       const response = await app.inject({ method: 'GET', url: '/' });

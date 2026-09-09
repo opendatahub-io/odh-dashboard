@@ -52,6 +52,28 @@ describe('registerPatchContentTypeParsers', () => {
     },
   );
 
+  it.each(['application/json-patch+json', 'application/merge-patch+json'])(
+    'should reject %s with 415 when the parsers are not registered',
+    async (contentType) => {
+      const app = fastify();
+
+      app.patch('/test', async (request) => request.body);
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/test',
+        headers: {
+          'content-type': contentType,
+        },
+        payload: JSON.stringify(patchPayload),
+      });
+
+      expect(response.statusCode).toBe(415);
+
+      await app.close();
+    },
+  );
+
   it('should reject unsupported PATCH content types with 415', async () => {
     const app = fastify();
     registerPatchContentTypeParsers(app);

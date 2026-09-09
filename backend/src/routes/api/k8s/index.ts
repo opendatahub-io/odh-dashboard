@@ -15,9 +15,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
   const kc = fastify.kube.config;
   const cluster = kc.getCurrentCluster();
 
-  fastify.addHook('onRequest', (req, _reply, done) => {
+  fastify.addHook('onRequest', async (req) => {
     stripEmptyJsonContentType(req);
-    done();
   });
 
   fastify.setErrorHandler((error: FastifyError, _req, reply) => {
