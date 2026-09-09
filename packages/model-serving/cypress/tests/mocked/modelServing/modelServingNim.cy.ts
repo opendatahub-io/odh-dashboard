@@ -30,7 +30,10 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
-import { clusterStorage } from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
+import {
+  clusterStorage,
+  updateClusterStorageModal,
+} from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -539,6 +542,9 @@ describe('NIM Models Deployments', () => {
         mockNimModelPVC({
           displayName: 'NIM Cache',
           name: 'nim-cache',
+          annotations: {
+            'dashboard.opendatahub.io/nim-subpath': 'arctic-embed-l',
+          },
         }),
       ]),
     );
@@ -562,6 +568,26 @@ describe('NIM Models Deployments', () => {
       .findConnectedResources()
       .should('contain.text', 'Test Name');
 
-    // TODO followup PR: can edit and update subpath
+    const storageRow = clusterStorage.getClusterStorageRow('NIM Cache');
+    storageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findNimSubpathInput().should('have.value', 'arctic-embed-l');
+    updateClusterStorageModal.findNimSubpathInput().fill('new-model-path');
+
+    cy.interceptK8s('PUT', PVCModel, mockNimModelPVC({ name: 'nim-cache' })).as('updateNimStorage');
+    updateClusterStorageModal.findSubmitButton().click();
+
+    cy.wait('@updateNimStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'dashboard.opendatahub.io/nim-pvc': 'true',
+            'dashboard.opendatahub.io/nim-subpath': 'new-model-path',
+          },
+          name: 'nim-cache',
+          namespace: 'test-project',
+        },
+      });
+    });
   });
 });
