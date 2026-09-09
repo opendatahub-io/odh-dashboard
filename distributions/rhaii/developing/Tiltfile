@@ -71,9 +71,12 @@ if enable_model_serving:
     remote_env = {}
     if node_bin:
         remote_env["PATH"] = node_bin + ":" + os.environ.get("PATH", "")
-    quoted_repo_root = '"' + repo_root.replace('"', '\\"') + '"'
+    def shell_quote(value):
+        return "'" + value.replace("'", "'\"'\"'") + "'"
+
+    quoted_repo_root = shell_quote(repo_root)
     model_serving_frontend = os.path.join(repo_root, "packages/model-serving/frontend")
-    quoted_model_serving_frontend = '"' + model_serving_frontend.replace('"', '\\"') + '"'
+    quoted_model_serving_frontend = shell_quote(model_serving_frontend)
     local_resource(
         "workspace-install",
         cmd="npm install --ignore-scripts --legacy-peer-deps --prefix " + quoted_repo_root,
