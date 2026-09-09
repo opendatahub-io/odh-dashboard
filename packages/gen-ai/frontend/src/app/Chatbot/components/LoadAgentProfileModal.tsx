@@ -135,9 +135,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
                   <Td dataLabel="Name">
                     {profile.displayName}
                     {profile.description && (
-                      <div style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        {profile.description}
-                      </div>
+                      <div className="pf-v6-u-text-color-subtle">{profile.description}</div>
                     )}
                   </Td>
                   <Td dataLabel="Last modified">{formatDate(profile.lastModified)}</Td>
