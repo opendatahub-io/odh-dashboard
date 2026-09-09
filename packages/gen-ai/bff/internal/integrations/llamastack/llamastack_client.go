@@ -62,7 +62,14 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 
 // ListModels retrieves all available models from Llama Stack.
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	modelsPage, err := c.client.Models.List(ctx)
+	return c.ListModelsWithProviderData(ctx, nil)
+}
+
+// ListModelsWithProviderData retrieves all available models and forwards provider
+// data to OGX. The remote::passthrough provider uses passthrough_api_key from
+// X-OGX-Provider-Data to authenticate its request to the Gen AI BFF.
+func (c *LlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
+	modelsPage, err := c.client.Models.List(ctx, c.buildRequestOptions(providerData)...)
 	if err != nil {
 		return nil, wrapClientError(err, "ListModels")
 	}

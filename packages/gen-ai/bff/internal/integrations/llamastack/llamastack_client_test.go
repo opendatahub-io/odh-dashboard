@@ -1,7 +1,10 @@
 package llamastack
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/openai/openai-go/v2/responses"
@@ -99,6 +102,25 @@ func TestBuildRequestOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestListModelsWithProviderData(t *testing.T) {
+	var receivedProviderData map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer user-token", r.Header.Get("Authorization"))
+		require.NoError(t, json.Unmarshal([]byte(r.Header.Get("X-Ogx-Provider-Data")), &receivedProviderData))
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"object":"list","data":[]}`))
+		require.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := NewLlamaStackClient(server.URL, "user-token", false, nil, "")
+	_, err := client.ListModelsWithProviderData(context.Background(), map[string]interface{}{
+		"passthrough_api_key": "user-token",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]interface{}{"passthrough_api_key": "user-token"}, receivedProviderData)
 }
 
 func TestBuildRequestOptions_JSONFormat(t *testing.T) {

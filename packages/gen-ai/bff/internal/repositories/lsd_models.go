@@ -19,7 +19,7 @@ func NewModelsRepository() *ModelsRepository {
 
 // ListModels retrieves all available models and transforms them for BFF use.
 // The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
-func (r *ModelsRepository) ListModels(ctx context.Context) ([]openai.Model, error) {
+func (r *ModelsRepository) ListModels(ctx context.Context, providerData map[string]interface{}) ([]openai.Model, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
 	if err != nil {
@@ -28,5 +28,5 @@ func (r *ModelsRepository) ListModels(ctx context.Context) ([]openai.Model, erro
 
 	// Repository layer can add transformation logic here if needed
 	// For now, direct passthrough from client to handler
-	return client.ListModels(ctx)
+	return client.ListModelsWithProviderData(ctx, providerData)
 }
