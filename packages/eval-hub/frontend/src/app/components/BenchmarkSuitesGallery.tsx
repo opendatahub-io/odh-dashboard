@@ -25,6 +25,7 @@ import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
+import { useNotification } from '~/app/hooks/useNotification';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
 import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
@@ -148,13 +149,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
+  const notification = useNotification();
   const { data, isLoading, error } = useCollectionsQuery(
     namespace,
     'tenant',
     maxVisibleCollections,
   );
   const {
-    error: deleteError,
     isPending: isDeleting,
     mutateAsync: deleteCollection,
     reset: resetDeleteMutation,
@@ -230,10 +231,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     try {
       await deleteCollection(collectionToDelete.resource.id);
       setCollectionToDelete(null);
-    } catch {
-      // Keep the modal open so the mutation error can be shown to the user.
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error ? deleteError.message : 'Unable to delete benchmark suite.';
+      notification.error('Unable to delete benchmark suite', message);
+      setCollectionToDelete(null);
     }
-  }, [collectionToDelete, deleteCollection]);
+  }, [collectionToDelete, deleteCollection, notification]);
 
   const handleDeleteClose = React.useCallback(() => {
     resetDeleteMutation();
@@ -417,7 +421,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           }
           onClose={handleDeleteClose}
           onConfirm={handleDeleteConfirm}
-          actionError={deleteError?.message}
           isSubmitting={isDeleting}
           ariaLabel="Delete benchmark suite?"
           dataTestId="benchmark-suite-delete-modal"
