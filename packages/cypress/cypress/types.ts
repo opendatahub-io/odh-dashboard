@@ -826,6 +826,7 @@ export type ModelAsAServiceTestData = {
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
+  llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
   modelLocationURI: string;
   connectionNameSuffix: string;

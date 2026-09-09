@@ -2087,7 +2087,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
 				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
 				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
 			} else {
 				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)
