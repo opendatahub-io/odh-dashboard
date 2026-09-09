@@ -73,6 +73,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
             namespace={namespace ?? ''}
             scope="curated"
             queryFilters={{ aiEntities: [aiEntity] }}
+            useMockFallback
             showCreateSuiteCard={false}
             showFilters
             showEvaluatesFilter={false}

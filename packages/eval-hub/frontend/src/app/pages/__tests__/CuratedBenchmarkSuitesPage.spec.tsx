@@ -91,7 +91,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show a PatternFly error state when curated collections fail to load', () => {
+  it('should use curated mock suites when collections fail to load', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -100,14 +100,10 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(screen.getByTestId('benchmark-suites-load-error')).toBeInTheDocument();
-    expect(screen.getByText('Unable to load benchmark suites')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-load-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).not.toBeDisabled();
     expect(
-      screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
-    ).toBeDisabled();
-    expect(screen.getByTestId('benchmark-suites-category-filter')).toBeDisabled();
-    expect(
-      screen.queryByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
-    ).not.toBeInTheDocument();
+      screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
+    ).toBeInTheDocument();
   });
 });

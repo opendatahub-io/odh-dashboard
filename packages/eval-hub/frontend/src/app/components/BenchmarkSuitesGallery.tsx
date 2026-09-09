@@ -25,10 +25,7 @@ import {
 import { ExclamationCircleIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import {
-  mockBenchmarkSuiteCollections,
-  mockCuratedBenchmarkSuiteCollections,
-} from '~/app/mockBenchmarkSuiteCollections';
+import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
@@ -40,8 +37,7 @@ import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/
 import { formatCategory } from '~/app/components/benchmarkUtils';
 import './BenchmarkSuitesGallery.scss';
 
-// TODO: Remove this mock fallback once the collection creation API is available.
-const MOCK_COLLECTIONS = mockBenchmarkSuiteCollections();
+// TODO: Remove this curated mock fallback once the curated collections API is available.
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 // These are the collection fields that can provide values for the filter dropdowns.
@@ -50,6 +46,7 @@ type CollectionFilterField = 'domains' | 'ai_entities' | 'industries';
 type CollectionFilterSelectProps = {
   categoryName: string;
   allLabel: string;
+  allOptionLabel?: string;
   options: string[];
   selected: string;
   onSelect: (value: string) => void;
@@ -60,6 +57,7 @@ type CollectionFilterSelectProps = {
 const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
   categoryName,
   allLabel,
+  allOptionLabel = allLabel,
   options,
   selected,
   onSelect,
@@ -96,7 +94,7 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
     >
       <SelectList>
         <SelectOption value="" isSelected={!selected} data-testid={`${testId}-option-all`}>
-          {allLabel}
+          {allOptionLabel}
         </SelectOption>
         {options.map((option) => (
           <SelectOption
@@ -152,6 +150,8 @@ type BenchmarkSuitesGalleryProps = {
   scope?: CollectionScope;
   queryFilters?: CollectionFilterParams;
   primaryActionLabel?: string;
+  // TODO: Remove this temporary switch once curated collections use the API.
+  useMockFallback?: boolean;
   onCreateSuite?: () => void;
   onPrimaryAction?: (collection: Collection) => void;
   onSelectCollection: (collection: Collection) => void;
@@ -174,6 +174,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   scope = 'tenant',
   queryFilters,
   primaryActionLabel = 'Run benchmark suite',
+  useMockFallback = false,
   onCreateSuite,
   onPrimaryAction = handleRunCollection,
   onSelectCollection,
@@ -223,18 +224,31 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     () =>
       scope === 'curated' && (mockAiEntity === 'agent' || mockAiEntity === 'model')
         ? mockCuratedBenchmarkSuiteCollections(mockAiEntity)
-        : MOCK_COLLECTIONS,
+        : [],
     [mockAiEntity, scope],
   );
-  const shouldShowLoadError = Boolean(error);
-  // TODO: Remove the mock fallback and its pagination branch once the collections API is the
-  // source of truth for the benchmark suites shown here.
-  const isUsingMockCollections = !isLoading && !hasApiCollections && !shouldShowLoadError;
-  const collections = React.useMemo(
-    () =>
-      shouldShowLoadError || isLoading ? [] : hasApiCollections ? apiCollections : mockCollections,
-    [apiCollections, hasApiCollections, isLoading, mockCollections, shouldShowLoadError],
-  );
+  // When mock fallback is enabled, keep the gallery usable while the backing API is unavailable.
+  // Real-API entry points disable this fallback so they still show the error state.
+  const shouldShowLoadError = Boolean(error) && !useMockFallback;
+  // TODO: Remove the mock fallback and this switch once the collections API is the source of
+  // truth for every benchmark suite gallery.
+  const isUsingMockCollections = useMockFallback && !isLoading && !hasApiCollections;
+  const collections = React.useMemo(() => {
+    if (shouldShowLoadError || isLoading) {
+      return [];
+    }
+    if (hasApiCollections || !useMockFallback) {
+      return apiCollections;
+    }
+    return mockCollections;
+  }, [
+    apiCollections,
+    hasApiCollections,
+    isLoading,
+    mockCollections,
+    shouldShowLoadError,
+    useMockFallback,
+  ]);
   const sourceCollections = React.useMemo(
     () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
     [collections, maxVisibleCollections],
@@ -304,7 +318,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const hasActiveFilters = Boolean(
     nameFilter || categoryFilter || evaluatesFilter || industryFilter,
   );
-  const areFiltersDisabled = Boolean(error) || (!isLoading && sourceCollections.length === 0);
+  const areFiltersDisabled = shouldShowLoadError || (!isLoading && sourceCollections.length === 0);
   const isRefreshing = isFetching && !isLoading;
 
   React.useEffect(() => {
@@ -389,7 +403,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             <ToolbarItem>
               <CollectionFilterSelect
                 categoryName="Category"
-                allLabel="All categories"
+                allLabel="Category"
+                allOptionLabel="All categories"
                 options={availableCategories}
                 selected={categoryFilter}
                 onSelect={setCategoryFilter}
@@ -397,11 +412,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 testId="benchmark-suites-category-filter"
               />
             </ToolbarItem>
-            {showEvaluatesFilter && (
+            {showEvaluatesFilter && availableEvaluatesTypes.length > 0 && (
               <ToolbarItem>
                 <CollectionFilterSelect
                   categoryName="Evaluates"
-                  allLabel="All asset types"
+                  allLabel="Evaluates"
+                  allOptionLabel="All asset types"
                   options={availableEvaluatesTypes}
                   selected={evaluatesFilter}
                   onSelect={setEvaluatesFilter}

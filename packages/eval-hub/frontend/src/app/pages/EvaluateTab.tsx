@@ -27,10 +27,12 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({ namespace, onSelectCollection
       </Title>
     </StackItem>
     <StackItem>
+      {/* Use the real tenant collections API on the front page. */}
       <BenchmarkSuitesGallery
         namespace={namespace}
         maxVisibleCollections={MAX_VISIBLE_BENCHMARK_SUITES}
         showSummary
+        useMockFallback={false}
         onCreateSuite={handleCreateSuite}
         onSelectCollection={onSelectCollection}
       />
