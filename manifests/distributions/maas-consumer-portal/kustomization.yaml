@@ -47,7 +47,7 @@ replacements:
   - source:
       kind: ConfigMap
       name: maas-consumer-portal-params
-      fieldPath: data.maas-consumer-portal-hostname
+      fieldPath: data.gateway-domain
     targets:
       - select:
           group: gateway.networking.k8s.io

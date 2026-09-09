@@ -8,7 +8,7 @@ import {
   restGET,
   restUPDATE,
 } from 'mod-arch-core';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
 import {
   AuthMechanism,
   ExternalModel,
@@ -117,7 +117,12 @@ export const listExternalModels =
   (hostPath = '') =>
   (opts: APIOptions, namespace: string): Promise<ExternalModel[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel`, { namespace }, opts),
+      restGET(
+        hostPath,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel`,
+        { namespace },
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isExternalModel).map(normalizeExternalModel);
@@ -132,7 +137,7 @@ export const createExternalModel =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel`,
         assembleModArchBody(request),
         {},
         opts,
@@ -156,7 +161,7 @@ export const updateExternalModel =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
@@ -175,7 +180,7 @@ export const deleteExternalModel =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalmodel/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
         {},
         {},
         opts,
@@ -194,7 +199,7 @@ export const listExternalProviders =
     handleRestFailures(
       restGET(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider`,
         { namespace },
         opts,
       ),
@@ -212,7 +217,7 @@ export const createExternalProvider =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider`,
         assembleModArchBody(request),
         {},
         opts,
@@ -236,7 +241,7 @@ export const updateExternalProvider =
     handleRestFailures(
       restUPDATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
         assembleModArchBody(request),
         {},
         opts,
@@ -255,7 +260,7 @@ export const deleteExternalProvider =
     handleRestFailures(
       restDELETE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/externalprovider/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
         {},
         {},
         opts,
@@ -272,7 +277,7 @@ export const listSecrets =
   (hostPath = '') =>
   (opts: APIOptions, namespace: string): Promise<SecretSummary[]> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, { namespace }, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/secrets`, { namespace }, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isSecretSummary);
@@ -287,7 +292,7 @@ export const createSecret =
     handleRestFailures(
       restCREATE(
         hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/secrets`,
+        `${API_URL_PREFIX}/api/${BFF_API_VERSION}/secrets`,
         assembleModArchBody(request),
         {},
         opts,

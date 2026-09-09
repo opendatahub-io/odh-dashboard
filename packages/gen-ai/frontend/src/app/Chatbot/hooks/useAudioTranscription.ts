@@ -6,7 +6,7 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { AUDIO_TRANSCRIPTION_TIMEOUT_MS } from '~/app/Chatbot/const';
-import { URL_PREFIX } from '~/app/utilities';
+import { API_URL_PREFIX } from '~/app/utilities';
 import { classifyError } from '~/app/utilities/errorClassifier';
 import { ClassifiedError, isApiError } from '~/app/types';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
@@ -105,7 +105,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
         transcribedText: '',
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace)}`;
+      const url = `${API_URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace)}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'audio', (percent) => {
         if (uploadGenRef.current === gen) {
           setState((prev) => ({ ...prev, uploadProgress: percent }));
@@ -160,7 +160,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
             }
           }, AUDIO_TRANSCRIPTION_TIMEOUT_MS);
 
-          const transcribeUrl = `${URL_PREFIX}/api/v1/lsd/audio/transcriptions?namespace=${encodeURIComponent(namespace)}`;
+          const transcribeUrl = `${API_URL_PREFIX}/api/v1/lsd/audio/transcriptions?namespace=${encodeURIComponent(namespace)}`;
           return transcribeAudio(
             transcribeUrl,
             response.data.id,

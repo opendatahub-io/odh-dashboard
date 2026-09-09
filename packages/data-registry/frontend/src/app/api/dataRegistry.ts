@@ -38,7 +38,7 @@ const assetResponseSchema = z
     name: z.string(),
     // eslint-disable-next-line camelcase
     asset_type: z.string(),
-    columns: z.array(schemaFieldSchema).optional(),
+    columns: z.array(schemaFieldSchema).nullable().optional(),
     labels: z.array(z.string()).nullable().optional(),
   })
   .passthrough();

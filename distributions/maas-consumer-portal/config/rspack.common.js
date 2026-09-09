@@ -10,6 +10,7 @@ const { dependencies: portalDependencies } = require('../package.json');
 const SRC_DIR = path.resolve(__dirname, '../src');
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TITLE = 'MaaS Consumer Portal';
+const BASE_PATH = '/maas-consumer-portal';
 
 const DIST_DIR = path.resolve(__dirname, '..');
 const PORTAL_NODE_MODULES = path.resolve(DIST_DIR, 'node_modules');
@@ -105,6 +106,7 @@ module.exports = (overrides = {}) =>
     createRspackCommon({
       distributionSrcDir: SRC_DIR,
       title: TITLE,
+      publicPath: `${BASE_PATH}/`,
       ...overrides,
     }),
     {
@@ -135,6 +137,7 @@ module.exports = (overrides = {}) =>
         new CheckSingletonDuplicatesPlugin(EAGER_SINGLETON_PACKAGES),
         new rspack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify(TITLE),
+          'process.env.BASE_PATH': JSON.stringify(BASE_PATH),
         }),
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),
