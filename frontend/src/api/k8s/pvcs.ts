@@ -37,6 +37,7 @@ export const assemblePvc = (
     accessMode,
     modelName,
     modelPath,
+    contextTypeAnnotations,
   } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
@@ -45,6 +46,7 @@ export const assemblePvc = (
     ...(description && { 'openshift.io/description': description }),
     ...(modelName && { [PvcModelAnnotation.MODEL_NAME]: modelName }),
     ...(modelPath && { [PvcModelAnnotation.MODEL_PATH]: modelPath }),
+    ...(contextTypeAnnotations || {}),
     ...(additionalAnnotations || {}),
   };
 

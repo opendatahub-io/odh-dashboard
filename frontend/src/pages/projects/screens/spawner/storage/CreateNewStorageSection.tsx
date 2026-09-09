@@ -14,7 +14,7 @@ import { StorageContextType } from '#~/pages/projects/screens/detail/storage/use
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
-import PVCContextField from './PVCContextField';
+import PVCContextField, { PVCContextFieldSkeleton } from './PVCContextField';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
@@ -42,6 +42,8 @@ const CreateNewStorageSection = <D extends StorageData>({
   setValid,
   hasDuplicateName,
   editableK8sName,
+  storageContextTypes,
+  storageContextTypesLoaded,
 }: CreateNewStorageSectionProps<D>): React.ReactNode => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const { data: clusterStorageNameDesc, onDataChange: setClusterNameDesc } =
@@ -127,14 +129,23 @@ const CreateNewStorageSection = <D extends StorageData>({
           />
         </>
       )}
-      <PVCContextField
-        modelName={data.modelName || ''}
-        modelPath={data.modelPath || ''}
-        setModelName={(name) => setData('modelName', name)}
-        setModelPath={(path) => setData('modelPath', path)}
-        setValid={setIsValidModelPath}
-        removeModelAnnotations={removeModelAnnotations}
-      />
+      {isContextTypeLoaded ? (
+        <PVCContextField
+          modelName={data.modelName || ''}
+          modelPath={data.modelPath || ''}
+          setModelName={(name) => setData('modelName', name)}
+          setModelPath={(path) => setData('modelPath', path)}
+          setValid={setIsValidModelPath}
+          removeModelAnnotations={removeModelAnnotations}
+          existingPvc={data.existingPvc}
+          storageContextTypes={storageContextTypes}
+          setContextTypeAnnotations={(annotations) =>
+            setData('contextTypeAnnotations', annotations)
+          }
+        />
+      ) : (
+        <PVCContextFieldSkeleton />
+      )}
 
       <PVSizeField
         fieldID="create-new-storage-size"

@@ -5,12 +5,14 @@ import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   ClusterStorageContextExtension,
   isClusterStorageContextExtension,
+  PVCStorageContextSettingsFieldsProps,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { isModelStorage } from './utils';
 
 export type StorageContextType = {
   title: string;
   description?: string;
+  fields?: React.ComponentType<PVCStorageContextSettingsFieldsProps>;
 } & EitherNotBoth<
   { isPVCUsingStorageContextType: (pvc: PersistentVolumeClaimKind) => boolean },
   { isDefaultType: boolean }
@@ -46,6 +48,7 @@ export const useStorageContextType = (): [
             title: properties.title,
             description: properties.description,
             isPVCUsingStorageContextType: properties.isPVCUsingStorageContextType,
+            fields: properties.PVCStorageContextSettingsFields.default,
           }),
         )
         .toSorted((a, b) => a.title.localeCompare(b.title)),
