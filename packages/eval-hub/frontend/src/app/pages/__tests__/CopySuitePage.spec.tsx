@@ -1,16 +1,20 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, within } from '@testing-library/react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
-import { useCopySuiteForm, MAX_BENCHMARKS } from '~/app/pages/useCopySuiteForm';
+import { useCopySuiteForm } from '~/app/pages/useCopySuiteForm';
 import CopySuitePage from '~/app/pages/CopySuitePage';
+import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
   useFetchState: jest.fn(),
+  useModularArchContext: () => ({ config: { deploymentMode: 'federated' } }),
 }));
 
 jest.mock('~/app/api/k8s', () => ({
@@ -23,6 +27,8 @@ jest.mock('~/app/hooks/useProviders', () => ({
 
 jest.mock('~/app/pages/useCopySuiteForm', () => ({
   MAX_BENCHMARKS: 10,
+  getBenchmarkKey: (benchmark: { providerId: string; id: string }) =>
+    `${benchmark.providerId}:${benchmark.id}`,
   useCopySuiteForm: jest.fn(),
 }));
 
@@ -63,32 +69,46 @@ jest.mock('~/app/components/BenchmarkThresholdField', () => ({
   ),
 }));
 
-jest.mock('~/app/components/WeightDistributionBar', () => ({
-  __esModule: true,
-  default: ({ segments }: { segments: { label: string }[] }) => (
-    <div data-testid="weight-distribution">
-      {segments.map((segment) => segment.label).join(',')}
-    </div>
-  ),
-}));
-
-jest.mock('~/app/components/BenchmarkConfigAccordion', () => ({
-  __esModule: true,
-  default: ({ benchmarks }: { benchmarks: { name: string }[] }) => (
-    <div data-testid="benchmark-config-accordion">
-      {benchmarks.map((benchmark) => benchmark.name).join(',')}
-    </div>
-  ),
-}));
-
-jest.mock('~/app/components/AddBenchmarkModal', () => ({
+jest.mock('~/app/components/CopySuiteBenchmarkCatalogDrawer', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="add-benchmark-modal">
+    <div data-testid="copy-suite-benchmark-catalog-drawer">
       <button type="button" onClick={onClose}>
-        Close modal
+        Close catalog drawer
       </button>
     </div>
+  ),
+}));
+
+jest.mock('~/app/components/CopySuiteBenchmarkDetailsOverlay', () => ({
+  __esModule: true,
+  default: () => <div data-testid="copy-suite-benchmark-details-overlay" />,
+}));
+
+jest.mock('~/app/components/BenchmarkWeightsModal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="copy-suite-benchmark-weights-modal" />,
+}));
+
+jest.mock('~/app/components/StartEvaluationRunModal', () => ({
+  __esModule: true,
+  default: ({ onClonePendingChange }: { onClonePendingChange?: (isPending: boolean) => void }) => (
+    <>
+      <button
+        type="button"
+        data-testid="copy-suite-set-clone-pending"
+        onClick={() => onClonePendingChange?.(true)}
+      >
+        Set clone pending
+      </button>
+      <button
+        type="button"
+        data-testid="copy-suite-set-clone-complete"
+        onClick={() => onClonePendingChange?.(false)}
+      >
+        Set clone complete
+      </button>
+    </>
   ),
 }));
 
@@ -119,31 +139,69 @@ const benchmark = {
 
 type Form = ReturnType<typeof useCopySuiteForm>;
 
-const makeForm = (overrides: Partial<Form> = {}): Form => ({
+const createRhfForm = (values: CopySuiteFormValues): Form['form'] => {
+  const { result } = renderHook(() =>
+    useForm<CopySuiteFormValues>({
+      mode: 'onChange',
+      resolver: zodResolver(copySuiteSchema),
+      defaultValues: values,
+    }),
+  );
+  return result.current;
+};
+
+const defaultFormValues: CopySuiteFormValues = {
   suiteName: 'Curated suite copy',
-  setSuiteName: jest.fn(),
   suiteDescription: 'Description',
-  setSuiteDescription: jest.fn(),
   suiteCategory: 'language',
-  setSuiteCategory: jest.fn(),
+  suiteEvaluates: 'agent',
   suiteThreshold: 70,
-  handleSuiteThresholdChange: jest.fn(),
   benchmarks: [benchmark],
-  setBenchmarks: jest.fn(),
-  totalWeight: 1,
-  weightSegments: [{ label: 'Benchmark One', weight: 1, percentage: 100 }],
-  updateBenchmark: jest.fn(),
-  removeBenchmark: jest.fn(),
-  addBenchmarks: jest.fn(),
-  handleWeightsChange: jest.fn(),
-  isValid: true,
-  isSubmitting: false,
-  handleSaveAndRun: jest.fn(),
-  handleSaveOnly: jest.fn(),
-  handleCancel: jest.fn(),
-  minWeightPercent: 5,
-  ...overrides,
-});
+};
+
+const makeForm = (overrides: Partial<Form> = {}): Form => {
+  const formValues: CopySuiteFormValues = {
+    ...defaultFormValues,
+    suiteName: overrides.suiteName ?? defaultFormValues.suiteName,
+    suiteDescription: overrides.suiteDescription ?? defaultFormValues.suiteDescription,
+    suiteCategory: overrides.suiteCategory ?? defaultFormValues.suiteCategory,
+    suiteEvaluates: overrides.suiteEvaluates ?? defaultFormValues.suiteEvaluates,
+    suiteThreshold: overrides.suiteThreshold ?? defaultFormValues.suiteThreshold,
+    benchmarks: overrides.benchmarks ?? defaultFormValues.benchmarks,
+  };
+  const rhfForm = overrides.form ?? createRhfForm(formValues);
+
+  return {
+    form: rhfForm,
+    suiteName: formValues.suiteName,
+    setSuiteName: jest.fn(),
+    suiteDescription: formValues.suiteDescription,
+    setSuiteDescription: jest.fn(),
+    suiteCategory: formValues.suiteCategory,
+    setSuiteCategory: jest.fn(),
+    suiteEvaluates: formValues.suiteEvaluates,
+    setSuiteEvaluates: jest.fn(),
+    suiteThreshold: formValues.suiteThreshold,
+    handleSuiteThresholdChange: jest.fn(),
+    benchmarks: formValues.benchmarks,
+    selectedBenchmarkKeys: ['provider-one:benchmark-one'],
+    totalWeight: 1,
+    weightSegments: [{ label: 'Benchmark One', weight: 1, percentage: 100 }],
+    updateBenchmark: jest.fn(),
+    applyBenchmarkSelection: jest.fn(),
+    handleWeightsChange: jest.fn(),
+    isSettingsValid: formValues.suiteName.trim() !== '',
+    isValid: overrides.isValid ?? true,
+    isSubmitting: overrides.isSubmitting ?? false,
+    handleSaveAndRun: jest.fn(),
+    handleSaveOnly: jest.fn(),
+    handleCancel: jest.fn(),
+    buildPendingCollection: jest.fn(() => sourceCollection),
+    cloneCollectionForRun: jest.fn(),
+    minWeightPercent: 5,
+    ...overrides,
+  };
+};
 
 const renderPage = () =>
   render(
@@ -158,6 +216,10 @@ const renderPage = () =>
       </Routes>
     </MemoryRouter>,
   );
+
+const goToBenchmarksStep = () => {
+  fireEvent.click(screen.getByTestId('copy-suite-next'));
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -207,7 +269,7 @@ describe('CopySuitePage', () => {
     expect(fetcher).toHaveBeenCalledWith(options);
   });
 
-  it('should render the copied suite form and breadcrumb when loaded', () => {
+  it('should render the settings step and breadcrumb when loaded', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
@@ -218,14 +280,12 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
     expect(screen.getByTestId('suite-category-toggle')).toHaveTextContent('Language');
     expect(screen.getByText('Language benchmark suites')).toBeInTheDocument();
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Copy suite');
-    expect(screen.getByTestId('benchmark-config-accordion')).toHaveTextContent('Benchmark One');
-    expect(screen.getByTestId('copy-suite-save-and-run')).toBeInTheDocument();
-    expect(screen.getByTestId('copy-suite-save-only')).toBeInTheDocument();
-    expect(screen.getByTestId('copy-suite-cancel')).toBeInTheDocument();
+    expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
   });
 
-  it('should pass metadata and action events to the form hook', () => {
+  it('should pass metadata events on the settings step and save events on the benchmarks step', () => {
     const form = makeForm();
     mockUseCopySuiteForm.mockReturnValue(form);
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
@@ -238,15 +298,31 @@ describe('CopySuitePage', () => {
     fireEvent.change(screen.getByTestId('suite-description-input'), {
       target: { value: 'Updated description' },
     });
+    fireEvent.click(screen.getByTestId('copy-suite-cancel'));
+    expect(form.handleCancel).toHaveBeenCalledTimes(1);
+
+    goToBenchmarksStep();
+
+    expect(screen.getByText('Benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-benchmark-sections')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
     fireEvent.click(screen.getByTestId('copy-suite-save-only'));
-    fireEvent.click(screen.getByTestId('copy-suite-cancel'));
+    fireEvent.click(screen.getByTestId('copy-suite-cancel-step-2'));
 
-    expect(form.setSuiteName).toHaveBeenCalledWith('Updated suite');
-    expect(form.setSuiteDescription).toHaveBeenCalledWith('Updated description');
+    expect(form.form.getValues('suiteName')).toBe('Updated suite');
+    expect(form.form.getValues('suiteDescription')).toBe('Updated description');
     expect(form.handleSaveAndRun).toHaveBeenCalledTimes(1);
     expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
-    expect(form.handleCancel).toHaveBeenCalledTimes(1);
+    expect(form.handleCancel).toHaveBeenCalledTimes(2);
+  });
+
+  it('should disable the next action when settings are invalid', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteName: '' }));
+
+    renderPage();
+
+    expect(screen.getByTestId('copy-suite-next')).toBeDisabled();
   });
 
   it('should disable save actions when the form is invalid or submitting', () => {
@@ -254,40 +330,136 @@ describe('CopySuitePage', () => {
     mockUseCopySuiteForm.mockReturnValue(makeForm({ isValid: false, isSubmitting: true }));
 
     renderPage();
+    goToBenchmarksStep();
 
     expect(screen.getByTestId('copy-suite-save-and-run')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
   });
 
-  it('should open and close the add benchmark modal', () => {
+  it('should open and close the benchmark catalog drawer from the benchmarks step', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
     renderPage();
-    fireEvent.click(screen.getByTestId('add-benchmarks-button'));
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('copy-suite-add-benchmarks-btn'));
 
-    expect(screen.getByTestId('add-benchmark-modal')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close modal' }));
-    expect(screen.queryByTestId('add-benchmark-modal')).not.toBeInTheDocument();
+    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close catalog drawer' }));
+    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
   });
 
-  it('should keep the add action disabled at the benchmark limit', () => {
+  it('should navigate back to settings from the benchmarks breadcrumb', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
-    mockUseCopySuiteForm.mockReturnValue(
-      makeForm({
-        benchmarks: Array.from({ length: MAX_BENCHMARKS }, (_, index) => ({
-          ...benchmark,
-          id: `benchmark-${index}`,
-        })),
-      }),
-    );
 
     renderPage();
+    goToBenchmarksStep();
+    expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
 
-    const addBenchmarksButton = screen.getByTestId('add-benchmarks-button');
-    expect(addBenchmarksButton).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
+    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
+  });
 
-    fireEvent.click(addBenchmarksButton);
+  it('should disable editing and breadcrumb navigation while a clone is pending', () => {
+    const form = makeForm();
+    mockUseCopySuiteForm.mockImplementation((options) => ({
+      ...form,
+      handleSaveAndRun: () => options.onSaveAndRunRequest?.(),
+    }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
-    expect(screen.queryByTestId('add-benchmark-modal')).not.toBeInTheDocument();
+    renderPage();
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('copy-suite-add-benchmarks-btn'));
+    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
+    fireEvent.click(screen.getByTestId('copy-suite-set-clone-pending'));
+
+    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-save-and-run')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-cancel-step-2')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeDisabled();
+    expect(within(screen.getByTestId('benchmark-jump-link-0')).queryByRole('link')).toBeNull();
+    expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).not.toHaveAttribute('href');
+    expect(screen.getByTestId('copy-suite-breadcrumb-collections')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByTestId('copy-suite-breadcrumb-collections')).not.toHaveAttribute('href');
+
+    fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
+    expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-evaluations'));
+    expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-set-clone-complete'));
+    expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-samples-input-0')).toBeEnabled();
+    expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeEnabled();
+    expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute('href');
+    expect(within(screen.getByTestId('benchmark-jump-link-0')).getByRole('link')).toHaveAttribute(
+      'href',
+      '#benchmark-section-0',
+    );
+  });
+
+  it('should disable editing and breadcrumb navigation while a save-only clone is pending', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ isSubmitting: true }));
+
+    renderPage();
+    goToBenchmarksStep();
+
+    expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).not.toHaveAttribute('href');
+
+    fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
+    expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
+  });
+
+  it('should close benchmark details and weight overlays when a clone becomes pending', () => {
+    const secondBenchmark = {
+      ...benchmark,
+      id: 'benchmark-two',
+      providerId: 'provider-two',
+      name: 'Benchmark Two',
+      weight: 0.5,
+    };
+    const form = makeForm({ benchmarks: [{ ...benchmark, weight: 0.5 }, secondBenchmark] });
+    mockUseCopySuiteForm.mockImplementation((options) => ({
+      ...form,
+      handleSaveAndRun: () => options.onSaveAndRunRequest?.(),
+    }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('benchmark-section-name-0'));
+    expect(screen.getByTestId('copy-suite-benchmark-details-overlay')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-save-and-run'));
+    fireEvent.click(screen.getByTestId('copy-suite-set-clone-pending'));
+    expect(screen.queryByTestId('copy-suite-benchmark-details-overlay')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-set-clone-complete'));
+    expect(screen.queryByTestId('copy-suite-benchmark-details-overlay')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('benchmark-weight-edit-0'));
+    expect(screen.getByTestId('copy-suite-benchmark-weights-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-set-clone-pending'));
+    expect(screen.queryByTestId('copy-suite-benchmark-weights-modal')).not.toBeInTheDocument();
   });
 });

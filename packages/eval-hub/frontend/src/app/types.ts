@@ -311,6 +311,7 @@ export type CloneCollectionRequest = {
   description?: string;
   category?: string;
   tags?: string[];
+  custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
 };

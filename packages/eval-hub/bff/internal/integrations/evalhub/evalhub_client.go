@@ -362,6 +362,7 @@ type CloneCollectionRequest struct {
 	Description  string                  `json:"description,omitempty"`
 	Category     string                  `json:"category,omitempty"`
 	Tags         []string                `json:"tags,omitempty"`
+	Custom       map[string]any          `json:"custom,omitempty"`
 	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
 }
@@ -613,7 +614,7 @@ func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace 
 
 // CloneCollection creates a tenant-scoped copy of an existing collection.
 // The namespace is sent as the X-Tenant header. The request body optionally overrides
-// name, description, category, benchmarks, and pass criteria.
+// name, description, category, tags, custom metadata, benchmarks, and pass criteria.
 func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
 	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
 

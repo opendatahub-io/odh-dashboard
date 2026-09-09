@@ -27,6 +27,17 @@ describe('BenchmarkThresholdField', () => {
     expect(slider).toHaveAttribute('aria-valuenow', '25');
   });
 
+  it('should disable both the slider and numeric input when requested', () => {
+    render(<BenchmarkThresholdField value={25} onChange={jest.fn()} isDisabled />);
+
+    expect(screen.getByRole('slider', { hidden: true })).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen
+        .getByTestId('benchmark-threshold')
+        .querySelector<HTMLInputElement>('input[type="number"]'),
+    ).toBeDisabled();
+  });
+
   it('should display 0 and 100 boundary labels', () => {
     render(<BenchmarkThresholdField value={50} onChange={jest.fn()} />);
 

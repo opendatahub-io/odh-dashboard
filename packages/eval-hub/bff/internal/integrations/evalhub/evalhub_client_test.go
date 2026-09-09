@@ -3,6 +3,7 @@ package evalhub
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -401,6 +402,66 @@ func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T
 	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
 }
 
+func TestEvalHubClient_CreateEvaluationJob_WithCollectionBenchmarks(t *testing.T) {
+	request := CreateEvaluationJobRequest{
+		Name: "Collection evaluation",
+		Model: JobModel{
+			URL:  "http://model.example.test/v1",
+			Name: "test-model",
+		},
+		Collection: &JobCollectionID{
+			ID: "collection-001-clone",
+			Benchmarks: []JobBenchmark{
+				{
+					ID:         "arc_challenge",
+					ProviderID: "lm_evaluation_harness",
+					Parameters: map[string]any{"num_few_shot": 5},
+				},
+			},
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/jobs", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{
+			"name": "Collection evaluation",
+			"model": {"url": "http://model.example.test/v1", "name": "test-model"},
+			"collection": {
+				"id": "collection-001-clone",
+				"benchmarks": [{
+					"id": "arc_challenge",
+					"provider_id": "lm_evaluation_harness",
+					"parameters": {"num_few_shot": 5}
+				}]
+			}
+		}`, string(body))
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(EvaluationJob{
+			Resource:   JobResource{ID: "eval-job-collection"},
+			Status:     JobStatus{State: "pending"},
+			Results:    JobResults{},
+			Model:      request.Model,
+			Collection: request.Collection,
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.CreateEvaluationJob(context.Background(), "my-ns", request)
+
+	require.NoError(t, err)
+	require.NotNil(t, result.Collection)
+	assert.Equal(t, "collection-001-clone", result.Collection.ID)
+	require.Len(t, result.Collection.Benchmarks, 1)
+	assert.Equal(t, "arc_challenge", result.Collection.Benchmarks[0].ID)
+}
+
 func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.T) {
 	const maxLogResponseSize = 10 * 1024 * 1024
 	oversizedBody := strings.Repeat("x", maxLogResponseSize+1)
@@ -417,6 +478,72 @@ func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+}
+
+func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
+	request := CloneCollectionRequest{
+		Name:        "My Cloned Suite",
+		Description: "Custom collection settings",
+		Category:    "Safety",
+		Tags:        []string{"custom", "agent"},
+		Custom: map[string]any{
+			"evaluates": []string{"agent"},
+			"source":    "copy-suite",
+		},
+		PassCriteria: &CollectionPassCriteria{Threshold: 0.8},
+		Benchmarks: []CollectionBenchmark{
+			{
+				ID:         "arc_challenge",
+				ProviderID: "lm_evaluation_harness",
+				Weight:     0.8,
+				Parameters: map[string]any{"num_few_shot": 5},
+			},
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/collection-001/clones", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{
+			"name": "My Cloned Suite",
+			"description": "Custom collection settings",
+			"category": "Safety",
+			"tags": ["custom", "agent"],
+			"custom": {"evaluates": ["agent"], "source": "copy-suite"},
+			"pass_criteria": {"threshold": 0.8},
+			"benchmarks": [{
+				"id": "arc_challenge",
+				"provider_id": "lm_evaluation_harness",
+				"weight": 0.8,
+				"parameters": {"num_few_shot": 5}
+			}]
+		}`, string(body))
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Collection{
+			Resource:     CollectionResource{ID: "collection-001-clone"},
+			Name:         request.Name,
+			Description:  request.Description,
+			Category:     request.Category,
+			Tags:         request.Tags,
+			Custom:       request.Custom,
+			PassCriteria: request.PassCriteria,
+			Benchmarks:   request.Benchmarks,
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.CloneCollection(context.Background(), "collection-001", "my-ns", request)
+
+	require.NoError(t, err)
+	assert.Equal(t, "collection-001-clone", result.Resource.ID)
+	assert.Equal(t, []string{"custom", "agent"}, result.Tags)
+	assert.Equal(t, []any{"agent"}, result.Custom["evaluates"])
 }
 
 func TestEvalHubClient_CloneCollection_RejectsOversizedResponse(t *testing.T) {

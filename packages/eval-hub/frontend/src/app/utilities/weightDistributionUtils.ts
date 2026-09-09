@@ -66,3 +66,74 @@ export const adjustAdjacentPercentages = (
 /** Convert display percentages into normalized decimal weights for the API. */
 export const percentagesToWeights = (percentages: number[]): number[] =>
   percentages.map((percentage) => percentage / 100);
+
+const clampPercent = (value: number, minPercent: number, maxPercent: number): number =>
+  Math.max(minPercent, Math.min(maxPercent, Math.round(value)));
+
+const distributeIntegerPercentages = (weights: number[], total: number): number[] => {
+  if (weights.length === 0) {
+    return [];
+  }
+
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const exact =
+    weightTotal > 0
+      ? weights.map((weight) => (Math.max(0, weight) / weightTotal) * total)
+      : weights.map(() => total / weights.length);
+  const integers = exact.map(Math.floor);
+  const remainder = total - integers.reduce((sum, value) => sum + value, 0);
+  const ranked = exact
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .toSorted((a, b) => b.fraction - a.fraction || a.index - b.index);
+
+  for (let index = 0; index < remainder; index += 1) {
+    integers[ranked[index].index] += 1;
+  }
+
+  return integers;
+};
+
+/** Change one benchmark's share and redistribute the remainder across the others. */
+export const redistributeWeight = (
+  percentages: number[],
+  changedIndex: number,
+  newValue: number,
+  minPercent = MIN_SEGMENT_PERCENT,
+): number[] => {
+  const count = percentages.length;
+  if (count === 0) {
+    return [];
+  }
+  if (count === 1) {
+    return [100];
+  }
+  if (!Number.isInteger(changedIndex) || changedIndex < 0 || changedIndex >= count) {
+    return percentages;
+  }
+
+  const effectiveMinPercent = Math.min(
+    Math.max(0, Math.round(minPercent)),
+    Math.floor(100 / count),
+  );
+  const maxForChanged = 100 - (count - 1) * effectiveMinPercent;
+  const clampedNew = clampPercent(newValue, effectiveMinPercent, maxForChanged);
+  const otherIndices = percentages
+    .map((_, index) => index)
+    .filter((index) => index !== changedIndex);
+  const remainder = 100 - clampedNew;
+  const distributableRemainder = remainder - otherIndices.length * effectiveMinPercent;
+  const otherWeights = otherIndices.map((index) =>
+    Math.max(0, percentages[index] - effectiveMinPercent),
+  );
+  const redistributed = distributeIntegerPercentages(otherWeights, distributableRemainder);
+
+  const next = percentages.map((percentage, index) => {
+    if (index === changedIndex) {
+      return clampedNew;
+    }
+    const otherIndex = otherIndices.indexOf(index);
+    return effectiveMinPercent + redistributed[otherIndex];
+  });
+
+  return next;
+};

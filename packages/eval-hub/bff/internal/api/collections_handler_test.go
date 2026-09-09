@@ -85,7 +85,23 @@ func TestCloneCollectionHandler(t *testing.T) {
 	mockClient := ehmocks.NewMockEvalHubClient()
 
 	body := evalhub.CloneCollectionRequest{
-		Name: "My Cloned Suite",
+		Name:        "My Cloned Suite",
+		Description: "Custom collection settings",
+		Category:    "Safety",
+		Tags:        []string{"custom", "agent"},
+		Custom: map[string]any{
+			"evaluates": []string{"agent"},
+			"source":    "copy-suite",
+		},
+		PassCriteria: &evalhub.CollectionPassCriteria{Threshold: 0.8},
+		Benchmarks: []evalhub.CollectionBenchmark{
+			{
+				ID:         "arc_challenge",
+				ProviderID: "lm_evaluation_harness",
+				Weight:     0.8,
+				Parameters: map[string]any{"num_few_shot": 5},
+			},
+		},
 	}
 
 	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
@@ -98,6 +114,17 @@ func TestCloneCollectionHandler(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
 	assert.Equal(t, "collection-001-clone", result.Data.Resource.ID)
 	assert.Equal(t, "My Cloned Suite", result.Data.Name)
+	assert.Equal(t, "Custom collection settings", result.Data.Description)
+	assert.Equal(t, "Safety", result.Data.Category)
+	assert.Equal(t, []string{"custom", "agent"}, result.Data.Tags)
+	require.NotNil(t, result.Data.PassCriteria)
+	assert.Equal(t, 0.8, result.Data.PassCriteria.Threshold)
+	require.Len(t, result.Data.Benchmarks, 1)
+	assert.Equal(t, "arc_challenge", result.Data.Benchmarks[0].ID)
+
+	custom, err := json.Marshal(result.Data.Custom)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"evaluates":["agent"],"source":"copy-suite"}`, string(custom))
 }
 
 func TestCloneCollectionHandlerEmptyBody(t *testing.T) {

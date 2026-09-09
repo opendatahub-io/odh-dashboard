@@ -6,10 +6,12 @@ import {
 import {
   filterBenchmarks,
   getAvailableCategories,
+  getAvailableFrameworks,
   getAvailableMetrics,
   hasActiveBenchmarkFilters,
   isBenchmarkSortOption,
   sortBenchmarks,
+  sortBenchmarksByName,
   type BenchmarkFilterable,
 } from '~/app/utilities/benchmarkListFilters';
 
@@ -19,18 +21,21 @@ const benchmarks: BenchmarkFilterable[] = [
     name: 'Basic science Q&A',
     category: 'Reasoning',
     metrics: ['accuracy', 'f1'],
+    framework: 'Garak',
   },
   {
     id: 'inspect/arc',
     name: 'ARC',
     category: 'Reasoning',
     metrics: ['accuracy'],
+    framework: 'Garak',
   },
   {
     id: 'truthfulqa_mc1',
     name: 'TruthfulQA',
     category: 'Knowledge',
     metrics: ['accuracy'],
+    framework: 'Inspect',
   },
 ];
 
@@ -102,6 +107,15 @@ describe('filterBenchmarks', () => {
     expect(filtered.map((b) => b.id)).toEqual(['arc_easy']);
   });
 
+  it('should filter benchmarks by framework', () => {
+    const filtered = filterBenchmarks(benchmarks, {
+      ...initialBenchmarkFilterData,
+      [BenchmarkFilterOptions.framework]: ['Garak'],
+    });
+
+    expect(filtered.map((b) => b.id)).toEqual(['arc_easy', 'inspect/arc']);
+  });
+
   it('should combine name and category filters', () => {
     const filtered = filterBenchmarks(benchmarks, {
       ...initialBenchmarkFilterData,
@@ -110,6 +124,22 @@ describe('filterBenchmarks', () => {
     });
 
     expect(filtered.map((b) => b.id)).toEqual(['arc_easy', 'inspect/arc']);
+  });
+});
+
+describe('sortBenchmarksByName', () => {
+  it('should sort by name case-insensitively and fall back to id when name is blank', () => {
+    const unsorted: BenchmarkFilterable[] = [
+      { id: 'zeta-id', name: 'Zeta', metrics: [] },
+      { id: 'alpha-id', name: '', metrics: [] },
+      { id: 'beta-id', name: 'Beta', metrics: [] },
+    ];
+
+    expect(sortBenchmarksByName(unsorted).map((benchmark) => benchmark.id)).toEqual([
+      'alpha-id',
+      'beta-id',
+      'zeta-id',
+    ]);
   });
 });
 
@@ -158,6 +188,12 @@ describe('getAvailableCategories', () => {
 describe('getAvailableMetrics', () => {
   it('should return sorted unique metrics', () => {
     expect(getAvailableMetrics(benchmarks)).toEqual(['accuracy', 'f1']);
+  });
+});
+
+describe('getAvailableFrameworks', () => {
+  it('should return sorted unique frameworks', () => {
+    expect(getAvailableFrameworks(benchmarks)).toEqual(['Garak', 'Inspect']);
   });
 });
 

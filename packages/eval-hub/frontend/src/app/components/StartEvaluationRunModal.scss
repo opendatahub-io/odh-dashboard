@@ -1,0 +1,24 @@
+.evalhub-start-evaluation-run-modal {
+  --pf-v6-c-modal-box--MaxWidth: 840px;
+}
+
+.evalhub-start-evaluation-run-modal__advanced {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-start-evaluation-run-modal__fields {
+  min-inline-size: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.evalhub-start-evaluation-run-modal__mlflow-selector {
+  width: 100%;
+  margin-block-start: var(--pf-t--global--spacer--sm);
+}
+
+.evalhub-start-evaluation-run-modal__new-experiment-option,
+.evalhub-start-evaluation-run-modal__new-experiment-name {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}

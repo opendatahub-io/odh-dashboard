@@ -3,6 +3,7 @@ import {
   getDividerPosition,
   getWeightSegmentColor,
   percentagesToWeights,
+  redistributeWeight,
   weightsToPercentages,
 } from '~/app/utilities/weightDistributionUtils';
 
@@ -49,6 +50,28 @@ describe('weightDistributionUtils', () => {
       expect(getWeightSegmentColor(0)).toBe('rgb(0, 102, 204)');
       expect(getWeightSegmentColor(1)).toBe('rgb(0, 149, 150)');
       expect(getWeightSegmentColor(2)).toBe('rgb(132, 120, 222)');
+    });
+  });
+
+  describe('redistributeWeight', () => {
+    it('should keep the total at 100 when one benchmark changes', () => {
+      const next = redistributeWeight([34, 33, 33], 0, 40);
+      expect(next[0]).toBe(40);
+      expect(next.reduce((sum, value) => sum + value, 0)).toBe(100);
+    });
+
+    it('should preserve the minimum for every benchmark at the maximum boundary', () => {
+      const next = redistributeWeight([5, 85, 5, 5], 0, 85, 5);
+
+      expect(next).toEqual([85, 5, 5, 5]);
+      expect(next.every((percentage) => percentage >= 5)).toBe(true);
+      expect(next.reduce((sum, value) => sum + value, 0)).toBe(100);
+    });
+
+    it('should restore the minimum for zero-weight benchmarks when redistributing', () => {
+      const next = redistributeWeight([0, 100, 0, 0], 0, 85, 5);
+
+      expect(next).toEqual([85, 5, 5, 5]);
     });
   });
 });

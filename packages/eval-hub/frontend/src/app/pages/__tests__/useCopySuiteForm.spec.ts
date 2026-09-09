@@ -5,11 +5,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection } from '~/app/api/k8s';
 import { useNotification } from '~/app/hooks/useNotification';
-import {
-  useCopySuiteForm,
-  clampNumSamples,
-  type CopySuiteBenchmark,
-} from '~/app/pages/useCopySuiteForm';
+import { useCopySuiteForm, clampNumSamples } from '~/app/pages/useCopySuiteForm';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -47,6 +43,7 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
+  custom: { source: 'curated', evaluates: ['model'] },
   pass_criteria: { threshold: 0.8 },
   benchmarks: [
     {
@@ -75,19 +72,22 @@ const providers: Provider[] = [
       },
     ],
   },
+  {
+    resource: { id: 'provider-two' },
+    name: 'Provider Two',
+    benchmarks: [
+      {
+        id: 'benchmark-two',
+        name: 'Benchmark Two',
+        metrics: ['accuracy'],
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+        dataset_size: 100,
+        num_few_shot: 2,
+        pass_criteria: { threshold: 0.7 },
+      },
+    ],
+  },
 ];
-
-const newBenchmark: CopySuiteBenchmark = {
-  id: 'benchmark-two',
-  providerId: 'provider-two',
-  name: 'Benchmark Two',
-  weight: 1,
-  primaryMetric: 'accuracy',
-  numSamples: 100,
-  numFewShot: 2,
-  threshold: 70,
-  availableMetrics: ['accuracy'],
-};
 
 type FormParams = Parameters<typeof useCopySuiteForm>[0];
 
@@ -100,6 +100,15 @@ const defaultParams: FormParams = {
 
 const renderForm = (overrides: Partial<FormParams> = {}) =>
   renderHook(() => useCopySuiteForm({ ...defaultParams, ...overrides }));
+
+const createDeferred = <T>() => {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -137,6 +146,7 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
     expect(result.result.current.suiteCategory).toBe('language');
+    expect(result.result.current.suiteEvaluates).toBe('model');
     expect(result.result.current.suiteThreshold).toBe(80);
     expect(result.result.current.benchmarks).toEqual([
       expect.objectContaining({
@@ -152,7 +162,45 @@ describe('useCopySuiteForm', () => {
         availableMetrics: ['accuracy', 'f1'],
       }),
     ]);
-    expect(result.result.current.isValid).toBe(true);
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should map num_fewshot parameters to the few-shot field and exclude them from advanced JSON', async () => {
+    const collectionWithFewShotAlias: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-one',
+          provider_id: 'provider-one',
+          weight: 1,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          parameters: {
+            limit: 250,
+            num_fewshot: 0,
+            blocking_subtask: 'harmless',
+            blocking_subtask_threshold: 0.7,
+          },
+        },
+      ],
+    };
+
+    const result = renderForm({ sourceCollection: collectionWithFewShotAlias });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0]).toEqual(
+      expect.objectContaining({
+        numFewShot: 0,
+        additionalParameters: JSON.stringify(
+          {
+            blocking_subtask: 'harmless',
+            blocking_subtask_threshold: 0.7,
+          },
+          null,
+          2,
+        ),
+      }),
+    );
   });
 
   it('should initialize with loaded providers when the collection resolves first', async () => {
@@ -264,6 +312,7 @@ describe('useCopySuiteForm', () => {
       result.result.current.setSuiteName('Updated suite');
       result.result.current.setSuiteDescription('Updated description');
       result.result.current.setSuiteCategory('coding');
+      result.result.current.setSuiteEvaluates('traces');
       result.result.current.handleSuiteThresholdChange(65);
       result.result.current.updateBenchmark(0, 'numSamples', 500);
       result.result.current.updateBenchmark(0, 'threshold', 85);
@@ -272,29 +321,131 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteName).toBe('Updated suite');
     expect(result.result.current.suiteDescription).toBe('Updated description');
     expect(result.result.current.suiteCategory).toBe('coding');
+    expect(result.result.current.suiteEvaluates).toBe('traces');
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({ numSamples: 500, threshold: 85 }),
     );
   });
 
-  it('should add benchmarks and prevent removing the final benchmark', async () => {
+  it('should apply benchmark selection in alphabetical order regardless of key order', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
 
-    act(() => result.result.current.addBenchmarks([newBenchmark]));
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-two:benchmark-two',
+        'provider-one:benchmark-one',
+      ]),
+    );
+    expect(result.result.current.benchmarks).toHaveLength(2);
+    expect(result.result.current.benchmarks[0].id).toBe('benchmark-one');
+    expect(result.result.current.benchmarks[1].id).toBe('benchmark-two');
+  });
+
+  it('should preserve nonuniform weights when saving an unchanged catalog selection', async () => {
+    const collectionWithNonuniformWeights: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        { ...sourceCollection.benchmarks![0], weight: 0.8 },
+        {
+          id: 'benchmark-two',
+          provider_id: 'provider-two',
+          weight: 0.2,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.7 },
+        },
+      ],
+    };
+    const result = renderForm({ sourceCollection: collectionWithNonuniformWeights });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(2));
+    expect(result.result.current.weightSegments).toEqual([
+      expect.objectContaining({ label: 'Benchmark One', percentage: 80 }),
+      expect.objectContaining({ label: 'Benchmark Two', percentage: 20 }),
+    ]);
+    const weightsBeforeSave = result.result.current.benchmarks.map(({ id, weight }) => ({
+      id,
+      weight,
+    }));
+
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-two:benchmark-two',
+        'provider-one:benchmark-one',
+      ]),
+    );
+
+    expect(result.result.current.benchmarks.map(({ id, weight }) => ({ id, weight }))).toEqual(
+      weightsBeforeSave,
+    );
+  });
+
+  it('should normalize imported under-minimum weights before saving a suite', async () => {
+    const collectionWithUnderMinimumWeight: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        { ...sourceCollection.benchmarks![0], weight: 0.01 },
+        {
+          id: 'benchmark-two',
+          provider_id: 'provider-two',
+          weight: 0.99,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.7 },
+        },
+      ],
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    } as Collection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({ sourceCollection: collectionWithUnderMinimumWeight });
+
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(2));
+    expect(result.result.current.benchmarks.map((benchmark) => benchmark.weight)).toEqual([
+      0.05, 0.95,
+    ]);
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        benchmarks: [
+          expect.objectContaining({ id: 'benchmark-one', weight: 0.05 }),
+          expect.objectContaining({ id: 'benchmark-two', weight: 0.95 }),
+        ],
+      }),
+    );
+  });
+
+  it('should apply benchmark selection and prevent an empty suite', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-one:benchmark-one',
+        'provider-two:benchmark-two',
+      ]),
+    );
     expect(result.result.current.benchmarks).toHaveLength(2);
     expect(result.result.current.benchmarks[0].weight).toBe(0.5);
     expect(result.result.current.benchmarks[1]).toEqual(
-      expect.objectContaining({ ...newBenchmark, weight: 0.5 }),
+      expect.objectContaining({ id: 'benchmark-two', weight: 0.5 }),
     );
 
-    act(() => result.result.current.removeBenchmark(0));
+    act(() => result.result.current.applyBenchmarkSelection(['provider-two:benchmark-two']));
     expect(result.result.current.benchmarks).toHaveLength(1);
     expect(result.result.current.benchmarks[0].id).toBe('benchmark-two');
     expect(result.result.current.benchmarks[0].weight).toBe(1);
 
-    act(() => result.result.current.removeBenchmark(0));
+    act(() => result.result.current.applyBenchmarkSelection([]));
     expect(result.result.current.benchmarks).toHaveLength(1);
   });
 
@@ -302,18 +453,89 @@ describe('useCopySuiteForm', () => {
     const result = renderForm({ sourceCollection: undefined });
 
     expect(result.result.current.isValid).toBe(false);
+    expect(result.result.current.isSettingsValid).toBe(false);
 
     act(() => result.result.current.setSuiteName('New suite'));
+    expect(result.result.current.isSettingsValid).toBe(true);
     expect(result.result.current.isValid).toBe(false);
 
-    act(() => result.result.current.setBenchmarks([newBenchmark]));
-    expect(result.result.current.isValid).toBe(true);
+    act(() => result.result.current.applyBenchmarkSelection(['provider-two:benchmark-two']));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
 
     act(() => result.result.current.setSuiteName('   '));
     expect(result.result.current.isValid).toBe(false);
   });
 
-  it('should submit a clone and navigate to the evaluation run page', async () => {
+  it('should invoke onSaveAndRunRequest instead of cloning when provided', async () => {
+    const onSaveAndRunRequest = jest.fn();
+    const result = renderForm({ onSaveAndRunRequest });
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    act(() => {
+      result.result.current.handleSaveAndRun();
+    });
+
+    expect(onSaveAndRunRequest).toHaveBeenCalled();
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('should block saves when advanced benchmark parameters are invalid JSON', async () => {
+    const onSaveAndRunRequest = jest.fn();
+    const result = renderForm({ onSaveAndRunRequest });
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    act(() => result.result.current.updateBenchmark(0, 'additionalParameters', '{not valid JSON'));
+
+    await waitFor(() =>
+      expect(
+        result.result.current.form.formState.errors.benchmarks?.[0]?.additionalParameters?.message,
+      ).toBe('Advanced benchmark parameters must be valid JSON.'),
+    );
+    expect(result.result.current.isValid).toBe(false);
+
+    act(() => result.result.current.handleSaveAndRun());
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+      await result.result.current.cloneCollectionForRun();
+    });
+
+    expect(onSaveAndRunRequest).not.toHaveBeenCalled();
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+  });
+
+  it('should reject reserved advanced parameters and preserve dedicated values defensively', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    act(() =>
+      result.result.current.updateBenchmark(
+        0,
+        'additionalParameters',
+        '{"limit": 999, "num_fewshot": 20, "blocking_subtask": "harmless"}',
+      ),
+    );
+
+    await waitFor(() =>
+      expect(
+        result.result.current.form.formState.errors.benchmarks?.[0]?.additionalParameters?.message,
+      ).toBe('Use the dedicated fields for limit, num_fewshot.'),
+    );
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].parameters).toEqual({
+      limit: 250,
+      num_few_shot: 3,
+      blocking_subtask: 'harmless',
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+  });
+
+  it('should clone a collection for run via cloneCollectionForRun', async () => {
     const clonedCollection: Collection = {
       resource: { id: 'cloned-collection' },
       name: 'Curated suite copy',
@@ -324,8 +546,11 @@ describe('useCopySuiteForm', () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
 
+    act(() => result.result.current.setSuiteEvaluates('traces'));
+
+    let cloned: Collection | undefined;
     await act(async () => {
-      await result.result.current.handleSaveAndRun();
+      cloned = await result.result.current.cloneCollectionForRun();
     });
 
     expect(mockCloneCollection).toHaveBeenCalledWith(
@@ -336,6 +561,7 @@ describe('useCopySuiteForm', () => {
         name: 'Curated suite',
         description: 'A curated description',
         category: 'language',
+        custom: { source: 'curated', evaluates: ['traces'] },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
           expect.objectContaining({
@@ -350,12 +576,68 @@ describe('useCopySuiteForm', () => {
       }),
     );
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/evaluation/test-namespace/create/start?type=collection&collectionId=cloned-collection',
-      { state: { collection: clonedCollection } },
-    );
+    expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
-    expect(result.result.current.isSubmitting).toBe(false);
+  });
+
+  it('should abort a run clone when its parent request is cancelled', async () => {
+    const deferredClone = createDeferred<Collection>();
+    let requestSignal: AbortSignal | undefined;
+    const cloneFetcher = jest.fn((options: { signal?: AbortSignal }) => {
+      requestSignal = options.signal;
+      return deferredClone.promise;
+    });
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    const parentController = new AbortController();
+    let clonePromise = Promise.resolve<Collection | undefined>(undefined);
+    act(() => {
+      clonePromise = result.result.current.cloneCollectionForRun(parentController.signal);
+    });
+
+    await waitFor(() => expect(cloneFetcher).toHaveBeenCalledTimes(1));
+    expect(requestSignal?.aborted).toBe(false);
+
+    parentController.abort();
+    expect(requestSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      deferredClone.resolve({ resource: { id: 'cloned-collection' }, name: 'Copied suite' });
+      await clonePromise;
+    });
+
+    await expect(clonePromise).resolves.toBeUndefined();
+    expect(mockNotification.error).not.toHaveBeenCalled();
+    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+  });
+
+  it('should build a pending collection from current form state', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    act(() => result.result.current.setSuiteEvaluates('guardrails'));
+    const pending = result.result.current.buildPendingCollection();
+
+    expect(pending).toEqual(
+      expect.objectContaining({
+        resource: sourceCollection.resource,
+        name: 'Curated suite',
+        description: 'A curated description',
+        category: 'language',
+        custom: { source: 'curated', evaluates: ['guardrails'] },
+        pass_criteria: { threshold: 0.8 },
+        benchmarks: [
+          expect.objectContaining({
+            id: 'benchmark-one',
+            provider_id: 'provider-one',
+            weight: 1,
+          }),
+        ],
+      }),
+    );
+    expect(sourceCollection.custom).toEqual({ source: 'curated', evaluates: ['model'] });
   });
 
   it('should preserve a true lower-is-better setting when cloning a suite', async () => {
@@ -420,19 +702,93 @@ describe('useCopySuiteForm', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/create/collections');
   });
 
-  it('should report clone failures without navigating', async () => {
+  it('should remain submitting while a save-only clone is pending', async () => {
+    const deferredClone = createDeferred<Collection>();
+    const cloneFetcher = jest.fn(() => deferredClone.promise);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+
+    let savePromise = Promise.resolve();
+    act(() => {
+      savePromise = result.result.current.handleSaveOnly();
+    });
+
+    await waitFor(() => {
+      expect(cloneFetcher).toHaveBeenCalledTimes(1);
+      expect(result.result.current.isSubmitting).toBe(true);
+    });
+
+    await act(async () => {
+      deferredClone.resolve({ resource: { id: 'saved-collection' }, name: 'Saved suite' });
+      await savePromise;
+    });
+
+    expect(result.result.current.isSubmitting).toBe(false);
+  });
+
+  it('should lock immediately and avoid duplicate save-only clones during validation', async () => {
+    const deferredValidation = createDeferred<boolean>();
+    const deferredClone = createDeferred<Collection>();
+    const cloneFetcher = jest.fn(() => deferredClone.promise);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    jest.spyOn(result.result.current.form, 'trigger').mockReturnValue(deferredValidation.promise);
+
+    let firstSave = Promise.resolve();
+    let secondSave = Promise.resolve();
+    act(() => {
+      firstSave = result.result.current.handleSaveOnly();
+      secondSave = result.result.current.handleSaveOnly();
+    });
+
+    expect(result.result.current.isSubmitting).toBe(true);
+    expect(cloneFetcher).not.toHaveBeenCalled();
+
+    await act(async () => {
+      deferredValidation.resolve(true);
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(cloneFetcher).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      deferredClone.resolve({ resource: { id: 'saved-collection' }, name: 'Saved suite' });
+      await Promise.all([firstSave, secondSave]);
+    });
+
+    expect(result.result.current.isSubmitting).toBe(false);
+  });
+
+  it('should clear the save-only lock if validation rejects', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    jest
+      .spyOn(result.result.current.form, 'trigger')
+      .mockRejectedValue(new Error('Validation unavailable'));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(result.result.current.isSubmitting).toBe(false);
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).not.toHaveBeenCalled();
+  });
+
+  it('should report clone failures from cloneCollectionForRun', async () => {
     const cloneFetcher = jest.fn().mockRejectedValue(new Error('Clone failed'));
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
 
+    let cloned: Collection | undefined;
     await act(async () => {
-      await result.result.current.handleSaveAndRun();
+      cloned = await result.result.current.cloneCollectionForRun();
     });
 
     expect(mockNotification.error).toHaveBeenCalledWith('Failed to copy suite', 'Clone failed');
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(result.result.current.isSubmitting).toBe(false);
+    expect(cloned).toBeUndefined();
   });
 
   it('should navigate back without calling the clone API when cancelled', () => {

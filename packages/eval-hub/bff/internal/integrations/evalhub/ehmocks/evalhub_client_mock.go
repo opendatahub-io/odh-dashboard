@@ -388,6 +388,14 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 	if category == "" {
 		category = source.Category
 	}
+	tags := req.Tags
+	if tags == nil {
+		tags = source.Tags
+	}
+	custom := req.Custom
+	if custom == nil {
+		custom = source.Custom
+	}
 	benchmarks := req.Benchmarks
 	if benchmarks == nil {
 		benchmarks = source.Benchmarks
@@ -406,7 +414,8 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 		Name:         name,
 		Description:  description,
 		Category:     category,
-		Tags:         source.Tags,
+		Tags:         tags,
+		Custom:       custom,
 		PassCriteria: passCriteria,
 		Benchmarks:   benchmarks,
 	}, nil
@@ -436,12 +445,17 @@ func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req
 			CreatedAt: "2026-03-09T12:00:00Z",
 			UpdatedAt: "2026-03-09T12:00:00Z",
 		},
-		Status:      evalhub.JobStatus{State: "pending"},
-		Name:        req.Name,
-		Description: req.Description,
-		Tags:        req.Tags,
-		Model:       req.Model,
-		Benchmarks:  benchmarks,
+		Status:       evalhub.JobStatus{State: "pending"},
+		Name:         req.Name,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		Model:        req.Model,
+		PassCriteria: req.PassCriteria,
+		Benchmarks:   benchmarks,
+		Collection:   req.Collection,
+		Experiment:   req.Experiment,
+		Custom:       req.Custom,
+		Exports:      req.Exports,
 	}, nil
 }
 

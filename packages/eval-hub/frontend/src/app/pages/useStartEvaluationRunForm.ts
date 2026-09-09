@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import {
   fireFormTrackingEvent,
@@ -23,15 +25,14 @@ import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
-import type {
-  Collection,
-  FlatBenchmark,
-  InferenceServiceItem,
-  ModelSelection,
-  SourceMode,
-} from '~/app/types';
+import {
+  startEvaluationRunDefaultValues,
+  startEvaluationRunSchema,
+  type StartEvaluationRunFormValues,
+} from '~/app/schemas/startEvaluationRun.schema';
+import type { Collection, FlatBenchmark, InferenceServiceItem, SourceMode } from '~/app/types';
 
-type ExperimentMode = 'existing' | 'new';
+type ExperimentMode = StartEvaluationRunFormValues['experimentMode'];
 
 const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
 const DEFAULT_SUITE_THRESHOLD = 70;
@@ -46,7 +47,66 @@ type UseStartEvaluationRunFormParams = {
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
   initialValues?: ReconfigureFormData;
+  defaultEvaluationName?: string;
+  defaultSourceMode?: SourceMode;
+  trackingSource?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 };
+
+const buildDefaultEvaluationName = (
+  initialValues: ReconfigureFormData | undefined,
+  defaultEvaluationName: string | undefined,
+): string => {
+  if (initialValues) {
+    return initialValues.evaluationName;
+  }
+  if (defaultEvaluationName?.trim()) {
+    return defaultEvaluationName.trim();
+  }
+  return new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+const buildInitialFormValues = ({
+  initialValues,
+  defaultEvaluationName,
+  defaultSourceMode,
+  defaultThreshold,
+  defaultPrimaryMetric,
+}: {
+  initialValues?: ReconfigureFormData;
+  defaultEvaluationName?: string;
+  defaultSourceMode?: SourceMode;
+  defaultThreshold: number;
+  defaultPrimaryMetric?: string;
+}): StartEvaluationRunFormValues => ({
+  ...startEvaluationRunDefaultValues,
+  evaluationName: buildDefaultEvaluationName(initialValues, defaultEvaluationName),
+  sourceMode: initialValues?.sourceMode ?? defaultSourceMode ?? 'model',
+  modelSelection: initialValues?.modelSelection ?? 'cluster',
+  selectedInferenceServiceName: initialValues?.selectedInferenceService?.name,
+  modelName: initialValues?.modelName ?? '',
+  agentName: initialValues?.modelName ?? '',
+  endpointUrl: initialValues?.endpointUrl ?? '',
+  apiKeySecretRef: initialValues?.apiKeySecretRef ?? '',
+  sourceName: initialValues?.sourceName ?? '',
+  datasetUrl: initialValues?.datasetUrl ?? '',
+  accessToken: initialValues?.accessToken ?? '',
+  experimentMode: 'existing',
+  selectedExperimentName: initialValues?.experimentName,
+  newExperimentName: '',
+  threshold: initialValues?.threshold ?? defaultThreshold,
+  primaryMetric: initialValues?.primaryMetric ?? defaultPrimaryMetric,
+  showAdditionalArgs: !!initialValues?.additionalArgs,
+  additionalArgs: initialValues?.additionalArgs ?? '',
+});
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function useStartEvaluationRunForm({
@@ -57,12 +117,15 @@ export function useStartEvaluationRunForm({
   experiments,
   experimentsLoaded,
   initialValues,
+  defaultEvaluationName,
+  defaultSourceMode,
+  trackingSource = 'evaluations_page',
+  onSuccess,
+  onCancel,
 }: UseStartEvaluationRunFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
   const isReconfigure = !!initialValues;
-
-  // ── Threshold & primary metric ──────────────────────────────────────
 
   const defaultThreshold = React.useMemo(() => {
     if (collection?.pass_criteria) {
@@ -86,89 +149,107 @@ export function useStartEvaluationRunForm({
     defaultPrimaryMetricRef.current = defaultPrimaryMetric;
   }, [defaultPrimaryMetric]);
 
-  const [threshold, setThreshold] = React.useState(
-    () => initialValues?.threshold ?? defaultThreshold,
-  );
-  const [thresholdTouched, setThresholdTouched] = React.useState(isReconfigure);
-  const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
-    () => initialValues?.primaryMetric ?? defaultPrimaryMetric,
-  );
-  const [primaryMetricTouched, setPrimaryMetricTouched] = React.useState(isReconfigure);
+  const form = useForm<StartEvaluationRunFormValues>({
+    mode: 'onChange',
+    resolver: zodResolver(startEvaluationRunSchema),
+    defaultValues: buildInitialFormValues({
+      initialValues,
+      defaultEvaluationName,
+      defaultSourceMode,
+      defaultThreshold,
+      defaultPrimaryMetric,
+    }),
+  });
+
+  const [
+    evaluationName,
+    sourceMode,
+    modelSelection,
+    selectedInferenceServiceName,
+    modelName,
+    agentName,
+    endpointUrl,
+    apiKeySecretRef,
+    sourceName,
+    datasetUrl,
+    accessToken,
+    experimentMode,
+    selectedExperimentName,
+    newExperimentName,
+    threshold,
+    primaryMetric,
+    showAdditionalArgs,
+    additionalArgs,
+  ] = useWatch({
+    control: form.control,
+    name: [
+      'evaluationName',
+      'sourceMode',
+      'modelSelection',
+      'selectedInferenceServiceName',
+      'modelName',
+      'agentName',
+      'endpointUrl',
+      'apiKeySecretRef',
+      'sourceName',
+      'datasetUrl',
+      'accessToken',
+      'experimentMode',
+      'selectedExperimentName',
+      'newExperimentName',
+      'threshold',
+      'primaryMetric',
+      'showAdditionalArgs',
+      'additionalArgs',
+    ],
+  });
+
+  const thresholdTouched = !!form.formState.dirtyFields.threshold || isReconfigure;
+  const primaryMetricTouched = !!form.formState.dirtyFields.primaryMetric || isReconfigure;
 
   React.useEffect(() => {
     if (!thresholdTouched) {
-      setThreshold(defaultThreshold);
+      form.setValue('threshold', defaultThreshold, { shouldValidate: true });
     }
-  }, [defaultThreshold, thresholdTouched]);
+  }, [defaultThreshold, thresholdTouched, form]);
 
   React.useEffect(() => {
     if (!primaryMetricTouched) {
-      setPrimaryMetric(defaultPrimaryMetric);
+      form.setValue('primaryMetric', defaultPrimaryMetric, { shouldValidate: true });
     }
-  }, [defaultPrimaryMetric, primaryMetricTouched]);
+  }, [defaultPrimaryMetric, primaryMetricTouched, form]);
 
-  const handleThresholdChange = React.useCallback((value: number) => {
-    setThreshold(value);
-    setThresholdTouched(true);
+  const handleThresholdChange = React.useCallback(
+    (value: number) => {
+      form.setValue('threshold', value, { shouldDirty: true, shouldValidate: true });
 
-    const props: RunThresholdChangedProperties = {
-      thresholdValue: value,
-      benchmarkName: benchmarkDisplayNameRef.current,
-    };
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
-  }, []);
-
-  const handlePrimaryMetricChange = React.useCallback((metric: string) => {
-    setPrimaryMetric(metric);
-    setPrimaryMetricTouched(true);
-
-    const props: RunMetricSelectedProperties = {
-      metricName: metric,
-      isDefault: metric === defaultPrimaryMetricRef.current,
-      benchmarkName: benchmarkDisplayNameRef.current,
-    };
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
-  }, []);
-
-  // ── Evaluation name ─────────────────────────────────────────────────
-
-  const [evaluationName, setEvaluationName] = React.useState(() => {
-    if (initialValues) {
-      return initialValues.evaluationName;
-    }
-    return new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  });
-
-  // ── Source mode (Model / Agent / Pre-recorded) ──────────────────────
-
-  const [sourceMode, setSourceMode] = React.useState<SourceMode>(
-    () => initialValues?.sourceMode ?? 'model',
+      const props: RunThresholdChangedProperties = {
+        thresholdValue: value,
+        benchmarkName: benchmarkDisplayNameRef.current,
+      };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, props);
+    },
+    [form],
   );
-  const [modelSelection, setModelSelection] = React.useState<ModelSelection>(
-    () => initialValues?.modelSelection ?? 'cluster',
-  );
-  const [selectedInferenceService, setSelectedInferenceService] = React.useState<
-    InferenceServiceItem | undefined
-  >(() => initialValues?.selectedInferenceService);
 
-  const [modelName, setModelName] = React.useState(() => initialValues?.modelName ?? '');
-  const [agentName, setAgentName] = React.useState(() => initialValues?.modelName ?? '');
-  const [endpointUrl, setEndpointUrl] = React.useState(() => initialValues?.endpointUrl ?? '');
-  const [apiKeySecretRef, setApiKeySecretRef] = React.useState(
-    () => initialValues?.apiKeySecretRef ?? '',
-  );
-  const [sourceName, setSourceName] = React.useState(() => initialValues?.sourceName ?? '');
-  const [datasetUrl, setDatasetUrl] = React.useState(() => initialValues?.datasetUrl ?? '');
-  const [accessToken, setAccessToken] = React.useState(() => initialValues?.accessToken ?? '');
+  const handlePrimaryMetricChange = React.useCallback(
+    (metric: string) => {
+      form.setValue('primaryMetric', metric, { shouldDirty: true, shouldValidate: true });
 
-  // ── Connection validation ───────────────────────────────────────────
+      const props: RunMetricSelectedProperties = {
+        metricName: metric,
+        isDefault: metric === defaultPrimaryMetricRef.current,
+        benchmarkName: benchmarkDisplayNameRef.current,
+      };
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, props);
+    },
+    [form],
+  );
+
+  const setEvaluationName = React.useCallback(
+    (value: string) => form.setValue('evaluationName', value, { shouldValidate: true }),
+    [form],
+  );
 
   const { connectionValidation, setConnectionValidation, handleVerifyConnection } =
     useConnectionValidation({
@@ -183,16 +264,22 @@ export function useStartEvaluationRunForm({
   const requiresConnectionValidation =
     sourceMode === 'agent' || (sourceMode === 'model' && modelSelection === 'external');
 
+  const selectedInferenceServiceRef = React.useRef<InferenceServiceItem | undefined>(
+    initialValues?.selectedInferenceService,
+  );
+
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
       const isExternal = value === EXTERNAL_ENDPOINT_VALUE;
       if (isExternal) {
-        setModelSelection('external');
-        setSelectedInferenceService(undefined);
+        form.setValue('modelSelection', 'external', { shouldValidate: true });
+        form.setValue('selectedInferenceServiceName', undefined, { shouldValidate: true });
+        selectedInferenceServiceRef.current = undefined;
       } else {
-        setModelSelection('cluster');
+        form.setValue('modelSelection', 'cluster', { shouldValidate: true });
         const is = inferenceServices.find((s) => s.name === value);
-        setSelectedInferenceService(is);
+        form.setValue('selectedInferenceServiceName', is?.name, { shouldValidate: true });
+        selectedInferenceServiceRef.current = is;
       }
       setConnectionValidation({ status: 'idle' });
 
@@ -204,28 +291,29 @@ export function useStartEvaluationRunForm({
         fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, props);
       }
     },
-    [setConnectionValidation],
+    [form, setConnectionValidation],
   );
 
   const handleSourceModeChange = React.useCallback(
     (mode: SourceMode) => {
-      setSourceMode(mode);
+      form.setValue('sourceMode', mode, { shouldValidate: true });
       setConnectionValidation({ status: 'idle' });
 
       const props: RunSourceSelectedProperties = { sourceType: mode };
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, props);
     },
-    [setConnectionValidation],
+    [form, setConnectionValidation],
   );
 
-  // ── Experiment ──────────────────────────────────────────────────────
-
-  const [experimentMode, setExperimentMode] = React.useState<ExperimentMode>('existing');
-  const [selectedExperiment, setSelectedExperiment] = React.useState<MlflowExperiment | undefined>(
-    undefined,
+  const selectedExperiment = React.useMemo(
+    () => experiments.find((experiment) => experiment.name === selectedExperimentName),
+    [experiments, selectedExperimentName],
   );
-  const [newExperimentName, setNewExperimentName] = React.useState('');
+
+  const selectedInferenceService = selectedInferenceServiceRef.current;
+
   const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
+  const experimentManuallyChangedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!experimentsLoaded || !namespace || experimentAutoSelected) {
@@ -240,57 +328,53 @@ export function useStartEvaluationRunForm({
     if (initialValues?.experimentName) {
       const match = experiments.find((e) => e.name === initialValues.experimentName);
       if (match) {
-        setExperimentMode('existing');
-        setSelectedExperiment(match);
+        form.setValue('experimentMode', 'existing', { shouldValidate: true });
+        form.setValue('selectedExperimentName', match.name, { shouldValidate: true });
       } else {
-        setExperimentMode('new');
-        setNewExperimentName(initialValues.experimentName);
+        form.setValue('experimentMode', 'new', { shouldValidate: true });
+        form.setValue('newExperimentName', initialValues.experimentName, { shouldValidate: true });
       }
       return;
     }
 
     if (experiments.length === 0) {
-      setExperimentMode('new');
-      setNewExperimentName(DEFAULT_EXPERIMENT_NAME);
+      form.setValue('experimentMode', 'new', { shouldValidate: true });
+      form.setValue('newExperimentName', DEFAULT_EXPERIMENT_NAME, { shouldValidate: true });
     } else {
       const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
-      setExperimentMode('existing');
-      setSelectedExperiment(defaultExp ?? experiments[0]);
+      form.setValue('experimentMode', 'existing', { shouldValidate: true });
+      form.setValue('selectedExperimentName', (defaultExp ?? experiments[0]).name, {
+        shouldValidate: true,
+      });
     }
-  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected, initialValues]);
+  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected, initialValues, form]);
 
-  // When the user switches back from "new" to "existing" mode, selectedExperiment
-  // may be undefined (cleared by the radio onChange). Re-initialize it from the
-  // available experiments so the form isn't stuck without a selection.
   React.useEffect(() => {
     if (
       !experimentAutoSelected ||
       experimentMode !== 'existing' ||
-      selectedExperiment !== undefined ||
+      selectedExperimentName ||
       !experimentsLoaded ||
       experiments.length === 0
     ) {
       return;
     }
     const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
-    setSelectedExperiment(defaultExp ?? experiments[0]);
-  }, [experimentAutoSelected, experimentMode, selectedExperiment, experimentsLoaded, experiments]);
+    form.setValue('selectedExperimentName', (defaultExp ?? experiments[0]).name, {
+      shouldValidate: true,
+    });
+  }, [
+    experimentAutoSelected,
+    experimentMode,
+    selectedExperimentName,
+    experimentsLoaded,
+    experiments,
+    form,
+  ]);
 
-  // ── Additional args ─────────────────────────────────────────────────
-
-  const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(
-    () => !!initialValues?.additionalArgs,
-  );
-  const [additionalArgs, setAdditionalArgs] = React.useState(
-    () => initialValues?.additionalArgs ?? '',
-  );
   const [additionalArgsFilename, setAdditionalArgsFilename] = React.useState('');
-
-  // ── Submission state ────────────────────────────────────────────────
-
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController | null>(null);
-  const experimentManuallyChangedRef = React.useRef(false);
 
   React.useEffect(
     () => () => {
@@ -298,8 +382,6 @@ export function useStartEvaluationRunForm({
     },
     [],
   );
-
-  // ── Derived values ──────────────────────────────────────────────────
 
   const benchmarkDisplayName = React.useMemo(() => {
     if (collection) {
@@ -314,12 +396,6 @@ export function useStartEvaluationRunForm({
 
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
-
-  const hasExperiment =
-    (experimentMode === 'existing' && !!selectedExperiment) ||
-    (experimentMode === 'new' && newExperimentName.trim() !== '');
-
-  // ── Inline field validation ─────────────────────────────────────────
 
   const [touched, setTouched] = React.useState<Record<string, boolean>>({});
 
@@ -347,7 +423,9 @@ export function useStartEvaluationRunForm({
     return undefined;
   }, [sourceMode, datasetUrl]);
 
-  // ── Overall form validity ───────────────────────────────────────────
+  const hasExperiment =
+    (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
+    (experimentMode === 'new' && newExperimentName.trim() !== '');
 
   const isValid = React.useMemo(() => {
     if (evaluationName.trim() === '' || !hasBenchmarks || !hasExperiment) {
@@ -356,7 +434,7 @@ export function useStartEvaluationRunForm({
 
     if (sourceMode === 'model') {
       if (modelSelection === 'cluster') {
-        return !!selectedInferenceService;
+        return !!selectedInferenceServiceName?.trim();
       }
       return modelName.trim() !== '' && !endpointUrlError;
     }
@@ -372,12 +450,12 @@ export function useStartEvaluationRunForm({
     hasExperiment,
     sourceMode,
     modelSelection,
-    selectedInferenceService,
     modelName,
     agentName,
     endpointUrlError,
     datasetUrlError,
     sourceName,
+    selectedInferenceServiceName,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -390,7 +468,55 @@ export function useStartEvaluationRunForm({
     return !endpointUrlError && endpointUrl.trim() !== '';
   }, [requiresConnectionValidation, connectionValidation.status, endpointUrlError, endpointUrl]);
 
-  // ── Additional args handlers ────────────────────────────────────────
+  const setModelName = React.useCallback(
+    (value: string) => form.setValue('modelName', value, { shouldValidate: true }),
+    [form],
+  );
+  const setAgentName = React.useCallback(
+    (value: string) => form.setValue('agentName', value, { shouldValidate: true }),
+    [form],
+  );
+  const setEndpointUrl = React.useCallback(
+    (value: string) => form.setValue('endpointUrl', value, { shouldValidate: true }),
+    [form],
+  );
+  const setApiKeySecretRef = React.useCallback(
+    (value: string) => form.setValue('apiKeySecretRef', value, { shouldValidate: true }),
+    [form],
+  );
+  const setSourceName = React.useCallback(
+    (value: string) => form.setValue('sourceName', value, { shouldValidate: true }),
+    [form],
+  );
+  const setDatasetUrl = React.useCallback(
+    (value: string) => form.setValue('datasetUrl', value, { shouldValidate: true }),
+    [form],
+  );
+  const setAccessToken = React.useCallback(
+    (value: string) => form.setValue('accessToken', value, { shouldValidate: true }),
+    [form],
+  );
+  const setExperimentMode = React.useCallback(
+    (mode: ExperimentMode) => form.setValue('experimentMode', mode, { shouldValidate: true }),
+    [form],
+  );
+  const setSelectedExperiment = React.useCallback(
+    (experiment: MlflowExperiment | undefined) =>
+      form.setValue('selectedExperimentName', experiment?.name, { shouldValidate: true }),
+    [form],
+  );
+  const setNewExperimentName = React.useCallback(
+    (value: string | ((prev: string) => string)) => {
+      const nextValue =
+        typeof value === 'function' ? value(form.getValues('newExperimentName')) : value;
+      form.setValue('newExperimentName', nextValue, { shouldValidate: true });
+    },
+    [form],
+  );
+  const setShowAdditionalArgs = React.useCallback(
+    (checked: boolean) => form.setValue('showAdditionalArgs', checked, { shouldValidate: true }),
+    [form],
+  );
 
   const handleAdditionalArgsFileChange = React.useCallback(
     (
@@ -401,7 +527,7 @@ export function useStartEvaluationRunForm({
       const reader = new FileReader();
       reader.onload = () => {
         const text = typeof reader.result === 'string' ? reader.result : '';
-        setAdditionalArgs(text);
+        form.setValue('additionalArgs', text, { shouldValidate: true });
       };
       reader.onerror = () => {
         notification.error('File read failed', `Unable to read file "${file.name}".`);
@@ -409,24 +535,24 @@ export function useStartEvaluationRunForm({
       };
       reader.readAsText(file);
     },
-    [notification],
+    [form, notification],
   );
 
   const handleAdditionalArgsTextChange = React.useCallback(
     (_event: React.ChangeEvent<HTMLTextAreaElement>, value: string) => {
-      setAdditionalArgs(value);
+      form.setValue('additionalArgs', value, { shouldValidate: true });
     },
-    [],
+    [form],
   );
 
   const handleAdditionalArgsClear = React.useCallback(() => {
     setAdditionalArgsFilename('');
-    setAdditionalArgs('');
-  }, []);
+    form.setValue('additionalArgs', '', { shouldValidate: true });
+  }, [form]);
 
-  // ── Cancel ──────────────────────────────────────────────────────────
+  const handleCancel = React.useCallback(() => {
+    abortControllerRef.current?.abort();
 
-  const handleCancel = () => {
     const sourceTypeLabel =
       sourceMode === 'model'
         ? ('model' as const)
@@ -435,7 +561,7 @@ export function useStartEvaluationRunForm({
           : ('pre_recorded_responses' as const);
 
     fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-      source: 'evaluations_page',
+      source: trackingSource,
       evaluationName: evaluationName.trim(),
       sourceType: sourceTypeLabel,
       hasAPIKey:
@@ -443,22 +569,37 @@ export function useStartEvaluationRunForm({
       hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
       outcome: TrackingOutcome.cancel,
     });
+    if (onCancel) {
+      onCancel();
+      return;
+    }
     navigate(evaluationsBaseRoute(namespace));
-  };
+  }, [
+    additionalArgs,
+    apiKeySecretRef,
+    evaluationName,
+    navigate,
+    namespace,
+    onCancel,
+    showAdditionalArgs,
+    sourceMode,
+    trackingSource,
+  ]);
 
-  // ── Submit ──────────────────────────────────────────────────────────
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (submitOverrides?: { collection?: Collection }) => {
     if (!isValid || isSubmitting) {
       return;
     }
 
+    const activeCollection = submitOverrides?.collection ?? collection;
+    const values = form.getValues();
+
     setIsSubmitting(true);
 
     const parsedArgs: Record<string, unknown> = {};
-    if (showAdditionalArgs && additionalArgs.trim()) {
+    if (values.showAdditionalArgs && values.additionalArgs.trim()) {
       try {
-        const parsed: unknown = JSON.parse(additionalArgs);
+        const parsed: unknown = JSON.parse(values.additionalArgs);
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
           notification.error(
             'Invalid benchmark parameters',
@@ -489,62 +630,64 @@ export function useStartEvaluationRunForm({
       }
     }
 
-    const isNewExperiment = experimentMode === 'new';
-    const experimentName = isNewExperiment ? newExperimentName.trim() : selectedExperiment?.name;
+    const isNewExperiment = values.experimentMode === 'new';
+    const experimentName = isNewExperiment
+      ? values.newExperimentName.trim()
+      : values.selectedExperimentName;
 
     const shouldIncludeThreshold = thresholdTouched || defaultThreshold > 0;
     const passCriteriaOverride = shouldIncludeThreshold
-      ? { threshold: threshold / 100 }
+      ? { threshold: values.threshold / 100 }
       : undefined;
 
-    const primaryScoreOverride = primaryMetric
+    const primaryScoreOverride = values.primaryMetric
       ? {
-          metric: primaryMetric,
+          metric: values.primaryMetric,
           // eslint-disable-next-line camelcase
           lower_is_better: benchmark?.primary_score?.lower_is_better ?? false,
         }
       : undefined;
 
     const resolvedModelName = (() => {
-      if (sourceMode === 'model') {
-        return modelSelection === 'cluster'
-          ? (selectedInferenceService?.name ?? '')
-          : modelName.trim();
+      if (values.sourceMode === 'model') {
+        return values.modelSelection === 'cluster'
+          ? (values.selectedInferenceServiceName ?? '')
+          : values.modelName.trim();
       }
-      if (sourceMode === 'agent') {
-        return agentName.trim();
+      if (values.sourceMode === 'agent') {
+        return values.agentName.trim();
       }
-      return sourceName.trim();
+      return values.sourceName.trim();
     })();
 
     const resolvedEndpointUrl = (() => {
-      if (sourceMode === 'model' && modelSelection === 'cluster') {
-        return selectedInferenceService?.url ?? '';
+      if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
+        return selectedInferenceServiceRef.current?.url ?? '';
       }
-      if (sourceMode === 'model' || sourceMode === 'agent') {
-        return endpointUrl.trim();
+      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
+        return values.endpointUrl.trim();
       }
       return '';
     })();
 
     const resolvedAuth = (() => {
-      if (sourceMode === 'model' || sourceMode === 'agent') {
-        return apiKeySecretRef.trim();
+      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
+        return values.apiKeySecretRef.trim();
       }
       return '';
     })();
 
     const request = buildEvaluationRequest({
-      evaluationName,
-      sourceMode,
+      evaluationName: values.evaluationName,
+      sourceMode: values.sourceMode,
       benchmark,
-      collection,
+      collection: activeCollection,
       modelName: resolvedModelName,
       endpointUrl: resolvedEndpointUrl,
       apiKeySecretRef: resolvedAuth,
-      sourceName: sourceName.trim(),
-      datasetUrl: datasetUrl.trim(),
-      accessToken: accessToken.trim(),
+      sourceName: values.sourceName.trim(),
+      datasetUrl: values.datasetUrl.trim(),
+      accessToken: values.accessToken.trim(),
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
       experimentTags: undefined,
@@ -556,26 +699,26 @@ export function useStartEvaluationRunForm({
       experimentSelection: isNewExperiment
         ? 'new'
         : !experimentManuallyChangedRef.current &&
-            selectedExperiment?.name === DEFAULT_EXPERIMENT_NAME
+            selectedExperimentName === DEFAULT_EXPERIMENT_NAME
           ? 'default'
           : 'existing',
       experimentName,
     });
 
     const sourceTypeLabel =
-      sourceMode === 'model'
+      values.sourceMode === 'model'
         ? ('model' as const)
-        : sourceMode === 'agent'
+        : values.sourceMode === 'agent'
           ? ('agent' as const)
           : ('pre_recorded_responses' as const);
 
     const runTrackingProps = {
-      source: 'evaluations_page',
-      evaluationName: evaluationName.trim(),
+      source: trackingSource,
+      evaluationName: values.evaluationName.trim(),
       sourceType: sourceTypeLabel,
-      modelName: sourceMode !== 'prerecorded' ? resolvedModelName : undefined,
+      modelName: values.sourceMode !== 'prerecorded' ? resolvedModelName : undefined,
       endpointOrigin: (() => {
-        if (sourceMode === 'prerecorded') {
+        if (values.sourceMode === 'prerecorded') {
           return undefined;
         }
         try {
@@ -585,11 +728,14 @@ export function useStartEvaluationRunForm({
         }
       })(),
       hasAPIKey:
-        sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
-      sourceName: sourceMode === 'prerecorded' ? sourceName.trim() : undefined,
-      hasDatasetURL: sourceMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
-      hasAccessToken: sourceMode === 'prerecorded' ? accessToken.trim() !== '' : false,
-      hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
+        values.sourceMode === 'model' || values.sourceMode === 'agent'
+          ? values.apiKeySecretRef.trim() !== ''
+          : false,
+      sourceName: values.sourceMode === 'prerecorded' ? values.sourceName.trim() : undefined,
+      hasDatasetURL: values.sourceMode === 'prerecorded' ? values.datasetUrl.trim() !== '' : false,
+      hasAccessToken:
+        values.sourceMode === 'prerecorded' ? values.accessToken.trim() !== '' : false,
+      hasAdditionalArguments: values.showAdditionalArgs && values.additionalArgs.trim() !== '',
       countOfAdditionalArguments: Object.keys(parsedArgs).length,
     };
 
@@ -598,6 +744,9 @@ export function useStartEvaluationRunForm({
 
     try {
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
+      if (controller.signal.aborted) {
+        return;
+      }
       fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
         ...runTrackingProps,
         outcome: TrackingOutcome.submit,
@@ -605,9 +754,13 @@ export function useStartEvaluationRunForm({
       });
       notification.success(
         'Evaluation started',
-        `Evaluation "${evaluationName}" has been started.`,
+        `Evaluation "${values.evaluationName}" has been started.`,
       );
-      navigate(evaluationsBaseRoute(namespace));
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate(evaluationsBaseRoute(namespace));
+      }
     } catch (e) {
       if (controller.signal.aborted) {
         return;
@@ -626,6 +779,7 @@ export function useStartEvaluationRunForm({
   };
 
   return {
+    form,
     evaluationName,
     setEvaluationName,
     sourceMode,

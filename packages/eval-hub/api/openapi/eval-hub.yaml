@@ -209,6 +209,48 @@ paths:
       summary: Get Collection by ID
       description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
 
+  /eval-hub/api/v1/evaluations/collections/{id}/clones:
+    summary: Clone a benchmark collection
+    description: >-
+      Creates a tenant-scoped copy of an existing benchmark collection.
+      The request body can optionally override the name, description,
+      category, tags, custom metadata, benchmarks, and pass criteria of the
+      cloned collection.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneCollectionRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: cloneCollection
+      summary: Clone a benchmark collection
+      description: >-
+        Creates a tenant-scoped copy of an existing benchmark collection with optional overrides.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -996,7 +1038,15 @@ components:
       properties:
         id:
           type: string
-          description: ID of the benchmark collection to run
+          minLength: 1
+          pattern: '\S'
+          description: Non-blank ID of the benchmark collection to run
+        benchmarks:
+          type: array
+          description: Optional benchmark configurations to apply for this collection run.
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
+          nullable: true
 
     OciCoordinates:
       type: object
@@ -1251,7 +1301,12 @@ components:
       required:
         - name
         - model
-        - benchmarks
+      anyOf:
+        - required:
+            - benchmarks
+        - required:
+            - collection
+      description: A non-empty benchmarks array or a collection with a non-blank ID is required.
       properties:
         name:
           type: string
@@ -1413,6 +1468,41 @@ components:
           items:
             $ref: '#/components/schemas/CollectionBenchmark'
           nullable: true
+
+    CloneCollectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'My Custom Suite'
+        description:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        custom:
+          type: object
+          description: User-defined metadata to apply to the cloned collection.
+          properties:
+            evaluates:
+              type: array
+              description: Targets evaluated by this collection.
+              items:
+                type: string
+          additionalProperties: true
+          nullable: true
+          example:
+            evaluates:
+              - agent
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
 
     CollectionsData:
       type: object

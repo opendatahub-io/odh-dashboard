@@ -1,0 +1,24 @@
+.evalhub-benchmark-weights-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--lg);
+}
+
+.evalhub-benchmark-weights-modal__intro {
+  margin: 0;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.evalhub-benchmark-weights-modal__sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--pf-t--global--z-index--sm);
+  padding-block: var(--pf-t--global--spacer--sm);
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+.evalhub-benchmark-weights-modal__sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--lg);
+}

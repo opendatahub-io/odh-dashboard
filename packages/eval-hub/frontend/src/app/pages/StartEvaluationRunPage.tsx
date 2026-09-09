@@ -597,7 +597,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             <Button
               variant="primary"
               data-testid="start-evaluation-submit"
-              onClick={form.handleSubmit}
+              onClick={() => form.handleSubmit()}
               isDisabled={!form.isValid || form.isSubmitting}
               isLoading={form.isSubmitting}
             >
