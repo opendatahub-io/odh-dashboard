@@ -21,7 +21,8 @@ export type MCPServerFromAPI = {
   /** Server status from ConfigMap validation */
   status: 'healthy' | 'error' | 'unknown';
   version: string;
-  source?: 'registry' | 'configmap';
+  /** Origin of the server, e.g. "registry" or "configmap" */
+  source?: string;
   tools: MCPTool[];
   tool_count: number;
 };
@@ -181,8 +182,8 @@ export interface MCPServer {
   connectionUrl: string;
   tools: number;
   toolsList?: MCPTool[];
-  source?: 'registry' | 'configmap';
+  /** Origin of the server, e.g. "registry" or "configmap" */
+  source?: string;
   version: string;
   logo: string | null;
-  /** Origin of the server: "registry" or "configmap" */
 }
