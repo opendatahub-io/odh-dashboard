@@ -73,6 +73,8 @@ export const getPVCContextStorageType = (
 };
 
 export const getContextStorageTypeExplanation = (types: StorageContextType[]): string =>
-  `The context indicates the purpose of the storage: ${new Intl.ListFormat('en', {
-    type: 'disjunction',
-  }).format(types.map((value) => value.title.toLocaleLowerCase()))}.`;
+  types.length > 0
+    ? `The context indicates the purpose of the storage: ${new Intl.ListFormat('en', {
+        type: 'disjunction',
+      }).format(types.map((value) => value.title.toLocaleLowerCase()))}.`
+    : 'The context indicates the purpose of the storage.';
