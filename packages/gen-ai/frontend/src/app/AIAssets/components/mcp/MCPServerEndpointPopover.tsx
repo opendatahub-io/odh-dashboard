@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Popover, ClipboardCopy, Content, ContentVariants } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 
 const MCP_CATALOG_PATH = '/ai-hub/mcp-servers';
 
@@ -25,7 +26,7 @@ const MCPServerEndpointPopover: React.FC<MCPServerEndpointPopoverProps> = ({
         {source === 'registry' && (
           <Content component={ContentVariants.small} className="pf-v6-u-mt-md">
             For authentication information refer to the{' '}
-            <a href={MCP_CATALOG_PATH}>catalog listing</a> for this server.
+            <Link to={MCP_CATALOG_PATH}>catalog listing</Link> for this server.
           </Content>
         )}
       </div>

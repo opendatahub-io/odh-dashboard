@@ -17,21 +17,29 @@ const useFetchMCPServers = (): {
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const fetchAttempted = React.useRef(false);
+  const generationRef = React.useRef(0);
   const [retryCount, setRetryCount] = React.useState(0);
 
   React.useEffect(() => {
     if (apiAvailable && !fetchAttempted.current) {
       fetchAttempted.current = true;
+      const generation = ++generationRef.current;
 
       api
         .getMCPServers({})
         .then((response) => {
+          if (generation !== generationRef.current) {
+            return;
+          }
           setData(response.servers ?? []);
           setConfigMapName(response.config_map_info?.name ?? null);
           setRegistryAvailable(response.registry_available ?? false);
           setLoaded(true);
         })
         .catch((err) => {
+          if (generation !== generationRef.current) {
+            return;
+          }
           // eslint-disable-next-line no-console
           console.error('[useFetchMCPServers] Error fetching MCP servers:', err);
           setError(err);
@@ -42,6 +50,7 @@ const useFetchMCPServers = (): {
   }, [apiAvailable, api, retryCount]);
 
   const refetch = React.useCallback(() => {
+    generationRef.current++;
     fetchAttempted.current = false;
     setLoaded(false);
     setError(undefined);

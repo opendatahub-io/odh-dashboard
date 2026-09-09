@@ -15,10 +15,12 @@ interface MCPServerTableRowProps {
   isStatusLoading?: boolean;
 }
 
-const SOURCE_LABELS: Record<string, string> = {
-  configmap: 'Manual',
-  registry: 'Registered',
-};
+const SOURCE_LABELS: ReadonlyMap<string, string> = new Map(
+  Object.entries({
+    configmap: 'Manual',
+    registry: 'Registered',
+  }),
+);
 
 const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
   server,
@@ -52,7 +54,7 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
       </MCPServerEndpointPopover>
     </Td>
     <Td dataLabel="Source">
-      {(server.source && SOURCE_LABELS[server.source]) ?? server.source ?? '-'}
+      {(server.source && SOURCE_LABELS.get(server.source)) ?? server.source ?? '-'}
     </Td>
     <Td dataLabel="Version">{server.version || '-'}</Td>
   </Tr>

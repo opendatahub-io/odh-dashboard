@@ -35,16 +35,12 @@ const AIAssetsMCPTab: React.FC = () => {
     errorTitle = 'Unable to load MCP servers';
     errorDescription = 'An error occurred while loading MCP servers. Try refreshing the page.';
     errorIcon = ExclamationCircleIcon;
-  }
-
-  if (servers.length === 0 && !registryAvailable) {
+  } else if (servers.length === 0 && !registryAvailable) {
     errorTitle = 'Unable to load MCP servers';
     errorDescription =
       'The MCP registry is unavailable and no manually configured servers exist in this project.';
     errorIcon = ExclamationCircleIcon;
-  }
-
-  if (servers.length === 0) {
+  } else if (servers.length === 0) {
     errorTitle = 'No MCP servers available';
     errorDescription = 'No MCP servers are configured for this project.';
     errorIcon = CubesIcon;
