@@ -1,18 +1,55 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import { CubeIcon } from '@patternfly/react-icons';
-import {
-  chart_color_blue_200 as chartColorBlue,
-  chart_color_green_200 as chartColorGreen,
-  chart_color_purple_200 as chartColorPurple,
-  chart_color_black_500 as chartColorBlack,
-} from '@patternfly/react-tokens';
 import DataSourceIcon from '../icons/lineage-icons/DataSourceIcon';
 import FeatureViewIcon from '../icons/lineage-icons/FeatureViewIcon';
 import FeatureServiceIcon from '../icons/lineage-icons/FeatureServiceIcon';
 import EntityIcon from '../icons/lineage-icons/EntityIcon';
+import {
+  FeatureStoreObjectType,
+  getFeatureStoreObjectBackgroundColor,
+  getFeatureStoreObjectIconColor,
+} from '../utils';
 
 export type FsObjectType = 'entity' | 'data_source' | 'feature_view' | 'feature_service';
+
+const entityTypeToFsObjectType = (entityType: LineageEntityType): FeatureStoreObjectType => {
+  switch (entityType) {
+    case 'entity':
+      return 'entity';
+    case 'batch_data_source':
+    case 'push_data_source':
+    case 'request_data_source':
+      return 'data_source';
+    case 'batch_feature_view':
+    case 'on_demand_feature_view':
+    case 'stream_feature_view':
+      return 'feature_view';
+    case 'feature_service':
+      return 'feature_service';
+    default:
+      return 'entity';
+  }
+};
+
+export const getEntityTypeBackgroundColor = (entityType: LineageEntityType): string =>
+  getFeatureStoreObjectBackgroundColor(entityTypeToFsObjectType(entityType));
+
+export const getEntityTypeIconColor = (entityType: LineageEntityType, selected = false): string =>
+  selected
+    ? 'var(--ai-fs-lineage-pill--AccentIconColor)'
+    : getFeatureStoreObjectIconColor(entityTypeToFsObjectType(entityType));
+
+export const LINEAGE_OBJECT_TYPE_LEGEND: {
+  type: FsObjectType;
+  label: string;
+  entityType: LineageEntityType;
+}[] = [
+  { type: 'entity', label: 'Entity', entityType: 'entity' },
+  { type: 'data_source', label: 'Data source', entityType: 'batch_data_source' },
+  { type: 'feature_view', label: 'Feature view', entityType: 'batch_feature_view' },
+  { type: 'feature_service', label: 'Feature service', entityType: 'feature_service' },
+];
 
 export type LineageEntityType =
   | 'entity'
@@ -27,29 +64,28 @@ export type LineageEntityType =
 export const getEntityTypeIcon = (
   entityType: LineageEntityType,
   selected = false,
+  iconSizePx = 24,
+  inheritColor = false,
 ): React.ReactNode => {
-  const iconColor = selected ? '#ffffff' : undefined;
-  const iconSize = { width: '24px', height: '24px' };
+  const iconSize = { width: `${iconSizePx}px`, height: `${iconSizePx}px` };
+  const iconColor = getEntityTypeIconColor(entityType, selected);
+  const iconStyle = inheritColor ? iconSize : { color: iconColor, fill: iconColor, ...iconSize };
 
   switch (entityType) {
     case 'entity':
-      return <EntityIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return <EntityIcon style={iconStyle} />;
     case 'batch_data_source':
     case 'push_data_source':
     case 'request_data_source':
-      return <DataSourceIcon style={{ color: iconColor || chartColorBlue.value, ...iconSize }} />;
+      return <DataSourceIcon style={iconStyle} />;
     case 'batch_feature_view':
     case 'on_demand_feature_view':
     case 'stream_feature_view':
-      return (
-        <FeatureViewIcon style={{ color: iconColor || chartColorPurple.value, ...iconSize }} />
-      );
+      return <FeatureViewIcon style={iconStyle} />;
     case 'feature_service':
-      return (
-        <FeatureServiceIcon style={{ color: iconColor || chartColorGreen.value, ...iconSize }} />
-      );
+      return <FeatureServiceIcon style={iconStyle} />;
     default:
-      return <CubeIcon style={{ color: iconColor || chartColorBlack.value, ...iconSize }} />;
+      return <CubeIcon style={iconStyle} />;
   }
 };
 
