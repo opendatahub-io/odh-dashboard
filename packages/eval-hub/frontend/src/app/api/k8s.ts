@@ -287,7 +287,7 @@ export const deleteCollection =
         `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/${encodeURIComponent(collectionId)}`,
         {},
         { namespace },
-        opts,
+        { ...opts, parseJSON: false },
       ),
     ).then(() => undefined);
   };

@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
 const mockRefresh = jest.fn();
+const mockUseCollectionsQuery = jest.fn();
 const mockUseEvaluationJobs = jest.fn<
   [EvaluationJob[], boolean, Error | undefined, jest.Mock],
   []
@@ -74,11 +76,7 @@ jest.mock('~/app/context/CollectionsContext', () => ({
 }));
 
 jest.mock('~/app/hooks/collections', () => ({
-  useCollectionsQuery: jest.fn().mockReturnValue({
-    data: { items: [] },
-    isLoading: false,
-    error: null,
-  }),
+  useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
   useDeleteCollectionMutation: jest.fn().mockReturnValue({
     error: null,
     isPending: false,
@@ -135,6 +133,11 @@ describe('EvaluationsPage', () => {
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockUseCollectionsQuery.mockReturnValue({
+      data: { items: mockBenchmarkSuiteCollections() },
+      isLoading: false,
+      error: null,
+    });
   });
 
   it('should render the page with correct title and description', () => {

@@ -325,7 +325,7 @@ describe('deleteCollection', () => {
     (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
   });
 
-  it('should call restDELETE with the collection URL and namespace', async () => {
+  it('should call restDELETE without parsing the empty 204 response', async () => {
     mockRestDELETE.mockResolvedValue({});
 
     const opts = {};
@@ -336,8 +336,14 @@ describe('deleteCollection', () => {
       '/eval-hub/api/v1/evaluations/collections/col-1',
       {},
       { namespace: 'my-ns' },
-      opts,
+      { ...opts, parseJSON: false },
     );
+  });
+
+  it('should resolve when the BFF returns no content', async () => {
+    mockRestDELETE.mockResolvedValue('');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
   });
 
   it('should encode the collection ID in the URL', async () => {
