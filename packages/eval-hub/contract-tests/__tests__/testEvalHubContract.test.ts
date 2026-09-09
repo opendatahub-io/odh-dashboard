@@ -57,6 +57,56 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
+  describe('Create Collection Endpoint', () => {
+    it('should create a collection with metadata and AI entity arrays', async () => {
+      const createRequest = {
+        name: 'New Collection',
+        description: 'A collection created from the suite form',
+        domains: ['safety'],
+        tasks: ['reasoning'],
+        modalities: ['text'],
+        industries: ['health'],
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        ai_entities: ['model'],
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        pass_criteria: { threshold: 0.7 },
+        benchmarks: [
+          {
+            id: 'arc_challenge',
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            provider_id: 'lm_evaluation_harness',
+          },
+        ],
+      };
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections?namespace=default',
+        createRequest,
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionResponse/content/application/json/schema',
+        status: 201,
+      });
+      if (result.success) {
+        expect(result.response.data).toMatchObject({
+          data: {
+            name: createRequest.name,
+            description: createRequest.description,
+            domains: createRequest.domains,
+            tasks: createRequest.tasks,
+            modalities: createRequest.modalities,
+            industries: createRequest.industries,
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            ai_entities: createRequest.ai_entities,
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            pass_criteria: createRequest.pass_criteria,
+            benchmarks: createRequest.benchmarks,
+          },
+        });
+      }
+    });
+  });
+
   describe('Clone Collection Endpoint', () => {
     it('should clone a collection with custom metadata and benchmark overrides', async () => {
       const cloneRequest = {
@@ -64,7 +114,12 @@ describe('EvalHub API Contract Tests', () => {
         description: 'A collection configured for agent evaluation',
         category: 'Safety',
         tags: ['custom', 'agent'],
-        ['ai_entities']: ['agent'],
+        domains: ['safety', 'reasoning'],
+        tasks: ['classification'],
+        modalities: ['text'],
+        industries: ['technology'],
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        ai_entities: ['agent'],
         custom: {
           source: 'copy-suite',
         },
@@ -96,7 +151,12 @@ describe('EvalHub API Contract Tests', () => {
             description: cloneRequest.description,
             category: cloneRequest.category,
             tags: cloneRequest.tags,
-            ['ai_entities']: cloneRequest['ai_entities'],
+            domains: cloneRequest.domains,
+            tasks: cloneRequest.tasks,
+            modalities: cloneRequest.modalities,
+            industries: cloneRequest.industries,
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            ai_entities: cloneRequest.ai_entities,
             custom: cloneRequest.custom,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             pass_criteria: cloneRequest.pass_criteria,

@@ -102,6 +102,59 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 	}
 }
 
+func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+
+	var input evalhub.CreateCollectionRequest
+	if err := app.ReadJSON(w, r, &input); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if strings.TrimSpace(input.Name) == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("name is required"))
+		return
+	}
+	if len(input.Benchmarks) == 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark is required"))
+		return
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+	}
+
+	collection, err := client.CreateCollection(ctx, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to create collection")
+		return
+	}
+	if collection == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned empty response for collection"))
+		return
+	}
+
+	if collection.Resource.ID == "" || collection.Name == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned collection with missing required fields (id=%q, name=%q)", collection.Resource.ID, collection.Name))
+		return
+	}
+
+	envelope := CollectionEnvelope{Data: *collection}
+	if err := app.WriteJSON(w, http.StatusCreated, envelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 

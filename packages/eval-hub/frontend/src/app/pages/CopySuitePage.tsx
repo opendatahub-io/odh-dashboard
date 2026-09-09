@@ -31,8 +31,14 @@ import { useCopySuiteForm } from './useCopySuiteForm';
 import './CopySuitePage.scss';
 
 type CopySuiteStep = 'settings' | 'benchmarks';
+type SuiteEditorMode = 'copy' | 'create';
 
-const CopySuitePage: React.FC = () => {
+type SuiteEditorPageProps = {
+  mode: SuiteEditorMode;
+};
+
+const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
+  const isCreateMode = mode === 'create';
   const { namespace, collectionId } = useParams<{
     namespace: string;
     collectionId: string;
@@ -45,19 +51,23 @@ const CopySuitePage: React.FC = () => {
 
   const fetchCollection = React.useCallback<FetchStateCallbackPromise<Collection>>(
     (opts) => {
+      if (isCreateMode) {
+        return Promise.resolve({ resource: { id: '' }, name: '' });
+      }
       if (!namespace || !collectionId) {
         return Promise.reject(new NotReadyError('Missing namespace or collection ID'));
       }
       return getCollection('', namespace, collectionId)(opts);
     },
-    [namespace, collectionId],
+    [isCreateMode, namespace, collectionId],
   );
 
-  const [sourceCollection, loaded, loadError] = useFetchState<Collection | undefined>(
+  const [fetchedCollection, loaded, loadError] = useFetchState<Collection | undefined>(
     fetchCollection,
     undefined,
     { initialPromisePurity: true },
   );
+  const sourceCollection = isCreateMode ? undefined : fetchedCollection;
 
   const { providers, loaded: providersLoaded } = useProviders(namespace ?? '');
 
@@ -66,26 +76,18 @@ const CopySuitePage: React.FC = () => {
     sourceCollection,
     providers,
     providersLoaded,
+    mode,
     onSaveAndRunRequest: () => setIsRunModalOpen(true),
   });
   const isPageInteractionDisabled = isClonePending || form.isSubmitting;
 
-  const pendingCollection = form.buildPendingCollection();
+  const pendingCollection = isCreateMode ? undefined : form.buildPendingCollection();
 
-  const availableCategories = React.useMemo(() => {
-    const categories = new Set<string>();
-    if (sourceCollection?.category) {
-      categories.add(sourceCollection.category);
-    }
-    if (form.suiteCategory && form.suiteCategory !== sourceCollection?.category) {
-      categories.add(form.suiteCategory);
-    }
-    return [...categories];
-  }, [sourceCollection, form.suiteCategory]);
-
-  const collectionsBreadcrumbLabel = sourceCollection?.category
-    ? `${formatCategory(sourceCollection.category)} benchmark suites`
-    : 'Benchmark suites';
+  const collectionsBreadcrumbLabel = isCreateMode
+    ? 'Benchmark suites'
+    : sourceCollection?.category
+      ? `${formatCategory(sourceCollection.category)} benchmark suites`
+      : 'Benchmark suites';
 
   const renderBreadcrumbLink = React.useCallback(
     (to: string, label: React.ReactNode, testId: string) => {
@@ -110,7 +112,7 @@ const CopySuitePage: React.FC = () => {
     [isPageInteractionDisabled],
   );
 
-  if (!loaded || !providersLoaded) {
+  if ((!isCreateMode && !loaded) || !providersLoaded) {
     return (
       <Bullseye>
         <Spinner aria-label="Loading benchmark suite" />
@@ -118,7 +120,7 @@ const CopySuitePage: React.FC = () => {
     );
   }
 
-  if (loadError || !sourceCollection) {
+  if (!isCreateMode && (loadError || !sourceCollection)) {
     return (
       <Bullseye>
         <EmptyState
@@ -172,7 +174,9 @@ const CopySuitePage: React.FC = () => {
             }
           />
           {currentStep === 'settings' ? (
-            <BreadcrumbItem isActive>Customize benchmark suite</BreadcrumbItem>
+            <BreadcrumbItem isActive>
+              {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
+            </BreadcrumbItem>
           ) : (
             <>
               <BreadcrumbItem
@@ -189,7 +193,7 @@ const CopySuitePage: React.FC = () => {
                     isDisabled={isPageInteractionDisabled}
                     data-testid="copy-suite-breadcrumb-settings"
                   >
-                    Customize benchmark suite
+                    {isCreateMode ? 'Create suite' : 'Customize benchmark suite'}
                   </Button>
                 )}
               />
@@ -214,16 +218,16 @@ const CopySuitePage: React.FC = () => {
               data-testid="app-page-title"
               className="pf-v6-u-mt-0 pf-v6-u-mb-0"
             >
-              Copy suite
+              {isCreateMode ? 'Create suite' : 'Copy suite'}
             </Content>
             <Content component="p" data-testid="copy-suite-description">
-              Customize benchmarks, thresholds, and metrics before adding this suite to your
-              dashboard.
+              {isCreateMode
+                ? 'Create a benchmark suite by choosing its metadata, benchmarks, thresholds, and metrics.'
+                : 'Customize benchmarks, thresholds, and metrics before adding this suite to your dashboard.'}
             </Content>
 
             {currentStep === 'settings' ? (
               <CopySuiteSettingsStep
-                availableCategories={availableCategories}
                 onNext={() => setCurrentStep('benchmarks')}
                 onCancel={form.handleCancel}
               />
@@ -241,14 +245,16 @@ const CopySuitePage: React.FC = () => {
                 onUpdateBenchmark={form.updateBenchmark}
                 onApplyBenchmarkSelection={form.applyBenchmarkSelection}
                 onWeightsChange={form.handleWeightsChange}
+                onBack={() => setCurrentStep('settings')}
                 onSaveAndRun={form.handleSaveAndRun}
                 onSaveOnly={form.handleSaveOnly}
+                primaryActionTestId={isCreateMode ? 'create-suite-submit' : undefined}
                 onCancel={form.handleCancel}
               />
             )}
           </div>
         </FormProvider>
-        {isRunModalOpen && pendingCollection ? (
+        {isRunModalOpen && (isCreateMode || pendingCollection) ? (
           <StartEvaluationRunModal
             isOpen={isRunModalOpen}
             onClose={() => setIsRunModalOpen(false)}
@@ -257,10 +263,14 @@ const CopySuitePage: React.FC = () => {
             isCollectionFlow
             defaultEvaluationName={form.suiteName}
             defaultSourceMode={suiteEvaluatesToSourceMode(form.suiteEvaluates)}
-            modalId="copy-suite-run-evaluation-modal"
-            resolveCollection={form.cloneCollectionForRun}
+            modalId={
+              isCreateMode ? 'create-suite-run-evaluation-modal' : 'copy-suite-run-evaluation-modal'
+            }
+            resolveCollection={
+              isCreateMode ? form.createCollectionForRun : form.cloneCollectionForRun
+            }
             onClonePendingChange={setIsClonePending}
-            trackingSource="copy_suite"
+            trackingSource={isCreateMode ? 'create_suite' : 'copy_suite'}
             onSuccess={() => {
               setIsRunModalOpen(false);
               navigate(evaluationsBaseRoute(namespace));
@@ -271,5 +281,9 @@ const CopySuitePage: React.FC = () => {
     </ApplicationsPage>
   );
 };
+
+const CopySuitePage: React.FC = () => <SuiteEditorPage mode="copy" />;
+
+export const CreateSuitePage: React.FC = () => <SuiteEditorPage mode="create" />;
 
 export default CopySuitePage;

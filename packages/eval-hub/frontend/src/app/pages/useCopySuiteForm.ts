@@ -8,7 +8,7 @@ import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationCollectionsRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
-import { cloneCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
 import {
@@ -17,7 +17,13 @@ import {
   RESERVED_BENCHMARK_PARAMETER_KEYS,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
-import type { Collection, CollectionBenchmark, Provider, ProviderBenchmark } from '~/app/types';
+import type {
+  Collection,
+  CollectionBenchmark,
+  CreateCollectionRequest,
+  Provider,
+  ProviderBenchmark,
+} from '~/app/types';
 
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
@@ -104,11 +110,16 @@ const buildCustomMetadata = (sourceCustom: unknown): Record<string, unknown> =>
       : [],
   );
 
+const uniqueCollectionMetadata = (values: string[] | undefined): string[] => [
+  ...new Set(values ?? []),
+];
+
 type UseCopySuiteFormParams = {
   namespace: string | undefined;
   sourceCollection: Collection | undefined;
   providers: Provider[];
   providersLoaded: boolean;
+  mode?: 'copy' | 'create';
   onSaveAndRunRequest?: () => void;
 };
 
@@ -116,8 +127,11 @@ type BuildPendingCollectionParams = {
   sourceCollection: Collection;
   suiteName: string;
   suiteDescription: string;
-  suiteCategory: string;
-  suiteEvaluates: SuiteEvaluatesOption;
+  suiteDomains: string[];
+  suiteTasks: string[];
+  suiteModalities: string[];
+  suiteIndustries: string[];
+  suiteEvaluates: SuiteEvaluatesOption[];
   suiteThreshold: number;
   benchmarks: CopySuiteBenchmark[];
 };
@@ -126,7 +140,10 @@ export const buildPendingCollection = ({
   sourceCollection,
   suiteName,
   suiteDescription,
-  suiteCategory,
+  suiteDomains,
+  suiteTasks,
+  suiteModalities,
+  suiteIndustries,
   suiteEvaluates,
   suiteThreshold,
   benchmarks,
@@ -151,9 +168,12 @@ export const buildPendingCollection = ({
     ...sourceCollection,
     name: suiteName.trim(),
     description: suiteDescription.trim() || undefined,
-    category: suiteCategory || undefined,
+    domains: suiteDomains,
+    tasks: suiteTasks,
+    modalities: suiteModalities,
+    industries: suiteIndustries,
     // eslint-disable-next-line camelcase
-    ai_entities: [suiteEvaluates],
+    ai_entities: suiteEvaluates,
     custom: buildCustomMetadata(sourceCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
@@ -238,32 +258,31 @@ const normalizeWeights = (weights: number[]): number[] => {
 const resolveInitialEvaluates = (
   collection: Collection,
   providers: Provider[],
-): SuiteEvaluatesOption => {
-  const aiEntities = collection.ai_entities;
-  if (Array.isArray(aiEntities) && aiEntities.length > 0) {
-    const first = aiEntities[0];
-    if (isSuiteEvaluatesOption(first)) {
-      return first;
-    }
+): SuiteEvaluatesOption[] => {
+  const normalizeEvaluates = (value: unknown): SuiteEvaluatesOption[] => {
+    const values = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+    return [...new Set(values.filter(isSuiteEvaluatesOption))];
+  };
+
+  const aiEntities = normalizeEvaluates(collection.ai_entities);
+  if (aiEntities.length > 0) {
+    return aiEntities;
   }
 
-  const customEvaluates = collection.custom?.evaluates;
-  if (Array.isArray(customEvaluates) && customEvaluates.length > 0) {
-    const first = customEvaluates[0];
-    if (isSuiteEvaluatesOption(first)) {
-      return first;
-    }
+  const customEvaluates = normalizeEvaluates(collection.custom?.evaluates);
+  if (customEvaluates.length > 0) {
+    return customEvaluates;
   }
 
   for (const benchmark of collection.benchmarks ?? []) {
     const provider = providers.find((item) => item.resource.id === benchmark.provider_id);
     const match = provider?.agent?.evaluates?.find((value) => isSuiteEvaluatesOption(value));
     if (match) {
-      return match;
+      return [match];
     }
   }
 
-  return 'agent';
+  return [];
 };
 
 const buildBenchmarkFromProvider = (
@@ -377,7 +396,12 @@ const buildInitialFormValues = (
 ): CopySuiteFormValues => ({
   suiteName: buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
-  suiteCategory: sourceCollection.category ?? '',
+  suiteDomains: uniqueCollectionMetadata(
+    sourceCollection.domains ?? (sourceCollection.category ? [sourceCollection.category] : []),
+  ),
+  suiteTasks: uniqueCollectionMetadata(sourceCollection.tasks),
+  suiteModalities: uniqueCollectionMetadata(sourceCollection.modalities),
+  suiteIndustries: uniqueCollectionMetadata(sourceCollection.industries),
   suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
   suiteThreshold: sourceCollection.pass_criteria
     ? normalizeThreshold(sourceCollection.pass_criteria.threshold)
@@ -391,10 +415,12 @@ export function useCopySuiteForm({
   sourceCollection,
   providers,
   providersLoaded,
+  mode = 'copy',
   onSaveAndRunRequest,
 }: UseCopySuiteFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
+  const isCreateMode = mode === 'create';
 
   const form = useForm<CopySuiteFormValues>({
     mode: 'onChange',
@@ -405,26 +431,42 @@ export function useCopySuiteForm({
 
   const initializedRef = React.useRef(false);
   React.useEffect(() => {
-    if (!sourceCollection || initializedRef.current || !providersLoaded) {
+    if (initializedRef.current || !providersLoaded || (!isCreateMode && !sourceCollection)) {
       return;
     }
     initializedRef.current = true;
-    form.reset(buildInitialFormValues(sourceCollection, providers));
+    form.reset(
+      sourceCollection
+        ? buildInitialFormValues(sourceCollection, providers)
+        : copySuiteDefaultValues,
+    );
     void form.trigger();
-  }, [sourceCollection, providers, providersLoaded, form]);
+  }, [sourceCollection, providers, providersLoaded, form, isCreateMode]);
 
-  const [suiteName, suiteDescription, suiteCategory, suiteEvaluates, suiteThreshold, benchmarks] =
-    useWatch({
-      control: form.control,
-      name: [
-        'suiteName',
-        'suiteDescription',
-        'suiteCategory',
-        'suiteEvaluates',
-        'suiteThreshold',
-        'benchmarks',
-      ],
-    });
+  const [
+    suiteName,
+    suiteDescription,
+    suiteDomains,
+    suiteTasks,
+    suiteModalities,
+    suiteIndustries,
+    suiteEvaluates,
+    suiteThreshold,
+    benchmarks,
+  ] = useWatch({
+    control: form.control,
+    name: [
+      'suiteName',
+      'suiteDescription',
+      'suiteDomains',
+      'suiteTasks',
+      'suiteModalities',
+      'suiteIndustries',
+      'suiteEvaluates',
+      'suiteThreshold',
+      'benchmarks',
+    ],
+  });
 
   const totalWeight = React.useMemo(
     () => benchmarks.reduce((sum, b) => sum + b.weight, 0),
@@ -453,12 +495,8 @@ export function useCopySuiteForm({
     (value: string) => form.setValue('suiteDescription', value, { shouldValidate: true }),
     [form],
   );
-  const setSuiteCategory = React.useCallback(
-    (value: string) => form.setValue('suiteCategory', value, { shouldValidate: true }),
-    [form],
-  );
   const setSuiteEvaluates = React.useCallback(
-    (value: SuiteEvaluatesOption) =>
+    (value: SuiteEvaluatesOption[]) =>
       form.setValue('suiteEvaluates', value, { shouldValidate: true }),
     [form],
   );
@@ -564,15 +602,26 @@ export function useCopySuiteForm({
     return {
       name: values.suiteName.trim(),
       description: values.suiteDescription.trim() || undefined,
-      category: values.suiteCategory || undefined,
+      domains: values.suiteDomains,
+      tasks: values.suiteTasks,
+      modalities: values.suiteModalities,
+      industries: values.suiteIndustries,
       // eslint-disable-next-line camelcase
-      ai_entities: [values.suiteEvaluates],
+      ai_entities: values.suiteEvaluates,
       custom: buildCustomMetadata(sourceCollection?.custom),
       // eslint-disable-next-line camelcase
       pass_criteria: { threshold: values.suiteThreshold / 100 },
       benchmarks: normalizedBenchmarks,
     };
   }, [form, sourceCollection]);
+
+  const buildCreateRequest = React.useCallback(
+    (): CreateCollectionRequest => ({
+      ...buildCloneRequest(),
+      custom: undefined,
+    }),
+    [buildCloneRequest],
+  );
 
   const getPendingCollection = React.useCallback((): Collection | undefined => {
     if (!sourceCollection) {
@@ -583,7 +632,10 @@ export function useCopySuiteForm({
       sourceCollection,
       suiteName: values.suiteName,
       suiteDescription: values.suiteDescription,
-      suiteCategory: values.suiteCategory,
+      suiteDomains: values.suiteDomains,
+      suiteTasks: values.suiteTasks,
+      suiteModalities: values.suiteModalities,
+      suiteIndustries: values.suiteIndustries,
       suiteEvaluates: values.suiteEvaluates,
       suiteThreshold: values.suiteThreshold,
       benchmarks: values.benchmarks,
@@ -643,15 +695,69 @@ export function useCopySuiteForm({
     [sourceCollection, namespace, form, buildCloneRequest, notification],
   );
 
+  const createCollectionForRun = React.useCallback(
+    async (parentSignal?: AbortSignal): Promise<Collection | undefined> => {
+      if (
+        !isCreateMode ||
+        !namespace ||
+        parentSignal?.aborted ||
+        !(await form.trigger()) ||
+        parentSignal?.aborted
+      ) {
+        return undefined;
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const abortCreate = () => controller.abort();
+      parentSignal?.addEventListener('abort', abortCreate, { once: true });
+
+      try {
+        const createdCollection = await createCollection(
+          '',
+          namespace,
+          buildCreateRequest(),
+        )({
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) {
+          return undefined;
+        }
+
+        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
+          runType: 'collection',
+          collectionName: createdCollection.name,
+          benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
+        });
+
+        return createdCollection;
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+          notification.error('Failed to create suite', message);
+        }
+        return undefined;
+      } finally {
+        parentSignal?.removeEventListener('abort', abortCreate);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+      }
+    },
+    [isCreateMode, namespace, form, buildCreateRequest, notification],
+  );
+
   const handleSaveAndRun = React.useCallback(() => {
-    if (!isValid || !sourceCollection || !namespace) {
+    if (!isValid || (!isCreateMode && !sourceCollection) || !namespace) {
       return;
     }
     onSaveAndRunRequest?.();
-  }, [isValid, sourceCollection, namespace, onSaveAndRunRequest]);
+  }, [isCreateMode, isValid, sourceCollection, namespace, onSaveAndRunRequest]);
 
   const handleSaveOnly = React.useCallback(async () => {
-    if (isSaveOnlyInFlightRef.current || !sourceCollection || !namespace) {
+    if (isSaveOnlyInFlightRef.current || (!isCreateMode && !sourceCollection) || !namespace) {
       return;
     }
 
@@ -666,22 +772,27 @@ export function useCopySuiteForm({
 
       controller = new AbortController();
       abortControllerRef.current = controller;
-      const clonedCollection = await cloneCollection(
-        '',
-        namespace,
-        sourceCollection.resource.id,
-        buildCloneRequest(),
-      )({ signal: controller.signal });
+      const savedCollection = isCreateMode
+        ? await createCollection('', namespace, buildCreateRequest())({ signal: controller.signal })
+        : await cloneCollection(
+            '',
+            namespace,
+            sourceCollection!.resource.id,
+            buildCloneRequest(),
+          )({ signal: controller.signal });
 
       notification.success(
-        'Suite saved',
-        `"${clonedCollection.name}" has been added to your benchmark suites.`,
+        isCreateMode ? 'Suite created' : 'Suite saved',
+        `"${savedCollection.name}" has been added to your benchmark suites.`,
       );
       navigate(evaluationCollectionsRoute(namespace));
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-        notification.error('Failed to copy suite', message);
+        notification.error(
+          isCreateMode ? 'Failed to create suite' : 'Failed to copy suite',
+          message,
+        );
       }
     } finally {
       if (abortControllerRef.current === controller) {
@@ -690,7 +801,16 @@ export function useCopySuiteForm({
       isSaveOnlyInFlightRef.current = false;
       setIsSubmitting(false);
     }
-  }, [sourceCollection, namespace, form, buildCloneRequest, navigate, notification]);
+  }, [
+    isCreateMode,
+    sourceCollection,
+    namespace,
+    form,
+    buildCreateRequest,
+    buildCloneRequest,
+    navigate,
+    notification,
+  ]);
 
   const handleCancel = React.useCallback(() => {
     navigate(evaluationCollectionsRoute(namespace));
@@ -702,8 +822,10 @@ export function useCopySuiteForm({
     setSuiteName,
     suiteDescription,
     setSuiteDescription,
-    suiteCategory,
-    setSuiteCategory,
+    suiteDomains,
+    suiteTasks,
+    suiteModalities,
+    suiteIndustries,
     suiteEvaluates,
     setSuiteEvaluates,
     suiteThreshold,
@@ -723,6 +845,7 @@ export function useCopySuiteForm({
     handleCancel,
     buildPendingCollection: getPendingCollection,
     cloneCollectionForRun,
+    createCollectionForRun,
     minWeightPercent: MIN_WEIGHT_PERCENT,
   };
 }

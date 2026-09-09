@@ -4,7 +4,12 @@ import {
   Button,
   Form,
   FormGroup,
+  Label,
+  LabelGroup,
+  MenuSearch,
+  MenuSearchInput,
   MenuToggle,
+  SearchInput,
   Select,
   SelectList,
   SelectOption,
@@ -13,29 +18,148 @@ import {
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
-import { formatCategory } from '~/app/components/benchmarkUtils';
-import { SUITE_EVALUATES_OPTIONS, isSuiteEvaluatesOption } from '~/app/pages/const';
+import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
+import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
 import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
-  availableCategories: string[];
   onNext: () => void;
   onCancel: () => void;
 };
 
-const formatEvaluatesLabel = (value: string): string =>
-  value.charAt(0).toUpperCase() + value.slice(1);
+type CollectionMetadataFieldName =
+  'suiteEvaluates' | 'suiteDomains' | 'suiteTasks' | 'suiteModalities' | 'suiteIndustries';
 
-const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
-  availableCategories,
-  onNext,
-  onCancel,
+type CollectionMetadataFieldProps = {
+  name: CollectionMetadataFieldName;
+  label: string;
+  selectionLabels: {
+    singular: string;
+    plural: string;
+  };
+  fieldId: string;
+  testId: string;
+  options: readonly string[];
+};
+
+const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = ({
+  name,
+  label,
+  selectionLabels,
+  fieldId,
+  testId,
+  options,
 }) => {
+  const { control } = useFormContext<CopySuiteFormValues>();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+
+  const filteredOptions = React.useMemo(() => {
+    const normalizedSearch = search.toLowerCase();
+    return options.filter((option) => option.toLowerCase().includes(normalizedSearch));
+  }, [options, search]);
+
+  return (
+    <FormGroup label={label} fieldId={fieldId}>
+      <Controller
+        name={name}
+        control={control}
+        render={({ field }) => {
+          const selected = field.value;
+
+          return (
+            <>
+              <Select
+                id={`${fieldId}-menu`}
+                role="menu"
+                data-testid={`${testId}-select`}
+                isOpen={isOpen}
+                selected={selected}
+                onSelect={(_event, value) => {
+                  if (typeof value === 'string' && !selected.some((item) => item === value)) {
+                    field.onChange([...selected, value]);
+                  }
+                }}
+                onOpenChange={(open) => {
+                  setIsOpen(open);
+                  if (!open) {
+                    setSearch('');
+                  }
+                }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    id={fieldId}
+                    onClick={() => setIsOpen((previous) => !previous)}
+                    isExpanded={isOpen}
+                    isFullWidth
+                    data-testid={`${testId}-toggle`}
+                  >
+                    {selected.length > 0
+                      ? `${selected.length} ${
+                          selected.length === 1 ? selectionLabels.singular : selectionLabels.plural
+                        } selected`
+                      : `Select ${label.toLowerCase()}`}
+                  </MenuToggle>
+                )}
+                maxMenuHeight="400px"
+              >
+                <MenuSearch>
+                  <MenuSearchInput>
+                    <SearchInput
+                      aria-label={`Search ${label.toLowerCase()}`}
+                      placeholder={`Search ${label.toLowerCase()}`}
+                      value={search}
+                      onChange={(_event, value) => setSearch(value)}
+                      onClear={() => setSearch('')}
+                      data-testid={`${testId}-search-input`}
+                    />
+                  </MenuSearchInput>
+                </MenuSearch>
+                <SelectList>
+                  {filteredOptions.length > 0 ? (
+                    filteredOptions.map((option) => (
+                      <SelectOption
+                        key={option}
+                        value={option}
+                        hasCheckbox
+                        isSelected={selected.some((item) => item === option)}
+                        data-testid={`${testId}-option-${option}`}
+                      >
+                        {formatCollectionMetadataValue(option)}
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <SelectOption isDisabled>No results found</SelectOption>
+                  )}
+                </SelectList>
+              </Select>
+
+              {selected.length > 0 ? (
+                <LabelGroup isCompact className="pf-v6-u-mt-sm" data-testid={`${testId}-tags`}>
+                  {selected.map((value) => (
+                    <Label
+                      key={value}
+                      variant="outline"
+                      data-testid={`${testId}-tag-${value}`}
+                      onClose={() => field.onChange(selected.filter((item) => item !== value))}
+                    >
+                      {formatCollectionMetadataValue(value)}
+                    </Label>
+                  ))}
+                </LabelGroup>
+              ) : null}
+            </>
+          );
+        }}
+      />
+    </FormGroup>
+  );
+};
+
+const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, onCancel }) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
   const suiteName = watch('suiteName');
-  const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
-  const [isEvaluatesOpen, setIsEvaluatesOpen] = React.useState(false);
-
   const isSettingsValid = suiteName.trim() !== '';
 
   return (
@@ -75,95 +199,50 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
           />
         </FormGroup>
 
-        <FormGroup label="Category" fieldId="suite-category">
-          <Controller
-            name="suiteCategory"
-            control={control}
-            render={({ field }) => (
-              <Select
-                id="suite-category-menu"
-                data-testid="suite-category-select"
-                isOpen={isCategoryOpen}
-                selected={field.value}
-                onSelect={(_event, value) => {
-                  if (typeof value === 'string') {
-                    field.onChange(value);
-                  }
-                  setIsCategoryOpen(false);
-                }}
-                onOpenChange={setIsCategoryOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    id="suite-category"
-                    ref={toggleRef}
-                    onClick={() => setIsCategoryOpen((prev) => !prev)}
-                    isExpanded={isCategoryOpen}
-                    isFullWidth
-                    data-testid="suite-category-toggle"
-                  >
-                    {field.value ? formatCategory(field.value) : 'Select category'}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  {availableCategories.map((category) => (
-                    <SelectOption
-                      key={category}
-                      value={category}
-                      isSelected={field.value === category}
-                    >
-                      {formatCategory(category)}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            )}
-          />
-        </FormGroup>
+        <CollectionMetadataField
+          name="suiteEvaluates"
+          label="Evaluates"
+          selectionLabels={{ singular: 'target', plural: 'targets' }}
+          fieldId="suite-evaluates"
+          testId="suite-evaluates"
+          options={SUITE_EVALUATES_OPTIONS}
+        />
 
-        <FormGroup label="Evaluates" fieldId="suite-evaluates">
-          <Controller
-            name="suiteEvaluates"
-            control={control}
-            render={({ field }) => (
-              <Select
-                id="suite-evaluates-menu"
-                data-testid="suite-evaluates-select"
-                isOpen={isEvaluatesOpen}
-                selected={field.value}
-                onSelect={(_event, value) => {
-                  if (typeof value === 'string' && isSuiteEvaluatesOption(value)) {
-                    field.onChange(value);
-                  }
-                  setIsEvaluatesOpen(false);
-                }}
-                onOpenChange={setIsEvaluatesOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    id="suite-evaluates"
-                    ref={toggleRef}
-                    onClick={() => setIsEvaluatesOpen((prev) => !prev)}
-                    isExpanded={isEvaluatesOpen}
-                    isFullWidth
-                    data-testid="suite-evaluates-toggle"
-                  >
-                    {formatEvaluatesLabel(field.value)}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  {SUITE_EVALUATES_OPTIONS.map((option) => (
-                    <SelectOption key={option} value={option} isSelected={field.value === option}>
-                      {formatEvaluatesLabel(option)}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            )}
-          />
-        </FormGroup>
+        <CollectionMetadataField
+          name="suiteDomains"
+          label="Category"
+          selectionLabels={{ singular: 'category', plural: 'categories' }}
+          fieldId="suite-domains"
+          testId="suite-domains"
+          options={COLLECTION_METADATA_OPTIONS.domains}
+        />
+
+        <CollectionMetadataField
+          name="suiteTasks"
+          label="Tasks"
+          selectionLabels={{ singular: 'task', plural: 'tasks' }}
+          fieldId="suite-tasks"
+          testId="suite-tasks"
+          options={COLLECTION_METADATA_OPTIONS.tasks}
+        />
+
+        <CollectionMetadataField
+          name="suiteModalities"
+          label="Modalities"
+          selectionLabels={{ singular: 'modality', plural: 'modalities' }}
+          fieldId="suite-modalities"
+          testId="suite-modalities"
+          options={COLLECTION_METADATA_OPTIONS.modalities}
+        />
+
+        <CollectionMetadataField
+          name="suiteIndustries"
+          label="Industries"
+          selectionLabels={{ singular: 'industry', plural: 'industries' }}
+          fieldId="suite-industries"
+          testId="suite-industries"
+          options={COLLECTION_METADATA_OPTIONS.industries}
+        />
 
         <Controller
           name="suiteThreshold"

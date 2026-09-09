@@ -301,6 +301,10 @@ export type Collection = {
   category?: string;
   description?: string;
   tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
   ai_entities?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
@@ -312,10 +316,29 @@ export type CloneCollectionRequest = {
   description?: string;
   category?: string;
   tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
   ai_entities?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
+};
+
+export type CreateCollectionRequest = {
+  name: string;
+  category?: string;
+  description?: string;
+  tags?: string[];
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  ai_entities?: string[];
+  custom?: Record<string, unknown>;
+  pass_criteria?: CollectionPassCriteria;
+  benchmarks: CollectionBenchmark[];
 };
 
 export type ListCollectionsParams = {

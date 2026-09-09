@@ -244,6 +244,95 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 	assert.Empty(t, result.Items)
 }
 
+func TestEvalHubClient_CreateCollection(t *testing.T) {
+	request := CreateCollectionRequest{
+		Name:        "My New Suite",
+		Description: "A custom suite",
+		Domains:     []string{"safety"},
+		Tasks:       []string{"classification"},
+		Modalities:  []string{"text"},
+		Industries:  []string{"technology"},
+		AIEntities:  []string{"agent"},
+		Benchmarks:  []CollectionBenchmark{{ID: "benchmark-001"}},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{
+			"name": "My New Suite",
+			"description": "A custom suite",
+			"domains": ["safety"],
+			"tasks": ["classification"],
+			"modalities": ["text"],
+			"industries": ["technology"],
+			"ai_entities": ["agent"],
+			"benchmarks": [{"id": "benchmark-001"}]
+		}`, string(body))
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Collection{
+			Resource:    CollectionResource{ID: "collection-001"},
+			Name:        request.Name,
+			Description: request.Description,
+			Domains:     request.Domains,
+			Tasks:       request.Tasks,
+			Modalities:  request.Modalities,
+			Industries:  request.Industries,
+			AIEntities:  request.AIEntities,
+			Benchmarks:  request.Benchmarks,
+		})
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.CreateCollection(context.Background(), "test-namespace", request)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "collection-001", result.Resource.ID)
+	assert.Equal(t, request.Name, result.Name)
+	assert.Equal(t, request.AIEntities, result.AIEntities)
+}
+
+func TestEvalHubClient_CreateCollection_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+
+	_, err := client.CreateCollection(context.Background(), "", CreateCollectionRequest{
+		Name:       "Suite",
+		Benchmarks: []CollectionBenchmark{{ID: "benchmark-001"}},
+	})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
+func TestEvalHubClient_CreateCollection_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-ns", r.Header.Get("X-Tenant"))
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal error"))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.CreateCollection(context.Background(), "test-ns", CreateCollectionRequest{
+		Name:       "Suite",
+		Benchmarks: []CollectionBenchmark{{ID: "benchmark-001"}},
+	})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInternalError, ehErr.Code)
+}
+
 func TestEvalHubClient_ConnectionError(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
 	_, err := client.HealthCheck(context.Background(), "my-ns")
@@ -481,12 +570,21 @@ func TestEvalHubClient_GetEvaluationJobLogs_RejectsOversizedResponse(t *testing.
 }
 
 func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
+	domains := []string{"safety", "reasoning"}
+	tasks := []string{"classification"}
+	modalities := []string{"text"}
+	industries := []string{"technology"}
+	aiEntities := []string{"agent"}
 	request := CloneCollectionRequest{
 		Name:        "My Cloned Suite",
 		Description: "Custom collection settings",
 		Category:    "Safety",
 		Tags:        []string{"custom", "agent"},
-		AIEntities:  []string{"agent"},
+		Domains:     &domains,
+		Tasks:       &tasks,
+		Modalities:  &modalities,
+		Industries:  &industries,
+		AIEntities:  &aiEntities,
 		Custom: map[string]any{
 			"source": "copy-suite",
 		},
@@ -513,6 +611,10 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			"description": "Custom collection settings",
 			"category": "Safety",
 			"tags": ["custom", "agent"],
+			"domains": ["safety", "reasoning"],
+			"tasks": ["classification"],
+			"modalities": ["text"],
+			"industries": ["technology"],
 			"ai_entities": ["agent"],
 			"custom": {"source": "copy-suite"},
 			"pass_criteria": {"threshold": 0.8},
@@ -531,7 +633,11 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			Description:  request.Description,
 			Category:     request.Category,
 			Tags:         request.Tags,
-			AIEntities:   request.AIEntities,
+			Domains:      *request.Domains,
+			Tasks:        *request.Tasks,
+			Modalities:   *request.Modalities,
+			Industries:   *request.Industries,
+			AIEntities:   *request.AIEntities,
 			Custom:       request.Custom,
 			PassCriteria: request.PassCriteria,
 			Benchmarks:   request.Benchmarks,
@@ -545,7 +651,70 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "collection-001-clone", result.Resource.ID)
 	assert.Equal(t, []string{"custom", "agent"}, result.Tags)
+	assert.Equal(t, []string{"safety", "reasoning"}, result.Domains)
+	assert.Equal(t, []string{"classification"}, result.Tasks)
+	assert.Equal(t, []string{"text"}, result.Modalities)
+	assert.Equal(t, []string{"technology"}, result.Industries)
 	assert.Equal(t, []string{"agent"}, result.AIEntities)
+}
+
+func TestEvalHubClient_CloneCollection_PreservesMetadataFieldPresence(t *testing.T) {
+	empty := []string{}
+	tests := []struct {
+		name          string
+		request       CloneCollectionRequest
+		presentFields []string
+		absentFields  []string
+	}{
+		{
+			name: "omitted metadata fields are omitted from the request",
+			request: CloneCollectionRequest{
+				Name: "Inherited metadata",
+			},
+			absentFields: []string{"domains", "tasks", "modalities", "industries", "ai_entities"},
+		},
+		{
+			name: "empty metadata fields are sent to clear inherited values",
+			request: CloneCollectionRequest{
+				Name:       "Cleared metadata",
+				Domains:    &empty,
+				Tasks:      &empty,
+				Modalities: &empty,
+				Industries: &empty,
+				AIEntities: &empty,
+			},
+			presentFields: []string{"domains", "tasks", "modalities", "industries", "ai_entities"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+
+				var payload map[string]json.RawMessage
+				require.NoError(t, json.Unmarshal(body, &payload))
+				for _, field := range tt.presentFields {
+					assert.JSONEq(t, `[]`, string(payload[field]))
+				}
+				for _, field := range tt.absentFields {
+					assert.NotContains(t, payload, field)
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(Collection{
+					Resource: CollectionResource{ID: "collection-001-clone"},
+					Name:     tt.request.Name,
+				})
+			}))
+			defer server.Close()
+
+			client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+			_, err := client.CloneCollection(context.Background(), "collection-001", "my-ns", tt.request)
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestEvalHubClient_CloneCollection_RejectsOversizedResponse(t *testing.T) {

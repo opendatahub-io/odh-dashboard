@@ -14,6 +14,11 @@ describe('startEvaluationRunUtils', () => {
       expect(suiteEvaluatesToSourceMode('traces')).toBe('agent');
       expect(suiteEvaluatesToSourceMode('guardrails')).toBe('agent');
     });
+
+    it('should support an array of suite evaluates options', () => {
+      expect(suiteEvaluatesToSourceMode(['model', 'agent'])).toBe('model');
+      expect(suiteEvaluatesToSourceMode([])).toBe('agent');
+    });
   });
 
   describe('getEvaluatingFieldLabel', () => {

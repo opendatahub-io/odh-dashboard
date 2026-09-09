@@ -67,6 +67,28 @@ func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.Li
 	}, nil
 }
 
+func (m *MockEvalHubClient) CreateCollection(
+	_ context.Context,
+	_ string,
+	req evalhub.CreateCollectionRequest,
+) (*evalhub.Collection, error) {
+	return &evalhub.Collection{
+		Resource:     evalhub.CollectionResource{ID: "created-collection"},
+		Name:         req.Name,
+		Category:     req.Category,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		Domains:      req.Domains,
+		Tasks:        req.Tasks,
+		Modalities:   req.Modalities,
+		Industries:   req.Industries,
+		AIEntities:   req.AIEntities,
+		Custom:       req.Custom,
+		PassCriteria: req.PassCriteria,
+		Benchmarks:   req.Benchmarks,
+	}, nil
+}
+
 func containsCI(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
@@ -392,9 +414,25 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 	if tags == nil {
 		tags = source.Tags
 	}
-	aiEntities := req.AIEntities
-	if aiEntities == nil {
-		aiEntities = source.AIEntities
+	domains := source.Domains
+	if req.Domains != nil {
+		domains = *req.Domains
+	}
+	tasks := source.Tasks
+	if req.Tasks != nil {
+		tasks = *req.Tasks
+	}
+	modalities := source.Modalities
+	if req.Modalities != nil {
+		modalities = *req.Modalities
+	}
+	industries := source.Industries
+	if req.Industries != nil {
+		industries = *req.Industries
+	}
+	aiEntities := source.AIEntities
+	if req.AIEntities != nil {
+		aiEntities = *req.AIEntities
 	}
 	custom := req.Custom
 	if custom == nil {
@@ -419,6 +457,10 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 		Description:  description,
 		Category:     category,
 		Tags:         tags,
+		Domains:      domains,
+		Tasks:        tasks,
+		Modalities:   modalities,
+		Industries:   industries,
 		AIEntities:   aiEntities,
 		Custom:       custom,
 		PassCriteria: passCriteria,
@@ -627,6 +669,10 @@ func mockCollections() []evalhub.Collection {
 			Category:    "General",
 			Description: "Comprehensive evaluation suite for general-purpose language models.",
 			Tags:        []string{"Comprehensive", "Industry Standard"},
+			Domains:     []string{"knowledge", "reasoning"},
+			Tasks:       []string{"question_answering"},
+			Modalities:  []string{"text"},
+			Industries:  []string{"general"},
 			Benchmarks: []evalhub.CollectionBenchmark{
 				{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: 1},
 				{ID: "hellaswag", ProviderID: "lm_evaluation_harness", Weight: 1},

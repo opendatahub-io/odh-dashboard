@@ -260,6 +260,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.POST(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateCollectionHandler))))
 	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
 	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))

@@ -15,7 +15,7 @@ import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
 import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
 import { evaluationComparePathSegment } from './routes';
 import EvaluationReconfigureLoader from './pages/EvaluationReconfigureLoader';
-import CopySuitePage from './pages/CopySuitePage';
+import CopySuitePage, { CreateSuitePage } from './pages/CopySuitePage';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -45,6 +45,7 @@ const AppRoutes: React.FC = () => (
         />
         <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
+        <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
         <Route
           path=":namespace/create/collections/:collectionId/copy"
           element={<CopySuitePage />}

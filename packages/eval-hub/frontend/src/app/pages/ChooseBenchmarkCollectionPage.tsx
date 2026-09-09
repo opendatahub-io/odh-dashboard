@@ -43,6 +43,7 @@ import CollectionDrawerPanel, {
 } from '~/app/components/CollectionDrawerPanel';
 import {
   evaluationCopySuiteRoute,
+  evaluationCreateSuiteRoute,
   evaluationCreateRoute,
   evaluationStartRoute,
   evaluationsBaseRoute,
@@ -152,6 +153,17 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             empty={false}
           >
             <PageSection hasBodyWrapper={false} isFilled>
+              <div className="pf-v6-u-display-flex pf-v6-u-justify-content-flex-end pf-v6-u-mb-md">
+                <Button
+                  variant="primary"
+                  data-testid="create-benchmark-suite-button"
+                  component={(props) => (
+                    <Link {...props} to={evaluationCreateSuiteRoute(namespace)} />
+                  )}
+                >
+                  Create suite
+                </Button>
+              </div>
               {isTruncated && (
                 <Alert
                   variant="warning"

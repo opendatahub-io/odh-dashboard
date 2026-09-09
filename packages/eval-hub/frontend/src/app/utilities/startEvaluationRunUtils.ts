@@ -7,11 +7,14 @@ export const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'prerecorded', label: 'Pre-recorded responses' },
 ];
 
-export const suiteEvaluatesToSourceMode = (evaluates: SuiteEvaluatesOption): SourceMode => {
-  if (evaluates === 'model') {
+export const suiteEvaluatesToSourceMode = (
+  evaluates: SuiteEvaluatesOption | SuiteEvaluatesOption[],
+): SourceMode => {
+  const evaluatesOptions = Array.isArray(evaluates) ? evaluates : [evaluates];
+  if (evaluatesOptions.includes('model')) {
     return 'model';
   }
-  if (evaluates === 'agent') {
+  if (evaluatesOptions.includes('agent')) {
     return 'agent';
   }
   return 'agent';

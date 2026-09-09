@@ -7,7 +7,7 @@ import { useFetchState } from 'mod-arch-core';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm } from '~/app/pages/useCopySuiteForm';
-import CopySuitePage from '~/app/pages/CopySuitePage';
+import CopySuitePage, { CreateSuitePage } from '~/app/pages/CopySuitePage';
 import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import type { Collection, Provider } from '~/app/types';
 
@@ -153,8 +153,11 @@ const createRhfForm = (values: CopySuiteFormValues): Form['form'] => {
 const defaultFormValues: CopySuiteFormValues = {
   suiteName: 'Curated suite copy',
   suiteDescription: 'Description',
-  suiteCategory: 'language',
-  suiteEvaluates: 'agent',
+  suiteDomains: ['reasoning', 'safety'],
+  suiteTasks: ['text-generation'],
+  suiteModalities: ['text'],
+  suiteIndustries: ['technology'],
+  suiteEvaluates: ['agent'],
   suiteThreshold: 70,
   benchmarks: [benchmark],
 };
@@ -164,7 +167,10 @@ const makeForm = (overrides: Partial<Form> = {}): Form => {
     ...defaultFormValues,
     suiteName: overrides.suiteName ?? defaultFormValues.suiteName,
     suiteDescription: overrides.suiteDescription ?? defaultFormValues.suiteDescription,
-    suiteCategory: overrides.suiteCategory ?? defaultFormValues.suiteCategory,
+    suiteDomains: overrides.suiteDomains ?? defaultFormValues.suiteDomains,
+    suiteTasks: overrides.suiteTasks ?? defaultFormValues.suiteTasks,
+    suiteModalities: overrides.suiteModalities ?? defaultFormValues.suiteModalities,
+    suiteIndustries: overrides.suiteIndustries ?? defaultFormValues.suiteIndustries,
     suiteEvaluates: overrides.suiteEvaluates ?? defaultFormValues.suiteEvaluates,
     suiteThreshold: overrides.suiteThreshold ?? defaultFormValues.suiteThreshold,
     benchmarks: overrides.benchmarks ?? defaultFormValues.benchmarks,
@@ -177,8 +183,10 @@ const makeForm = (overrides: Partial<Form> = {}): Form => {
     setSuiteName: jest.fn(),
     suiteDescription: formValues.suiteDescription,
     setSuiteDescription: jest.fn(),
-    suiteCategory: formValues.suiteCategory,
-    setSuiteCategory: jest.fn(),
+    suiteDomains: formValues.suiteDomains,
+    suiteTasks: formValues.suiteTasks,
+    suiteModalities: formValues.suiteModalities,
+    suiteIndustries: formValues.suiteIndustries,
     suiteEvaluates: formValues.suiteEvaluates,
     setSuiteEvaluates: jest.fn(),
     suiteThreshold: formValues.suiteThreshold,
@@ -198,6 +206,7 @@ const makeForm = (overrides: Partial<Form> = {}): Form => {
     handleCancel: jest.fn(),
     buildPendingCollection: jest.fn(() => sourceCollection),
     cloneCollectionForRun: jest.fn(),
+    createCollectionForRun: jest.fn(),
     minWeightPercent: 5,
     ...overrides,
   };
@@ -217,6 +226,15 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const renderCreatePage = () =>
+  render(
+    <MemoryRouter initialEntries={['/evaluation/test-namespace/create/collections/new']}>
+      <Routes>
+        <Route path="/evaluation/:namespace/create/collections/new" element={<CreateSuitePage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
 const goToBenchmarksStep = () => {
   fireEvent.click(screen.getByTestId('copy-suite-next'));
 };
@@ -229,6 +247,39 @@ beforeEach(() => {
 });
 
 describe('CopySuitePage', () => {
+  it('should render the reusable blank create suite flow with a create CTA', () => {
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage();
+
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create suite');
+    expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
+      'Create a benchmark suite',
+    );
+    goToBenchmarksStep();
+    expect(screen.getByTestId('create-suite-submit')).toHaveTextContent('Save and run');
+    expect(screen.getByTestId('copy-suite-save-only')).toHaveTextContent(
+      'Add to my benchmark suites',
+    );
+    fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
+    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
+  });
+
+  it('should wire create and run and create only to their respective handlers', () => {
+    const form = makeForm();
+    mockUseCopySuiteForm.mockReturnValue(form);
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+
+    renderCreatePage();
+    goToBenchmarksStep();
+
+    fireEvent.click(screen.getByTestId('create-suite-submit'));
+    fireEvent.click(screen.getByTestId('copy-suite-save-only'));
+
+    expect(form.handleSaveAndRun).toHaveBeenCalledTimes(1);
+    expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
+  });
+
   it('should show a loading state while the collection is loading', () => {
     mockUseFetchState.mockReturnValue([undefined, false, undefined, jest.fn()]);
 
@@ -278,11 +329,81 @@ describe('CopySuitePage', () => {
     expect(screen.getByTestId('copy-suite-description')).toBeInTheDocument();
     expect(screen.getByTestId('suite-name-input')).toHaveValue('Curated suite copy');
     expect(screen.getByTestId('suite-description-input')).toHaveValue('Description');
-    expect(screen.getByTestId('suite-category-toggle')).toHaveTextContent('Language');
+    expect(screen.queryByTestId('suite-category-toggle')).not.toBeInTheDocument();
+    expect(screen.getByText('Category')).toBeInTheDocument();
+    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('2 categories selected');
+    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 target selected');
+    expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
+    expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
+    expect(screen.getByTestId('suite-tasks-tag-text-generation')).toHaveTextContent(
+      'Text generation',
+    );
+    expect(screen.getByTestId('suite-modalities-tag-text')).toHaveTextContent('Text');
+    expect(screen.getByTestId('suite-industries-tag-technology')).toHaveTextContent('Technology');
     expect(screen.getByText('Language benchmark suites')).toBeInTheDocument();
     expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
+  });
+
+  it('uses singular wording for a single selected category', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteDomains: ['reasoning'] }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('1 category selected');
+  });
+
+  it('should associate metadata labels with their multi-select controls', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.getByLabelText('Evaluates')).toHaveAttribute(
+      'data-testid',
+      'suite-evaluates-toggle',
+    );
+    expect(screen.getByLabelText('Category')).toHaveAttribute(
+      'data-testid',
+      'suite-domains-toggle',
+    );
+    expect(screen.getByLabelText('Tasks')).toHaveAttribute('data-testid', 'suite-tasks-toggle');
+    expect(screen.getByLabelText('Modalities')).toHaveAttribute(
+      'data-testid',
+      'suite-modalities-toggle',
+    );
+    expect(screen.getByLabelText('Industries')).toHaveAttribute(
+      'data-testid',
+      'suite-industries-toggle',
+    );
+  });
+
+  it('should filter metadata options from the search input', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+    fireEvent.change(screen.getByPlaceholderText('Search tasks'), {
+      target: { value: 'chart' },
+    });
+
+    expect(screen.getByTestId('suite-tasks-option-document_chart_vqa')).toBeInTheDocument();
+    expect(screen.queryByTestId('suite-tasks-option-code_generation')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+  });
+
+  it('should allow the final selected metadata value to be removed', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+    const form = makeForm({ suiteDomains: ['reasoning'] });
+    mockUseCopySuiteForm.mockReturnValue(form);
+
+    renderPage();
+    fireEvent.click(within(screen.getByTestId('suite-domains-tag-reasoning')).getByRole('button'));
+
+    expect(screen.queryByTestId('suite-domains-tag-reasoning')).not.toBeInTheDocument();
+    expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('Select category');
+    expect(form.form.getValues('suiteDomains')).toEqual([]);
   });
 
   it('should pass metadata events on the settings step and save events on the benchmarks step', () => {
@@ -298,6 +419,45 @@ describe('CopySuitePage', () => {
     fireEvent.change(screen.getByTestId('suite-description-input'), {
       target: { value: 'Updated description' },
     });
+    fireEvent.click(screen.getByTestId('suite-evaluates-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
+    );
+    fireEvent.click(
+      within(screen.getByTestId('suite-evaluates-option-model')).getByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByTestId('suite-evaluates-toggle'));
+    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
+        'checkbox',
+      ),
+    );
+    fireEvent.click(
+      within(screen.getByTestId('suite-domains-option-knowledge_and_reasoning')).getByRole(
+        'checkbox',
+      ),
+    );
+    fireEvent.click(screen.getByTestId('suite-domains-toggle'));
+    fireEvent.click(within(screen.getByTestId('suite-domains-tag-safety')).getByRole('button'));
+
+    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-tasks-option-reasoning')).getByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByTestId('suite-tasks-toggle'));
+
+    fireEvent.click(screen.getByTestId('suite-modalities-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-modalities-option-vision')).getByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByTestId('suite-modalities-toggle'));
+
+    fireEvent.click(screen.getByTestId('suite-industries-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('suite-industries-option-health')).getByRole('checkbox'),
+    );
+    fireEvent.click(screen.getByTestId('suite-industries-toggle'));
     fireEvent.click(screen.getByTestId('copy-suite-cancel'));
     expect(form.handleCancel).toHaveBeenCalledTimes(1);
 
@@ -311,6 +471,11 @@ describe('CopySuitePage', () => {
 
     expect(form.form.getValues('suiteName')).toBe('Updated suite');
     expect(form.form.getValues('suiteDescription')).toBe('Updated description');
+    expect(form.form.getValues('suiteEvaluates')).toEqual(['agent', 'model']);
+    expect(form.form.getValues('suiteDomains')).toEqual(['reasoning', 'knowledge_and_reasoning']);
+    expect(form.form.getValues('suiteTasks')).toEqual(['text-generation', 'reasoning']);
+    expect(form.form.getValues('suiteModalities')).toEqual(['text', 'vision']);
+    expect(form.form.getValues('suiteIndustries')).toEqual(['technology', 'health']);
     expect(form.handleSaveAndRun).toHaveBeenCalledTimes(1);
     expect(form.handleSaveOnly).toHaveBeenCalledTimes(1);
     expect(form.handleCancel).toHaveBeenCalledTimes(2);
@@ -348,6 +513,24 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
   });
 
+  it('should show an empty benchmark state without the sidebar', () => {
+    mockUseFetchState.mockReturnValue([undefined, true, undefined, jest.fn()]);
+    mockUseCopySuiteForm.mockReturnValue(
+      makeForm({ benchmarks: [], selectedBenchmarkKeys: [], isValid: false }),
+    );
+
+    renderCreatePage();
+    goToBenchmarksStep();
+
+    expect(screen.getByTestId('copy-suite-benchmarks-empty-state')).toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-benchmark-sections')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('copy-suite-add-benchmarks-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-jump-link-0')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('copy-suite-empty-add-benchmarks-btn'));
+    expect(screen.getByTestId('copy-suite-benchmark-catalog-drawer')).toBeInTheDocument();
+  });
+
   it('should navigate back to settings from the benchmarks breadcrumb', () => {
     mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
 
@@ -356,6 +539,16 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
+    expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
+  });
+
+  it('should navigate back to settings from the benchmarks footer', () => {
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+    goToBenchmarksStep();
+    fireEvent.click(screen.getByTestId('copy-suite-back-step-2'));
+
     expect(screen.getByTestId('copy-suite-form')).toBeInTheDocument();
   });
 
@@ -377,6 +570,7 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('copy-suite-benchmark-catalog-drawer')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-back-step-2')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-and-run')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-save-only')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-cancel-step-2')).toBeDisabled();
@@ -419,6 +613,7 @@ describe('CopySuitePage', () => {
 
     expect(screen.getByTestId('benchmark-samples-input-0')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-add-benchmarks-btn')).toBeDisabled();
+    expect(screen.getByTestId('copy-suite-back-step-2')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-settings')).toBeDisabled();
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).toHaveAttribute(
       'aria-disabled',

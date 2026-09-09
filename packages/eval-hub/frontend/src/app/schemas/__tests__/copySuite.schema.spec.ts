@@ -36,6 +36,33 @@ describe('copySuiteSchema', () => {
     ).toBe(true);
   });
 
+  it('should accept multiple evaluates and collection metadata values', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      suiteEvaluates: ['model', 'agent'],
+      suiteDomains: ['safety', 'knowledge_and_reasoning'],
+      suiteTasks: ['reasoning'],
+      suiteModalities: ['text', 'vision'],
+      suiteIndustries: ['health'],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject scalar or unsupported evaluates values', () => {
+    const scalar = copySuiteSchema.safeParse({
+      ...validValues(),
+      suiteEvaluates: 'agent',
+    });
+    const unsupported = copySuiteSchema.safeParse({
+      ...validValues(),
+      suiteEvaluates: ['dataset'],
+    });
+
+    expect(scalar.success).toBe(false);
+    expect(unsupported.success).toBe(false);
+  });
+
   it('should reject malformed and non-object advanced parameters', () => {
     const malformed = copySuiteSchema.safeParse({
       ...validValues(),

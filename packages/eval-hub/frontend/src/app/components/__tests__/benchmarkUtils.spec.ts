@@ -3,6 +3,7 @@ import {
   capitalizeFirst,
   getCategoryColor,
   formatCategory,
+  formatCollectionMetadataValue,
   getMetricDisplayName,
   toSafeExternalUrl,
 } from '~/app/components/benchmarkUtils';
@@ -90,6 +91,22 @@ describe('formatCategory', () => {
 
   it('should handle multiple underscores', () => {
     expect(formatCategory('inst_level_loose_acc')).toBe('Inst level loose acc');
+  });
+});
+
+describe('formatCollectionMetadataValue', () => {
+  it('should render snake case metadata as a human-readable label', () => {
+    expect(formatCollectionMetadataValue('knowledge_and_reasoning')).toBe(
+      'Knowledge and reasoning',
+    );
+    expect(formatCollectionMetadataValue('document_chart_vqa')).toBe('Document chart VQA');
+    expect(formatCollectionMetadataValue('text-generation')).toBe('Text generation');
+  });
+
+  it('should leave the value unchanged for payload use', () => {
+    const value = 'grounded_document_understanding';
+    expect(value).toBe('grounded_document_understanding');
+    expect(formatCollectionMetadataValue(value)).not.toBe(value);
   });
 });
 

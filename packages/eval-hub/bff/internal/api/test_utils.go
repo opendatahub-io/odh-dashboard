@@ -209,6 +209,9 @@ func (e *erroringEHClient) CloneCollection(_ context.Context, _ string, _ string
 func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
 	return evalhub.CollectionsResponse{}, nil
 }
+func (e *erroringEHClient) CreateCollection(_ context.Context, _ string, _ evalhub.CreateCollectionRequest) (*evalhub.Collection, error) {
+	return nil, fmt.Errorf("erroring client")
+}
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil
 }

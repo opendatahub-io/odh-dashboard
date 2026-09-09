@@ -179,6 +179,36 @@ paths:
       operationId: listCollections
       summary: List Collections
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to scope the collection request (tenant)
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createCollection
+      summary: Create Collection
+      description: Creates a tenant-scoped benchmark collection.
 
   /eval-hub/api/v1/evaluations/collections/{id}:
     summary: Get a single benchmark collection
@@ -1457,6 +1487,30 @@ components:
           items:
             type: string
           nullable: true
+        domains:
+          type: array
+          description: High-level evaluation domains. If unset, the server derives the union from benchmark domains.
+          items:
+            type: string
+          nullable: true
+        tasks:
+          type: array
+          description: Machine-learning tasks evaluated by this collection. If unset, the server derives the union from benchmark tasks.
+          items:
+            type: string
+          nullable: true
+        modalities:
+          type: array
+          description: Data modalities evaluated by this collection. If unset, the server derives the union from benchmark modalities.
+          items:
+            type: string
+          nullable: true
+        industries:
+          type: array
+          description: Business industries relevant to this collection.
+          items:
+            type: string
+          nullable: true
         ai_entities:
           type: array
           description: AI entities evaluated by this collection.
@@ -1475,6 +1529,56 @@ components:
             $ref: '#/components/schemas/CollectionBenchmark'
           nullable: true
 
+    CollectionCreateRequest:
+      type: object
+      required:
+        - name
+        - benchmarks
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          deprecated: true
+          description: Deprecated legacy collection category.
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        domains:
+          type: array
+          items:
+            type: string
+        tasks:
+          type: array
+          items:
+            type: string
+        modalities:
+          type: array
+          items:
+            type: string
+        industries:
+          type: array
+          items:
+            type: string
+        ai_entities:
+          type: array
+          items:
+            type: string
+        custom:
+          type: object
+          additionalProperties: true
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
+
     CloneCollectionRequest:
       type: object
       properties:
@@ -1487,6 +1591,26 @@ components:
           type: string
         tags:
           type: array
+          items:
+            type: string
+        domains:
+          type: array
+          description: High-level evaluation domains to apply to the cloned collection.
+          items:
+            type: string
+        tasks:
+          type: array
+          description: Machine-learning tasks to apply to the cloned collection.
+          items:
+            type: string
+        modalities:
+          type: array
+          description: Data modalities to apply to the cloned collection.
+          items:
+            type: string
+        industries:
+          type: array
+          description: Business industries to apply to the cloned collection.
           items:
             type: string
         ai_entities:

@@ -3,9 +3,10 @@ import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { cloneCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCopySuiteForm, clampNumSamples } from '~/app/pages/useCopySuiteForm';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -18,6 +19,7 @@ jest.mock('react-router', () => ({
 
 jest.mock('~/app/api/k8s', () => ({
   cloneCollection: jest.fn(),
+  createCollection: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -35,6 +37,7 @@ const mockNotification = {
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockCloneCollection = jest.mocked(cloneCollection);
+const mockCreateCollection = jest.mocked(createCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const defaultSuiteNamePattern =
@@ -45,6 +48,10 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
+  domains: ['reasoning', 'safety'],
+  tasks: ['text-generation'],
+  modalities: ['text'],
+  industries: ['technology'],
   ai_entities: ['model'],
   custom: { source: 'curated', evaluates: ['model'] },
   pass_criteria: { threshold: 0.8 },
@@ -152,8 +159,11 @@ describe('useCopySuiteForm', () => {
     );
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
-    expect(result.result.current.suiteCategory).toBe('language');
-    expect(result.result.current.suiteEvaluates).toBe('model');
+    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'safety']);
+    expect(result.result.current.suiteTasks).toEqual(['text-generation']);
+    expect(result.result.current.suiteModalities).toEqual(['text']);
+    expect(result.result.current.suiteIndustries).toEqual(['technology']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
     expect(result.result.current.suiteThreshold).toBe(80);
     expect(result.result.current.benchmarks).toEqual([
       expect.objectContaining({
@@ -170,6 +180,259 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        ai_entities: ['model', 'agent', 'model', 'unsupported'],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+  });
+
+  it('should fall back to legacy evaluates metadata when ai entities are empty', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        ai_entities: [],
+        custom: { source: 'curated', evaluates: 'traces' },
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+  });
+
+  it('should remove duplicate collection metadata values on initialization', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        domains: ['reasoning', 'reasoning'],
+        tasks: ['reasoning', 'reasoning'],
+        modalities: ['text', 'text'],
+        industries: ['technology', 'technology'],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual(['reasoning']);
+    expect(result.result.current.suiteTasks).toEqual(['reasoning']);
+    expect(result.result.current.suiteModalities).toEqual(['text']);
+    expect(result.result.current.suiteIndustries).toEqual(['technology']);
+  });
+
+  it('should fall back to the source category when domains are absent', async () => {
+    const result = renderForm({
+      sourceCollection: { ...sourceCollection, domains: undefined, category: 'safety' },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual(['safety']);
+  });
+
+  it('should preserve an explicitly empty domains array instead of falling back to category', async () => {
+    const result = renderForm({
+      sourceCollection: { ...sourceCollection, domains: [], category: 'safety' },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual([]);
+  });
+
+  it('should create a blank suite through the create collection endpoint', async () => {
+    const createdCollection = {
+      resource: { id: 'created-collection' },
+      name: 'New suite',
+    } as Collection;
+    const createFetcher = jest.fn().mockResolvedValue(createdCollection);
+    mockCreateCollection.mockReturnValue(createFetcher);
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+    expect(result.result.current.suiteEvaluates).toEqual([]);
+
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('suiteDescription', 'A new suite', {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteDomains', ['safety', 'reasoning'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteEvaluates', ['model'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          threshold: 70,
+          availableMetrics: [],
+        },
+      ]);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCreateCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.objectContaining({
+        name: 'New suite',
+        description: 'A new suite',
+        domains: ['safety', 'reasoning'],
+        ai_entities: ['model'],
+        benchmarks: [
+          expect.objectContaining({
+            id: 'benchmark-one',
+            provider_id: 'provider-one',
+          }),
+        ],
+      }),
+    );
+    expect(mockCreateCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.not.objectContaining({ custom: expect.anything() }),
+    );
+    expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
+    expect(mockNotification.success).toHaveBeenCalledWith(
+      'Suite created',
+      '"New suite" has been added to your benchmark suites.',
+    );
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/create/collections');
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+  });
+
+  it('should submit an empty ai_entities array for a create suite with no evaluates selected', async () => {
+    const createFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'created-collection' },
+      name: 'New suite',
+    } as Collection);
+    mockCreateCollection.mockReturnValue(createFetcher);
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          threshold: 70,
+          availableMetrics: [],
+        },
+      ]);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCreateCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.objectContaining({
+        ai_entities: [],
+      }),
+    );
+    expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('category');
+    expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('ai_entities', ['agent']);
+  });
+
+  it('should create a collection for a create-and-run flow', async () => {
+    const createdCollection = {
+      resource: { id: 'created-collection' },
+      name: 'New suite',
+      benchmarks: [{ id: 'benchmark-one' }],
+    } as Collection;
+    const createFetcher = jest.fn().mockResolvedValue(createdCollection);
+    mockCreateCollection.mockReturnValue(createFetcher);
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          threshold: 70,
+          availableMetrics: [],
+        },
+      ]);
+    });
+
+    let resolvedCollection: Collection | undefined;
+    await act(async () => {
+      resolvedCollection = await result.result.current.createCollectionForRun();
+    });
+
+    expect(resolvedCollection).toBe(createdCollection);
+    expect(mockCreateCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.objectContaining({ name: 'New suite' }),
+    );
+    expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      expect.objectContaining({
+        runType: 'collection',
+        collectionName: 'New suite',
+        benchmarkTypes: JSON.stringify(['benchmark-one']),
+        countOfBenchmarks: 1,
+      }),
+    );
+  });
+
+  it('should report create failures from a create-only save', async () => {
+    const createFetcher = jest.fn().mockRejectedValue(new Error('Create failed'));
+    mockCreateCollection.mockReturnValue(createFetcher);
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          threshold: 70,
+          availableMetrics: [],
+        },
+      ]);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockNotification.error).toHaveBeenCalledWith('Failed to create suite', 'Create failed');
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(result.result.current.isSubmitting).toBe(false);
   });
 
   it('should append the current timestamp to the copied suite name', async () => {
@@ -206,7 +469,40 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toBe('traces');
+    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+  });
+
+  it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+    const sourceWithoutEvaluates: Collection = {
+      ...sourceCollection,
+      ai_entities: undefined,
+      custom: { source: 'curated' },
+    };
+    const result = renderForm({ sourceCollection: sourceWithoutEvaluates });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteEvaluates).toEqual([]);
+  });
+
+  it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+    const sourceWithoutEvaluates: Collection = {
+      ...sourceCollection,
+      ai_entities: undefined,
+      custom: { source: 'curated' },
+    };
+    const providerWithEvaluates: Provider = {
+      ...providers[0],
+      agent: { evaluates: ['guardrails'] },
+    };
+    const result = renderForm({
+      sourceCollection: sourceWithoutEvaluates,
+      providers: [providerWithEvaluates, ...providers.slice(1)],
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
   });
 
   it('should map num_fewshot parameters to the few-shot field and exclude them from advanced JSON', async () => {
@@ -355,8 +651,7 @@ describe('useCopySuiteForm', () => {
     act(() => {
       result.result.current.setSuiteName('Updated suite');
       result.result.current.setSuiteDescription('Updated description');
-      result.result.current.setSuiteCategory('coding');
-      result.result.current.setSuiteEvaluates('traces');
+      result.result.current.setSuiteEvaluates(['traces']);
       result.result.current.handleSuiteThresholdChange(65);
       result.result.current.updateBenchmark(0, 'numSamples', 500);
       result.result.current.updateBenchmark(0, 'threshold', 85);
@@ -364,8 +659,7 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.suiteName).toBe('Updated suite');
     expect(result.result.current.suiteDescription).toBe('Updated description');
-    expect(result.result.current.suiteCategory).toBe('coding');
-    expect(result.result.current.suiteEvaluates).toBe('traces');
+    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({ numSamples: 500, threshold: 85 }),
@@ -590,7 +884,7 @@ describe('useCopySuiteForm', () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    act(() => result.result.current.setSuiteEvaluates('traces'));
+    act(() => result.result.current.setSuiteEvaluates(['traces']));
 
     let cloned: Collection | undefined;
     await act(async () => {
@@ -604,7 +898,10 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
-        category: 'language',
+        domains: ['reasoning', 'safety'],
+        tasks: ['text-generation'],
+        modalities: ['text'],
+        industries: ['technology'],
         ai_entities: ['traces'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
@@ -623,6 +920,41 @@ describe('useCopySuiteForm', () => {
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
+  });
+
+  it('should send explicit empty metadata arrays when all values are removed', async () => {
+    const cloneFetcher = jest.fn().mockResolvedValue({
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    } as Collection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    act(() => {
+      result.result.current.form.setValue('suiteDomains', [], { shouldValidate: true });
+      result.result.current.form.setValue('suiteTasks', [], { shouldValidate: true });
+      result.result.current.form.setValue('suiteModalities', [], { shouldValidate: true });
+      result.result.current.form.setValue('suiteIndustries', [], { shouldValidate: true });
+      result.result.current.form.setValue('suiteEvaluates', [], { shouldValidate: true });
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockCloneCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      'source-collection',
+      expect.objectContaining({
+        domains: [],
+        tasks: [],
+        modalities: [],
+        industries: [],
+        ai_entities: [],
+      }),
+    );
   });
 
   it('should abort a run clone when its parent request is cancelled', async () => {
@@ -658,11 +990,58 @@ describe('useCopySuiteForm', () => {
     expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
   });
 
+  it('should abort a create run when its parent request is cancelled', async () => {
+    const deferredCreate = createDeferred<Collection>();
+    let requestSignal: AbortSignal | undefined;
+    const createFetcher = jest.fn((options: { signal?: AbortSignal }) => {
+      requestSignal = options.signal;
+      return deferredCreate.promise;
+    });
+    mockCreateCollection.mockReturnValue(createFetcher);
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          threshold: 70,
+          availableMetrics: [],
+        },
+      ]);
+    });
+
+    const parentController = new AbortController();
+    let createPromise = Promise.resolve<Collection | undefined>(undefined);
+    act(() => {
+      createPromise = result.result.current.createCollectionForRun(parentController.signal);
+    });
+
+    await waitFor(() => expect(createFetcher).toHaveBeenCalledTimes(1));
+    expect(requestSignal?.aborted).toBe(false);
+
+    parentController.abort();
+    expect(requestSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      deferredCreate.resolve({ resource: { id: 'created-collection' }, name: 'New suite' });
+      await createPromise;
+    });
+
+    await expect(createPromise).resolves.toBeUndefined();
+    expect(mockNotification.error).not.toHaveBeenCalled();
+    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+  });
+
   it('should build a pending collection from current form state', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    act(() => result.result.current.setSuiteEvaluates('guardrails'));
+    act(() => result.result.current.setSuiteEvaluates(['guardrails']));
     const pending = result.result.current.buildPendingCollection();
 
     expect(pending).toEqual(
@@ -671,6 +1050,10 @@ describe('useCopySuiteForm', () => {
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
+        domains: ['reasoning', 'safety'],
+        tasks: ['text-generation'],
+        modalities: ['text'],
+        industries: ['technology'],
         ai_entities: ['guardrails'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },

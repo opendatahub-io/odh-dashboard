@@ -17,6 +17,7 @@ import {
   EvalHubHealthResponse,
   CreateEvaluationJobRequest,
   CreateEvaluationJobResponse,
+  CreateCollectionRequest,
   EvaluationJob,
   EvaluationJobsResponse,
   InferenceServicesResponse,
@@ -365,6 +366,25 @@ export const cloneCollection =
       throw new Error('Invalid response format');
     });
   };
+
+export const createCollection =
+  (hostPath: string, namespace: string, request: CreateCollectionRequest) =>
+  (opts: APIOptions): Promise<Collection> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<Collection>(response)) {
+        validateCollection(response.data);
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
 
 export const getProviders =
   (hostPath: string, namespace: string) =>

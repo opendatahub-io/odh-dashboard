@@ -52,8 +52,11 @@ export const copySuiteSchema = z
   .object({
     suiteName: z.string().trim().min(1, 'Suite name is required'),
     suiteDescription: z.string(),
-    suiteCategory: z.string(),
-    suiteEvaluates: z.enum(SUITE_EVALUATES_OPTIONS),
+    suiteDomains: z.array(z.string()),
+    suiteTasks: z.array(z.string()),
+    suiteModalities: z.array(z.string()),
+    suiteIndustries: z.array(z.string()),
+    suiteEvaluates: z.array(z.enum(SUITE_EVALUATES_OPTIONS)),
     suiteThreshold: z.number().min(0).max(100),
     benchmarks: z.array(copySuiteBenchmarkSchema).min(1, 'At least one benchmark is required'),
   })
@@ -76,8 +79,11 @@ export type CopySuiteBenchmarkFormValues = z.infer<typeof copySuiteBenchmarkSche
 export const copySuiteDefaultValues: CopySuiteFormValues = {
   suiteName: '',
   suiteDescription: '',
-  suiteCategory: '',
-  suiteEvaluates: 'agent',
+  suiteDomains: [],
+  suiteTasks: [],
+  suiteModalities: [],
+  suiteIndustries: [],
+  suiteEvaluates: [],
   suiteThreshold: 70,
   benchmarks: [],
 };
