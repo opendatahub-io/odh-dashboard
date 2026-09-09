@@ -55,7 +55,7 @@ dashboard-operator/
 
 ## Development Requirements
 
-- **Go**: >= 1.25 (see `go.mod` for exact toolchain version)
+- **Go**: >= 1.26 (see `go.mod` for exact toolchain version)
 - **controller-gen**: v0.17.2 (auto-installed by Makefile)
 - **golangci-lint**: v2.1.0 (auto-installed by Makefile)
 
