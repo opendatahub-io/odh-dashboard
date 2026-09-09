@@ -82,6 +82,13 @@ export const runAwsCliInCluster = ({
           image: AWS_CLI_IMAGE,
           args: awsCliArgs,
           envFrom: [{ secretRef: { name: secretName } }],
+          securityContext: {
+            runAsUser: 1001,
+            runAsNonRoot: true,
+            allowPrivilegeEscalation: false,
+            seccompProfile: { type: 'RuntimeDefault' },
+            capabilities: { drop: ['ALL'] },
+          },
         },
       ],
     },
