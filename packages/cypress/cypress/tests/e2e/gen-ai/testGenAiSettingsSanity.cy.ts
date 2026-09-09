@@ -103,7 +103,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Create custom endpoint in AI asset endpoints page',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
@@ -156,7 +156,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Add endpoint to playground and wait for OGX Server to be ready',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Add endpoint to playground');
@@ -182,7 +182,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Verify guardrails lifecycle — user input toggle blocks malicious message',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with guardrails enabled');
@@ -238,7 +238,14 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Verify prompt management — load and use a saved prompt',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@GenAI',
+        '@FeatureFlagged',
+        '@PromptManagement',
+        '@NonConcurrent',
+      ],
     },
     () => {
       cy.step('Navigate to playground with prompt management enabled');
@@ -283,7 +290,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Verify RAG — upload document and retrieve relevant content',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with prompt management enabled');
@@ -335,7 +342,14 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Verify agent configuration persistence — save, load, update, and delete',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@AgentConfig', '@NonConcurrent'],
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@GenAI',
+        '@FeatureFlagged',
+        '@AgentConfig',
+        '@NonConcurrent',
+      ],
     },
     () => {
       // ── Step 1: select model + load prompt + save as agent ────────────────
@@ -455,7 +469,7 @@ describe('Verify settings in playground using custom endpoint', { testIsolation:
   it(
     'Verify endpoint deletion and resource cleanup',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate back to AI Assets to delete the endpoint');

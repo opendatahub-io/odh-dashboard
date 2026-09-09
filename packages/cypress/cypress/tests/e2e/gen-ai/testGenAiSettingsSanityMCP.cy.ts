@@ -113,7 +113,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Create custom endpoint and wait for playground to be ready',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
@@ -189,7 +189,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Verify Manual Connection — connect to ConfigMap MCP server and query from playground',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet2', '@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground');
@@ -218,7 +218,14 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Verify MCP Registry — register server, verify Registered section, and query from playground',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@MCPRegistry'],
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@GenAI',
+        '@FeatureFlagged',
+        '@NonConcurrent',
+        '@MCPRegistry',
+      ],
     },
     () => {
       const registryServerName = 'io.kubernetes/mcp-server-e2e';
