@@ -1,9 +1,11 @@
 import * as React from 'react';
 import {
-  Alert,
   Bullseye,
+  Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Gallery,
   GalleryItem,
@@ -20,10 +22,13 @@ import {
   ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
+import {
+  mockBenchmarkSuiteCollections,
+  mockCuratedBenchmarkSuiteCollections,
+} from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
 import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
@@ -31,7 +36,7 @@ import BenchmarkSuiteCard from '~/app/components/BenchmarkSuiteCard';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
-import type { Collection } from '~/app/types';
+import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import { formatCategory } from '~/app/components/benchmarkUtils';
 import './BenchmarkSuitesGallery.scss';
 
@@ -123,8 +128,14 @@ type BenchmarkSuitesGalleryProps = {
   showSummary?: boolean;
   showCreateSuiteCard?: boolean;
   showFilters?: boolean;
+  showEvaluatesFilter?: boolean;
   showPagination?: boolean;
+  showContextualActions?: boolean;
+  scope?: CollectionScope;
+  queryFilters?: CollectionFilterParams;
+  primaryActionLabel?: string;
   onCreateSuite?: () => void;
+  onPrimaryAction?: (collection: Collection) => void;
   onSelectCollection: (collection: Collection) => void;
 };
 
@@ -139,8 +150,14 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   showSummary = false,
   showCreateSuiteCard = true,
   showFilters = false,
+  showEvaluatesFilter = true,
   showPagination = false,
+  showContextualActions = true,
+  scope = 'tenant',
+  queryFilters,
+  primaryActionLabel = 'Run benchmark suite',
   onCreateSuite,
+  onPrimaryAction = handleRunCollection,
   onSelectCollection,
 }) => {
   const [nameFilter, setNameFilter] = React.useState('');
@@ -150,19 +167,34 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const notification = useNotification();
-  const { data, isLoading, error } = useCollectionsQuery(
+  const { data, isLoading, error, refetch } = useCollectionsQuery(
     namespace,
-    'tenant',
+    scope,
     maxVisibleCollections,
+    scope === 'curated' ? 'curation_order' : undefined,
+    queryFilters,
   );
   const {
     isPending: isDeleting,
     mutateAsync: deleteCollection,
     reset: resetDeleteMutation,
   } = useDeleteCollectionMutation(namespace);
-  const apiCollections = data?.items ?? [];
+  const apiItems = data?.items;
+  const apiCollections = React.useMemo(() => apiItems ?? [], [apiItems]);
   const hasApiCollections = apiCollections.length > 0;
-  const collections = hasApiCollections ? apiCollections : MOCK_COLLECTIONS;
+  const mockAiEntity = queryFilters?.aiEntities?.[0];
+  const mockCollections = React.useMemo(
+    () =>
+      scope === 'curated' && (mockAiEntity === 'agent' || mockAiEntity === 'model')
+        ? mockCuratedBenchmarkSuiteCollections(mockAiEntity)
+        : MOCK_COLLECTIONS,
+    [mockAiEntity, scope],
+  );
+  const shouldShowLoadError = Boolean(error);
+  const collections = React.useMemo(
+    () => (shouldShowLoadError ? [] : hasApiCollections ? apiCollections : mockCollections),
+    [apiCollections, hasApiCollections, mockCollections, shouldShowLoadError],
+  );
   const sourceCollections = React.useMemo(
     () => (maxVisibleCollections ? collections.slice(0, maxVisibleCollections) : collections),
     [collections, maxVisibleCollections],
@@ -293,16 +325,18 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 testId="benchmark-suites-category-filter"
               />
             </ToolbarItem>
-            <ToolbarItem>
-              <CollectionFilterSelect
-                categoryName="Evaluates"
-                allLabel="All asset types"
-                options={[...SUPPORTED_EVALUATES_TYPES]}
-                selected={evaluatesFilter}
-                onSelect={setEvaluatesFilter}
-                testId="benchmark-suites-evaluates-filter"
-              />
-            </ToolbarItem>
+            {showEvaluatesFilter && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Evaluates"
+                  allLabel="All asset types"
+                  options={[...SUPPORTED_EVALUATES_TYPES]}
+                  selected={evaluatesFilter}
+                  onSelect={setEvaluatesFilter}
+                  testId="benchmark-suites-evaluates-filter"
+                />
+              </ToolbarItem>
+            )}
             {showPagination && (
               <ToolbarItem align={{ default: 'alignEnd' }} variant="pagination">
                 <Pagination
@@ -328,10 +362,31 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           </ToolbarContent>
         </Toolbar>
       )}
-      {(showFilters || showPagination) &&
-      !isLoading &&
-      !error &&
-      filteredCollections.length === 0 ? (
+      {shouldShowLoadError ? (
+        <Bullseye
+          className="evalhub-benchmark-suite-gallery__error-state"
+          data-testid="benchmark-suites-load-error"
+        >
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            status="danger"
+            titleText="Unable to load benchmark suites"
+            variant={EmptyStateVariant.lg}
+          >
+            <EmptyStateBody>
+              We could not load the benchmark suites right now. Please try again later.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button variant="primary" onClick={() => void refetch()}>
+                  Try again
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      ) : (showFilters || showPagination) && !isLoading && filteredCollections.length === 0 ? (
         <Bullseye data-testid="benchmark-suites-empty-state">
           <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
             <Title headingLevel="h2" size="lg">
@@ -360,10 +415,10 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               <BenchmarkSuiteCard
                 collection={collection}
                 primaryAction={{
-                  label: 'Run benchmark suite',
-                  onClick: handleRunCollection,
+                  label: primaryActionLabel,
+                  onClick: () => onPrimaryAction(collection),
                 }}
-                contextualActions={contextualActions}
+                contextualActions={showContextualActions ? contextualActions : undefined}
                 onSelect={onSelectCollection}
               />
             </GalleryItem>
@@ -375,22 +430,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           <Spinner />
         </Bullseye>
       )}
-      {error && (
-        <Alert
-          variant="danger"
-          isInline
-          title="Unable to load benchmark suites"
-          data-testid="benchmark-suites-load-error"
-        >
-          {error.message}
-        </Alert>
-      )}
-      {showSummary && !isLoading && !error && totalCount > 0 && (
+      {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
         <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
           <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to All my benchmark suites</Link>
         </StackItem>
       )}
-      {showPagination && !isLoading && !error && filteredCollections.length > 0 && (
+      {showPagination && !isLoading && !shouldShowLoadError && filteredCollections.length > 0 && (
         <Pagination
           itemCount={filteredCollectionCount}
           perPage={pageSize}

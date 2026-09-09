@@ -1,3 +1,10 @@
 .evalhub-benchmark-suite-gallery {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
+.evalhub-benchmark-suite-gallery__error-state {
+  align-items: flex-start;
+  height: auto;
+  min-height: 300px;
+  padding-block-start: var(--pf-t--global--spacer--2xl);
+}

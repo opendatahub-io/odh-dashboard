@@ -30,16 +30,16 @@ describe('CuratedSuiteCategories', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should link category cards to curated collection filters', () => {
+  it('should link category cards to the matching curated benchmark suites page', () => {
     renderSection();
 
     expect(screen.getByTestId('curated-suite-category-card-models')).toHaveAttribute(
       'href',
-      '/evaluation/test-project/create/collections?scope=curated&ai_entities=model',
+      '/evaluation/test-project/collections/model',
     );
     expect(screen.getByTestId('curated-suite-category-card-agents')).toHaveAttribute(
       'href',
-      '/evaluation/test-project/create/collections?scope=curated&ai_entities=agent',
+      '/evaluation/test-project/collections/agent',
     );
   });
 });

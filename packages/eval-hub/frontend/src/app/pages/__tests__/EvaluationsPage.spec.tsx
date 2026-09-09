@@ -40,6 +40,11 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 }));
 
 jest.mock('mod-arch-core', () => ({
+  NotificationContext: jest.requireActual('react').createContext({
+    notificationCount: 0,
+    updateNotificationCount: jest.fn(),
+    dispatch: jest.fn(),
+  }),
   useNamespaceSelector: jest.fn().mockReturnValue({
     namespaces: [{ name: 'test-project' }],
     updatePreferredNamespace: jest.fn(),

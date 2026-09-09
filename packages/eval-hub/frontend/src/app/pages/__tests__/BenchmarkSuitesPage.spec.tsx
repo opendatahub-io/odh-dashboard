@@ -66,7 +66,13 @@ describe('BenchmarkSuitesPage', () => {
     expect(
       screen.getByTestId('benchmark-suite-card-guardrails-compliance-suite'),
     ).toBeInTheDocument();
-    expect(mockUseCollectionsQuery).toHaveBeenCalledWith('test-project', 'tenant', undefined);
+    expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
+      'test-project',
+      'tenant',
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
   it('should filter tenant benchmark suites by name', () => {

@@ -12,7 +12,7 @@ import {
 import { CpuIcon, LinkIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import redHatLogo from '@odh-dashboard/internal/images/red-hat.svg';
-import { evaluationCollectionsRoute } from '~/app/routes';
+import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
 import './CuratedSuiteCategories.scss';
 
 type CuratedCategory = {
@@ -85,14 +85,8 @@ const CURATED_CATEGORIES: CuratedCategory[] = [
 ];
 
 const getCategoryHref = (namespace: string, category: CuratedCategory): string => {
-  const params = new URLSearchParams({ scope: 'curated' });
-  if (category.aiEntities) {
-    params.set('ai_entities', category.aiEntities.join(','));
-  }
-  if (category.domains) {
-    params.set('domains', category.domains.join(','));
-  }
-  return `${evaluationCollectionsRoute(namespace)}?${params.toString()}`;
+  const aiEntity = category.aiEntities?.[0];
+  return evaluationCuratedBenchmarkSuitesRoute(namespace, aiEntity);
 };
 
 type CuratedSuiteCategoriesProps = {

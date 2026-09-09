@@ -7,6 +7,7 @@ import EvalHubCoreLoader from './components/EvalHubCoreLoader';
 import ToastNotifications from './components/ToastNotifications';
 import EvaluationsPage from './pages/EvaluationsPage';
 import BenchmarkSuitesPage from './pages/BenchmarkSuitesPage';
+import CuratedBenchmarkSuitesPage from './pages/CuratedBenchmarkSuitesPage';
 import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
 import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
@@ -35,6 +36,7 @@ const AppRoutes: React.FC = () => (
       >
         <Route path=":namespace" element={<EvaluationsPage />} />
         <Route path=":namespace/collections" element={<BenchmarkSuitesPage />} />
+        <Route path=":namespace/collections/:aiEntity" element={<CuratedBenchmarkSuitesPage />} />
         <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
         <Route
           path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
