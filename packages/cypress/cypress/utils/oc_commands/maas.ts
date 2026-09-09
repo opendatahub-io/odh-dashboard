@@ -247,18 +247,20 @@ export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLin
 
 /**
  * Creates an LLMInferenceService with MaaS enabled by applying a YAML fixture.
- * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ * Substitutes `{{PROJECT_NAME}}`, `{{MODEL_NAME}}`, and optional `{{CONNECTION_NAME}}`
+ * placeholders in the fixture.
  *
  * @param projectName - The namespace/project where the LLMInferenceService will be created
  * @param modelName - The name for the LLMInferenceService and model
  * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @param connectionName - Optional connection name for fixtures that use `{{CONNECTION_NAME}}`
  * @returns Cypress.Chainable with the command result
  */
 export const createLLMInferenceServiceWithMaaSEnabled = (
   projectName: string,
   modelName: string,
-  connectionName: string,
   fixturePath: string,
+  connectionName = '',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
 
