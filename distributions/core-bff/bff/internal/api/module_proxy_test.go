@@ -360,10 +360,11 @@ func TestNormalizeFederationEntries(t *testing.T) {
 
 func TestValidateProxyEntries(t *testing.T) {
 	tests := []struct {
-		name      string
-		entries   []normalizedProxyEntry
-		wantErr   bool
-		errSubstr string
+		name       string
+		entries    []normalizedProxyEntry
+		authHeader string
+		wantErr    bool
+		errSubstr  string
 	}{
 		{
 			name: "empty proxy path rejected",
@@ -527,6 +528,44 @@ func TestValidateProxyEntries(t *testing.T) {
 			errSubstr: "custom Authorization header while authorize is enabled",
 		},
 		{
+			name:       "authorize with custom auth-token header rejected",
+			authHeader: "x-forwarded-access-token",
+			entries: []normalizedProxyEntry{
+				{entryName: "tokenConflict", service: moduleProxyServiceEntry{
+					Authorize: true, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"x-forwarded-access-token": "spoofed-token"}, //nolint:gosec // G101 false positive: HTTP header name, not a credential
+				}},
+			},
+			wantErr:   true,
+			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+		},
+		{
+			name:       "authorize with custom auth-token header case-insensitive",
+			authHeader: "x-forwarded-access-token",
+			entries: []normalizedProxyEntry{
+				{entryName: "tokenConflict", service: moduleProxyServiceEntry{
+					Authorize: true, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"X-Forwarded-Access-Token": "spoofed-token"}, //nolint:gosec // G101 false positive: HTTP header name, not a credential
+				}},
+			},
+			wantErr:   true,
+			errSubstr: "custom x-forwarded-access-token header while authorize is enabled",
+		},
+		{
+			name:       "non-authorized route with auth-token header allowed",
+			authHeader: "x-forwarded-access-token",
+			entries: []normalizedProxyEntry{
+				{entryName: "staticToken", service: moduleProxyServiceEntry{
+					Authorize: false, Path: "/ok/api",
+					Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443},
+					Headers: map[string]string{"x-forwarded-access-token": "static-token"},
+				}},
+			},
+			wantErr: false,
+		},
+		{
 			name: "non-authorized route with Authorization header allowed",
 			entries: []normalizedProxyEntry{
 				{entryName: "staticAuth", service: moduleProxyServiceEntry{
@@ -549,7 +588,7 @@ func TestValidateProxyEntries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateProxyEntries(tt.entries)
+			err := validateProxyEntries(tt.entries, tt.authHeader)
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errSubstr != "" {
@@ -610,7 +649,7 @@ func TestReservedPathCollisionBothDirections(t *testing.T) {
 			entries := []normalizedProxyEntry{
 				{entryName: "collision", service: moduleProxyServiceEntry{Path: tt.path, Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
 			}
-			err := validateProxyEntries(entries)
+			err := validateProxyEntries(entries, "")
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "collides with reserved BFF route")
 		})
@@ -632,7 +671,7 @@ func TestReservedPathCollisionUsesPathSegmentBoundaries(t *testing.T) {
 			entries := []normalizedProxyEntry{
 				{entryName: "nonCollision", service: moduleProxyServiceEntry{Path: tt.path, Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
 			}
-			require.NoError(t, validateProxyEntries(entries))
+			require.NoError(t, validateProxyEntries(entries, ""))
 		})
 	}
 }
@@ -658,7 +697,7 @@ func TestReservedPathCollisionViaPathPrefix(t *testing.T) {
 			entries := []normalizedProxyEntry{
 				{entryName: "sneaky", service: moduleProxyServiceEntry{Path: tt.path, Service: moduleServiceRef{Name: "svc", Namespace: "ns", Port: 443}}},
 			}
-			err := validateProxyEntries(entries)
+			err := validateProxyEntries(entries, "")
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "collides with reserved BFF route")
 			assert.Contains(t, err.Error(), "sneaky")
@@ -677,8 +716,10 @@ func TestInitModuleProxies_EmptyConfig(t *testing.T) {
 
 func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 	var receivedAuthHeader string
+	var receivedTokenHeader string
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedAuthHeader = r.Header.Get("Authorization")
+		receivedTokenHeader = r.Header.Get("x-forwarded-access-token")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -715,10 +756,14 @@ func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 
 	appDirect := newTestApp(func(a *App) {
 		a.config.DevMode = true
+		a.config.AuthTokenHeader = "x-forwarded-access-token"
 	})
 	proxyHandler := createTestProxy(t, appDirect, backend.URL, "/auth-mod/api", "/api", true, false, nil)
 	rr := httptest.NewRecorder()
 	req2 := httptest.NewRequest(http.MethodGet, "/auth-mod/api/v1/items", nil)
+	// A client attempts to spoof the ingress auth header. It must be stripped
+	// and overwritten by the server-resolved token, never forwarded as-is.
+	req2.Header.Set("x-forwarded-access-token", "attacker-token")
 	req2 = reqWithIdentity(req2, &k8s.RequestIdentity{
 		UserID: admin.UserName,
 		Groups: admin.Groups,
@@ -726,7 +771,13 @@ func TestInitModuleProxies_AuthorizeTrue(t *testing.T) {
 	})
 	proxyHandler.ServeHTTP(rr, req2)
 	assert.Equal(t, http.StatusOK, rr.Code)
+	// K8s-style Authorization header is forwarded (Bearer <token>) ...
 	assert.Contains(t, receivedAuthHeader, "Bearer test-token-123")
+	// ... and the ingress auth header is re-injected with the raw server-resolved
+	// token so mod-arch BFFs (which read x-forwarded-access-token) authenticate
+	// too. The spoofed inbound value must not survive.
+	assert.Equal(t, "test-token-123", receivedTokenHeader)
+	assert.NotContains(t, receivedTokenHeader, "attacker-token")
 }
 
 func TestInitModuleProxies_AuthorizeFalse(t *testing.T) {
@@ -798,6 +849,116 @@ func TestInitModuleProxies_CustomHeaders(t *testing.T) {
 	require.NotNil(t, receivedHeaders)
 	assert.Equal(t, "custom-value", receivedHeaders.Get("X-Custom-Header"))
 	assert.Equal(t, "another-value", receivedHeaders.Get("X-Another"))
+}
+
+// TestInitModuleProxies_AuthorizeWithCustomHeaders verifies that an authorize:true
+// entry forwards both static custom headers AND the server-resolved auth token,
+// and that the token injection is authoritative (custom headers cannot shadow it).
+func TestInitModuleProxies_AuthorizeWithCustomHeaders(t *testing.T) {
+	var receivedHeaders http.Header
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.DevMode = true
+		a.config.AuthTokenHeader = "x-forwarded-access-token"
+	})
+	headers := map[string]string{"X-Custom-Header": "custom-value"}
+	proxyHandler := createTestProxy(t, app, backend.URL, "/auth-custom/api", "/api", true, false, headers)
+
+	admin := k8mocks.DefaultTestUsers[0]
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth-custom/api/v1/data", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken("test-token-123"),
+	})
+	proxyHandler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	require.NotNil(t, receivedHeaders)
+	assert.Equal(t, "custom-value", receivedHeaders.Get("X-Custom-Header"))
+	assert.Contains(t, receivedHeaders.Get("Authorization"), "Bearer test-token-123")
+	assert.Equal(t, "test-token-123", receivedHeaders.Get("x-forwarded-access-token"))
+}
+
+// TestInitModuleProxies_AuthorizeEmptyAuthTokenHeader verifies that when no
+// ingress auth header is configured, only the K8s-style Authorization header is
+// forwarded (no raw-token injection).
+func TestInitModuleProxies_AuthorizeEmptyAuthTokenHeader(t *testing.T) {
+	var receivedAuthHeader string
+	var receivedTokenHeader string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		receivedTokenHeader = r.Header.Get("x-forwarded-access-token")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.DevMode = true
+		a.config.AuthTokenHeader = ""
+	})
+	proxyHandler := createTestProxy(t, app, backend.URL, "/auth-empty/api", "/api", true, false, nil)
+
+	admin := k8mocks.DefaultTestUsers[0]
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth-empty/api/v1/items", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken("test-token-123"),
+	})
+	proxyHandler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, receivedAuthHeader, "Bearer test-token-123")
+	assert.Empty(t, receivedTokenHeader)
+}
+
+// TestInitModuleProxies_AuthorizeWithAuthorizationHeader verifies that when the
+// configured ingress auth header IS the standard Authorization header, the
+// server-resolved token still reaches the upstream. SensitiveIngressHeaders
+// appends the configured header to StripHeaders, so the value AuthHeaderFn sets
+// is stripped before the request goes out; SetOutboundHeadersFn (which runs after
+// stripping) must re-inject it as "Bearer <token>". Regression test for the
+// AuthTokenHeader == "Authorization" configuration.
+func TestInitModuleProxies_AuthorizeWithAuthorizationHeader(t *testing.T) {
+	var receivedAuthHeader string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.DevMode = true
+		a.config.AuthTokenHeader = "Authorization"
+	})
+	proxyHandler := createTestProxy(t, app, backend.URL, "/auth-header/api", "/api", true, false, nil)
+
+	admin := k8mocks.DefaultTestUsers[0]
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth-header/api/v1/items", nil)
+	// A client attempts to spoof the Authorization header. It must be stripped
+	// and overwritten by the server-resolved token, never forwarded as-is.
+	req.Header.Set("Authorization", "Bearer attacker-token")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken("test-token-123"),
+	})
+	proxyHandler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	// The trusted token is forwarded with the "Bearer " prefix (not a raw,
+	// unprefixed token, and not the spoofed inbound value).
+	assert.Equal(t, "Bearer test-token-123", receivedAuthHeader)
+	assert.NotContains(t, receivedAuthHeader, "attacker-token")
 }
 
 func TestInitModuleProxies_PathRewrite(t *testing.T) {
