@@ -379,14 +379,14 @@ describe('External Models Page', () => {
       createExternalModelPage.findCreateButton().should('not.be.disabled').click();
 
       cy.wait('@createExternalModel').then((interception) => {
-        expect(interception.request.body).to.deep.include({
+        expect(interception.request.body.data).to.deep.include({
           name: 'gpt-4-turbo',
           namespace: TEST_PROJECT,
           modelName: 'GPT-4 Turbo',
           description: 'External GPT-4 Turbo model',
         });
-        expect(interception.request.body.providerRefs).to.have.length(1);
-        expect(interception.request.body.providerRefs[0]).to.deep.include({
+        expect(interception.request.body.data.providerRefs).to.have.length(1);
+        expect(interception.request.body.data.providerRefs[0]).to.deep.include({
           providerName: 'anthropic-dev',
           targetModel: 'claude-sonnet-4',
           apiFormat: 'openai-chat',
