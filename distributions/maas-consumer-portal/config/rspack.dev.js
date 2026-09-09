@@ -133,6 +133,11 @@ const buildProxyConfig = () => {
 
     if (dashboardHost) {
       console.info('Dashboard host:', dashboardHost);
+      if (!clusterCAFile) {
+        console.info(
+          'Cluster proxy TLS verification is enabled. Set ODH_DASHBOARD_CA_FILE to trust an internally signed dashboard certificate.',
+        );
+      }
       return [
         {
           context: [`${BASE_PATH}/maas/api`, `${BASE_PATH}/gen-ai/api`],
