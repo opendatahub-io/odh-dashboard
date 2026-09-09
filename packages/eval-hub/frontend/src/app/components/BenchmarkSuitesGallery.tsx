@@ -44,8 +44,8 @@ import './BenchmarkSuitesGallery.scss';
 const MOCK_COLLECTIONS = mockBenchmarkSuiteCollections();
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
-const SUPPORTED_EVALUATES_TYPES = ['model', 'agent'] as const;
-type SupportedEvaluatesType = (typeof SUPPORTED_EVALUATES_TYPES)[number];
+// These are the collection fields that can provide values for the filter dropdowns.
+type CollectionFilterField = 'domains' | 'ai_entities' | 'industries';
 
 type CollectionFilterSelectProps = {
   categoryName: string;
@@ -53,6 +53,7 @@ type CollectionFilterSelectProps = {
   options: string[];
   selected: string;
   onSelect: (value: string) => void;
+  isDisabled?: boolean;
   testId: string;
 };
 
@@ -62,6 +63,7 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
   options,
   selected,
   onSelect,
+  isDisabled = false,
   testId,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -82,6 +84,7 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
           ref={toggleRef}
           icon={<FilterIcon />}
           isExpanded={isOpen}
+          isDisabled={isDisabled}
           onClick={() => setIsOpen((open) => !open)}
           aria-label={`${categoryName} filter`}
           data-testid={testId}
@@ -110,17 +113,32 @@ const CollectionFilterSelect: React.FC<CollectionFilterSelectProps> = ({
   );
 };
 
-const isSupportedEvaluatesType = (value: string): value is SupportedEvaluatesType =>
-  SUPPORTED_EVALUATES_TYPES.some((type) => type === value);
+/**
+ * Reads the values for a filter from one collection. Domains use the deprecated category field
+ * as a temporary fallback so older API responses and mocks remain filterable.
+ */
+const getCollectionFieldValues = (
+  collection: Collection,
+  field: CollectionFilterField,
+): string[] =>
+  collection[field]?.length
+    ? collection[field]
+    : // TODO: Remove this legacy fallback once all collection responses use domains.
+      field === 'domains' && collection.category
+      ? [collection.category]
+      : [];
 
-const getCollectionEvaluatesTypes = (collection: Collection): SupportedEvaluatesType[] => {
-  if (collection.ai_entities && collection.ai_entities.length > 0) {
-    return collection.ai_entities.filter(isSupportedEvaluatesType);
-  }
-
-  // The mock collections currently store these classifications in domains.
-  return (collection.domains ?? []).filter(isSupportedEvaluatesType);
-};
+/**
+ * Builds a dropdown's options from all values returned by the collections. Set removes duplicates,
+ * and sorting keeps the menu order stable between renders.
+ */
+const getAvailableFilterOptions = (
+  collections: Collection[],
+  field: CollectionFilterField,
+): string[] =>
+  [
+    ...new Set(collections.flatMap((collection) => getCollectionFieldValues(collection, field))),
+  ].toSorted();
 
 type BenchmarkSuitesGalleryProps = {
   namespace: string;
@@ -163,18 +181,33 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [nameFilter, setNameFilter] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('');
   const [evaluatesFilter, setEvaluatesFilter] = React.useState('');
+  const [industryFilter, setIndustryFilter] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
   const notification = useNotification();
   const queryLimit = showPagination ? pageSize : maxVisibleCollections;
   const queryOffset = showPagination ? (page - 1) * pageSize : undefined;
-  const { data, isLoading, error, refetch } = useCollectionsQuery(
+  // Convert the current UI selections into API filters. These values are part of the React Query
+  // key, so changing either dropdown automatically fetches the matching collection set again.
+  const collectionQueryFilters = React.useMemo<CollectionFilterParams | undefined>(() => {
+    if (!categoryFilter && !evaluatesFilter && !industryFilter) {
+      return queryFilters;
+    }
+
+    return {
+      ...queryFilters,
+      ...(categoryFilter ? { domains: [categoryFilter] } : {}),
+      ...(evaluatesFilter ? { aiEntities: [evaluatesFilter] } : {}),
+      ...(industryFilter ? { industries: [industryFilter] } : {}),
+    };
+  }, [categoryFilter, evaluatesFilter, industryFilter, queryFilters]);
+  const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
     queryLimit,
     scope === 'curated' ? 'curation_order' : undefined,
-    queryFilters,
+    collectionQueryFilters,
     queryOffset,
   );
   const {
@@ -210,15 +243,18 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     ? (data?.total_count ?? collections.length)
     : collections.length;
 
+  // All filter dropdowns use the same helper so their options stay in sync with the collection
+  // fields returned by the API or the temporary mock fallback.
   const availableCategories = React.useMemo(
-    () =>
-      [
-        ...new Set(
-          sourceCollections
-            .map((collection) => collection.category)
-            .filter((category): category is string => Boolean(category)),
-        ),
-      ].toSorted(),
+    () => getAvailableFilterOptions(sourceCollections, 'domains'),
+    [sourceCollections],
+  );
+  const availableEvaluatesTypes = React.useMemo(
+    () => getAvailableFilterOptions(sourceCollections, 'ai_entities'),
+    [sourceCollections],
+  );
+  const availableIndustries = React.useMemo(
+    () => getAvailableFilterOptions(sourceCollections, 'industries'),
     [sourceCollections],
   );
 
@@ -229,21 +265,27 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       if (normalizedNameFilter && !collection.name.toLowerCase().includes(normalizedNameFilter)) {
         return false;
       }
-      if (categoryFilter && collection.category !== categoryFilter) {
+      if (
+        categoryFilter &&
+        !getCollectionFieldValues(collection, 'domains').includes(categoryFilter)
+      ) {
         return false;
       }
-      const selectedEvaluatesType = isSupportedEvaluatesType(evaluatesFilter)
-        ? evaluatesFilter
-        : undefined;
       if (
-        selectedEvaluatesType &&
-        !getCollectionEvaluatesTypes(collection).includes(selectedEvaluatesType)
+        evaluatesFilter &&
+        !getCollectionFieldValues(collection, 'ai_entities').includes(evaluatesFilter)
+      ) {
+        return false;
+      }
+      if (
+        industryFilter &&
+        !getCollectionFieldValues(collection, 'industries').includes(industryFilter)
       ) {
         return false;
       }
       return true;
     });
-  }, [categoryFilter, evaluatesFilter, nameFilter, sourceCollections]);
+  }, [categoryFilter, evaluatesFilter, industryFilter, nameFilter, sourceCollections]);
 
   // Mock data has already been loaded in full, so it needs local slicing until the mock fallback
   // is removed. API responses are already limited to the requested page.
@@ -259,11 +301,22 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       ? filteredCollections.length
       : (data?.total_count ?? filteredCollections.length)
     : totalCount;
-  const hasActiveFilters = Boolean(nameFilter || categoryFilter || evaluatesFilter);
+  const hasActiveFilters = Boolean(
+    nameFilter || categoryFilter || evaluatesFilter || industryFilter,
+  );
+  const areFiltersDisabled = Boolean(error) || (!isLoading && sourceCollections.length === 0);
+  const isRefreshing = isFetching && !isLoading;
 
   React.useEffect(() => {
     setPage(1);
-  }, [categoryFilter, evaluatesFilter, maxVisibleCollections, nameFilter, namespace]);
+  }, [
+    categoryFilter,
+    evaluatesFilter,
+    industryFilter,
+    maxVisibleCollections,
+    nameFilter,
+    namespace,
+  ]);
 
   const handleDeleteSelect = React.useCallback(
     (collection: Collection) => {
@@ -327,6 +380,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 aria-label="Filter by name"
                 placeholder="Filter by name"
                 value={nameFilter}
+                isDisabled={areFiltersDisabled}
                 onChange={(_event, value) => setNameFilter(value)}
                 onClear={() => setNameFilter('')}
                 data-testid="benchmark-suites-name-filter"
@@ -339,6 +393,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 options={availableCategories}
                 selected={categoryFilter}
                 onSelect={setCategoryFilter}
+                isDisabled={areFiltersDisabled}
                 testId="benchmark-suites-category-filter"
               />
             </ToolbarItem>
@@ -347,10 +402,24 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 <CollectionFilterSelect
                   categoryName="Evaluates"
                   allLabel="All asset types"
-                  options={[...SUPPORTED_EVALUATES_TYPES]}
+                  options={availableEvaluatesTypes}
                   selected={evaluatesFilter}
                   onSelect={setEvaluatesFilter}
+                  isDisabled={areFiltersDisabled}
                   testId="benchmark-suites-evaluates-filter"
+                />
+              </ToolbarItem>
+            )}
+            {availableIndustries.length > 0 && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Industry"
+                  allLabel="All industries"
+                  options={availableIndustries}
+                  selected={industryFilter}
+                  onSelect={setIndustryFilter}
+                  isDisabled={areFiltersDisabled}
+                  testId="benchmark-suites-industry-filter"
                 />
               </ToolbarItem>
             )}
@@ -403,7 +472,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             </EmptyStateFooter>
           </EmptyState>
         </Bullseye>
-      ) : (showFilters || showPagination) && !isLoading && filteredCollections.length === 0 ? (
+      ) : isLoading ? (
+        <Bullseye data-testid="benchmark-suites-loading">
+          <Spinner aria-label="Loading benchmark suites" />
+        </Bullseye>
+      ) : (showFilters || showPagination) && filteredCollections.length === 0 ? (
         <Bullseye data-testid="benchmark-suites-empty-state">
           <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
             <Title headingLevel="h2" size="lg">
@@ -417,35 +490,40 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           </EmptyState>
         </Bullseye>
       ) : (
-        <Gallery
-          hasGutter
-          className="evalhub-benchmark-suite-gallery"
-          data-testid="benchmark-suites-gallery"
-        >
-          {showCreateSuiteCard && (
-            <GalleryItem>
-              <CreateBenchmarkSuiteCard onCreateSuite={onCreateSuite} />
-            </GalleryItem>
+        <div className="evalhub-benchmark-suite-gallery__container">
+          <Gallery
+            hasGutter
+            className="evalhub-benchmark-suite-gallery"
+            data-testid="benchmark-suites-gallery"
+          >
+            {showCreateSuiteCard && (
+              <GalleryItem>
+                <CreateBenchmarkSuiteCard onCreateSuite={onCreateSuite} />
+              </GalleryItem>
+            )}
+            {visibleCollections.map((collection) => (
+              <GalleryItem key={collection.resource.id}>
+                <BenchmarkSuiteCard
+                  collection={collection}
+                  primaryAction={{
+                    label: primaryActionLabel,
+                    onClick: () => onPrimaryAction(collection),
+                  }}
+                  contextualActions={showContextualActions ? contextualActions : undefined}
+                  onSelect={onSelectCollection}
+                />
+              </GalleryItem>
+            ))}
+          </Gallery>
+          {isRefreshing && (
+            <Bullseye
+              className="evalhub-benchmark-suite-gallery__refresh-loading"
+              data-testid="benchmark-suites-refresh-loading"
+            >
+              <Spinner aria-label="Refreshing benchmark suites" />
+            </Bullseye>
           )}
-          {visibleCollections.map((collection) => (
-            <GalleryItem key={collection.resource.id}>
-              <BenchmarkSuiteCard
-                collection={collection}
-                primaryAction={{
-                  label: primaryActionLabel,
-                  onClick: () => onPrimaryAction(collection),
-                }}
-                contextualActions={showContextualActions ? contextualActions : undefined}
-                onSelect={onSelectCollection}
-              />
-            </GalleryItem>
-          ))}
-        </Gallery>
-      )}
-      {isLoading && (
-        <Bullseye data-testid="benchmark-suites-loading">
-          <Spinner />
-        </Bullseye>
+        </div>
       )}
       {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
         <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">

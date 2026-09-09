@@ -8,6 +8,11 @@ class EvaluationsPage {
     this.visit(namespace, 'runs');
   }
 
+  visitBenchmarkSuites(namespace: string) {
+    cy.visit(`/evaluation/${namespace}/collections`);
+    this.waitForLoad();
+  }
+
   visitInvalidProject(namespace: string) {
     cy.visit(`/evaluation/${namespace}`);
     this.waitForLoad();
@@ -93,6 +98,26 @@ class EvaluationsPage {
 
   findBenchmarkSuitePrimaryAction(collectionId: string) {
     return cy.findByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+  }
+
+  findBenchmarkSuitesNameFilter() {
+    return cy.findByTestId('benchmark-suites-name-filter');
+  }
+
+  findBenchmarkSuitesCategoryFilter() {
+    return cy.findByTestId('benchmark-suites-category-filter');
+  }
+
+  findBenchmarkSuitesEvaluatesFilter() {
+    return cy.findByTestId('benchmark-suites-evaluates-filter');
+  }
+
+  findBenchmarkSuitesIndustryFilter() {
+    return cy.findByTestId('benchmark-suites-industry-filter');
+  }
+
+  findBenchmarkSuitesFilterOption(filter: 'category' | 'evaluates' | 'industry', value: string) {
+    return cy.findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
   findBenchmarkSuitesSummary() {

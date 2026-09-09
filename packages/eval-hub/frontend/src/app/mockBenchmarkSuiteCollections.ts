@@ -1,6 +1,34 @@
 /* eslint-disable camelcase */
 import type { Collection } from '~/app/types';
 
+const MOCK_AI_ENTITIES = ['model', 'agent'] as const;
+type MockAiEntity = (typeof MOCK_AI_ENTITIES)[number];
+
+const isMockAiEntity = (value: string): value is MockAiEntity =>
+  MOCK_AI_ENTITIES.some((aiEntity) => aiEntity === value);
+
+const MOCK_COLLECTION_INDUSTRIES: Record<string, string[]> = {
+  'model-suite-2': ['health'],
+  'model-suite-7': ['financial'],
+  'agent-safety-suite': ['government'],
+  'code-quality-suite': ['telco'],
+  'trace-evaluation-suite': ['health'],
+  'guardrails-compliance-suite': ['government'],
+  'finance-evaluation-suite': ['financial'],
+  'open-llm-leaderboard-v2': ['telco'],
+  clawbench: ['government'],
+  'curated-agent-safety-suite': ['health'],
+  'curated-safety-and-fairness-agent': ['government'],
+  'software-engineering-agent-suite': ['telco'],
+  'curated-toxicity-risk-agent': ['health'],
+  'curated-open-llm-leaderboard-v2': ['telco'],
+  'curated-safety-and-fairness-model': ['health'],
+  'free-open-telco-llm-benchmark': ['telco'],
+  'healthcare-evaluation-suite': ['health'],
+  'eu-ai-act-compliance-suite': ['government'],
+  'curated-toxicity-risk-model': ['financial'],
+};
+
 const createMockCollection = (
   id: string,
   name: string,
@@ -8,26 +36,33 @@ const createMockCollection = (
   description: string,
   benchmarkIds: string[],
   benchmarkMetrics: string[],
-): Collection => ({
-  resource: {
-    id,
-    created_at: '2026-02-01T12:00:00Z',
-    updated_at: '2026-02-01T12:00:00Z',
-  },
-  name,
-  category: domains[0],
-  domains,
-  description,
-  tags: domains,
-  benchmarks: benchmarkIds.map((benchmarkId, index) => ({
-    id: benchmarkId,
-    provider_id: 'mock_eval_suite',
-    primary_score: {
-      metric: benchmarkMetrics[index],
-      lower_is_better: false,
+): Collection => {
+  const collectionDomains = domains.filter((domain) => !isMockAiEntity(domain));
+  const aiEntities = domains.filter(isMockAiEntity);
+
+  return {
+    resource: {
+      id,
+      created_at: '2026-02-01T12:00:00Z',
+      updated_at: '2026-02-01T12:00:00Z',
     },
-  })),
-});
+    name,
+    category: collectionDomains[0],
+    domains: collectionDomains,
+    ai_entities: aiEntities,
+    industries: MOCK_COLLECTION_INDUSTRIES[id] ?? [],
+    description,
+    tags: domains,
+    benchmarks: benchmarkIds.map((benchmarkId, index) => ({
+      id: benchmarkId,
+      provider_id: 'mock_eval_suite',
+      primary_score: {
+        metric: benchmarkMetrics[index],
+        lower_is_better: false,
+      },
+    })),
+  };
+};
 
 export const mockBenchmarkSuiteCollections = (): Collection[] => [
   createMockCollection(

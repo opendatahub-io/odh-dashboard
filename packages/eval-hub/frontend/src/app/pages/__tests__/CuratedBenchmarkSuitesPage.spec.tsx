@@ -103,6 +103,10 @@ describe('CuratedBenchmarkSuitesPage', () => {
     expect(screen.getByTestId('benchmark-suites-load-error')).toBeInTheDocument();
     expect(screen.getByText('Unable to load benchmark suites')).toBeInTheDocument();
     expect(
+      screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
+    ).toBeDisabled();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toBeDisabled();
+    expect(
       screen.queryByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).not.toBeInTheDocument();
   });

@@ -46,11 +46,13 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   onSelect,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const domains = collection.domains?.length
-    ? collection.domains
-    : collection.category
-      ? [collection.category]
-      : [];
+  const classificationLabels =
+    collection.domains?.length || collection.ai_entities?.length
+      ? [...(collection.domains ?? []), ...(collection.ai_entities ?? [])]
+      : collection.category
+        ? [collection.category]
+        : [];
+  const domains = [...new Set(classificationLabels)];
   const metrics = [
     ...new Set(
       (collection.benchmarks ?? [])

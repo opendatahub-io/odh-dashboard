@@ -62,6 +62,9 @@ export const useCollectionsQuery = (
       }
       return getCollections('', params)({ signal });
     },
+    // Keep the current page visible while a changed filter, sort, or pagination key is fetching.
+    // The gallery uses isFetching to show a localized loading spinner over these results.
+    placeholderData: (previousData) => previousData,
     enabled: Boolean(namespace),
   });
 

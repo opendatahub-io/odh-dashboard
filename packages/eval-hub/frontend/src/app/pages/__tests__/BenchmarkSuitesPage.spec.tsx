@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
@@ -76,6 +77,24 @@ describe('BenchmarkSuitesPage', () => {
     );
   });
 
+  it('should show a refresh spinner without hiding existing suites while fetching', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: mockBenchmarkSuiteCollections(),
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      isFetching: true,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-refresh-loading')).toBeInTheDocument();
+  });
+
   it('should filter tenant benchmark suites by name', () => {
     renderPage();
 
@@ -99,6 +118,63 @@ describe('BenchmarkSuitesPage', () => {
     expect(emptyState.querySelector('svg')).toBeInTheDocument();
   });
 
+  it('should derive filter options from collection fields', async () => {
+    const collections = mockBenchmarkSuiteCollections().map((collection, index) => ({
+      ...collection,
+      domains: [index % 2 === 0 ? 'z-domain' : 'a-domain'],
+      // eslint-disable-next-line camelcase
+      ai_entities: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
+      industries: [index % 2 === 0 ? 'z-industry' : 'a-industry'],
+    }));
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('benchmark-suites-category-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-category-filter-option-a-domain'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-category-filter-option-z-domain'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-category-filter-option-code'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('benchmark-suites-category-filter-option-all'));
+    await user.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-a-entity'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-z-entity'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-evaluates-filter-option-model'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('benchmark-suites-evaluates-filter-option-all'));
+    await user.click(screen.getByTestId('benchmark-suites-industry-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-industry-filter-option-a-industry'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-industry-filter-option-z-industry'),
+    ).toBeInTheDocument();
+  });
+
   it('should filter tenant benchmark suites by category and evaluates type', () => {
     renderPage();
 
@@ -107,6 +183,14 @@ describe('BenchmarkSuitesPage', () => {
 
     expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      6,
+      undefined,
+      { domains: ['code'] },
+      0,
+    );
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     fireEvent.click(screen.getByRole('option', { name: 'All categories' }));
@@ -115,5 +199,13 @@ describe('BenchmarkSuitesPage', () => {
 
     expect(screen.getByTestId('benchmark-suite-card-agent-safety-suite')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suite-card-code-quality-suite')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      6,
+      undefined,
+      { aiEntities: ['agent'] },
+      0,
+    );
   });
 });
