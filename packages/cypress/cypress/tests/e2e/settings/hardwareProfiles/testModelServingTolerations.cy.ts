@@ -66,10 +66,24 @@ describe('ModelServing - tolerations tests', () => {
       const awsPipelines = Cypress.env('AWS_PIPELINES') as Record<string, Record<string, string>>;
       const bucket3 = awsPipelines.BUCKET_3;
 
+      const awsPipelines = Cypress.env('AWS_PIPELINES') as {
+        AWS_ACCESS_KEY_ID: string;
+        AWS_SECRET_ACCESS_KEY: string;
+        BUCKET_3: {
+          NAME: string;
+          REGION: string;
+          ENDPOINT: string;
+        };
+      };
+
+      const bucket3 = awsPipelines.BUCKET_3;
+
       cy.log(`[DEBUG] BUCKET_3 NAME: ${bucket3.NAME}`);
       cy.log(`[DEBUG] BUCKET_3 REGION: ${bucket3.REGION}`);
       cy.log(`[DEBUG] BUCKET_3 ENDPOINT: ${bucket3.ENDPOINT}`);
-      cy.log(`[DEBUG] AWS_ACCESS_KEY_ID prefix: ${awsPipelines.AWS_ACCESS_KEY_ID.slice(0, 4)}`);
+      cy.log(`[DEBUG] AWS_ACCESS_KEY_ID: ${awsPipelines.AWS_ACCESS_KEY_ID}`);
+      cy.log(`[DEBUG] AWS_SECRET_ACCESS_KEY: ${awsPipelines.AWS_SECRET_ACCESS_KEY}`);
+      
       if (!projectName) {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
