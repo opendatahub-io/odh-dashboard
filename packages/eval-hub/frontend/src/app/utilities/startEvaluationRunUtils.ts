@@ -1,6 +1,12 @@
 import type { SuiteEvaluatesOption } from '~/app/pages/const';
 import type { SourceMode } from '~/app/types';
 
+export const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
+  { value: 'model', label: 'Model' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'prerecorded', label: 'Pre-recorded responses' },
+];
+
 export const suiteEvaluatesToSourceMode = (evaluates: SuiteEvaluatesOption): SourceMode => {
   if (evaluates === 'model') {
     return 'model';

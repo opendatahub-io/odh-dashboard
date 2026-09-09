@@ -214,8 +214,8 @@ paths:
     description: >-
       Creates a tenant-scoped copy of an existing benchmark collection.
       The request body can optionally override the name, description,
-      category, tags, custom metadata, benchmarks, and pass criteria of the
-      cloned collection.
+      category, tags, AI entities, custom metadata, benchmarks, and pass
+      criteria of the cloned collection.
     post:
       tags:
         - Collections
@@ -1457,6 +1457,12 @@ components:
           items:
             type: string
           nullable: true
+        ai_entities:
+          type: array
+          description: AI entities evaluated by this collection.
+          items:
+            type: string
+          nullable: true
         custom:
           type: object
           additionalProperties: true
@@ -1483,20 +1489,16 @@ components:
           type: array
           items:
             type: string
+        ai_entities:
+          type: array
+          description: AI entities evaluated by this collection.
+          items:
+            type: string
         custom:
           type: object
           description: User-defined metadata to apply to the cloned collection.
-          properties:
-            evaluates:
-              type: array
-              description: Targets evaluated by this collection.
-              items:
-                type: string
           additionalProperties: true
           nullable: true
-          example:
-            evaluates:
-              - agent
         pass_criteria:
           $ref: '#/components/schemas/CollectionPassCriteria'
         benchmarks:

@@ -8,7 +8,7 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import type { Collection } from '~/app/types';
+import type { Collection, SourceMode } from '~/app/types';
 
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
@@ -123,6 +123,7 @@ type ResolveCollection = NonNullable<
 const renderModal = (
   resolveCollection?: ResolveCollection,
   onClonePendingChange?: (isPending: boolean) => void,
+  options: { collection?: Collection; defaultSourceMode?: SourceMode } = {},
 ) => {
   const onClose = jest.fn();
 
@@ -132,9 +133,10 @@ const renderModal = (
         isOpen
         onClose={onClose}
         namespace="test-namespace"
-        collection={collection}
+        collection={options.collection ?? collection}
         isCollectionFlow
         defaultEvaluationName="Copied suite"
+        defaultSourceMode={options.defaultSourceMode}
         trackingSource="copy_suite"
         resolveCollection={resolveCollection}
         onClonePendingChange={onClonePendingChange}
@@ -167,6 +169,30 @@ describe('StartEvaluationRunModal', () => {
     mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(mockEvaluationJob()));
   });
 
+  it('should preselect and hide evaluating when a collection has one AI entity', () => {
+    renderModal(undefined, undefined, {
+      collection: { ...collection, ai_entities: ['agent'] },
+      defaultSourceMode: 'model',
+    });
+
+    expect(screen.queryByTestId('source-mode-toggle')).not.toBeInTheDocument();
+    expect(screen.getByTestId('agent-name-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('model-picker-toggle')).not.toBeInTheDocument();
+  });
+
+  it('should show evaluating when a collection has multiple AI entities', () => {
+    renderModal(undefined, undefined, {
+      collection: { ...collection, ai_entities: ['model', 'agent'] },
+      defaultSourceMode: 'agent',
+    });
+
+    expect(screen.getByTestId('source-mode-toggle')).toHaveTextContent('Agent');
+    fireEvent.click(screen.getByTestId('source-mode-toggle'));
+
+    expect(screen.getByRole('option', { name: 'Model', hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Agent', hidden: true })).toBeInTheDocument();
+  });
+
   it('should disable fields and prevent a deferred clone from submitting after cancel', async () => {
     const deferredClone = createDeferred<Collection | undefined>();
     let cloneSignal: AbortSignal | undefined;
@@ -188,14 +214,7 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('model-picker-toggle')).toBeDisabled();
     expect(screen.getByTestId('start-evaluation-submit')).toBeDisabled();
     expect(screen.getByTestId('start-evaluation-cancel')).toBeEnabled();
-    expect(
-      within(screen.getByTestId('benchmark-threshold')).getByRole('slider', { hidden: true }),
-    ).toHaveAttribute('aria-disabled', 'true');
-    const thresholdInput = screen
-      .getByTestId('benchmark-threshold')
-      .querySelector<HTMLInputElement>('input[type="number"]');
-    expect(thresholdInput).not.toBeNull();
-    expect(thresholdInput).toBeDisabled();
+    expect(screen.queryByTestId('benchmark-threshold')).not.toBeInTheDocument();
     expect(fileUpload.querySelector<HTMLInputElement>('input[type="file"]')).toBeDisabled();
     expect(fileUpload.querySelector('textarea')).toBeDisabled();
     expect(onClonePendingChange).toHaveBeenCalledWith(true);

@@ -486,9 +486,9 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 		Description: "Custom collection settings",
 		Category:    "Safety",
 		Tags:        []string{"custom", "agent"},
+		AIEntities:  []string{"agent"},
 		Custom: map[string]any{
-			"evaluates": []string{"agent"},
-			"source":    "copy-suite",
+			"source": "copy-suite",
 		},
 		PassCriteria: &CollectionPassCriteria{Threshold: 0.8},
 		Benchmarks: []CollectionBenchmark{
@@ -513,7 +513,8 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			"description": "Custom collection settings",
 			"category": "Safety",
 			"tags": ["custom", "agent"],
-			"custom": {"evaluates": ["agent"], "source": "copy-suite"},
+			"ai_entities": ["agent"],
+			"custom": {"source": "copy-suite"},
 			"pass_criteria": {"threshold": 0.8},
 			"benchmarks": [{
 				"id": "arc_challenge",
@@ -530,6 +531,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 			Description:  request.Description,
 			Category:     request.Category,
 			Tags:         request.Tags,
+			AIEntities:   request.AIEntities,
 			Custom:       request.Custom,
 			PassCriteria: request.PassCriteria,
 			Benchmarks:   request.Benchmarks,
@@ -543,7 +545,7 @@ func TestEvalHubClient_CloneCollection_WithCustomMetadata(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "collection-001-clone", result.Resource.ID)
 	assert.Equal(t, []string{"custom", "agent"}, result.Tags)
-	assert.Equal(t, []any{"agent"}, result.Custom["evaluates"])
+	assert.Equal(t, []string{"agent"}, result.AIEntities)
 }
 
 func TestEvalHubClient_CloneCollection_RejectsOversizedResponse(t *testing.T) {

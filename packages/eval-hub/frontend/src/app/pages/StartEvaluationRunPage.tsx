@@ -55,6 +55,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { SOURCE_OPTIONS } from '~/app/utilities/startEvaluationRunUtils';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -62,12 +63,6 @@ import {
 } from './useStartEvaluationRunForm';
 
 import './StartEvaluationRunPage.css';
-
-const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
-  { value: 'model', label: 'Model' },
-  { value: 'agent', label: 'Agent' },
-  { value: 'prerecorded', label: 'Pre-recorded responses' },
-];
 
 type StartEvaluationRunPageProps = {
   initialValues?: ReconfigureFormData;

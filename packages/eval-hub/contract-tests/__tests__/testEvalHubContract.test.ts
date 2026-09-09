@@ -64,8 +64,8 @@ describe('EvalHub API Contract Tests', () => {
         description: 'A collection configured for agent evaluation',
         category: 'Safety',
         tags: ['custom', 'agent'],
+        ['ai_entities']: ['agent'],
         custom: {
-          evaluates: ['agent'],
           source: 'copy-suite',
         },
         // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
@@ -96,6 +96,7 @@ describe('EvalHub API Contract Tests', () => {
             description: cloneRequest.description,
             category: cloneRequest.category,
             tags: cloneRequest.tags,
+            ['ai_entities']: cloneRequest['ai_entities'],
             custom: cloneRequest.custom,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             pass_criteria: cloneRequest.pass_criteria,

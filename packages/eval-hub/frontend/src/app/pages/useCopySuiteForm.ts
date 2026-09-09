@@ -97,16 +97,12 @@ const mergeBenchmarkParameters = (benchmark: CopySuiteBenchmark): Record<string,
     : {}),
 });
 
-const buildCustomMetadata = (
-  sourceCustom: unknown,
-  suiteEvaluates: SuiteEvaluatesOption,
-): Record<string, unknown> =>
-  Object.fromEntries([
-    ...(typeof sourceCustom === 'object' && sourceCustom !== null && !Array.isArray(sourceCustom)
+const buildCustomMetadata = (sourceCustom: unknown): Record<string, unknown> =>
+  Object.fromEntries(
+    typeof sourceCustom === 'object' && sourceCustom !== null && !Array.isArray(sourceCustom)
       ? Object.entries(sourceCustom).filter(([key]) => key !== 'evaluates')
-      : []),
-    ['evaluates', [suiteEvaluates]],
-  ]);
+      : [],
+  );
 
 type UseCopySuiteFormParams = {
   namespace: string | undefined;
@@ -156,7 +152,9 @@ export const buildPendingCollection = ({
     name: suiteName.trim(),
     description: suiteDescription.trim() || undefined,
     category: suiteCategory || undefined,
-    custom: buildCustomMetadata(sourceCollection.custom, suiteEvaluates),
+    // eslint-disable-next-line camelcase
+    ai_entities: [suiteEvaluates],
+    custom: buildCustomMetadata(sourceCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
     benchmarks: normalizedBenchmarks,
@@ -241,6 +239,14 @@ const resolveInitialEvaluates = (
   collection: Collection,
   providers: Provider[],
 ): SuiteEvaluatesOption => {
+  const aiEntities = collection.ai_entities;
+  if (Array.isArray(aiEntities) && aiEntities.length > 0) {
+    const first = aiEntities[0];
+    if (isSuiteEvaluatesOption(first)) {
+      return first;
+    }
+  }
+
   const customEvaluates = collection.custom?.evaluates;
   if (Array.isArray(customEvaluates) && customEvaluates.length > 0) {
     const first = customEvaluates[0];
@@ -355,11 +361,21 @@ export const rebalanceWeights = (benchmarks: CopySuiteBenchmark[]): CopySuiteBen
   return benchmarks.map((b, index) => ({ ...b, weight: weights[index] }));
 };
 
+const buildDefaultSuiteName = (sourceName: string): string =>
+  `${sourceName} - ${new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })}`;
+
 const buildInitialFormValues = (
   sourceCollection: Collection,
   providers: Provider[],
 ): CopySuiteFormValues => ({
-  suiteName: sourceCollection.name,
+  suiteName: buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
   suiteCategory: sourceCollection.category ?? '',
   suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
@@ -549,7 +565,9 @@ export function useCopySuiteForm({
       name: values.suiteName.trim(),
       description: values.suiteDescription.trim() || undefined,
       category: values.suiteCategory || undefined,
-      custom: buildCustomMetadata(sourceCollection?.custom, values.suiteEvaluates),
+      // eslint-disable-next-line camelcase
+      ai_entities: [values.suiteEvaluates],
+      custom: buildCustomMetadata(sourceCollection?.custom),
       // eslint-disable-next-line camelcase
       pass_criteria: { threshold: values.suiteThreshold / 100 },
       benchmarks: normalizedBenchmarks,

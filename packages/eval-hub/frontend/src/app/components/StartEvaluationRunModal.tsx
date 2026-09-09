@@ -43,7 +43,11 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
-import { getEvaluatingFieldLabel } from '~/app/utilities/startEvaluationRunUtils';
+import { isSuiteEvaluatesOption } from '~/app/pages/const';
+import {
+  SOURCE_OPTIONS,
+  suiteEvaluatesToSourceMode,
+} from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection, FlatBenchmark, SourceMode } from '~/app/types';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
@@ -91,6 +95,19 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     workspace: namespace ?? '',
   });
 
+  const hasSingleAiEntity = collection?.ai_entities?.length === 1;
+  const aiEntitySourceMode = React.useMemo(() => {
+    const aiEntities = collection?.ai_entities;
+    if (aiEntities?.length !== 1) {
+      return undefined;
+    }
+
+    const aiEntity = aiEntities[0];
+    return isSuiteEvaluatesOption(aiEntity)
+      ? suiteEvaluatesToSourceMode(aiEntity)
+      : defaultSourceMode;
+  }, [collection, defaultSourceMode]);
+
   const {
     inferenceServices,
     loaded: isLoaded,
@@ -106,7 +123,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
-    defaultSourceMode,
+    defaultSourceMode: aiEntitySourceMode ?? defaultSourceMode,
     trackingSource,
     onSuccess,
     onCancel: onClose,
@@ -114,6 +131,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
   const isSubmitting = form.isSubmitting || isCloning;
 
+  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
   React.useEffect(() => {
     if (isCloning) {
       setIsModelOpen(false);
@@ -156,6 +174,17 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     [form, inferenceServices],
   );
 
+  const handleSourceSelect = React.useCallback(
+    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        form.handleSourceModeChange(value as SourceMode);
+      }
+      setIsSourceOpen(false);
+    },
+    [form],
+  );
+
   const modelDropdownDisplayValue = React.useMemo(() => {
     if (form.modelSelection === 'external') {
       return 'Other (External endpoint)';
@@ -164,7 +193,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   }, [form.modelSelection, form.selectedInferenceService]);
 
   const showExternalModelFields = form.sourceMode === 'model' && form.modelSelection === 'external';
-  const sourceFieldLabel = getEvaluatingFieldLabel(form.sourceMode);
 
   const handleStart = React.useCallback(async () => {
     if (!form.isValid || isStartInFlightRef.current) {
@@ -261,12 +289,60 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 />
               </FormGroup>
 
+              {!hasSingleAiEntity ? (
+                <FormGroup
+                  className="evalhub-form-group--with-description"
+                  label={
+                    <FormGroupLabel
+                      label="Evaluating"
+                      description="Select the model, agent, or dataset to evaluate."
+                      isRequired
+                    />
+                  }
+                  fieldId="source-mode"
+                >
+                  <Select
+                    id="source-mode-menu"
+                    data-testid="source-mode-select"
+                    isOpen={isSourceOpen}
+                    selected={form.sourceMode}
+                    onSelect={handleSourceSelect}
+                    onOpenChange={setIsSourceOpen}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        id="source-mode"
+                        ref={toggleRef}
+                        onClick={() => setIsSourceOpen((prev) => !prev)}
+                        isExpanded={isSourceOpen}
+                        isFullWidth
+                        data-testid="source-mode-toggle"
+                      >
+                        {SOURCE_OPTIONS.find((option) => option.value === form.sourceMode)?.label}
+                      </MenuToggle>
+                    )}
+                    shouldFocusToggleOnSelect
+                  >
+                    <SelectList>
+                      {SOURCE_OPTIONS.map((option) => (
+                        <SelectOption
+                          key={option.value}
+                          value={option.value}
+                          isSelected={option.value === form.sourceMode}
+                        >
+                          {option.label}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                </FormGroup>
+              ) : null}
+
               {form.sourceMode === 'model' ? (
                 <FormGroup
                   className="evalhub-form-group--with-description"
                   label={
                     <FormGroupLabel
-                      label={sourceFieldLabel}
+                      label="Model"
                       description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
                       isRequired
                       helpPopover={{
@@ -482,13 +558,15 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   ) : null}
                 </FormGroup>
 
-                <BenchmarkThresholdField
-                  value={form.threshold}
-                  onChange={form.handleThresholdChange}
-                  label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
-                  fieldId="benchmark-threshold"
-                  isDisabled={isCloning}
-                />
+                {!isCollectionFlow ? (
+                  <BenchmarkThresholdField
+                    value={form.threshold}
+                    onChange={form.handleThresholdChange}
+                    label="Benchmark threshold"
+                    fieldId="benchmark-threshold"
+                    isDisabled={isCloning}
+                  />
+                ) : null}
 
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                   <FlexItem>

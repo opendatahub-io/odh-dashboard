@@ -3,10 +3,13 @@
 }
 
 .evalhub-start-evaluation-run-modal__advanced {
-  margin-block-start: var(--pf-t--global--spacer--md);
+  margin-block-start: 0;
 }
 
 .evalhub-start-evaluation-run-modal__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--lg);
   min-inline-size: 0;
   border: 0;
   margin: 0;

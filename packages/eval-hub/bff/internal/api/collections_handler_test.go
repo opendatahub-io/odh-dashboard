@@ -89,9 +89,9 @@ func TestCloneCollectionHandler(t *testing.T) {
 		Description: "Custom collection settings",
 		Category:    "Safety",
 		Tags:        []string{"custom", "agent"},
+		AIEntities:  []string{"agent"},
 		Custom: map[string]any{
-			"evaluates": []string{"agent"},
-			"source":    "copy-suite",
+			"source": "copy-suite",
 		},
 		PassCriteria: &evalhub.CollectionPassCriteria{Threshold: 0.8},
 		Benchmarks: []evalhub.CollectionBenchmark{
@@ -124,7 +124,8 @@ func TestCloneCollectionHandler(t *testing.T) {
 
 	custom, err := json.Marshal(result.Data.Custom)
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"evaluates":["agent"],"source":"copy-suite"}`, string(custom))
+	assert.JSONEq(t, `{"source":"copy-suite"}`, string(custom))
+	assert.Equal(t, []string{"agent"}, result.Data.AIEntities)
 }
 
 func TestCloneCollectionHandlerEmptyBody(t *testing.T) {

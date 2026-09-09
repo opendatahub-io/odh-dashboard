@@ -301,6 +301,7 @@ export type Collection = {
   category?: string;
   description?: string;
   tags?: string[];
+  ai_entities?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];
@@ -311,6 +312,7 @@ export type CloneCollectionRequest = {
   description?: string;
   category?: string;
   tags?: string[];
+  ai_entities?: string[];
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];

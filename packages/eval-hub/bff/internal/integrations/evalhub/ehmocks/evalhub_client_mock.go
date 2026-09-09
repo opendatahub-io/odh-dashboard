@@ -392,6 +392,10 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 	if tags == nil {
 		tags = source.Tags
 	}
+	aiEntities := req.AIEntities
+	if aiEntities == nil {
+		aiEntities = source.AIEntities
+	}
 	custom := req.Custom
 	if custom == nil {
 		custom = source.Custom
@@ -415,6 +419,7 @@ func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ stri
 		Description:  description,
 		Category:     category,
 		Tags:         tags,
+		AIEntities:   aiEntities,
 		Custom:       custom,
 		PassCriteria: passCriteria,
 		Benchmarks:   benchmarks,

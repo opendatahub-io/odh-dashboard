@@ -37,12 +37,15 @@ const mockUseNavigate = jest.mocked(useNavigate);
 const mockCloneCollection = jest.mocked(cloneCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const defaultSuiteNamePattern =
+  /^Curated suite - [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)$/;
 
 const sourceCollection: Collection = {
   resource: { id: 'source-collection' },
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
+  ai_entities: ['model'],
   custom: { source: 'curated', evaluates: ['model'] },
   pass_criteria: { threshold: 0.8 },
   benchmarks: [
@@ -142,7 +145,11 @@ describe('useCopySuiteForm', () => {
   it('should initialize suite fields and benchmark fields from the source collection', async () => {
     const result = renderForm();
 
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() =>
+      expect(result.result.current.suiteName).toMatch(
+        /^Curated suite - [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)$/,
+      ),
+    );
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
     expect(result.result.current.suiteCategory).toBe('language');
@@ -163,6 +170,43 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should append the current timestamp to the copied suite name', async () => {
+    const toLocaleStringSpy = jest
+      .spyOn(Date.prototype, 'toLocaleString')
+      .mockReturnValue('Sep 8, 2026, 11:56 AM');
+
+    try {
+      const result = renderForm();
+
+      await waitFor(() =>
+        expect(result.result.current.suiteName).toBe('Curated suite - Sep 8, 2026, 11:56 AM'),
+      );
+      expect(toLocaleStringSpy).toHaveBeenCalledWith('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } finally {
+      toLocaleStringSpy.mockRestore();
+    }
+  });
+
+  it('should fall back to legacy custom evaluates metadata when ai_entities is absent', async () => {
+    const legacySourceCollection: Collection = {
+      ...sourceCollection,
+      ai_entities: undefined,
+      custom: { source: 'curated', evaluates: ['traces'] },
+    };
+    const result = renderForm({ sourceCollection: legacySourceCollection });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteEvaluates).toBe('traces');
   });
 
   it('should map num_fewshot parameters to the few-shot field and exclude them from advanced JSON', async () => {
@@ -240,7 +284,7 @@ describe('useCopySuiteForm', () => {
       providersLoaded: true,
     });
 
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     expect(result.result.current.benchmarks).toEqual([
       expect.objectContaining({
@@ -306,7 +350,7 @@ describe('useCopySuiteForm', () => {
 
   it('should update suite and benchmark values', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => {
       result.result.current.setSuiteName('Updated suite');
@@ -330,7 +374,7 @@ describe('useCopySuiteForm', () => {
 
   it('should apply benchmark selection in alphabetical order regardless of key order', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() =>
       result.result.current.applyBenchmarkSelection([
@@ -426,7 +470,7 @@ describe('useCopySuiteForm', () => {
 
   it('should apply benchmark selection and prevent an empty suite', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() =>
       result.result.current.applyBenchmarkSelection([
@@ -469,7 +513,7 @@ describe('useCopySuiteForm', () => {
   it('should invoke onSaveAndRunRequest instead of cloning when provided', async () => {
     const onSaveAndRunRequest = jest.fn();
     const result = renderForm({ onSaveAndRunRequest });
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => {
       result.result.current.handleSaveAndRun();
@@ -483,7 +527,7 @@ describe('useCopySuiteForm', () => {
   it('should block saves when advanced benchmark parameters are invalid JSON', async () => {
     const onSaveAndRunRequest = jest.fn();
     const result = renderForm({ onSaveAndRunRequest });
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => result.result.current.updateBenchmark(0, 'additionalParameters', '{not valid JSON'));
 
@@ -506,7 +550,7 @@ describe('useCopySuiteForm', () => {
 
   it('should reject reserved advanced parameters and preserve dedicated values defensively', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() =>
       result.result.current.updateBenchmark(
@@ -544,7 +588,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => result.result.current.setSuiteEvaluates('traces'));
 
@@ -558,10 +602,11 @@ describe('useCopySuiteForm', () => {
       'test-namespace',
       'source-collection',
       expect.objectContaining({
-        name: 'Curated suite',
+        name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
-        custom: { source: 'curated', evaluates: ['traces'] },
+        ai_entities: ['traces'],
+        custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
           expect.objectContaining({
@@ -589,7 +634,7 @@ describe('useCopySuiteForm', () => {
     });
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     const parentController = new AbortController();
     let clonePromise = Promise.resolve<Collection | undefined>(undefined);
@@ -615,7 +660,7 @@ describe('useCopySuiteForm', () => {
 
   it('should build a pending collection from current form state', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => result.result.current.setSuiteEvaluates('guardrails'));
     const pending = result.result.current.buildPendingCollection();
@@ -623,10 +668,11 @@ describe('useCopySuiteForm', () => {
     expect(pending).toEqual(
       expect.objectContaining({
         resource: sourceCollection.resource,
-        name: 'Curated suite',
+        name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
-        custom: { source: 'curated', evaluates: ['guardrails'] },
+        ai_entities: ['guardrails'],
+        custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
           expect.objectContaining({
@@ -657,7 +703,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm({ sourceCollection: sourceWithLowerIsBetter });
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({ lowerIsBetter: true }),
@@ -689,7 +735,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     await act(async () => {
       await result.result.current.handleSaveOnly();
@@ -707,7 +753,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn(() => deferredClone.promise);
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     let savePromise = Promise.resolve();
     act(() => {
@@ -733,7 +779,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn(() => deferredClone.promise);
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
     jest.spyOn(result.result.current.form, 'trigger').mockReturnValue(deferredValidation.promise);
 
     let firstSave = Promise.resolve();
@@ -762,7 +808,7 @@ describe('useCopySuiteForm', () => {
 
   it('should clear the save-only lock if validation rejects', async () => {
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
     jest
       .spyOn(result.result.current.form, 'trigger')
       .mockRejectedValue(new Error('Validation unavailable'));
@@ -780,7 +826,7 @@ describe('useCopySuiteForm', () => {
     const cloneFetcher = jest.fn().mockRejectedValue(new Error('Clone failed'));
     mockCloneCollection.mockReturnValue(cloneFetcher);
     const result = renderForm();
-    await waitFor(() => expect(result.result.current.suiteName).toBe('Curated suite'));
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     let cloned: Collection | undefined;
     await act(async () => {
