@@ -62,6 +62,14 @@ describe('ModelServing - tolerations tests', () => {
       dataConnectionName = testData.dataConnectionName;
       isS390x = !!testData.isS390x;
 
+      // LOCAL DEBUG ONLY — remove before final push
+      const awsPipelines = Cypress.env('AWS_PIPELINES') as Record<string, Record<string, string>>;
+      const bucket3 = awsPipelines.BUCKET_3;
+
+      cy.log(`[DEBUG] BUCKET_3 NAME: ${bucket3.NAME}`);
+      cy.log(`[DEBUG] BUCKET_3 REGION: ${bucket3.REGION}`);
+      cy.log(`[DEBUG] BUCKET_3 ENDPOINT: ${bucket3.ENDPOINT}`);
+      cy.log(`[DEBUG] AWS_ACCESS_KEY_ID prefix: ${awsPipelines.AWS_ACCESS_KEY_ID.slice(0, 4)}`);
       if (!projectName) {
         throw new Error('Project name is undefined or empty in the loaded fixture');
       }
@@ -161,7 +169,9 @@ describe('ModelServing - tolerations tests', () => {
         .findLocationPathInput()
         .should('be.visible')
         .clear()
-        .type(modelFilePath, { delay: 0 });
+        .type(modelFilePath)
+        // Verify the value stuck — React controlled inputs can clear on re-render
+        .should('have.value', modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
       modelServingWizard.findNextButton().click();
 
