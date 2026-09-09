@@ -169,6 +169,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     bffBasePath: embeddedConfig?.bffBasePath ?? '',
     namespace: embeddedConfig?.namespace ?? '',
     secretName: embeddedConfig?.secretName ?? '',
+    responsesEndpointUrl: embeddedConfig?.responsesEndpointUrl,
+    additionalMetadata: embeddedConfig?.additionalMetadata,
     responsesTemplate: embeddedConfig?.responsesTemplate ?? {
       model: '',
       stream: true,

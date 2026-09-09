@@ -51,6 +51,10 @@ type EmbeddableChatbotPlaygroundProps = {
   patternName?: string;
   /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. */
   bffBasePath: string;
+  /** Full URL override for the responses endpoint. When set, bffBasePath/secretName are ignored for request routing. */
+  responsesEndpointUrl?: string;
+  /** Additional key-value pairs merged into the request body's metadata field. */
+  additionalMetadata?: Record<string, string>;
   /** Custom content rendered in place of the default welcome prompt when no messages are present. */
   welcomeContent?: React.ReactNode;
   /** Custom text for the initial bot message. Pass empty string to hide it entirely. */
