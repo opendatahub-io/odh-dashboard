@@ -61,7 +61,7 @@ const BorrowingClusterQueueList: React.FC<{
             onClick={() => onSelectClusterQueue(path)}
             data-testid={`quota-usage-borrowing-cluster-queue-link-${clusterQueueName}`}
           >
-            {clusterQueueName}
+            <strong>{clusterQueueName}</strong>
           </Button>
           {QUOTA_USAGE_BORROWING.cohortCalloutSuffix(cohortName)}
         </Content>

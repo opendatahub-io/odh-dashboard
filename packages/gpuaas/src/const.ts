@@ -106,16 +106,39 @@ export const QUOTA_USAGE_ACCELERATOR_TABLE = {
 
 export const QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS = [
   { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.accelerator, field: 'model', sortable: true },
-  { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.capacity, field: 'nominal', sortable: true },
+  {
+    label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.capacity,
+    field: 'nominal',
+    sortable: true,
+    info: {
+      popover:
+        'The number of accelerators that are in use (blue) of the total quota allocated for each accelerator.',
+      popoverProps: {
+        position: 'top',
+      },
+    },
+  },
   {
     label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.compute,
     field: 'computePercentage',
     sortable: true,
+    info: {
+      popover: "The percentage of the accelerator's total processing power being used",
+      popoverProps: {
+        position: 'top',
+      },
+    },
   },
   {
     label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.memory,
     field: 'memoryPercentage',
     sortable: true,
+    info: {
+      popover: "The percentage of the accelerator's memory being used.",
+      popoverProps: {
+        position: 'top',
+      },
+    },
   },
 ];
 
