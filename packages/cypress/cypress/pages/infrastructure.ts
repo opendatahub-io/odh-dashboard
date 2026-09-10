@@ -173,6 +173,38 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-expand-all');
   }
 
+  findQuotaUsageWorkloadsSection() {
+    return cy.findByTestId('quota-usage-workloads-section');
+  }
+
+  findClusterQueueWorkloadsTable() {
+    return cy.findByTestId('cluster-queue-workloads-table');
+  }
+
+  findClusterQueueWorkloadsEmptyState() {
+    return cy.findByTestId('cluster-queue-workloads-empty-state');
+  }
+
+  findClusterQueueWorkloadsLoading() {
+    return cy.findByTestId('cluster-queue-workloads-loading');
+  }
+
+  findClusterQueueWorkloadsError() {
+    return cy.findByTestId('cluster-queue-workloads-error');
+  }
+
+  findClusterQueueWorkloadRow(namespace: string, name: string) {
+    return cy.findByTestId(`cluster-queue-workload-row-${namespace}-${name}`);
+  }
+
+  findClusterQueueWorkloadsNameFilter() {
+    return cy.findByTestId('cluster-queue-workloads-name-filter');
+  }
+
+  findClusterQueueWorkloadsStatusFilter() {
+    return cy.findByTestId('cluster-queue-workloads-status-filter');
+  }
+
   findOpenPopover() {
     return cy.findByRole('dialog');
   }

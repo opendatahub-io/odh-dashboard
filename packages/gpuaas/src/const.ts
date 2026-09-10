@@ -10,31 +10,50 @@ export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
   'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
 export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
 
+export const CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE = 'Workloads';
 export const CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION =
   'Workloads admitted or waiting in this cluster queue.';
 export const CLUSTER_QUEUE_WORKLOADS_EMPTY_TITLE = 'No workloads';
 export const CLUSTER_QUEUE_WORKLOADS_EMPTY_BODY = 'Admitted or waiting workloads will appear here.';
 export const CLUSTER_QUEUE_WORKLOADS_TYPE_HELP =
-  'Workload type: Workbench, Training, Ray job, Model serving, Ray cluster, or Unknown (e.g. pipeline workloads without a dedicated integration).';
+  'The type of workload: train job, Ray job, notebook, inference, or Ray cluster.';
 
 export enum ClusterQueueWorkloadsToolbarFilterOptions {
-  name = 'name',
   status = 'status',
+  priority = 'priority',
+  hardwareProfile = 'hardwareProfile',
 }
 
-export const clusterQueueWorkloadsFilterOptions: Record<string, string> = {
-  [ClusterQueueWorkloadsToolbarFilterOptions.name]: 'Name',
+export const clusterQueueWorkloadsFilterOptions: Record<
+  ClusterQueueWorkloadsToolbarFilterOptions,
+  string
+> = {
   [ClusterQueueWorkloadsToolbarFilterOptions.status]: 'Status',
+  [ClusterQueueWorkloadsToolbarFilterOptions.priority]: 'Priority',
+  [ClusterQueueWorkloadsToolbarFilterOptions.hardwareProfile]: 'Hardware profile',
+};
+
+export const clusterQueueWorkloadsFilterPlaceholders: Record<
+  ClusterQueueWorkloadsToolbarFilterOptions,
+  string
+> = {
+  [ClusterQueueWorkloadsToolbarFilterOptions.status]: 'Filter by status',
+  [ClusterQueueWorkloadsToolbarFilterOptions.priority]: 'Filter by priority',
+  [ClusterQueueWorkloadsToolbarFilterOptions.hardwareProfile]: 'Filter by hardware profile',
 };
 
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
+/** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
+export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
+
+/** 5m polling for trend charts and quota-usage workload tables (see useBorrowingLendingMetrics). */
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
 export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Utilization' },
+  { id: 'utilization', title: 'Accelerator utilization' },
   { id: 'quota-usage', title: 'Quota usage' },
 ] as const;
 
