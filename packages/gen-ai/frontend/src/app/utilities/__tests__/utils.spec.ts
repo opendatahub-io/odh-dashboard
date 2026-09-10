@@ -193,6 +193,17 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.externalEndpoint).toBe('https://maas.example.com/model');
   });
 
+  it('should ignore whitespace-only prefixed endpoints', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['external:   ', 'internal:\t'],
+    });
+
+    const result = convertMaaSModelToAIModel(aaModel);
+
+    expect(result.externalEndpoint).toBeUndefined();
+    expect(result.internalEndpoint).toBeUndefined();
+  });
+
   it('should parse non-prefixed endpoint to internalEndpoint', () => {
     const aaModel = makeAAModelResponse({
       endpoints: ['http://service.namespace.svc.cluster.local:8080'],

@@ -276,9 +276,15 @@ export const convertMaaSModelToAIModel = (model: AAModelResponse): AIModel => {
       continue;
     }
     if (endpoint.startsWith('external:')) {
-      externalEndpoint = endpoint.replace(/^external:\s*/, '');
+      const value = endpoint.replace(/^external:/, '').trim();
+      if (value) {
+        externalEndpoint = value;
+      }
     } else if (endpoint.startsWith('internal:')) {
-      internalEndpoint = endpoint.replace(/^internal:\s*/, '');
+      const value = endpoint.replace(/^internal:/, '').trim();
+      if (value) {
+        internalEndpoint = value;
+      }
     } else {
       internalEndpoint = endpoint;
     }
