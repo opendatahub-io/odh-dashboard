@@ -1921,6 +1921,37 @@ class CreateExternalModelPage {
   findProviderRefRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`provider-ref-row-${index}`);
   }
+
+  findProviderRefRemoveButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-remove-${index}`);
+  }
+
+  findProviderRefWeightInput(index: number): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return cy.findByTestId(`provider-ref-weight-${index}`).find('input');
+  }
+
+  setProviderRefWeight(index: number, weight: number): void {
+    this.findProviderRefWeightInput(index)
+      .type('{selectall}', { parseSpecialCharSequences: true })
+      .type(String(weight), { parseSpecialCharSequences: false })
+      .should('have.value', String(weight));
+  }
+
+  findProviderRefWeightPercent(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`provider-ref-weight-percent-${index}`);
+  }
+
+  findZeroTotalWeightWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-refs-zero-total-weight-warning');
+  }
+
+  findDistributeEquallyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-button');
+  }
+
+  findDistributeEquallyHelp(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('distribute-equally-help');
+  }
 }
 
 class ProviderReferenceModalBase extends Modal {
@@ -1941,6 +1972,11 @@ class ProviderReferenceModalBase extends Modal {
     return this.find().findByTestId('provider-ref-path');
   }
 
+  fillPath(path: string): void {
+    this.findPathInput().clear();
+    this.findPathInput().type(path);
+  }
+
   findInheritedProviderConfig(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('inherited-provider-config');
   }
@@ -1954,13 +1990,13 @@ class ProviderReferenceModalBase extends Modal {
   }
 }
 
-class AddProviderReferenceModal extends ProviderReferenceModalBase {
+class AddProviderReferenceWizard extends ProviderReferenceModalBase {
   constructor() {
     super('Add provider reference');
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: 'Add provider reference' });
+    return cy.findByTestId('add-provider-reference-wizard');
   }
 
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2011,7 +2047,7 @@ class EditProviderReferenceModal extends ProviderReferenceModalBase {
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: 'Edit provider reference' });
+    return cy.findByTestId('edit-provider-reference-modal');
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -2387,7 +2423,7 @@ export const overviewTabPage = new OverviewTabPage();
 export const maasGovernancePage = new MaaSGovernancePage();
 export const externalModelsPage = new ExternalModelsPage();
 export const createExternalModelPage = new CreateExternalModelPage();
-export const addProviderReferenceModal = new AddProviderReferenceModal();
+export const addProviderReferenceWizard = new AddProviderReferenceWizard();
 export const editProviderReferenceModal = new EditProviderReferenceModal();
 export const deleteExternalModelModal = new DeleteExternalModelModal();
 export const pathModal = new PathModal();

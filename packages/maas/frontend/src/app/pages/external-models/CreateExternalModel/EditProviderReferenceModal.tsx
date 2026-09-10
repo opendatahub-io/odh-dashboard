@@ -1,20 +1,35 @@
 import React from 'react';
 import {
   Button,
+  Form,
+  FormGroup,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  TextInput,
 } from '@patternfly/react-core';
+import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
-import EditProviderReferenceForm from './EditProviderReferenceForm';
 import { configPairsToRecord } from './ModelConfigPairsEditor';
 import {
+  ProviderReferenceApiFormatField,
+  ProviderReferenceConfigSection,
+  ProviderReferencePathField,
+  ProviderReferenceTargetModelField,
+} from './ProviderReferenceStep2Fields';
+import {
+  getProviderReferenceFieldErrors,
+  hasProviderReferenceFieldErrors,
+  isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-  validateProviderReferenceForm,
 } from './providerReferenceFormTypes';
-import { isProviderReferenceApiFormat, recordToConfigPairs } from './providerReferenceUtils';
+import {
+  getProviderDisplayName,
+  isProviderReferenceApiFormat,
+  recordToConfigPairs,
+} from './providerReferenceUtils';
 
 type EditProviderReferenceModalProps = {
   isOpen: boolean;
@@ -58,11 +73,18 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
     [externalProviders, providerRef.providerName],
   );
 
-  const validationError = validateProviderReferenceForm(form);
+  const providerDisplayName = getProviderDisplayName(providerRef.providerName, selectedProvider);
+  const isFormIncomplete = isProviderReferenceFormIncomplete(form);
+  const fieldErrors = getProviderReferenceFieldErrors(form);
+  const visibleFieldErrors = touched ? fieldErrors : undefined;
+
+  const handleChange = (updates: Partial<ProviderReferenceFormData>) => {
+    setForm((prev) => ({ ...prev, ...updates }));
+  };
 
   const handleSave = () => {
     setTouched(true);
-    if (validationError) {
+    if (isProviderReferenceFormIncomplete(form) || hasProviderReferenceFieldErrors(form)) {
       return;
     }
 
@@ -83,22 +105,55 @@ const EditProviderReferenceModal: React.FC<EditProviderReferenceModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       aria-labelledby="edit-provider-reference-modal-title"
+      data-testid="edit-provider-reference-modal"
     >
       <ModalHeader title="Edit provider reference" labelId="edit-provider-reference-modal-title" />
       <ModalBody>
-        <EditProviderReferenceForm
-          form={form}
-          providerName={providerRef.providerName}
-          selectedProvider={selectedProvider}
-          onChange={(updates) => setForm((prev) => ({ ...prev, ...updates }))}
-          validationError={touched ? validationError : undefined}
-        />
+        <Form>
+          <FormSection title="External provider" titleElement="h3">
+            <FormGroup label="External provider" fieldId="edit-provider-ref-external-provider">
+              <TextInput
+                id="edit-provider-ref-external-provider"
+                data-testid="edit-provider-ref-external-provider"
+                value={providerDisplayName}
+                isDisabled
+              />
+            </FormGroup>
+          </FormSection>
+
+          <FormSection title="Provider reference configuration" titleElement="h3">
+            <ProviderReferenceApiFormatField form={form} onChange={handleChange} />
+            <ProviderReferenceTargetModelField
+              form={form}
+              onChange={handleChange}
+              fieldErrors={visibleFieldErrors}
+            />
+          </FormSection>
+
+          <FormSection title="Key-value pairs" titleElement="h3">
+            <ProviderReferenceConfigSection
+              form={form}
+              onChange={handleChange}
+              selectedProvider={selectedProvider}
+              variant="edit"
+            />
+          </FormSection>
+
+          <FormSection title="Path configuration" titleElement="h3">
+            <ProviderReferencePathField
+              form={form}
+              onChange={handleChange}
+              fieldErrors={visibleFieldErrors}
+              pathHelperVariant="edit"
+            />
+          </FormSection>
+        </Form>
       </ModalBody>
       <ModalFooter>
         <Button
           variant="primary"
           onClick={handleSave}
-          isDisabled={!!validationError}
+          isDisabled={isFormIncomplete}
           data-testid="edit-provider-reference-submit"
         >
           Save

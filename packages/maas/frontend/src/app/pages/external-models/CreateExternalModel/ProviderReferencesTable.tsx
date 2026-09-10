@@ -16,6 +16,7 @@ import {
   getApiFormatLabel,
   getProviderDisplayName,
   formatProviderRefWeightPercentage,
+  isProviderRefExcludedFromRouting,
 } from './providerReferenceUtils';
 
 type ProviderReferencesTableProps = {
@@ -28,6 +29,9 @@ type ProviderReferencesTableProps = {
 
 const WEIGHT_POPOVER_CONTENT =
   'Weights are relative integers that determine traffic distribution. The system calculates percentages from the ratio of all weights. Set to 0 to temporarily disable a provider without removing it. Example: weights of 5, 3, 2 result in 50%, 30%, 20% traffic split.';
+
+const EXCLUDED_FROM_ROUTING_POPOVER_CONTENT =
+  'This provider reference will not receive any traffic but remains configured for easy re-enablement. Set weight to 1 or higher to include it in routing again. In the actual CRD, a weight of 0 removes the provider reference from active routing.';
 
 const tableCellClassName = 'pf-v6-u-align-content-center';
 
@@ -131,9 +135,25 @@ const ProviderReferencesTable: React.FC<ProviderReferencesTableProps> = ({
               <FlexItem>
                 <FormHelperText>
                   <HelperText>
-                    <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
-                      {formatProviderRefWeightPercentage(providerRefs, index)}
-                    </HelperTextItem>
+                    {isProviderRefExcludedFromRouting(providerRefs, index) ? (
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsXs' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        className="pf-v6-u-display-inline-flex"
+                      >
+                        <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
+                          {formatProviderRefWeightPercentage(providerRefs, index)}
+                        </HelperTextItem>
+                        <FieldGroupHelpLabelIcon
+                          content={EXCLUDED_FROM_ROUTING_POPOVER_CONTENT}
+                          buttonTestId={`provider-ref-excluded-routing-help-${index}`}
+                        />
+                      </Flex>
+                    ) : (
+                      <HelperTextItem data-testid={`provider-ref-weight-percent-${index}`}>
+                        {formatProviderRefWeightPercentage(providerRefs, index)}
+                      </HelperTextItem>
+                    )}
                   </HelperText>
                 </FormHelperText>
               </FlexItem>

@@ -5,6 +5,7 @@ import {
   Alert,
   Button,
   Checkbox,
+  Flex,
   Form,
   FormGroup,
   FormHelperText,
@@ -16,26 +17,32 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
-import { ZodErrorHelperText } from '@odh-dashboard/ui-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
 import { createExternalModel } from '~/app/api/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { CreateExternalModelRequest, ProviderRef } from '~/app/types/external-models';
-import AddProviderReferenceModal from './AddProviderReferenceModal';
+import AddProviderReferenceWizard from './AddProviderReferenceWizard';
 import EditProviderReferenceModal from './EditProviderReferenceModal';
 import ProviderReferencesTable from './ProviderReferencesTable';
 import {
   EXTERNAL_MODEL_FIELD_MAX_LENGTH,
   getUtf8ByteLength,
   hasControlCharacters,
+  DISTRIBUTE_EQUALLY_POPOVER_CONTENT,
+  hasZeroTotalProviderRefWeight,
+  PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE,
+  setProviderRefWeightsEqually,
   validateExternalModelFieldLength,
+  validateProviderReferencePath,
 } from './providerReferenceUtils';
 
 const externalModelFormSchema = z.object({
@@ -50,19 +57,27 @@ const externalModelFormSchema = z.object({
       message: 'Name cannot contain control characters or newlines',
     }),
   providerRefs: z
-    .array(z.object({ targetModel: z.string() }).passthrough())
-    .min(1, 'Add at least one provider reference')
+    .array(z.object({ targetModel: z.string(), path: z.string() }).passthrough())
     .superRefine((refs, ctx) => {
       refs.forEach((ref, index) => {
-        const fieldError = validateExternalModelFieldLength(
+        const targetModelError = validateExternalModelFieldLength(
           ref.targetModel.trim(),
           'Target model ID',
         );
-        if (fieldError) {
+        if (targetModelError) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: fieldError,
+            message: targetModelError,
             path: [index, 'targetModel'],
+          });
+        }
+
+        const pathError = validateProviderReferencePath(ref.path);
+        if (pathError) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: pathError,
+            path: [index, 'path'],
           });
         }
       });
@@ -107,17 +122,22 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
   const modelNameErrors = modelNameTouched ? getFieldValidation(['modelName'], true) : [];
   const providerRefsErrors = providerRefsTouched ? getFieldValidation(['providerRefs'], true) : [];
   const providerRefsValidationError =
-    providerRefsErrors.length > 0 ? providerRefsErrors[0].message : undefined;
+    providerRefs.length > 0 && providerRefsErrors.length > 0
+      ? providerRefsErrors[0].message
+      : undefined;
+  const showZeroTotalWeightWarning = hasZeroTotalProviderRefWeight(providerRefs);
 
   const canSubmit =
     isK8sNameDescriptionDataValid(nameDescData) &&
-    getFieldValidation(undefined, true).length === 0 &&
+    nameDescData.name.trim() !== '' &&
+    providerRefs.length > 0 &&
+    getFieldValidation(['providerRefs'], true).length === 0 &&
     !isSubmitting;
 
   const handleSubmit = async () => {
     setModelNameTouched(true);
     setProviderRefsTouched(true);
-    if (!canSubmit) {
+    if (!canSubmit || getFieldValidation(['modelName'], true).length > 0) {
       return;
     }
 
@@ -191,6 +211,11 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
     setIsAddProviderModalOpen(true);
   };
 
+  const handleDistributeEqually = () => {
+    setProviderRefsTouched(true);
+    setProviderRefs((prev) => setProviderRefWeightsEqually(prev));
+  };
+
   return (
     <PageSection hasBodyWrapper={false}>
       <Form maxWidth="750px">
@@ -206,17 +231,10 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
           <K8sNameDescriptionField
             data={nameDescData}
-            onDataChange={(key, value) => {
-              if (key === 'name') {
-                setModelNameTouched(true);
-              }
-              onNameDescChange(key, value);
-            }}
+            onDataChange={onNameDescChange}
             dataTestId="external-model-name-desc"
             nameLabel="Name"
-            namePlaceholder="e.g. GPT-4 Turbo"
             nameHelperText="The client-facing model name. Consumers use this to identify the model in API requests."
-            descriptionPlaceholder="Optional description of this external model"
             maxLength={EXTERNAL_MODEL_FIELD_MAX_LENGTH}
           />
           <ZodErrorHelperText zodIssue={modelNameErrors} />
@@ -235,17 +253,42 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
 
           <Stack hasGutter>
             <StackItem>
-              <Button
-                variant="secondary"
-                icon={<PlusCircleIcon />}
-                onClick={handleOpenAddProviderModal}
-                data-testid="add-provider-reference-button"
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapMd' }}
+                flexWrap={{ default: 'wrap' }}
               >
-                Add provider reference
-              </Button>
+                <Button
+                  variant="secondary"
+                  icon={<PlusCircleIcon />}
+                  onClick={handleOpenAddProviderModal}
+                  data-testid="add-provider-reference-button"
+                >
+                  Add provider reference
+                </Button>
+                {providerRefs.length > 1 && (
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    spaceItems={{ default: 'spaceItemsXs' }}
+                  >
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={handleDistributeEqually}
+                      data-testid="distribute-equally-button"
+                    >
+                      Distribute equally
+                    </Button>
+                    <FieldGroupHelpLabelIcon
+                      content={DISTRIBUTE_EQUALLY_POPOVER_CONTENT}
+                      buttonTestId="distribute-equally-help"
+                    />
+                  </Flex>
+                )}
+              </Flex>
             </StackItem>
 
-            {providerRefs.length === 0 && !providerRefsTouched && (
+            {providerRefs.length === 0 && (
               <StackItem>
                 <Alert
                   variant="info"
@@ -265,6 +308,18 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
                   onWeightChange={handleProviderRefWeightChange}
                   onEdit={handleEditProviderRef}
                   onRemove={handleRemoveProviderRef}
+                />
+              </StackItem>
+            )}
+
+            {showZeroTotalWeightWarning && (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  isInline
+                  isPlain
+                  title={PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE}
+                  data-testid="provider-refs-zero-total-weight-warning"
                 />
               </StackItem>
             )}
@@ -319,7 +374,7 @@ const CreateExternalModelForm: React.FC<CreateExternalModelFormProps> = ({
         </ActionGroup>
       </Form>
 
-      <AddProviderReferenceModal
+      <AddProviderReferenceWizard
         isOpen={isAddProviderModalOpen}
         namespace={namespace}
         externalProviders={externalProviders}

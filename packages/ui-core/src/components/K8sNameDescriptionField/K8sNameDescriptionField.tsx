@@ -95,8 +95,6 @@ type K8sNameDescriptionFieldProps = {
   descriptionHelperText?: React.ReactNode;
   maxLength?: number;
   maxLengthDesc?: number;
-  namePlaceholder?: string;
-  descriptionPlaceholder?: string;
   resourceNameTakenHelperText?: React.ReactNode;
 };
 
@@ -116,8 +114,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   hideDescription,
   maxLength,
   maxLengthDesc,
-  namePlaceholder,
-  descriptionPlaceholder,
   descriptionHelperText,
   resourceNameTakenHelperText,
 }) => {
@@ -148,7 +144,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
           maxLength={maxLength}
-          placeholder={namePlaceholder}
         />
         {showNameWarning && (
           <HelperText>
@@ -218,7 +213,6 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
             maxLength={maxLengthDesc}
-            placeholder={descriptionPlaceholder}
           />
           {showDescWarning && (
             <HelperText>

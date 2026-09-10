@@ -159,23 +159,4 @@ describe('K8sNameDescriptionField', () => {
 
     expect(screen.queryByTestId('test-description')).not.toBeInTheDocument();
   });
-
-  it('should render name and description placeholders when provided', () => {
-    const data = mockK8sNameDescriptionFieldData();
-
-    render(
-      <K8sNameDescriptionField
-        data={data}
-        dataTestId="test"
-        namePlaceholder="Enter a name"
-        descriptionPlaceholder="Enter a description"
-      />,
-    );
-
-    expect(screen.getByTestId('test-name')).toHaveAttribute('placeholder', 'Enter a name');
-    expect(screen.getByTestId('test-description')).toHaveAttribute(
-      'placeholder',
-      'Enter a description',
-    );
-  });
 });

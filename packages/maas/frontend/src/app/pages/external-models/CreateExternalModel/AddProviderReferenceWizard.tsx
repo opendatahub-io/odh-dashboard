@@ -1,16 +1,17 @@
 import React from 'react';
 import { Modal, ModalVariant, Wizard, WizardHeader, WizardStep } from '@patternfly/react-core';
 import { ExternalProvider, ProviderRef } from '~/app/types/external-models';
-import AddProviderReferenceConfigureStep from './AddProviderReferenceConfigureStep';
+import AddProviderReferenceForm from './AddProviderReferenceForm';
 import AddProviderReferenceWizardFooter from './AddProviderReferenceWizardFooter';
 import { configPairsToRecord } from './ModelConfigPairsEditor';
 import {
+  getProviderReferenceFieldErrors,
+  isProviderReferenceFormIncomplete,
   ProviderReferenceFormData,
-  validateProviderReferenceForm,
 } from './providerReferenceFormTypes';
 import SelectProviderStep, { ProviderSourceType } from './SelectProviderStep';
 
-type AddProviderReferenceModalProps = {
+type AddProviderReferenceWizardProps = {
   isOpen: boolean;
   namespace: string;
   externalProviders: ExternalProvider[];
@@ -26,7 +27,7 @@ const emptyConfigureForm = (): ProviderReferenceFormData => ({
   configPairs: [],
 });
 
-const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
+const AddProviderReferenceWizard: React.FC<AddProviderReferenceWizardProps> = ({
   isOpen,
   namespace,
   externalProviders,
@@ -55,7 +56,8 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
     [externalProviders, providerName],
   );
 
-  const configureValidationError = validateProviderReferenceForm(configureForm);
+  const isConfigureIncomplete = isProviderReferenceFormIncomplete(configureForm);
+  const configureFieldErrors = getProviderReferenceFieldErrors(configureForm);
 
   const handleConfigureChange = (updates: Partial<ProviderReferenceFormData>) => {
     setConfigureForm((prev) => ({ ...prev, ...updates }));
@@ -63,7 +65,11 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
 
   const handleAdd = React.useCallback(() => {
     setConfigureTouched(true);
-    if (!isStepOneValid || configureValidationError) {
+    if (
+      !isStepOneValid ||
+      isProviderReferenceFormIncomplete(configureForm) ||
+      Object.keys(getProviderReferenceFieldErrors(configureForm)).length > 0
+    ) {
       return;
     }
 
@@ -76,18 +82,18 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
       config: configPairsToRecord(configureForm.configPairs),
     });
     onClose();
-  }, [configureForm, configureValidationError, isStepOneValid, onAdd, onClose, providerName]);
+  }, [configureForm, isStepOneValid, onAdd, onClose, providerName]);
 
   const wizardFooter = React.useMemo(
     () => (
       <AddProviderReferenceWizardFooter
         isNextDisabled={!isStepOneValid}
-        isAddDisabled={!!configureValidationError}
+        isAddDisabled={isConfigureIncomplete}
         submitLabel="Add"
         onAdd={handleAdd}
       />
     ),
-    [configureValidationError, handleAdd, isStepOneValid],
+    [handleAdd, isConfigureIncomplete, isStepOneValid],
   );
 
   return (
@@ -95,16 +101,16 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
       variant={ModalVariant.large}
       isOpen={isOpen}
       onEscapePress={onClose}
-      aria-labelledby="add-provider-reference-modal-title"
-      aria-describedby="add-provider-reference-modal-description"
+      aria-labelledby="add-provider-reference-wizard-title"
+      aria-describedby="add-provider-reference-wizard-description"
+      data-testid="add-provider-reference-wizard"
     >
       <Wizard
-        height={1000}
         onClose={onClose}
         header={
           <WizardHeader
             title="Add provider reference"
-            titleId="add-provider-reference-modal-title"
+            titleId="add-provider-reference-wizard-title"
             onClose={onClose}
             closeButtonAriaLabel="Close wizard"
           />
@@ -122,11 +128,11 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
           />
         </WizardStep>
         <WizardStep name="Configure model" id="configure-model-step" isDisabled={!isStepOneValid}>
-          <AddProviderReferenceConfigureStep
+          <AddProviderReferenceForm
             form={configureForm}
             selectedProvider={selectedProvider}
             onChange={handleConfigureChange}
-            validationError={configureTouched ? configureValidationError : undefined}
+            fieldErrors={configureTouched ? configureFieldErrors : undefined}
           />
         </WizardStep>
       </Wizard>
@@ -134,4 +140,4 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
   );
 };
 
-export default AddProviderReferenceModal;
+export default AddProviderReferenceWizard;

@@ -4,6 +4,11 @@ import { ConfigPair } from './ModelConfigPairsEditor';
 /** Matches CRD maxLength for spec.modelName and spec.externalProviderRefs[].targetModel. */
 export const EXTERNAL_MODEL_FIELD_MAX_LENGTH = 253;
 
+/** Matches CRD maxLength for spec.externalProviderRefs[].path. */
+export const PROVIDER_REFERENCE_PATH_MAX_LENGTH = 512;
+
+const PROVIDER_REFERENCE_PATH_PATTERN = /^\/.*/;
+
 export const getUtf8ByteLength = (value: string): number => new TextEncoder().encode(value).length;
 
 export const hasControlCharacters = (value: string): boolean =>
@@ -21,6 +26,23 @@ export const validateExternalModelFieldLength = (
   }
   if (hasControlCharacters(value)) {
     return `${fieldLabel} cannot contain control characters or newlines`;
+  }
+  return undefined;
+};
+
+export const validateProviderReferencePath = (value: string): string | undefined => {
+  const trimmedPath = value.trim();
+  if (!trimmedPath) {
+    return 'Path is required';
+  }
+  if (!PROVIDER_REFERENCE_PATH_PATTERN.test(trimmedPath)) {
+    return 'Path must start with /';
+  }
+  if (getUtf8ByteLength(trimmedPath) > PROVIDER_REFERENCE_PATH_MAX_LENGTH) {
+    return `Path cannot exceed ${PROVIDER_REFERENCE_PATH_MAX_LENGTH} bytes`;
+  }
+  if (hasControlCharacters(trimmedPath)) {
+    return 'Path cannot contain control characters or newlines';
   }
   return undefined;
 };
@@ -70,16 +92,40 @@ export const getProviderRefWeightPercentage = (
 const isExactWeightPercentage = (weight: number, totalWeight: number): boolean =>
   (weight * 100) % totalWeight === 0;
 
+export const getProviderRefsTotalWeight = (providerRefs: ProviderRef[]): number =>
+  providerRefs.reduce((sum, ref) => sum + ref.weight, 0);
+
+export const hasZeroTotalProviderRefWeight = (providerRefs: ProviderRef[]): boolean =>
+  providerRefs.length > 0 && getProviderRefsTotalWeight(providerRefs) === 0;
+
+export const PROVIDER_REFS_ZERO_TOTAL_WEIGHT_MESSAGE =
+  'Total weight is 0. At least one provider reference must have a weight greater than 0.';
+
+export const DISTRIBUTE_EQUALLY_POPOVER_CONTENT =
+  'Resets all provider reference weights to 1, giving each provider an equal share of traffic. You can adjust individual weights afterwards.';
+
+export const setProviderRefWeightsEqually = (providerRefs: ProviderRef[]): ProviderRef[] =>
+  providerRefs.map((ref) => ({ ...ref, weight: 1 }));
+
+export const isProviderRefExcludedFromRouting = (
+  providerRefs: ProviderRef[],
+  index: number,
+): boolean => providerRefs[index].weight === 0;
+
 export const formatProviderRefWeightPercentage = (
   providerRefs: ProviderRef[],
   index: number,
 ): string => {
-  const totalWeight = providerRefs.reduce((sum, ref) => sum + ref.weight, 0);
-  if (totalWeight <= 0) {
-    return '0%';
+  const { weight } = providerRefs[index];
+  if (weight === 0) {
+    return 'Excluded from routing';
   }
 
-  const { weight } = providerRefs[index];
+  const totalWeight = providerRefs.reduce((sum, ref) => sum + ref.weight, 0);
+  if (totalWeight <= 0) {
+    return 'Excluded from routing';
+  }
+
   const percentage = getProviderRefWeightPercentage(providerRefs, index);
   const prefix = isExactWeightPercentage(weight, totalWeight) ? '' : '≈ ';
 
