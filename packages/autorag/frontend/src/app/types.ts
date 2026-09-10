@@ -71,6 +71,9 @@ export type PipelineRunRuntimeConfig = {
   pipeline_root?: string;
 };
 
+/** Runtime parameters are displayed read-only and may come from historical or current runs. */
+export type AutoragRuntimeParameters = Record<string, unknown>;
+
 export type PipelineRunErrorDetail = {
   '@type'?: string;
   type_url?: string;

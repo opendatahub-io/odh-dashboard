@@ -13,7 +13,6 @@ import {
   SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
 import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useOgxModelsQuery(
@@ -279,7 +278,7 @@ export function usePipelineRunQuery(
     queryKey: ['autorag', 'pipelineRun', runId, namespace],
     queryFn: async ({ signal }) => {
       const run = await getPipelineRunFromBFF('', runId!, namespace!, { signal });
-      return normalizePipelineRun(run);
+      return run;
     },
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,

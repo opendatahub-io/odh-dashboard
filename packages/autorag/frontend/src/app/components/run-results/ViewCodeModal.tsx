@@ -82,7 +82,8 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
 }) => {
   const { namespace } = useParams();
   const { parameters } = useAutoragResultsContext();
-  const secretName = parameters?.ogx_secret_name ?? '';
+  const secretName =
+    typeof parameters?.ogx_secret_name === 'string' ? parameters.ogx_secret_name : '';
 
   const snippetParams: SnippetParams = React.useMemo(
     () => ({ template: responsesTemplate, secretName, namespace: namespace ?? '' }),

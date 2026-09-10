@@ -8,8 +8,7 @@ import { MemoryRouter } from 'react-router';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import type { PipelineRun } from '~/app/types';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { AutoragRuntimeParameters, PipelineRun } from '~/app/types';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -261,7 +260,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
 
 const createMockPipelineRun = (
   overrides?: Partial<PipelineRun>,
-  parameters?: Partial<ConfigureSchema>,
+  parameters?: AutoragRuntimeParameters,
 ): PipelineRun => ({
   run_id: 'run-123',
   display_name: 'Test Run',
@@ -433,6 +432,40 @@ describe('AutoragResultsPage', () => {
           optimization_max_rag_patterns: 10,
         },
       });
+    });
+
+    it('should render a canonical run without an OGX secret', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        input_data_keys: ['documents/input.pdf'],
+        maas_secret_name: 'maas-secret',
+        vector_db_secret_name: 'vector-db-secret',
+        generation_models: ['llama-3'],
+        embedding_models: ['text-embedding-3'],
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+      mockUseAutoragResults.mockReturnValue({
+        patterns: mockPatterns,
+        failedPatterns: [],
+        isLoading: false,
+        isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
+      expect(capturedContext).toMatchObject({
+        pipelineRun: mockPipelineRun,
+        parameters: mockPipelineRun.runtime_config?.parameters,
+      });
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', undefined);
     });
 
     it('should set pipelineRunLoading when isPending is true', () => {
