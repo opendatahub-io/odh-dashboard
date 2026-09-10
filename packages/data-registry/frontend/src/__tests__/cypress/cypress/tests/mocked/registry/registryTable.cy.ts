@@ -192,8 +192,7 @@ describe('Registry Table', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-kebab-analytics').click();
-    cy.contains('Delete').click();
+    cy.findByTestId('collection-delete-analytics').click();
     cy.findByTestId('delete-collection-modal').should('exist');
     cy.contains('Collection is not empty').should('exist');
     cy.findByTestId('confirm-delete-button').should('be.disabled');
@@ -219,8 +218,7 @@ describe('Registry Table', () => {
     visitWithData();
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
-    cy.findByTestId('collection-kebab-empty-collection').click();
-    cy.contains('Delete').click();
+    cy.findByTestId('collection-delete-empty-collection').click();
     cy.findByTestId('delete-collection-modal').should('exist');
     cy.contains('Collection is not empty').should('not.exist');
     cy.findByTestId('confirm-delete-input').type('empty-collection');
@@ -933,6 +931,8 @@ describe('Create Collection with Owner', () => {
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['new-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
         owner: 'test-user',
       });
     });
@@ -967,6 +967,8 @@ describe('Create Collection with Owner', () => {
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['unassigned-collection'],
+      });
+      expect(interception.request.body.properties).to.include({
         owner: 'Unassigned',
       });
     });

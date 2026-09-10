@@ -12,6 +12,7 @@ import emptyStateImage from '~/app/bgimages/empty-state.svg';
 type ModelsEmptyStateProps = {
   title: string;
   description: React.ReactNode;
+  icon?: React.ComponentType;
   actionButtonText?: React.ReactNode;
   actionButtonHref?: string;
   handleActionButtonClick?: () => void;
@@ -20,9 +21,14 @@ type ModelsEmptyStateProps = {
   'data-testid'?: string;
 };
 
+const DefaultIcon: React.FC = () => (
+  <img src={emptyStateImage} alt="Chat Playground Infrastructure" />
+);
+
 const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
   title,
   description,
+  icon: IconComponent = DefaultIcon,
   actionButtonText,
   actionButtonHref,
   handleActionButtonClick,
@@ -32,7 +38,7 @@ const ModelsEmptyState: React.FC<ModelsEmptyStateProps> = ({
 }) => (
   <EmptyState
     titleText={title}
-    icon={() => <img src={emptyStateImage} alt="Chat Playground Infrastructure" />}
+    icon={IconComponent}
     variant="lg"
     isFullHeight
     data-testid={dataTestId}
