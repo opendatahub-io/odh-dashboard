@@ -8,7 +8,11 @@ export interface UseAutoUnlockReturn {
 }
 
 export interface UseAutoUnlockProps {
-  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  checkServerStatus: (
+    serverUrl: string,
+    mcpBearerToken?: string,
+    serverName?: string,
+  ) => Promise<ServerStatusInfo>;
   selectedServers: MCPServer[];
   isInitialLoadComplete: boolean;
   initialServerStatuses?: Map<string, ServerStatusInfo>;
@@ -42,7 +46,10 @@ const useAutoUnlock = ({
       setAutoUnlockingServers((prev) => new Set(prev).add(server.connectionUrl));
 
       try {
-        const statusInfo = await checkServerStatus(server.connectionUrl);
+        const statusInfo =
+          server.source === 'registry'
+            ? await checkServerStatus(server.connectionUrl, undefined, server.name)
+            : await checkServerStatus(server.connectionUrl);
 
         if (statusInfo.status === 'connected') {
           onTokenUpdate(server.connectionUrl, {

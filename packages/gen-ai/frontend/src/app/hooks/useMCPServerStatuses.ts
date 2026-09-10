@@ -99,15 +99,15 @@ const useMCPServerStatuses = (
   React.useEffect(() => {
     if (loaded && servers && servers.length > 0) {
       Promise.allSettled(
-        servers.map((server) =>
-          checkServerStatus(
-            server.url,
-            undefined,
-            server.source === 'registry' ? server.name : undefined,
-          ).catch(() => {
+        servers.map((server) => {
+          const statusCheck =
+            server.source === 'registry'
+              ? checkServerStatus(server.url, undefined, server.name)
+              : checkServerStatus(server.url);
+          return statusCheck.catch(() => {
             // Errors are handled in checkServerStatus
-          }),
-        ),
+          });
+        }),
       );
     }
   }, [loaded, servers, checkServerStatus]);

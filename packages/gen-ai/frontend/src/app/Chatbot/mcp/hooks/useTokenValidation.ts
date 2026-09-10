@@ -25,7 +25,11 @@ export interface UseTokenValidationProps {
   api: GenAiAPIs;
   apiAvailable: boolean;
   transformedServers: MCPServer[];
-  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  checkServerStatus: (
+    serverUrl: string,
+    mcpBearerToken?: string,
+    serverName?: string,
+  ) => Promise<ServerStatusInfo>;
   onTokenUpdate: (serverUrl: string, tokenInfo: TokenInfo) => void;
   getToken: (serverUrl: string) => TokenInfo | undefined;
   onFetchTools: (serverUrl: string, token: string) => Promise<void>;
@@ -179,7 +183,10 @@ const useTokenValidation = ({
       });
 
       try {
-        const statusInfo = await checkServerStatus(server.connectionUrl);
+        const statusInfo =
+          server.source === 'registry'
+            ? await checkServerStatus(server.connectionUrl, undefined, server.name)
+            : await checkServerStatus(server.connectionUrl);
 
         if (statusInfo.status === 'connected') {
           onTokenUpdate(server.connectionUrl, {
