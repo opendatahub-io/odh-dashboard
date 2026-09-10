@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -24,6 +23,7 @@ import {
   QUOTA_USAGE_ERROR_TITLE,
   QUOTA_USAGE_TREE_DRAWER_PANEL_ID,
 } from '../const';
+import useQuotaUsageDetail from '../hooks/useQuotaUsageDetail';
 import { QuotaSelection, QuotaTreeNode } from '../types';
 import { syncQuotaSelectionWithTree } from '../utils/quotaUsageTreeUtils';
 
@@ -32,11 +32,17 @@ const drawerNavBodyStyle: React.CSSProperties = {
   paddingRight: 'var(--pf-t--global--spacer--lg)',
 };
 
+const quotaUsageLoadingStyle: React.CSSProperties = {
+  paddingBlockStart: 'var(--pf-t--global--spacer--3xl)',
+  paddingBlockEnd: 'var(--pf-t--global--spacer--3xl)',
+};
+
 type QuotaUsageSectionProps = {
   tree: QuotaTreeNode[];
   loaded: boolean;
   error?: Error;
   onRegisterWorkloadRefresh?: (refresh: (() => Promise<unknown>) | undefined) => void;
+  onRegisterDetailRefresh?: (refresh: () => Promise<unknown[]>) => void;
 };
 
 /** Registers workload-cache manual refresh with the Quota usage section refresh badge. */
@@ -58,16 +64,34 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
   loaded,
   error,
   onRegisterWorkloadRefresh,
+  onRegisterDetailRefresh,
 }) => {
-  const [selection, setSelection] = React.useState<QuotaSelection | undefined>();
+  const [userSelection, setUserSelection] = React.useState<QuotaSelection | undefined>();
+
+  const selection = React.useMemo(() => {
+    if (!loaded || tree.length === 0) {
+      return undefined;
+    }
+    return syncQuotaSelectionWithTree(tree, userSelection);
+  }, [loaded, tree, userSelection]);
 
   React.useEffect(() => {
     if (!loaded || tree.length === 0) {
-      setSelection(undefined);
-      return;
+      setUserSelection(undefined);
     }
-    setSelection((current) => syncQuotaSelectionWithTree(tree, current));
-  }, [loaded, tree]);
+  }, [loaded, tree.length]);
+
+  const {
+    loaded: detailLoaded,
+    error: detailError,
+    detail,
+    refreshDetailData,
+  } = useQuotaUsageDetail(tree, selection);
+
+  React.useEffect(() => {
+    onRegisterDetailRefresh?.(refreshDetailData);
+    return () => onRegisterDetailRefresh?.(() => Promise.resolve([]));
+  }, [onRegisterDetailRefresh, refreshDetailData]);
 
   if (error) {
     return (
@@ -85,9 +109,18 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
 
   if (!loaded) {
     return (
-      <Bullseye data-testid="quota-usage-loading">
-        <Spinner />
-      </Bullseye>
+      <Flex
+        style={quotaUsageLoadingStyle}
+        justifyContent={{ default: 'justifyContentCenter' }}
+        data-testid="quota-usage-loading"
+      >
+        <EmptyState
+          headingLevel="h4"
+          icon={Spinner}
+          titleText="Loading"
+          variant={EmptyStateVariant.sm}
+        />
+      </Flex>
     );
   }
 
@@ -130,7 +163,10 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
                 <QuotaUsageDetailPanel
                   tree={tree}
                   selection={selection}
-                  onSelectionChange={setSelection}
+                  onSelectionChange={setUserSelection}
+                  detail={detail}
+                  detailLoaded={detailLoaded}
+                  error={detailError}
                 />
               </DrawerPanelContent>
             }
@@ -139,7 +175,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
               <QuotaUsageNavPanel
                 tree={tree}
                 selection={selection}
-                onSelectionChange={setSelection}
+                onSelectionChange={setUserSelection}
               />
             </DrawerContentBody>
           </DrawerContent>

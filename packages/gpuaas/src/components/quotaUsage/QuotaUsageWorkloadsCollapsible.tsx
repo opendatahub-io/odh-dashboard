@@ -1,11 +1,6 @@
 import * as React from 'react';
-import {
-  Content,
-  ContentVariants,
-  ExpandableSection,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Content, ContentVariants, Stack, StackItem } from '@patternfly/react-core';
+import QuotaUsageAccordionSection from './QuotaUsageAccordionSection';
 import {
   CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE,
   CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION,
@@ -16,20 +11,18 @@ type QuotaUsageWorkloadsCollapsibleProps = {
   clusterQueueName: string;
 };
 
-/** Lightweight ExpandableSection disclosure matching the Quota usage prototype. */
 const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsibleProps> = ({
   clusterQueueName,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
 
   return (
-    <ExpandableSection
-      className="gpuaas-quota-usage-detail-section pf-v6-u-mt-xl"
-      data-testid="quota-usage-workloads-section"
-      toggleContent={CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE}
-      toggleWrapper="h4"
+    <QuotaUsageAccordionSection
+      id="quota-usage-workloads"
+      title={CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE}
       isExpanded={isExpanded}
-      onToggle={(_event, expanded) => setIsExpanded(expanded)}
+      onToggle={() => setIsExpanded((expanded) => !expanded)}
+      data-testid="quota-usage-workloads-section"
     >
       <Stack hasGutter>
         <StackItem>
@@ -44,7 +37,7 @@ const QuotaUsageWorkloadsCollapsible: React.FC<QuotaUsageWorkloadsCollapsiblePro
           />
         </StackItem>
       </Stack>
-    </ExpandableSection>
+    </QuotaUsageAccordionSection>
   );
 };
 
