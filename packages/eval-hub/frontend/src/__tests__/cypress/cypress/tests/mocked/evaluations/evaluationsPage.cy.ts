@@ -124,20 +124,14 @@ describe('Evaluations Page - Tabs', () => {
       .should('contain.text', 'Go to All my benchmark suites');
   });
 
-  it('should filter benchmark suites by industry and clear the filter', () => {
+  it('should filter benchmark suites by industry client-side and clear the filter', () => {
     const collections = mockBenchmarkSuiteCollections();
     initIntercepts({ collections, collectionsTotalCount: collections.length });
-    cy.interceptApi(
-      'GET /api/:apiVersion/evaluations/collections',
-      { path: API_VERSION, query: { industries: 'health' } },
-      mockCollectionsListResponse(collections, collections.length),
-    ).as('getCollectionsByIndustry');
 
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'health').click();
 
-    cy.wait('@getCollectionsByIndustry');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-7').should('not.exist');
 
