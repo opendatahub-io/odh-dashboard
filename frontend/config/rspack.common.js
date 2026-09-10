@@ -3,16 +3,17 @@ const path = require('path');
 const { execSync } = require('child_process');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
+const {
+  isVendorCss,
+  patternFlyFontIncludes,
+  pnpmWebpackResolveAliases,
+} = require('@odh-dashboard/app-config/webpack');
+
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
 const { getPluginPackageDetails } = require('./discoverPluginPackages');
 const { getExtensionChunksFilter, getPluginChunkName } = require('./pluginChunking');
-const {
-  isVendorCss,
-  patternFlyFontIncludes,
-  pnpmWebpackResolveAliases,
-} = require('../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;

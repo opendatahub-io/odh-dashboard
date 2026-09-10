@@ -1,12 +1,9 @@
 const path = require('path');
 const { rspack } = require('@rspack/core');
 const Dotenv = require('dotenv-webpack');
+const { micromarkAlias, pnpmWebpackResolveAliases } = require('@odh-dashboard/app-config/webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
-const {
-  micromarkAlias,
-  pnpmWebpackResolveAliases,
-} = require('../../../../scripts/webpack/pnpmResolverIncludes');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
 

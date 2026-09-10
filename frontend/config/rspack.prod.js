@@ -3,6 +3,7 @@ const path = require('path');
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
 const { rimrafSync } = require('rimraf');
+const { patternFlyCssIncludes } = require('@odh-dashboard/app-config/webpack');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const getRsdoctorPlugin = () => {
@@ -18,7 +19,6 @@ const getRsdoctorPlugin = () => {
 
 setupDotenvFilesForEnv({ env: 'production' });
 const rspackCommon = require('./rspack.common.js');
-const { patternFlyCssIncludes } = require('../../scripts/webpack/pnpmResolverIncludes');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
