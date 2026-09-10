@@ -3,14 +3,19 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,5 +94,38 @@ var _ = Describe("GenAIProxyNSEmbeddingsHandler", func() {
 		app.GenAIProxyNSEmbeddingsHandler(rr, req, params)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	It("should resolve MaaS model IDs without their routing prefix", func() {
+		t := GinkgoT()
+		modelID := "publishers/example/models/embedding"
+		mockFactory := bffmocks.NewMockClientFactory(app.logger).(*bffmocks.MockClientFactory)
+		mockClient := mockFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token").(*bffmocks.MockBFFClient)
+		mockClient.CallHandler = func(_ context.Context, method, path string, _ interface{}, response interface{}) error {
+			switch {
+			case method == http.MethodGet && path == "/models":
+				*response.(*models.MaaSBFFModelsResponse) = models.MaaSBFFModelsResponse{
+					Data: models.MaaSBFFModelsData{Data: []models.MaaSBFFModel{{ID: modelID, URL: "https://models.example.com"}}},
+				}
+				return nil
+			case method == http.MethodPost && path == "/api-keys":
+				response.(*models.MaaSBFFAPIKeyResponse).Data.Key = "maas-token"
+				return nil
+			default:
+				return fmt.Errorf("unexpected MaaS BFF call: %s %s", method, path)
+			}
+		}
+		app.bffClientFactory = mockFactory
+		app.memoryStore = cache.NewMemoryStore()
+
+		ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "test-ns")
+		baseURL, token, err := app.resolveModelEndpoint(ctx, constants.MaaSProviderPrefix+modelID, "test-ns", "")
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://models.example.com/v1", baseURL)
+		assert.Equal(t, "maas-token", token)
+		_, found := app.memoryStore.Get("test-ns", "mockUser", constants.CacheAccessTokensCategory, maasTokenCacheKey(modelID, ""))
+		assert.True(t, found, "the MaaS token cache key should use the unprefixed model ID")
 	})
 })

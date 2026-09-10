@@ -209,17 +209,20 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace, ma
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", &infraError{msg: "MaaS is not available"}
 		}
+		// MaaS BFF APIs use the raw model ID, without the BFF routing prefix.
+		// TrimPrefix preserves any path segments in the model ID.
+		maasModelID := strings.TrimPrefix(modelID, constants.MaaSProviderPrefix)
 		maasHeaders := map[string]string{constants.MaaSReturnAllModelsHeader: "true"}
 		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 
-		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, modelID)
+		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, maasModelID)
 		if urlErr != nil {
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
-		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, maasSubscription)
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, maasModelID, maasSubscription)
 		if token == "" {
-			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
+			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", maasModelID)}
 		}
 		return inferenceURL, token, nil
 	}
