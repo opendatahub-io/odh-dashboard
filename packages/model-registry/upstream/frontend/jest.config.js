@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
+
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
@@ -35,9 +38,7 @@ module.exports = {
   testEnvironment: 'jest-environment-jsdom',
 
   // include projects from node_modules as required
-  transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-shared|mod-arch-core|mod-arch-kubeflow)',
-  ],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
 
   // A list of paths to snapshot serializer modules Jest should use for snapshot testing
   snapshotSerializers: [],

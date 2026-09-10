@@ -186,7 +186,7 @@ fi
 
 LOCAL_REPO="${LOCAL_REPO/#\~/$HOME}"
 
-for tool in git npm jq; do
+for tool in git jq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     clean_exit 1 "Required tool '$tool' not found in PATH" true
   fi
@@ -227,15 +227,15 @@ fi
 
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 
-WORKSPACE_INFO=$(npm query ".workspace[name=\"$PACKAGE_NAME\"]" 2>/dev/null)
-if [ -z "$WORKSPACE_INFO" ] || [ "$WORKSPACE_INFO" = "[]" ]; then
+WORKSPACE_INFO=$(node "$MONOREPO_ROOT/scripts/query-workspace-packages.js" | jq -c ".[] | select(.name==\"$PACKAGE_NAME\")" | head -1)
+if [ -z "$WORKSPACE_INFO" ]; then
   error_msg "Package '$PACKAGE_NAME' not found"
   echo "Available packages:"
-  npm query ".workspace" | jq -r '.[].name' | sed 's/^/  /'
+  node "$MONOREPO_ROOT/scripts/query-workspace-packages.js" | jq -r '.[].name' | sed 's/^/  /'
   clean_exit 1 "" true
 fi
 
-WORKSPACE_LOCATION=$(echo "$WORKSPACE_INFO" | jq -r '.[0].location')
+WORKSPACE_LOCATION=$(echo "$WORKSPACE_INFO" | jq -r '.path')
 if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
   error_msg "Could not determine location for package '$PACKAGE_NAME'"
   clean_exit 1 "" true
@@ -574,7 +574,7 @@ _get_commit_url() {
 }
 
 _get_continue_cmd() {
-  local continue_cmd="npm run update-subtree-local -w $WORKSPACE_LOCATION -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
+  local continue_cmd="pnpm --filter $WORKSPACE_LOCATION run update-subtree-local -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
   if [ -n "$COMMIT_SHA" ]; then
     continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
   fi

@@ -41,8 +41,8 @@
     }
   },
   "devDependencies": {
-    "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

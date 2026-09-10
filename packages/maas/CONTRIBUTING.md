@@ -2,8 +2,8 @@
 [BFF requirements]: ./bff/README.md#pre-requisites
 [frontend dev setup]: ./frontend/docs/dev-setup.md#development
 [BFF dev setup]: ./bff/README.md#development
-[issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
-[contributing guidelines]: https://github.com/opendatahub-io/mod-arch-library/blob/main/CONTRIBUTING.md
+[issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
+[contributing guidelines]: ../../CONTRIBUTING.md
 
 # Contributing
 
@@ -26,7 +26,7 @@ To run the federated development environment first make sure you have the latest
 From the root of the repo:
 
 ```shell
-npm i
+pnpm install
 cd packages/maas
 make dev-install-dependencies
 ```
@@ -36,7 +36,7 @@ Then to run the development server if you are properly logged into a cluster:
 1. Open a terminal in the root of odh-dashboard
 
 ```shell
-npm run dev
+pnpm run dev
 ```
 
 2. Open a second terminal in the `packages/maas` directory

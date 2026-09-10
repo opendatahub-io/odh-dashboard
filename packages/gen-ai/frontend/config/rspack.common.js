@@ -1,10 +1,11 @@
 const path = require('path');
 const { rspack } = require('@rspack/core');
 const Dotenv = require('dotenv-webpack');
+const { micromarkAlias, pnpmWebpackResolveAliases } = require('@odh-dashboard/app-config/webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
+const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
-const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 
 const { name } = require('../package.json');
 
@@ -163,6 +164,8 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
+      ...micromarkAlias(RELATIVE_DIRNAME),
     },
     symlinks: false,
     cacheWithContext: false,

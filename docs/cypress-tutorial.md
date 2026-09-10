@@ -458,7 +458,7 @@ strategy:
   matrix:
     testTags: ['@SmokeSet1', '@SmokeSet2']
 steps:
-  - run: npm run cypress:run -- --env grepTags="${{ matrix.testTags }}"
+  - run: pnpm run cypress:run -- --env grepTags="${{ matrix.testTags }}"
 ```
 
 **Jenkins (Parallel Stages):**
@@ -467,7 +467,7 @@ steps:
 def testTags = ['@SmokeSet1','@SmokeSet2']
 def parallelStages = testTags.collectEntries { tag ->
     ["${tag}": {
-        sh "npm run cypress:run -- --env grepTags='${tag}'"
+        sh "pnpm run cypress:run -- --env grepTags='${tag}'"
     }]
 }
 parallel parallelStages
@@ -550,11 +550,11 @@ Common test configuration via environment variables and flags (full list in [doc
 | Variable | Purpose | Default | Example |
 | ------ | --------- | --------- | --------- |
 | `CY_TEST_CONFIG` | Path to test config | - | `export CY_TEST_CONFIG='./test-variables.yml'` |
-| `CY_MOCK` | Enable mocked mode | `0` | `CY_MOCK=1 npm run cypress:run` |
+| `CY_MOCK` | Enable mocked mode | `0` | `CY_MOCK=1 pnpm run cypress:run` |
 | `CYPRESS_E2E_PROXY` | Use E2E proxy (implies baseUrl + /e2e-login auth) | - | `CYPRESS_E2E_PROXY=true` |
 | `grepTags` | Filter by tags | - | `--env grepTags="@Smoke"` |
 | `skipTags` | Skip by tags | - | `--env skipTags="@Bug"` |
-| `CY_COVERAGE` | Enable coverage | `false` | `CY_COVERAGE=true npm run cypress:run:mock` |
+| `CY_COVERAGE` | Enable coverage | `false` | `CY_COVERAGE=true pnpm run cypress:run:mock` |
 | `CY_RETRY` | Test retries | `2` (E2E), `0` (mock) | `CY_RETRY=0` (disable retries) |
 | `CY_RESULTS_DIR` | Results directory | `results` | `CY_RESULTS_DIR=my-results` |
 
@@ -566,7 +566,7 @@ Uses `@cypress/code-coverage` plugin to track statements, branches, functions, a
 
 ```bash
 # Enable coverage for mocked tests
-CY_COVERAGE=true npm run cypress:run:mock
+CY_COVERAGE=true pnpm run cypress:run:mock
 
 # Reports generated in packages/cypress/coverage/
 ```
@@ -588,7 +588,7 @@ CY_COVERAGE=true npm run cypress:run:mock
 ```bash
 git clone https://github.com/opendatahub-io/odh-dashboard.git
 cd odh-dashboard
-npm install
+pnpm install
 ```
 
 **For E2E tests**, create `test-variables.yml` from `packages/cypress/test-variables.yml.example`:
@@ -616,13 +616,13 @@ Run from `packages/cypress` directory. Requires production build on port 9001.
 cd packages/cypress
 
 # Quick: build and run in one command
-npm run test:cypress-ci -- --spec '**/storageClasses.cy.ts'
+pnpm run test:cypress-ci -- --spec '**/storageClasses.cy.ts'
 
 # Or interactive mode
-npm run open:mock
+pnpm run open:mock
 
 # Or headless with filters
-npm run run:mock -- --spec 'cypress/tests/mocked/storageClasses/storageClasses.cy.ts' --env grepTags="@Smoke"
+pnpm run run:mock -- --spec 'cypress/tests/mocked/storageClasses/storageClasses.cy.ts' --env grepTags="@Smoke"
 ```
 
 > **Tip:** If switching from E2E tests, unset the config first: `unset CY_TEST_CONFIG`
@@ -635,34 +635,34 @@ Run from `frontend` directory. Requires `oc login` and `CY_TEST_CONFIG` set.
 cd frontend
 
 # Interactive mode
-npm run cypress:open
+pnpm run cypress:open
 
 # Headless with tag filters
-npm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
+pnpm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
 
 # Run specific spec
-npm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
+pnpm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
 ```
 
 **If using localhost with rspack** (dev workflow), start the dev server first:
 
 ```bash
-npm run start:dev:ext  # Proxies to your logged-in cluster
+pnpm run start:dev:ext  # Proxies to your logged-in cluster
 ```
 
 **Alternatively, use the build-then-serve model** (mirrors CI):
 
 ```bash
 # One command: starts local stack + proxy, runs tests
-npm run test:cypress:e2e
+pnpm run test:cypress:e2e
 
 # Or step by step with tag filtering:
-npm run prepare:e2e
+pnpm run prepare:e2e
 turbo run cypress:server:e2e --concurrency=20 &
 turbo run cypress:server:e2e:wait
 cd packages/cypress
 CYPRESS_E2E_PROXY=true CY_TEST_CONFIG=./test-variables.yml \
-  CY_TEST_TAGS=@ci-dashboard-regression-tags npm run run:e2e
+  CY_TEST_TAGS=@ci-dashboard-regression-tags pnpm run run:e2e
 ```
 
 See [bff-e2e-testing.md](./bff-e2e-testing.md) for details on the local stack model.
@@ -673,14 +673,14 @@ See [bff-e2e-testing.md](./bff-e2e-testing.md) for details on the local stack mo
 - **Videos**: `packages/cypress/results/{mocked|e2e}/videos/`
 - **HTML Reports**: `packages/cypress/results/{mocked|e2e}/index.html`
 
-**Note:** If mocked tests fail with "server not running on port 9001", use `npm run test:cypress-ci` which builds and serves automatically.
+**Note:** If mocked tests fail with "server not running on port 9001", use `pnpm run test:cypress-ci` which builds and serves automatically.
 
 ```text
 Cypress could not verify that this server is running:
   > http://localhost:9001
 ```
 
-This means you need to build and serve the frontend on port 9001 (see "Start the Frontend Dev Server" above), or use `npm run test:cypress-ci` which handles this automatically.
+This means you need to build and serve the frontend on port 9001 (see "Start the Frontend Dev Server" above), or use `pnpm run test:cypress-ci` which handles this automatically.
 
 ---
 
@@ -698,7 +698,7 @@ export CY_RETRY=0       # No retries (see failures immediately)
 **Run with browser visible (headed mode):**
 
 ```bash
-npm run cypress:run -- --headed --spec '**/testName.cy.ts'
+pnpm run cypress:run -- --headed --spec '**/testName.cy.ts'
 ```
 
 ### Two-Terminal Workflow
@@ -709,19 +709,19 @@ For debugging local frontend changes against a cluster:
 
 ```bash
 lsof -ti :9001,4010 | xargs -rt kill -9  # Kill existing processes
-npm --prefix frontend run start:dev:ext
+pnpm --dir frontend run start:dev:ext
 ```
 
 **Terminal 2 - Cypress:**
 
 ```bash
-npm --prefix frontend run cypress:open
+pnpm --dir frontend run cypress:open
 ```
 
 ### One-Liner (Single Terminal)
 
 ```bash
-lsof -ti :9001,4010 | xargs -rt kill -9 ; (npm --prefix frontend run start:dev:ext &) && npm --prefix frontend run cypress:open
+lsof -ti :9001,4010 | xargs -rt kill -9 ; (pnpm --dir frontend run start:dev:ext &) && pnpm --dir frontend run cypress:open
 ```
 
 For more details, see [testing.md](./testing.md#cypress-tests).
@@ -765,7 +765,7 @@ To see local code changes in E2E tests, run the dev server and point tests to it
 ```bash
 # Terminal 1: Start local dev server (hot reload on port 4010)
 cd frontend
-npm run start:dev
+pnpm run start:dev
 ```
 
 ```yaml
@@ -777,7 +777,7 @@ ODH_DASHBOARD_URL: http://localhost:4010
 # Terminal 2: Open Cypress UI
 cd frontend
 export CY_TEST_CONFIG=/path/to/test-variables.yml
-npm run cypress:open
+pnpm run cypress:open
 ```
 
 1. Select **E2E Testing** → **Chrome**
@@ -835,9 +835,9 @@ git checkout -b feature/my-new-feature
 1. **Run linter:**
 
    ```bash
-   npm run test:lint
+   pnpm run test:lint
    # or auto-fix
-   npm run test:fix
+   pnpm run test:fix
    ```
 
 2. **Commit and push:**

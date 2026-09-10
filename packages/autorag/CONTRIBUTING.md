@@ -35,10 +35,10 @@ Run from the `frontend/` directory:
 
 ```bash
 # Lint check
-npm run test:lint
+pnpm run test:lint
 
 # Unit tests
-npm run test:unit
+pnpm run test:unit
 ```
 
 ### BFF Tests
@@ -60,7 +60,7 @@ make test
 
 Before creating a pull request, verify:
 
-- [ ] All linters pass (`make lint` for BFF, `npm run test:lint` for frontend)
+- [ ] All linters pass (`make lint` for BFF, `pnpm run test:lint` for frontend)
 - [ ] Unit tests pass (both BFF and frontend)
 - [ ] Code follows existing patterns and conventions
 - [ ] No sensitive data or credentials committed
@@ -156,7 +156,7 @@ Related to RHOAIENG-5678
 
 - Adding new environment variables
 - Changing configuration options
-- Adding new `make` targets or npm scripts
+- Adding new `make` targets or package scripts
 - Modifying deployment modes or startup procedures
 - Updating prerequisites or system requirements
 

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
     "target": "es2021",
@@ -44,6 +43,8 @@
     "node_modules",
     "dist",
     "public-cypress",
-    "src/__tests__/cypress"
+    "src/__tests__/cypress",
+    "config",
+    "jest.config.js"
   ]
 }

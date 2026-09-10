@@ -3,8 +3,8 @@
 ## Quick start
 
 ```bash
-npm install          # Install all workspace dependencies
-npm run dev          # Start backend + frontend in parallel
+pnpm install          # Install all workspace dependencies
+pnpm run dev          # Start backend + frontend in parallel
 ```
 
 Backend runs on port `4000`, frontend dev server on port `4010`.
@@ -13,15 +13,15 @@ Backend runs on port `4000`, frontend dev server on port `4010`.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | `run-p dev:backend dev:frontend` — parallel backend + frontend |
-| `npm run start:dev` | `turbo run start:dev` — all packages via Turbo |
-| `npm run start:dev:ext` | Dev server proxying to a real cluster (`EXT_CLUSTER=true`) |
-| `npm run build` | Build backend + frontend for production |
-| `npm run lint` | `turbo run lint` across all packages |
-| `npm run type-check` | `turbo run type-check` across all packages |
-| `npm run test-unit` | `turbo run test-unit` across all packages |
-| `npm run test-unit-coverage` | Unit tests with coverage + aggregation |
-| `npm run test:contract` | Contract tests (Go BFFs, `--concurrency=1`) |
+| `pnpm run dev` | `run-p dev:backend dev:frontend` — parallel backend + frontend |
+| `pnpm run start:dev` | `turbo run start:dev` — all packages via Turbo |
+| `pnpm run start:dev:ext` | Dev server proxying to a real cluster (`EXT_CLUSTER=true`) |
+| `pnpm run build` | Build backend + frontend for production |
+| `pnpm run lint` | `turbo run lint` across all packages |
+| `pnpm run type-check` | `turbo run type-check` across all packages |
+| `pnpm run test-unit` | `turbo run test-unit` across all packages |
+| `pnpm run test-unit-coverage` | Unit tests with coverage + aggregation |
+| `pnpm run test:contract` | Contract tests (Go BFFs, `--concurrency=1`) |
 
 ## Turbo
 
@@ -71,7 +71,7 @@ Makefile provides `make login` using `OC_URL`, `OC_USER`, `OC_PASSWORD` (or `OC_
 
 ### How the host discovers remotes
 
-`frontend/config/moduleFederation.js` runs `npm query .workspace --json` and filters packages with a `module-federation` key in `package.json`. Override with `MODULE_FEDERATION_CONFIG` env var (JSON string).
+`frontend/config/moduleFederation.js` uses `scripts/query-workspace-packages.js` to read `pnpm-workspace.yaml` and filters packages with a `module-federation` key in `package.json`. Override with `MODULE_FEDERATION_CONFIG` env var (JSON string).
 
 In dev mode, the backend reads the same config and proxies:
 - `/_mf/{name}/*` → each package's local dev server (static assets + `remoteEntry.js`)
@@ -93,13 +93,13 @@ The `local` field in `module-federation` config tells the backend where to proxy
 To see all current port assignments and detect conflicts:
 
 ```bash
-npm run validate:ports
+pnpm run validate:ports
 ```
 
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
 - **BFF port (local dev/E2E)**: `bffConfig.port` in the package's `package.json` (used by CI E2E workflow and Cypress scripts; not currently conflict-checked by the validator)
-- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by CI via `npm run validate:ports`)
+- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by CI via `pnpm run validate:ports`)
 
 **Known port conflict:**
 
@@ -116,12 +116,12 @@ The source of truth for each package is:
 
 The local backend is required for federated package development — it reads `module-federation.local` config and proxies `/_mf/{name}/*` to each package's local dev server. Without the local backend, the host cannot load your local package changes.
 
-`npm run start:dev:ext` (`EXT_CLUSTER=true`) proxies **everything** (including `/_mf/*`) to the cluster, so locally running packages are invisible to the host. Use it only for host-level development against a real cluster.
+`pnpm run start:dev:ext` (`EXT_CLUSTER=true`) proxies **everything** (including `/_mf/*`) to the cluster, so locally running packages are invisible to the host. Use it only for host-level development against a real cluster.
 
 **Core dashboard only:**
 
 ```bash
-npm run dev          # backend (4000) + host frontend (4010)
+pnpm run dev          # backend (4000) + host frontend (4010)
 ```
 
 **Dashboard + turbo-managed packages** (backend, frontend, model-registry, notebooks only):
@@ -129,7 +129,7 @@ npm run dev          # backend (4000) + host frontend (4010)
 ```bash
 # First, resolve the model-registry BFF port conflict (both default to 4000):
 # Create .env.development.local with BACKEND_PORT=4050
-npm run start:dev    # turbo run start:dev
+pnpm run start:dev    # turbo run start:dev
 ```
 
 Only packages with `start:dev` in `packages/*/package.json` (workspace root) are started by turbo. Currently that's just model-registry and notebooks — all other packages must be started manually.
@@ -138,7 +138,7 @@ Only packages with `start:dev` in `packages/*/package.json` (workspace root) are
 
 ```bash
 # Terminal 1 — host (backend must be running for /_mf proxy)
-npm run dev
+pnpm run dev
 
 # Terminal 2 — e.g., maas with mocked BFF in federated mode
 cd packages/maas && make dev-start-mock-federated
@@ -169,7 +169,7 @@ Federated package extensions are gated behind feature flags (e.g., maas requires
 
 ### Running an updated package as a federated module
 
-1. Start the host: `npm run dev`
+1. Start the host: `pnpm run dev`
 2. In a separate terminal, start the package: `cd packages/<pkg> && make dev-start-mock-federated`
 3. Enable required feature flags via the Feature Flag Launcher in the dashboard UI
 4. **Frontend changes** — rspack HMR rebuilds `remoteEntry.js` and hot-reloads in the host automatically
@@ -182,7 +182,7 @@ If the package has no BFF (e.g., notebooks) or you only need to test extension r
 
 ```bash
 cd packages/<pkg>/frontend
-DEPLOYMENT_MODE=federated PORT=<port> npm run start:dev
+DEPLOYMENT_MODE=federated PORT=<port> pnpm run start:dev
 ```
 
 The federated module will load and its extensions (nav links, routes) will appear in the host. However, pages that fetch data from the BFF will show empty/error states since BFF API requests will fail with `ECONNREFUSED`. For full page rendering, use a mock target instead (e.g., `make dev-start-mock-federated`).
@@ -192,7 +192,7 @@ The federated module will load and its extensions (nav links, routes) will appea
 To get updated TypeScript types for federated modules (generates into `frontend/@mf-types/`):
 
 ```bash
-cd frontend && npm run start:dev:mf    # sets MF_UPDATE_TYPES=true
+cd frontend && pnpm run start:dev:mf    # sets MF_UPDATE_TYPES=true
 ```
 
 Enables typed imports via `@mf/*` path aliases (e.g., `@mf/modelRegistry`).
@@ -224,7 +224,7 @@ Prettier runs via ESLint (`eslint-config-prettier` + `eslint-plugin-prettier`).
 
 ### lint-staged
 
-Pre-commit: `npx eslint --max-warnings 0` on `**/*.{js,ts,jsx,tsx,md}`.
+Pre-commit: `pnpm exec eslint --max-warnings 0` on `**/*.{js,ts,jsx,tsx,md}`.
 
 ## Shared configs
 

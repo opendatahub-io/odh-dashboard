@@ -76,7 +76,7 @@ Before running the sync:
 Run the update-subtree-local script from the repository root:
 
 ```bash
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch>
 ```
@@ -85,13 +85,13 @@ npm run update-subtree-local -w packages/<package-name> -- \
 
 ```bash
 # Cherry-pick a single commit
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --commit=<sha>
 
 # Sync up to a specific commit
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --up-to=<sha>
@@ -100,7 +100,7 @@ npm run update-subtree-local -w packages/<package-name> -- \
 **Continuing after conflict resolution:**
 
 ```bash
-npm run update-subtree-local -w packages/<package-name> -- \
+pnpm --filter ./packages/<package-name> run update-subtree-local -- \
   --local-repo=<local-repo-path> \
   --branch=<branch> \
   --continue
@@ -128,7 +128,7 @@ When conflicts are detected:
    - Stage the resolved files: `git add <file1> <file2> ...`
    - Continue the sync:
      ```bash
-     npm run update-subtree-local -w packages/<package-name> -- \
+     pnpm --filter ./packages/<package-name> run update-subtree-local -- \
        --local-repo=<local-repo-path> \
        --branch=<branch> \
        --continue
@@ -137,7 +137,7 @@ When conflicts are detected:
 
 ### Phase 4: Run Tests
 
-After the sync completes successfully, run tests. Check which test scripts are available in the package's upstream frontend:
+After the sync completes successfully, run tests. These commands intentionally use npm because they run inside the independently maintained upstream frontend, which keeps its own npm lockfile; do not replace them with the root pnpm commands. Check which test scripts are available in the package's upstream frontend:
 
 ```bash
 jq -r '.scripts | keys[] | select(test("^(test:|type-check)"))' packages/<package-name>/upstream/frontend/package.json

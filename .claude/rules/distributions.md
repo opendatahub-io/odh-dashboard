@@ -8,16 +8,16 @@ paths:
 
 # Distribution Conventions
 
-Distributions live in `distributions/` — three are independently-deployable dashboard variants while `base/` is a shared app-shell library (not deployed on its own). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`npm run lint`, `npm run type-check`, `npm run test:contract`, etc.) include distributions that define matching scripts.
+Distributions live in `distributions/` — three are independently-deployable dashboard variants while `base/` is a shared app-shell library (not deployed on its own). All four are **pnpm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`pnpm run lint`, `pnpm run type-check`, `pnpm run test:contract`, etc.) include distributions that define matching scripts.
 
 ## Sub-distributions
 
 | Directory | Type | Has BFF? | Build |
 |-----------|------|----------|-------|
-| `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `npm run build` |
+| `base/` | Shared app shell library (PatternFly chrome, no features) — **not deployed on its own** | Stub only | `pnpm run build` |
 | `core-bff/` | Full Go BFF + React frontend for xKC deployments | Yes (Go 1.25+) | `make build` |
-| `rhaii/` | RHAII-specific distribution | No | `npm run build` |
-| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | `npm run build` |
+| `rhaii/` | RHAII-specific distribution | No | `pnpm run build` |
+| `maas-consumer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | `pnpm run build` |
 
 > **`base/` is a library, not a deployable distribution.** It provides the shared app shell framework (masthead, sidebar, error boundary, theme context, extensibility hooks) that concrete distributions like `core-bff/`, `rhaii/`, and `maas-consumer-portal/` extend. Do not treat it as a standalone application.
 
@@ -29,18 +29,18 @@ Turbo-based commands run on any distribution that defines the matching script:
 
 ```bash
 # These Turbo commands DO cover distributions
-npm run lint          # runs lint on base, core-bff, rhaii, maas-consumer-portal (all define "lint")
-npm run type-check    # runs type-check on base, rhaii, maas-consumer-portal (all define "type-check")
-npm run test:contract # runs test:contract on core-bff (defines "test:contract")
+pnpm run lint          # runs lint on base, core-bff, rhaii, maas-consumer-portal (all define "lint")
+pnpm run type-check    # runs type-check on base, rhaii, maas-consumer-portal (all define "type-check")
+pnpm run test:contract # runs test:contract on core-bff (defines "test:contract")
 ```
 
 Some root convenience scripts are hardcoded to `frontend/` and `backend/` and do **not** cover distributions:
 
 ```bash
 # These do NOT cover distributions — they target frontend/ and backend/ directly
-npm run build         # only builds frontend + backend
-npm run test          # only tests frontend + backend
-npm run dev           # only starts frontend + backend dev servers
+pnpm run build         # only builds frontend + backend
+pnpm run test          # only tests frontend + backend
+pnpm run dev           # only starts frontend + backend dev servers
 ```
 
 For distribution-specific builds and BFF operations, work from within the distribution directory or use `make` targets (see commands below).
@@ -52,10 +52,10 @@ For distribution-specific builds and BFF operations, work from within the distri
 `base/` is a library — run these commands for development and testing, not for standalone deployment. `rhaii/` is a deployable distribution that extends `base/`.
 
 ```bash
-npm run build         # Rspack production build
-npm run start:dev     # Dev server (local development/testing only for base/)
-npx eslint src/       # Lint
-npx tsc --noEmit      # Type-check
+pnpm run build         # Rspack production build
+pnpm run start:dev     # Dev server (local development/testing only for base/)
+pnpm exec eslint src/       # Lint
+pnpm exec tsc --noEmit      # Type-check
 ```
 
 ### `core-bff/` (Go BFF + React frontend)
@@ -80,19 +80,19 @@ make build            # Build binary
 #### Frontend commands (from `frontend/`)
 
 ```bash
-npm run test          # Full suite (lint + type-check + unit + cypress)
-npm run test:lint     # Lint only
-npm run test:type-check  # TypeScript check
-npm run test:unit     # Jest unit tests
-npm run test:cypress-ci  # Cypress headless
+pnpm run test          # Full suite (lint + type-check + unit + cypress)
+pnpm run test:lint     # Lint only
+pnpm run test:type-check  # TypeScript check
+pnpm run test:unit     # Jest unit tests
+pnpm run test:cypress-ci  # Cypress headless
 ```
 
 #### Contract tests
 
 ```bash
-npm run test:contract           # Both platforms
-npm run test:contract:openshift # Foundation + OpenShift tests
-npm run test:contract:xks       # Foundation + XKS tests
+pnpm run test:contract           # Both platforms
+pnpm run test:contract:openshift # Foundation + OpenShift tests
+pnpm run test:contract:xks       # Foundation + XKS tests
 ```
 
 ## Module Federation

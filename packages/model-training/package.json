@@ -21,16 +21,16 @@
     ]
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/foundation": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@types/lodash-es": "^4.17.12",
     "lodash-es": "^4.18.1"
   },

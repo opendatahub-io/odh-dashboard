@@ -38,7 +38,7 @@ The plugin configures shared modules, singleton flags, and version constraints s
 | React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager when `isHost`; federated remotes use `import: false` |
 | OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager when `isHost`; federated remotes use `import: false` |
 | PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager when `isHost`; federated remotes use `import: false` for those two; other listed packages allow remote fallback |
-| ODH packages | Discovered via `npm query .workspace` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): federated remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
+| ODH packages | Discovered by `scripts/query-workspace-packages.js`, which reads `pnpm-workspace.yaml` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): federated remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
 
 #### Remotes and `import: false`
 
@@ -270,7 +270,7 @@ Please refer to the [Extensibility Documentation](./extensibility.md).
 In the remote's **frontend** `package.json`:
 
 ```bash
-npm install --save-dev @module-federation/enhanced
+pnpm install --save-dev @module-federation/enhanced
 ```
 
 In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a `devDependency` (resolved via workspace hoisting when the frontend rspack config requires it):
@@ -387,7 +387,7 @@ This ensures rspack can parse TypeScript from `@odh-dashboard/*` packages resolv
 
 When creating a new `@odh-dashboard/*` library package that will be consumed by federated remotes:
 
-1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
+1. Add the package to the monorepo under `packages/`. pnpm workspaces will hoist it into `node_modules/@odh-dashboard/`.
 2. For remotes to use `import: false` against it, the package must be host-provided: either appear in the host's `@odh-dashboard/*` dependency closure, or export `./extensions` (included in the host via the virtual `plugin-extensions` module). Otherwise it is only shared as a singleton with import/fallback if reached from a federated package's dependency tree.
 3. Ensure the consumer's `rspack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 

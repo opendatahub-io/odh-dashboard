@@ -2,6 +2,7 @@
 const path = require('path');
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
+const { patternFlyCssIncludes } = require('@odh-dashboard/app-config/webpack');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const getRsdoctorPlugin = () => {
@@ -66,12 +67,7 @@ module.exports = merge(
       rules: [
         {
           test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-          ],
+          include: patternFlyCssIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES, SRC_DIR, COMMON_DIR),
           use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
         },
       ],

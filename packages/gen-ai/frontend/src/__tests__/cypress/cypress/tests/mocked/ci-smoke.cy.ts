@@ -5,12 +5,9 @@ import {
 } from '~/__tests__/cypress/cypress/support/commands/common';
 
 describe('App Tests', () => {
-  before(() => {
+  it('Loads app successfully', () => {
     visitApp();
     waitForPageLoad();
-  });
-
-  it('Loads app successfully', () => {
     checkAppLoaded();
   });
 });

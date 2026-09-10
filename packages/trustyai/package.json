@@ -21,9 +21,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk-utils": "^5",
@@ -31,7 +31,7 @@
     "react-router-dom": "^7"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   }
 }

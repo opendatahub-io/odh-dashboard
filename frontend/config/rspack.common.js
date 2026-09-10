@@ -3,6 +3,12 @@ const path = require('path');
 const { execSync } = require('child_process');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
+const {
+  isVendorCss,
+  patternFlyFontIncludes,
+  pnpmWebpackResolveAliases,
+} = require('@odh-dashboard/app-config/webpack');
+
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
@@ -17,6 +23,7 @@ const SRC_DIR = process.env._ODH_SRC_DIR;
 const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
+const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../node_modules');
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
@@ -36,7 +43,7 @@ const pluginPackageDetails = getPluginPackageDetails();
 if (pluginPackageDetails.length === 0) {
   console.warn(
     'Warning: No plugin packages discovered. The pluginChunks splitChunks group will have no effect. ' +
-      'Check that workspace packages have ./extensions exports and that npm query is working.',
+      'Check that workspace packages have ./extensions exports and that workspace discovery is working.',
   );
 }
 
@@ -62,6 +69,9 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+        // Transpile host sources and workspace packages only. With pnpm symlinks enabled,
+        // workspace links resolve to packages/ paths. Including node_modules/@odh-dashboard
+        // makes Istanbul walk the entire hoisted tree and can hang the Cypress coverage build.
         include: [
           SRC_DIR,
           COMMON_DIR,
@@ -88,21 +98,7 @@ module.exports = (env) => ({
       },
       {
         test: /\.(svg|ttf|eot|woff|woff2)$/,
-        include: [
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/fonts',
-          ),
-          path.resolve(
-            RELATIVE_DIRNAME,
-            '../node_modules/@patternfly/react-core/dist/styles/assets/pficon',
-          ),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
-          path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
-        ],
+        include: patternFlyFontIncludes(RELATIVE_DIRNAME, ROOT_NODE_MODULES),
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
@@ -185,11 +181,22 @@ module.exports = (env) => ({
       },
       {
         test: /\.css$/i,
+        include: [SRC_DIR, COMMON_DIR],
         use: [
           env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
         ],
       },
+      ...(env === 'development'
+        ? [
+            {
+              test: /\.css$/i,
+              include: (resourcePath) =>
+                isVendorCss(resourcePath, RELATIVE_DIRNAME, ROOT_NODE_MODULES),
+              use: ['style-loader', 'css-loader'],
+            },
+          ]
+        : []),
       {
         test: /\.ya?ml$/,
         use: 'js-yaml-loader',
@@ -290,6 +297,11 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
+    alias: {
+      ...pnpmWebpackResolveAliases(RELATIVE_DIRNAME),
+    },
+    // Follow pnpm workspace symlinks so linked packages resolve under packages/ instead of
+    // scanning the full node_modules/.pnpm tree during the coverage build.
     symlinks: true,
     cacheWithContext: false,
   },

@@ -26,10 +26,10 @@ Run these checks from the `packages/gen-ai` directory:
 cd bff && make lint && make test
 
 # Frontend
-cd frontend && npm run test:lint && npm run test:unit
+cd frontend && pnpm run test:lint && pnpm run test:unit
 
 # Contract tests (from gen-ai root)
-npm run test:contract
+pnpm run test:contract
 ```
 
 **PR Checklist:**
@@ -59,7 +59,7 @@ npm run test:contract
 **Update README when:**
 - Adding new environment variables
 - Changing configuration options
-- Adding new make targets or npm scripts
+- Adding new make targets or package scripts
 
 ## Code Review Expectations
 
