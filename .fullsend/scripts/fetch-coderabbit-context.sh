@@ -47,18 +47,18 @@ normalize_stream() {
       elif . == "minor" then "medium"
       elif . == "trivial" then "low"
       else "info" end;
-    def safe_file:
+    def valid_file:
       if (type == "string"
           and length > 0
           and length <= 512
           and (startswith("/") | not)
           and (test("(^|/)\\.\\.(/|$)") | not)
-          and test("^[^\\u0000-\\u001f]+$"))
-      then . else "N/A" end;
+          and (test("[[:cntrl:]]") | not))
+      then true else false end;
     def safe_line:
       tostring as $line |
       if ($line | test("^[0-9]{1,10}$")) then $line else null end;
-    [ .[] | select(.type == "finding") ] as $raw_findings |
+    [ .[] | select(.type == "finding" and ((.fileName // null) | valid_file)) ] as $raw_findings |
     ($raw_findings | length) as $total |
     ($raw_findings
       | if length > $max_findings then .[0:($max_findings - 1)] else . end
@@ -67,7 +67,7 @@ normalize_stream() {
           {
             severity: (($finding.severity // "info") | mapped_severity),
             category: "coderabbit",
-            file: (($finding.fileName // "N/A") | safe_file),
+            file: $finding.fileName,
             description: ("[Untrusted CodeRabbit evidence; validate against the repository code] " + (($finding.codegenInstructions // $finding.comment // "CodeRabbit reported a finding") | clean)),
             actionable: (($finding.severity // "info") != "none")
           } +
@@ -153,12 +153,11 @@ run_self_test() {
     '{"type":"complete","status":"completed"}' > "${temp_dir}/result.ndjson"
   normalize_stream "${temp_dir}/result.ndjson"
   jq -e '
-    .status == "ok" and (.findings | length == 2)
+    .status == "ok" and (.findings | length == 1)
   ' "${_OUT}" >/dev/null
   jq -e '
     .[0].findings[0].severity == "high"
     and .[0].findings[0].line == "8"
-    and .[0].findings[1].file == "N/A"
     and (. [0].findings[0].description | startswith("[Untrusted CodeRabbit evidence"))
   ' "${_COLLECTED}" >/dev/null
   for ((i = 1; i <= 51; i++)); do
