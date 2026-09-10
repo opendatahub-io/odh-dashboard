@@ -49,7 +49,7 @@ import {
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const configureSchema = createConfigureSchema();
-const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
+const createFields = ['display_name', 'description'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
@@ -67,7 +67,7 @@ type AutoragConfigurePageProps = {
   initialValues?: Partial<ConfigureSchema>;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
+  /** Legacy OGX secret retained only for historical vector-store reconfiguration. */
   initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
@@ -78,7 +78,6 @@ type AutoragConfigurePageProps = {
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
-  initialOgxSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -123,7 +122,7 @@ function AutoragConfigurePage({
     defaultValues: initialFormValues,
   });
 
-  const [displayName, description, ogxSecretName] = useWatch({
+  const [displayName, description] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -339,8 +338,7 @@ function AutoragConfigurePage({
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
-            !configureSchema.base.shape.description.safeParse(description).success ||
-            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
+            !configureSchema.base.shape.description.safeParse(description).success
           }
         >
           Next
@@ -558,7 +556,7 @@ function AutoragConfigurePage({
                 hasBodyWrapper={false}
               >
                 {step === 'create' ? (
-                  <AutoragCreate initialOgxSecret={initialOgxSecret} />
+                  <AutoragCreate />
                 ) : (
                   <AutoragConfigure
                     initialValues={initialValues}

@@ -38,10 +38,10 @@ After building it, you can run our app with:
 make run
 ```
 
-If you want to use a different port or mock kubernetes client you can run:
+If you want to use a different port or mock Kubernetes and MaaS clients you can run:
 
 ```shell
-make run PORT=8000 MOCK_K8S_CLIENT=true
+make run PORT=8000 DEV_MODE=true MOCK_K8S_CLIENT=true MOCK_MAAS_CLIENT=true
 ```
 
 If you want to change the log level on deployment, add the LOG_LEVEL argument when running, supported levels are: ERROR, WARN, INFO, DEBUG. The default level is INFO.
@@ -59,6 +59,7 @@ make run LOG_LEVEL=DEBUG
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`)                                    |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.)                                   |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution                                       |
+| `-mock-maas-client` | `MOCK_MAAS_CLIENT` | Use in-memory stub for MaaS model listings                                             |
 | `-mock-pipeline-server-client` | `MOCK_PIPELINE_SERVER_CLIENT` | Use mock client for Kubeflow Pipelines API calls                                       |
 | `-mock-s3-client` | `MOCK_S3_CLIENT` | Use mock client for S3 SDK calls                                                       |
 | `-autorag-pipeline-name-prefix` | `AUTORAG_PIPELINE_NAME_PREFIX` | Prefix for identifying AutoRAG managed pipelines during discovery (default: `documents-rag-optimization-pipeline`) |

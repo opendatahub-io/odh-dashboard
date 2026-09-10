@@ -1,10 +1,17 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
+import {
+  getMaaSModels,
+  getOgxModels,
+  getOgxVectorStores,
+  getSecretByName,
+  getSecrets,
+} from '~/app/api/k8s';
 import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   OgxModelsResponse,
+  MaaSModelsResponse,
   OgxModelType,
   OgxFilteredVectorStoreProvidersResponse,
   ManagedPipeline,
@@ -56,6 +63,39 @@ export function useOgxModelsQuery(
     select: modelType
       ? (data) => ({ models: data.models.filter((m) => m.type === modelType) })
       : undefined,
+  });
+}
+
+export function useMaaSModelsQuery(
+  namespace: string,
+  secretName: string,
+): UseQueryResult<MaaSModelsResponse, Error> {
+  return useQuery({
+    enabled: !!namespace && !!secretName,
+    queryKey: ['autorag', 'maasModels', namespace, secretName],
+    queryFn: async () => {
+      try {
+        const response = await getMaaSModels('')(namespace, secretName)({});
+        const validated = z
+          .object({
+            models: z.array(
+              z.object({
+                id: z.string(),
+                // eslint-disable-next-line camelcase
+                display_name: z.string().optional().default(''),
+                description: z.string().optional().default(''),
+              }),
+            ),
+          })
+          .parse(response);
+        return validated;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw new Error('Invalid MaaS models response');
+        }
+        throw error;
+      }
+    },
   });
 }
 
@@ -330,7 +370,7 @@ export function useSecretCredentialsQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'ogx',
+  type?: 'storage' | 'ogx' | 'maas',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

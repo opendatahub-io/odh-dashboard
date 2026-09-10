@@ -66,12 +66,13 @@ import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer
 import { useUIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
+import MaaSConnectionModal from '~/app/components/common/MaaSConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -162,6 +163,7 @@ function AutoragConfigure({
     [allConnectionTypes],
   );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
+  const [isMaaSConnectionModalOpen, setIsMaaSConnectionModalOpen] = React.useState(false);
 
   const [fileExplorerMode, setFileExplorerMode] = useState<false | 'input_data' | 'test_data'>(
     false,
@@ -196,6 +198,8 @@ function AutoragConfigure({
   // as a cancel (onClose is invoked right after onSelectFiles when the user selects a file).
   const inputDataS3SelectionCommittedRef = useRef(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const maasSecretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
+  const [selectedMaaSSecret, setSelectedMaaSSecret] = useState<SecretListItem>();
   const modelsInitialized = useRef(false);
 
   const notification = useNotification();
@@ -207,21 +211,21 @@ function AutoragConfigure({
   const { isSubmitting } = formState;
 
   const [
-    ogxSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
     testDataBucketName,
     inputDataKey,
+    maasSecretName,
   ] = useWatch({
     control: form.control,
     name: [
-      'ogx_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
       'test_data_bucket_name',
       'input_data_key',
+      'maas_secret_name',
     ],
   });
 
@@ -231,33 +235,21 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
+  } = useMaaSModelsQuery(namespace ?? '', maasSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
     if (isModelsError) {
       notification.error(
         'Failed to load models',
-        'Check that the Open GenAI Stack secret is valid and try again.',
+        'Check that the MaaS service is available and try again.',
       );
     }
   }, [isModelsError, notification]);
 
-  // When the secret changes, mark models as needing re-initialization and
-  // immediately clear stale selections so the UI reflects the transition.
-  // Uses useReconfigureSafeEffect (skips on mount) because ogxSecretName is
-  // already populated on mount during reconfigure; a plain useEffect would
-  // wipe the pre-populated model selections before they could be restored.
-  useReconfigureSafeEffect(() => {
-    modelsInitialized.current = false;
-    setValue('generation_models', []);
-    setValue('embedding_models', []);
-  }, [ogxSecretName, setValue]);
-
   useEffect(() => {
-    // Initialize available generation and embedding models into the form data.
-    // Preserve existing selections (reconfigure flow) when they are already
-    // populated; only default to all models on a fresh create.
+    // Preserve existing selections in reconfigure flows. Fresh runs remain empty
+    // until the user explicitly selects models.
     if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
 
@@ -265,25 +257,17 @@ function AutoragConfigure({
       const currentGenModels = currentValues.generation_models;
       const currentEmbModels = currentValues.embedding_models;
 
-      const allLlmModels = allModelsData.models
-        .filter((model) => model.type === 'llm')
-        .map((model) => model.id)
-        .toSorted((a, b) => a.localeCompare(b));
-
-      const allEmbeddingModels = allModelsData.models
-        .filter((model) => model.type === 'embedding')
-        .map((model) => model.id)
-        .toSorted((a, b) => a.localeCompare(b));
+      const availableModels = allModelsData.models.map((model) => model.id);
 
       // Restored selections (e.g. from reconfigure) may reference models that are
       // no longer returned for this secret (removed/deprecated upstream). Drop
       // any IDs that aren't currently available before deciding whether to keep
       // the restored selection or fall back to "all models".
       const retainedGenerationModels = currentGenModels.filter((modelId) =>
-        allLlmModels.includes(modelId),
+        availableModels.includes(modelId),
       );
       const retainedEmbeddingModels = currentEmbModels.filter((modelId) =>
-        allEmbeddingModels.includes(modelId),
+        availableModels.includes(modelId),
       );
 
       if (
@@ -299,11 +283,9 @@ function AutoragConfigure({
       reset({
         ...currentValues,
         // eslint-disable-next-line camelcase
-        generation_models:
-          retainedGenerationModels.length > 0 ? retainedGenerationModels : allLlmModels,
+        generation_models: retainedGenerationModels,
         // eslint-disable-next-line camelcase
-        embedding_models:
-          retainedEmbeddingModels.length > 0 ? retainedEmbeddingModels : allEmbeddingModels,
+        embedding_models: retainedEmbeddingModels,
       });
     }
   }, [allModelsData, isModelsError, getValues, reset, notification]);
@@ -814,6 +796,50 @@ function AutoragConfigure({
                   <Flex direction={{ default: 'column' }} gap={{ default: 'gapXl' }}>
                     <FlexItem>
                       <ConfigureFormGroup
+                        label="MaaS connection"
+                        description="Select the hosted MaaS connection used to discover generation and embedding models."
+                      >
+                        <Split hasGutter isWrappable>
+                          <SplitItem style={{ width: '10rem' }} isFilled>
+                            <Controller
+                              control={form.control}
+                              name="maas_secret_name"
+                              render={({ field: { onChange } }) => (
+                                <SecretSelector
+                                  namespace={namespace}
+                                  type="maas"
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
+                                  value={selectedMaaSSecret?.uuid}
+                                  isRequired
+                                  isDisabled={isSubmitting}
+                                  onChange={(secret) => {
+                                    setSelectedMaaSSecret(secret);
+                                    onChange(secret?.invalid ? '' : (secret?.name ?? ''));
+                                  }}
+                                  onRefreshReady={(refresh) => {
+                                    maasSecretsRefreshRef.current = refresh;
+                                  }}
+                                  placeholder="Select MaaS connection"
+                                  toggleWidth="16rem"
+                                  dataTestId="maas-secret-selector"
+                                />
+                              )}
+                            />
+                          </SplitItem>
+                          <SplitItem>
+                            <Button
+                              variant="tertiary"
+                              isDisabled={isSubmitting}
+                              onClick={() => setIsMaaSConnectionModalOpen(true)}
+                            >
+                              Add MaaS connection
+                            </Button>
+                          </SplitItem>
+                        </Split>
+                      </ConfigureFormGroup>
+                    </FlexItem>
+                    <FlexItem>
+                      <ConfigureFormGroup
                         label="Vector I/O provider"
                         description="Specify the location for storing the vector index used to retrieve your documents."
                       >
@@ -1067,6 +1093,7 @@ function AutoragConfigure({
                                         isModelsError ||
                                         !allModelsData?.models.length
                                       }
+                                      data-testid="edit-models-button"
                                     >
                                       Edit
                                     </Button>
@@ -1092,7 +1119,7 @@ function AutoragConfigure({
                                       >
                                         <Content>{`${
                                           generationModels.length || 'No'
-                                        } foundation models`}</Content>
+                                        } generation/chat models`}</Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -1191,6 +1218,21 @@ function AutoragConfigure({
               setValue('input_data_secret_name', invalid ? '' : secret.name, {
                 shouldValidate: true,
               });
+            }
+          }}
+        />
+      )}
+      {isMaaSConnectionModalOpen && (
+        <MaaSConnectionModal
+          namespace={namespace}
+          onClose={() => setIsMaaSConnectionModalOpen(false)}
+          onSubmit={async (secretName) => {
+            const refresh = maasSecretsRefreshRef.current;
+            const list = refresh ? await refresh() : undefined;
+            const secret = list?.find((item) => item.name === secretName);
+            if (secret) {
+              setSelectedMaaSSecret(secret);
+              setValue('maas_secret_name', secret.name, { shouldValidate: true });
             }
           }}
         />

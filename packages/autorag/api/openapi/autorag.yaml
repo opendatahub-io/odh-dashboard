@@ -10,6 +10,48 @@ servers:
   - url: "https://localhost:8080"
   - url: "http://localhost:8080"
 paths:
+  /api/v1/maas/models:
+    get:
+      summary: List accessible MaaS models
+      description: Returns all MaaS models accessible to the authenticated user. Models are not filtered by capability because MaaS does not yet expose a reliable capability property.
+      operationId: listAutoRAGMaaSModels
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Kubernetes namespace used for authorization
+        - name: secretName
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          description: Kubernetes Secret containing MAAS_BASE_URL (the hosted Gateway origin) and MAAS_API_KEY
+      responses:
+        '200':
+          description: Accessible MaaS models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaaSModelsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /healthcheck:
     summary: Path targeted for healthcheck purposes.
     description: >-
@@ -994,6 +1036,39 @@ components:
           type: boolean
           example: true
 
+    MaaSModel:
+      type: object
+      description: Stable AutoRAG representation of a MaaS model.
+      required:
+        - id
+        - display_name
+        - description
+      properties:
+        id:
+          type: string
+          description: Model identifier used when submitting a run
+        display_name:
+          type: string
+          description: Human-readable model name, when provided by MaaS
+        description:
+          type: string
+          description: Model description, when provided by MaaS
+
+    MaaSModelsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - models
+          properties:
+            models:
+              type: array
+              items:
+                $ref: '#/components/schemas/MaaSModel'
+
     # OGX Model Schemas
     OGXModel:
       type: object
@@ -1095,8 +1170,17 @@ components:
             - $ref: '#/components/schemas/SecretTypeSchema'
             - type: object
               properties:
+                 classificationKeys:
+                   example: ["OGX_CLIENT_API_KEY", "OGX_CLIENT_BASE_URL"]
+                 commonOptionalKeys:
+                   example: []
+        maas:
+          allOf:
+            - $ref: '#/components/schemas/SecretTypeSchema'
+            - type: object
+              properties:
                 classificationKeys:
-                  example: ["OGX_CLIENT_API_KEY", "OGX_CLIENT_BASE_URL"]
+                  example: ["MAAS_BASE_URL", "MAAS_API_KEY"]
                 commonOptionalKeys:
                   example: []
 
@@ -1123,7 +1207,8 @@ components:
             1. First priority: The 'opendatahub.io/connection-type' annotation if present and non-empty
             2. Fallback: Key-based type detection (see SecretTypeSchemas):
                - 's3': S3 storage secret (has all required S3 classification keys)
-               - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
+                - 'ogx': Open GenAI Stack secret (has all required OGX classification keys)
+                - 'maas': hosted MaaS secret (has MAAS_BASE_URL and MAAS_API_KEY)
 
             When filtering with the ?type= parameter, the annotated type (if present) takes precedence over key-based classification
             for determining inclusion in results. This means a secret with connection-type='storage' will be included in ?type=storage
@@ -1364,7 +1449,7 @@ components:
         - input_data_secret_name
         - input_data_bucket_name
         - input_data_key
-        - ogx_secret_name
+        - maas_secret_name
       properties:
         display_name:
           type: string
@@ -1393,9 +1478,10 @@ components:
         input_data_key:
           type: string
           description: Object key within the input data bucket
-        ogx_secret_name:
+        maas_secret_name:
           type: string
-          description: Name of the K8s secret for Open GenAI Stack access
+          minLength: 1
+          description: Name of the K8s Secret containing the hosted MaaS Gateway origin and API key
         preset:
           type: string
           enum:
@@ -1458,7 +1544,7 @@ components:
           type: object
           description: >-
             Pipeline runtime parameters from pattern.indexing.pipeline_spec.parameters
-            (for example embedding_model_id, input_data_*, ogx_secret_name, chunking fields).
+             (for example embedding_model_id, input_data_*, maas_secret_name, chunking fields).
           additionalProperties: true
           minProperties: 1
           example:
@@ -1466,7 +1552,7 @@ components:
             input_data_secret_name: "aws-connection-my-bucket"
             input_data_bucket_name: "my-bucket"
             input_data_key: "docs/"
-            ogx_secret_name: "ogx-connection"
+            maas_secret_name: "maas-connection"
             vector_io_provider_id: "milvus"
             chunk_size: 512
             chunk_overlap: 50

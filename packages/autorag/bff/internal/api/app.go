@@ -1,20 +1,25 @@
 package api
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	"github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/ssrf"
 	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
@@ -40,6 +45,7 @@ const (
 	S3FilesPath              = ApiPathPrefix + "/s3/files"
 	OGXModelsPath            = ApiPathPrefix + "/ogx/models"
 	OGXVectorStoresPath      = ApiPathPrefix + "/ogx/vector-stores"
+	MaaSModelsPath           = ApiPathPrefix + "/maas/models"
 	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
 	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
 	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
@@ -87,6 +93,7 @@ type App struct {
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
 	ogx         *OGXHandler
+	maas        *MaaSHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -222,6 +229,23 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
 	}
+	var maasClient repositories.MaaSClient
+	if cfg.MockMaaSClient {
+		maasClient = &fake.MaaSClient{}
+	} else {
+		// Hosted MaaS requests get their Gateway origin and API key from the selected
+		// namespace Secret.
+		maasTransport := http.DefaultTransport.(*http.Transport).Clone()
+		maasTransport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob; production config rejects this
+			RootCAs:            rootCAs,
+		}
+		maasTransport.DialContext = ssrf.SafeDialContext(&net.Dialer{Timeout: 10 * time.Second}, false)
+		maasClient = maas.NewClient(&http.Client{
+			Timeout:   30 * time.Second,
+			Transport: maasTransport,
+		})
+	}
 
 	app := &App{
 		config:             cfg,
@@ -258,6 +282,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ogx: &OGXHandler{
 			logger: logger,
 			repo:   repositories.NewOGXRepository(logger, ogxClient, k8sService),
+		},
+		maas: &MaaSHandler{
+			logger:  logger,
+			service: repositories.NewMaaSService(maasClient, k8sService),
 		},
 	}
 	return app, nil
@@ -310,6 +338,7 @@ func (app *App) Routes() http.Handler {
 	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
 	apiRouter.GET(OGXModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXModelsHandler)))
 	apiRouter.GET(OGXVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXVectorStoresHandler)))
+	apiRouter.GET(MaaSModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.ModelsHandler)))
 
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))

@@ -3,23 +3,36 @@ import {
   evaluationFileSelector,
   fileExplorer,
 } from '~/__tests__/cypress/cypress/pages/evaluationFileCreator';
+import { autoragConfigurePage } from '~/__tests__/cypress/cypress/pages/autoragConfigure';
 
 // my-project is the only fake namespace with a DSPA and secrets
 // (packages/autorag/bff/internal/fake/k8s.go)
 const NAMESPACE = 'my-project';
-// Real fake secrets: an "ogx" secret and a "data-connection" storage secret with a bucket set
-const OGX_SECRET = 'ogx';
 const STORAGE_SECRET = 'data-connection';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
 // autorag input data/pdf/bank_policies_pdf/documents/ contains two PDFs.
 const DOCUMENTS_FOLDER_NAME = 'documents';
 const DOCUMENT_NAMES = ['all_bank_policies.pdf', 'all_bank_policies_2.pdf'];
+const MAAS_MODEL_IDS = {
+  generation: 'maas-generation',
+  embedding: 'maas-embedding',
+} as const;
 
 const initIntercepts = () => {
   // Connection types come from the host dashboard API, not the autorag BFF —
   // no real backend for this in standalone mode, so it stays mocked.
   cy.intercept({ method: 'GET', pathname: '**/api/connection-types' }, { body: { items: [] } });
+  cy.intercept('GET', '**/autorag/api/v1/maas/models*', {
+    data: {
+      models: [
+        // eslint-disable-next-line camelcase
+        { id: MAAS_MODEL_IDS.generation, display_name: 'MaaS generation', description: '' },
+        // eslint-disable-next-line camelcase
+        { id: MAAS_MODEL_IDS.embedding, display_name: 'MaaS embedding', description: '' },
+      ],
+    },
+  });
 };
 
 const navigateToConfigure = () => {
@@ -28,10 +41,8 @@ const navigateToConfigure = () => {
   cy.testA11y();
 };
 
-const selectOgxAndStorageSecrets = () => {
+const selectStorageSecret = () => {
   cy.findByTestId('autorag-name-input').type('Test Experiment');
-  cy.findByTestId('ogx-secret-selector').click();
-  cy.findByRole('option', { name: new RegExp(OGX_SECRET, 'i') }).click();
   cy.findByTestId('autorag-next-button').click();
   cy.findByTestId('configure-step-subtitle').should('be.visible');
 
@@ -53,7 +64,7 @@ const browseToSeedFolder = () => {
 };
 
 const advanceToStep2 = () => {
-  selectOgxAndStorageSecrets();
+  selectStorageSecret();
   browseToSeedFolder();
   fileExplorer.navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
 
@@ -66,7 +77,7 @@ const advanceToStep2 = () => {
 };
 
 const advanceToStep2WithFolder = () => {
-  selectOgxAndStorageSecrets();
+  selectStorageSecret();
   browseToSeedFolder();
 
   // Select a folder as input data (not a file)
@@ -113,6 +124,36 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findAnswerInput().should('have.value', '');
 
     evaluationFileCreator.findSubmitButton().should('be.enabled');
+  });
+
+  it('should require manual MaaS model selection in both model tables', () => {
+    navigateToConfigure();
+    advanceToStep2();
+
+    evaluationFileSelector.findCreateButton().click();
+    addQAPair('What is AI?', 'Artificial Intelligence');
+    evaluationFileCreator.findSubmitButton().click();
+    evaluationFileCreator.find().should('not.exist');
+
+    autoragConfigurePage.findEditModelsButton().click();
+    autoragConfigurePage.findModelSettingsModal().should('be.visible');
+    autoragConfigurePage.findSaveModelsButton().should('be.disabled');
+    autoragConfigurePage.findGenerationTable().should('contain.text', MAAS_MODEL_IDS.generation);
+    autoragConfigurePage.findGenerationTable().should('contain.text', MAAS_MODEL_IDS.embedding);
+
+    autoragConfigurePage
+      .findModelRow(MAAS_MODEL_IDS.generation)
+      .find('input[type="checkbox"]')
+      .click();
+    autoragConfigurePage.findEmbeddingTab().click();
+    autoragConfigurePage.findEmbeddingTable().should('contain.text', MAAS_MODEL_IDS.generation);
+    autoragConfigurePage.findEmbeddingTable().should('contain.text', MAAS_MODEL_IDS.embedding);
+    autoragConfigurePage
+      .findModelRow(MAAS_MODEL_IDS.generation)
+      .find('input[type="checkbox"]')
+      .click();
+    autoragConfigurePage.findSaveModelsButton().should('be.enabled').click();
+    autoragConfigurePage.findModelSettingsModal().should('not.exist');
   });
 
   it('should edit and delete rows', () => {

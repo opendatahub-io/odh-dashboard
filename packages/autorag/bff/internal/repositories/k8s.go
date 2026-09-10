@@ -24,6 +24,10 @@ var ogxTypeRequiredKeys = map[string][]string{
 	},
 }
 
+var maasTypeRequiredKeys = map[string][]string{
+	"maas": {"MAAS_BASE_URL", "MAAS_API_KEY"},
+}
+
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
@@ -58,6 +62,8 @@ func (r *K8sRepository) GetFilteredSecrets(
 		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	case "ogx":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
+	case "maas":
+		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -113,9 +119,14 @@ func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	switch secretType {
 	case "ogx":
 		return "ogx"
+	case "maas":
+		return "maas"
 	case "storage":
 		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
+		if kubernetes.SecretInfoHasAllKeys(secret, maasTypeRequiredKeys["maas"]) {
+			return "maas"
+		}
 		if kubernetes.SecretInfoHasAllKeys(secret, ogxTypeRequiredKeys["ogx"]) {
 			return "ogx"
 		}

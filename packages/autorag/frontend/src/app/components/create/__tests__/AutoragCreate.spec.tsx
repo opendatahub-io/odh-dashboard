@@ -198,7 +198,7 @@ describe('AutoragCreate', () => {
   });
 
   describe('Form validation', () => {
-    it('should update form values when Name and Open GenAI Stack secret are filled', async () => {
+    it('should update form values when the name is filled without an OGX secret', async () => {
       const user = userEvent.setup();
 
       renderComponent();
@@ -206,13 +206,9 @@ describe('AutoragCreate', () => {
       const nameInput = screen.getByLabelText(/Name/i);
       await user.type(nameInput, 'Valid Name');
 
-      // Select a Open GenAI Stack secret (required field)
-      const selectSecretButton = screen.getByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectSecretButton);
-
       await waitFor(() => {
         expect(nameInput).toHaveValue('Valid Name');
-        expect(screen.getByTestId('ogx-secret-selector-value')).toBeInTheDocument();
+        expect(screen.queryByTestId('ogx-secret-selector')).not.toBeInTheDocument();
       });
     });
 
@@ -258,54 +254,6 @@ describe('AutoragCreate', () => {
       renderComponent();
       const nameInput = screen.getByLabelText(/Name/i);
       expect(nameInput).toHaveAttribute('type', 'text');
-    });
-  });
-
-  describe('Add new connection', () => {
-    it('should render the Add new connection button', () => {
-      renderComponent();
-      expect(screen.getByTestId('add-ogx-connection-button')).toBeInTheDocument();
-    });
-
-    it('should open the OgxConnectionModal when button is clicked', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
-
-      await user.click(screen.getByTestId('add-ogx-connection-button'));
-      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
-    });
-
-    it('should close the modal when cancel is clicked', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('add-ogx-connection-button'));
-      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
-
-      await user.click(screen.getByTestId('ogx-modal-cancel'));
-      expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
-    });
-
-    it('should close modal and update form with new connection after submit', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('add-ogx-connection-button'));
-      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
-
-      await user.click(screen.getByTestId('ogx-modal-submit'));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('ogx-secret-selector-value')).toHaveTextContent(
-          'new-secret-uuid',
-        );
-      });
     });
   });
 

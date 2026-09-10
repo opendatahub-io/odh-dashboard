@@ -6,9 +6,8 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { useOgxModelsQuery } from '~/app/hooks/queries';
+import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
-import { OgxModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
 jest.mock('react-router', () => ({
@@ -25,35 +24,21 @@ jest.mock('mod-arch-shared', () => ({
   }) => <button {...props}>{icon}</button>,
 }));
 
-const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
+const mockUseMaaSModelsQuery = jest.mocked(useMaaSModelsQuery);
 
 const MOCK_MODELS = [
-  { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
-  {
-    id: 'llama-70b',
-    type: 'llm' as const,
-    provider: 'ollama',
-    resource_path: 'ollama://llama-70b',
-  },
-  {
-    id: 'minilm-v2',
-    type: 'embedding' as const,
-    provider: 'ollama',
-    resource_path: 'ollama://minilm-v2',
-  },
+  { id: 'llama-8b', display_name: 'Llama 8B', description: 'Generation model' },
+  { id: 'llama-70b', display_name: 'Llama 70B', description: 'Generation model' },
+  { id: 'minilm-v2', display_name: 'MiniLM v2', description: 'Embedding model' },
 ];
 
-const mockModelsImplementation = (
-  _namespace: string,
-  _secretName?: string,
-  modelType?: OgxModelType,
-) =>
-  ({
-    data: {
-      models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,
-    },
+const mockModelsImplementation = (...args: [string]) => {
+  void args;
+  return {
+    data: { models: MOCK_MODELS },
     isLoading: false,
-  }) as unknown as ReturnType<typeof useOgxModelsQuery>;
+  } as unknown as ReturnType<typeof useMaaSModelsQuery>;
+};
 
 const configureSchema = createConfigureSchema();
 
@@ -63,8 +48,8 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     resolver: zodResolver(configureSchema.full),
     defaultValues: {
       ...configureSchema.defaults,
-      generation_models: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => m.id),
-      embedding_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
+      generation_models: MOCK_MODELS.map((m) => m.id),
+      embedding_models: MOCK_MODELS.map((m) => m.id),
     },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
@@ -77,18 +62,33 @@ const renderComponent = () =>
     </FormWrapper>,
   );
 
+const EmptyFormWrapper: React.FC = () => {
+  const form = useForm({
+    mode: 'onChange',
+    resolver: zodResolver(configureSchema.full),
+    defaultValues: { ...configureSchema.defaults, generation_models: [], embedding_models: [] },
+  });
+  return (
+    <FormProvider {...form}>
+      <AutoragExperimentSettingsModelSelection />
+    </FormProvider>
+  );
+};
+
+const renderEmptyComponent = () => render(<EmptyFormWrapper />);
+
 describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseOgxModelsQuery.mockImplementation(mockModelsImplementation);
+    mockUseMaaSModelsQuery.mockImplementation(mockModelsImplementation);
   });
 
   describe('Rendering', () => {
     it('should show a spinner when loading', () => {
-      mockUseOgxModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: true,
-      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
       expect(screen.getByLabelText('Loading models')).toBeInTheDocument();
@@ -117,8 +117,8 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
     it('should display selected model counts in tab badges', () => {
       renderComponent();
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
-      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('3');
+      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('3');
     });
 
     it('should render pagination', () => {
@@ -174,6 +174,27 @@ describe('AutoragExperimentSettingsModelSelection', () => {
   });
 
   describe('Model selection', () => {
+    it('should start with zero selections and allow the same MaaS model in both tables', async () => {
+      const user = userEvent.setup();
+      renderEmptyComponent();
+
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('0');
+      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('0');
+
+      const generationRow = within(screen.getByTestId('llm-models-table')).getByTestId(
+        'model-row-llama-8b',
+      );
+      await user.click(generationRow.querySelector('input[type="checkbox"]')!);
+      await user.click(screen.getByText('Embedding models', { exact: false }));
+      const embeddingRow = within(screen.getByTestId('embedding-models-table')).getByTestId(
+        'model-row-llama-8b',
+      );
+      await user.click(embeddingRow.querySelector('input[type="checkbox"]')!);
+
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1');
+      expect(screen.getByTestId('embedding-selected-count')).toHaveTextContent('1');
+    });
+
     it('should render all models as selected by default', () => {
       renderComponent();
 
@@ -200,14 +221,14 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       const user = userEvent.setup();
       renderComponent();
 
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('3');
 
       const table = within(screen.getByTestId('llm-models-table'));
       const row = table.getByTestId('model-row-llama-8b');
       const checkbox = row.querySelector('input[type="checkbox"]');
       await user.click(checkbox!);
 
-      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('1');
+      expect(screen.getByTestId('llm-selected-count')).toHaveTextContent('2');
     });
 
     it('should deselect all models when header checkbox is clicked', async () => {
@@ -238,33 +259,28 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       await user.click(sortButton);
 
       rows = screen.getByTestId('llm-models-table').querySelectorAll('tbody tr');
-      expect(rows[0]).toHaveAttribute('data-testid', 'model-row-llama-8b');
-      expect(rows[1]).toHaveAttribute('data-testid', 'model-row-llama-70b');
+      expect(rows[0]).toHaveAttribute('data-testid', 'model-row-minilm-v2');
+      expect(rows[1]).toHaveAttribute('data-testid', 'model-row-llama-8b');
     });
   });
 
   describe('Pagination', () => {
     const MANY_LLM_MODELS = Array.from({ length: 8 }, (_, i) => ({
       id: `llm-model-${i + 1}`,
-      type: 'llm' as const,
-      provider: 'ollama',
-      resource_path: `ollama://llm-model-${i + 1}`,
+      display_name: `Model ${i + 1}`,
+      description: 'MaaS model',
     }));
 
-    const manyModelsImplementation = (
-      _namespace: string,
-      _secretName?: string,
-      modelType?: OgxModelType,
-    ) =>
-      ({
-        data: {
-          models: modelType === 'llm' ? MANY_LLM_MODELS : [MOCK_MODELS[2]],
-        },
+    const manyModelsImplementation = (...args: [string]) => {
+      void args;
+      return {
+        data: { models: MANY_LLM_MODELS },
         isLoading: false,
-      }) as unknown as ReturnType<typeof useOgxModelsQuery>;
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>;
+    };
 
     const renderWithManyModels = () => {
-      mockUseOgxModelsQuery.mockImplementation(manyModelsImplementation);
+      mockUseMaaSModelsQuery.mockImplementation(manyModelsImplementation);
 
       const FormWrapperMany: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const form = useForm({
@@ -311,10 +327,10 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
   describe('Empty state', () => {
     it('should show empty message when no models are available', () => {
-      mockUseOgxModelsQuery.mockReturnValue({
+      mockUseMaaSModelsQuery.mockReturnValue({
         data: { models: [] },
         isLoading: false,
-      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+      } as unknown as ReturnType<typeof useMaaSModelsQuery>);
 
       renderComponent();
       expect(screen.getAllByText('No models available.').length).toBeGreaterThan(0);

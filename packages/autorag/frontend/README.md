@@ -23,9 +23,9 @@ npm install && npm run start:dev
 
 ### Development
 
-| Command             | Description                              |
-| ------------------- | ---------------------------------------- |
-| `npm install`       | Install dependencies                     |
+| Command             | Description                      |
+| ------------------- | -------------------------------- |
+| `npm install`       | Install dependencies             |
 | `npm run start:dev` | Start dev server with hot reload |
 
 ### Build & Bundle
@@ -53,6 +53,8 @@ npm install && npm run start:dev
 | `npm run cypress:run`       | Run Cypress tests (headless)           |
 | `npm run cypress:run:mock`  | Run Cypress with mock data (headless)  |
 | `npm run test:cypress-ci`   | Full CI test suite with server         |
+
+`npm run test:cypress-ci` starts the BFF with mocked Kubernetes, pipeline, S3, OGX, and MaaS clients; no MaaS service is required.
 
 ---
 

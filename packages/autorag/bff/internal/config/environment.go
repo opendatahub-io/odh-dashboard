@@ -103,6 +103,7 @@ type EnvConfig struct {
 	Port                     int
 	MockK8sClient            bool
 	MockOGXClient            bool
+	MockMaaSClient           bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
 	DevMode                  bool
@@ -152,7 +153,6 @@ type EnvConfig struct {
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
-
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

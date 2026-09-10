@@ -78,6 +78,46 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
+  describe('MaaS Models Endpoint', () => {
+    it('should retrieve all accessible MaaS models', async () => {
+      const result = await apiClient.get(
+        `/api/v1/maas/models?namespace=${NS}&secretName=maas-credentials`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1api~1v1~1maas~1models/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 when namespace parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/maas/models');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should return 400 when secretName parameter is missing', async () => {
+      const result = await apiClient.get(`/api/v1/maas/models?namespace=${NS}`);
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should retrieve models with a Secret-backed MaaS configuration', async () => {
+      const result = await apiClient.get(
+        `/api/v1/maas/models?namespace=${NS}&secretName=maas-credentials`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1api~1v1~1maas~1models/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 for an invalid secretName', async () => {
+      const result = await apiClient.get(`/api/v1/maas/models?namespace=${NS}&secretName=INVALID`);
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
   describe('OGX Vector Store Providers Endpoint', () => {
     it('should retrieve vector store providers list', async () => {
       const result = await apiClient.get(
@@ -121,6 +161,14 @@ describe('AutoRAG API Contract Tests', () => {
 
     it('should retrieve ogx secrets when type=ogx', async () => {
       const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=ogx`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should retrieve MaaS secrets when type=maas', async () => {
+      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=maas`);
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
@@ -541,7 +589,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
           vector_io_provider_id: 'milvus',
           chunk_size: 512,
           chunk_overlap: 50,
@@ -665,7 +713,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
@@ -684,7 +732,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
           optimization_metric: 'answer_correctness',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
@@ -714,7 +762,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
@@ -735,7 +783,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
         });
         expect(result.success).toBe(true);
         if (result.success) {
@@ -788,7 +836,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: SECRET,
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
-          ogx_secret_name: OGX_SECRET,
+          maas_secret_name: 'maas-credentials',
         });
         expect(createResult.success).toBe(true);
         if (createResult.success) {

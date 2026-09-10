@@ -24,6 +24,7 @@ Keep this list current: **add a row in the same PR** that introduces or changes 
 | Consumer package      | Notes (public routes, client, PRs)                                                                    |
 | :-------------------- | :---------------------------------------------------------------------------------------------------- |
 | `packages/gen-ai/bff` | `POST …/bff/maas/tokens` → `POST /api/v1/api-keys` <br> `GET …/bff/maas/models` → `GET /api/v1/models`|
+| `packages/autorag/bff` | `GET …/api/v1/maas/models` → `GET /api/v1/models` |
 
 ---
 

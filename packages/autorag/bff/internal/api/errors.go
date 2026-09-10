@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
@@ -13,13 +15,28 @@ type ErrorEnvelope struct {
 	Error *integrations.HTTPError `json:"error"`
 }
 
+var sensitiveErrorPattern = regexp.MustCompile(`(?i)(https?://)([^/\s@]+)@`)
+
 func logError(logger *slog.Logger, r *http.Request, err error) {
 	var (
 		method = r.Method
 		uri    = r.URL.Path
 	)
 
-	logger.Error(err.Error(), "method", method, "uri", uri)
+	redact := func(message string) string {
+		return sensitiveErrorPattern.ReplaceAllString(message, `${1}[REDACTED]@`)
+	}
+	attrs := []any{"method", method, "uri", uri, "error", redact(err.Error())}
+	var cause error
+	for next := errors.Unwrap(err); next != nil; next = errors.Unwrap(next) {
+		cause = next
+	}
+	if cause != nil {
+		// Keep the transport cause in server logs for diagnosis, but redact URL
+		// userinfo before logging errors from an upstream HTTP client.
+		attrs = append(attrs, "cause", redact(cause.Error()))
+	}
+	logger.Error("request failed", attrs...)
 }
 
 func payloadTooLargeResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {

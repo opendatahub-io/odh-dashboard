@@ -532,7 +532,7 @@ describe('AutoragReconfigureLoader', () => {
       });
     });
 
-    it('should resolve initialOgxSecret from ogx secrets list', async () => {
+    it('should not auto-select a historical OGX secret during reconfigure', async () => {
       const mockLlsSecrets = [
         {
           uuid: 'ogx-uuid-1',
@@ -567,17 +567,10 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      await waitFor(() => {
-        expect(capturedProps.initialOgxSecret).toMatchObject({
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-secret',
-          type: 'ogx',
-        });
-        expect(capturedProps.initialOgxSecret).not.toHaveProperty('invalid');
-      });
+      expect(capturedProps.initialOgxSecret).toBeUndefined();
     });
 
-    it('should show warning and not set initialOgxSecret when ogx secret name does not match', async () => {
+    it('should not warn about or select a historical OGX secret when it is missing', async () => {
       mockGetLlsSecrets.mockResolvedValue([
         { uuid: 'other-uuid', name: 'other-ogx', type: 'ogx', data: {} },
       ]);
@@ -608,12 +601,10 @@ describe('AutoragReconfigureLoader', () => {
 
       expect(capturedProps.initialOgxSecret).toBeUndefined();
 
-      await waitFor(() => {
-        expect(mockNotification.warning).toHaveBeenCalledWith(
-          'Connection secret not found',
-          expect.stringContaining('missing-ogx-secret'),
-        );
-      });
+      expect(mockNotification.warning).not.toHaveBeenCalledWith(
+        'Connection secret not found',
+        expect.stringContaining('missing-ogx-secret'),
+      );
     });
 
     it('should show warning notification when secrets fail to load', async () => {
@@ -736,8 +727,8 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
-  describe('OGX secret resolution from normalized pipeline run data', () => {
-    it('should resolve OGX secret and pass normalized keys as initialValues', async () => {
+  describe('Historical OGX parameters during reconfigure', () => {
+    it('should preserve historical OGX parameters without selecting the Secret', async () => {
       const mockOgxSecrets = [
         {
           uuid: 'ogx-uuid-1',
@@ -774,13 +765,7 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      await waitFor(() => {
-        expect(capturedProps.initialOgxSecret).toMatchObject({
-          uuid: 'ogx-uuid-1',
-          name: 'my-ogx-conn',
-          type: 'ogx',
-        });
-      });
+      expect(capturedProps.initialOgxSecret).toBeUndefined();
 
       expect(capturedProps.initialValues).toMatchObject({
         ogx_secret_name: 'my-ogx-conn',

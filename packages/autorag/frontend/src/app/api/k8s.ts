@@ -8,6 +8,7 @@ import {
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   OgxModelsResponse,
+  MaaSModelsResponse,
   OgxVectorStoreProvidersResponse,
   NamespaceKind,
   SecretListItem,
@@ -39,7 +40,7 @@ export const getNamespaces =
 
 export const getSecrets =
   (hostPath: string) =>
-  (namespace: string, type?: 'storage' | 'ogx') =>
+  (namespace: string, type?: 'storage' | 'ogx' | 'maas') =>
   (opts: APIOptions): Promise<SecretListItem[]> => {
     const queryParams: Record<string, string> = { namespace };
     if (type) {
@@ -86,6 +87,24 @@ export const getOgxModels =
       ),
     ).then((response) => {
       if (isModArchResponse<OgxModelsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getMaaSModels =
+  (hostPath: string) =>
+  (namespace: string, secretName: string) =>
+  (opts: APIOptions): Promise<MaaSModelsResponse> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/maas/models`,
+        { namespace, secretName },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<MaaSModelsResponse>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');
