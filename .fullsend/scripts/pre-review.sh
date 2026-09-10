@@ -61,6 +61,8 @@ aggregate_findings() {
 
 run_self_test() {
   local fail=0
+  local original_script_dir="${_SCRIPT_DIR}"
+  local temp_dir
   if ! (
     unset GITHUB_PR_URL PR_NUMBER
     FULLSEND_WORK_ITEM_URL='https://github.com/Gkrumbach07/odh-dashboard/pull/61'
@@ -73,6 +75,21 @@ run_self_test() {
   else
     echo "PASS pre-context matrix dispatch normalization"
   fi
+  temp_dir="$(mktemp -d)"
+  _SCRIPT_DIR="${temp_dir}/scripts"
+  mkdir -p "${_SCRIPT_DIR}/../.run"
+  printf '%s\n' '{"output":"context","findings":[{"severity":"info"}]}' > "${_SCRIPT_DIR}/../.run/jira.json"
+  printf '%s\n' '{"output":"findings","findings":[{"severity":"medium","file":"src/example.ts"}]}' > "${_SCRIPT_DIR}/../.run/coderabbit.json"
+  aggregate_findings
+  if jq -e 'length == 1 and .[0].findings[0].file == "src/example.ts"' \
+    "${_SCRIPT_DIR}/../.run/collected.json" >/dev/null; then
+    echo "PASS findings aggregation"
+  else
+    echo "FAIL findings aggregation" >&2
+    fail=1
+  fi
+  _SCRIPT_DIR="${original_script_dir}"
+  rm -rf "${temp_dir}"
   if [[ "${fail}" -ne 0 ]]; then
     exit 1
   fi
