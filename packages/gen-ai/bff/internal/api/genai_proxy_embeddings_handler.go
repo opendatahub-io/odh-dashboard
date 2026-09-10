@@ -63,6 +63,10 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 
 	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
 	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
+	if err := validateMaaSSubscription(maasSubscription); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
 
 	// Resolve model → endpoint URL + credentials
 	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace, maasSubscription)

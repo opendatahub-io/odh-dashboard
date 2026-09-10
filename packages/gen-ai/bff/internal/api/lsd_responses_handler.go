@@ -836,11 +836,7 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
-	// Build cache key that incorporates subscription so different subscriptions get separate tokens
-	cacheKey := modelID
-	if subscription != "" {
-		cacheKey = modelID + "|" + subscription
-	}
+	cacheKey := maasTokenCacheKey(modelID, subscription)
 
 	// Check cache first
 	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, cacheKey); found {

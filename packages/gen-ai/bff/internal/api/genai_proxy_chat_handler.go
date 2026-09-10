@@ -84,10 +84,8 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 
 	// Extract MaaS subscription from provider data (forwarded by OGX via forward_headers).
 	maasSubscription := r.Header.Get(constants.MaaSSubscriptionHeader)
-	// Reject malformed subscription values before forwarding to MaaS (CWE-20).
-	// Valid MaaS subscription names are resource paths; 512 bytes is a generous upper bound.
-	if len(maasSubscription) > 512 {
-		app.badRequestResponse(w, r, errors.New("X-MaaS-Subscription header exceeds maximum length"))
+	if err := validateMaaSSubscription(maasSubscription); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
