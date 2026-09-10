@@ -84,7 +84,7 @@ const calculatePillDimensions = (
   const iconWidth = taskIconClass || taskIcon ? height - taskIconPadding : 0;
   const iconStartX = -(iconWidth * 0.75);
 
-  const statusStartX = startX - statusIconSize / 4; // Adjust for icon padding
+  const statusStartX = statusIconSize > STATUS_ICON_SIZE ? paddingX : startX - statusIconSize / 4;
   const statusSpace = showStatusState ? (statusSize?.width || 0) + paddingX : 0;
 
   const leadIconStartX = startX + statusSpace;
@@ -357,6 +357,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         ? `translate(${centerX}, ${centerY}) scale(${nodeScale}) translate(${-centerX}, ${-centerY})`
         : '';
 
+    const statusIconXOffset = statusIconSize > STATUS_ICON_SIZE ? 0 : paddingX / 2;
     const runStatusModifier = getRunStatusModifier(status);
     const pillClasses = css(
       styles.topologyPipelinesPill,
@@ -395,6 +396,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
       detailsLevel !== ScaleDetailsLevel.high
     ) {
       const statusBackgroundRadius = statusIconSize / 2 + 4;
+      const statusIconInset = (statusBackgroundRadius * 2 - statusIconSize) / 2;
       const upScale = 1 / scale;
       const { height: boundsHeight } = element.getBounds();
 
@@ -418,7 +420,7 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
             fill={pillAccentColor}
           />
           {hiddenDetailsShownStatuses.includes(status) ? (
-            <g transform="translate(4, 4)">
+            <g transform={`translate(${statusIconInset}, ${statusIconInset})`}>
               <g
                 className={css(
                   styles.topologyPipelinesStatusIcon,
@@ -532,9 +534,9 @@ const LineageTaskPill: React.FC<LineageTaskPillProps> = observer(
         </g>
         {showStatusState && (
           <g
-            transform={`translate(${dimensions.offsetX + dimensions.statusStartX + paddingX / 2}, ${
-              (dimensions.height - statusIconSize) / 2
-            })`}
+            transform={`translate(${
+              dimensions.offsetX + dimensions.statusStartX + statusIconXOffset
+            }, ${(dimensions.height - statusIconSize) / 2})`}
             ref={statusRef}
           >
             <g

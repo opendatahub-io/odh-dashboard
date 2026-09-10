@@ -3,7 +3,6 @@
 import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
 import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
 import { mockFeatureStoreLineage } from '@odh-dashboard/feature-store/mocks/mockLineage';
-import { getEntityTypeBackgroundColor } from '@odh-dashboard/feature-store/utils/featureStoreObjects';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
@@ -116,21 +115,17 @@ describe('Feature Store Lineage', () => {
     featureStoreGlobal.findLineageLegendItem('feature_service').should('be.visible');
 
     const pillBackground = 'var(--pf-t--global--background--color--primary--default)';
-    const expectedNodeColors = [
-      { nodeId: 'entity-user_id', entityType: 'entity' as const },
-      { nodeId: 'datasource-loan_data', entityType: 'batch_data_source' as const },
-      { nodeId: 'featureview-zipcode_features', entityType: 'batch_feature_view' as const },
-      { nodeId: 'featureservice-credit_scoring_service', entityType: 'feature_service' as const },
+    const expectedNodeIds = [
+      'entity-user_id',
+      'datasource-loan_data',
+      'featureview-zipcode_features',
+      'featureservice-credit_scoring_service',
     ];
 
-    expectedNodeColors.forEach(({ nodeId, entityType }) => {
+    expectedNodeIds.forEach((nodeId) => {
       cy.findByTestId(`feature-store-lineage-node-${nodeId}`).within(() => {
         cy.findByTestId('lineage-pill-background').should('have.attr', 'fill', pillBackground);
-        cy.findByTestId('lineage-pill-accent').should(
-          'have.attr',
-          'fill',
-          getEntityTypeBackgroundColor(entityType),
-        );
+        cy.findByTestId('lineage-pill-type-icon').should('be.visible');
       });
     });
   });

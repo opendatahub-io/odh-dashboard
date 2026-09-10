@@ -20,10 +20,8 @@ import {
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import {
-  getEntityTypeIcon,
-  getEntityTypeBackgroundColor,
-} from '../../../utils/featureStoreObjects.tsx';
+import { LINEAGE_PILL_ICON_SIZE } from '../../../utils/featureStoreObjects.tsx';
+import FeatureStoreLineagePillIcon from '../../../components/FeatureStoreLineagePillIcon';
 import {
   FEATURE_STORE_EVENTS,
   LineageNodeSelectedProperties,
@@ -57,9 +55,14 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       AnchorEnd.target,
     );
 
-    const hasTypeColors = !selected && !!data?.entityType;
     const entityIcon = data?.entityType ? (
-      <g aria-hidden="true">{getEntityTypeIcon(data.entityType, selected, 16)}</g>
+      <foreignObject
+        width={LINEAGE_PILL_ICON_SIZE}
+        height={LINEAGE_PILL_ICON_SIZE}
+        aria-hidden="true"
+      >
+        <FeatureStoreLineagePillIcon entityType={data.entityType} selected={selected} />
+      </foreignObject>
     ) : (
       <g aria-hidden="true">
         <CubeIcon
@@ -67,18 +70,18 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
             color: selected
               ? 'var(--ai-fs-lineage-pill--AccentIconColor)'
               : 'var(--pf-t--global--text--color--regular)',
+            width: LINEAGE_PILL_ICON_SIZE,
+            height: LINEAGE_PILL_ICON_SIZE,
           }}
         />
       </g>
     );
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
-    const pillBackgroundColor = hasTypeColors
-      ? 'var(--pf-t--global--background--color--primary--default)'
-      : undefined;
-    const pillAccentColor = hasTypeColors
-      ? getEntityTypeBackgroundColor(data.entityType)
-      : undefined;
+    const pillBackgroundColor =
+      !selected && data?.entityType
+        ? 'var(--pf-t--global--background--color--primary--default)'
+        : undefined;
 
     // Create badge for feature views showing feature count
     const badge = (() => {
@@ -159,6 +162,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           scaleNode={hover && detailsLevel !== ScaleDetailsLevel.high}
           status={RunStatus.Idle}
           customStatusIcon={entityIcon}
+          statusIconSize={LINEAGE_PILL_ICON_SIZE}
           hideDetailsAtMedium
           hiddenDetailsShownStatuses={[RunStatus.Idle]}
           truncateLength={truncateLength}
@@ -166,7 +170,6 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           hover={hover}
           width={nodeWidth}
           pillBackgroundColor={pillBackgroundColor}
-          pillAccentColor={pillAccentColor}
           x={0} // Position relative to the group
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover
