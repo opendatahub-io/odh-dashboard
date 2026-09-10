@@ -23,7 +23,7 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `maasConsumerPortal` | `MaaSConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; host derived as `maas-consumer-portal.<gateway.domain>`) |
+| `maasConsumerPortal` | `MaaSConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; served below the gateway path) |
 
 ### Status Fields
 
@@ -139,7 +139,11 @@ The eight registered modules and their manifest directories:
 
 When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, HTTPRoute, and ConsoleLink.
 
-- **Host and URL**: `maas-consumer-portal.<spec.gateway.domain>` and `https://maas-consumer-portal.<spec.gateway.domain>/`. The URL is retained across transient failures and cleared on removal.
+- **URL contract**: `https://<spec.gateway.domain>/maas-consumer-portal/`. The portal shares the gateway hostname and its authentication session; it does not require a hostname, DNS record, certificate, listener, or OAuth callback of its own. The URL is retained across transient failures and is only published after the Deployment is Available and the HTTPRoute is accepted with resolved references; it is cleared after successful removal.
+- **Routing**: the portal HTTPRoute redirects the no-slash path to the trailing-slash URL (302), then matches `/maas-consumer-portal` and rewrites only that prefix before forwarding to the portal Service. This makes static assets, deep links, Core-BFF, MaaS, and GenAI APIs work when the core Dashboard HTTPRoute is removed. Gateway path precedence selects this more-specific route ahead of the Dashboard `/` catch-all while both operands are managed.
+- **Gateway prerequisite**: the installed RHOAI Gateway API v1 implementation must merge same-hostname `HTTPRoute`s using Gateway API path precedence, so the portal's more-specific path wins over the Dashboard `/` catch-all. It must also accept and honor `RequestRedirect` and `URLRewrite` filters. The operand intentionally provides no fallback for Gateway implementations that do not support these behaviors.
+- **Authentication and migration**: gateway-owned `/oauth2/sign_out` and `/oauth2/callback` remain unchanged. Login returns to the requested portal deep link. Existing derived-hostname bookmarks are retired and are not redirected, because the operator does not own external hostname exposure. After portal removal, portal-prefixed URLs are handled by the remaining Dashboard catch-all (typically its normal not-found behavior); they no longer serve the portal.
+- **Proxy response paths**: the portal's current Core-BFF handlers and module proxy configuration were inspected for browser-visible redirects. The proxy preserves relative upstream `Location` headers and validates absolute redirect targets for SSRF; no portal-reachable redirect requiring prefix rewriting was found, so no `X-Forwarded-Prefix` contract is configured.
 - **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
 - **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
 - **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, ConsoleLink, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
@@ -415,7 +419,7 @@ Each certificate includes DNS names for in-cluster service discovery:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | >= 1.25 | Build and test |
+| Go | >= 1.26 | Build and test |
 | controller-gen | (via Makefile) | CRD/RBAC generation from markers |
 | golangci-lint | v2 | Linting (downloaded by `make lint`) |
 | Helm | >= 3.x | Chart validation and local rendering |

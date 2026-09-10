@@ -1083,7 +1083,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 	t.Run("should include max_tokens in model configuration when provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens := 8192
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil, false)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1124,7 +1124,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil, nil)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, nil, nil, false)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1152,7 +1152,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 	t.Run("should use per-provider indexed env var for max_tokens in provider config", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens := 2048
-		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil, false)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1166,8 +1166,8 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
 		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil)
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil, false)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil, false)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1181,8 +1181,8 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
 		maxTokens2 := 16384
-		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil)
-		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil)
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil, false)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil, false)
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
@@ -1215,6 +1215,61 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.True(t, model1Found, "Model 1 should be found")
 		assert.True(t, model2Found, "Model 2 should be found")
 	})
+
+	t.Run("should omit provider-level max_tokens when skipProviderMaxTokens is true", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddVLLMProviderAndModel("maas-provider", "https://maas.example.com/v1", 0, "maas-model", "llm", nil, nil, nil, true)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Provider config should NOT contain max_tokens env var template
+		assert.NotContains(t, yamlStr, "VLLM_MAX_TOKENS")
+
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		var foundProvider *Provider
+		for i := range parsedConfig.Providers.Inference {
+			if parsedConfig.Providers.Inference[i].ProviderID == "maas-provider" {
+				foundProvider = &parsedConfig.Providers.Inference[i]
+				break
+			}
+		}
+		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
+		_, hasMaxTokens := foundProvider.Config["max_tokens"]
+		assert.False(t, hasMaxTokens, "Provider config should not contain max_tokens when skipped")
+	})
+
+	t.Run("should still set model-level max_tokens even when provider-level is skipped", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens := 8192
+		config.AddVLLMProviderAndModel("maas-provider", "https://maas.example.com/v1", 0, "maas-model", "llm", nil, &maxTokens, nil, true)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Model-level max_tokens should still be present
+		assert.Contains(t, yamlStr, "max_tokens: 8192")
+		// Provider-level should not
+		assert.NotContains(t, yamlStr, "VLLM_MAX_TOKENS")
+
+		var parsedConfig LlamaStackConfig
+		err = parsedConfig.FromYAML(yamlStr)
+		require.NoError(t, err)
+
+		var foundModel *Model
+		for i := range parsedConfig.RegisteredResources.Models {
+			if parsedConfig.RegisteredResources.Models[i].ModelID == "maas-model" {
+				foundModel = &parsedConfig.RegisteredResources.Models[i]
+				break
+			}
+		}
+		require.NotNil(t, foundModel, "Model should be found in parsed config")
+		assert.NotNil(t, foundModel.MaxTokens, "Model-level MaxTokens should still be set")
+		assert.Equal(t, 8192, *foundModel.MaxTokens)
+	})
 }
 
 func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
@@ -1230,7 +1285,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should set embedding_dimension in metadata when provided for embedding model", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		embDim := 1536
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, &embDim)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, &embDim, false)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1248,7 +1303,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 
 	t.Run("should default embedding_dimension to 128 when not provided for embedding model", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, nil)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", nil, nil, nil, false)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1266,7 +1321,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should preserve pre-existing metadata embedding_dimension when no user value provided", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, nil)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, nil, false)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1283,7 +1338,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		existingMetadata := map[string]interface{}{"embedding_dimension": 768}
 		userDim := 3072
-		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, &userDim)
+		cfg.AddVLLMProviderAndModel("embed-provider", "https://embed.example.com/v1", 0, "embed-model", "embedding", existingMetadata, nil, &userDim, false)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)
@@ -1299,7 +1354,7 @@ func TestAddVLLMProviderAndModel_WithEmbeddingDimension(t *testing.T) {
 	t.Run("should not set embedding_dimension for llm models", func(t *testing.T) {
 		cfg := NewDefaultLlamaStackConfig()
 		embDim := 1536
-		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, nil, &embDim)
+		cfg.AddVLLMProviderAndModel("llm-provider", "https://llm.example.com/v1", 0, "llm-model", "llm", nil, nil, &embDim, false)
 
 		yamlStr, err := cfg.ToYAML()
 		require.NoError(t, err)

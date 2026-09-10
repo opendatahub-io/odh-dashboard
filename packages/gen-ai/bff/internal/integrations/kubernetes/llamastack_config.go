@@ -419,13 +419,18 @@ func NewVLLMProvider(providerID string, url string) Provider {
 	}
 }
 
-// AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config
-// This is a helper for building LlamaStack configurations with vLLM providers
-func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int) {
+// AddVLLMProviderAndModel adds a vLLM provider and its corresponding model to the config.
+// When skipProviderMaxTokens is true, the provider-level max_tokens default is omitted from
+// the generated config. This is used for MaaS models where external providers enforce their
+// own generation limits, and including max_tokens causes errors with models that only accept
+// the newer max_completion_tokens parameter.
+func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL string, index int, modelID, modelType string, metadata map[string]interface{}, maxTokens *int, embeddingDimension *int, skipProviderMaxTokens bool) {
 	// Create provider config
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
-	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
+	if !skipProviderMaxTokens {
+		providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
+	}
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 
 	// Add provider

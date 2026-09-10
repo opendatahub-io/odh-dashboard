@@ -128,14 +128,14 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	reconcile(t, r)
 	reconcile(t, r)
 
-	// ConsoleLink is created with the derived href.
+	// ConsoleLink uses the shared gateway hostname and portal path.
 	cl := getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
 	require.NotNil(t, cl, "maas-consumer-portal-link ConsoleLink should be created when enabled")
 
 	href, found, err := unstructured.NestedString(cl.Object, "spec", "href")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", href)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", href)
 
 	// ownerReference points to the Dashboard CR (for GC on CR deletion).
 	owners := cl.GetOwnerReferences()
@@ -188,10 +188,12 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	reconcile(t, r)
 
 	updated := getDashboard(t)
+	previousConsoleLinkUID := cl.GetUID()
+	previousRouteUID := route.GetUID()
 	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, string(common.ConditionTypeReady)))
 	assert.Equal(t, metav1.ConditionTrue, conditionStatus(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
 
 	// Updating a portal input reapplies the complete bundle, but retains the
 	// previous URL until the Deployment and HTTPRoute have observed the update.
@@ -205,14 +207,16 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, "registry.example.com/odh-core-bff:updated", deployment.Spec.Template.Spec.Containers[0].Image)
 	route = &gatewayv1.HTTPRoute{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-consumer-portal", Namespace: integrationNamespace}, route))
-	assert.Equal(t, []gatewayv1.Hostname{"maas-consumer-portal.updated.example.com"}, route.Spec.Hostnames)
+	assert.Equal(t, previousRouteUID, route.GetUID(), "gateway-domain changes must update the existing HTTPRoute")
+	assert.Equal(t, []gatewayv1.Hostname{"updated.example.com"}, route.Spec.Hostnames)
 	cl = getConsoleLink(t, ctrlpkg.MaaSConsumerPortalConsoleLinkName)
 	require.NotNil(t, cl)
+	assert.Equal(t, previousConsoleLinkUID, cl.GetUID(), "gateway-domain changes must update the existing ConsoleLink")
 	href, found, err = unstructured.NestedString(cl.Object, "spec", "href")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", href)
-	assert.Equal(t, "https://maas-consumer-portal.test.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", href)
+	assert.Equal(t, "https://test.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	deployment.Status.ObservedGeneration = deployment.Generation
 	require.NoError(t, k8sClient.Status().Update(ctx, deployment))
@@ -221,7 +225,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	}
 	require.NoError(t, k8sClient.Status().Update(ctx, route))
 	reconcile(t, r)
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", getDashboard(t).Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", getDashboard(t).Status.MaaSConsumerPortalURL)
 
 	// A transient bundle apply error reports an actionable condition, requests a
 	// retry, and retains the previously verified endpoint.
@@ -247,7 +251,7 @@ func TestIntegration_MaaSConsumerPortalConsoleLink(t *testing.T) {
 	assert.Equal(t, ctrlpkg.MaaSConsumerPortalRetryInterval, result.RequeueAfter)
 	updated = getDashboard(t)
 	assert.Equal(t, "MaaSConsumerPortalDeployFailed", conditionReason(updated, "MaaSConsumerPortalAvailable"))
-	assert.Equal(t, "https://maas-consumer-portal.updated.example.com/", updated.Status.MaaSConsumerPortalURL)
+	assert.Equal(t, "https://updated.example.com/maas-consumer-portal/", updated.Status.MaaSConsumerPortalURL)
 
 	// service-ca normally creates this unlabelled Secret; model it explicitly to
 	// verify portal removal does not rely on owner-reference garbage collection.
