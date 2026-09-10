@@ -49,7 +49,7 @@ const StubConnectionTypeFormFields: React.FC<{
       ))}
   </>
 );
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+jest.mock('@odh-dashboard/plugin-core', () => ({
   useWatchConnectionTypes: jest.fn(() => [[], true]),
   useServingConnections: jest.fn(() => [[], true]),
   useHostApi: jest.fn(() => ({

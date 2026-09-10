@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useIsProjectNIMSupported } from '@odh-dashboard/plugin-core/host-api';
+import { useIsProjectNIMSupported } from '@odh-dashboard/plugin-core';
 import { useModelBiasData } from '@odh-dashboard/trustyai/hooks/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/trustyai/hooks/useDoesTrustyAICRExist';

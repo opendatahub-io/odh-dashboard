@@ -1,7 +1,8 @@
 import { loadRemote } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import pluginExtensions, { featureFlags } from './distribution-extensions';
-import ProjectsContextProvider from './context/ProjectsContextProvider';
+import K8sSdkProvider from './context/K8sSdkProvider';
+import RhaiiAppProvider from './context/RhaiiAppProvider';
 import { createDistribution } from '../../base/src/lib';
 
 const remoteEntry = process.env.MODEL_SERVING_REMOTE_ENTRY;
@@ -48,7 +49,8 @@ const start = async () => {
   createDistribution({
     extensions,
     featureFlags: resolvedFeatureFlags,
-    AppWrapper: ProjectsContextProvider,
+    AppWrapper: RhaiiAppProvider,
+    PluginStoreWrapper: K8sSdkProvider,
   });
 };
 

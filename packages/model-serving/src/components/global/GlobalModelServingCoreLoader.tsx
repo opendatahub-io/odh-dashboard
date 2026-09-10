@@ -3,7 +3,7 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext, ApplicationsPage } from '@odh-dashboard/ui-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApi } from '@odh-dashboard/plugin-core';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import NoProjectsPage from './NoProjectsPage';
 import ModelServingProjectSelection from './ModelServingProjectSelection';

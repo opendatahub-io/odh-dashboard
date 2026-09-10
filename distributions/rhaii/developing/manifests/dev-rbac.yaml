@@ -14,9 +14,28 @@ rules:
       - ""
     resources:
       - namespaces
+      - pods
     verbs:
       - get
       - list
+      - watch
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - inferenceservices
+      - servingruntimes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kueue.x-k8s.io
+    resources:
+      - workloads
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - authorization.k8s.io
     resources:

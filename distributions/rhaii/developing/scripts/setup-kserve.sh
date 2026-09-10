@@ -8,6 +8,7 @@ KSERVE_VERSION="v0.19.0"
 # Pinned manifest URLs
 CERT_MANAGER_URL="https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
 KSERVE_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/kserve.yaml"
+KSERVE_RESOURCES_URL="https://github.com/kserve/kserve/releases/download/${KSERVE_VERSION}/kserve-cluster-resources.yaml"
 
 EXPECTED_CONTEXT="kind-rhaii-tilt"
 WAIT_TIMEOUT="120s"
@@ -69,6 +70,14 @@ else
   info "Installing KServe ${KSERVE_VERSION} (pass 2: remaining resources)..."
   kubectl apply --server-side --force-conflicts -f "$KSERVE_URL"
 fi
+
+# --- KServe serving runtimes -------------------------------------------------
+# The controller manifest does not include the ClusterServingRuntime
+# definitions. Install them separately so model formats such as sklearn have
+# a runtime available for automatic selection.
+
+info "Installing KServe ${KSERVE_VERSION} cluster serving runtimes..."
+kubectl apply --server-side --force-conflicts -f "$KSERVE_RESOURCES_URL"
 
 # --- Configure RawDeployment mode ---------------------------------------------
 # KServe defaults to serverless (Knative) mode. We run without Knative/Istio,

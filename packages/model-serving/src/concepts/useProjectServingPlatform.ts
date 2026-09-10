@@ -1,6 +1,6 @@
 import React from 'react';
 import { type ProjectKind, NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApi } from '@odh-dashboard/plugin-core';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
 export type ModelServingPlatform = ModelServingPlatformExtension;

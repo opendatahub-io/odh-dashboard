@@ -34,7 +34,7 @@ import useFetch, {
   type FetchStateObject,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
-import { useHostApiInfra } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApiInfra } from '@odh-dashboard/plugin-core';
 import type { Deployment } from '../../extension-points';
 
 export type TokenAuthEntry = {

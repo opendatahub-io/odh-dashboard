@@ -10,7 +10,7 @@ import type {
   ConnectionTypeDataField,
   ConnectionTypeValueType,
 } from '@odh-dashboard/k8s-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApi } from '@odh-dashboard/plugin-core';
 import ConnectionOciPathField from '../../../connectionTypes/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '../../../connectionTypes/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../../../shared/types/form-data';

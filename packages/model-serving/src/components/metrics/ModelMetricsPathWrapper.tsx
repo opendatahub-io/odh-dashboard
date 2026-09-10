@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApi } from '@odh-dashboard/plugin-core';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 

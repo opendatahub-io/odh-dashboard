@@ -132,6 +132,7 @@ export { default as InvalidProject } from './components/InvalidProject';
 export type { InvalidProjectProps } from './components/InvalidProject';
 
 export { default as ProjectsRoutes } from './components/ProjectsRoutes';
+export { ProjectSelector, ProjectSelectorNavigator } from './components/projectSelector';
 export { ProjectsContext } from './context/ProjectsContext';
 export type { ProjectsContextType } from './context/ProjectsContext';
 

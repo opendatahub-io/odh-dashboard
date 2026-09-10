@@ -11,6 +11,7 @@ const TITLE = 'RHAII';
 if (process.env.MODEL_SERVING_REMOTE_ENTRY && process.env.ENABLE_MODEL_SERVING === 'true') {
   throw new Error('MODEL_SERVING_REMOTE_ENTRY and ENABLE_MODEL_SERVING cannot be enabled together');
 }
+const REPO_ROOT = path.resolve(__dirname, '../../..');
 
 module.exports = (overrides = {}) =>
   merge(
@@ -20,6 +21,22 @@ module.exports = (overrides = {}) =>
       ...overrides,
     }),
     {
+      module: {
+        rules: [
+          // codeEditor → monaco-editor (codicon.ttf, etc.)
+          {
+            test: /\.(svg|ttf|eot|woff|woff2)$/,
+            include: [
+              path.resolve(REPO_ROOT, 'node_modules/monaco-editor'),
+              path.resolve(REPO_ROOT, 'node_modules/@fontsource'),
+            ],
+            type: 'asset/resource',
+            generator: {
+              filename: 'fonts/[name][ext]',
+            },
+          },
+        ],
+      },
       plugins: [
         new OdhFederationPlugin({
           name: 'host',
@@ -46,13 +63,6 @@ module.exports = (overrides = {}) =>
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),
           targetFile: path.join(SRC_DIR, 'distribution-extensions.ts'),
-          envOverrides: {
-            ENABLE_MODEL_SERVING: {
-              package: '@odh-dashboard/model-serving',
-              extensionsPath: './extensions',
-              featureFlags: { 'model-serving-shell': true },
-            },
-          },
         }),
       ],
     },

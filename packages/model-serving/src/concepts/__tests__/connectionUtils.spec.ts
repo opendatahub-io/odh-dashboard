@@ -1,5 +1,5 @@
 import type { ConnectionTypeConfigMapObj, SecretKind } from '@odh-dashboard/k8s-core';
-import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { SecretOps } from '@odh-dashboard/plugin-core';
 import type { CreateConnectionData } from '../../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationType, type ModelLocationData } from '../../shared/types/form-data';
 import { handleConnectionCreation } from '../connectionUtils';
