@@ -94,7 +94,7 @@ const AddProviderReferenceModal: React.FC<AddProviderReferenceModalProps> = ({
     <Modal
       variant={ModalVariant.large}
       isOpen={isOpen}
-      onClose={onClose}
+      onEscapePress={onClose}
       aria-labelledby="add-provider-reference-modal-title"
       aria-describedby="add-provider-reference-modal-description"
     >
