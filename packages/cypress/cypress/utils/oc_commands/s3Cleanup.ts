@@ -14,6 +14,7 @@ const restrictedSecurityContextArgs = (podName: string): string =>
             name: podName,
             securityContext: {
               runAsUser: 1001,
+              runAsGroup: 1001,
               runAsNonRoot: true,
               allowPrivilegeEscalation: false,
               seccompProfile: { type: 'RuntimeDefault' },
