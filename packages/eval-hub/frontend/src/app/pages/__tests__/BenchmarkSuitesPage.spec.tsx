@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
 
@@ -26,9 +26,23 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
 
+jest.mock('~/app/components/StartEvaluationRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="benchmark-suites-page-start-evaluation-run-modal">{collection?.name}</div>
+    ) : null,
+}));
+
+const LocationDisplay = () => {
+  const { pathname } = useLocation();
+  return <div data-testid="location-pathname">{pathname}</div>;
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={['/test-project/collections']}>
+      <LocationDisplay />
       <Routes>
         <Route path="/:namespace/collections" element={<BenchmarkSuitesPage />} />
       </Routes>
@@ -74,6 +88,37 @@ describe('BenchmarkSuitesPage', () => {
       undefined,
       undefined,
       0,
+    );
+  });
+
+  it('should navigate to the create suite page', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('create-benchmark-suite-button'));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/new',
+    );
+  });
+
+  it('should open the start evaluation run modal for a suite', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
+
+    expect(
+      screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).toHaveTextContent('Model suite 2');
+  });
+
+  it('should navigate to the copy suite page from Duplicate', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
   });
 

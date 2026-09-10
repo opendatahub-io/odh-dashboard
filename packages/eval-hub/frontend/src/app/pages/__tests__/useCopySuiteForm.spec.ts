@@ -1319,12 +1319,30 @@ describe('useCopySuiteForm', () => {
     expect(cloned).toBeUndefined();
   });
 
-  it('should navigate back without calling the clone API when cancelled', () => {
+  it('should navigate back to evaluations without calling the clone API when a copy is cancelled', () => {
     const result = renderForm();
 
     act(() => result.result.current.handleCancel());
 
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/create/collections');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace');
     expect(mockCloneCollection).not.toHaveBeenCalled();
+  });
+
+  it('should navigate back to evaluations when a create suite is cancelled', () => {
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    act(() => result.result.current.handleCancel());
+
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace');
+  });
+
+  it('should navigate back to the originating suite page when a cancel route is provided', () => {
+    const result = renderForm({
+      cancelRoute: '/evaluation/test-namespace/collections/model',
+    });
+
+    act(() => result.result.current.handleCancel());
+
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections/model');
   });
 });

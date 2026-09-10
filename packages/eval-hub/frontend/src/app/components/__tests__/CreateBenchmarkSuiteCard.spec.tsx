@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 
 describe('CreateBenchmarkSuiteCard', () => {
@@ -19,5 +20,18 @@ describe('CreateBenchmarkSuiteCard', () => {
     fireEvent.click(screen.getByTestId('create-suite-button'));
 
     expect(onCreateSuite).toHaveBeenCalledTimes(1);
+  });
+
+  it('should link to the suite creation route when provided', () => {
+    render(
+      <MemoryRouter>
+        <CreateBenchmarkSuiteCard createSuiteRoute="/evaluation/evalhub/create/collections/new" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('create-suite-button')).toHaveAttribute(
+      'href',
+      '/evaluation/evalhub/create/collections/new',
+    );
   });
 });

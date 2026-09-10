@@ -36,6 +36,8 @@ type CollectionMetadataFieldProps = {
     singular: string;
     plural: string;
   };
+  emptySelectionLabel?: string;
+  selectionCountSuffix?: string;
   fieldId: string;
   testId: string;
   options: readonly string[];
@@ -45,6 +47,8 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = ({
   name,
   label,
   selectionLabels,
+  emptySelectionLabel,
+  selectionCountSuffix = ' selected',
   fieldId,
   testId,
   options,
@@ -101,8 +105,8 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = ({
                     {selected.length > 0
                       ? `${selected.length} ${
                           selected.length === 1 ? selectionLabels.singular : selectionLabels.plural
-                        } selected`
-                      : `Select ${label.toLowerCase()}`}
+                        }${selectionCountSuffix}`
+                      : (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)}
                   </MenuToggle>
                 )}
                 maxMenuHeight="400px"
@@ -180,6 +184,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
               <TextInput
                 id="suite-name"
                 data-testid="suite-name-input"
+                placeholder="Enter suite name"
                 value={field.value}
                 onChange={(_event, value) => field.onChange(value)}
                 onBlur={field.onBlur}
@@ -197,6 +202,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
               <TextArea
                 id="suite-description"
                 data-testid="suite-description-input"
+                placeholder="Enter suite description"
                 value={field.value}
                 onChange={(_event, value) => field.onChange(value)}
                 onBlur={field.onBlur}
@@ -209,7 +215,9 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
         <CollectionMetadataField
           name="suiteEvaluates"
           label="Evaluates"
-          selectionLabels={{ singular: 'target', plural: 'targets' }}
+          selectionLabels={{ singular: 'evaluation target', plural: 'evaluation targets' }}
+          emptySelectionLabel="Select evaluation target"
+          selectionCountSuffix=""
           fieldId="suite-evaluates"
           testId="suite-evaluates"
           options={SUITE_EVALUATES_OPTIONS}

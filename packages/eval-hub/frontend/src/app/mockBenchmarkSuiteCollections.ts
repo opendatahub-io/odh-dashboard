@@ -22,7 +22,7 @@ const MOCK_COLLECTION_INDUSTRIES: Record<string, string[]> = {
   'software-engineering-agent-suite': ['telco'],
   'curated-toxicity-risk-agent': ['health'],
   'curated-open-llm-leaderboard-v2': ['telco'],
-  'curated-safety-and-fairness-model': ['health'],
+  'safety-and-fairness-v1': ['health'],
   'free-open-telco-llm-benchmark': ['telco'],
   'healthcare-evaluation-suite': ['health'],
   'eu-ai-act-compliance-suite': ['government'],
@@ -236,7 +236,7 @@ export const mockCuratedBenchmarkSuiteCollections = (aiEntity: 'agent' | 'model'
       ],
     ),
     createMockCollection(
-      'curated-safety-and-fairness-model',
+      'safety-and-fairness-v1',
       'Safety and fairness',
       ['safety', 'model'],
       'Evaluates model safety, bias, and fairness across diverse scenarios.',

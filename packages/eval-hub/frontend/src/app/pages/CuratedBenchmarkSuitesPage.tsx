@@ -1,38 +1,34 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Button, PageSection, Stack } from '@patternfly/react-core';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
-import { evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCreateSuiteRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
+import type { Collection } from '~/app/types';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedAiEntity } from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
-
-const CURATED_SUITE_PAGE_CONFIG = {
-  agent: {
-    title: 'Agent benchmark suites',
-    description: 'Select a benchmark suite to evaluate your agent.',
-  },
-  model: {
-    title: 'Model benchmark suites',
-    description: 'Select a benchmark suite to evaluate your model.',
-  },
-} as const;
-
-type CuratedAiEntity = keyof typeof CURATED_SUITE_PAGE_CONFIG;
-
-const isCuratedAiEntity = (value: string | undefined): value is CuratedAiEntity =>
-  value === 'agent' || value === 'model';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
   const { namespace, aiEntity } = useParams<{ namespace: string; aiEntity: string }>();
+  const navigate = useNavigate();
 
   const handleCreateSuite = React.useCallback(() => {
-    // TODO: Redirect to the Create collections form from PR #9638.
-  }, []);
+    navigate(evaluationCreateSuiteRoute(namespace));
+  }, [navigate, namespace]);
 
-  const handleCustomizeCollection = React.useCallback(() => {
-    // TODO: Redirect to the Create collections form with this curated suite selected.
-  }, []);
+  const handleCustomizeCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: { sourceAiEntity: aiEntity },
+      });
+    },
+    [aiEntity, navigate, namespace],
+  );
 
   if (!isCuratedAiEntity(aiEntity)) {
     return <NotFound />;
@@ -80,8 +76,13 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
             showPagination
             showContextualActions={false}
             primaryActionLabel="Customize"
+            primaryActionRoute={(collection) =>
+              evaluationCopySuiteRoute(namespace, collection.resource.id)
+            }
+            primaryActionState={{ sourceAiEntity: aiEntity }}
             onCreateSuite={handleCreateSuite}
             onPrimaryAction={handleCustomizeCollection}
+            onDuplicateCollection={handleCustomizeCollection}
             onSelectCollection={handleCustomizeCollection}
           />
         </Stack>

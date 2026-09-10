@@ -70,6 +70,14 @@ jest.mock('~/app/components/EvaluationStatusModal', () => ({
     job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
 }));
 
+jest.mock('~/app/components/StartEvaluationRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="evaluations-page-start-evaluation-run-modal">{collection?.name}</div>
+    ) : null,
+}));
+
 jest.mock('~/app/context/CollectionsContext', () => ({
   useCollectionsContext: jest.fn().mockReturnValue({
     response: { items: [] },
@@ -112,8 +120,13 @@ const queryClient = new QueryClient({
 });
 
 const LocationDisplay: React.FC = () => {
-  const { search } = useLocation();
-  return <div data-testid="location-search">{search}</div>;
+  const { pathname, search } = useLocation();
+  return (
+    <>
+      <div data-testid="location-pathname">{pathname}</div>
+      <div data-testid="location-search">{search}</div>
+    </>
+  );
 };
 
 describe('EvaluationsPage', () => {
@@ -194,6 +207,17 @@ describe('EvaluationsPage', () => {
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
   });
 
+  it('should navigate to the copy suite page from Duplicate', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/copy',
+    );
+  });
+
   it('should show a success notification after deleting a benchmark suite', async () => {
     renderPage('test-project');
 
@@ -225,6 +249,16 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('browse-all-benchmarks-explore')).toHaveAttribute(
       'href',
       '/evaluation/test-project/create/benchmarks',
+    );
+  });
+
+  it('should open the start evaluation run modal for a suite', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Run benchmark suite' })[0]);
+
+    expect(screen.getByTestId('evaluations-page-start-evaluation-run-modal')).toHaveTextContent(
+      'Model suite 2',
     );
   });
 

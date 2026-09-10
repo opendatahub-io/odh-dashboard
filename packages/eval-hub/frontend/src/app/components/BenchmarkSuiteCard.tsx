@@ -17,6 +17,7 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
 import {
@@ -39,6 +40,8 @@ type BenchmarkSuiteCardProps = {
   primaryAction: {
     label: string;
     onClick: () => void;
+    href?: string;
+    state?: unknown;
   };
   contextualActions?: BenchmarkSuiteCardAction[];
   onSelect?: (collection: Collection) => void;
@@ -160,14 +163,27 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         )}
       </CardBody>
       <CardFooter>
-        <Button
-          variant="secondary"
-          isInline
-          onClick={primaryAction.onClick}
-          data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
-        >
-          {primaryAction.label}
-        </Button>
+        {primaryAction.href ? (
+          <Button
+            variant="secondary"
+            isInline
+            component={(props) => (
+              <Link {...props} to={primaryAction.href!} state={primaryAction.state} />
+            )}
+            data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
+          >
+            {primaryAction.label}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            isInline
+            onClick={primaryAction.onClick}
+            data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
+          >
+            {primaryAction.label}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

@@ -6,7 +6,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import { normalizeThreshold } from '~/app/utilities/evaluationUtils';
 import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
-import { evaluationCollectionsRoute } from '~/app/routes';
+import { evaluationCollectionsRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -191,6 +191,7 @@ type UseCopySuiteFormParams = {
   providersLoaded: boolean;
   mode?: 'copy' | 'create';
   onSaveAndRunRequest?: () => void;
+  cancelRoute?: string;
 };
 
 type BuildPendingCollectionParams = {
@@ -490,6 +491,7 @@ export function useCopySuiteForm({
   providersLoaded,
   mode = 'copy',
   onSaveAndRunRequest,
+  cancelRoute,
 }: UseCopySuiteFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -886,8 +888,8 @@ export function useCopySuiteForm({
   ]);
 
   const handleCancel = React.useCallback(() => {
-    navigate(evaluationCollectionsRoute(namespace));
-  }, [navigate, namespace]);
+    navigate(cancelRoute ?? evaluationsBaseRoute(namespace));
+  }, [cancelRoute, navigate, namespace]);
 
   return {
     form,

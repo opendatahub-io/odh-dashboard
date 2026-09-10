@@ -35,7 +35,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import { evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
@@ -44,6 +44,7 @@ import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectF
 import {
   filterBenchmarks,
   getAvailableCategories,
+  getAvailableFrameworks,
   getAvailableMetrics,
   hasActiveBenchmarkFilters,
   isBenchmarkSortOption,
@@ -90,6 +91,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
           ...b,
           providerId: provider.resource.id,
           providerName: provider.title ?? provider.name,
+          framework: provider.title ?? provider.name,
           providerAgent: provider.agent,
         })),
       ),
@@ -116,6 +118,11 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   );
 
   const availableMetrics = React.useMemo(() => getAvailableMetrics(allBenchmarks), [allBenchmarks]);
+
+  const availableFrameworks = React.useMemo(
+    () => getAvailableFrameworks(allBenchmarks),
+    [allBenchmarks],
+  );
 
   const onClearFilters = React.useCallback(() => setFilterData(initialBenchmarkFilterData), []);
 
@@ -164,11 +171,6 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
               <Breadcrumb>
                 <BreadcrumbItem
                   render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
-                <BreadcrumbItem
-                  render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
-                  )}
                 />
                 <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
               </Breadcrumb>
@@ -287,6 +289,31 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                 }))
                               }
                               testIdPrefix="benchmarks-category"
+                            />
+                            <SearchableMultiSelectFilter
+                              categoryName="Framework"
+                              options={availableFrameworks}
+                              selected={filterData[BenchmarkFilterOptions.framework]}
+                              formatLabel={(value) => value}
+                              onToggleOption={(value) =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.framework]: prev[
+                                    BenchmarkFilterOptions.framework
+                                  ].includes(value)
+                                    ? prev[BenchmarkFilterOptions.framework].filter(
+                                        (framework) => framework !== value,
+                                      )
+                                    : [...prev[BenchmarkFilterOptions.framework], value],
+                                }))
+                              }
+                              onClearAll={() =>
+                                setFilterData((prev) => ({
+                                  ...prev,
+                                  [BenchmarkFilterOptions.framework]: [],
+                                }))
+                              }
+                              testIdPrefix="benchmarks-framework"
                             />
                             <SearchableMultiSelectFilter
                               categoryName="Metrics"

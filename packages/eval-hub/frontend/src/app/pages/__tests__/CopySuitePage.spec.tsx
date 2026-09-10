@@ -293,6 +293,15 @@ describe('CopySuitePage', () => {
     renderCreatePage();
 
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create suite');
+    expect(screen.getByTestId('suite-name-input')).toHaveAttribute(
+      'placeholder',
+      'Enter suite name',
+    );
+    expect(screen.getByTestId('suite-description-input')).toHaveAttribute(
+      'placeholder',
+      'Enter suite description',
+    );
+    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 evaluation target');
     expect(screen.getByTestId('copy-suite-description')).toHaveTextContent(
       'Create a benchmark suite',
     );
@@ -386,7 +395,7 @@ describe('CopySuitePage', () => {
     expect(screen.queryByTestId('suite-category-toggle')).not.toBeInTheDocument();
     expect(screen.getByText('Category')).toBeInTheDocument();
     expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('2 categories selected');
-    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 target selected');
+    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('1 evaluation target');
     expect(screen.getByTestId('suite-evaluates-tag-agent')).toHaveTextContent('Agent');
     expect(screen.getByTestId('suite-domains-tag-reasoning')).toHaveTextContent('Reasoning');
     expect(screen.getByTestId('suite-tasks-tag-text-generation')).toHaveTextContent(
@@ -394,13 +403,34 @@ describe('CopySuitePage', () => {
     );
     expect(screen.getByTestId('suite-modalities-tag-text')).toHaveTextContent('Text');
     expect(screen.getByTestId('suite-industries-tag-technology')).toHaveTextContent('Technology');
-    expect(screen.getByText('Language benchmark suites')).toBeInTheDocument();
+    expect(screen.queryByText('Language benchmark suites')).not.toBeInTheDocument();
     expect(screen.getByText('Customize benchmark suite')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Model benchmark suites' })).not.toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-next')).toBeInTheDocument();
     expect(screen.getByTestId('copy-suite-settings-actions')).toHaveClass(
       'evalhub-copy-suite-page__footer',
     );
     expect(screen.queryByTestId('copy-suite-save-and-run')).not.toBeInTheDocument();
+  });
+
+  it('should link to the originating curated suite page when ai entity metadata is available', () => {
+    mockUseFetchState.mockReturnValue([
+      {
+        ...sourceCollection,
+        // eslint-disable-next-line camelcase
+        ai_entities: ['model'],
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderPage();
+
+    expect(screen.getByRole('link', { name: 'Model benchmark suites' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-namespace/collections/model',
+    );
   });
 
   it('uses singular wording for a single selected category', () => {
@@ -410,6 +440,15 @@ describe('CopySuitePage', () => {
     renderPage();
 
     expect(screen.getByTestId('suite-domains-toggle')).toHaveTextContent('1 category selected');
+  });
+
+  it('uses singular and plural evaluation target wording', () => {
+    mockUseCopySuiteForm.mockReturnValue(makeForm({ suiteEvaluates: ['agent', 'model'] }));
+    mockUseFetchState.mockReturnValue([sourceCollection, true, undefined, jest.fn()]);
+
+    renderPage();
+
+    expect(screen.getByTestId('suite-evaluates-toggle')).toHaveTextContent('2 evaluation targets');
   });
 
   it('should associate metadata labels with their multi-select controls', () => {
@@ -592,10 +631,10 @@ describe('CopySuitePage', () => {
     goToSelectBenchmarksStep();
 
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(3);
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(2);
 
     fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
-    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(4);
+    expect(breadcrumb.querySelectorAll('.pf-v6-c-breadcrumb__item-divider')).toHaveLength(3);
   });
 
   it('should navigate back to settings from the select benchmarks breadcrumb', () => {
@@ -654,12 +693,6 @@ describe('CopySuitePage', () => {
       'true',
     );
     expect(screen.getByTestId('copy-suite-breadcrumb-evaluations')).not.toHaveAttribute('href');
-    expect(screen.getByTestId('copy-suite-breadcrumb-collections')).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-    expect(screen.getByTestId('copy-suite-breadcrumb-collections')).not.toHaveAttribute('href');
-
     fireEvent.click(screen.getByTestId('copy-suite-breadcrumb-settings'));
     expect(screen.getByTestId('copy-suite-step-benchmarks')).toBeInTheDocument();
     expect(screen.queryByTestId('copy-suite-form')).not.toBeInTheDocument();

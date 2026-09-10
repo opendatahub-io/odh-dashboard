@@ -14,13 +14,17 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useFetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getCollection } from '~/app/api/k8s';
-import { evaluationsBaseRoute, evaluationCollectionsRoute } from '~/app/routes';
+import {
+  evaluationCollectionsRoute,
+  evaluationCuratedBenchmarkSuitesRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { useProviders } from '~/app/hooks/useProviders';
-import { formatCategory } from '~/app/components/benchmarkUtils';
+import { CURATED_SUITE_PAGE_CONFIG, isCuratedAiEntity } from '~/app/curatedSuiteConfig';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import CopySuiteBenchmarkSelectionStep from '~/app/components/CopySuiteBenchmarkSelectionStep';
 import CopySuiteBenchmarksStep from '~/app/pages/CopySuiteBenchmarksStep';
@@ -44,6 +48,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     namespace: string;
     collectionId: string;
   }>();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = React.useState<CopySuiteStep>('settings');
@@ -70,6 +75,21 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
   );
   const sourceCollection = isCreateMode ? undefined : fetchedCollection;
 
+  const navigationState = location.state;
+  const navigationAiEntity =
+    navigationState &&
+    typeof navigationState === 'object' &&
+    'sourceAiEntity' in navigationState &&
+    typeof navigationState.sourceAiEntity === 'string'
+      ? navigationState.sourceAiEntity
+      : undefined;
+  const sourceAiEntity = [navigationAiEntity, sourceCollection?.ai_entities?.[0]].find(
+    isCuratedAiEntity,
+  );
+  const cancelRoute = sourceAiEntity
+    ? evaluationCuratedBenchmarkSuitesRoute(namespace, sourceAiEntity)
+    : evaluationsBaseRoute(namespace);
+
   const {
     providers,
     loaded: providersLoaded,
@@ -83,16 +103,11 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     providersLoaded,
     mode,
     onSaveAndRunRequest: () => setIsRunModalOpen(true),
+    cancelRoute,
   });
   const isPageInteractionDisabled = isClonePending || form.isSubmitting;
 
   const pendingCollection = isCreateMode ? undefined : form.buildPendingCollection();
-
-  const collectionsBreadcrumbLabel = isCreateMode
-    ? 'Benchmark suites'
-    : sourceCollection?.category
-      ? `${formatCategory(sourceCollection.category)} benchmark suites`
-      : 'Benchmark suites';
 
   const renderBreadcrumbLink = React.useCallback(
     (to: string, label: React.ReactNode, testId: string) => {
@@ -161,6 +176,8 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     );
   }
 
+  const curatedSuitePage = sourceAiEntity ? CURATED_SUITE_PAGE_CONFIG[sourceAiEntity] : undefined;
+
   const breadcrumbItems: React.ReactElement[] = [
     <BreadcrumbItem
       key="evaluations"
@@ -172,17 +189,17 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
         )
       }
     />,
-    <BreadcrumbItem
-      key="collections"
-      render={() =>
-        renderBreadcrumbLink(
-          evaluationCollectionsRoute(namespace),
-          collectionsBreadcrumbLabel,
-          'copy-suite-breadcrumb-collections',
-        )
-      }
-    />,
   ];
+
+  if (curatedSuitePage && sourceAiEntity) {
+    breadcrumbItems.push(
+      <BreadcrumbItem key="curatedSuites">
+        <Link to={evaluationCuratedBenchmarkSuitesRoute(namespace, sourceAiEntity)}>
+          {curatedSuitePage.title}
+        </Link>
+      </BreadcrumbItem>,
+    );
+  }
 
   if (currentStep === 'settings') {
     breadcrumbItems.push(
