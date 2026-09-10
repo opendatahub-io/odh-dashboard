@@ -1,8 +1,8 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
-const { pnpmJestModuleNameMapper } = require('../../scripts/jest/pnpmModuleNameMapper');
-const { pnpmTransformIgnorePatterns } = require('../../scripts/jest/pnpmTransformIgnorePatterns');
+const { pnpmJestModuleNameMapper } = require('./src/pnpmModuleNameMapper');
+const { pnpmTransformIgnorePatterns } = require('./src/pnpmTransformIgnorePatterns');
 
 export default {
   testMatch: ['**/?(*.)+(spec|test).?([mc])[cjt]s?(x)'],
