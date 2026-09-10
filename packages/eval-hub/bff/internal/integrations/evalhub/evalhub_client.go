@@ -61,9 +61,11 @@ type EvalHubClientInterface interface {
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
+	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
 	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
 	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
+	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
 	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
 	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
@@ -383,6 +385,39 @@ type CollectionPassCriteria struct {
 	Threshold float64 `json:"threshold"`
 }
 
+// CloneCollectionRequest is the optional payload for cloning a collection.
+type CloneCollectionRequest struct {
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Category    string   `json:"category,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	// Pointer slices distinguish omitted fields (inherit) from explicit empty arrays (clear).
+	Domains      *[]string               `json:"domains,omitempty"`
+	Tasks        *[]string               `json:"tasks,omitempty"`
+	Modalities   *[]string               `json:"modalities,omitempty"`
+	Industries   *[]string               `json:"industries,omitempty"`
+	AIEntities   *[]string               `json:"ai_entities,omitempty"`
+	Custom       map[string]any          `json:"custom,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks,omitempty"`
+}
+
+// CreateCollectionRequest is the payload sent to create a tenant collection.
+type CreateCollectionRequest struct {
+	Name         string                  `json:"name"`
+	Category     string                  `json:"category,omitempty"`
+	Description  string                  `json:"description,omitempty"`
+	Tags         []string                `json:"tags,omitempty"`
+	Domains      []string                `json:"domains,omitempty"`
+	Tasks        []string                `json:"tasks,omitempty"`
+	Modalities   []string                `json:"modalities,omitempty"`
+	Industries   []string                `json:"industries,omitempty"`
+	AIEntities   []string                `json:"ai_entities,omitempty"`
+	Custom       map[string]any          `json:"custom,omitempty"`
+	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
+	Benchmarks   []CollectionBenchmark   `json:"benchmarks"`
+}
+
 // CreateEvaluationJobRequest is the payload sent to the EvalHub API to start a new evaluation run.
 type CreateEvaluationJobRequest struct {
 	Name         string           `json:"name"`
@@ -623,6 +658,23 @@ func (c *EvalHubClient) ListCollections(ctx context.Context, params ListCollecti
 	return *resp, nil
 }
 
+// CreateCollection creates a tenant-scoped collection in EvalHub.
+// The namespace is sent as the X-Tenant header rather than a query parameter.
+func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error) {
+	path := "/evaluations/collections"
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CreateCollection")
+	}
+	return resp, nil
+}
+
 // GetCollection retrieves a single benchmark collection by ID.
 // The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
 func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, error) {
@@ -654,6 +706,25 @@ func (c *EvalHubClient) PatchCollection(ctx context.Context, id string, namespac
 	resp, err := patch[Collection](c, ctx, path, operations, headers)
 	if err != nil {
 		return nil, wrapClientError(err, "PatchCollection")
+	}
+	return resp, nil
+}
+
+// CloneCollection creates a tenant-scoped copy of an existing collection.
+// The namespace is sent as the X-Tenant header. The request body optionally overrides
+// name, description, category, tags, domains, tasks, modalities, industries,
+// AI entities, custom metadata, benchmarks, and pass criteria.
+func (c *EvalHubClient) CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error) {
+	path := fmt.Sprintf("/evaluations/collections/%s/clones", url.PathEscape(id))
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := post[Collection](c, ctx, path, req, headers)
+	if err != nil {
+		return nil, wrapClientError(err, "CloneCollection")
 	}
 	return resp, nil
 }
@@ -831,9 +902,12 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxGetResponseSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(respBody) > maxGetResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxGetResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

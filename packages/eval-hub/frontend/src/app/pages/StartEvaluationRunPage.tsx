@@ -55,6 +55,7 @@ import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { SOURCE_OPTIONS } from '~/app/utilities/startEvaluationRunUtils';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -68,11 +69,6 @@ const SOURCE_MODE_LABELS: Record<SourceMode, string> = {
   agent: 'Agent',
   prerecorded: 'Pre-recorded responses',
 };
-
-const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
-  { value: 'model', label: 'Model' },
-  { value: 'agent', label: 'Agent' },
-];
 
 type StartEvaluationRunPageProps = {
   initialValues?: ReconfigureFormData;
@@ -603,7 +599,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             <Button
               variant="primary"
               data-testid="start-evaluation-submit"
-              onClick={form.handleSubmit}
+              onClick={() => form.handleSubmit()}
               isDisabled={!form.isValid || form.isSubmitting}
               isLoading={form.isSubmitting}
             >

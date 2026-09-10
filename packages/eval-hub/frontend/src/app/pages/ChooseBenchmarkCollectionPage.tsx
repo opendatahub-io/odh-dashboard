@@ -46,7 +46,13 @@ import { Collection } from '~/app/types';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCreateSuiteRoute,
+  evaluationCreateRoute,
+  evaluationStartRoute,
+  evaluationsBaseRoute,
+} from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   formatCategory,
@@ -180,6 +186,17 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
             empty={false}
           >
             <PageSection hasBodyWrapper={false} isFilled>
+              <div className="pf-v6-u-display-flex pf-v6-u-justify-content-flex-end pf-v6-u-mb-md">
+                <Button
+                  variant="primary"
+                  data-testid="create-benchmark-suite-button"
+                  component={(props) => (
+                    <Link {...props} to={evaluationCreateSuiteRoute(namespace)} />
+                  )}
+                >
+                  Create suite
+                </Button>
+              </div>
               {isTruncated && (
                 <Alert
                   variant="warning"
@@ -372,6 +389,19 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                             onClick={() => handleRunCollection(collection)}
                           >
                             Select benchmark suite
+                          </Button>{' '}
+                          <Button
+                            variant="link"
+                            isInline
+                            data-testid="customize-benchmark-suite-button"
+                            component={(props) => (
+                              <Link
+                                {...props}
+                                to={evaluationCopySuiteRoute(namespace, collection.resource.id)}
+                              />
+                            )}
+                          >
+                            Customize
                           </Button>
                         </CardFooter>
                       </Card>
