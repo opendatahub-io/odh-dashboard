@@ -262,6 +262,10 @@ class ModelCatalog {
     return cy.findByTestId('model-gated-access-request-link');
   }
 
+  findWhosMyAdministratorLink() {
+    return cy.findByTestId('whos-my-admin-link');
+  }
+
   visitModelDetails(sourceId: string, modelName: string) {
     cy.visit(catalogModelDetailsUrl(modelName, sourceId));
     cy.findByTestId('app-page-title').should('exist');
@@ -598,6 +602,10 @@ class ModelCatalog {
 
   findRegisterModelButton() {
     return cy.findByTestId('register-model-button');
+  }
+
+  findDeployButton() {
+    return cy.findByTestId('deploy-button');
   }
 
   findRegisterCatalogModelTooltip() {
