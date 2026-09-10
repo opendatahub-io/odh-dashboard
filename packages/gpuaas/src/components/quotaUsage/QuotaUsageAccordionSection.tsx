@@ -39,23 +39,23 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
       data-testid={isSummary ? undefined : testId}
     >
       <AccordionItem isExpanded={isExpanded}>
-        <AccordionToggle id={`${id}-toggle`} onClick={onToggle}>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            flexWrap={{ default: 'nowrap' }}
-            className="pf-v6-u-w-100"
-          >
-            <FlexItem className="pf-v6-u-flex-fill pf-v6-u-min-width-0">
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          flexWrap={{ default: 'nowrap' }}
+          className="pf-v6-u-w-100"
+        >
+          <FlexItem className="pf-v6-u-flex-fill pf-v6-u-min-width-0">
+            <AccordionToggle id={`${id}-toggle`} onClick={onToggle}>
               <Content component="h4">{title}</Content>
-            </FlexItem>
-            {headerActions ? (
-              <FlexItem className="pf-v6-u-flex-shrink-0 pf-v6-u-pr-md">{headerActions}</FlexItem>
-            ) : null}
-          </Flex>
-        </AccordionToggle>
+            </AccordionToggle>
+          </FlexItem>
+          {headerActions ? (
+            <FlexItem className="pf-v6-u-flex-shrink-0 pf-v6-u-pr-md">{headerActions}</FlexItem>
+          ) : null}
+        </Flex>
         <AccordionContent
           id={isSummary ? undefined : `${id}-content`}
-          style={isSummary ? { backgroundColor: 'transparent' } : undefined}
+          className={isSummary ? 'gpuaas-quota-usage-summary-content' : undefined}
         >
           {children}
         </AccordionContent>

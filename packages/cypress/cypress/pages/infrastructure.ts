@@ -209,6 +209,10 @@ class InfrastructurePage {
     return cy.findByTestId('quota-usage-summary-section');
   }
 
+  findQuotaUsageDetailPartialError() {
+    return cy.findByTestId('quota-usage-detail-partial-error');
+  }
+
   findQuotaUsageSummaryWorkloads() {
     return cy.findByTestId('quota-usage-summary-workloads');
   }

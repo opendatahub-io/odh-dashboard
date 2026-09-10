@@ -170,6 +170,20 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage.findQuotaUsageMeterMemory('NVIDIA A100').should('contain.text', '0%');
   });
 
+  it('should preserve quota data when DCGM request fails', () => {
+    initSingleGpuQuotaUsageIntercepts({ dcgmRequestError: true });
+    visitQuotaUsageTab();
+    infrastructurePage.findQuotaUsageTreeNode('cq-gpu').click();
+
+    infrastructurePage
+      .findQuotaUsageDetailPartialError()
+      .should('contain.text', 'Some usage telemetry is unavailable');
+    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '5/8 accelerators');
+    infrastructurePage.findQuotaUsageAcceleratorTableSection().should('exist');
+    infrastructurePage.findQuotaUsageAcceleratorRow('NVIDIA A100').should('exist');
+    cy.findByTestId('quota-usage-accelerator-table-error').should('not.exist');
+  });
+
   it('should open Kueue projects modal from cluster queue detail', () => {
     initSingleGpuQuotaUsageIntercepts();
     initKueueProjectsIntercepts('cq-gpu');

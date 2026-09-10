@@ -95,6 +95,7 @@ export type InitInterceptsOptions = {
   gpuaas?: boolean;
   hasAccelerators?: boolean;
   hasDcgm?: boolean;
+  dcgmRequestError?: boolean;
   hasHardwareModels?: boolean;
   hasNodeLabels?: boolean;
   /** When set, per-model DCGM queries return data keyed by this model name. */
@@ -203,6 +204,7 @@ export const initIntercepts = ({
   gpuaas = true,
   hasAccelerators = true,
   hasDcgm = true,
+  dcgmRequestError = false,
   hasHardwareModels = true,
   hasNodeLabels = false,
   dcgmModelName,
@@ -260,6 +262,10 @@ export const initIntercepts = ({
             : mockEmptyPrometheusResponse(),
       });
     } else if (query.includes('DCGM_FI_PROF_GR_ENGINE_ACTIVE')) {
+      if (dcgmRequestError) {
+        req.reply({ statusCode: 500, body: { message: 'DCGM metrics unavailable' } });
+        return;
+      }
       // Per-model query: return model-keyed data; aggregate query: return single value.
       req.reply({
         code: 200,
@@ -272,6 +278,10 @@ export const initIntercepts = ({
           : mockEmptyPrometheusResponse(),
       });
     } else if (query.includes('DCGM_FI_DEV_FB_USED')) {
+      if (dcgmRequestError) {
+        req.reply({ statusCode: 500, body: { message: 'DCGM metrics unavailable' } });
+        return;
+      }
       req.reply({
         code: 200,
         response: hasDcgm

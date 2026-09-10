@@ -34,3 +34,11 @@
   .pf-v6-c-expandable-section__toggle-icon {
   color: var(--pf-t--global--icon--color--regular) !important;
 }
+
+.gpuaas-quota-usage-summary-content {
+  background-color: transparent;
+}
+
+.gpuaas-quota-usage-meter__value {
+  color: var(--pf-t--global--text--color--regular);
+}

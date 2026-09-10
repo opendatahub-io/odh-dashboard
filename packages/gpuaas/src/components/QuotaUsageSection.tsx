@@ -90,6 +90,7 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
 
   React.useEffect(() => {
     onRegisterDetailRefresh?.(refreshDetailData);
+    return () => onRegisterDetailRefresh?.(() => Promise.resolve([]));
   }, [onRegisterDetailRefresh, refreshDetailData]);
 
   if (error) {

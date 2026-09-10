@@ -11,13 +11,14 @@ import {
   t_chart_color_black_200 as chartColorAvailable,
   t_chart_color_blue_300 as chartColorOwn,
   t_global_color_status_danger_default as colorStatusDanger,
-  t_global_text_color_regular as RegularColor,
 } from '@patternfly/react-tokens';
 import { QUOTA_USAGE_METER } from '../../const';
 import { QUOTA_USAGE_METER_VARIANT, QuotaUsageMeterVariant } from '../../types';
 import { buildQuotaUsageMeterSegments } from '../../utils/quotaUsageAggregation';
+import '../QuotaUsageSection.scss';
 
 const COMPACT_CHART_WIDTH = 120;
+const FULL_CHART_WIDTH = 180;
 const CHART_BAR_WIDTH = 10;
 const METER_ROW_HEIGHT = 24;
 const CHART_PADDING = {
@@ -141,7 +142,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
     variant === QUOTA_USAGE_METER_VARIANT.capacity && showAcceleratorsLabel
       ? `${segments.valueLabel} accelerators`
       : segments.valueLabel;
-  const chartWidth = compact ? COMPACT_CHART_WIDTH : COMPACT_CHART_WIDTH;
+  const chartWidth = compact ? COMPACT_CHART_WIDTH : FULL_CHART_WIDTH;
 
   if (variant === QUOTA_USAGE_METER_VARIANT.utilization && percentage === null) {
     return (
@@ -185,7 +186,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
         )}
       </FlexItem>
       <FlexItem>
-        <Content component="p" style={{ color: RegularColor.var }}>
+        <Content component="p" className="gpuaas-quota-usage-meter__value">
           {valueText}
         </Content>
       </FlexItem>

@@ -94,7 +94,9 @@ const BorrowingInfo: React.FC<{
 
   const borrowingValue =
     borrowedModels.length > 0
-      ? QUOTA_USAGE_BORROWING.popoverModelLine(borrowedModels[0].borrowed, borrowedModels[0].model)
+      ? borrowedModels
+          .map((row) => QUOTA_USAGE_BORROWING.popoverModelLine(row.borrowed, row.model))
+          .join(', ')
       : `${borrowedCount} x ${cohortName}`;
 
   const popoverBody = (

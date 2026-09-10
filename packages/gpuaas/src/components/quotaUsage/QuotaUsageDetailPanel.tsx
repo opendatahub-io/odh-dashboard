@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
   Content,
@@ -145,6 +146,16 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   } else {
     detailBody = (
       <Stack hasGutter className="pf-v6-u-p-md">
+        {error && (
+          <StackItem>
+            <Alert
+              isInline
+              variant="warning"
+              title="Some usage telemetry is unavailable"
+              data-testid="quota-usage-detail-partial-error"
+            />
+          </StackItem>
+        )}
         <StackItem>
           <QuotaUsageSummarySection
             summary={detail.summary}
@@ -158,15 +169,10 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
             onSelectClusterQueue={handleSelectClusterQueue}
             clusterQueueName={detail.clusterQueueName}
             nominalQuota={detail.summary.totalNominal}
-            error={error}
           />
         </StackItem>
         <StackItem>
-          <QuotaUsageAcceleratorTable
-            rows={detail.acceleratorRows}
-            summary={detail.summary}
-            error={error}
-          />
+          <QuotaUsageAcceleratorTable rows={detail.acceleratorRows} summary={detail.summary} />
         </StackItem>
       </Stack>
     );

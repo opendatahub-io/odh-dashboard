@@ -9,13 +9,14 @@ export const mapPrometheusValuesToBorrowingPoints = (
   nominalQuota: number,
 ): BorrowingMetricPoint[] =>
   values.flatMap(([timestamp, valueStr]) => {
+    const timestampMs = timestamp * 1000;
     const gpuUsage = Number(valueStr);
-    if (valueStr.trim() === '' || !Number.isFinite(gpuUsage)) {
+    if (valueStr.trim() === '' || !Number.isFinite(gpuUsage) || !Number.isFinite(timestampMs)) {
       return [];
     }
     return [
       {
-        timestampMs: timestamp * 1000,
+        timestampMs,
         gpuUsage,
         borrowedAmount: Math.max(0, gpuUsage - nominalQuota),
       },
