@@ -1,4 +1,10 @@
-import { ClusterQueueKind, ResourceFlavorKind, type WorkloadKind } from '@odh-dashboard/k8s-core';
+import {
+  ClusterQueueKind,
+  type HardwareProfileKind,
+  IdentifierResourceType,
+  type PodKind,
+  ResourceFlavorKind,
+} from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 import { ACCELERATOR_RESOURCE_REGEX } from '../const';
 
@@ -10,43 +16,71 @@ const GPU_PRODUCT_LABELS = [
   'intel.com/gpu.product',
 ] as const;
 
-export const buildResourceFlavorByName = (
-  resourceFlavors: ResourceFlavorKind[],
-): Map<string, ResourceFlavorKind> =>
-  new Map(
-    resourceFlavors.flatMap((resourceFlavor) => {
-      const name = resourceFlavor.metadata?.name;
-      return name ? [[name, resourceFlavor] as const] : [];
-    }),
-  );
+/** Same annotation pair the dashboard stamps on notebook Pod templates when a HardwareProfile is assigned. */
+export const HARDWARE_PROFILE_NAME_ANNOTATION = 'opendatahub.io/hardware-profile-name';
+export const HARDWARE_PROFILE_NAMESPACE_ANNOTATION = 'opendatahub.io/hardware-profile-namespace';
 
-/** Resolves admitted ResourceFlavor assignments to GPU product names. */
-export const resolveWorkloadHardwareProfile = (
-  workload: WorkloadKind,
-  resourceFlavorByName: Map<string, ResourceFlavorKind>,
-): string | undefined => {
-  const models = new Set<string>();
+export type HardwareProfileRef = { name: string; namespace: string };
 
-  for (const assignment of workload.status?.admission?.podSetAssignments ?? []) {
-    for (const flavorName of Object.values(assignment.flavors ?? {})) {
-      const resourceFlavor = resourceFlavorByName.get(flavorName);
-      if (!resourceFlavor?.spec.nodeLabels) {
-        continue;
-      }
-      for (const label of GPU_PRODUCT_LABELS) {
-        const value = resourceFlavor.spec.nodeLabels[label];
-        if (value) {
-          models.add(value);
-        }
-      }
+export const buildHardwareProfileKey = ({ name, namespace }: HardwareProfileRef): string =>
+  `${namespace}/${name}`;
+
+/** Reads the dashboard's hardware-profile annotation pair from any annotation map. */
+export const getHardwareProfileRefFromAnnotations = (
+  annotations?: Record<string, string>,
+): HardwareProfileRef | undefined => {
+  const name = annotations?.[HARDWARE_PROFILE_NAME_ANNOTATION];
+  const namespace = annotations?.[HARDWARE_PROFILE_NAMESPACE_ANNOTATION];
+  return name && namespace ? { name, namespace } : undefined;
+};
+
+/** Reads the dashboard's hardware-profile annotation pair off a Pod, if present. */
+export const getHardwareProfileRefFromPod = (pod: PodKind): HardwareProfileRef | undefined =>
+  getHardwareProfileRefFromAnnotations(pod.metadata.annotations);
+
+/** The accelerator resource identifier (e.g. "nvidia.com/gpu") on a HardwareProfile, if any. */
+export const getHardwareProfileAcceleratorIdentifier = (
+  hardwareProfile: HardwareProfileKind,
+): string | undefined =>
+  hardwareProfile.spec.identifiers?.find(
+    (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
+  )?.identifier;
+
+/** Mirrors the dashboard-wide HardwareProfile display-name convention (name falls back to metadata.name). */
+export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/display-name'] ||
+  hardwareProfile.metadata.name;
+
+/** HardwareProfile CRs referenced by workload Pods, keyed by `${namespace}/${name}`. */
+export type HardwareProfileByKey = Map<string, HardwareProfileKind>;
+
+export type WorkloadHardwareProfileInfo = {
+  displayName: string;
+  acceleratorIdentifier?: string;
+};
+
+/**
+ * Resolves a workload's hardware profile from the real HardwareProfile CR referenced by a
+ * `opendatahub.io/hardware-profile-name` annotation (the same mechanism Notebooks use), when present.
+ */
+export const resolveWorkloadHardwareProfileFromAnnotation = (
+  annotationSources: Array<Record<string, string> | undefined>,
+  hardwareProfileByKey: Map<string, HardwareProfileKind>,
+): WorkloadHardwareProfileInfo | undefined => {
+  for (const annotations of annotationSources) {
+    const ref = getHardwareProfileRefFromAnnotations(annotations);
+    if (!ref) {
+      continue;
+    }
+    const hardwareProfile = hardwareProfileByKey.get(buildHardwareProfileKey(ref));
+    if (hardwareProfile) {
+      return {
+        displayName: getHardwareProfileDisplayName(hardwareProfile),
+        acceleratorIdentifier: getHardwareProfileAcceleratorIdentifier(hardwareProfile),
+      };
     }
   }
-
-  if (models.size === 0) {
-    return undefined;
-  }
-
-  return [...models].toSorted((a, b) => a.localeCompare(b)).join(', ');
+  return undefined;
 };
 
 export type ModelGpuCount = {
