@@ -93,6 +93,7 @@ const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
   const quotaHierarchy = useQuotaHierarchy();
   const { refresh: refreshQuotaHierarchy } = quotaHierarchy;
+  const quotaWorkloadRefreshRef = React.useRef<(() => Promise<unknown>) | undefined>(undefined);
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const hasTrackedPageView = React.useRef(false);
   const [activeTabKey, setActiveTabKey] = React.useState<InfrastructureTabId>(
@@ -144,6 +145,7 @@ const InfrastructurePage: React.FC = () => {
 
   const handleQuotaRefresh = React.useCallback(() => {
     void refreshQuotaHierarchy();
+    void quotaWorkloadRefreshRef.current?.();
     handleRefresh();
   }, [handleRefresh, refreshQuotaHierarchy]);
 
@@ -169,6 +171,9 @@ const InfrastructurePage: React.FC = () => {
         tree={quotaHierarchy.data.tree}
         loaded={quotaHierarchy.loaded}
         error={quotaHierarchy.error}
+        onRegisterWorkloadRefresh={(refresh) => {
+          quotaWorkloadRefreshRef.current = refresh;
+        }}
       />
     ),
   };
