@@ -96,6 +96,7 @@ describe('LoadAgentProfileModal', () => {
     renderModal();
 
     const button = await screen.findByTestId('load-agent-profile-button-uuid-1');
+    expect(button.parentElement).toHaveAttribute('tabIndex', '0');
     await user.hover(button);
 
     await waitFor(() => {
