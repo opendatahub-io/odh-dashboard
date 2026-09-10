@@ -20,6 +20,7 @@ describe('AutoRAG API Contract Tests', () => {
   const NS_NO_DSPA = 'no-dspa';
   const SECRET = 'data-connection';
   const OGX_SECRET = 'ogx';
+  const MAAS_SECRET = 'maas';
   const BUCKET = 's3-bucket';
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
@@ -97,6 +98,30 @@ describe('AutoRAG API Contract Tests', () => {
 
     it('should return 400 when secretName parameter is missing', async () => {
       const result = await apiClient.get(`/api/v1/ogx/vector-stores?namespace=${NS}`);
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
+  describe('MaaS Models Endpoint', () => {
+    it('should retrieve the unfiltered MaaS models list', async () => {
+      const result = await apiClient.get(
+        `/api/v1/maas/models?namespace=${NS}&secretName=${MAAS_SECRET}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MaaSModelsResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 400 when namespace parameter is missing', async () => {
+      const result = await apiClient.get(`/api/v1/maas/models?secretName=${MAAS_SECRET}`);
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+
+    it('should return 400 when secretName parameter is missing', async () => {
+      const result = await apiClient.get(`/api/v1/maas/models?namespace=${NS}`);
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
     });

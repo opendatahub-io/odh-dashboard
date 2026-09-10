@@ -594,6 +594,53 @@ paths:
       summary: Get OGX Vector Store Providers
       description: Returns available vector store providers from Open GenAI Stack Distribution using credentials from a Kubernetes secret
 
+  /api/v1/maas/models:
+    summary: List available MaaS models
+    description: >-
+      Lists all models from the hosted MaaS API using MAAS_BASE_URL and MAAS_API_KEY
+      credentials from a selected Kubernetes secret. The response intentionally exposes
+      only stable model identity, display metadata, ownership, and readiness.
+    get:
+      tags:
+        - Models
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          description: Kubernetes namespace containing the MaaS credentials secret
+          schema:
+            type: string
+          example: default
+        - name: secretName
+          in: query
+          required: true
+          description: Name of the secret containing MAAS_BASE_URL and MAAS_API_KEY
+          schema:
+            type: string
+            maxLength: 253
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+          example: maas
+      responses:
+        "200":
+          $ref: "#/components/responses/MaaSModelsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMaaSModels
+      summary: Get MaaS Models
+      description: Returns all available models from the hosted MaaS API.
+
   # =============================================================================
   # PIPELINE RUNS ENDPOINTS
   # =============================================================================
@@ -1031,6 +1078,41 @@ components:
           description: Complete list of all available models
           items:
             $ref: '#/components/schemas/OGXModel'
+
+    MaaSModel:
+      type: object
+      description: Stable AutoRAG representation of a hosted MaaS model
+      required:
+        - id
+        - ready
+      properties:
+        id:
+          type: string
+          description: MaaS model identifier
+          example: "granite-3-8b-instruct"
+        display_name:
+          type: string
+          description: Optional display name from MaaS metadata
+        description:
+          type: string
+          description: Optional description from MaaS metadata
+        owned_by:
+          type: string
+          description: Optional MaaS model owner
+        ready:
+          type: boolean
+          description: Whether the MaaS model is ready
+
+    MaaSModelsData:
+      type: object
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          description: Complete unfiltered list of available MaaS models
+          items:
+            $ref: '#/components/schemas/MaaSModel'
 
     OGXVectorStoreProvider:
       type: object
@@ -1897,6 +1979,26 @@ components:
                   type: "embedding"
                   provider: "ollama"
                   resource_path: "ollama://models/nomic-embed-text"
+
+    MaaSModelsResponse:
+      description: List of available MaaS models
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/MaaSModelsData'
+          example:
+            data:
+              models:
+                - id: "granite-3-8b-instruct"
+                  display_name: "Granite 3 8B Instruct"
+                  description: "IBM Granite 3 8B instruction-tuned language model."
+                  owned_by: "maas-models"
+                  ready: true
 
     OGXVectorStoresResponse:
       description: List of available OGX vector store providers

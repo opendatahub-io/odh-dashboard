@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
@@ -40,6 +41,7 @@ const (
 	S3FilesPath              = ApiPathPrefix + "/s3/files"
 	OGXModelsPath            = ApiPathPrefix + "/ogx/models"
 	OGXVectorStoresPath      = ApiPathPrefix + "/ogx/vector-stores"
+	MaaSModelsPath           = ApiPathPrefix + "/maas/models"
 	PipelineRunsPath         = ApiPathPrefix + "/pipeline-runs"
 	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
 	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
@@ -87,6 +89,7 @@ type App struct {
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
 	ogx         *OGXHandler
+	maas        *MaaSHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -223,6 +226,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
 	}
 
+	var maasClient maas.MaaSClientInterface
+	if cfg.MockMaaSClient {
+		maasClient = &fake.MaaSClient{}
+	} else {
+		maasCfg := maas.MaaSClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		maasClient = maas.NewDefaultMaaSClient(maasCfg)
+	}
+
 	app := &App{
 		config:             cfg,
 		logger:             logger,
@@ -258,6 +275,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		ogx: &OGXHandler{
 			logger: logger,
 			repo:   repositories.NewOGXRepository(logger, ogxClient, k8sService),
+		},
+		maas: &MaaSHandler{
+			logger: logger,
+			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
 		},
 	}
 	return app, nil
@@ -310,6 +331,7 @@ func (app *App) Routes() http.Handler {
 	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
 	apiRouter.GET(OGXModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXModelsHandler)))
 	apiRouter.GET(OGXVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXVectorStoresHandler)))
+	apiRouter.GET(MaaSModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.maas.MaaSModelsHandler)))
 
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
