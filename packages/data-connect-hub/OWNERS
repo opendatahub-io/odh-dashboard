@@ -1,0 +1,8 @@
+approvers:
+  - data-connect-hub-approvers
+
+reviewers:
+  - data-connect-hub-reviewers
+
+labels:
+  - 'area/data-connect-hub'

@@ -482,6 +482,7 @@ export type {
   MCPToolsStatus,
   MCPToolsResponse,
   MCPTool,
+  MCPToolSummary,
   MCPServer,
   MCPTransportType,
   MCPServerStatus,
