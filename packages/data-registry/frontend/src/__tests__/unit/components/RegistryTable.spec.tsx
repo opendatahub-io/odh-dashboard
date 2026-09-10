@@ -41,6 +41,7 @@ const renderTable = (props?: Partial<React.ComponentProps<typeof RegistryTable>>
         onManageCollections={jest.fn()}
         onManageLabels={jest.fn()}
         onRegisterData={jest.fn()}
+        onRefresh={jest.fn()}
         {...props}
       />
     </MemoryRouter>,

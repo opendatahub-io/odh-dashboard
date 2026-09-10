@@ -14,6 +14,9 @@ import {
 import { CubesIcon } from '@patternfly/react-icons';
 import QuotaUsageDetailPanel from './quotaUsage/QuotaUsageDetailPanel';
 import QuotaUsageNavPanel from './quotaUsage/QuotaUsageNavPanel';
+import KueueNamespaceWorkloadCacheProvider, {
+  useKueueNamespaceWorkloadCache,
+} from '../hooks/KueueNamespaceWorkloadCacheContext';
 import './QuotaUsageSection.scss';
 import {
   QUOTA_USAGE_EMPTY_BODY,
@@ -33,9 +36,29 @@ type QuotaUsageSectionProps = {
   tree: QuotaTreeNode[];
   loaded: boolean;
   error?: Error;
+  onRegisterWorkloadRefresh?: (refresh: (() => Promise<unknown>) | undefined) => void;
 };
 
-const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({ tree, loaded, error }) => {
+/** Registers workload-cache manual refresh with the Quota usage section refresh badge. */
+const QuotaUsageWorkloadRefreshBridge: React.FC<{
+  onRegister?: QuotaUsageSectionProps['onRegisterWorkloadRefresh'];
+}> = ({ onRegister }) => {
+  const { refresh } = useKueueNamespaceWorkloadCache();
+
+  React.useEffect(() => {
+    onRegister?.(refresh);
+    return () => onRegister?.(undefined);
+  }, [onRegister, refresh]);
+
+  return null;
+};
+
+const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({
+  tree,
+  loaded,
+  error,
+  onRegisterWorkloadRefresh,
+}) => {
   const [selection, setSelection] = React.useState<QuotaSelection | undefined>();
 
   React.useEffect(() => {
@@ -83,41 +106,46 @@ const QuotaUsageSection: React.FC<QuotaUsageSectionProps> = ({ tree, loaded, err
   }
 
   return (
-    <Flex
-      direction={{ default: 'column' }}
-      grow={{ default: 'grow' }}
-      className="gpuaas-quota-usage-section"
-      data-testid="quota-usage-section"
+    <KueueNamespaceWorkloadCacheProvider
+      clusterQueueNames={selection?.type === 'clusterQueue' ? [selection.clusterQueueName] : []}
     >
-      <Drawer isExpanded isInline>
-        <DrawerContent
-          panelContent={
-            <DrawerPanelContent
-              id={QUOTA_USAGE_TREE_DRAWER_PANEL_ID}
-              isResizable
-              defaultSize="75%"
-              minSize="60%"
-              maxSize="85%"
-              data-testid="quota-usage-detail-drawer"
-            >
-              <QuotaUsageDetailPanel
+      <QuotaUsageWorkloadRefreshBridge onRegister={onRegisterWorkloadRefresh} />
+      <Flex
+        direction={{ default: 'column' }}
+        grow={{ default: 'grow' }}
+        className="gpuaas-quota-usage-section"
+        data-testid="quota-usage-section"
+      >
+        <Drawer isExpanded isInline>
+          <DrawerContent
+            panelContent={
+              <DrawerPanelContent
+                id={QUOTA_USAGE_TREE_DRAWER_PANEL_ID}
+                isResizable
+                defaultSize="75%"
+                minSize="60%"
+                maxSize="85%"
+                data-testid="quota-usage-detail-drawer"
+              >
+                <QuotaUsageDetailPanel
+                  tree={tree}
+                  selection={selection}
+                  onSelectionChange={setSelection}
+                />
+              </DrawerPanelContent>
+            }
+          >
+            <DrawerContentBody style={drawerNavBodyStyle}>
+              <QuotaUsageNavPanel
                 tree={tree}
                 selection={selection}
                 onSelectionChange={setSelection}
               />
-            </DrawerPanelContent>
-          }
-        >
-          <DrawerContentBody style={drawerNavBodyStyle}>
-            <QuotaUsageNavPanel
-              tree={tree}
-              selection={selection}
-              onSelectionChange={setSelection}
-            />
-          </DrawerContentBody>
-        </DrawerContent>
-      </Drawer>
-    </Flex>
+            </DrawerContentBody>
+          </DrawerContent>
+        </Drawer>
+      </Flex>
+    </KueueNamespaceWorkloadCacheProvider>
   );
 };
 
