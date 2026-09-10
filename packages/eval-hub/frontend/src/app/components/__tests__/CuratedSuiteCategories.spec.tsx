@@ -16,9 +16,11 @@ describe('CuratedSuiteCategories', () => {
 
     expect(screen.getByTestId('curated-suite-categories')).toBeInTheDocument();
     expect(screen.queryByTestId('curated-suite-categories-logo')).not.toBeInTheDocument();
-    expect(screen.getByText('Browse curated benchmark suites')).toBeInTheDocument();
+    expect(screen.getByText('Red Hat validated benchmark suites')).toBeInTheDocument();
     expect(
-      screen.getByText('Pick a category and customize a suite for your own collection.'),
+      screen.getByText(
+        'Explore benchmark suites validated by Red Hat for evaluating models and agents.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByTestId('curated-suite-category-card-agents')).toBeInTheDocument();
     expect(screen.getByTestId('curated-suite-category-card-models')).toBeInTheDocument();

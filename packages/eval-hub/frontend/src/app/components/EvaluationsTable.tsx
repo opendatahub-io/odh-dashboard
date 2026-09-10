@@ -22,10 +22,7 @@ import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import {
-  fireMiscTrackingEvent,
-  fireSimpleTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
@@ -458,18 +455,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
             </ToolbarGroup>
           </ToolbarToggleGroup>
           <ToolbarGroup>
-            <ToolbarItem>
-              <Button
-                variant="primary"
-                data-testid="create-evaluation-button"
-                onClick={() => {
-                  fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
-                  navigate({ search: '?tab=evaluate' });
-                }}
-              >
-                Start evaluation run
-              </Button>
-            </ToolbarItem>
             <ToolbarItem>
               <Tooltip
                 content="Select at least 2 runs to compare"

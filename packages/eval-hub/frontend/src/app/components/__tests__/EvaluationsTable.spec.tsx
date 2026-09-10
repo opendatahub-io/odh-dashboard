@@ -142,18 +142,10 @@ describe('EvaluationsTable', () => {
     expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
   });
 
-  it('should render the New evaluation button', () => {
+  it('should not render a start evaluation button when runs exist', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
-    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
-      'Start evaluation run',
-    );
-  });
 
-  it('should navigate to the Evaluate tab when starting an evaluation run', () => {
-    renderTable({ evaluations: mockJobs, loaded: true });
-    fireEvent.click(screen.getByTestId('create-evaluation-button'));
-
-    expect(mockNavigate).toHaveBeenCalledWith({ search: '?tab=evaluate' });
+    expect(screen.queryByTestId('create-evaluation-button')).not.toBeInTheDocument();
   });
 
   it('should disable row checkboxes when evaluation is not completed', () => {

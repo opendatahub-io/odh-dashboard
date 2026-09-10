@@ -86,10 +86,10 @@ type CuratedSuiteCategoriesProps = {
 const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespace }) => (
   <section className="evalhub-curated-suite-categories" data-testid="curated-suite-categories">
     <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
-      Browse curated benchmark suites
+      Red Hat validated benchmark suites
     </Title>
     <Content component="p" className="evalhub-curated-suite-categories__description">
-      Pick a category and customize a suite for your own collection.
+      Explore benchmark suites validated by Red Hat for evaluating models and agents.
     </Content>
     <Grid hasGutter>
       {CURATED_CATEGORIES.map((category) => {

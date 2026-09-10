@@ -17,8 +17,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+const mockNavigate = jest.fn();
+
 jest.mock('react-router-dom', () => ({
-  useNavigate: jest.fn(() => jest.fn()),
+  useNavigate: () => mockNavigate,
 }));
 
 jest.mock('~/app/api/k8s', () => ({
@@ -318,6 +320,25 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(0);
+    });
+  });
+
+  describe('Successful evaluation run submission', () => {
+    it('should navigate to the Runs tab after submitting the form', async () => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith({
+        pathname: '/evaluation/test-ns',
+        search: '?tab=runs',
+      });
     });
   });
 

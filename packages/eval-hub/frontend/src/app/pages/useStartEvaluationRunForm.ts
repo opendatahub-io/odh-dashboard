@@ -607,7 +607,10 @@ export function useStartEvaluationRunForm({
         'Evaluation started',
         `Evaluation "${evaluationName}" has been started.`,
       );
-      navigate(evaluationsBaseRoute(namespace));
+      navigate({
+        pathname: evaluationsBaseRoute(namespace),
+        search: '?tab=runs',
+      });
     } catch (e) {
       if (controller.signal.aborted) {
         return;

@@ -243,20 +243,13 @@ describe('Evaluations Page - Table', () => {
     cy.url().should('include', `/results/${completedJob.resource.id}`);
   });
 
-  it('should display the toolbar with filter and create button', () => {
+  it('should display the toolbar with filters and compare button', () => {
     evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findEvaluationsTableToolbar().should('exist');
     evaluationsPage.findFilterTypeToggle().should('exist');
     evaluationsPage.findFilterTextField().should('exist');
-    evaluationsPage.findCreateEvaluationButton().should('exist');
-  });
-
-  it('should navigate to the Evaluate tab when starting an evaluation run', () => {
-    evaluationsPage.visitRuns(NAMESPACE);
-    evaluationsPage.findCreateEvaluationButton().click();
-    evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
-    evaluationsPage.findCreateSuiteCard().should('exist');
-    cy.url().should('include', `/evaluation/${NAMESPACE}?tab=evaluate`);
+    evaluationsPage.findCompareButton().should('exist');
+    evaluationsPage.findCreateEvaluationButton().should('not.exist');
   });
 });
 
