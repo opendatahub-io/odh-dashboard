@@ -13,6 +13,7 @@ import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import {
   GENERAL_PURPOSE_PVC_CONTEXT_TYPE,
+  getContextStorageTypeExplanation,
   getPVCContextStorageType,
   MODEL_STORAGE_PVC_CONTEXT_TYPE,
   StorageContextType,
@@ -86,7 +87,12 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
             <p>
               {isLocked
                 ? 'The context indicates the purpose of the storage. It cannot be changed.'
-                : 'The context indicates the purpose of the storage: general purpose, or model storage.'}
+                : getContextStorageTypeExplanation(
+                    storageContextTypes || [
+                      GENERAL_PURPOSE_PVC_CONTEXT_TYPE,
+                      MODEL_STORAGE_PVC_CONTEXT_TYPE,
+                    ],
+                  )}
             </p>
           }
         />

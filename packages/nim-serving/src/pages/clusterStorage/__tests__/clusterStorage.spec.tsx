@@ -38,6 +38,9 @@ describe('NIM storage fields', () => {
     expect(input).toHaveValue('arctic-embed-l');
 
     await user.clear(input);
+    expect(onChange).toHaveBeenLastCalledWith({
+      [NIM_PVC_SUBPATH_ANNOTATION]: '',
+    });
     await user.type(input, 'new-model-path');
 
     expect(onChange).toHaveBeenLastCalledWith({

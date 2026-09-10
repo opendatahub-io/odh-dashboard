@@ -37,6 +37,18 @@ describe('isPvcUpdateRequired', () => {
     ).toBe(true);
   });
 
+  it('should return true when an additional annotation is removed', () => {
+    const existingPvc = mockPVCK8sResource({
+      annotations: { 'dashboard.opendatahub.io/nim-subpath': 'models/foo' },
+    });
+    expect(
+      isPvcUpdateRequired(existingPvc, {
+        ...baseStorageData,
+        contextTypeAnnotations: { 'dashboard.opendatahub.io/nim-subpath': '' },
+      }),
+    ).toBe(true);
+  });
+
   it('should return false when the additional annotation matches the existing value', () => {
     const existingPvc = mockPVCK8sResource({
       annotations: { 'dashboard.opendatahub.io/nim-subpath': 'models/foo' },
