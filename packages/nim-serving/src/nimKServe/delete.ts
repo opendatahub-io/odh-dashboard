@@ -1,12 +1,12 @@
 import { deletePvc } from '@odh-dashboard/internal/api';
 import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import type { NIMKServePVCReference } from './deleteUtils';
 
 type DeletePVC = (name: string, namespace: string) => Promise<K8sStatus | undefined>;
 
 export type DeleteLegacyNIMDeploymentArgs = {
   deletePrimaryDeployment: () => Promise<void>;
-  pvcToDelete?: NIMKServePVCReference;
+  namespace: string;
+  pvcName?: string;
   deletePVC: boolean;
   deletePVCResource?: DeletePVC;
 };
@@ -14,18 +14,19 @@ export type DeleteLegacyNIMDeploymentArgs = {
 /** Deletes a legacy NIM deployment, optionally deleting its cache PVC afterward. */
 export const deleteLegacyNIMDeployment = async ({
   deletePrimaryDeployment,
-  pvcToDelete,
+  namespace,
+  pvcName,
   deletePVC,
   deletePVCResource = deletePvc,
 }: DeleteLegacyNIMDeploymentArgs): Promise<void> => {
   await deletePrimaryDeployment();
 
-  if (!deletePVC || !pvcToDelete) {
+  if (!deletePVC || !pvcName) {
     return;
   }
 
-  const status = await deletePVCResource(pvcToDelete.name, pvcToDelete.namespace);
+  const status = await deletePVCResource(pvcName, namespace);
   if (typeof status?.status === 'string' && status.status !== 'Success') {
-    throw new Error(`Unable to delete PVC ${pvcToDelete.name}: ${status.message}`);
+    throw new Error(`Unable to delete PVC ${pvcName}: ${status.message}`);
   }
 };

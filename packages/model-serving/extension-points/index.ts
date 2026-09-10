@@ -236,7 +236,7 @@ export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extensi
     /** Priority among active delete extensions for the same platform. */
     priority?: number;
     /** Optional platform-specific modal. It must call onClose(true) only after deletion succeeds. */
-    DeleteModalComponent?: CodeRef<React.ComponentType<ModelServingDeleteModalComponentProps<D>>>;
+    DeleteModalComponent?: ComponentCodeRef<ModelServingDeleteModalComponentProps<D>>;
   }
 >;
 

@@ -1,7 +1,8 @@
 import { deleteLegacyNIMDeployment } from '../delete';
 
 describe('deleteLegacyNIMDeployment', () => {
-  const pvc = { name: 'nim-cache', namespace: 'project' };
+  const pvcName = 'nim-cache';
+  const namespace = 'project';
 
   it('should delete only the primary deployment when PVC deletion is not selected', async () => {
     const deletePrimaryDeployment = jest.fn().mockResolvedValue(undefined);
@@ -9,7 +10,8 @@ describe('deleteLegacyNIMDeployment', () => {
 
     await deleteLegacyNIMDeployment({
       deletePrimaryDeployment,
-      pvcToDelete: pvc,
+      namespace,
+      pvcName,
       deletePVC: false,
       deletePVCResource,
     });
@@ -30,7 +32,8 @@ describe('deleteLegacyNIMDeployment', () => {
 
     await deleteLegacyNIMDeployment({
       deletePrimaryDeployment,
-      pvcToDelete: pvc,
+      namespace,
+      pvcName,
       deletePVC: true,
       deletePVCResource,
     });
@@ -47,7 +50,8 @@ describe('deleteLegacyNIMDeployment', () => {
       await expect(
         deleteLegacyNIMDeployment({
           deletePrimaryDeployment: jest.fn().mockResolvedValue(undefined),
-          pvcToDelete: pvc,
+          namespace,
+          pvcName,
           deletePVC: true,
           deletePVCResource,
         }),
@@ -62,7 +66,8 @@ describe('deleteLegacyNIMDeployment', () => {
     await expect(
       deleteLegacyNIMDeployment({
         deletePrimaryDeployment,
-        pvcToDelete: pvc,
+        namespace,
+        pvcName,
         deletePVC: true,
         deletePVCResource,
       }),
@@ -80,7 +85,8 @@ describe('deleteLegacyNIMDeployment', () => {
     await expect(
       deleteLegacyNIMDeployment({
         deletePrimaryDeployment: jest.fn().mockResolvedValue(undefined),
-        pvcToDelete: pvc,
+        namespace,
+        pvcName,
         deletePVC: true,
         deletePVCResource,
       }),
