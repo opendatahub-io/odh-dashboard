@@ -101,6 +101,8 @@ const ClusterQueueWorkloadsToolbar: React.FC<ClusterQueueWorkloadsToolbarProps> 
         placeholder={placeholder}
         aria-label={placeholder}
         options={options}
+        isScrollable
+        maxMenuHeight="300px"
         onChange={(selectedOptionValue) => {
           const option = options.find((item) => item.key === selectedOptionValue);
           onFilterUpdate(
@@ -110,7 +112,7 @@ const ClusterQueueWorkloadsToolbar: React.FC<ClusterQueueWorkloadsToolbarProps> 
               : '',
           );
         }}
-        popperProps={{ maxWidth: undefined }}
+        popperProps={{ appendTo: () => document.body, maxWidth: undefined }}
       />
     );
   };
