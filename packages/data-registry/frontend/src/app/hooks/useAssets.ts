@@ -77,8 +77,12 @@ export const useAssets = (
               fetchVolumes(project, collection),
             ]);
 
-            const tableAssets = assetsResponse.assets.map((a) => mapTableAsset(a, collection));
-            const volumeAssets = volumesResponse.volumes.map((v) => mapVolumeAsset(v, collection));
+            const tableAssets = (assetsResponse.assets ?? []).map((a) =>
+              mapTableAsset(a, collection),
+            );
+            const volumeAssets = (volumesResponse.volumes ?? []).map((v) =>
+              mapVolumeAsset(v, collection),
+            );
 
             return [...tableAssets, ...volumeAssets];
           }),

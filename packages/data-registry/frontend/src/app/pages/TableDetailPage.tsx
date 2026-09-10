@@ -25,7 +25,7 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
 import { useVolume } from '~/app/hooks/useVolume';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
-import { browseUrl } from '~/app/utilities/routes';
+import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
 import { volumeToAsset } from '~/app/utilities/assetUtils';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
@@ -99,10 +99,10 @@ const TableDetailPage: React.FC = () => {
           </Link>
         )}
       />
-      {collection ? (
+      {collection && project ? (
         <BreadcrumbItem
           render={({ className }) => (
-            <Link className={className} to={browseUrl(project)}>
+            <Link className={className} to={collectionDetailUrl(project, collection)}>
               {collection}
             </Link>
           )}
