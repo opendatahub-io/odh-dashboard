@@ -137,6 +137,17 @@
       "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
     },
     {
+      "id": "coderabbit",
+      "kind": "cli-adapter",
+      "output": "findings",
+      "dispatch": "always",
+      "runner": "scripts/fetch-coderabbit-context.sh",
+      "producer_file": ".run/coderabbit.json",
+      "failure_severity": "info",
+      "categories": ["coderabbit"],
+      "notes": "Trusted host-side CodeRabbit CLI output, normalized without credentials before challenger synthesis."
+    },
+    {
       "id": "description-jira",
       "kind": "llm-subagent",
       "output": "section:product_ask",

@@ -2,8 +2,8 @@
 # Vendored from fullsend-ai/agents scripts/pre-review.sh
 # @ 91f61f3441baedf3f912c9afd4bd574c98793b96 (harness review.yaml base).
 #
-# Local change from the stock script: hydrate the trusted Jira snapshot. The
-# sandbox receives that sanitized context file, never Jira credentials.
+# Local change from the stock script: hydrate trusted Jira and CodeRabbit
+# artifacts. The sandbox receives sanitized context only, never credentials.
 #
 # Usage:
 #   pre-review.sh              # CI / harness pre_script
@@ -199,6 +199,28 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_RUN_ID:-}" ]]; then
     echo "::warning::Could not download Jira context artifact ${_JIRA_ARTIFACT}; continuing without Jira context"
   fi
   rm -rf "${_JIRA_ARTIFACT_DIR}"
+
+  _CODERABBIT_ARTIFACT="fullsend-coderabbit-context-${PR_NUMBER}"
+  _CODERABBIT_ARTIFACT_DIR="$(mktemp -d)"
+  if GH_TOKEN="${_TOKEN}" gh run download "${GITHUB_RUN_ID}" \
+    --repo "${REPO_FULL_NAME}" \
+    --name "${_CODERABBIT_ARTIFACT}" \
+    --dir "${_CODERABBIT_ARTIFACT_DIR}" >/dev/null 2>&1; then
+    _CODERABBIT_FILE="${_CODERABBIT_ARTIFACT_DIR}/coderabbit.json"
+    _COLLECTED_FILE="${_CODERABBIT_ARTIFACT_DIR}/collected.json"
+    if [[ -f "${_CODERABBIT_FILE}" && -f "${_COLLECTED_FILE}" ]]; then
+      mkdir -p "${_SCRIPT_DIR}/../.run"
+      cp "${_CODERABBIT_FILE}" "${_SCRIPT_DIR}/../.run/coderabbit.json"
+      cp "${_COLLECTED_FILE}" "${_SCRIPT_DIR}/../.run/collected.json"
+      export FULLSEND_CODERABBIT_CONTEXT_READY=1
+      echo "Loaded sanitized CodeRabbit findings from workflow artifact ${_CODERABBIT_ARTIFACT}"
+    else
+      echo "::warning::CodeRabbit context artifact did not contain both normalized JSON files"
+    fi
+  else
+    echo "::warning::Could not download CodeRabbit context artifact ${_CODERABBIT_ARTIFACT}; continuing without CodeRabbit findings"
+  fi
+  rm -rf "${_CODERABBIT_ARTIFACT_DIR}"
 fi
 
 echo "PR #${PR_NUMBER} is open — proceeding with review agent"

@@ -13,6 +13,12 @@ host_files:
   - src: .run/jira.json
     dest: /sandbox/workspace/.fullsend/.run/jira.json
     optional: true
+  - src: .run/coderabbit.json
+    dest: /sandbox/workspace/.fullsend/.run/coderabbit.json
+    optional: true
+  - src: .run/collected.json
+    dest: /sandbox/workspace/.fullsend/.run/collected.json
+    optional: true
 
 model: sonnet
 
