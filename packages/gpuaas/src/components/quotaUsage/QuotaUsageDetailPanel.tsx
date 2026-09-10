@@ -36,7 +36,7 @@ import { QuotaUsageDetailData } from '../../hooks/useQuotaUsageDetail';
 import { QUOTA_NODE_TYPE, QuotaSelection, QuotaTreeNode } from '../../types';
 import { selectionFromPath } from '../../utils/quotaUsageTreeUtils';
 
-const scrollableBodyClassName = 'pf-v6-u-flex-fill pf-v6-u-min-height-0 pf-v6-u-overflow-auto';
+const scrollableBodyClassName = 'pf-v6-u-min-height-0 pf-v6-u-overflow-auto';
 
 type QuotaUsageDetailPanelProps = {
   tree: QuotaTreeNode[];
@@ -141,80 +141,83 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
     selection.type === QUOTA_NODE_TYPE.cohort && detail?.summary.isBorrowing === true;
 
   const detailState = getDetailState(detailLoaded, detail, error);
-  let detailBody: React.ReactNode;
 
-  switch (detailState.type) {
-    case 'error':
-      detailBody = (
-        <EmptyState
-          headingLevel="h4"
-          icon={CubesIcon}
-          titleText="Error loading quota usage details"
-          variant={EmptyStateVariant.sm}
-          data-testid="quota-usage-detail-error"
-        >
-          <EmptyStateBody>{detailState.error.message}</EmptyStateBody>
-        </EmptyState>
-      );
-      break;
-    case 'loading':
-      detailBody = (
-        <Flex
-          justifyContent={{ default: 'justifyContentCenter' }}
-          className="pf-v6-u-py-3xl"
-          data-testid="quota-usage-detail-loading"
-        >
-          <Spinner size="lg" aria-label="Loading quota usage details" />
-        </Flex>
-      );
-      break;
-    case 'empty':
-      detailBody = (
-        <Content component="p" data-testid="quota-usage-detail-no-data">
-          {selection.type === QUOTA_NODE_TYPE.unassigned
-            ? QUOTA_UNASSIGNED_TOOLTIP
-            : 'No accelerator usage data available.'}
-        </Content>
-      );
-      break;
-    case 'loaded':
-      detailBody = (
-        <Stack hasGutter className="pf-v6-u-p-md">
-          {error && (
+  const renderDetailContent = (): React.ReactNode => {
+    switch (detailState.type) {
+      case 'error':
+        return (
+          <StackItem>
+            <EmptyState
+              headingLevel="h4"
+              icon={CubesIcon}
+              titleText="Error loading quota usage details"
+              variant={EmptyStateVariant.sm}
+              data-testid="quota-usage-detail-error"
+            >
+              <EmptyStateBody>{detailState.error.message}</EmptyStateBody>
+            </EmptyState>
+          </StackItem>
+        );
+      case 'loading':
+        return (
+          <StackItem>
+            <Flex
+              justifyContent={{ default: 'justifyContentCenter' }}
+              className="pf-v6-u-py-3xl"
+              data-testid="quota-usage-detail-loading"
+            >
+              <Spinner size="lg" aria-label="Loading quota usage details" />
+            </Flex>
+          </StackItem>
+        );
+      case 'empty':
+        return (
+          <StackItem>
+            <Content component="p" data-testid="quota-usage-detail-no-data">
+              {selection.type === QUOTA_NODE_TYPE.unassigned
+                ? QUOTA_UNASSIGNED_TOOLTIP
+                : 'No accelerator usage data available.'}
+            </Content>
+          </StackItem>
+        );
+      case 'loaded':
+        return (
+          <>
+            {error && (
+              <StackItem>
+                <Alert
+                  isInline
+                  variant="warning"
+                  title="Some usage telemetry is unavailable"
+                  data-testid="quota-usage-detail-partial-error"
+                />
+              </StackItem>
+            )}
             <StackItem>
-              <Alert
-                isInline
-                variant="warning"
-                title="Some usage telemetry is unavailable"
-                data-testid="quota-usage-detail-partial-error"
+              <QuotaUsageSummarySection
+                summary={detailState.detail.summary}
+                perModelRows={detailState.detail.acceleratorRows}
+                selectionType={selection.type}
+                cohortName={
+                  selection.type === QUOTA_NODE_TYPE.cohort ? selection.cohortName : undefined
+                }
+                showKueueProjectsLink={detailState.detail.showKueueProjectsLink}
+                onViewKueueProjects={() => setKueueModalOpen(true)}
+                onSelectClusterQueue={handleSelectClusterQueue}
+                clusterQueueName={detailState.detail.clusterQueueName}
+                nominalQuota={detailState.detail.summary.totalNominal}
               />
             </StackItem>
-          )}
-          <StackItem>
-            <QuotaUsageSummarySection
-              summary={detailState.detail.summary}
-              perModelRows={detailState.detail.acceleratorRows}
-              selectionType={selection.type}
-              cohortName={
-                selection.type === QUOTA_NODE_TYPE.cohort ? selection.cohortName : undefined
-              }
-              showKueueProjectsLink={detailState.detail.showKueueProjectsLink}
-              onViewKueueProjects={() => setKueueModalOpen(true)}
-              onSelectClusterQueue={handleSelectClusterQueue}
-              clusterQueueName={detailState.detail.clusterQueueName}
-              nominalQuota={detailState.detail.summary.totalNominal}
-            />
-          </StackItem>
-          <StackItem>
-            <QuotaUsageAcceleratorTable
-              rows={detailState.detail.acceleratorRows}
-              summary={detailState.detail.summary}
-            />
-          </StackItem>
-        </Stack>
-      );
-      break;
-  }
+            <StackItem>
+              <QuotaUsageAcceleratorTable
+                rows={detailState.detail.acceleratorRows}
+                summary={detailState.detail.summary}
+              />
+            </StackItem>
+          </>
+        );
+    }
+  };
 
   return (
     <>
@@ -271,10 +274,14 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
         </Stack>
       </DrawerHead>
       <DrawerPanelBody className={`${scrollableBodyClassName} pf-v6-u-pt-lg`}>
-        {detailBody}
-        {showWorkloadsSection && (
-          <QuotaUsageWorkloadsCollapsible clusterQueueName={selection.clusterQueueName} />
-        )}
+        <Stack hasGutter className="pf-v6-u-p-md">
+          {renderDetailContent()}
+          {showWorkloadsSection && (
+            <StackItem>
+              <QuotaUsageWorkloadsCollapsible clusterQueueName={selection.clusterQueueName} />
+            </StackItem>
+          )}
+        </Stack>
       </DrawerPanelBody>
       {kueueModalOpen && detail?.clusterQueueName && (
         <KueueProjectsModal

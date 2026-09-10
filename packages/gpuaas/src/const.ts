@@ -1,3 +1,6 @@
+import type { SortableData } from '@odh-dashboard/ui-core';
+import type { QuotaUsageAcceleratorRow } from './types';
+
 export const INFRASTRUCTURE_PAGE_DESCRIPTION =
   'View accelerator utilization, cluster queue cohort configuration, and workload details.';
 
@@ -104,7 +107,7 @@ export const QUOTA_USAGE_ACCELERATOR_TABLE = {
   },
 } as const;
 
-export const QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS = [
+export const QUOTA_USAGE_ACCELERATOR_TABLE_COLUMNS: SortableData<QuotaUsageAcceleratorRow>[] = [
   { label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.accelerator, field: 'model', sortable: true },
   {
     label: QUOTA_USAGE_ACCELERATOR_TABLE.columnLabels.capacity,
