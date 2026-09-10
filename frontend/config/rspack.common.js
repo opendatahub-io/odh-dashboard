@@ -71,7 +71,12 @@ module.exports = (env) => ({
         // Transpile host sources and workspace packages only. With pnpm symlinks enabled,
         // workspace links resolve to packages/ paths. Including node_modules/@odh-dashboard
         // makes Istanbul walk the entire hoisted tree and can hang the Cypress coverage build.
-        include: [SRC_DIR, COMMON_DIR, path.resolve(RELATIVE_DIRNAME, '../packages'), path.resolve(RELATIVE_DIRNAME, '../plugins')],
+        include: [
+          SRC_DIR,
+          COMMON_DIR,
+          path.resolve(RELATIVE_DIRNAME, '../packages'),
+          path.resolve(RELATIVE_DIRNAME, '../plugins'),
+        ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           {
