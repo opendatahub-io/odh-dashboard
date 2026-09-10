@@ -152,23 +152,34 @@ describe('BenchmarkSuitesPage', () => {
     expect(emptyState.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('should keep filters enabled when an active API filter returns no suites', () => {
-    const collections = mockBenchmarkSuiteCollections();
-    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
-      const queryFilters = args[4];
-      const hasApiFilter = queryFilters && Object.keys(queryFilters).length > 0;
+  it('should hide filters when collections do not provide filter fields', () => {
+    const collections = mockBenchmarkSuiteCollections().map((collection) => ({
+      ...collection,
+      category: undefined,
+      domains: [],
+      // eslint-disable-next-line camelcase
+      ai_entities: [],
+      industries: [],
+    }));
 
-      return {
-        data: {
-          items: hasApiFilter ? [] : collections,
-          // eslint-disable-next-line camelcase
-          total_count: hasApiFilter ? 0 : collections.length,
-        },
-        isLoading: false,
-        error: null,
-      };
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
     });
 
+    renderPage();
+
+    expect(screen.queryByTestId('benchmark-suites-category-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+  });
+
+  it('should keep filters enabled when an active filter returns no suites', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
@@ -248,10 +259,10 @@ describe('BenchmarkSuitesPage', () => {
     expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
       'test-project',
       'tenant',
-      6,
+      200,
       undefined,
-      { domains: ['code'] },
-      0,
+      undefined,
+      undefined,
     );
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
@@ -264,10 +275,10 @@ describe('BenchmarkSuitesPage', () => {
     expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
       'test-project',
       'tenant',
-      6,
+      200,
       undefined,
-      { aiEntities: ['agent'] },
-      0,
+      undefined,
+      undefined,
     );
   });
 });

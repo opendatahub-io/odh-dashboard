@@ -44,6 +44,24 @@ const PAGE_SIZE_OPTIONS = [6, 12, 24];
 // These are the collection fields that can provide values for the filter dropdowns.
 type CollectionFilterField = 'domains' | 'ai_entities' | 'industries';
 
+type CollectionFilterOptions = {
+  categories: string[];
+  evaluatesTypes: string[];
+  industries: string[];
+};
+
+const EMPTY_COLLECTION_FILTER_OPTIONS: CollectionFilterOptions = {
+  categories: [],
+  evaluatesTypes: [],
+  industries: [],
+};
+
+const mergeFilterOptions = (previous: string[], next: string[]): string[] =>
+  [...new Set([...previous, ...next])].toSorted();
+
+const areStringArraysEqual = (first: string[], second: string[]): boolean =>
+  first.length === second.length && first.every((value, index) => value === second[index]);
+
 type CollectionFilterSelectProps = {
   categoryName: string;
   allLabel: string;
@@ -197,34 +215,27 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       ].join('|'),
     [queryFilters],
   );
-  const isClientSideNameFiltering = showPagination && Boolean(nameFilter.trim());
+  const [filterOptions, setFilterOptions] = React.useState(EMPTY_COLLECTION_FILTER_OPTIONS);
+  const filterOptionsKey = `${namespace}|${scope}|${queryFiltersKey}`;
+  const previousFilterOptionsKey = React.useRef(filterOptionsKey);
+  const isClientSideFiltering =
+    showPagination &&
+    Boolean(nameFilter.trim() || categoryFilter || evaluatesFilter || industryFilter);
   const queryLimit = showPagination
-    ? isClientSideNameFiltering
+    ? isClientSideFiltering
       ? COLLECTION_FETCH_LIMIT
       : pageSize
     : maxVisibleCollections;
-  const queryOffset =
-    showPagination && !isClientSideNameFiltering ? (page - 1) * pageSize : undefined;
-  // Convert the current UI selections into API filters. These values are part of the React Query
-  // key, so changing either dropdown automatically fetches the matching collection set again.
-  const collectionQueryFilters = React.useMemo<CollectionFilterParams | undefined>(() => {
-    if (!categoryFilter && !evaluatesFilter && !industryFilter) {
-      return queryFilters;
-    }
-
-    return {
-      ...queryFilters,
-      ...(categoryFilter ? { domains: [categoryFilter] } : {}),
-      ...(evaluatesFilter ? { aiEntities: [evaluatesFilter] } : {}),
-      ...(industryFilter ? { industries: [industryFilter] } : {}),
-    };
-  }, [categoryFilter, evaluatesFilter, industryFilter, queryFilters]);
+  const queryOffset = showPagination && !isClientSideFiltering ? (page - 1) * pageSize : undefined;
+  // Keep route-level filters such as the curated agent/model selection on the API request.
+  // User-selected gallery filters are applied locally against the full fetched collection set so
+  // the gallery does not depend on classification query parameters supported by the backend.
   const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
     queryLimit,
     scope === 'curated' ? 'curation_order' : undefined,
-    collectionQueryFilters,
+    queryFilters,
     queryOffset,
   );
   const {
@@ -280,6 +291,46 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     () => getAvailableFilterOptions(sourceCollections, 'industries'),
     [sourceCollections],
   );
+  React.useEffect(() => {
+    setFilterOptions((previous) => {
+      const next = {
+        categories: mergeFilterOptions(previous.categories, availableCategories),
+        evaluatesTypes: mergeFilterOptions(previous.evaluatesTypes, availableEvaluatesTypes),
+        industries: mergeFilterOptions(previous.industries, availableIndustries),
+      };
+
+      if (
+        areStringArraysEqual(previous.categories, next.categories) &&
+        areStringArraysEqual(previous.evaluatesTypes, next.evaluatesTypes) &&
+        areStringArraysEqual(previous.industries, next.industries)
+      ) {
+        return previous;
+      }
+
+      return next;
+    });
+  }, [availableCategories, availableEvaluatesTypes, availableIndustries]);
+
+  React.useEffect(() => {
+    if (previousFilterOptionsKey.current === filterOptionsKey) {
+      return;
+    }
+    previousFilterOptionsKey.current = filterOptionsKey;
+    setFilterOptions(EMPTY_COLLECTION_FILTER_OPTIONS);
+  }, [filterOptionsKey]);
+
+  const categoryOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.categories, availableCategories),
+    [availableCategories, filterOptions.categories],
+  );
+  const evaluatesOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.evaluatesTypes, availableEvaluatesTypes),
+    [availableEvaluatesTypes, filterOptions.evaluatesTypes],
+  );
+  const industryOptions = React.useMemo(
+    () => mergeFilterOptions(filterOptions.industries, availableIndustries),
+    [availableIndustries, filterOptions.industries],
+  );
 
   const filteredCollections = React.useMemo(() => {
     const normalizedNameFilter = nameFilter.trim().toLowerCase();
@@ -310,9 +361,9 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     });
   }, [categoryFilter, evaluatesFilter, industryFilter, nameFilter, sourceCollections]);
 
-  // Mock data and name searches are loaded in full, so they need local slicing. Otherwise, API
-  // responses are already limited to the requested page.
-  const shouldUseClientSidePagination = isUsingMockCollections || isClientSideNameFiltering;
+  // Mock data, name searches, and classification-filtered results are loaded in full, so they
+  // need local slicing. Otherwise, API responses are already limited to the requested page.
+  const shouldUseClientSidePagination = isUsingMockCollections || isClientSideFiltering;
   const visibleCollections = showPagination
     ? shouldUseClientSidePagination
       ? filteredCollections.slice((page - 1) * pageSize, page * pageSize)
@@ -423,25 +474,27 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 data-testid="benchmark-suites-name-filter"
               />
             </ToolbarItem>
-            <ToolbarItem>
-              <CollectionFilterSelect
-                categoryName="Category"
-                allLabel="Category"
-                allOptionLabel="All categories"
-                options={availableCategories}
-                selected={categoryFilter}
-                onSelect={setCategoryFilter}
-                isDisabled={areFiltersDisabled}
-                testId="benchmark-suites-category-filter"
-              />
-            </ToolbarItem>
-            {showEvaluatesFilter && availableEvaluatesTypes.length > 0 && (
+            {categoryOptions.length > 0 && (
+              <ToolbarItem>
+                <CollectionFilterSelect
+                  categoryName="Category"
+                  allLabel="All categories"
+                  allOptionLabel="All categories"
+                  options={categoryOptions}
+                  selected={categoryFilter}
+                  onSelect={setCategoryFilter}
+                  isDisabled={areFiltersDisabled}
+                  testId="benchmark-suites-category-filter"
+                />
+              </ToolbarItem>
+            )}
+            {showEvaluatesFilter && evaluatesOptions.length > 0 && (
               <ToolbarItem>
                 <CollectionFilterSelect
                   categoryName="Evaluates"
                   allLabel="Evaluates"
                   allOptionLabel="All asset types"
-                  options={availableEvaluatesTypes}
+                  options={evaluatesOptions}
                   selected={evaluatesFilter}
                   onSelect={setEvaluatesFilter}
                   isDisabled={areFiltersDisabled}
@@ -449,12 +502,12 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 />
               </ToolbarItem>
             )}
-            {availableIndustries.length > 0 && (
+            {industryOptions.length > 0 && (
               <ToolbarItem>
                 <CollectionFilterSelect
                   categoryName="Industry"
                   allLabel="All industries"
-                  options={availableIndustries}
+                  options={industryOptions}
                   selected={industryFilter}
                   onSelect={setIndustryFilter}
                   isDisabled={areFiltersDisabled}

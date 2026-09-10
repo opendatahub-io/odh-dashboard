@@ -67,7 +67,9 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.getByText('Select a benchmark suite to evaluate your agent.'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent(
+      'All categories',
+    );
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
@@ -139,6 +141,41 @@ describe('CuratedBenchmarkSuitesPage', () => {
       screen.queryByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Customize')).not.toBeInTheDocument();
+  });
+
+  it('should hide classification filters while curated suites are loading', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.queryByTestId('benchmark-suites-category-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+  });
+
+  it('should keep filter controls mounted when local filters return no suites', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
+    fireEvent.click(screen.getByRole('option', { name: 'Government' }));
+
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'curated',
+      200,
+      'curation_order',
+      { aiEntities: ['agent'] },
+      undefined,
+    );
   });
 
   it('should reset gallery filters when the AI entity route changes without remounting', () => {
