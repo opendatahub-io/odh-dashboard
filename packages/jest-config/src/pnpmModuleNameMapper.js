@@ -1,6 +1,7 @@
 const path = require('path');
 
-const repoRoot = path.resolve(__dirname, '../..');
+// This file lives in packages/jest-config/src, so walk back to the monorepo root.
+const repoRoot = path.resolve(__dirname, '../../..');
 
 /**
  * pnpm-safe Jest moduleNameMapper entries for singleton React resolution.

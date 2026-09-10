@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@module-federation/enhanced": "^0.24.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.9.1",

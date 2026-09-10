@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const {
-  pnpmTransformIgnorePatterns,
-} = require('../../../../scripts/jest/pnpmTransformIgnorePatterns');
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
 
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html

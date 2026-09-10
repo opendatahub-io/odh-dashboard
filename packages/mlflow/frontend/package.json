@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@module-federation/enhanced": "^0.24.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",

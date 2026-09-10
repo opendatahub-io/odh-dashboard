@@ -19,6 +19,7 @@
     "test:type-check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@odh-dashboard/jest-config": "workspace:*",
     "@testing-library/jest-dom": "^6.6.2",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "14.6.1",
