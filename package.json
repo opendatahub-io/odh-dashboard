@@ -107,7 +107,7 @@
       "@patternfly/react-styles": "^6.4.0",
       "@patternfly/react-table": "^6.4.0",
       "@patternfly/react-virtualized-extension": "^6.2.0",
-      "immutable": "3.8.3"
+      "immutable": "4.3.9"
     },
     "@patternfly/react-topology": {
       "react": "^18.2.0"
