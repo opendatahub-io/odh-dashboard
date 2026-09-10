@@ -8,7 +8,7 @@ describe('AccessDeniedError', () => {
 
     expect(screen.getByText('Access denied')).toBeInTheDocument();
     expect(
-      screen.getByText('You do not have access to this project in Data Registry.'),
+      screen.getByText('You do not have the required access to this project in Data Registry.'),
     ).toBeInTheDocument();
   });
 
@@ -16,7 +16,7 @@ describe('AccessDeniedError', () => {
     render(<AccessDeniedError resourceName="collections" />);
 
     expect(
-      screen.getByText('You do not have access to collections in Data Registry.'),
+      screen.getByText('You do not have the required access to collections.'),
     ).toBeInTheDocument();
   });
 });

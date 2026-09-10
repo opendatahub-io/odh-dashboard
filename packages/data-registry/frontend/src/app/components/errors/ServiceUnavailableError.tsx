@@ -10,11 +10,10 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 
 type ServiceUnavailableErrorProps = {
-  onRetry: () => void;
-  error?: Error;
+  onRetry?: () => void;
 };
 
-const ServiceUnavailableError: React.FC<ServiceUnavailableErrorProps> = ({ onRetry, error }) => (
+const ServiceUnavailableError: React.FC<ServiceUnavailableErrorProps> = ({ onRetry }) => (
   <EmptyState
     headingLevel="h2"
     titleText="Data Registry service is temporarily unavailable"
@@ -25,21 +24,16 @@ const ServiceUnavailableError: React.FC<ServiceUnavailableErrorProps> = ({ onRet
     <EmptyStateBody>
       The Data Registry service is not responding. This may be temporary while the service is
       starting up or being updated.
-      {error ? (
-        <>
-          <br />
-          <br />
-          {error.message}
-        </>
-      ) : null}
     </EmptyStateBody>
-    <EmptyStateFooter>
-      <EmptyStateActions>
-        <Button variant="primary" onClick={onRetry} data-testid="retry-button">
-          Retry
-        </Button>
-      </EmptyStateActions>
-    </EmptyStateFooter>
+    {onRetry ? (
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button variant="primary" onClick={onRetry} data-testid="retry-button">
+            Retry
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    ) : null}
   </EmptyState>
 );
 

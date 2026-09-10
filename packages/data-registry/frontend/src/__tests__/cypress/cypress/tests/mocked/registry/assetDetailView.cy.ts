@@ -73,7 +73,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display table metadata in two-column layout', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('data-details-card').should('exist');
@@ -87,7 +87,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display asset type badge and Overview tab', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
@@ -96,7 +96,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display labels, properties, and schema cards', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('labels-card').should('exist');
@@ -114,7 +114,7 @@ describe('Table Detail View', () => {
   });
 
   it('should display created and modified with user attribution', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-created-at').should('contain.text', 'by user@example.com');
@@ -122,7 +122,7 @@ describe('Table Detail View', () => {
   });
 
   it('should show breadcrumb navigation', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.get('.pf-v6-c-breadcrumb').should('exist');
@@ -132,7 +132,7 @@ describe('Table Detail View', () => {
   });
 
   it('should open delete modal from kebab menu', () => {
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -148,14 +148,14 @@ describe('Table Detail View', () => {
       { statusCode: 204 },
     ).as('deleteTable');
 
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-confirmation').type('claims-data');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteTable');
-    cy.url().should('include', '/main-view?project=test-project');
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
   });
 
   it('should show a table deletion error', () => {
@@ -165,7 +165,7 @@ describe('Table Detail View', () => {
       { statusCode: 403, body: 'Forbidden' },
     ).as('deleteTable');
 
-    cy.visit('/main-view/assets/table/test-project/analytics/claims-data');
+    cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
@@ -187,7 +187,7 @@ describe('Volume Detail View', () => {
   });
 
   it('should display volume metadata as unified asset', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('data-details-card').should('exist');
@@ -199,7 +199,7 @@ describe('Volume Detail View', () => {
   });
 
   it('should display created and modified with user attribution', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-created-at').should('contain.text', 'by ml-team@example.com');
@@ -207,14 +207,14 @@ describe('Volume Detail View', () => {
   });
 
   it('should display the unstructured format field', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-format').should('contain.text', 'Documents');
   });
 
   it('should display asset type badge and Overview tab', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
@@ -223,7 +223,7 @@ describe('Volume Detail View', () => {
   });
 
   it('should display labels and properties cards', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('labels-card').should('exist');
@@ -237,14 +237,14 @@ describe('Volume Detail View', () => {
   });
 
   it('should not display schema card for volumes', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('schema-card').should('not.exist');
   });
 
   it('should handle delete action', () => {
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-actions-toggle').click();
@@ -260,14 +260,14 @@ describe('Volume Detail View', () => {
       { statusCode: 204 },
     ).as('deleteVolume');
 
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-confirmation').type('training-documents');
     cy.findByTestId('delete-asset-confirm').click();
     cy.wait('@deleteVolume');
-    cy.url().should('include', '/main-view?project=test-project');
+    cy.url().should('include', '/ai-hub/data/browse?project=test-project');
   });
 
   it('should show a volume deletion error', () => {
@@ -277,7 +277,7 @@ describe('Volume Detail View', () => {
       { statusCode: 404, body: 'Not found' },
     ).as('deleteVolume');
 
-    cy.visit('/main-view/assets/volume/test-project/default/training-documents');
+    cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();

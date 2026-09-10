@@ -88,21 +88,21 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
       if (is503Error(loadError)) {
         return (
           <PageSection hasBodyWrapper={false} isFilled>
-            <ServiceUnavailableError onRetry={onRetry} error={loadError} />
+            <ServiceUnavailableError onRetry={onRetry} />
           </PageSection>
         );
       }
       if (is403Error(loadError)) {
         return (
           <PageSection hasBodyWrapper={false} isFilled>
-            <AccessDeniedError error={loadError} />
+            <AccessDeniedError />
           </PageSection>
         );
       }
       if (isConnectionError(loadError)) {
         return (
           <PageSection hasBodyWrapper={false} isFilled>
-            <ConnectionError onRetry={onRetry} error={loadError} />
+            <ConnectionError onRetry={onRetry} />
           </PageSection>
         );
       }

@@ -29,15 +29,20 @@ import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { RegistryAsset } from '~/app/hooks/useAssets';
-import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
+import {
+  deleteGenericTable,
+  deleteVolume,
+  is503Error,
+  is403Error,
+  isConnectionError,
+} from '~/app/api/dataRegistry';
 import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { getFormatBadge, isStructured, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
-import DeleteAssetModal from './DeleteAssetModal';
-import { is503Error, is403Error, isConnectionError } from '~/app/api/dataRegistry';
-import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
+import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableError';
+import DeleteAssetModal from './DeleteAssetModal';
 
 type RegistryTableProps = {
   assets: RegistryAsset[];
@@ -296,21 +301,21 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     if (is503Error(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ServiceUnavailableError onRetry={onRetry} error={error} />
+          <ServiceUnavailableError onRetry={onRetry} />
         </PageSection>
       );
     }
     if (is403Error(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <AccessDeniedError error={error} />
+          <AccessDeniedError resourceName="this project" />
         </PageSection>
       );
     }
     if (isConnectionError(error)) {
       return (
         <PageSection hasBodyWrapper={false} isFilled>
-          <ConnectionError onRetry={onRetry} error={error} />
+          <ConnectionError onRetry={onRetry} />
         </PageSection>
       );
     }
