@@ -1137,7 +1137,8 @@ export const getMCPServerStatus = (
 
       // Handle BFF-level errors
       if (status === 404) {
-        throw new Error(`Server not found in ConfigMap: ${queryParams.server_url}`);
+        const serverIdentifier = queryParams.server_name ?? queryParams.server_url;
+        throw new Error(`MCP server not found: ${serverIdentifier}`);
       }
 
       if (status === 401) {
