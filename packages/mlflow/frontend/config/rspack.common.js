@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 const path = require('path');
 const { rspack } = require('@rspack/core');
+const { pnpmWebpackResolveAliases } = require('@odh-dashboard/app-config/webpack');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
-const { pnpmWebpackResolveAliases } = require('../../../../scripts/webpack/pnpmResolverIncludes');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;

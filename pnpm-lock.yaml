@@ -1441,6 +1441,9 @@ importers:
         specifier: ^7.18.2
         version: 7.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@eslint/js':
         specifier: ^9.18.0
         version: 9.39.5
@@ -1835,6 +1838,9 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -2207,6 +2213,9 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -2866,6 +2875,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -3252,6 +3264,9 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -3637,6 +3652,9 @@ importers:
         specifier: ^5.0.10
         version: 5.0.15(@types/react@18.3.31)(immer@11.1.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -4324,6 +4342,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
@@ -4697,6 +4718,9 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
     devDependencies:
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../app-config
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.1.10(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
