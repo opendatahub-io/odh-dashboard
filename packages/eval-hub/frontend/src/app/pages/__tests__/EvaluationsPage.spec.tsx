@@ -9,6 +9,10 @@ import EvaluationsPage from '~/app/pages/EvaluationsPage';
 
 const mockRefresh = jest.fn();
 const mockUseCollectionsQuery = jest.fn();
+const mockUseDeleteCollectionMutation = jest.fn();
+const mockDeleteCollection = jest.fn();
+const mockNotificationSuccess = jest.fn();
+const mockNotificationError = jest.fn();
 const mockUseEvaluationJobs = jest.fn<
   [EvaluationJob[], boolean, Error | undefined, jest.Mock],
   []
@@ -77,16 +81,18 @@ jest.mock('~/app/context/CollectionsContext', () => ({
 
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
-  useDeleteCollectionMutation: jest.fn().mockReturnValue({
-    error: null,
-    isPending: false,
-    mutateAsync: jest.fn(),
-    reset: jest.fn(),
-  }),
+  useDeleteCollectionMutation: (...args: unknown[]) => mockUseDeleteCollectionMutation(...args),
 }));
 
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: () => ({
+    success: mockNotificationSuccess,
+    error: mockNotificationError,
+  }),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () =>
@@ -133,6 +139,13 @@ describe('EvaluationsPage', () => {
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockDeleteCollection.mockResolvedValue(undefined);
+    mockUseDeleteCollectionMutation.mockReturnValue({
+      error: null,
+      isPending: false,
+      mutateAsync: mockDeleteCollection,
+      reset: jest.fn(),
+    });
     mockUseCollectionsQuery.mockReturnValue({
       data: { items: mockBenchmarkSuiteCollections() },
       isLoading: false,
@@ -169,6 +182,20 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
 
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
+  });
+
+  it('should show a success notification after deleting a benchmark suite', async () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByTestId('benchmark-suite-delete-confirm'));
+
+    await waitFor(() => expect(mockDeleteCollection).toHaveBeenCalledWith('model-suite-2'));
+    expect(mockNotificationSuccess).toHaveBeenCalledWith(
+      'Benchmark suite deleted',
+      '"Model suite 2" has been deleted.',
+    );
   });
 
   it('should link to the tenant benchmark suites page', () => {

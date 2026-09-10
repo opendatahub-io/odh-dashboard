@@ -354,6 +354,10 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     }
     try {
       await deleteCollection(collectionToDelete.resource.id);
+      notification.success(
+        'Benchmark suite deleted',
+        `"${collectionToDelete.name}" has been deleted.`,
+      );
       setCollectionToDelete(null);
     } catch (deleteError) {
       const message =
