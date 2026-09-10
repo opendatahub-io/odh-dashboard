@@ -46,14 +46,14 @@
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9113"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*"
   },
   "devDependencies": {
-    "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/contract-tests": "*",
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/contract-tests": "workspace:*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "eslint-plugin-n": "^17.23.1"
   }
 }
