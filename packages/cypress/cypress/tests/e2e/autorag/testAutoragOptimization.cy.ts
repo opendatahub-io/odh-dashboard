@@ -2,7 +2,11 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
-import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
+import {
+  createMaasSecret,
+  isExternalMaasConnection,
+  getExternalMaasConnection,
+} from '../../../utils/oc_commands/maasSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
@@ -13,6 +17,7 @@ import {
   isOgxOperatorManaged,
   provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
+  provisionVectorDatabase,
 } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
 import {
@@ -27,11 +32,11 @@ import {
 const uuid = generateTestUUID();
 
 /**
- * When OGX_URL is set, we use an external OGX instance (regression testing).
- * When empty/unset, we self-provision infrastructure (CI mode) — requires
- * the OGX operator to already be Managed on the cluster.
+ * When MAAS_URL or OGX_URL is set, we use an external Llama Stack / MaaS URL
+ * (regression testing). When empty/unset, we self-provision infrastructure
+ * (CI mode) — requires the OGX operator to already be Managed on the cluster.
  */
-const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
+const isExternalMaas = (): boolean => isExternalMaasConnection();
 
 describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
@@ -54,18 +59,26 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       .then(() => setAutoragEnabled(true))
       .then(() =>
         isOgxOperatorManaged().then((isManaged) => {
-          if (isExternalOgx()) {
+          if (isExternalMaas()) {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
             allowOgxAccess(projectName);
 
-            const ogxUrl = Cypress.env('OGX_URL') as string;
-            const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
-            createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
+            const connection = getExternalMaasConnection();
+            if (!connection) {
+              throw new Error('Expected MAAS_URL or OGX_URL for external mode');
+            }
+            createMaasSecret(
+              projectName,
+              testData.maasSecretName,
+              connection.url,
+              connection.apiKey,
+            );
+            provisionVectorDatabase(projectName, testData.vectorDbSecretName);
           } else {
             if (!isManaged) {
               throw new Error(
                 'OGX operator is not Managed on this cluster. ' +
-                  'Either set OGX_URL for external mode or ensure the operator is Managed.',
+                  'Either set MAAS_URL or OGX_URL for external mode or ensure the operator is Managed.',
               );
             }
 
@@ -75,7 +88,11 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
             provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
             cy.step('Provision AutoRAG infrastructure (vector store, OGX)');
-            provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
+            provisionAutoragInfrastructure(
+              projectName,
+              testData.maasSecretName,
+              testData.vectorDbSecretName,
+            );
           }
         }),
       ),
@@ -87,7 +104,11 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     }
 
     if (selfProvisioned) {
-      cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
+      cleanupAutoragInfrastructure(
+        projectName,
+        testData.maasSecretName,
+        testData.vectorDbSecretName,
+      );
     }
 
     removeOgxAccess(projectName);
