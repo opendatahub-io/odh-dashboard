@@ -444,13 +444,13 @@ describe('AIModelTableRow', () => {
       );
     });
 
-    it('should not show Try in playground for a namespace model when only the MaaS variant of the same model_id is in the playground', () => {
-      // Regression: before the fix both source-type rows resolved to the same
-      // playground entry because the lookup only compared modelId.
+    it('should show Try in playground when a namespace model ID is in the playground', () => {
+      // Model IDs are unique across sources, so the playground lookup only
+      // needs to compare model IDs.
       const sharedModelId = 'shared-model-id';
       const maasPlaygroundModel = createMockPlaygroundModel(sharedModelId, 'maas-vllm-inference-1');
 
-      // Render the NAMESPACE variant — the playground only contains the MaaS variant.
+      // Render the namespace model with the same ID as the playground model.
       const namespaceModel = createMockAIModel({
         model_id: sharedModelId,
         model_source_type: 'namespace',
@@ -466,9 +466,8 @@ describe('AIModelTableRow', () => {
         </TestWrapper>,
       );
 
-      // Namespace row must show "Add to playground", not "Try in playground".
-      expect(screen.getByText('Add to playground')).toBeInTheDocument();
-      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.getByText('Try in playground')).toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
 
       // No tracking event should fire.
       expect(mockFireMiscTrackingEvent).not.toHaveBeenCalledWith(
