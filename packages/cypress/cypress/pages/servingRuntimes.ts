@@ -58,6 +58,14 @@ class ServingRuntimeRow {
     this.findEnabledToggleInput().should(enabled ? 'be.checked' : 'not.be.checked');
     return this;
   }
+
+  findKebabToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Delete');
+  }
 }
 
 class ServingRuntimes {

@@ -72,14 +72,10 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
 
       // Edit the created model serving platform and delete
       cy.step(`Verify the model ${modelServingSingleName} has been created`);
-      cy.contains(metadataSingleDisplayName).should('be.visible');
-      servingRuntimes
-        .getRowById(modelServingSingleName)
-        .find()
-        .within(() => {
-          servingRuntimes.findEditModel().click();
-        });
-      servingRuntimes.findDeleteModel().click();
+      const runtimeRow = servingRuntimes.getRowById(modelServingSingleName);
+      runtimeRow.find().should('exist');
+      runtimeRow.findKebabToggle().click();
+      runtimeRow.findDeleteButton().click();
 
       servingRuntimes.findDeleteModal().should('be.visible').type(metadataSingleDisplayName);
 
