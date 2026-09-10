@@ -45,6 +45,11 @@ describe('LoadAgentProfileModal', () => {
   });
 
   it('should always show the saved agent comparison warning', () => {
+    jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
+      profiles: [],
+      totalCount: 0,
+    } as never);
+
     renderModal();
 
     expect(
