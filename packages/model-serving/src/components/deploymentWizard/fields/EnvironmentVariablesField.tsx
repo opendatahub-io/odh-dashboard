@@ -29,7 +29,11 @@ import {
   createDefaultEnvironmentVariable,
   EnvironmentVariableType,
   isEnvironmentVariableType,
+  isValidSecretDataKey,
+  isValidSecretName,
   normalizeEnvironmentVariable,
+  SECRET_DATA_KEY_VALIDATION_ERROR,
+  SECRET_NAME_VALIDATION_ERROR,
   type EnvironmentVariable,
 } from '../../../shared/environmentVariablesUtils';
 
@@ -49,8 +53,15 @@ const valueEnvVarSchema = z.object({
 const secretEnvVarSchema = z.object({
   type: z.literal(EnvironmentVariableType.Secret),
   name: envVarNameSchema,
-  secretName: z.string().min(1, 'Secret name is required'),
-  secretKey: z.string().min(1, 'Secret key is required'),
+  secretName: z
+    .string()
+    .min(1, 'Secret name is required')
+    .refine(isValidSecretName, SECRET_NAME_VALIDATION_ERROR),
+  secretKey: z
+    .string()
+    .min(1, 'Secret key is required')
+    .refine(isValidSecretDataKey, SECRET_DATA_KEY_VALIDATION_ERROR),
+  optional: z.boolean().optional(),
 });
 
 const enabledEnvVarSchema = z.discriminatedUnion('type', [valueEnvVarSchema, secretEnvVarSchema]);
@@ -61,6 +72,7 @@ const disabledEnvVarSchema = z.object({
   value: z.string().optional(),
   secretName: z.string().optional(),
   secretKey: z.string().optional(),
+  optional: z.boolean().optional(),
 });
 
 export const environmentVariablesFieldSchema = z.discriminatedUnion('enabled', [
@@ -95,7 +107,12 @@ const isEnvironmentVariableComplete = (envVar: EnvironmentVariable): boolean => 
   }
 
   if (envVar.type === EnvironmentVariableType.Secret) {
-    return envVar.secretName.trim() !== '' && envVar.secretKey.trim() !== '';
+    return (
+      envVar.secretName.trim() !== '' &&
+      envVar.secretKey.trim() !== '' &&
+      isValidSecretName(envVar.secretName) &&
+      isValidSecretDataKey(envVar.secretKey)
+    );
   }
 
   return true;
@@ -136,6 +153,7 @@ type EnvironmentVariableUpdates = {
   value?: string;
   secretName?: string;
   secretKey?: string;
+  optional?: boolean;
 };
 
 // Component
@@ -207,6 +225,9 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
             secretKey:
               updates.secretKey ??
               (currentVar.type === EnvironmentVariableType.Secret ? currentVar.secretKey : ''),
+            ...(currentVar.type === EnvironmentVariableType.Secret && currentVar.optional
+              ? { optional: true }
+              : {}),
           }
         : {
             type: EnvironmentVariableType.Value,
@@ -296,14 +317,20 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
               const normalizedEnvVar = normalizeEnvironmentVariable(envVar);
               const nameError = validateEnvVarName(normalizedEnvVar.name);
               const secretNameError =
-                normalizedEnvVar.type === EnvironmentVariableType.Secret &&
-                normalizedEnvVar.secretName.trim() === ''
-                  ? 'Secret name is required'
+                normalizedEnvVar.type === EnvironmentVariableType.Secret
+                  ? normalizedEnvVar.secretName.trim() === ''
+                    ? 'Secret name is required'
+                    : isValidSecretName(normalizedEnvVar.secretName)
+                    ? ''
+                    : SECRET_NAME_VALIDATION_ERROR
                   : '';
               const secretKeyError =
-                normalizedEnvVar.type === EnvironmentVariableType.Secret &&
-                normalizedEnvVar.secretKey.trim() === ''
-                  ? 'Secret key is required'
+                normalizedEnvVar.type === EnvironmentVariableType.Secret
+                  ? normalizedEnvVar.secretKey.trim() === ''
+                    ? 'Secret key is required'
+                    : isValidSecretDataKey(normalizedEnvVar.secretKey)
+                    ? ''
+                    : SECRET_DATA_KEY_VALIDATION_ERROR
                   : '';
 
               return (

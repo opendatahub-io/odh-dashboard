@@ -2,6 +2,8 @@ import {
   EnvironmentVariableType,
   createDefaultEnvironmentVariable,
   formatEnvironmentVariableForReview,
+  isValidSecretDataKey,
+  isValidSecretName,
   mapEnvironmentVariableToK8sEnv,
   mapEnvironmentVariablesToK8sEnv,
   mapK8sEnvToEnvironmentVariable,
@@ -40,6 +42,27 @@ describe('mapEnvironmentVariableToK8sEnv', () => {
       },
     });
   });
+
+  it('should preserve optional secretKeyRef on write', () => {
+    expect(
+      mapEnvironmentVariableToK8sEnv({
+        type: EnvironmentVariableType.Secret,
+        name: 'HF_TOKEN',
+        secretName: 'hf-secret',
+        secretKey: 'HF_TOKEN',
+        optional: true,
+      }),
+    ).toEqual({
+      name: 'HF_TOKEN',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'hf-secret',
+          key: 'HF_TOKEN',
+          optional: true,
+        },
+      },
+    });
+  });
 });
 
 describe('mapK8sEnvToEnvironmentVariable', () => {
@@ -72,6 +95,27 @@ describe('mapK8sEnvToEnvironmentVariable', () => {
       name: 'HF_TOKEN',
       secretName: 'hf-secret',
       secretKey: 'HF_TOKEN',
+    });
+  });
+
+  it('should preserve optional secretKeyRef on read', () => {
+    expect(
+      mapK8sEnvToEnvironmentVariable({
+        name: 'HF_TOKEN',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'hf-secret',
+            key: 'HF_TOKEN',
+            optional: true,
+          },
+        },
+      }),
+    ).toEqual({
+      type: EnvironmentVariableType.Secret,
+      name: 'HF_TOKEN',
+      secretName: 'hf-secret',
+      secretKey: 'HF_TOKEN',
+      optional: true,
     });
   });
 
@@ -171,6 +215,23 @@ describe('formatEnvironmentVariableForReview', () => {
         secretKey: 'HF_TOKEN',
       }),
     ).toBe('HF_TOKEN, secret/hf-secret:HF_TOKEN');
+  });
+});
+
+describe('secret reference validation', () => {
+  it('should accept valid secret names and keys', () => {
+    expect(isValidSecretName('hf-token-test')).toBe(true);
+    expect(isValidSecretName('my.secret.name')).toBe(true);
+    expect(isValidSecretDataKey('HF_TOKEN')).toBe(true);
+    expect(isValidSecretDataKey('tls.crt')).toBe(true);
+  });
+
+  it('should reject invalid secret names and keys', () => {
+    expect(isValidSecretName('')).toBe(false);
+    expect(isValidSecretName('INVALID_NAME')).toBe(false);
+    expect(isValidSecretName('bad name')).toBe(false);
+    expect(isValidSecretDataKey('')).toBe(false);
+    expect(isValidSecretDataKey('bad key')).toBe(false);
   });
 });
 

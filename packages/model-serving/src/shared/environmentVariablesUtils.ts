@@ -17,9 +17,31 @@ export type SecretEnvironmentVariable = {
   name: string;
   secretName: string;
   secretKey: string;
+  optional?: boolean;
 };
 
 export type EnvironmentVariable = ValueEnvironmentVariable | SecretEnvironmentVariable;
+
+const SECRET_NAME_MAX_LENGTH = 253;
+const SECRET_DATA_KEY_MAX_LENGTH = 253;
+
+/** Secret metadata.name — DNS subdomain (RFC 1123), not a DNS label. */
+const SECRET_NAME_REGEX = /^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/;
+
+/** Secret data key — valid path segment name. */
+const SECRET_DATA_KEY_REGEX = /^[-]?([_a-zA-Z0-9]([-._a-zA-Z0-9]*[_a-zA-Z0-9])?)$/;
+
+export const SECRET_NAME_VALIDATION_ERROR =
+  'Secret name must be a valid Kubernetes secret name (lowercase letters, numbers, hyphens, or dots; max 253 characters)';
+
+export const SECRET_DATA_KEY_VALIDATION_ERROR =
+  'Secret key must be a valid Kubernetes secret data key (letters, numbers, hyphens, underscores, or dots)';
+
+export const isValidSecretName = (name: string): boolean =>
+  name.length > 0 && name.length <= SECRET_NAME_MAX_LENGTH && SECRET_NAME_REGEX.test(name);
+
+export const isValidSecretDataKey = (key: string): boolean =>
+  key.length > 0 && key.length <= SECRET_DATA_KEY_MAX_LENGTH && SECRET_DATA_KEY_REGEX.test(key);
 
 /** Env var as written to serving CRs (value or secretKeyRef, never both). */
 export type K8sEnvironmentVariable =
@@ -30,6 +52,7 @@ export type K8sEnvironmentVariable =
         secretKeyRef: {
           name: string;
           key: string;
+          optional?: boolean;
         };
       };
     };
@@ -43,7 +66,7 @@ export type K8sEnvironmentVariableInput = {
 
 const getSecretKeyRef = (
   valueFrom: Record<string, unknown>,
-): { name: string; key: string } | undefined => {
+): { name: string; key: string; optional?: boolean } | undefined => {
   const { secretKeyRef } = valueFrom;
   if (
     secretKeyRef &&
@@ -53,7 +76,11 @@ const getSecretKeyRef = (
     typeof secretKeyRef.name === 'string' &&
     typeof secretKeyRef.key === 'string'
   ) {
-    return { name: secretKeyRef.name, key: secretKeyRef.key };
+    return {
+      name: secretKeyRef.name,
+      key: secretKeyRef.key,
+      ...('optional' in secretKeyRef && secretKeyRef.optional === true ? { optional: true } : {}),
+    };
   }
   return undefined;
 };
@@ -73,6 +100,7 @@ export const normalizeEnvironmentVariable = (
       name: envVar.name,
       secretName: envVar.secretName ?? '',
       secretKey: envVar.secretKey ?? '',
+      ...(envVar.optional ? { optional: true } : {}),
     };
   }
 
@@ -93,6 +121,7 @@ export const mapEnvironmentVariableToK8sEnv = (
         secretKeyRef: {
           name: envVar.secretName,
           key: envVar.secretKey,
+          ...(envVar.optional ? { optional: true } : {}),
         },
       },
     };
@@ -119,6 +148,7 @@ export const mapK8sEnvToEnvironmentVariable = (
         name: envVar.name,
         secretName: secretKeyRef.name,
         secretKey: secretKeyRef.key,
+        ...(secretKeyRef.optional ? { optional: true } : {}),
       };
     }
   }
