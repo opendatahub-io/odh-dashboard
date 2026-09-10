@@ -3,7 +3,9 @@ import {
   getDividerPosition,
   getWeightSegmentColor,
   percentagesToWeights,
+  ratiosToWeights,
   redistributeWeight,
+  weightsToRatios,
   weightsToPercentages,
 } from '~/app/utilities/weightDistributionUtils';
 
@@ -36,6 +38,37 @@ describe('weightDistributionUtils', () => {
     });
   });
 
+  describe('weightsToRatios', () => {
+    it('should convert weights into relative ratios', () => {
+      expect(weightsToRatios([0.25, 0.75])).toEqual([1, 3]);
+    });
+
+    it('should convert rounded percentage distributions into whole-number ratios', () => {
+      expect(weightsToRatios([0.17, 0.17, 0.17, 0.17, 0.16, 0.16])).toEqual([
+        17, 17, 17, 17, 16, 16,
+      ]);
+    });
+
+    it('should use equal ratios when there are no positive weights', () => {
+      expect(weightsToRatios([0, 0])).toEqual([1, 1]);
+    });
+  });
+
+  describe('ratiosToWeights', () => {
+    it('should normalize equal ratios to weights that sum to one', () => {
+      const weights = ratiosToWeights([1, 1, 1]);
+
+      expect(weights[0]).toBeCloseTo(1 / 3);
+      expect(weights[1]).toBeCloseTo(1 / 3);
+      expect(weights[2]).toBeCloseTo(1 / 3);
+      expect(weights.reduce((sum, value) => sum + value, 0)).toBe(1);
+    });
+
+    it('should preserve relative ratios when normalizing', () => {
+      expect(ratiosToWeights([1, 3])).toEqual([0.25, 0.75]);
+    });
+  });
+
   describe('adjustAdjacentPercentages', () => {
     it('should preserve the total for the adjusted pair', () => {
       const next = adjustAdjacentPercentages([17, 17, 17, 17, 16, 16], 0, 20);
@@ -46,10 +79,24 @@ describe('weightDistributionUtils', () => {
   });
 
   describe('getWeightSegmentColor', () => {
-    it('should follow the prototype palette order by index', () => {
-      expect(getWeightSegmentColor(0)).toBe('rgb(0, 102, 204)');
-      expect(getWeightSegmentColor(1)).toBe('rgb(0, 149, 150)');
-      expect(getWeightSegmentColor(2)).toBe('rgb(132, 120, 222)');
+    it('should follow the PatternFly palette-token order and wrap after ten colors', () => {
+      const expectedColors = [
+        'var(--evalhub-weight-color-blue)',
+        'var(--evalhub-weight-color-green)',
+        'var(--evalhub-weight-color-teal)',
+        'var(--evalhub-weight-color-purple)',
+        'var(--evalhub-weight-color-yellow)',
+        'var(--evalhub-weight-color-orange)',
+        'var(--evalhub-weight-color-blue-light)',
+        'var(--evalhub-weight-color-blue-dark)',
+        'var(--evalhub-weight-color-green-light)',
+        'var(--evalhub-weight-color-green-dark)',
+      ];
+
+      expect(expectedColors.map((_color, index) => getWeightSegmentColor(index))).toEqual(
+        expectedColors,
+      );
+      expect(getWeightSegmentColor(expectedColors.length)).toBe(expectedColors[0]);
     });
   });
 

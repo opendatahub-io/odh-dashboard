@@ -15,7 +15,6 @@ import {
   copySuiteDefaultValues,
   copySuiteSchema,
   type CopySuiteBenchmarkParameter,
-  type CopySuiteBenchmarkParameterType,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 import type {
@@ -38,11 +37,6 @@ export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): 
 const isDynamicParameterValue = (value: unknown): value is string | number | boolean =>
   typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 
-const getDynamicParameterType = (
-  value: string | number | boolean,
-): CopySuiteBenchmarkParameterType =>
-  typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : 'text';
-
 const splitBenchmarkParameters = (
   parameters?: Record<string, unknown>,
 ): { parameters: CopySuiteBenchmarkParameter[]; additionalParameters: string } => {
@@ -51,7 +45,13 @@ const splitBenchmarkParameters = (
 
   Object.entries(parameters ?? {}).forEach(([key, value]) => {
     if (isDynamicParameterValue(value)) {
-      dynamicParameters.push({ key, type: getDynamicParameterType(value), value });
+      if (typeof value === 'number') {
+        dynamicParameters.push({ key, type: 'number', value });
+      } else if (typeof value === 'boolean') {
+        dynamicParameters.push({ key, type: 'boolean', value });
+      } else {
+        dynamicParameters.push({ key, type: 'text', value });
+      }
     } else {
       additionalParameters[key] = value;
     }
@@ -73,7 +73,7 @@ const splitBenchmarkParameters = (
 export const updateBenchmarkParameter = (
   parameters: CopySuiteBenchmarkParameter[],
   key: string,
-  value: string,
+  value: string | boolean,
 ): CopySuiteBenchmarkParameter[] =>
   parameters.map((parameter) => {
     if (parameter.key !== key) {
@@ -89,7 +89,23 @@ export const updateBenchmarkParameter = (
       return { ...parameter, value: Number.isFinite(numericValue) ? numericValue : undefined };
     }
 
-    return { ...parameter, value };
+    if (parameter.type === 'boolean') {
+      if (typeof value === 'boolean') {
+        return { ...parameter, value };
+      }
+
+      if (value === 'true') {
+        return { ...parameter, value: true };
+      }
+
+      if (value === 'false') {
+        return { ...parameter, value: false };
+      }
+
+      return { ...parameter, value: undefined };
+    }
+
+    return { ...parameter, value: String(value) };
   });
 
 const parseAdditionalParameters = (
@@ -342,20 +358,33 @@ const resolveInitialEvaluates = (
 const buildBenchmarkFromProvider = (
   provider: Provider,
   providerBenchmark: ProviderBenchmark,
-): CopySuiteBenchmark => ({
-  id: providerBenchmark.id,
-  providerId: provider.resource.id,
-  name: providerBenchmark.name || providerBenchmark.id,
-  weight: 1,
-  primaryMetric: providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
-  lowerIsBetter: providerBenchmark.primary_score?.lower_is_better,
-  parameters: [],
-  additionalParameters: '',
-  threshold: providerBenchmark.pass_criteria
-    ? normalizeThreshold(providerBenchmark.pass_criteria.threshold)
-    : DEFAULT_SUITE_THRESHOLD,
-  availableMetrics: providerBenchmark.metrics ?? [],
-});
+): CopySuiteBenchmark => {
+  /* eslint-disable camelcase */
+  const parameterState = splitBenchmarkParameters({
+    ...(providerBenchmark.dataset_size != null
+      ? { num_examples: providerBenchmark.dataset_size }
+      : {}),
+    ...(providerBenchmark.num_few_shot != null
+      ? { num_few_shot: providerBenchmark.num_few_shot }
+      : {}),
+  });
+  /* eslint-enable camelcase */
+
+  return {
+    id: providerBenchmark.id,
+    providerId: provider.resource.id,
+    name: providerBenchmark.name || providerBenchmark.id,
+    weight: 1,
+    primaryMetric: providerBenchmark.primary_score?.metric ?? providerBenchmark.metrics?.[0],
+    lowerIsBetter: providerBenchmark.primary_score?.lower_is_better,
+    parameters: parameterState.parameters,
+    additionalParameters: parameterState.additionalParameters,
+    threshold: providerBenchmark.pass_criteria
+      ? normalizeThreshold(providerBenchmark.pass_criteria.threshold)
+      : DEFAULT_SUITE_THRESHOLD,
+    availableMetrics: providerBenchmark.metrics ?? [],
+  };
+};
 
 export const createBenchmarkFromKey = (
   key: string,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup, Grid, GridItem, TextInput } from '@patternfly/react-core';
+import { Checkbox, FormGroup, Grid, GridItem, TextInput } from '@patternfly/react-core';
 import type {
   CopySuiteBenchmarkParameter,
   CopySuiteBenchmarkParameterType,
@@ -9,11 +9,13 @@ type DynamicBenchmarkParameterFieldsProps = {
   parameters: CopySuiteBenchmarkParameter[];
   itemId: string;
   isDisabled?: boolean;
-  onChange: (key: string, value: string) => void;
+  onChange: (key: string, value: string | boolean) => void;
 };
 
-const parameterTypeToInputType = (type: CopySuiteBenchmarkParameterType): 'number' | 'text' =>
-  type === 'number' ? 'number' : 'text';
+const parameterTypeToInputType = (
+  type: CopySuiteBenchmarkParameterType,
+): 'checkbox' | 'number' | 'text' =>
+  type === 'number' ? 'number' : type === 'boolean' ? 'checkbox' : 'text';
 
 export const getBenchmarkParameterLabel = (key: string): string => {
   const words = key
@@ -40,18 +42,29 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
       {sortedParameters.map((parameter) => {
         const fieldId = `${itemId}-parameter-${parameter.key}`;
         const value = parameter.value == null ? '' : String(parameter.value);
+        const inputType = parameterTypeToInputType(parameter.type);
 
         return (
           <GridItem span={6} key={parameter.key}>
             <FormGroup label={getBenchmarkParameterLabel(parameter.key)} fieldId={fieldId}>
-              <TextInput
-                id={fieldId}
-                data-testid={`${itemId}-parameter-input-${parameter.key}`}
-                type={parameterTypeToInputType(parameter.type)}
-                value={value}
-                isDisabled={isDisabled}
-                onChange={(_event, nextValue) => onChange(parameter.key, nextValue)}
-              />
+              {inputType === 'checkbox' ? (
+                <Checkbox
+                  id={fieldId}
+                  data-testid={`${itemId}-parameter-input-${parameter.key}`}
+                  isChecked={parameter.value === true}
+                  isDisabled={isDisabled}
+                  onChange={(_event, checked) => onChange(parameter.key, checked)}
+                />
+              ) : (
+                <TextInput
+                  id={fieldId}
+                  data-testid={`${itemId}-parameter-input-${parameter.key}`}
+                  type={inputType}
+                  value={value}
+                  isDisabled={isDisabled}
+                  onChange={(_event, nextValue) => onChange(parameter.key, nextValue)}
+                />
+              )}
             </FormGroup>
           </GridItem>
         );

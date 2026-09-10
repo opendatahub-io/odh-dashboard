@@ -4,11 +4,6 @@
   gap: var(--pf-t--global--spacer--lg);
 }
 
-.evalhub-benchmark-weights-modal__intro {
-  margin: 0;
-  color: var(--pf-t--global--text--color--subtle);
-}
-
 .evalhub-benchmark-weights-modal__sticky-bar {
   position: sticky;
   top: 0;
@@ -17,8 +12,38 @@
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-.evalhub-benchmark-weights-modal__sliders {
-  display: flex;
-  flex-direction: column;
+.evalhub-benchmark-weights-modal__inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--pf-t--global--spacer--lg);
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__group {
+  --pf-v6-c-form__group--Gap: var(--pf-t--global--spacer--xs);
+}
+
+.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__group-label {
+  line-height: 0;
+}
+
+.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__label {
+  display: block;
+  line-height: var(--pf-t--global--font--line-height--body);
+}
+
+.evalhub-benchmark-weights-modal__inputs .pf-v6-c-form__label-text {
+  display: block;
+  min-width: 0;
+}
+
+.evalhub-benchmark-weights-modal__input-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

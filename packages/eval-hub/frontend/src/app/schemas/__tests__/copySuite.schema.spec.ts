@@ -64,6 +64,24 @@ describe('copySuiteSchema', () => {
     expect(unsupported.success).toBe(false);
   });
 
+  it('should reject benchmark parameter values that do not match their declared type', () => {
+    const result = copySuiteSchema.safeParse({
+      ...validValues(),
+      benchmarks: [
+        {
+          ...validValues().benchmarks[0],
+          parameters: [
+            { key: 'number', type: 'number', value: '1' },
+            { key: 'boolean', type: 'boolean', value: 'true' },
+            { key: 'text', type: 'text', value: 1 },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('should reject malformed and non-object advanced parameters', () => {
     const malformed = copySuiteSchema.safeParse({
       ...validValues(),

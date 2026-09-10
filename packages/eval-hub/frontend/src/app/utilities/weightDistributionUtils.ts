@@ -1,13 +1,17 @@
 export const MIN_SEGMENT_PERCENT = 1;
 
-/** Prototype palette order: blue, teal, purple, gold, orange, green. */
+/** PatternFly palette-token order used by the benchmark weight bar. */
 export const WEIGHT_SEGMENT_COLORS = [
-  'rgb(0, 102, 204)',
-  'rgb(0, 149, 150)',
-  'rgb(132, 120, 222)',
-  'rgb(240, 171, 0)',
-  'rgb(236, 122, 8)',
-  'rgb(61, 115, 23)',
+  'var(--evalhub-weight-color-blue)',
+  'var(--evalhub-weight-color-green)',
+  'var(--evalhub-weight-color-teal)',
+  'var(--evalhub-weight-color-purple)',
+  'var(--evalhub-weight-color-yellow)',
+  'var(--evalhub-weight-color-orange)',
+  'var(--evalhub-weight-color-blue-light)',
+  'var(--evalhub-weight-color-blue-dark)',
+  'var(--evalhub-weight-color-green-light)',
+  'var(--evalhub-weight-color-green-dark)',
 ] as const;
 
 export const getWeightSegmentColor = (index: number): string =>
@@ -69,6 +73,63 @@ export const adjustAdjacentPercentages = (
 /** Convert display percentages into normalized decimal weights for the API. */
 export const percentagesToWeights = (percentages: number[]): number[] =>
   percentages.map((percentage) => percentage / 100);
+
+const greatestCommonDivisor = (first: number, second: number): number => {
+  let left = Math.abs(first);
+  let right = Math.abs(second);
+
+  while (right > 0) {
+    const remainder = left % right;
+    left = right;
+    right = remainder;
+  }
+
+  return left;
+};
+
+/** Convert positive weights into reduced whole-number ratios that can be edited. */
+export const weightsToRatios = (weights: number[]): number[] => {
+  if (weights.length === 0) {
+    return [];
+  }
+
+  const percentages = weightsToPercentages(weights);
+  const divisor = percentages
+    .filter((percentage) => percentage > 0)
+    .reduce(greatestCommonDivisor, 0);
+  if (divisor <= 0) {
+    return weights.map(() => 1);
+  }
+
+  return percentages.map((percentage) => (percentage > 0 ? percentage / divisor : 1));
+};
+
+/** Convert positive relative values into normalized decimal weights for the API. */
+export const ratiosToWeights = (ratios: number[]): number[] => {
+  if (ratios.length === 0) {
+    return [];
+  }
+
+  const positiveRatios = ratios.map((ratio) => (Number.isFinite(ratio) && ratio > 0 ? ratio : 0));
+  const total = positiveRatios.reduce((sum, ratio) => sum + ratio, 0);
+  if (total <= 0) {
+    const even = 1 / ratios.length;
+    return ratios.map((_ratio, index) =>
+      index === ratios.length - 1 ? 1 - even * (ratios.length - 1) : even,
+    );
+  }
+
+  let normalizedTotal = 0;
+  return positiveRatios.map((ratio, index) => {
+    if (index === positiveRatios.length - 1) {
+      return 1 - normalizedTotal;
+    }
+
+    const normalizedRatio = ratio / total;
+    normalizedTotal += normalizedRatio;
+    return normalizedRatio;
+  });
+};
 
 const clampPercent = (value: number, minPercent: number, maxPercent: number): number =>
   Math.max(minPercent, Math.min(maxPercent, Math.round(value)));

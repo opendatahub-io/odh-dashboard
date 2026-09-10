@@ -5,7 +5,12 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { cloneCollection, createCollection } from '~/app/api/k8s';
 import { useNotification } from '~/app/hooks/useNotification';
-import { updateBenchmarkParameter, useCopySuiteForm } from '~/app/pages/useCopySuiteForm';
+import {
+  buildPendingCollection,
+  createBenchmarkFromKey,
+  updateBenchmarkParameter,
+  useCopySuiteForm,
+} from '~/app/pages/useCopySuiteForm';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
@@ -124,6 +129,42 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUseNavigate.mockReturnValue(mockNavigate);
   mockUseNotification.mockReturnValue(mockNotification);
+});
+
+describe('createBenchmarkFromKey', () => {
+  it('should initialize provider benchmark runtime parameter defaults', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', [
+      {
+        ...providers[0],
+        benchmarks: [{ ...providers[0].benchmarks![0], num_few_shot: 0 }],
+      },
+    ]);
+
+    expect(benchmark).toEqual(
+      expect.objectContaining({
+        parameters: [
+          { key: 'num_examples', type: 'number', value: 1000 },
+          { key: 'num_few_shot', type: 'number', value: 0 },
+        ],
+        additionalParameters: '',
+      }),
+    );
+
+    expect(
+      buildPendingCollection({
+        sourceCollection,
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark!],
+      }).benchmarks?.[0].parameters,
+    ).toEqual({ num_examples: 1000, num_few_shot: 0 });
+  });
 });
 
 describe('useCopySuiteForm', () => {

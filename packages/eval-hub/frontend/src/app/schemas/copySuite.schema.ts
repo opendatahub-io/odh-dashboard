@@ -4,11 +4,24 @@ import { SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
 export type CopySuiteBenchmarkParameterType = z.infer<typeof copySuiteBenchmarkParameterTypeSchema>;
 
-export const copySuiteBenchmarkParameterSchema = z.object({
+const copySuiteBenchmarkParameterBaseSchema = z.object({
   key: z.string().min(1),
-  type: copySuiteBenchmarkParameterTypeSchema,
-  value: z.union([z.string(), z.number(), z.boolean()]).optional(),
 });
+
+export const copySuiteBenchmarkParameterSchema = z.discriminatedUnion('type', [
+  copySuiteBenchmarkParameterBaseSchema.extend({
+    type: z.literal('number'),
+    value: z.number().optional(),
+  }),
+  copySuiteBenchmarkParameterBaseSchema.extend({
+    type: z.literal('boolean'),
+    value: z.boolean().optional(),
+  }),
+  copySuiteBenchmarkParameterBaseSchema.extend({
+    type: z.literal('text'),
+    value: z.string().optional(),
+  }),
+]);
 
 export type CopySuiteBenchmarkParameter = z.infer<typeof copySuiteBenchmarkParameterSchema>;
 

@@ -19,6 +19,7 @@ export type WeightSegment = {
 type WeightDistributionBarProps = {
   segments: WeightSegment[];
   onWeightsChange?: (weights: number[]) => void;
+  showPercentages?: boolean;
 };
 
 const getFeasibleMinimumPercent = (pairTotal: number): number =>
@@ -27,6 +28,7 @@ const getFeasibleMinimumPercent = (pairTotal: number): number =>
 const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
   segments,
   onWeightsChange,
+  showPercentages = true,
 }) => {
   const barRef = React.useRef<HTMLDivElement>(null);
   const dragStateRef = React.useRef<{
@@ -145,7 +147,7 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
   }
 
   return (
-    <div data-testid="weight-distribution">
+    <div className="evalhub-weight-distribution" data-testid="weight-distribution">
       <div
         ref={barRef}
         className="evalhub-weight-distribution-bar"
@@ -161,12 +163,16 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
               backgroundColor: getWeightSegmentColor(index),
             }}
             role="img"
-            aria-label={`${segment.label}: ${percentages[index]}%`}
+            aria-label={
+              showPercentages ? `${segment.label}: ${percentages[index]}%` : segment.label
+            }
             data-testid={`weight-segment-${index}`}
           >
-            <span className="evalhub-weight-distribution-bar__segment-label">
-              {percentages[index]}%
-            </span>
+            {showPercentages ? (
+              <span className="evalhub-weight-distribution-bar__segment-label">
+                {percentages[index]}%
+              </span>
+            ) : null}
           </div>
         ))}
         {onWeightsChange
@@ -222,7 +228,7 @@ const WeightDistributionBar: React.FC<WeightDistributionBarProps> = ({
                   component="small"
                   className="evalhub-weight-distribution-bar__legend-label"
                 >
-                  {segment.label} {percentages[index]}%
+                  {showPercentages ? `${segment.label} ${percentages[index]}%` : segment.label}
                 </Content>
               </FlexItem>
             </Flex>

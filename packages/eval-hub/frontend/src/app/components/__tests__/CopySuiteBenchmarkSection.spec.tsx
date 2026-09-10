@@ -61,7 +61,9 @@ describe('CopySuiteBenchmarkSection', () => {
   });
 
   it('should render dynamic benchmark parameters with the API value type', () => {
+    const onUpdate = jest.fn();
     renderSection({
+      onUpdate,
       benchmark: {
         ...benchmark,
         parameters: [
@@ -74,7 +76,15 @@ describe('CopySuiteBenchmarkSection', () => {
 
     expect(screen.getByLabelText('Secondary metric')).toHaveValue('accuracy_amb');
     expect(screen.getByLabelText('Secondary threshold')).toHaveAttribute('type', 'number');
-    expect(screen.getByLabelText('Enabled')).toHaveValue('true');
+    expect(screen.getByLabelText('Enabled')).toBeChecked();
+
+    fireEvent.click(screen.getByLabelText('Enabled'));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      0,
+      'parameters',
+      expect.arrayContaining([{ key: 'enabled', type: 'boolean', value: false }]),
+    );
   });
 
   it('should close and disable a primary-metric menu when interaction is locked', async () => {
