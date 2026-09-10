@@ -26,15 +26,19 @@ describe('Connections page', () => {
   it('should redirect to the connection types tab from the standalone entry route', () => {
     connectionsPage.visit();
 
-    cy.location('pathname').should('eq', '/main-view/connection-types');
-    cy.location('search').should('eq', '?project=namespace-1');
+    cy.location().should('deep.include', {
+      pathname: '/main-view/connection-types',
+      search: '?project=namespace-1',
+    });
   });
 
   it('should switch tabs while preserving the selected project', () => {
     connectionsPage.visit();
     connectionsPage.findTab('connections').click();
 
-    cy.location('pathname').should('eq', '/main-view/connections');
-    cy.location('search').should('eq', '?project=namespace-1');
+    cy.location().should('deep.include', {
+      pathname: '/main-view/connections',
+      search: '?project=namespace-1',
+    });
   });
 });
