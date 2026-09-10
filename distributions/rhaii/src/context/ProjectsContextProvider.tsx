@@ -57,20 +57,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
     const load = async (): Promise<void> => {
       try {
-        const [projects, statusResponse] = await Promise.all([
-          fetchNamespaces(controller.signal),
-          typeof fetch === 'function'
-            ? fetch('/api/status', { signal: controller.signal }).catch(() => undefined)
-            : Promise.resolve(undefined),
-        ]);
-        if (statusResponse?.ok) {
-          const namespace = getDashboardNamespace(
-            await statusResponse.json().catch(() => undefined),
-          );
-          if (!unmounted && namespace) {
-            setDashboardNamespace(namespace);
-          }
-        }
+        const projects = await fetchNamespaces(controller.signal);
         if (!unmounted) {
           setProjectData(projects);
           setLoadError(undefined);
@@ -90,6 +77,20 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
     setLoaded(false);
     void load();
+
+    void fetch('/api/status', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          return undefined;
+        }
+        return getDashboardNamespace(await response.json().catch(() => undefined));
+      })
+      .then((namespace) => {
+        if (!unmounted && namespace) {
+          setDashboardNamespace(namespace);
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       unmounted = true;

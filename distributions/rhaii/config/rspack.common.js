@@ -47,11 +47,6 @@ module.exports = (overrides = {}) =>
               }
             : undefined,
           dts: false,
-          shared: {
-            '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
-            '@odh-dashboard/analytics': { singleton: true, requiredVersion: '*' },
-            '@openshift/dynamic-plugin-sdk-utils': { singleton: true, requiredVersion: '*' },
-          },
         }),
         new rspack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify('RHAII'),

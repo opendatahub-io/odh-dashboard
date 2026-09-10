@@ -6,6 +6,7 @@ import {
   type HostApiCoreServices,
   type HostApiInfraServices,
   type HostApiServices,
+  type ClusterSettingsType,
 } from '@odh-dashboard/plugin-core';
 
 const ProjectDetailsContext = React.createContext(null);
@@ -27,6 +28,15 @@ const coreApi: HostApiCoreServices = {
   trackEvent: () => undefined,
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII Tilt host.')),
+  fetchClusterSettings: () =>
+    Promise.resolve<ClusterSettingsType>({
+      userTrackingEnabled: false,
+      pvcSize: 0,
+      cullerTimeout: 0,
+      modelServingPlatformEnabled: { kServe: true, LLMd: false },
+    }),
+  updateClusterSettings: () =>
+    Promise.reject(new Error('Cluster settings are not configurable in the RHAII Tilt host.')),
 };
 
 const infraApi: HostApiInfraServices = {

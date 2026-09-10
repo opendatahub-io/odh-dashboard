@@ -57,4 +57,9 @@ const start = async () => {
 start().catch((error: unknown) => {
   // eslint-disable-next-line no-console
   console.error('Failed to initialize the RHAII distribution:', error);
+  const root = document.getElementById('root');
+  if (root) {
+    root.textContent = 'Failed to initialize the application. Please refresh the page.';
+    root.style.padding = '2rem';
+  }
 });
