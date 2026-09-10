@@ -201,7 +201,7 @@ func waitForServiceEndpoints(c client.Client, namespace, name string, timeout ti
 		timeout,
 		true,
 		func(ctx context.Context) (bool, error) {
-			//nolint:staticcheck // RHOAIENG-83656 explicitly requires a core/v1 Endpoints readiness helper.
+			//nolint:staticcheck // Test the legacy Endpoints resource because dashboard Services still publish it.
 			endpoints := &corev1.Endpoints{}
 			if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, endpoints); err != nil {
 				if apierrors.IsNotFound(err) {
@@ -230,11 +230,52 @@ func waitForServiceEndpoints(c client.Client, namespace, name string, timeout ti
 func assertJQMatch(t *testing.T, actual any, expression string, args ...any) {
 	t.Helper()
 
+	matched, failureMessage := evaluateJQMatch(actual, expression, args...)
+	if !matched {
+		t.Fatal(failureMessage)
+	}
+}
+
+func evaluateJQMatch(actual any, expression string, args ...any) (bool, string) {
 	matcher := jq.Match(expression, args...)
 	matched, err := matcher.Match(actual)
-	require.NoError(t, err)
+	if err != nil {
+		return false, "failed to evaluate JQ assertion"
+	}
 	if !matched {
-		t.Fatal(matcher.FailureMessage(actual))
+		return false, "JQ assertion did not match"
+	}
+
+	return true, ""
+}
+
+func TestEvaluateJQMatchRedactsSensitiveValues(t *testing.T) {
+	testCases := []struct {
+		name       string
+		actual     any
+		expression string
+		sensitive  string
+	}{
+		{
+			name:       "mismatch",
+			actual:     map[string]any{"token": "secret-token"},
+			expression: `.token == "different-token"`,
+			sensitive:  "secret-token",
+		},
+		{
+			name:       "evaluation error",
+			actual:     "secret-token",
+			expression: `.token == "ready"`,
+			sensitive:  "secret-token",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			matched, failureMessage := evaluateJQMatch(testCase.actual, "%s", testCase.expression)
+			require.False(t, matched)
+			require.NotContains(t, failureMessage, testCase.sensitive)
+		})
 	}
 }
 

@@ -79,7 +79,6 @@ func initializeE2E() error {
 	if err != nil {
 		return fmt.Errorf("build REST config from KUBECONFIG: %w", err)
 	}
-	config.Timeout = preflightTimeout
 
 	c, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
@@ -121,13 +120,17 @@ func initializeE2E() error {
 
 func newE2EScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
-	for name, addToScheme := range map[string]func(*runtime.Scheme) error{
-		"Kubernetes":    clientgoscheme.AddToScheme,
-		"apiextensions": apiextensionsv1.AddToScheme,
-		"Dashboard":     dashboardv1alpha1.AddToScheme,
-	} {
-		if err := addToScheme(scheme); err != nil {
-			return nil, fmt.Errorf("register %s APIs with E2E scheme: %w", name, err)
+	registrations := []struct {
+		name        string
+		addToScheme func(*runtime.Scheme) error
+	}{
+		{name: "Kubernetes", addToScheme: clientgoscheme.AddToScheme},
+		{name: "apiextensions", addToScheme: apiextensionsv1.AddToScheme},
+		{name: "Dashboard", addToScheme: dashboardv1alpha1.AddToScheme},
+	}
+	for _, registration := range registrations {
+		if err := registration.addToScheme(scheme); err != nil {
+			return nil, fmt.Errorf("register %s APIs with E2E scheme: %w", registration.name, err)
 		}
 	}
 
